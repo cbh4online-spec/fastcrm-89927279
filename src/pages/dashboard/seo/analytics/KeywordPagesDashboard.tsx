@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -10,269 +10,124 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { TrendingUp, TrendingDown, Search, ArrowUpDown, ExternalLink } from 'lucide-react';
+} from "@/components/ui/table";
+import { Search, ExternalLink, Eye } from "lucide-react";
+import { useSeoAnalyticsData, type SeoAnalyticsEvent } from "@/hooks/useSeoAnalyticsData";
 
-// Mock data - would be replaced with real GA4/Search Console data
-const keywordData = [
-  { keyword: 'email marketing', sessions: 2450, ctr: 4.2, generated: 720, signups: 85, convRate: 11.8 },
-  { keyword: 'crm software', sessions: 1890, ctr: 3.8, generated: 540, signups: 62, convRate: 11.5 },
-  { keyword: 'keyword research', sessions: 1650, ctr: 5.1, generated: 620, signups: 78, convRate: 12.6 },
-  { keyword: 'seo tools', sessions: 1420, ctr: 4.5, generated: 480, signups: 52, convRate: 10.8 },
-  { keyword: 'lead generation', sessions: 1280, ctr: 3.2, generated: 320, signups: 38, convRate: 11.9 },
-  { keyword: 'content marketing', sessions: 1150, ctr: 3.9, generated: 380, signups: 42, convRate: 11.1 },
-  { keyword: 'marketing automation', sessions: 980, ctr: 4.8, generated: 420, signups: 55, convRate: 13.1 },
-  { keyword: 'social media marketing', sessions: 920, ctr: 2.8, generated: 210, signups: 18, convRate: 8.6 },
-  { keyword: 'ppc advertising', sessions: 780, ctr: 5.2, generated: 290, signups: 35, convRate: 12.1 },
-  { keyword: 'sales funnel', sessions: 650, ctr: 4.1, generated: 220, signups: 28, convRate: 12.7 },
-];
+function buildKeywordData(events: SeoAnalyticsEvent[]) {
+  // Group by utm_term (keyword) or page_url
+  const groups = new Map<string, { sessions: Set<string>; pageViews: number; ctaClicks: number }>();
 
-type SortField = 'sessions' | 'ctr' | 'generated' | 'signups' | 'convRate';
-type SortDirection = 'asc' | 'desc';
+  for (const e of events) {
+    const key = e.utm_term || e.page_url || "unknown";
+    if (!groups.has(key)) groups.set(key, { sessions: new Set(), pageViews: 0, ctaClicks: 0 });
+    const g = groups.get(key)!;
+    if (e.session_id) g.sessions.add(e.session_id);
+    if (e.event_type === "page_view") g.pageViews++;
+    if (e.event_type === "cta_click") g.ctaClicks++;
+  }
+
+  return Array.from(groups.entries())
+    .map(([keyword, v]) => ({
+      keyword,
+      sessions: v.sessions.size,
+      pageViews: v.pageViews,
+      ctaClicks: v.ctaClicks,
+      convRate: v.sessions.size > 0 ? Math.round((v.ctaClicks / v.sessions.size) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.sessions - a.sessions)
+    .slice(0, 50);
+}
+
+function EmptyState() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+        <Eye className="h-12 w-12 text-muted-foreground/30 mb-4" />
+        <h3 className="font-medium mb-2">Sem dados de keywords</h3>
+        <p className="text-sm text-muted-foreground max-w-md">
+          Os dados de keywords aparecerão quando visitantes acederem às suas páginas SEO com parâmetros UTM ou através de pesquisa orgânica.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function KeywordPagesDashboard() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('sessions');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [filterIntent, setFilterIntent] = useState<string>('all');
+  const { data: events = [], isLoading } = useSeoAnalyticsData(30);
+  const [search, setSearch] = useState("");
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
+  const keywordData = useMemo(() => buildKeywordData(events), [events]);
 
-  const filteredData = keywordData
-    .filter((item) =>
-      item.keyword.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      const multiplier = sortDirection === 'desc' ? -1 : 1;
-      return (a[sortField] - b[sortField]) * multiplier;
-    });
+  const filtered = useMemo(() => {
+    if (!search) return keywordData;
+    const q = search.toLowerCase();
+    return keywordData.filter(k => k.keyword.toLowerCase().includes(q));
+  }, [keywordData, search]);
 
-  // Calculate totals
-  const totalSessions = keywordData.reduce((sum, d) => sum + d.sessions, 0);
-  const totalGenerated = keywordData.reduce((sum, d) => sum + d.generated, 0);
-  const totalSignups = keywordData.reduce((sum, d) => sum + d.signups, 0);
-  const avgConvRate = (totalSignups / totalGenerated * 100).toFixed(1);
+  if (isLoading) return <Skeleton className="h-[400px]" />;
+  if (events.length === 0) return <EmptyState />;
+
+  const totalSessions = keywordData.reduce((s, k) => s + k.sessions, 0);
+  const totalCta = keywordData.reduce((s, k) => s + k.ctaClicks, 0);
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Keyword Pages Performance</h2>
+        <h2 className="text-xl font-bold">Keywords & Páginas</h2>
         <p className="text-sm text-muted-foreground">
-          Quais keywords convertem? Escalar ou matar?
+          Performance por página/keyword — {totalSessions} sessões, {totalCta} conversões
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Sessões
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSessions.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Generate Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalGenerated.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Signups
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSignups.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg Conversion Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgConvRate}%</div>
-          </CardContent>
-        </Card>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar páginas..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar keyword..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={filterIntent} onValueChange={setFilterIntent}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Intenção" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="informational">Informacional</SelectItem>
-            <SelectItem value="commercial">Comercial</SelectItem>
-            <SelectItem value="transactional">Transacional</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Data Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Keyword</TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 -ml-3"
-                    onClick={() => toggleSort('sessions')}
-                  >
-                    Sessões
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 -ml-3"
-                    onClick={() => toggleSort('ctr')}
-                  >
-                    CTR
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 -ml-3"
-                    onClick={() => toggleSort('generated')}
-                  >
-                    Generated
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 -ml-3"
-                    onClick={() => toggleSort('signups')}
-                  >
-                    Signups
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1 -ml-3"
-                    onClick={() => toggleSort('convRate')}
-                  >
-                    Conv. Rate
-                    <ArrowUpDown className="h-3 w-3" />
-                  </Button>
-                </TableHead>
-                <TableHead>Ação</TableHead>
+                <TableHead>Página / Keyword</TableHead>
+                <TableHead className="text-right">Sessões</TableHead>
+                <TableHead className="text-right">Page Views</TableHead>
+                <TableHead className="text-right">CTA Clicks</TableHead>
+                <TableHead className="text-right">Conv. Rate</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.map((item) => (
-                <TableRow key={item.keyword}>
-                  <TableCell className="font-medium">{item.keyword}</TableCell>
-                  <TableCell>{item.sessions.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {item.ctr}%
-                      {item.ctr > 4 ? (
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                      ) : item.ctr < 3 ? (
-                        <TrendingDown className="h-3 w-3 text-red-500" />
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.generated.toLocaleString()}</TableCell>
-                  <TableCell>{item.signups}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={item.convRate > 12 ? 'default' : item.convRate < 10 ? 'destructive' : 'secondary'}
-                    >
-                      {item.convRate}%
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" asChild>
-                      <a href={`/keywords/${item.keyword.replace(/\s+/g, '-')}`} target="_blank">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    Nenhum resultado
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((row) => (
+                  <TableRow key={row.keyword}>
+                    <TableCell className="max-w-[300px] truncate font-medium">
+                      {row.keyword}
+                    </TableCell>
+                    <TableCell className="text-right">{row.sessions.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{row.pageViews.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{row.ctaClicks}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={row.convRate > 10 ? "default" : "outline"}>
+                        {row.convRate}%
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recomendações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
-              <TrendingUp className="h-5 w-5 text-green-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-green-900 dark:text-green-100">Escalar</p>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  "marketing automation" e "keyword research" têm as melhores taxas de conversão. Criar mais conteúdo relacionado.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20">
-              <TrendingDown className="h-5 w-5 text-red-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-red-900 dark:text-red-100">Otimizar ou Remover</p>
-                <p className="text-sm text-red-700 dark:text-red-300">
-                  "social media marketing" tem baixo CTR e conversão. Considerar melhorar o conteúdo ou reduzir prioridade.
-                </p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
