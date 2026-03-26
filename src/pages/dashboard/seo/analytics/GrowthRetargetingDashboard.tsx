@@ -86,10 +86,9 @@ export function GrowthRetargetingDashboard() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">{segment.name}</h3>
-                    <Badge variant={potentialColors[segment.conversionPotential] as any || "outline"}>
+                    <Badge variant={(potentialColors[segment.conversionPotential] || "outline") as any}>
                       {segment.conversionPotential === "very-high" ? "Muito Alto" :
-                        segment.conversionPotential === "high" ? "Alto" :
-                          segment.conversionPotential === "medium" ? "Médio" : "Baixo"}
+                        segment.conversionPotential === "high" ? "Alto" : "Baixo"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{segment.description}</p>

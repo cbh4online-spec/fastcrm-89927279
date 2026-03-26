@@ -19,7 +19,7 @@ function buildKeywordData(events: SeoAnalyticsEvent[]) {
   const groups = new Map<string, { sessions: Set<string>; pageViews: number; ctaClicks: number }>();
 
   for (const e of events) {
-    const key = e.utm_term || e.page_url || "unknown";
+    const key = (e as any).utm_term || e.page_url || "unknown";
     if (!groups.has(key)) groups.set(key, { sessions: new Set(), pageViews: 0, ctaClicks: 0 });
     const g = groups.get(key)!;
     if (e.session_id) g.sessions.add(e.session_id);
