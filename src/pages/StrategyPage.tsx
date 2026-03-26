@@ -38,6 +38,9 @@ import {
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { ExecutiveBriefExport } from "@/components/strategy/ExecutiveBriefExport";
+import { usePipelineRiskReport } from "@/hooks/usePipelineRiskReport";
+import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
+import { useGrowthInsights } from "@/hooks/useGrowthInsights";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory, useBulkConvertAllDecisions } from "@/hooks/useStrategicDecisions";
 import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
