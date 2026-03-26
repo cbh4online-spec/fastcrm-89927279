@@ -60,6 +60,7 @@ export default function CommandCenterV2Page() {
             actions={currentResponse.result.suggested_actions}
             entityId={currentResponse.entity_id}
             entityName={currentResponse.entity_name}
+            onExecuteCommand={handleSubmit}
           />
           {/* Follow-up contextual chips */}
           <CommandFollowUpChips
