@@ -15,6 +15,8 @@ const ENRICHMENT_FIELDS: (keyof Lead)[] = [
   "city",
   "inferred_profession",
   "instagram_bio",
+  "website" as keyof Lead,
+  "industry" as keyof Lead,
 ];
 
 export function getEnrichmentStatus(lead: Lead): EnrichmentStatus {

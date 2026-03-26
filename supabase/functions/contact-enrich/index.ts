@@ -227,6 +227,77 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 1b. Company-name fallback: search website via Firecrawl when no email/phone
+    const companyNameInput = name;
+    if (!result.companyWebsite && companyNameInput) {
+      // Set company name from input
+      if (!result.company) {
+        result.company = { value: companyNameInput, confidence: "medium", source: "Nome do lead" };
+      }
+
+      // Try to find website via Firecrawl Search
+      const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      if (FIRECRAWL_API_KEY && webscrapingEnabled) {
+        try {
+          console.log(`[ENRICHER] Searching website for company: "${companyNameInput}"`);
+          const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `${companyNameInput} website oficial Portugal`,
+              limit: 3,
+              lang: "pt",
+              country: "pt",
+            }),
+          });
+
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            const results = searchData.data || searchData.results || [];
+            if (results.length > 0) {
+              // Pick the first result URL as the company website
+              const topResult = results[0];
+              const foundUrl = topResult.url || topResult.sourceURL;
+              if (foundUrl) {
+                // Extract clean domain
+                try {
+                  const urlObj = new URL(foundUrl);
+                  result.companyWebsite = `${urlObj.protocol}//${urlObj.hostname}`;
+                  console.log(`[ENRICHER] Found website via search: ${result.companyWebsite}`);
+                } catch {
+                  result.companyWebsite = foundUrl;
+                }
+              }
+            }
+          } else {
+            console.warn(`[ENRICHER] Firecrawl search returned ${searchResponse.status}`);
+          }
+        } catch (e) {
+          console.warn("[ENRICHER] Firecrawl search failed:", e);
+        }
+      }
+
+      // Also try CRM lookup by company name
+      if (!result.companyWebsite) {
+        const { data: existingByName } = await supabase
+          .from("companies")
+          .select("name, website")
+          .eq("workspace_id", workspaceId)
+          .ilike("name", `%${companyNameInput}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingByName?.website) {
+          result.companyWebsite = existingByName.website;
+          result.company = { value: existingByName.name, confidence: "high", source: "CRM existente" };
+          console.log(`[ENRICHER] Found website via CRM: ${result.companyWebsite}`);
+        }
+      }
+    }
+
     // 2. Detect country/language from phone
     if (phone) {
       const country = detectCountryFromPhone(phone);
@@ -349,7 +420,7 @@ Extract ALL available information. Return ONLY a JSON object (no markdown):
     try {
       const _usage = aiData?.usage;
       logAIUsage({
-        workspace_id: workspace_id,
+        workspace_id: workspaceId,
         feature: 'contact-enrich',
         model: aiData?.model || 'google/gemini-3-flash-preview',
         tokens_input: _usage?.prompt_tokens ?? 0,
