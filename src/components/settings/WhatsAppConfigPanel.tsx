@@ -83,9 +83,11 @@ export function WhatsAppConfigPanel() {
         body: { workspaceId: currentWorkspace.id, userId: user?.id },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
+      if (data?.authUrl) {
+        window.open(data.authUrl, "_blank");
         toast.info("Complete a autorização na janela aberta");
+      } else {
+        toast.error("URL de autorização não recebida. Verifique se o META_APP_ID está configurado.");
       }
     } catch (err: any) {
       toast.error("Erro ao iniciar conexão: " + err.message);
