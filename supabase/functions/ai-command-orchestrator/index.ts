@@ -235,16 +235,29 @@ serve(async (req) => {
                     items: {
                       type: "object",
                       properties: {
-                        label: { type: "string" },
-                        action_type: { type: "string", enum: ["navigate", "create_task", "send_email", "schedule_meeting", "generate_report"] },
+                         label: { type: "string" },
+                        action_type: { type: "string", enum: ["navigate", "create_task", "send_email", "schedule_meeting", "generate_report", "create_followup", "analyze_deeper", "export_pdf"] },
                         target: { type: "string" },
                       },
                       required: ["label", "action_type"],
                     },
                   },
+                  follow_up_suggestions: {
+                    type: "array",
+                    description: "2-4 contextual follow-up commands the user might want to run next",
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: { type: "string", description: "Short label (3-5 words)" },
+                        command: { type: "string", description: "Full command text to execute" },
+                        emoji: { type: "string", description: "Single emoji for the suggestion" },
+                      },
+                      required: ["label", "command", "emoji"],
+                    },
+                  },
                   confidence: { type: "number", description: "Confidence score 0-100" },
                 },
-                required: ["summary", "sections", "suggested_actions", "confidence"],
+                required: ["summary", "sections", "suggested_actions", "follow_up_suggestions", "confidence"],
               },
             },
           },
