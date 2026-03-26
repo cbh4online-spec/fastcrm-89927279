@@ -15,7 +15,6 @@ import {
   getEnrichmentStatus,
   getEnrichmentStats,
   useEnrichLead,
-  useEnrichLeadsBatch,
   type EnrichmentStatus,
 } from "@/hooks/useLeadEnrichment";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
