@@ -5,6 +5,8 @@ import { CommandResponseCard } from "@/components/command-center-v2/CommandRespo
 import { CommandQuickActions } from "@/components/command-center-v2/CommandQuickActions";
 import { CommandFollowUpChips } from "@/components/command-center-v2/CommandFollowUpChips";
 import { CommandLiveDashboard } from "@/components/command-center-v2/CommandLiveDashboard";
+import { CommandProactiveFeed } from "@/components/command-center-v2/CommandProactiveFeed";
+import { CommandHistoryTimeline } from "@/components/command-center-v2/CommandHistoryTimeline";
 import { CommandSuggestionGrid } from "@/components/command-center-v2/CommandSuggestionGrid";
 import { useCommandOrchestrator } from "@/hooks/useCommandOrchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +34,11 @@ export default function CommandCenterV2Page() {
         isLoading={isLoading}
         onCommandSelect={handleSubmit}
       />
+
+      {/* Proactive Kernel Signals */}
+      {!currentResponse && !isLoading && (
+        <CommandProactiveFeed onSignalClick={handleSubmit} />
+      )}
 
       {/* Loading State */}
       {isLoading && (
@@ -68,23 +75,11 @@ export default function CommandCenterV2Page() {
         <CommandSuggestionGrid onSelect={handleSubmit} />
       )}
 
-      {/* History */}
-      {history.length > 1 && !isLoading && (
-        <div className="space-y-2 pt-4 border-t border-border/50">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Histórico Recente</p>
-          <div className="space-y-1">
-            {history.slice(1, 6).map((item, i) => (
-              <button
-                key={i}
-                onClick={() => execute(item.command)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors truncate"
-              >
-                {item.command}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* History Timeline */}
+      <CommandHistoryTimeline
+        history={history}
+        onReplay={handleSubmit}
+      />
     </div>
     </DashboardLayout>
   );
