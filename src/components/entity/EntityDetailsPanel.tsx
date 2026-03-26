@@ -249,6 +249,7 @@ export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetai
 
 function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
+  const hasSocialUrls = !!(e.linkedin_url || e.facebook_url || e.instagram_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
     <div>
       <CollapsibleSection title="Dados da Empresa">
@@ -298,6 +299,7 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
 
 function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
+  const hasSocialUrls = !!(e.linkedin_url || e.facebook_url || e.instagram_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
@@ -339,6 +341,7 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
 
 function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
+  const hasSocialUrls = !!(e.linkedin_url || e.instagram_url || e.facebook_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
     <div>
       <CollapsibleSection title="Dados do Lead">
@@ -357,7 +360,7 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
         </ProgressiveFields>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
+      <CollapsibleSection title="Redes Sociais" defaultOpen={hasSocialUrls}>
         <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
