@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { CommandHero } from "@/components/command-center-v2/CommandHero";
 import { CommandResponseCard } from "@/components/command-center-v2/CommandResponseCard";
 import { CommandQuickActions } from "@/components/command-center-v2/CommandQuickActions";
+import { CommandFollowUpChips } from "@/components/command-center-v2/CommandFollowUpChips";
+import { CommandLiveDashboard } from "@/components/command-center-v2/CommandLiveDashboard";
 import { CommandSuggestionGrid } from "@/components/command-center-v2/CommandSuggestionGrid";
 import { useCommandOrchestrator } from "@/hooks/useCommandOrchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +23,9 @@ export default function CommandCenterV2Page() {
         title="Command Center"
         description="Execute comandos inteligentes com contexto CRM completo"
       />
+
+      {/* Live Dashboard — always visible */}
+      <CommandLiveDashboard />
 
       <CommandHero
         onSubmit={handleSubmit}
@@ -48,6 +53,12 @@ export default function CommandCenterV2Page() {
             actions={currentResponse.result.suggested_actions}
             entityId={currentResponse.entity_id}
             entityName={currentResponse.entity_name}
+          />
+          {/* Follow-up contextual chips */}
+          <CommandFollowUpChips
+            response={currentResponse}
+            onSelect={handleSubmit}
+            isLoading={isLoading}
           />
         </div>
       )}
