@@ -577,6 +577,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                 <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
                 <Route path="/dashboard/inbox" element={<Inbox />} />
+                <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/inbox?channel=whatsapp" replace />} />
                 <Route path="/dashboard/groups" element={<Groups />} />
                 <Route path="/dashboard/telegram" element={<TelegramPage />} />
                 <Route path="/dashboard/automations" element={<Automations />} />
