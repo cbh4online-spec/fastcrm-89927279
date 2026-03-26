@@ -52,6 +52,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
   const [endHour, setEndHour] = useState('18:00');
   const [requirePhone, setRequirePhone] = useState(false);
   const [customMessageLabel, setCustomMessageLabel] = useState('');
+  const [customFields, setCustomFields] = useState<BookingCustomField[]>([]);
 
   // Populate form when editing
   useEffect(() => {
