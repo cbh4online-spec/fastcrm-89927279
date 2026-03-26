@@ -119,6 +119,9 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
       if (enrichment.facebookUrl?.value) updates.facebook_url = enrichment.facebookUrl.value;
       if (enrichment.instagramUrl?.value) updates.instagram_url = enrichment.instagramUrl.value;
       if (enrichment.twitterUrl?.value) updates.twitter_url = enrichment.twitterUrl.value;
+      // Email & Phone extracted from website (only fill if lead doesn't already have them)
+      if (enrichment.contactEmail?.value && !lead.email) updates.email = enrichment.contactEmail.value;
+      if (enrichment.contactPhone?.value && !lead.phone) updates.phone = enrichment.contactPhone.value;
       if (enrichment.address?.value) updates.address = enrichment.address.value;
       if (enrichment.city?.value) updates.city = enrichment.city.value;
       if (enrichment.postalCode?.value) updates.postal_code = enrichment.postalCode.value;
