@@ -138,17 +138,18 @@ async function fetchCRMContext(supabase: any, workspaceId: string, intent: strin
 }
 
 function buildSystemPrompt(intent: string): string {
-  const base = "You are an AI CRM Command Center assistant for a Portuguese business CRM. Respond in Portuguese (PT). Be concise, actionable, and data-driven.";
+  const base = `You are an AI CRM Command Center assistant for a Portuguese business CRM. Respond in Portuguese (PT). Be concise, actionable, and data-driven.
+IMPORTANT: Always include 2-4 follow_up_suggestions — contextual next commands the user might want to run after seeing your response. These should be natural continuations of the current analysis, not generic. Each must have a short label, full command text, and emoji.`;
 
   const intentPrompts: Record<string, string> = {
-    "prepare-meeting": `${base} The user wants to prepare for a meeting. Analyze the company, contacts, deal history, and recent interactions. Provide: 1) Company summary, 2) Key talking points, 3) Risk signals, 4) Recommended approach.`,
-    "analyze-company": `${base} Analyze the company profile, ICP fit, revenue potential, and deal history. Provide: 1) Company overview, 2) ICP score assessment, 3) Growth opportunities, 4) Risks.`,
-    "analyze-deal": `${base} Analyze the deal health, stage progression, stakeholder engagement, and risk signals. Provide: 1) Health assessment, 2) Risk signals, 3) Recommended next actions, 4) Closing probability estimate.`,
-    "win-deal": `${base} The user wants to win/close a deal. Analyze blockers, stakeholders, and competitive landscape. Provide: 1) Closing probability, 2) Key blockers, 3) Recommended closing strategy, 4) Urgency assessment.`,
-    "send-followup": `${base} Generate a follow-up strategy. Analyze last interactions and deal context. Provide: 1) Follow-up message draft, 2) Best timing, 3) Channel recommendation, 4) Key points to address.`,
-    "generate-proposal": `${base} Help generate a proposal outline. Analyze company needs and deal context. Provide: 1) Proposal structure, 2) Key value propositions, 3) Pricing suggestions, 4) Competitive differentiators.`,
-    "pipeline-status": `${base} Analyze the full pipeline. Provide: 1) Pipeline health summary, 2) Stage distribution analysis, 3) Bottlenecks, 4) Revenue forecast, 5) Top priority deals.`,
-    "general": `${base} Answer the user's CRM question using the available data. Be specific and actionable.`,
+    "prepare-meeting": `${base} The user wants to prepare for a meeting. Analyze the company, contacts, deal history, and recent interactions. Provide: 1) Company summary, 2) Key talking points, 3) Risk signals, 4) Recommended approach. Follow-ups: suggest analyzing objections, sending agenda, checking deal history.`,
+    "analyze-company": `${base} Analyze the company profile, ICP fit, revenue potential, and deal history. Provide: 1) Company overview, 2) ICP score assessment, 3) Growth opportunities, 4) Risks. Follow-ups: suggest creating opportunity, finding contacts, preparing approach.`,
+    "analyze-deal": `${base} Analyze the deal health, stage progression, stakeholder engagement, and risk signals. Provide: 1) Health assessment, 2) Risk signals, 3) Recommended next actions, 4) Closing probability estimate. Follow-ups: suggest rescue plan, risk deep-dive, next steps.`,
+    "win-deal": `${base} The user wants to win/close a deal. Analyze blockers, stakeholders, and competitive landscape. Provide: 1) Closing probability, 2) Key blockers, 3) Recommended closing strategy, 4) Urgency assessment. Follow-ups: suggest proposal draft, pricing negotiation, scheduling close.`,
+    "send-followup": `${base} Generate a follow-up strategy. Analyze last interactions and deal context. Provide: 1) Follow-up message draft, 2) Best timing, 3) Channel recommendation, 4) Key points to address. Follow-ups: suggest scheduling reminder, engagement analysis, alternative channels.`,
+    "generate-proposal": `${base} Help generate a proposal outline. Analyze company needs and deal context. Provide: 1) Proposal structure, 2) Key value propositions, 3) Pricing suggestions, 4) Competitive differentiators. Follow-ups: suggest sending proposal, competitive analysis, follow-up scheduling.`,
+    "pipeline-status": `${base} Analyze the full pipeline. Provide: 1) Pipeline health summary, 2) Stage distribution analysis, 3) Bottlenecks, 4) Revenue forecast, 5) Top priority deals. Follow-ups: suggest at-risk deals, revenue forecast, top opportunities.`,
+    "general": `${base} Answer the user's CRM question using the available data. Be specific and actionable. Generate relevant follow-up suggestions based on the topic discussed.`,
   };
 
   return intentPrompts[intent] || intentPrompts.general;
