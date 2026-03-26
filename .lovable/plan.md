@@ -1,105 +1,81 @@
 
 
-# Links Públicos de Agendamento para Clientes
+# Booking Pages: Captura antecipada de leads + Customização avançada
 
-## Resumo
+## Problema atual
 
-Criar um sistema de booking pages que gera links públicos partilháveis. Os clientes acedem ao link, veem os horários disponíveis e marcam diretamente — sem necessitar de conta ou login.
+1. Os dados do visitante (nome/email) só são pedidos **depois** de escolher dia e hora — se abandonar antes, perde-se o lead
+2. Os horários são fixos (9h-18h, sem fins-de-semana) e não respeitam a disponibilidade real configurada no sistema
+3. Não há opção para configurar dias da semana, horários, campo de telefone, ou vincular a uma disponibilidade existente
 
-## Arquitetura
+## Solução
+
+### Fase 1 — Captura de dados antes da disponibilidade
+
+Reestruturar a `PublicBookingPage` em 3 steps:
 
 ```text
-┌─────────────────────────┐       ┌──────────────────────────┐
-│  CRM (SchedulingHub)    │       │  Página Pública          │
-│  - Criar booking page   │       │  /book/:slug             │
-│  - Slug + calendário    │──────▶│  - Mostra disponibilidade│
-│  - Copiar link público  │       │  - Cliente escolhe slot  │
-│  - Ativar/desativar     │       │  - Preenche nome+email   │
-└─────────────────────────┘       │  - Confirma agendamento  │
-                                  └──────────┬───────────────┘
-                                             │
-                                   ┌─────────▼────────────┐
-                                   │  Edge Function        │
-                                   │  public-booking       │
-                                   │  - Valida slot livre  │
-                                   │  - Cria calendar_event│
-                                   │  - Retorna confirmação│
-                                   └──────────────────────┘
+Step 1: Dados do visitante     Step 2: Escolher dia/hora     Step 3: Confirmação
+┌─────────────────────┐        ┌─────────────────────┐       ┌─────────────────────┐
+│ Nome*                │        │ Calendário de dias  │       │ ✓ Agendamento       │
+│ Email*               │ ────▶  │ Slots disponíveis   │ ────▶ │   confirmado!       │
+│ Telefone (se ativo)  │        │                     │       │                     │
+│ Mensagem (opcional)  │        │ [Confirmar]         │       │                     │
+└─────────────────────┘        └─────────────────────┘       └─────────────────────┘
 ```
 
-## Passos de Implementação
+- Ao submeter o Step 1, guardar imediatamente um **registo parcial** (nova tabela `booking_leads` ou chamada à edge function) com nome/email/telefone + booking_page_id + timestamp
+- Mesmo que o visitante abandone no Step 2, os dados ficam guardados para follow-up
 
-### 1. Tabela `booking_pages` (migração SQL)
+### Fase 2 — Customização avançada do calendário
 
-Nova tabela para armazenar as páginas de booking:
+**Novos campos na tabela `booking_pages`** (migração SQL):
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | uuid PK | |
-| workspace_id | uuid FK | Workspace associado |
-| calendar_id | uuid FK | Calendário destino dos eventos |
-| availability_id | uuid FK (nullable) | Disponibilidade a usar (ou null = qualquer horário do calendário) |
-| slug | text UNIQUE | Identificador no URL público |
-| title | text | Nome exibido ao cliente (ex: "Reunião com João") |
-| description | text | Instrução para o cliente |
-| duration_minutes | int | Duração do slot (15, 30, 60) |
-| buffer_minutes | int | Intervalo entre slots |
-| max_advance_days | int | Quantos dias no futuro o cliente pode marcar |
-| is_active | boolean | Ativar/desativar link |
-| brand_color | text | Cor da página pública |
-| created_at / updated_at | timestamp | |
+| Campo | Tipo | Default | Descrição |
+|-------|------|---------|-----------|
+| `working_days` | integer[] | `{1,2,3,4,5}` | Dias da semana ativos (0=dom, 6=sáb) |
+| `start_hour` | text | `'09:00'` | Hora de início |
+| `end_hour` | text | `'18:00'` | Hora de fim |
+| `availability_id` | uuid (nullable) | null | Vincular a disponibilidade existente |
+| `require_phone` | boolean | false | Pedir telefone |
+| `custom_message_label` | text | null | Label de campo mensagem opcional |
 
-RLS: leitura pública para `is_active = true`, escrita apenas para membros autenticados do workspace.
+**Nova tabela `booking_leads`** para guardar leads parciais:
 
-### 2. Hook `useBookingPages`
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| booking_page_id | uuid FK |
+| guest_name | text |
+| guest_email | text |
+| guest_phone | text (nullable) |
+| guest_message | text (nullable) |
+| status | text (partial / booked) |
+| event_id | uuid (nullable) |
+| created_at | timestamp |
 
-CRUD completo para gerir booking pages no dashboard. Segue o padrão existente dos hooks (`useCalendars`, `useAvailability`).
+**No BookingPageModal** — adicionar secções:
+- Checkboxes para dias da semana ativos
+- Seletores de hora início/fim
+- Toggle "Pedir telefone"
+- Campo de label para mensagem opcional
+- Seletor de disponibilidade existente (opcional, override dos horários manuais)
 
-### 3. Gestão no SchedulingHub
+**Na PublicBookingPage**:
+- Usar `working_days` para filtrar dias no calendário
+- Usar `start_hour`/`end_hour` para gerar slots (em vez do fixo 9-18)
+- Se `availability_id` estiver definido, carregar `availability_slots` reais para gerar horários por dia da semana
+- Respeitar `availability_exceptions` (dias bloqueados)
 
-Adicionar uma nova tab **"Links de Agendamento"** ao SchedulingHub (ao lado de Agenda, Reuniões, Serviços, Disponibilidade):
-- Lista de booking pages criadas
-- Botão para criar nova booking page (modal com título, calendário, duração, slug)
-- Copiar link público com um clique
-- Toggle ativo/inativo
-- Estatísticas simples (agendamentos recebidos)
+**Na edge function `public-booking`**:
+- Novo endpoint/path para guardar lead parcial (Step 1)
+- Atualizar lead existente com event_id quando booking é concluído (Step 2)
 
-### 4. Página Pública `/book/:slug`
+## Ficheiros
 
-Rota pública em `App.tsx` (sem autenticação). A página:
-1. Busca a booking page pelo slug (query pública via RLS)
-2. Carrega a disponibilidade associada e eventos existentes do calendário
-3. Mostra um calendário de dias com slots livres
-4. O cliente seleciona dia → vê horários disponíveis
-5. Preenche nome e email → confirma
-6. Submete via edge function
-
-Design: minimalista, responsivo, com a `brand_color` da booking page. Segue o estilo visual existente (dark theme com acentos).
-
-### 5. Edge Function `public-booking`
-
-Recebe `{ booking_page_id, date, start_time, guest_name, guest_email }`:
-- Valida que a booking page está ativa
-- Verifica que o slot está livre (sem sobreposição com eventos existentes)
-- Cria o `calendar_event` no calendário destino
-- Retorna confirmação com detalhes do agendamento
-
-Sem JWT (`verify_jwt = false`) — é público.
-
-### 6. Rota em App.tsx
-
-```
-<Route path="/book/:slug" element={<PublicBookingPage />} />
-```
-
-## Ficheiros a criar/editar
-
-- **Criar**: migração SQL para `booking_pages`
-- **Criar**: `src/hooks/useBookingPages.ts`
-- **Criar**: `src/pages/PublicBookingPage.tsx`
-- **Criar**: `src/components/scheduling/BookingPagesTab.tsx`
-- **Criar**: `src/components/scheduling/BookingPageModal.tsx`
-- **Criar**: `supabase/functions/public-booking/index.ts`
-- **Editar**: `src/App.tsx` — adicionar rota `/book/:slug`
-- **Editar**: `src/components/scheduling/SchedulingHub.tsx` — nova tab "Links"
+- **Migração SQL**: Adicionar colunas a `booking_pages` + criar tabela `booking_leads`
+- **Editar**: `src/pages/PublicBookingPage.tsx` — flow multi-step, lead capture first
+- **Editar**: `src/components/scheduling/BookingPageModal.tsx` — campos de customização
+- **Editar**: `src/hooks/useBookingPages.ts` — tipos atualizados
+- **Editar**: `supabase/functions/public-booking/index.ts` — guardar leads parciais + atualizar no booking
 
