@@ -44,7 +44,11 @@ export default function CommandCenterV2Page() {
             result={currentResponse.result}
             intent={currentResponse.intent}
           />
-          <CommandQuickActions actions={currentResponse.result.suggested_actions} />
+          <CommandQuickActions
+            actions={currentResponse.result.suggested_actions}
+            entityId={currentResponse.entity_id}
+            entityName={currentResponse.entity_name}
+          />
         </div>
       )}
 
