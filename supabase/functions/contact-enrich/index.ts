@@ -485,6 +485,83 @@ Extract ALL available information. Return ONLY a JSON object (no markdown):
       }
     }
 
+    // 4b. Active social media search via Firecrawl when AI didn't find them
+    const missingSocials = {
+      linkedin: !result.linkedinUrl?.value,
+      facebook: !result.facebookUrl?.value,
+      instagram: !result.instagramUrl?.value,
+      twitter: !result.twitterUrl?.value,
+    };
+    const hasMissingSocials = Object.values(missingSocials).some(Boolean);
+    const companyNameForSearch = result.company?.value || companyNameInput;
+
+    if (hasMissingSocials && companyNameForSearch && webscrapingEnabled) {
+      const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+      if (FIRECRAWL_KEY) {
+        try {
+          console.log(`[ENRICHER] Searching social profiles for: "${companyNameForSearch}"`);
+
+          // Search 1: LinkedIn, Facebook, Instagram
+          if (missingSocials.linkedin || missingSocials.facebook || missingSocials.instagram) {
+            const q1 = `"${companyNameForSearch}" site:linkedin.com OR site:facebook.com OR site:instagram.com`;
+            const res1 = await fetch("https://api.firecrawl.dev/v1/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${FIRECRAWL_KEY}` },
+              body: JSON.stringify({ query: q1, limit: 3 }),
+            });
+            if (res1.ok) {
+              const d1 = await res1.json();
+              const urls1 = (d1.data || d1.results || []).map((r: any) => r.url || r.sourceURL).filter(Boolean);
+              for (const u of urls1) {
+                const lower = u.toLowerCase();
+                if (missingSocials.linkedin && /linkedin\.com\/(company|in)\//.test(lower)) {
+                  result.linkedinUrl = { value: u, confidence: "medium", source: "Pesquisa web" };
+                  missingSocials.linkedin = false;
+                } else if (missingSocials.facebook && /facebook\.com\/(?!share|sharer|dialog)/.test(lower)) {
+                  result.facebookUrl = { value: u, confidence: "medium", source: "Pesquisa web" };
+                  missingSocials.facebook = false;
+                } else if (missingSocials.instagram && /instagram\.com\/(?!p\/|explore|accounts)/.test(lower)) {
+                  result.instagramUrl = { value: u, confidence: "medium", source: "Pesquisa web" };
+                  missingSocials.instagram = false;
+                }
+              }
+            }
+          }
+
+          // Search 2: Twitter/X (only if still missing)
+          if (missingSocials.twitter) {
+            const q2 = `"${companyNameForSearch}" site:twitter.com OR site:x.com`;
+            const res2 = await fetch("https://api.firecrawl.dev/v1/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${FIRECRAWL_KEY}` },
+              body: JSON.stringify({ query: q2, limit: 3 }),
+            });
+            if (res2.ok) {
+              const d2 = await res2.json();
+              const urls2 = (d2.data || d2.results || []).map((r: any) => r.url || r.sourceURL).filter(Boolean);
+              for (const u of urls2) {
+                const lower = u.toLowerCase();
+                if (/(?:twitter\.com|x\.com)\/(?!search|explore|i\/)/.test(lower)) {
+                  result.twitterUrl = { value: u, confidence: "medium", source: "Pesquisa web" };
+                  break;
+                }
+              }
+            }
+          }
+
+          const found = [
+            !missingSocials.linkedin ? 'LinkedIn' : null,
+            !missingSocials.facebook ? 'Facebook' : null,
+            !missingSocials.instagram ? 'Instagram' : null,
+            !missingSocials.twitter ? 'Twitter' : null,
+          ].filter(Boolean);
+          if (found.length > 0) console.log(`[ENRICHER] Found social profiles: ${found.join(', ')}`);
+        } catch (e) {
+          console.warn("[ENRICHER] Social media search failed:", e);
+        }
+      }
+    }
+
     // 5. Google Places enrichment (parallel-safe)
     if (googlePlacesEnabled && result.company?.value) {
       try {
