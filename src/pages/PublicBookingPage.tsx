@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, startOfDay, isBefore, isAfter, parseISO, addMinutes } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { CalendarDays, Clock, CheckCircle2, Loader2, AlertCircle, User, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ interface BookingPageData {
   availability_id: string | null;
   require_phone: boolean;
   custom_message_label: string | null;
+  custom_fields: { id: string; label: string; type: string; required: boolean; placeholder?: string; options?: string[] }[];
 }
 
 interface TimeSlot {
@@ -60,6 +62,7 @@ export default function PublicBookingPage() {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestMessage, setGuestMessage] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [savingLead, setSavingLead] = useState(false);
   const [existingMatch, setExistingMatch] = useState<{ type: string; name: string; id: string } | null>(null);
 
