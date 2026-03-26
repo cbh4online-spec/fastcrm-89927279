@@ -355,6 +355,9 @@ export function WhatsAppConfigPanel() {
           )}
         </>
       )}
+
+      {/* QR Code Dialog */}
+      <WhatsAppQRDialog open={showQRDialog} onOpenChange={setShowQRDialog} />
     </div>
   );
 }
