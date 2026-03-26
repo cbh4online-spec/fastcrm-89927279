@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Get account
+    // Get account with all enrichable fields
     const { data: account, error: accErr } = await supabase
       .from("account_brief_accounts")
-      .select("id, name, domain, normalized_domain, probable_sector, probable_geography, description_short, executive_summary")
+      .select("id, name, domain, normalized_domain, probable_sector, probable_geography, description_short, executive_summary, nif, email_main, phone_main, tagline, total_score, linkedin_url, facebook_url, instagram_url, twitter_url, tiktok_url, youtube_url")
       .eq("id", accountId)
       .eq("workspace_id", workspaceId)
       .single();
@@ -28,10 +28,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Get corporate data if available
+    const { data: corpData } = await supabase
+      .from("account_brief_corporate_data")
+      .select("*")
+      .eq("account_id", accountId)
+      .maybeSingle();
+
     let linkedCompanyId = companyId;
 
     if (createNew) {
-      // Create company in CRM
       const { data: newCompany, error: compErr } = await supabase
         .from("companies")
         .insert({
@@ -64,6 +70,79 @@ Deno.serve(async (req) => {
       .update({ company_id: linkedCompanyId, updated_at: new Date().toISOString() })
       .eq("id", accountId);
 
+    // --- Enrich company with briefing data (fill-only) ---
+    const { data: existingCompany } = await supabase
+      .from("companies")
+      .select("*")
+      .eq("id", linkedCompanyId)
+      .single();
+
+    if (existingCompany) {
+      const enrichFields: Record<string, any> = {};
+      const fillOnly = (field: string, value: any) => {
+        if (value != null && value !== "" && (existingCompany[field] == null || existingCompany[field] === "")) {
+          enrichFields[field] = value;
+        }
+      };
+
+      fillOnly("industry", account.probable_sector);
+      fillOnly("region", account.probable_geography);
+      fillOnly("website", `https://${account.normalized_domain || account.domain}`);
+      fillOnly("tax_id", account.nif);
+      fillOnly("email", account.email_main);
+      fillOnly("phone", account.phone_main);
+      fillOnly("company_score", account.total_score);
+      fillOnly("linkedin_url", account.linkedin_url);
+      fillOnly("facebook_url", account.facebook_url);
+      fillOnly("instagram_url", account.instagram_url);
+      fillOnly("twitter_url", account.twitter_url);
+      fillOnly("notes", account.description_short || account.executive_summary);
+
+      // Append tagline to notes if notes already has content
+      if (account.tagline && existingCompany.notes && !enrichFields.notes) {
+        enrichFields.notes = `${existingCompany.notes}\n\nTagline: ${account.tagline}`;
+      } else if (account.tagline && !existingCompany.notes && !enrichFields.notes) {
+        enrichFields.notes = `Tagline: ${account.tagline}`;
+      }
+
+      // Corporate data enrichment
+      if (corpData) {
+        fillOnly("capital_social", corpData.capital_social);
+        fillOnly("legal_nature", corpData.legal_nature);
+        fillOnly("founding_date", corpData.founding_date);
+        fillOnly("company_status", corpData.company_status);
+
+        // Shareholders + managers → company_context
+        if (!existingCompany.company_context && (corpData.shareholders?.length || corpData.managers?.length)) {
+          enrichFields.company_context = {
+            shareholders: corpData.shareholders || [],
+            managers: corpData.managers || [],
+          };
+        }
+
+        // Annual revenue → annual_revenue (most recent year)
+        if (corpData.annual_revenue?.length) {
+          const sorted = [...corpData.annual_revenue].sort((a: any, b: any) => b.year - a.year);
+          if (sorted[0]?.revenue != null) {
+            fillOnly("annual_revenue", sorted[0].revenue);
+          }
+        }
+      }
+
+      // AI summary fields
+      if (!existingCompany.ai_insight && (account.executive_summary || account.description_short)) {
+        enrichFields.ai_insight = account.executive_summary || account.description_short;
+      }
+
+      if (Object.keys(enrichFields).length > 0) {
+        enrichFields.updated_at = new Date().toISOString();
+        await supabase
+          .from("companies")
+          .update(enrichFields)
+          .eq("id", linkedCompanyId);
+      }
+    }
+
     // Create source record
     await supabase
       .from("account_brief_account_sources")
@@ -72,7 +151,7 @@ Deno.serve(async (req) => {
         account_id: accountId,
         source_type: "crm_link",
         source_value: linkedCompanyId,
-        notes: createNew ? "Empresa criada automaticamente" : "Associação manual",
+        notes: createNew ? "Empresa criada e enriquecida com briefing" : "Associação manual + enriquecimento",
       });
 
     return new Response(JSON.stringify({
