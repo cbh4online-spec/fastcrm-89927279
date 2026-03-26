@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WeeklyTargetsEditor } from "@/components/weekly-dashboard/WeeklyTargetsEditor";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PremiumDashboardHeader } from "@/components/weekly-dashboard/PremiumDashboardHeader";
 import { PremiumAISection } from "@/components/weekly-dashboard/PremiumAISection";
@@ -17,7 +18,7 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Lightbulb } from "lucide-react";
+import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 
 export default function WeeklyDashboard() {
@@ -29,6 +30,7 @@ export default function WeeklyDashboard() {
   const { openDecisions } = useKernelDecisions();
   const { needsSetup, isLoading: adaptiveLoading } = useAdaptiveDashboard();
   const [setupDismissed, setSetupDismissed] = useState(false);
+  const [targetsOpen, setTargetsOpen] = useState(false);
 
   const briefMetrics = todaysBrief?.key_metrics;
 
@@ -84,6 +86,15 @@ export default function WeeklyDashboard() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setTargetsOpen(true)}
+              className="gap-1.5"
+            >
+              <Target className="h-3.5 w-3.5" />
+              Definir Metas
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={generate}
               disabled={strategyLoading}
               className="gap-1.5"
@@ -93,6 +104,7 @@ export default function WeeklyDashboard() {
             </Button>
           </div>
         </div>
+        <WeeklyTargetsEditor open={targetsOpen} onOpenChange={setTargetsOpen} />
         <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
