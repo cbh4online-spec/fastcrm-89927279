@@ -116,6 +116,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       require_phone: requirePhone,
       custom_message_label: customMessageLabel || null,
       custom_fields: customFields,
+    };
     if (isEditing) {
       await updatePage.mutateAsync({ id: editingPage!.id, ...payload });
     } else {
