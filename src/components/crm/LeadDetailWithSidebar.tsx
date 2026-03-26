@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
@@ -319,7 +320,7 @@ export function LeadDetailWithSidebar() {
   return (
     <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 h-[calc(100vh-64px)]">
       {/* Breadcrumbs */}
-      <div className="bg-background px-6 pt-4">
+      <div className="bg-background px-3 sm:px-6 pt-4">
         <PageBreadcrumbs
           items={[
             { label: "CRM", href: "/dashboard/crm" },
@@ -330,9 +331,9 @@ export function LeadDetailWithSidebar() {
       </div>
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-3 sm:px-6 py-3 sm:py-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/leads")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -344,27 +345,27 @@ export function LeadDetailWithSidebar() {
               onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof Lead, url)}
               size="md"
             />
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold text-foreground">{lead.name}</h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-semibold text-foreground truncate">{lead.name}</h1>
                 {lead.source && (
-                  <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium">
+                  <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium shrink-0">
                     {SourceIcon}
-                    {lead.source}
+                    <span className="hidden sm:inline">{lead.source}</span>
                   </Badge>
                 )}
-                <Badge variant="outline" className={statusColors[lead.status]}>
+                <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>
                   {statusLabels[lead.status]}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 shrink-0" />
                 Atualizado há {getTimeAgo(new Date(lead.updated_at))}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pl-10 sm:pl-0">
             {lead.email && (
               <TooltipProvider>
                 <Tooltip>
@@ -402,22 +403,23 @@ export function LeadDetailWithSidebar() {
               onClick={handleGenerateSuggestions}
               disabled={generateSuggestions.isPending}
               className="gap-2"
+              size="sm"
             >
               <Sparkles className="w-4 h-4" />
-              {generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}
+              <span className="hidden sm:inline">{generateSuggestions.isPending ? "A analisar..." : "Analisar IA"}</span>
             </Button>
             <ConvertLeadDialog 
               lead={lead}
               trigger={
-                <Button className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+                <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
                   <ArrowRight className="w-4 h-4" />
-                  Converter
+                  <span className="hidden sm:inline">Converter</span>
                 </Button>
               }
             />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive">
+                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive shrink-0">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -449,11 +451,11 @@ export function LeadDetailWithSidebar() {
         counts={counts}
       />
 
-      {/* Main Content - 2 Column Layout */}
-      <div className="flex-1 flex min-h-0">
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Center Content */}
         <main className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-6 max-w-4xl">
+          <div className="p-3 sm:p-6 max-w-4xl">
             {activeSection === 'overview' && (
               <div className="mb-6">
                 <EntityHighlightsGrid entityType="lead" entity={lead as any} />

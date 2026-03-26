@@ -90,30 +90,34 @@ export function EntityDetailLayout({
         extraBadges={extraBadges}
       />
 
-      {/* Main Content - 3 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Menu */}
-        <EntitySidebarMenu
-          entityType={entityType}
-          activeSection={activeSection}
-          onSectionChange={onSectionChange}
-          counts={counts}
-        />
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Sidebar - Menu (hidden on mobile) */}
+        <div className="hidden lg:block">
+          <EntitySidebarMenu
+            entityType={entityType}
+            activeSection={activeSection}
+            onSectionChange={onSectionChange}
+            counts={counts}
+          />
+        </div>
 
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-6 max-w-4xl">
+            <div className="p-3 sm:p-6 max-w-4xl">
               {children}
             </div>
           </ScrollArea>
         </main>
 
         {/* Right Sidebar - Context */}
-        <EntityContextSidebar
-          entityType={entityType}
-          entity={entity}
-        />
+        <div className="hidden xl:block">
+          <EntityContextSidebar
+            entityType={entityType}
+            entity={entity}
+          />
+        </div>
       </div>
     </div>
   );
