@@ -51,7 +51,7 @@ import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
 import { ReportsRoutes } from "@/routes/ReportsRoutes";
 import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
 import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
-import { FastClubPortalRoute } from "@/routes/FastClubRoutes";
+import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
 import { AIRoutes } from "@/routes/AIRoutes";
 import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
 import { StoreRoutes, ClientPortalRoutes, StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
