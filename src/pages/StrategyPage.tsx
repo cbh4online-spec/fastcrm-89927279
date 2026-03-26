@@ -698,18 +698,21 @@ export default function StrategyPage() {
   return (
     <DashboardLayout>
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      <PageHeader
-        title="Estratégia Semanal"
-        description="Inteligência estratégica gerada por IA com base em toda a atividade do workspace"
-        actions={[
-          {
-            label: isGenerating ? "A gerar..." : "Gerar Relatório",
-            icon: <RefreshCw className={cn("w-4 h-4", isGenerating && "animate-spin")} />,
-            onClick: generateBrief,
-            disabled: isGenerating,
-          },
-        ]}
-      />
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <PageHeader
+          title="Estratégia Semanal"
+          description="Inteligência estratégica gerada por IA com base em toda a atividade do workspace"
+          actions={[
+            {
+              label: isGenerating ? "A gerar..." : "Gerar Relatório",
+              icon: <RefreshCw className={cn("w-4 h-4", isGenerating && "animate-spin")} />,
+              onClick: generateBrief,
+              disabled: isGenerating,
+            },
+          ]}
+        />
+        <ExecutiveBriefExport brief={latestBrief} workspaceName={currentWorkspace?.name} />
+      </div>
 
       <Tabs defaultValue="brief">
         <TabsList className="mb-2">
