@@ -1,59 +1,29 @@
 
 
-# Plano: Histórico de 4 Semanas — Metas vs Atingido
+# Melhorar clareza dos gráficos de Evolução Semanal
 
-Criar uma secção com gráficos que mostram a evolução das últimas 4 semanas, comparando metas definidas com valores reais atingidos.
+## Problemas identificados
 
----
+1. **Cor da Meta quase invisível** — `hsl(var(--muted))` é demasiado claro, confunde-se com o fundo
+2. **Gráficos pequenos** — apenas 120px de altura, difícil ler valores
+3. **Sem valores visíveis** — as barras não mostram o número, só se vê no tooltip ao passar o rato
+4. **Sem escala Y** — impossível saber a magnitude dos valores
 
-## Dados disponíveis
+## Alterações
 
-A tabela `performance_targets` já armazena `metric_type`, `target_value`, `period_start`, `period_end` por semana. Os actuals vêm das mesmas queries que o `useWeeklyPerformance` já faz (leads, meetings, proposals, opportunities), mas parametrizadas para cada uma das 4 semanas.
+### Ficheiro: `WeeklyHistoryCharts.tsx`
 
----
+1. **Cores mais contrastantes**:
+   - Meta: azul claro/cinza escuro com opacidade (`hsl(var(--primary) / 0.25)`) ou uma cor distinta como `#94a3b8`
+   - Atingido: manter `hsl(var(--primary))` mas mais saturado
 
-## Implementação
+2. **Aumentar altura dos gráficos** de 120px para 160px
 
-### 1. Hook `useWeeklyHistory`
-- Calcula os bounds (segunda→domingo) das últimas 4 semanas
-- Para cada semana, faz queries paralelas:
-  - `performance_targets` → metas definidas
-  - `leads`, `meetings`, `calendar_events`, `proposals`, `opportunities` → contagens reais
-- Retorna array de 4 objectos: `{ weekLabel, metrics: { revenue: { target, actual }, leads: { target, actual }, ... } }`
+3. **Mostrar valor actual** por cima do título de cada métrica (ex: "Receita — €0,00") para leitura imediata
 
-### 2. Componente `WeeklyHistoryCharts`
-- Usa Recharts (já instalado no projecto)
-- **Gráfico de barras agrupadas** (target vs actual) por semana para cada métrica
-- Layout: grid 2×2 ou 3×2 com mini-gráficos para Revenue, Leads, Reuniões, Proposals, Deals
-- Barras verde (atingido) e cinza tracejado (meta)
-- Tooltip com valores exactos
-- Badge de tendência (↑↓) comparando semana actual vs anterior
+4. **Mostrar labels nos topos das barras** usando a prop `label` do Recharts `<Bar>` com valores formatados
 
-### 3. Integração no Dashboard
-- Nova secção entre o "Oportunidades e Ações" e "Metas do Trimestre"
-- Título: "Evolução Semanal" com ícone `BarChart3`
-- Substitui o placeholder `TrendCompositionSection` existente
+5. **Mostrar YAxis simplificado** com ticks automáticos para dar escala
 
----
-
-## Detalhe técnico
-
-```text
-┌──────────────────────────────────────────┐
-│  Evolução Semanal (últimas 4 semanas)    │
-├──────────┬──────────┬──────────┬─────────┤
-│ Receita  │ Leads    │ Reuniões │ Deals   │
-│ ██ ░░    │ ██ ░░    │ ██ ░░    │ ██ ░░   │
-│ ██ ██    │ ██ ░░    │ ██ ██    │ ██ ██   │
-│ ██ ██    │ ██ ██    │ ██ ██    │ ██ ██   │
-│ ██ ██    │ ██ ██    │ ██ ██    │ ██ ██   │
-│ S1 S2 S3 S4         (semanas)            │
-└──────────────────────────────────────────┘
-█ = Atingido   ░ = Meta
-```
-
-- Cada mini-chart mostra 4 barras duplas (meta vs actual)
-- Cores: `hsl(var(--primary))` para actual, `hsl(var(--muted))` para target
-- Semanas sem metas definidas mostram apenas a barra de actual
-- Formato currency para receita, número para os restantes
+6. **Actualizar legenda global** com as novas cores
 
