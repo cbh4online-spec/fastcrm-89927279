@@ -5,7 +5,9 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
+import { EnrichmentProcessorProvider } from "@/contexts/EnrichmentProcessorContext";
 import { GDPRBanner } from "@/modules/growth-seo";
+import { EnrichmentFloatingIndicator } from "@/components/enrichment/EnrichmentFloatingIndicator";
 
 // Route modules
 import { SecurityRoutes } from "@/routes/SecurityRoutes";
@@ -42,29 +44,32 @@ export default function CRMRoutesV2() {
         <ActivityProfileProvider>
           <WorkspaceInstanceProvider>
             <SubscriptionProvider>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {PublicSeoRoutes()}
-                  {DashboardCoreRoutes()}
-                  {SalesCRMRoutes()}
-                  {AIRoutes()}
-                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-                  {ReportsRoutes()}
-                  {AccountBriefRoutes()}
-                  {RevenueFlightControlRoutes()}
-                  {PerformanceRoutes()}
-                  {ProcurementRoutes()}
-                  {SecurityRoutes()}
-                  {StudentJourneyRoutes()}
-                  {CheckoutAdminRoutes()}
-                  {C2CDashboardRoutes()}
-                  {StoreAdminRoutes()}
-                  {B2BAdminRoutes()}
-                  {RevenueCommerceRoutes()}
-                  {VerticalOpsRoutes()}
-                </Routes>
-              </Suspense>
-              <GDPRBanner />
+              <EnrichmentProcessorProvider>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {PublicSeoRoutes()}
+                    {DashboardCoreRoutes()}
+                    {SalesCRMRoutes()}
+                    {AIRoutes()}
+                    <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
+                    {ReportsRoutes()}
+                    {AccountBriefRoutes()}
+                    {RevenueFlightControlRoutes()}
+                    {PerformanceRoutes()}
+                    {ProcurementRoutes()}
+                    {SecurityRoutes()}
+                    {StudentJourneyRoutes()}
+                    {CheckoutAdminRoutes()}
+                    {C2CDashboardRoutes()}
+                    {StoreAdminRoutes()}
+                    {B2BAdminRoutes()}
+                    {RevenueCommerceRoutes()}
+                    {VerticalOpsRoutes()}
+                  </Routes>
+                </Suspense>
+                <EnrichmentFloatingIndicator />
+                <GDPRBanner />
+              </EnrichmentProcessorProvider>
             </SubscriptionProvider>
           </WorkspaceInstanceProvider>
         </ActivityProfileProvider>
