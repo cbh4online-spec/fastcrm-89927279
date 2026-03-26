@@ -23,6 +23,10 @@ import {
   formatCurrency,
   getTargetStatus,
 } from "@/hooks/useRevenueFlightControl";
+import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
+import { useGrowthInsights } from "@/hooks/useGrowthInsights";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { RFCExport } from "@/components/revenue-flight-control/RFCExport";
 
 function RFCMainPage() {
   const navigate = useNavigate();
