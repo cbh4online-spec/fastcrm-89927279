@@ -6011,6 +6011,69 @@ export type Database = {
           },
         ]
       }
+      booking_pages: {
+        Row: {
+          brand_color: string | null
+          buffer_minutes: number
+          calendar_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          max_advance_days: number
+          slug: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          brand_color?: string | null
+          buffer_minutes?: number
+          calendar_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          max_advance_days?: number
+          slug: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          brand_color?: string | null
+          buffer_minutes?: number
+          calendar_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          max_advance_days?: number
+          slug?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_pages_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bot_analytics: {
         Row: {
           avg_response_time_ms: number | null
