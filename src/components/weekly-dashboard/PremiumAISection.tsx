@@ -9,6 +9,11 @@ const SUGGESTION_CHIPS = [
 ];
 
 export function PremiumAISection() {
+  const handleChipClick = (chip: string) => {
+    // Dispatch a custom event that AIQuestionBox's CommandInput listens to
+    window.dispatchEvent(new CustomEvent("ai-suggestion-click", { detail: chip }));
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 px-1">
@@ -23,22 +28,7 @@ export function PremiumAISection() {
         {SUGGESTION_CHIPS.map((chip) => (
           <button
             key={chip}
-            onClick={() => {
-              // Dispatch a custom event that AIQuestionBox can listen to,
-              // or simply use the input programmatically
-              const input = document.querySelector<HTMLInputElement>('[data-command-input]');
-              if (input) {
-                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                  window.HTMLInputElement.prototype, 'value'
-                )?.set;
-                nativeInputValueSetter?.call(input, chip);
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                // Trigger submit via Enter key
-                setTimeout(() => {
-                  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-                }, 50);
-              }
-            }}
+            onClick={() => handleChipClick(chip)}
             className="text-[11px] px-3 py-1.5 rounded-full border border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
           >
             {chip}
