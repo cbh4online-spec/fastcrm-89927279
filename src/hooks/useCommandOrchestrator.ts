@@ -16,10 +16,17 @@ export interface CommandAction {
   target?: string;
 }
 
+export interface CommandFollowUp {
+  label: string;
+  command: string;
+  emoji: string;
+}
+
 export interface CommandResult {
   summary: string;
   sections: CommandSection[];
   suggested_actions: CommandAction[];
+  follow_up_suggestions?: CommandFollowUp[];
   confidence: number;
 }
 
