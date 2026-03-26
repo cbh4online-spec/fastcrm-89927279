@@ -58,8 +58,10 @@ Deno.serve(async (req) => {
           integration: "WHATSAPP-BAILEYS",
         }),
       });
-    } catch {
-      // Instance may already exist, continue
+      const createText = await createRes.text();
+      console.log(`Create instance response (${createRes.status}):`, createText.substring(0, 200));
+    } catch (e) {
+      console.log("Create instance failed (may already exist):", e.message);
     }
 
     // Connect and get QR code
