@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface CommandSection {
@@ -11,7 +12,7 @@ export interface CommandSection {
 
 export interface CommandAction {
   label: string;
-  action_type: "navigate" | "create_task" | "send_email" | "schedule_meeting" | "generate_report";
+  action_type: "navigate" | "create_task" | "send_email" | "schedule_meeting" | "generate_report" | "create_followup" | "analyze_deeper" | "export_pdf";
   target?: string;
 }
 
@@ -37,9 +38,64 @@ export interface CommandHistoryItem {
 
 export function useCommandOrchestrator() {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [currentResponse, setCurrentResponse] = useState<CommandResponse | null>(null);
   const [history, setHistory] = useState<CommandHistoryItem[]>([]);
+
+  // Load persisted sessions on mount
+  useEffect(() => {
+    if (!currentWorkspace?.id || !user?.id) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("command_center_sessions" as any)
+        .select("command, intent, entity_id, entity_name, response_summary, response_confidence, response_json, created_at")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (data && data.length > 0) {
+        const restored: CommandHistoryItem[] = (data as any[]).map((row) => ({
+          command: row.command,
+          response: row.response_json as CommandResponse || {
+            intent: row.intent || "general",
+            result: row.response_summary ? {
+              summary: row.response_summary,
+              sections: [],
+              suggested_actions: [],
+              confidence: row.response_confidence || 0,
+            } : null,
+            entity_id: row.entity_id,
+            entity_name: row.entity_name,
+          },
+          timestamp: new Date(row.created_at),
+        }));
+        setHistory(restored);
+      }
+    };
+    load();
+  }, [currentWorkspace?.id, user?.id]);
+
+  // Persist session to DB
+  const persistSession = useCallback(async (command: string, response: CommandResponse) => {
+    if (!currentWorkspace?.id || !user?.id) return;
+    try {
+      await supabase.from("command_center_sessions" as any).insert({
+        workspace_id: currentWorkspace.id,
+        user_id: user.id,
+        command,
+        intent: response.intent,
+        entity_id: response.entity_id || null,
+        entity_name: response.entity_name || null,
+        response_summary: response.result?.summary || null,
+        response_confidence: response.result?.confidence || null,
+        response_json: response as any,
+      });
+    } catch (err) {
+      console.warn("[COMMAND-CENTER] Failed to persist session:", err);
+    }
+  }, [currentWorkspace?.id, user?.id]);
 
   const execute = useCallback(async (command: string, entityId?: string, entityName?: string) => {
     if (!currentWorkspace?.id || isLoading) return;
@@ -62,6 +118,9 @@ export function useCommandOrchestrator() {
       const response = data as CommandResponse;
       setCurrentResponse(response);
       setHistory((prev) => [{ command, response, timestamp: new Date() }, ...prev].slice(0, 20));
+
+      // Persist async
+      persistSession(command, response);
     } catch (err: any) {
       console.error("[COMMAND-CENTER] Error:", err);
       if (err?.message?.includes("429")) {
@@ -72,7 +131,7 @@ export function useCommandOrchestrator() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, isLoading]);
+  }, [currentWorkspace?.id, isLoading, persistSession]);
 
   const clear = useCallback(() => {
     setCurrentResponse(null);
