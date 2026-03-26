@@ -32,6 +32,16 @@ function fmt(value: number, format: "currency" | "number") {
   return format === "currency" ? formatCurrency(value) : formatNumber(value);
 }
 
+function BarLabel({ x, y, width, value, format: f }: any) {
+  if (!value) return null;
+  const label = f === "currency" ? formatCurrency(value) : formatNumber(value);
+  return (
+    <text x={x + width / 2} y={y - 4} textAnchor="middle" fontSize={9} fill="hsl(var(--foreground))" fontWeight={500}>
+      {label}
+    </text>
+  );
+}
+
 function MiniChart({ metricKey, label, format, data }: {
   metricKey: string;
   label: string;
@@ -51,20 +61,23 @@ function MiniChart({ metricKey, label, format, data }: {
     <Card className="border-border/60">
       <CardContent className="pt-4 pb-3 px-4 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">{label}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-foreground">{label}</p>
+            <span className="text-[11px] font-medium text-muted-foreground">— {fmt(currentActual, format)}</span>
+          </div>
           <TrendBadge current={currentActual} previous={prevActual} />
         </div>
-        <div className="h-[120px]">
+        <div className="h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barGap={2} barCategoryGap="20%">
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} className="text-muted-foreground" />
-              <YAxis hide />
+            <BarChart data={chartData} barGap={2} barCategoryGap="20%" margin={{ top: 16, right: 4, bottom: 0, left: -12 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} width={36} tickFormatter={(v: number) => format === "currency" ? `${(v / 1000).toFixed(0)}k` : String(v)} />
               <Tooltip
                 contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--popover))", color: "hsl(var(--popover-foreground))" }}
                 formatter={(value: number) => fmt(value, format)}
               />
-              <Bar dataKey="Meta" fill="hsl(var(--muted))" radius={[3, 3, 0, 0]} maxBarSize={20} />
-              <Bar dataKey="Atingido" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={20} />
+              <Bar dataKey="Meta" fill="hsl(var(--primary) / 0.2)" stroke="hsl(var(--primary) / 0.4)" strokeWidth={1} radius={[3, 3, 0, 0]} maxBarSize={22} />
+              <Bar dataKey="Atingido" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} maxBarSize={22} label={<BarLabel format={format} />} />
             </BarChart>
           </ResponsiveContainer>
         </div>
