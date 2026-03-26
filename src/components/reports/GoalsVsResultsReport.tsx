@@ -66,12 +66,12 @@ export function GoalsVsResultsReport() {
       const userIds = data.map(m => m.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
       
       return data.map(member => ({
         ...member,
-        profile: profiles?.find(p => p.id === member.user_id) || null
+        profile: profiles?.find(p => p.user_id === member.user_id) || null
       }));
     },
     enabled: !!currentWorkspace,
