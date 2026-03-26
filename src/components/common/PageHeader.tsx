@@ -56,13 +56,14 @@ export function PageHeader({
         </div>
         
         {actions && actions.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {actions.map((action, index) => (
               <Button
                 key={index}
                 onClick={action.onClick}
                 disabled={action.disabled}
                 variant={action.variant === "outline" ? "outline" : action.variant === "ghost" ? "ghost" : "default"}
+                size="sm"
                 className={cn(
                   "gap-2 transition-all duration-200",
                   action.variant !== "outline" && action.variant !== "ghost" && 
@@ -70,7 +71,7 @@ export function PageHeader({
                 )}
               >
                 {action.icon}
-                {action.label}
+                <span className="hidden sm:inline">{action.label}</span>
               </Button>
             ))}
           </div>
