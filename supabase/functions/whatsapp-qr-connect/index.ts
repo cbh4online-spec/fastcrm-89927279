@@ -41,9 +41,12 @@ Deno.serve(async (req) => {
     const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, "");
 
+    console.log(`Evolution API URL: ${baseUrl.substring(0, 30)}...`);
+    console.log(`Instance name: ${instanceName}`);
+
     // Try to create instance (ignore if already exists)
     try {
-      await fetch(`${baseUrl}/instance/create`, {
+      const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
