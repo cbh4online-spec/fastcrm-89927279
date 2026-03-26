@@ -258,6 +258,13 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                       source: conversation.channel,
                     }, {
                       onSuccess: () => toast.success("Lead criado com sucesso"),
+                      onError: (err: any) => {
+                        if (err?.message === "DUPLICATE_EMAIL") {
+                          toast.error("Já existe um lead com este email.");
+                        } else {
+                          toast.error("Erro ao criar lead");
+                        }
+                      },
                     });
                   }}
                 >
