@@ -2,27 +2,22 @@
 
 ## Problema
 
-O segredo `EVOLUTION_API_URL` continua com o valor errado — contém a API key (`bd973abbc8e63695...`) em vez da URL (`https://evolution-api-production-e886.up.railway.app`). Os logs mais recentes (11:30:43Z) confirmam:
+O segredo `EVOLUTION_API_URL` continua a conter a connection string do PostgreSQL do Railway (algo como `postgresql://postgres:...@...railway.app:5432/railway`) em vez da URL HTTP da Evolution API.
 
-```
-Invalid URL: 'bd973abbc8e63695.../instance/connect/ws_...'
-```
+Apesar de termos tentado atualizar o segredo várias vezes, o valor persistido continua errado. Os logs confirmam: `Url scheme 'postgresql' not supported`.
 
 ## Plano
 
-### 1. Corrigir o segredo `EVOLUTION_API_URL`
-Atualizar para o valor correto: `https://evolution-api-production-e886.up.railway.app`
+### 1. Atualizar o segredo `EVOLUTION_API_URL`
+Definir o valor correto: `https://evolution-api-production-e886.up.railway.app`
 
-### 2. Verificar se os dois segredos estão corretos
-- `EVOLUTION_API_URL` → `https://evolution-api-production-e886.up.railway.app` (URL da API)
-- `EVOLUTION_API_KEY` → a API key configurada no Railway (o valor `bd973abbc8e63695...` que está atualmente no URL)
+### 2. Redeployar a edge function
+Forçar o redeploy da `whatsapp-qr-connect` para garantir que usa o novo valor do segredo e inclui a validação de URL já adicionada ao código.
 
-É provável que os valores dos dois segredos estejam **trocados** — a key no campo URL e vice-versa.
-
-### 3. Testar a conexão
-Após corrigir, testar o fluxo de QR Code no painel WhatsApp.
+### 3. Testar
+Invocar a edge function para confirmar que o erro `postgresql scheme` desapareceu.
 
 ---
 
-**Detalhe técnico**: Nenhuma alteração de código é necessária. O edge function está correto — o problema é apenas configuração de segredos.
+**Nota técnica**: O código da edge function já inclui validação que rejeita URLs não-HTTP com mensagem clara. Basta corrigir o segredo.
 
