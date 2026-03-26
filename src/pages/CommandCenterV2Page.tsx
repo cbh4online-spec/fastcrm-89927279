@@ -24,6 +24,9 @@ export default function CommandCenterV2Page() {
         description="Execute comandos inteligentes com contexto CRM completo"
       />
 
+      {/* Live Dashboard — always visible */}
+      <CommandLiveDashboard />
+
       <CommandHero
         onSubmit={handleSubmit}
         isLoading={isLoading}
@@ -50,6 +53,12 @@ export default function CommandCenterV2Page() {
             actions={currentResponse.result.suggested_actions}
             entityId={currentResponse.entity_id}
             entityName={currentResponse.entity_name}
+          />
+          {/* Follow-up contextual chips */}
+          <CommandFollowUpChips
+            response={currentResponse}
+            onSelect={handleSubmit}
+            isLoading={isLoading}
           />
         </div>
       )}

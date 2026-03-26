@@ -10,7 +10,7 @@ interface MiniKPI {
   value: string;
   icon: any;
   trend?: "up" | "down" | "neutral";
-  status?: "green" | "yellow" | "red";
+  status?: "green" | "yellow" | "red" | "neutral";
 }
 
 export function CommandLiveDashboard() {
