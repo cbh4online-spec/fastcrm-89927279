@@ -352,18 +352,53 @@ export default function PublicBookingPage() {
                   <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Telefone *</Label>
                   <Input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+351 912 345 678" />
                 </div>
-              )}
+               )}
               {page.custom_message_label && (
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {page.custom_message_label}</Label>
                   <Textarea value={guestMessage} onChange={e => setGuestMessage(e.target.value)} rows={3} placeholder="Escreva aqui..." />
                 </div>
               )}
+              {/* Custom fields */}
+              {(page.custom_fields || []).map(field => (
+                <div key={field.id} className="space-y-1.5">
+                  <Label>{field.label} {field.required && '*'}</Label>
+                  {field.type === 'textarea' ? (
+                    <Textarea
+                      value={customFieldValues[field.id] || ''}
+                      onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder || ''}
+                      rows={3}
+                    />
+                  ) : field.type === 'select' ? (
+                    <Select
+                      value={customFieldValues[field.id] || ''}
+                      onValueChange={v => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={field.placeholder || 'Selecionar...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(field.options || []).map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      value={customFieldValues[field.id] || ''}
+                      onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder || ''}
+                    />
+                  )}
+                </div>
+              ))}
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button
                 className="w-full gap-2"
                 onClick={handleSaveLead}
-                disabled={!guestName || !guestEmail || (page.require_phone && !guestPhone) || savingLead}
+                disabled={!guestName || !guestEmail || (page.require_phone && !guestPhone) || (page.custom_fields || []).some(f => f.required && !customFieldValues[f.id]?.trim()) || savingLead}
                 style={{ backgroundColor: page.brand_color }}
               >
                 {savingLead ? 'A guardar...' : 'Continuar'}
