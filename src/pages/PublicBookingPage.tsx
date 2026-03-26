@@ -210,6 +210,10 @@ export default function PublicBookingPage() {
   const handleSaveLead = async () => {
     if (!page || !guestName || !guestEmail) return;
     if (page.require_phone && !guestPhone) return;
+    // Validate required custom fields
+    const customFields = page.custom_fields || [];
+    const missingRequired = customFields.some(f => f.required && !customFieldValues[f.id]?.trim());
+    if (missingRequired) return;
     setSavingLead(true);
     setError(null);
     try {
@@ -225,6 +229,7 @@ export default function PublicBookingPage() {
           guest_email: guestEmail,
           guest_phone: guestPhone || null,
           guest_message: guestMessage || null,
+          custom_field_values: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
         }),
       });
       const result = await res.json();
