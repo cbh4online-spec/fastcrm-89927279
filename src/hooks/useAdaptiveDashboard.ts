@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import type { SalesFunction, AgeGroup } from '@/data/adaptiveDashboardMock';
 
 export interface AdaptiveLayoutConfig {
