@@ -94,10 +94,6 @@ export default function WeeklyDashboard() {
           isLoading={isLoading}
         />
 
-        {/* 9–10. Comparativo Semanal + Ações Prioritárias (Adaptive) */}
-        {showAdaptive && (
-          <AdaptiveDashboardGestor layoutConfig={layoutConfig} />
-        )}
 
         {/* 11. Acesso Rápido */}
         <QuickAccessFooter />
