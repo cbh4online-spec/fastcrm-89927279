@@ -167,17 +167,25 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
     });
   }
 
+  // Get a workspace member to use as created_by
+  const { data: member } = await supabase
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", page.workspace_id)
+    .limit(1)
+    .single();
+
   // Create calendar event
   const { data: event, error: eventErr } = await supabase
     .from("calendar_events")
     .insert({
       calendar_id: page.calendar_id,
       workspace_id: page.workspace_id,
+      created_by: member?.user_id || "00000000-0000-0000-0000-000000000000",
       title: `${page.title} — ${guest_name}`,
       description: `Agendamento público\nNome: ${guest_name}\nEmail: ${guest_email}`,
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
-      event_type: "meeting",
       status: "confirmed",
       metadata: {
         booking_page_id: page.id,
