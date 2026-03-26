@@ -70,7 +70,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       setEndHour(editingPage.end_hour);
       setRequirePhone(editingPage.require_phone);
       setCustomMessageLabel(editingPage.custom_message_label || '');
-    } else {
+      setCustomFields(editingPage.custom_fields || []);
       resetForm();
     }
   }, [editingPage]);
@@ -115,7 +115,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       availability_id: editingPage?.availability_id ?? null,
       require_phone: requirePhone,
       custom_message_label: customMessageLabel || null,
-    };
+      custom_fields: customFields,
     if (isEditing) {
       await updatePage.mutateAsync({ id: editingPage!.id, ...payload });
     } else {
@@ -129,7 +129,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
     setTitle(''); setSlug(''); setCalendarId(''); setDescription('');
     setDuration('30'); setBuffer('0'); setMaxDays('30'); setBrandColor('#6366f1');
     setWorkingDays([1, 2, 3, 4, 5]); setStartHour('09:00'); setEndHour('18:00');
-    setRequirePhone(false); setCustomMessageLabel('');
+    setRequirePhone(false); setCustomMessageLabel(''); setCustomFields([]);
   };
 
   const isPending = createPage.isPending || updatePage.isPending;
