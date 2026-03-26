@@ -36,6 +36,9 @@ function RFCMainPage() {
   const { data: riskSignals } = useDealRiskSignals();
   const { data: recommendations } = useRevenueRecommendations();
   const recompute = useRecomputeRevenueFlightControl();
+  const { buckets: pipelineBuckets } = usePipelineRiskAnalysis();
+  const { topCustomers, topSellers, needMatches, summary: growthSummary, aiAnalysis } = useGrowthInsights({ autoRefresh: false });
+  const { currentWorkspace } = useWorkspace();
 
   const latest = snapshots?.[0];
   const previous = snapshots?.[1];
