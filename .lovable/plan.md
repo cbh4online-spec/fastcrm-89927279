@@ -1,29 +1,44 @@
 
 
-# Melhorar clareza dos gráficos de Evolução Semanal
+# Completar PDF do CEO Copilot — secções em falta
 
-## Problemas identificados
+## Problema
 
-1. **Cor da Meta quase invisível** — `hsl(var(--muted))` é demasiado claro, confunde-se com o fundo
-2. **Gráficos pequenos** — apenas 120px de altura, difícil ler valores
-3. **Sem valores visíveis** — as barras não mostram o número, só se vê no tooltip ao passar o rato
-4. **Sem escala Y** — impossível saber a magnitude dos valores
+O export PDF do CEO Copilot só inclui Daily Brief, Estratégia Semanal e Pipeline Health parcial. Faltam:
+1. **Resumo Semanal** — o `strategy.summary` já está no PDF mas sem destaque; as secções Quick Wins não aparecem claramente separadas
+2. **Pipeline Health completa** — faltam os risk buckets (Hot/Likely/Uncertain/Low com contagem e valor) que vêm do hook `usePipelineRiskAnalysis`
+3. **Growth Insights** — secção inteira ausente (Top Customers, Top Sellers, Need Matches, Lifecycle Events, AI Analysis summary)
 
 ## Alterações
 
-### Ficheiro: `WeeklyHistoryCharts.tsx`
+### 1. `CEOCopilotPage.tsx`
+- Importar `useGrowthInsights` e passar os dados (`topCustomers`, `topSellers`, `needMatches`, `summary`, `aiAnalysis`) ao componente `CEOCopilotExport`
+- Importar `usePipelineRiskAnalysis` e passar `buckets` ao export
 
-1. **Cores mais contrastantes**:
-   - Meta: azul claro/cinza escuro com opacidade (`hsl(var(--primary) / 0.25)`) ou uma cor distinta como `#94a3b8`
-   - Atingido: manter `hsl(var(--primary))` mas mais saturado
+### 2. `CEOCopilotExport.tsx` — Props
+- Adicionar props: `growthData` (topCustomers, topSellers, needMatches, summary, aiAnalysis) e `pipelineBuckets`
 
-2. **Aumentar altura dos gráficos** de 120px para 160px
+### 3. `CEOCopilotExport.tsx` — Secção Pipeline Health (melhorar)
+- Antes dos stalled deals, adicionar tabela de **Risk Buckets**: categoria | deals | valor total
+- Categorias: Hot, Likely, Uncertain, Low com cores correspondentes
 
-3. **Mostrar valor actual** por cima do título de cada métrica (ex: "Receita — €0,00") para leitura imediata
+### 4. `CEOCopilotExport.tsx` — Nova secção "GROWTH INSIGHTS"
+- **Summary KPIs**: tabela com topCustomersCount, totalRevenue, pendingNeedMatches, upcomingLifecycleEvents
+- **Top Customers** (top 5): tabela com nome, empresa, receita total, LTV, risco de churn
+- **Top Sellers** (top 5): tabela com nome, receita, conversão, velocidade de fecho, progresso meta
+- **Need Matches** (top 5): tabela com cliente, produto recomendado, confiança, janela ideal
+- **AI Analysis**: insights e recomendações em lista se disponível
 
-4. **Mostrar labels nos topos das barras** usando a prop `label` do Recharts `<Bar>` com valores formatados
+### Secções finais no PDF
+1. Daily Brief (já existe)
+2. Estratégia Semanal (já existe — manter)
+3. Pipeline Health (expandir com buckets)
+4. **Growth Insights** (novo)
 
-5. **Mostrar YAxis simplificado** com ticks automáticos para dar escala
+## Detalhes técnicos
 
-6. **Actualizar legenda global** com as novas cores
+- Ficheiros alterados: `CEOCopilotPage.tsx`, `CEOCopilotExport.tsx`
+- Sem novas dependências — usa jsPDF + autoTable já instalados
+- Dados vêm dos hooks existentes `useGrowthInsights` e `usePipelineRiskAnalysis`
+- Formatação segue o padrão já definido no export (cores PRIMARY/GREEN/AMBER/RED, sectionHeader, autoTable)
 
