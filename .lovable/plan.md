@@ -1,77 +1,59 @@
 
 
-# Plano: Melhorar a Sidebar Adaptativa
+# Plano: Histórico de 4 Semanas — Metas vs Atingido
 
-A sidebar adaptativa já existe com a maioria das funcionalidades pedidas (menus por função, estilos por idade, badges, gamificação, quota, quick actions, collapse, mobile overlay). Este plano foca nas **lacunas** entre o que existe e a especificação completa.
-
----
-
-## O que já funciona
-
-- Menus por função (Vendedor, Gestor, Diretor, CEO)
-- Estilos por idade (young/standard/senior: ícones, texto, alturas)
-- Badges com cores por severidade e pulse
-- Gamificação strip (young)
-- Quota progress bar (vendedor)
-- Quick actions (young + standard)
-- Collapse para 64px com tooltips
-- Mobile overlay com swipe-to-close
-- Grupos colapsáveis (standard), sempre abertos (senior)
+Criar uma secção com gráficos que mostram a evolução das últimas 4 semanas, comparando metas definidas com valores reais atingidos.
 
 ---
 
-## Melhorias a implementar
+## Dados disponíveis
 
-### 1. Secção de Alertas Críticos
-Adicionar entre o header/quota e o menu principal uma secção destacada que aparece **apenas quando existem alertas críticos** (deals parados, meta em risco). Consulta a base de dados para obter alertas reais.
-
-**Ficheiros:** `AdaptiveSidebar.tsx`, novo hook `useSidebarAlerts.ts`
-
-### 2. Badges com dados reais
-Substituir os badges mock (`activities_today: 5`, `pending_decisions: 3`) por queries reais à base de dados — contar atividades do dia, decisões pendentes, follow-ups atrasados.
-
-**Ficheiros:** `useSidebarBadges.ts` (expandir queries existentes)
-
-### 3. Bloquear collapse para seniores
-Quando `ageGroup === "senior"`, esconder o botão de collapse e forçar a sidebar sempre expandida (280px). Remover a transição para 64px.
-
-**Ficheiros:** `AdaptiveSidebar.tsx`
-
-### 4. Atalho de teclado Cmd/Ctrl+B
-Adicionar `useEffect` global para toggle do collapse via teclado.
-
-**Ficheiros:** `AdaptiveSidebar.tsx`
-
-### 5. Swipe da borda esquerda para abrir
-O código actual detecta o swipe mas não chama `onOpen`. Corrigir para invocar um callback de abertura quando swipe > 50px a partir da borda (x < 20px).
-
-**Ficheiros:** `AdaptiveSidebar.tsx`, `DashboardLayout.tsx` (passar `onOpen` callback)
-
-### 6. Módulos do Marketplace na sidebar
-Consultar `marketplace_modules` instalados e renderizar como secção dinâmica no final do menu (antes de Definições).
-
-**Ficheiros:** `AdaptiveSidebar.tsx`, novo hook ou extensão do existente
-
-### 7. Acessibilidade (ARIA)
-Adicionar `role="navigation"`, `aria-label`, `aria-expanded` nos grupos colapsáveis, e `aria-current="page"` nos links activos.
-
-**Ficheiros:** `AdaptiveSidebar.tsx`
+A tabela `performance_targets` já armazena `metric_type`, `target_value`, `period_start`, `period_end` por semana. Os actuals vêm das mesmas queries que o `useWeeklyPerformance` já faz (leads, meetings, proposals, opportunities), mas parametrizadas para cada uma das 4 semanas.
 
 ---
 
-## Ordem de implementação
+## Implementação
 
-1. Alertas Críticos + Badges reais (maior impacto funcional)
-2. Senior collapse lock + Accessibility
-3. Keyboard shortcut + Swipe-to-open fix
-4. Marketplace modules integration
+### 1. Hook `useWeeklyHistory`
+- Calcula os bounds (segunda→domingo) das últimas 4 semanas
+- Para cada semana, faz queries paralelas:
+  - `performance_targets` → metas definidas
+  - `leads`, `meetings`, `calendar_events`, `proposals`, `opportunities` → contagens reais
+- Retorna array de 4 objectos: `{ weekLabel, metrics: { revenue: { target, actual }, leads: { target, actual }, ... } }`
+
+### 2. Componente `WeeklyHistoryCharts`
+- Usa Recharts (já instalado no projecto)
+- **Gráfico de barras agrupadas** (target vs actual) por semana para cada métrica
+- Layout: grid 2×2 ou 3×2 com mini-gráficos para Revenue, Leads, Reuniões, Proposals, Deals
+- Barras verde (atingido) e cinza tracejado (meta)
+- Tooltip com valores exactos
+- Badge de tendência (↑↓) comparando semana actual vs anterior
+
+### 3. Integração no Dashboard
+- Nova secção entre o "Oportunidades e Ações" e "Metas do Trimestre"
+- Título: "Evolução Semanal" com ícone `BarChart3`
+- Substitui o placeholder `TrendCompositionSection` existente
 
 ---
 
-## Detalhes técnicos
+## Detalhe técnico
 
-- **useSidebarAlerts**: query `opportunities` para deals parados > 5 dias + check se quota < 70% do esperado para o dia do mês
-- **useSidebarBadges expandido**: adicionar queries para `activities` (today, overdue), `proposals` (pending), `kernel_decisions` (pending)
-- **Senior lock**: condicional `if (ageGroup === 'senior') return` no `toggleCollapse` e `className` forçando `w-[280px]`
-- **Swipe-to-open**: `DashboardLayout` passa `onOpen={() => setSidebarOpen(true)}` e o `AdaptiveSidebar` emite esse callback no edge swipe handler
+```text
+┌──────────────────────────────────────────┐
+│  Evolução Semanal (últimas 4 semanas)    │
+├──────────┬──────────┬──────────┬─────────┤
+│ Receita  │ Leads    │ Reuniões │ Deals   │
+│ ██ ░░    │ ██ ░░    │ ██ ░░    │ ██ ░░   │
+│ ██ ██    │ ██ ░░    │ ██ ██    │ ██ ██   │
+│ ██ ██    │ ██ ██    │ ██ ██    │ ██ ██   │
+│ ██ ██    │ ██ ██    │ ██ ██    │ ██ ██   │
+│ S1 S2 S3 S4         (semanas)            │
+└──────────────────────────────────────────┘
+█ = Atingido   ░ = Meta
+```
+
+- Cada mini-chart mostra 4 barras duplas (meta vs actual)
+- Cores: `hsl(var(--primary))` para actual, `hsl(var(--muted))` para target
+- Semanas sem metas definidas mostram apenas a barra de actual
+- Formato currency para receita, número para os restantes
 
