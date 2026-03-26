@@ -33,6 +33,7 @@ export function WhatsAppConfigPanel() {
   const disconnectMutation = useDisconnectWhatsApp();
   const { currentWorkspace } = useWorkspace();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
   // Local form state
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
