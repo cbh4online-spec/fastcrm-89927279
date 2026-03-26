@@ -648,7 +648,8 @@ function DecisionHistorySection() {
 
 export default function StrategyPage() {
   const { briefs, latestBrief, isLoading, isGenerating, generateBrief } = useStrategicBriefs();
-  
+  const { currentWorkspace } = useWorkspace();
+
   const createTask = useCreateTask();
   const [creatingTaskIndex, setCreatingTaskIndex] = useState<number | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
