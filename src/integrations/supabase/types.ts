@@ -45983,6 +45983,56 @@ export type Database = {
           },
         ]
       }
+      whatsapp_settings: {
+        Row: {
+          ai_persona: string | null
+          auto_create_leads: boolean
+          autopilot_enabled: boolean
+          away_message: string | null
+          business_hours_only: boolean
+          created_at: string
+          id: string
+          notify_on_new_message: boolean
+          updated_at: string
+          welcome_message: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_persona?: string | null
+          auto_create_leads?: boolean
+          autopilot_enabled?: boolean
+          away_message?: string | null
+          business_hours_only?: boolean
+          created_at?: string
+          id?: string
+          notify_on_new_message?: boolean
+          updated_at?: string
+          welcome_message?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_persona?: string | null
+          auto_create_leads?: boolean
+          autopilot_enabled?: boolean
+          away_message?: string | null
+          business_hours_only?: boolean
+          created_at?: string
+          id?: string
+          notify_on_new_message?: boolean
+          updated_at?: string
+          welcome_message?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       widget_configurations: {
         Row: {
           allowed_domains: string[] | null
