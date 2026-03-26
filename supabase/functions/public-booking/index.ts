@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 });
 
 async function handleSaveLead(supabase: any, body: any, headers: Record<string, string>) {
-  const { booking_page_id, guest_name, guest_email, guest_phone, guest_message } = body;
+  const { booking_page_id, guest_name, guest_email, guest_phone, guest_message, custom_field_values } = body;
 
   if (!booking_page_id || !guest_name || !guest_email) {
     return new Response(JSON.stringify({ error: "Nome e email são obrigatórios" }), {
@@ -89,6 +89,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
       guest_email: guest_email.trim().slice(0, 255),
       guest_phone: guest_phone?.trim().slice(0, 30) || null,
       guest_message: guest_message?.trim().slice(0, 1000) || null,
+      custom_field_values: custom_field_values || null,
       status: "partial",
     })
     .select("id")

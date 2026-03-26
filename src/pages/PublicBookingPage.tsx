@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, startOfDay, isBefore, isAfter, parseISO, addMinutes } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { CalendarDays, Clock, CheckCircle2, Loader2, AlertCircle, User, Mail, Phone, MessageSquare, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ interface BookingPageData {
   availability_id: string | null;
   require_phone: boolean;
   custom_message_label: string | null;
+  custom_fields: { id: string; label: string; type: string; required: boolean; placeholder?: string; options?: string[] }[];
 }
 
 interface TimeSlot {
@@ -60,6 +62,7 @@ export default function PublicBookingPage() {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestMessage, setGuestMessage] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [savingLead, setSavingLead] = useState(false);
   const [existingMatch, setExistingMatch] = useState<{ type: string; name: string; id: string } | null>(null);
 
@@ -207,6 +210,10 @@ export default function PublicBookingPage() {
   const handleSaveLead = async () => {
     if (!page || !guestName || !guestEmail) return;
     if (page.require_phone && !guestPhone) return;
+    // Validate required custom fields
+    const customFields = page.custom_fields || [];
+    const missingRequired = customFields.some(f => f.required && !customFieldValues[f.id]?.trim());
+    if (missingRequired) return;
     setSavingLead(true);
     setError(null);
     try {
@@ -222,6 +229,7 @@ export default function PublicBookingPage() {
           guest_email: guestEmail,
           guest_phone: guestPhone || null,
           guest_message: guestMessage || null,
+          custom_field_values: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
         }),
       });
       const result = await res.json();
@@ -344,18 +352,53 @@ export default function PublicBookingPage() {
                   <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Telefone *</Label>
                   <Input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+351 912 345 678" />
                 </div>
-              )}
+               )}
               {page.custom_message_label && (
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {page.custom_message_label}</Label>
                   <Textarea value={guestMessage} onChange={e => setGuestMessage(e.target.value)} rows={3} placeholder="Escreva aqui..." />
                 </div>
               )}
+              {/* Custom fields */}
+              {(page.custom_fields || []).map(field => (
+                <div key={field.id} className="space-y-1.5">
+                  <Label>{field.label} {field.required && '*'}</Label>
+                  {field.type === 'textarea' ? (
+                    <Textarea
+                      value={customFieldValues[field.id] || ''}
+                      onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder || ''}
+                      rows={3}
+                    />
+                  ) : field.type === 'select' ? (
+                    <Select
+                      value={customFieldValues[field.id] || ''}
+                      onValueChange={v => setCustomFieldValues(prev => ({ ...prev, [field.id]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={field.placeholder || 'Selecionar...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(field.options || []).map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      value={customFieldValues[field.id] || ''}
+                      onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder || ''}
+                    />
+                  )}
+                </div>
+              ))}
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button
                 className="w-full gap-2"
                 onClick={handleSaveLead}
-                disabled={!guestName || !guestEmail || (page.require_phone && !guestPhone) || savingLead}
+                disabled={!guestName || !guestEmail || (page.require_phone && !guestPhone) || (page.custom_fields || []).some(f => f.required && !customFieldValues[f.id]?.trim()) || savingLead}
                 style={{ backgroundColor: page.brand_color }}
               >
                 {savingLead ? 'A guardar...' : 'Continuar'}

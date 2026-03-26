@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useCreateBookingPage, useUpdateBookingPage, type BookingPage } from '@/hooks/useBookingPages';
+import { useCreateBookingPage, useUpdateBookingPage, type BookingPage, type BookingCustomField } from '@/hooks/useBookingPages';
+import { Plus, X, GripVertical } from 'lucide-react';
 import type { Calendar } from '@/hooks/useCalendars';
 
 interface BookingPageModalProps {
@@ -51,6 +52,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
   const [endHour, setEndHour] = useState('18:00');
   const [requirePhone, setRequirePhone] = useState(false);
   const [customMessageLabel, setCustomMessageLabel] = useState('');
+  const [customFields, setCustomFields] = useState<BookingCustomField[]>([]);
 
   // Populate form when editing
   useEffect(() => {
@@ -68,7 +70,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       setEndHour(editingPage.end_hour);
       setRequirePhone(editingPage.require_phone);
       setCustomMessageLabel(editingPage.custom_message_label || '');
-    } else {
+      setCustomFields(editingPage.custom_fields || []);
       resetForm();
     }
   }, [editingPage]);
@@ -113,6 +115,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       availability_id: editingPage?.availability_id ?? null,
       require_phone: requirePhone,
       custom_message_label: customMessageLabel || null,
+      custom_fields: customFields,
     };
     if (isEditing) {
       await updatePage.mutateAsync({ id: editingPage!.id, ...payload });
@@ -127,7 +130,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
     setTitle(''); setSlug(''); setCalendarId(''); setDescription('');
     setDuration('30'); setBuffer('0'); setMaxDays('30'); setBrandColor('#6366f1');
     setWorkingDays([1, 2, 3, 4, 5]); setStartHour('09:00'); setEndHour('18:00');
-    setRequirePhone(false); setCustomMessageLabel('');
+    setRequirePhone(false); setCustomMessageLabel(''); setCustomFields([]);
   };
 
   const isPending = createPage.isPending || updatePage.isPending;
@@ -271,7 +274,114 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
 
           <Separator />
 
-          {/* Branding */}
+          {/* Custom Fields */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-muted-foreground">Campos personalizados</h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCustomFields([...customFields, {
+                  id: crypto.randomUUID(),
+                  label: '',
+                  type: 'text',
+                  required: false,
+                }])}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar campo
+              </Button>
+            </div>
+            {customFields.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhum campo extra. Adicione campos como empresa, cargo, etc.</p>
+            )}
+            <div className="space-y-3">
+              {customFields.map((field, idx) => (
+                <div key={field.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Nome do campo"
+                      value={field.label}
+                      onChange={e => {
+                        const updated = [...customFields];
+                        updated[idx] = { ...updated[idx], label: e.target.value };
+                        setCustomFields(updated);
+                      }}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={field.type}
+                      onValueChange={v => {
+                        const updated = [...customFields];
+                        updated[idx] = { ...updated[idx], type: v as BookingCustomField['type'] };
+                        setCustomFields(updated);
+                      }}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Texto</SelectItem>
+                        <SelectItem value="textarea">Texto longo</SelectItem>
+                        <SelectItem value="number">Número</SelectItem>
+                        <SelectItem value="select">Seleção</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setCustomFields(customFields.filter((_, i) => i !== idx))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={field.required}
+                        onCheckedChange={v => {
+                          const updated = [...customFields];
+                          updated[idx] = { ...updated[idx], required: v };
+                          setCustomFields(updated);
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">{field.required ? 'Obrigatório' : 'Opcional'}</span>
+                    </div>
+                    <Input
+                      placeholder="Placeholder (opcional)"
+                      value={field.placeholder || ''}
+                      onChange={e => {
+                        const updated = [...customFields];
+                        updated[idx] = { ...updated[idx], placeholder: e.target.value || undefined };
+                        setCustomFields(updated);
+                      }}
+                      className="flex-1 text-xs h-8"
+                    />
+                  </div>
+                  {field.type === 'select' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Opções (uma por linha)</Label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Opção 1&#10;Opção 2&#10;Opção 3"
+                        value={(field.options || []).join('\n')}
+                        onChange={e => {
+                          const updated = [...customFields];
+                          updated[idx] = { ...updated[idx], options: e.target.value.split('\n').filter(Boolean) };
+                          setCustomFields(updated);
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
           <div className="space-y-2">
             <Label>Cor da marca</Label>
             <div className="flex items-center gap-2">
