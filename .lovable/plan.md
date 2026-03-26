@@ -1,29 +1,28 @@
 
 
-## Pesquisa Ativa de Redes Sociais no Lead Enricher
+## Tornar redes sociais visíveis no detalhe do Lead
 
-### Problema
-Atualmente, as redes sociais (LinkedIn, Facebook, Instagram, Twitter) só são extraídas se estiverem presentes no conteúdo do website da empresa (via scraping + IA). Se o website não mencionar links sociais, o lead fica sem essa informação.
-
-### Solução
-Adicionar um **bloco de pesquisa ativa** após o passo 4 (AI enrichment) que usa **Firecrawl Search** para encontrar perfis de redes sociais quando a IA não os conseguiu extrair do website.
+### Situação atual
+O `EntityDetailsPanel` já tem uma secção "Redes Sociais" com LinkedIn, Facebook, Instagram, Twitter, YouTube, TikTok, Pinterest e WhatsApp — todos como links clicáveis e editáveis. Porém, essa secção tem `defaultOpen={false}`, ficando escondida.
 
 ### Alterações
 
-**`supabase/functions/contact-enrich/index.ts`** — Novo passo 4b entre AI (passo 4) e Google Places (passo 5):
+**1. `EntityDetailsPanel.tsx` — Abrir secção automaticamente quando há dados**
+- Na função `LeadDetails`, calcular se algum URL social existe (`linkedin_url || instagram_url || facebook_url || twitter_url || ...`)
+- Passar `defaultOpen={hasSocialUrls}` à `CollapsibleSection` de Redes Sociais
+- Aplicar a mesma lógica às funções `CompanyDetails` e `ContactDetails`
 
-1. Após o AI enrichment, verificar se `linkedinUrl`, `facebookUrl`, `instagramUrl` ou `twitterUrl` ficaram vazios
-2. Se o nome da empresa existe e faltam perfis sociais, fazer até 2 pesquisas Firecrawl:
-   - **Pesquisa 1**: `"<nome empresa>" LinkedIn OR Facebook OR Instagram site:linkedin.com OR site:facebook.com OR site:instagram.com`
-   - **Pesquisa 2** (se necessário): `"<nome empresa>" Twitter OR X site:twitter.com OR site:x.com`
-3. Parsear os URLs retornados e preencher os campos correspondentes com `confidence: "medium"` e `source: "Pesquisa web"`
-4. Validar URLs com regex para cada plataforma (ex: `linkedin.com/company/`, `facebook.com/`, `instagram.com/`, `twitter.com/` ou `x.com/`)
+**2. `LeadDetailWithSidebar.tsx` — Ícones sociais rápidos no header**
+- Adicionar uma linha de ícones clicáveis (LinkedIn, Facebook, Instagram, Twitter) logo abaixo do nome do lead no header
+- Cada ícone só aparece se o URL correspondente existir
+- Ao clicar, abre o URL num novo tab
+- Usar as cores oficiais de cada plataforma (já definidas no código: `#0A66C2`, `#1877F2`, `#E4405F`, etc.)
+- Layout: ícones pequenos (16px) inline com hover tooltip mostrando o nome da rede
 
-**Condições de execução**:
-- Só executa se `webscrapingEnabled` estiver activo e `FIRECRAWL_API_KEY` disponível
-- Só pesquisa os perfis que faltam (não sobrescreve dados já encontrados pela IA)
-- Limitado a 3 resultados por pesquisa para poupar créditos
+### Ficheiros a modificar
+- `src/components/entity/EntityDetailsPanel.tsx` — auto-expand quando há dados
+- `src/components/crm/LeadDetailWithSidebar.tsx` — ícones sociais no header
 
-### Resultado esperado
-Leads passarão a ter perfis de redes sociais descobertos mesmo que o website da empresa não os mencione. O ICP Fit Score também beneficia, pois a presença social contribui +10 pontos.
+### Resultado
+As redes sociais encontradas pelo enricher ficam imediatamente visíveis tanto no header (ícones rápidos) como no painel lateral (secção expandida), sem precisar de cliques extra.
 
