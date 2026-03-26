@@ -15,7 +15,7 @@ import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
 // Standalone route modules
 import { StoreRoutes } from "@/routes/StoreRoutes";
 import { ClientPortalRoutes } from "@/routes/ClientPortalRoutes";
-import CRMRoutesV2 from "@/routes/CRMRoutes.v2";
+import CRMRoutesV2 from "@/routes/CRMRoutes";
 import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
 
 // Lazy-loaded pages (top-level public only)
