@@ -27,11 +27,10 @@ export default function WeeklyDashboard() {
   const weekLabel = data?.weekLabel || "...";
   const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
-  const { needsSetup, salesFunction, layoutConfig, isLoading: adaptiveLoading } = useAdaptiveDashboard();
+  const { needsSetup, isLoading: adaptiveLoading } = useAdaptiveDashboard();
   const [setupDismissed, setSetupDismissed] = useState(false);
 
   const briefMetrics = todaysBrief?.key_metrics;
-  const showAdaptive = !adaptiveLoading && !needsSetup && salesFunction !== null;
 
   return (
     <DashboardLayout>
