@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useBookingPages, useUpdateBookingPage, useDeleteBookingPage, type BookingPage } from '@/hooks/useBookingPages';
 import { BookingPageModal } from './BookingPageModal';
 import type { Calendar } from '@/hooks/useCalendars';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { getPublicBaseUrl } from '@/utils/getPublicDomain';
 
 interface BookingPagesTabProps {
   calendars: Calendar[];

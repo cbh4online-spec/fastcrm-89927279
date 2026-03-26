@@ -114,6 +114,7 @@ const App = () => (
 
                 {/* Public Booking */}
                 <Route path="/book/:slug" element={<PublicBookingPage />} />
+                <Route path="/:workspaceSlug/book/:slug" element={<PublicBookingPage />} />
 
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
