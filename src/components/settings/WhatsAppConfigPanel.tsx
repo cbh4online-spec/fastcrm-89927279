@@ -21,9 +21,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Phone, Loader2, ExternalLink, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save } from "lucide-react";
+import { Phone, Loader2, ExternalLink, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppQRDialog } from "./WhatsAppQRDialog";
 
 export function WhatsAppConfigPanel() {
   const { data: connection, isLoading } = useWhatsAppConnection();
