@@ -1,11 +1,11 @@
 const BUILD_VERSION = "v20260313-2130";
 
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
-import { ClubLayout } from "@/components/club/ClubLayout";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -13,398 +13,11 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
-import Index from "./pages/Index";
-import ObjectsPage from "./pages/ObjectsPage";
-import ObjectsHomePage from "./pages/ObjectsHomePage";
-import ObjectListPage from "./pages/ObjectListPage";
-import ObjectDetailPage from "./pages/ObjectDetailPage";
-import DataModelPage from "./pages/DataModelPage";
-import VisualDataModelPage from "./pages/VisualDataModelPage";
-import IntelligencePage from "./pages/IntelligencePage";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
-import CommandCenter from "./pages/CommandCenter";
-import WeeklyDashboard from "./pages/WeeklyDashboard";
-import TasksPage from "./pages/TasksPage";
-import Settings from "./pages/Settings";
-import Leads from "./pages/Leads";
-import LeadDetail from "./pages/LeadDetail";
-import OpportunitiesPage from "./pages/OpportunitiesPage";
-import OpportunityDetail from "./pages/OpportunityDetail";
-import Inbox from "./pages/Inbox";
-import Automations from "./pages/Automations";
-import Funnels from "./pages/Funnels";
-import BioOS from "./pages/BioOS";
 
-import PublicLandingPage from "./pages/PublicLandingPage";
-import PublicFunnelPage from "./pages/PublicFunnelPage";
-import Proposals from "./pages/Proposals";
-import ProposalDetail from "./pages/ProposalDetail";
-import PublicProposalPage from "./pages/PublicProposalPage";
-import SuperAdmin from "./pages/SuperAdmin";
-import Contacts from "./pages/Contacts";
-import ContactDetail from "./pages/ContactDetail";
-import Companies from "./pages/Companies";
-import CompanyDetail from "./pages/CompanyDetail";
-import AISuggestionsPage from "./pages/AISuggestionsPage";
-import Crm from "./pages/Crm";
-import FormStudioPage from "./pages/FormStudioPage";
-import NotFound from "./pages/NotFound";
-import Payments from "./pages/Payments";
-import KPIs from "./pages/KPIs";
-import Products from "./pages/Products";
-import Packages from "./pages/Packages";
-import Imports from "./pages/Imports";
-import PublicProductSheet from "./pages/PublicProductSheet";
-import Invoices from "./pages/Invoices";
-import InvoiceDetail from "./pages/InvoiceDetail";
-import KnowledgeBase from "./pages/KnowledgeBase";
-import AIProfiles from "./pages/AIProfiles";
-import AIAssistants from "./pages/AIAssistants";
-import ConversationalEngine from "./pages/ConversationalEngine";
-import AIEmployeesPage from "./pages/AIEmployeesPage";
-import AIEmployeeNewPage from "./pages/AIEmployeeNewPage";
-import AIEmployeeDetailPage from "./pages/AIEmployeeDetailPage";
-import MarketingHomepage from "./pages/MarketingHomepage";
-import FastCRMLanding from "./pages/FastCRMLanding";
-import GenerateLandingImages from "./pages/GenerateLandingImages";
-import VerticalLandingPage from "./pages/VerticalLandingPage";
-import ProposalView from "./pages/ProposalView";
-import CommunicationTemplates from "./pages/CommunicationTemplates";
-import Sequences from "./pages/Sequences";
-import AlertsPage from "./pages/AlertsPage";
-import ImpactMapPage from "./pages/ImpactMapPage";
-import SystemHealthPage from "./pages/SystemHealthPage";
-import DependenciesPage from "./pages/dashboard/system/DependenciesPage";
-import EventMapPage from "./pages/EventMapPage";
-import EventMatrixPage from "./pages/EventMatrixPage";
-import EventTestsPage from "./pages/EventTestsPage";
-import Groups from "./pages/Groups";
-import TelegramPage from "./pages/TelegramPage";
-
-// Client Portal
-import { CartProvider } from "@/contexts/CartContext";
-import ClientLoginPage from "./pages/client/ClientLoginPage";
-import ClientDashboardPage from "./pages/client/ClientDashboardPage";
-import ClientCatalogPage from "./pages/client/ClientCatalogPage";
-import ClientCartPage from "./pages/client/ClientCartPage";
-import ClientCheckoutPage from "./pages/client/ClientCheckoutPage";
-import ClientOrdersPage from "./pages/client/ClientOrdersPage";
-import ClientOrderDetailPage from "./pages/client/ClientOrderDetailPage";
-import ClientFavoritesPage from "./pages/client/ClientFavoritesPage";
-import ClientAssistantPage from "./pages/client/ClientAssistantPage";
-import ClientSetPasswordPage from "./pages/client/ClientSetPasswordPage";
-import ClientForgotPasswordPage from "./pages/client/ClientForgotPasswordPage";
-import ClientResetPasswordPage from "./pages/client/ClientResetPasswordPage";
-import ClientTeamPage from "./pages/client/ClientTeamPage";
-import ClientApprovalsPage from "./pages/client/ClientApprovalsPage";
-import ClientInvoicesPage from "./pages/client/ClientInvoicesPage";
-import ClientFinancialPage from "./pages/client/ClientFinancialPage";
-import ClientContractsPage from "./pages/client/ClientContractsPage";
-import ClientSupportPage from "./pages/client/ClientSupportPage";
-import ClientTicketDetailPage from "./pages/client/ClientTicketDetailPage";
-import ClientInvitePage from "./pages/client/ClientInvitePage";
-import ClientDiagnosisPage from "./pages/client/ClientDiagnosisPage";
-import ClientDiagnosisDetailPage from "./pages/client/ClientDiagnosisDetailPage";
-import ClientProtocolDetailPage from "./pages/client/ClientProtocolDetailPage";
-import ClientConsumptionPage from "./pages/client/ClientConsumptionPage";
-import ClientRankingsPage from "./pages/client/ClientRankingsPage";
-import ClientSecurityPage from "./pages/client/ClientSecurityPage";
-// Admin Order Notes
-import OrderNotesPage from "./pages/OrderNotesPage";
-import CreateOrderNotePage from "./pages/CreateOrderNotePage";
-import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
-import OrderApprovalsPage from "./pages/OrderApprovalsPage";
-import ClientUsersPage from "./pages/ClientUsersPage";
-import B2BPortalSettingsPage from "./pages/B2BPortalSettingsPage";
-import B2BStockPage from "./pages/B2BStockPage";
-import ReportsOverview from "./pages/ReportsOverview";
-import ReportsForecasts from "./pages/ReportsForecasts";
-import ReportsConsumption from "./pages/ReportsConsumption";
-import ReportsRetention from "./pages/ReportsRetention";
-import ReportsKPIs from "./pages/ReportsKPIs";
-import ReportsGrowth from "./pages/ReportsGrowth";
-import ReportsSales from "./pages/ReportsSales";
-import ReportsDashboards from "./pages/ReportsDashboards";
-import ReportDashboardView from "./pages/ReportDashboardView";
-import ReportsGoals from "./pages/ReportsGoals";
-import Marketplace from "./pages/Marketplace";
-import PublicBioPage from "./pages/PublicBioPage";
-import PublicBioShortLink from "./pages/PublicBioShortLink";
-import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
-
-// Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
-function C2CRedirectToMarketplace() {
-  const { workspaceSlug, "*": rest } = useParams();
-  const suffix = rest ? `/${rest}` : "";
-  return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
-}
-import C2CPublicListingDetail from "./pages/c2c/C2CPublicListingDetail";
-import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
-import C2CPublicCategoryPage from "./pages/c2c/C2CPublicCategoryPage";
-import C2CPublicSearchPage from "./pages/c2c/C2CPublicSearchPage";
-import C2CModerationPage from "./pages/c2c/C2CModerationPage";
-import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
-import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
-import ProspectingHub from "./pages/ProspectingHub";
-import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
-import WebSearchProspecting from "./pages/WebSearchProspecting";
-import ProfessionalProspecting from "./pages/ProfessionalProspecting";
-import SchedulingPage from "./pages/SchedulingPage";
-import CalendarsPage from "./pages/CalendarsPage";
-import MeetingsPage from "./pages/MeetingsPage";
-import MeetingTranscriptPage from "./pages/MeetingTranscriptPage";
-import ServicesPage from "./pages/ServicesPage";
-import AvailabilityPage from "./pages/AvailabilityPage";
-import FeedPage from "./pages/FeedPage";
-import ProductivityPage from "./pages/ProductivityPage";
-import MemberPanelPage from "./pages/MemberPanelPage";
-import Profile from "./pages/Profile";
-import Marketing from "./pages/Marketing";
-import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
-import SEOAdminPage from "./pages/dashboard/seo";
-import CreditIntermediation from "./pages/CreditIntermediation";
-import StrategyPage from "./pages/StrategyPage";
-import DailyBriefPage from "./pages/DailyBriefPage";
-import ContextOSPage from "./pages/ContextOSPage";
-import CustomerLifecyclePage from "./pages/CustomerLifecyclePage";
-import EventsManagementPage from "./components/events/EventsManagementPage";
-import EventDetailPage from "./components/events/EventDetailPage";
-import RevenueOverviewPage from "./pages/RevenueOverviewPage";
-import ForgotPassword from "./pages/ForgotPassword";
-import AcceptWorkspaceInvite from "./pages/AcceptWorkspaceInvite";
-import LeadEnricher from "./pages/LeadEnricher";
-import StoreOrdersPage from "./pages/StoreOrdersPage";
-import StoreOrderDetailPage from "./pages/StoreOrderDetailPage";
-import StoreSettingsPage from "./pages/StoreSettingsPage";
-import StoreProductsAdminPage from "./pages/StoreProductsAdminPage";
-import StoreCategoriesPage from "./pages/StoreCategoriesPage";
-import StoreCouponsPage from "./pages/StoreCouponsPage";
-import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
-import MobileQuickProductCreate from "./pages/MobileQuickProductCreate";
-import EventRsvpResponse from "./pages/EventRsvpResponse";
-import AISalesCoachPage from "./pages/AISalesCoachPage";
-import AIAgentsPage from "./pages/AIAgentsPage";
-import AIAgentJobDetailPage from "./pages/AIAgentJobDetailPage";
-import AIAgentExecutionsPage from "./pages/AIAgentExecutionsPage";
-import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
-import EmailCampaignsPage from "./pages/EmailCampaignsPage";
-import SuppressionsPage from "./pages/SuppressionsPage";
-import IMOAIPage from "./pages/IMOAIPage";
-import AISettingsPage from "./pages/AISettingsPage";
-import AIUsagePage from "./pages/AIUsagePage";
-import ZapierPage from "./pages/ZapierPage";
-import BackgroundJobsPage from "./pages/BackgroundJobsPage";
-import AIOperationsCenterPage from "./pages/AIOperationsCenterPage";
-import CEOCopilotPage from "./pages/CEOCopilotPage";
-import CompetitorTrackerPage from "./pages/CompetitorTrackerPage";
-import CommandCenterV2Page from "./pages/CommandCenterV2Page";
-import BundlesPage from "./pages/BundlesPage";
-import RevenueFlightControlPage from "./pages/RevenueFlightControlPage";
-import RFCDealsPage from "./pages/RFCDealsPage";
-import RFCForecastPage from "./pages/RFCForecastPage";
-import RFCScenariosPage from "./pages/RFCScenariosPage";
-import RFCSettingsPage from "./pages/RFCSettingsPage";
-import VisionPage from "./pages/VisionPage";
-import RevenueRadarPage from "./pages/RevenueRadarPage";
-import KernelMonitorPage from "./pages/KernelMonitorPage";
-import VisionDuoAcceptPage from "./pages/VisionDuoAcceptPage";
-
-// Account Brief
-import AccountBriefDashboardPage from "./pages/AccountBriefDashboardPage";
-import AccountBriefOnboardingPage from "./pages/AccountBriefOnboardingPage";
-import AccountBriefAccountsPage from "./pages/AccountBriefAccountsPage";
-import AccountBriefAccountDetailPage from "./pages/AccountBriefAccountDetailPage";
-import AccountBriefAnalysisPage from "./pages/AccountBriefAnalysisPage";
-import AccountBriefSettingsPage from "./pages/AccountBriefSettingsPage";
-import AccountBriefAdminPage from "./pages/AccountBriefAdminPage";
-import AccountBriefWatchlistPage from "./pages/AccountBriefWatchlistPage";
-import AccountBriefAlertsPage from "./pages/AccountBriefAlertsPage";
-import AccountBriefSegmentsPage from "./pages/AccountBriefSegmentsPage";
-import AccountBriefComparePage from "./pages/AccountBriefComparePage";
-import AccountBriefNotificationsPage from "./pages/AccountBriefNotificationsPage";
-import AccountBriefBatchOpsPage from "./pages/AccountBriefBatchOpsPage";
-import AccountBriefKPIsPage from "./pages/AccountBriefKPIsPage";
-import AccountBriefScoreAdminPage from "./pages/AccountBriefScoreAdminPage";
-import AccountBriefTrialDemoPage from "./pages/AccountBriefTrialDemoPage";
-import AccountBriefHealthPage from "./pages/AccountBriefHealthPage";
-
-// Performance Engine
-import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
-import PerformanceGoalsPage from "./pages/performance/PerformanceGoalsPage";
-import PerformanceLeaderboardPage from "./pages/performance/PerformanceLeaderboardPage";
-import PerformanceChallengesPage from "./pages/performance/PerformanceChallengesPage";
-import PerformanceRecognitionPage from "./pages/performance/PerformanceRecognitionPage";
-import PerformanceTVModePage from "./pages/performance/PerformanceTVModePage";
-import PerformanceSettingsPage from "./pages/performance/PerformanceSettingsPage";
-
-import RenewalsPage from "./pages/RenewalsPage";
-import RenewalDetailPage from "./pages/RenewalDetailPage";
-
-// Security Ops
-import SecurityDashboardPage from "./pages/security/SecurityDashboardPage";
-import SecurityPartnerRequestsPage from "./pages/security/SecurityPartnerRequestsPage";
-import SecurityPartnerRequestDetailPage from "./pages/security/SecurityPartnerRequestDetailPage";
-import SecuritySitesPage from "./pages/security/SecuritySitesPage";
-import SecuritySiteDetailPage from "./pages/security/SecuritySiteDetailPage";
-import SecuritySystemsPage from "./pages/security/SecuritySystemsPage";
-import SecuritySystemDetailPage from "./pages/security/SecuritySystemDetailPage";
-import SecurityEquipmentPage from "./pages/security/SecurityEquipmentPage";
-import SecurityContractsPage from "./pages/security/SecurityContractsPage";
-import SecurityContractDetailPage from "./pages/security/SecurityContractDetailPage";
-import SecurityClientsPage from "./pages/security/SecurityClientsPage";
-import SecurityClientDetailPage from "./pages/security/SecurityClientDetailPage";
-import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
-import SecurityProposalDetailPage from "./pages/security/SecurityProposalDetailPage";
-import SecurityLeadsPage from "./pages/security/SecurityLeadsPage";
-import SecurityLeadDetailPage from "./pages/security/SecurityLeadDetailPage";
-import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
-import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
-import SecurityMaintenancePage from "./pages/security/SecurityMaintenancePage";
-import SecurityMaintenanceVisitDetailPage from "./pages/security/SecurityMaintenanceVisitDetailPage";
-import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
-import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
-import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
-import SecurityRenewalDetailPage from "./pages/security/SecurityRenewalDetailPage";
-import SecurityEquipmentDetailPage from "./pages/security/SecurityEquipmentDetailPage";
-import SecurityManagementPage from "./pages/security/SecurityManagementPage";
-
-// Procurement
-import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
-import SuppliersPage from "./pages/procurement/SuppliersPage";
-import PurchaseRequestsPage from "./pages/procurement/PurchaseRequestsPage";
-import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
-import GoodsReceiptsPage from "./pages/procurement/GoodsReceiptsPage";
-import SupplierInvoicesPage from "./pages/procurement/SupplierInvoicesPage";
-import SupplierProductsPage from "./pages/procurement/SupplierProductsPage";
-import SupplierPriceImportPage from "./pages/procurement/SupplierPriceImportPage";
-import ProcurementProjectsPage from "./pages/procurement/ProcurementProjectsPage";
-import ProcurementProjectDetailPage from "./pages/procurement/ProcurementProjectDetailPage";
-import RFQsPage from "./pages/procurement/RFQsPage";
-import RFQDetailPage from "./pages/procurement/RFQDetailPage";
-import RFQsDashboardPage from "./pages/procurement/RFQsDashboardPage";
-import ProcurementNeedsBoardPage from "./pages/procurement/ProcurementNeedsBoardPage";
-import SupplierPortalPage from "./pages/procurement/SupplierPortalPage";
-
-// C2C Marketplace
-import C2CMarketplace from "./pages/c2c/C2CMarketplace";
-import C2CListingDetail from "./pages/c2c/C2CListingDetail";
-import C2CCreateListing from "./pages/c2c/C2CCreateListing";
-import C2CMyListings from "./pages/c2c/C2CMyListings";
-import C2CMessages from "./pages/c2c/C2CMessages";
-import C2CFavorites from "./pages/c2c/C2CFavorites";
-import C2CSellerBoost from "./pages/c2c/C2CSellerBoost";
-import C2CSponsorPortal from "./pages/c2c/C2CSponsorPortal";
-import C2CSponsorAdmin from "./pages/c2c/C2CSponsorAdmin";
-import C2CSellerDashboard from "./pages/c2c/C2CSellerDashboard";
-import C2CSellerArea from "./pages/c2c/C2CSellerArea";
-import C2CAffiliateCenter from "./pages/c2c/C2CAffiliateCenter";
-import C2CReferralCenter from "./pages/c2c/C2CReferralCenter";
-import C2CAffiliateAdmin from "./pages/c2c/C2CAffiliateAdmin";
-import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
-import C2CEditListing from "./pages/c2c/C2CEditListing";
-import C2CClientsManagement from "./pages/c2c/C2CClientsManagement";
-import C2CPublicLinksManager from "./pages/c2c/C2CPublicLinksManager";
-import C2CNotifications from "./pages/c2c/C2CNotifications";
-import C2COrders from "./pages/c2c/C2COrders";
-import C2CContentModeration from "./pages/c2c/C2CContentModeration";
-import C2CLoyaltyProgram from "./pages/c2c/C2CLoyaltyProgram";
-import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
-import C2CVerificationPage from "./pages/c2c/C2CVerificationPage";
-import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
-import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
-import MarketplaceConfigPage from "./pages/dashboard/marketplace/MarketplaceConfigPage";
-import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
-
-// Checkout System
-import CheckoutPage from "./pages/checkout/CheckoutPage";
-import UpsellPage from "./pages/checkout/UpsellPage";
-import DownsellPage from "./pages/checkout/DownsellPage";
-import ThankYouPage from "./pages/checkout/ThankYouPage";
-import RecoverCartPage from "./pages/checkout/RecoverCartPage";
-import CheckoutFunnelsPage from "./pages/dashboard/checkout/CheckoutFunnelsPage";
-import CheckoutOffersPage from "./pages/dashboard/checkout/CheckoutOffersPage";
-import AbandonedCartsPage from "./pages/dashboard/checkout/AbandonedCartsPage";
-import CheckoutBundlesPage from "./pages/dashboard/checkout/CheckoutBundlesPage";
-import CheckoutAnalyticsPage from "./pages/dashboard/checkout/CheckoutAnalyticsPage";
-import ABTestsPage from "./pages/dashboard/checkout/ABTestsPage";
-import DynamicDiscountsPage from "./pages/dashboard/checkout/DynamicDiscountsPage";
-
-// FastClub (Community)
-import FastClubPage from "./pages/community/FastClubPage";
-import ForumPage from "./pages/community/ForumPage";
-import ForumTopicPage from "./pages/community/ForumTopicPage";
-import LoyaltyPage from "./pages/community/LoyaltyPage";
-import PublicCommunityPage from "./pages/community/PublicCommunityPage";
-import PublicCommunityTopicPage from "./pages/community/PublicCommunityTopicPage";
-import CommunityAuthPage from "./pages/community/CommunityAuthPage";
-
-// FastClub Freemium Pages
-import StartHerePage from "./pages/fastclub/StartHerePage";
-import MetodoParePage from "./pages/fastclub/MetodoParePage";
-import DemosPage from "./pages/fastclub/DemosPage";
-import DesafioPage from "./pages/fastclub/DesafioPage";
-import ResultadosPage from "./pages/fastclub/ResultadosPage";
-import RedePrivadaPage from "./pages/fastclub/RedePrivadaPage";
-import AnunciosPage from "./pages/fastclub/AnunciosPage";
-
-// FastClub Premium Pages
-import MissaoSemanaPage from "./pages/fastclub/MissaoSemanaPage";
-import ImplementacaoPage from "./pages/fastclub/ImplementacaoPage";
-import IAAvancadaPage from "./pages/fastclub/IAAvancadaPage";
-import FastMatchPage from "./pages/fastclub/FastMatchPage";
-import LaboratorioPage from "./pages/fastclub/LaboratorioPage";
-import HotSeatsPage from "./pages/fastclub/HotSeatsPage";
-import FastClubLandingPage from "./pages/fastclub/FastClubLandingPage";
-import FastClubApplyPage from "./pages/fastclub/FastClubApplyPage";
-import FastClubApplicationsPage from "./pages/fastclub/FastClubApplicationsPage";
-
-// FastClub Subchannel Pages
-import PlaneamentoParePage from "./pages/fastclub/metodo-pare/PlaneamentoPage";
-import AutomacaoParePage from "./pages/fastclub/metodo-pare/AutomacaoPage";
-import ResultadosParePage from "./pages/fastclub/metodo-pare/ResultadosParePage";
-import EficienciaParePage from "./pages/fastclub/metodo-pare/EficienciaPage";
-import DemonstracoesPage from "./pages/fastclub/demos/DemonstracoesPage";
-import CasosPraticosPage from "./pages/fastclub/demos/CasosPraticosPage";
-import RoadmapFCPage from "./pages/fastclub/demos/RoadmapPage";
-import ComoFuncionaPage from "./pages/fastclub/rede-privada/ComoFuncionaPage";
-import OtimizarPerfilPage from "./pages/fastclub/rede-privada/OtimizarPerfilPage";
-import IndicadoresPage from "./pages/fastclub/rede-privada/IndicadoresPage";
-import NegociosFechadosPage from "./pages/fastclub/rede-privada/NegociosFechadosPage";
-import EstrategiasPage from "./pages/fastclub/rede-privada/EstrategiasPage";
-import AtualizacoesPage from "./pages/fastclub/AtualizacoesPage";
-
-// FastMatch Discovery (CRM)
-import FastMatchDiscoveryPage from "./pages/fastmatch/FastMatchDiscoveryPage";
-
-// Store (Public E-commerce)
-import { StoreCartProvider } from "@/contexts/StoreCartContext";
-import StorePage from "./pages/store/StorePage";
-import StoreProductPage from "./pages/store/StoreProductPage";
-import StoreCheckoutPage from "./pages/store/StoreCheckoutPage";
-import StoreSuccessPage from "./pages/store/StoreSuccessPage";
-import StoreCancelPage from "./pages/store/StoreCancelPage";
-import StoreWishlistPage from "./pages/store/StoreWishlistPage";
-import StoreOrderHistoryPage from "./pages/store/StoreOrderHistoryPage";
-import StoreDigitalAssetsPage from "./pages/store/StoreDigitalAssetsPage";
-import StoreLoyaltyPage from "./pages/store/StoreLoyaltyPage";
-import StoreReferralPage from "./pages/store/StoreReferralPage";
-import StoreGiftCardsPage from "./pages/store/StoreGiftCardsPage";
-
-// Student Journey Pages
 import {
-  SJDashboard,
-  SJActivationDashboard,
-  SJProfiles,
-  SJProfileDetail,
-  SJCourses,
-  SJCohorts,
-  SJCohortDetail,
-} from "./pages/student-journey";
-import { SJLayout } from "./components/student-journey";
-import {
+  GTMProvider,
+  GDPRBanner,
+  MetaPixelLoader,
   KeywordsListPage,
   KeywordDetailPage,
   TemplatesListPage,
@@ -422,74 +35,119 @@ import {
   GlossaryListPage,
   GlossaryTermPage,
   KeywordIdeasToolPage,
-  GTMProvider,
-  GDPRBanner,
-  MetaPixelLoader,
   PrivacyPolicyPage,
   TermsOfUsePage,
   GDPRPage,
   CookiePolicyPage,
 } from "./modules/growth-seo";
 
+// Route modules (lazy-loaded internally)
+import { SecurityRoutes } from "@/routes/SecurityRoutes";
+import { ProcurementRoutes } from "@/routes/ProcurementRoutes";
+import { C2CDashboardRoutes } from "@/routes/C2CRoutes";
+import { AccountBriefRoutes } from "@/routes/AccountBriefRoutes";
+import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
+import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
+import { ReportsRoutes } from "@/routes/ReportsRoutes";
+import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
+import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
+import { FastClubPortalRoute } from "@/routes/FastClubRoutes";
+import { AIRoutes } from "@/routes/AIRoutes";
+import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
+import { StoreRoutes, ClientPortalRoutes, StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
+
+// Lazy-loaded pages (remaining)
+const FastCRMLanding = lazy(() => import("@/pages/FastCRMLanding"));
+const Login = lazy(() => import("@/pages/Login"));
+const Signup = lazy(() => import("@/pages/Signup"));
+const Auth = lazy(() => import("@/pages/Auth"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const WeeklyDashboard = lazy(() => import("@/pages/WeeklyDashboard"));
+const CommandCenter = lazy(() => import("@/pages/CommandCenter"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const SuperAdmin = lazy(() => import("@/pages/SuperAdmin"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const ObjectsHomePage = lazy(() => import("@/pages/ObjectsHomePage"));
+const ObjectListPage = lazy(() => import("@/pages/ObjectListPage"));
+const ObjectDetailPage = lazy(() => import("@/pages/ObjectDetailPage"));
+const DataModelPage = lazy(() => import("@/pages/DataModelPage"));
+const VisualDataModelPage = lazy(() => import("@/pages/VisualDataModelPage"));
+const IntelligencePage = lazy(() => import("@/pages/IntelligencePage"));
+const ContextOSPage = lazy(() => import("@/pages/ContextOSPage"));
+const RevenueOverviewPage = lazy(() => import("@/pages/RevenueOverviewPage"));
+const TasksPage = lazy(() => import("@/pages/TasksPage"));
+const AlertsPage = lazy(() => import("@/pages/AlertsPage"));
+const ImpactMapPage = lazy(() => import("@/pages/ImpactMapPage"));
+const SystemHealthPage = lazy(() => import("@/pages/SystemHealthPage"));
+const DependenciesPage = lazy(() => import("@/pages/dashboard/system/DependenciesPage"));
+const EventMapPage = lazy(() => import("@/pages/EventMapPage"));
+const EventMatrixPage = lazy(() => import("@/pages/EventMatrixPage"));
+const EventTestsPage = lazy(() => import("@/pages/EventTestsPage"));
+const RevenueRadarPage = lazy(() => import("@/pages/RevenueRadarPage"));
+const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
+const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
+const ProposalView = lazy(() => import("@/pages/ProposalView"));
+const PublicLandingPage = lazy(() => import("@/pages/PublicLandingPage"));
+const PublicProductSheet = lazy(() => import("@/pages/PublicProductSheet"));
+const PublicProposalPage = lazy(() => import("@/pages/PublicProposalPage"));
+const VerticalLandingPage = lazy(() => import("@/pages/VerticalLandingPage"));
+const MarketingHomepage = lazy(() => import("@/pages/MarketingHomepage"));
+const Marketplace = lazy(() => import("@/pages/Marketplace"));
+const MarketplaceAdmin = lazy(() => import("@/pages/admin/MarketplaceAdmin"));
+const PublicFunnelPage = lazy(() => import("@/pages/PublicFunnelPage"));
+const PublicBioPage = lazy(() => import("@/pages/PublicBioPage"));
+const PublicBioShortLink = lazy(() => import("@/pages/PublicBioShortLink"));
+const C2CPublicMarketplace = lazy(() => import("@/pages/c2c/C2CPublicMarketplace"));
+const C2CPublicListingDetail = lazy(() => import("@/pages/c2c/C2CPublicListingDetail"));
+const C2CPublicCategoryPage = lazy(() => import("@/pages/c2c/C2CPublicCategoryPage"));
+const C2CPublicSearchPage = lazy(() => import("@/pages/c2c/C2CPublicSearchPage"));
+const C2CSellerRegistration = lazy(() => import("@/pages/c2c/C2CSellerRegistration"));
+const C2CSponsorPortal = lazy(() => import("@/pages/c2c/C2CSponsorPortal"));
+const C2CSellerInviteActivation = lazy(() => import("@/pages/c2c/C2CSellerInviteActivation"));
+const C2CPublicSellerProfile = lazy(() => import("@/pages/c2c/C2CPublicSellerProfile"));
+const CheckoutPage = lazy(() => import("@/pages/checkout/CheckoutPage"));
+const UpsellPage = lazy(() => import("@/pages/checkout/UpsellPage"));
+const DownsellPage = lazy(() => import("@/pages/checkout/DownsellPage"));
+const ThankYouPage = lazy(() => import("@/pages/checkout/ThankYouPage"));
+const RecoverCartPage = lazy(() => import("@/pages/checkout/RecoverCartPage"));
+const SupplierPortalPage = lazy(() => import("@/pages/procurement/SupplierPortalPage"));
+const FastClubLandingPage = lazy(() => import("@/pages/fastclub/FastClubLandingPage"));
+const FastClubApplyPage = lazy(() => import("@/pages/fastclub/FastClubApplyPage"));
+const FastClubApplicationsPage = lazy(() => import("@/pages/fastclub/FastClubApplicationsPage"));
+const PublicCommunityPage = lazy(() => import("@/pages/community/PublicCommunityPage"));
+const PublicCommunityTopicPage = lazy(() => import("@/pages/community/PublicCommunityTopicPage"));
+const CommunityAuthPage = lazy(() => import("@/pages/community/CommunityAuthPage"));
+const EventRsvpResponse = lazy(() => import("@/pages/EventRsvpResponse"));
+const AcceptWorkspaceInvite = lazy(() => import("@/pages/AcceptWorkspaceInvite"));
+const MobileQuickProductCreate = lazy(() => import("@/pages/MobileQuickProductCreate"));
+const VisionPage = lazy(() => import("@/pages/VisionPage"));
+const VisionDuoAcceptPage = lazy(() => import("@/pages/VisionDuoAcceptPage"));
+const StrategyPage = lazy(() => import("@/pages/StrategyPage"));
+const DailyBriefPage = lazy(() => import("@/pages/DailyBriefPage"));
+const CommandCenterV2Page = lazy(() => import("@/pages/CommandCenterV2Page"));
+const InstagramLooterPage = lazy(() => import("@/pages/dashboard/InstagramLooterPage"));
+const SEOAdminPage = lazy(() => import("@/pages/dashboard/seo"));
+const CreditIntermediation = lazy(() => import("@/pages/CreditIntermediation"));
+const ZapierPage = lazy(() => import("@/pages/ZapierPage"));
+const BackgroundJobsPage = lazy(() => import("@/pages/BackgroundJobsPage"));
+const KPIs = lazy(() => import("@/pages/KPIs"));
+
+// Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
+function C2CRedirectToMarketplace() {
+  const { workspaceSlug, "*": rest } = useParams();
+  const suffix = rest ? `/${rest}` : "";
+  return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
+}
+
 const queryClient = new QueryClient();
 
-// Store Routes - ISOLATED from CRM providers
-function StoreRoutes() {
-  return (
-    <StoreCartProvider>
-      <Routes>
-        <Route path=":workspaceSlug" element={<StorePage />} />
-        <Route path=":workspaceSlug/product/:productId" element={<StoreProductPage />} />
-        <Route path=":workspaceSlug/checkout" element={<StoreCheckoutPage />} />
-        <Route path=":workspaceSlug/success" element={<StoreSuccessPage />} />
-        <Route path=":workspaceSlug/cancel" element={<StoreCancelPage />} />
-        <Route path=":workspaceSlug/wishlist" element={<StoreWishlistPage />} />
-        <Route path=":workspaceSlug/orders" element={<StoreOrderHistoryPage />} />
-        <Route path=":workspaceSlug/downloads" element={<StoreDigitalAssetsPage />} />
-        <Route path=":workspaceSlug/loyalty" element={<StoreLoyaltyPage />} />
-        <Route path=":workspaceSlug/referrals" element={<StoreReferralPage />} />
-        <Route path=":workspaceSlug/gift-cards" element={<StoreGiftCardsPage />} />
-      </Routes>
-    </StoreCartProvider>
-  );
-}
-
-// Client Portal Routes - ISOLATED from CRM providers
-function ClientPortalRoutes() {
-  return (
-    <CartProvider>
-      <Routes>
-        <Route path="login" element={<ClientLoginPage />} />
-        <Route path="invite/:token" element={<ClientInvitePage />} />
-        <Route path="set-password" element={<ClientSetPasswordPage />} />
-        <Route path="forgot-password" element={<ClientForgotPasswordPage />} />
-        <Route path="reset-password" element={<ClientResetPasswordPage />} />
-        <Route path="dashboard" element={<ClientDashboardPage />} />
-        <Route path="catalog" element={<ClientCatalogPage />} />
-        <Route path="cart" element={<ClientCartPage />} />
-        <Route path="checkout" element={<ClientCheckoutPage />} />
-        <Route path="orders" element={<ClientOrdersPage />} />
-        <Route path="orders/:id" element={<ClientOrderDetailPage />} />
-        <Route path="favorites" element={<ClientFavoritesPage />} />
-        <Route path="assistant" element={<ClientAssistantPage />} />
-        <Route path="team" element={<ClientTeamPage />} />
-        <Route path="approvals" element={<ClientApprovalsPage />} />
-        <Route path="invoices" element={<ClientInvoicesPage />} />
-        <Route path="financial" element={<ClientFinancialPage />} />
-        <Route path="contracts" element={<ClientContractsPage />} />
-        <Route path="support" element={<ClientSupportPage />} />
-        <Route path="support/:ticketId" element={<ClientTicketDetailPage />} />
-        <Route path="diagnosis" element={<ClientDiagnosisPage />} />
-        <Route path="diagnosis/:slug" element={<ClientDiagnosisDetailPage />} />
-        <Route path="protocol/:id" element={<ClientProtocolDetailPage />} />
-        <Route path="insights/consumption" element={<ClientConsumptionPage />} />
-        <Route path="insights/rankings" element={<ClientRankingsPage />} />
-        <Route path="security" element={<ClientSecurityPage />} />
-        <Route path="*" element={<Navigate to="/client/login" replace />} />
-      </Routes>
-    </CartProvider>
-  );
-}
+// Loading fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
 
 // CRM Routes - WITH all CRM providers
 function CRMRoutes() {
@@ -499,347 +157,158 @@ function CRMRoutes() {
         <ActivityProfileProvider>
           <WorkspaceInstanceProvider>
             <SubscriptionProvider>
-              <Routes>
-                {/* SEO Public Routes */}
-                <Route path="/keywords" element={<KeywordsListPage />} />
-                <Route path="/keywords/:slug" element={<KeywordDetailPage />} />
-                <Route path="/templates" element={<TemplatesListPage />} />
-                <Route path="/templates/:slug" element={<TemplateDetailPage />} />
-                <Route path="/tools" element={<ToolsListPage />} />
-                <Route path="/tools/keyword-ideas" element={<KeywordIdeasToolPage />} />
-                <Route path="/tools/:slug" element={<ToolDetailPage />} />
-                <Route path="/categories" element={<CategoriesListPage />} />
-                <Route path="/categories/:slug" element={<CategoryDetailPage />} />
-                <Route path="/compare" element={<CompareListPage />} />
-                <Route path="/compare/:slug" element={<ComparePage />} />
-                <Route path="/blog" element={<BlogListPage />} />
-                <Route path="/blog/:slug" element={<BlogPostPage />} />
-                <Route path="/guides" element={<GuidesListPage />} />
-                <Route path="/guides/:slug" element={<GuidePage />} />
-                <Route path="/glossary" element={<GlossaryListPage />} />
-                <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
-                
-                {/* Legal Pages */}
-                <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                <Route path="/terms" element={<TermsOfUsePage />} />
-                <Route path="/gdpr" element={<GDPRPage />} />
-                <Route path="/cookies" element={<CookiePolicyPage />} />
-                
-                {/* Main Routes */}
-                <Route path="/" element={<FastCRMLanding />} />
-                <Route path="/fastcrm" element={<FastCRMLanding />} />
-                <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
-                <Route path="/proposal/:id" element={<ProposalView />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/dashboard" element={<WeeklyDashboard />} />
-                <Route path="/dashboard/command-center" element={<CommandCenter />} />
-                <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
-                
-                {/* Objects MVP routes */}
-                <Route path="/objects" element={<ObjectsHomePage />} />
-                <Route path="/objects/:type" element={<ObjectListPage />} />
-                <Route path="/objects/:type/:id" element={<ObjectDetailPage />} />
-                <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
-                <Route path="/dashboard/context-os" element={<ContextOSPage />} />
-                <Route path="/dashboard/revenue" element={<RevenueOverviewPage />} />
-                <Route path="/dashboard/ask" element={<Navigate to="/dashboard/command-center" replace />} />
-                <Route path="/dashboard/tasks" element={<TasksPage />} />
-                <Route path="/dashboard/alerts" element={<AlertsPage />} />
-                <Route path="/dashboard/impact-map" element={<ImpactMapPage />} />
-                <Route path="/dashboard/system/health" element={<SystemHealthPage />} />
-                <Route path="/dashboard/system/events" element={<EventMapPage />} />
-                <Route path="/dashboard/system/event-matrix" element={<EventMatrixPage />} />
-                <Route path="/dashboard/system/event-tests" element={<EventTestsPage />} />
-                <Route path="/dashboard/system/dependencies" element={<DependenciesPage />} />
-                <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
-                <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
-                
-                {/* Settings redirect to /settings */}
-                <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
-                <Route path="/dashboard/settings/:section" element={<Navigate to="/settings" replace />} />
-                
-                {/* Settings at clean URL */}
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/data-model" element={<DataModelPage />} />
-                <Route path="/platform/data" element={<VisualDataModelPage />} />
-                <Route path="/settings/:section" element={<Settings />} />
-                <Route path="/dashboard/leads" element={<Leads />} />
-                <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
-                <Route path="/dashboard/prospecting" element={<ProspectingHub />} />
-                <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
-                <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
-                <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
-                <Route path="/dashboard/competitors" element={<CompetitorTrackerPage />} />
-                <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
-                <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
-                <Route path="/dashboard/inbox" element={<Inbox />} />
-                <Route path="/dashboard/whatsapp" element={<Navigate to="/dashboard/inbox?channel=whatsapp" replace />} />
-                <Route path="/dashboard/groups" element={<Groups />} />
-                <Route path="/dashboard/telegram" element={<TelegramPage />} />
-                <Route path="/dashboard/automations" element={<Automations />} />
-                <Route path="/dashboard/funnels" element={<Funnels />} />
-                <Route path="/dashboard/bio" element={<BioOS />} />
-                <Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
-                <Route path="/dashboard/contacts" element={<Contacts />} />
-                <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
-                <Route path="/dashboard/companies" element={<Companies />} />
-                <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
-                <Route path="/dashboard/ai-suggestions" element={<AISuggestionsPage />} />
-                <Route path="/dashboard/crm" element={<Crm />} />
-                <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
-                <Route path="/dashboard/proposals" element={<Proposals />} />
-                <Route path="/dashboard/proposals/:id" element={<ProposalDetail />} />
-                <Route path="/dashboard/products" element={<Products />} />
-                <Route path="/dashboard/b2b-products" element={<Products />} />
-                <Route path="/dashboard/packages" element={<Packages />} />
-                <Route path="/dashboard/imports" element={<Imports />} />
-                <Route path="/dashboard/payments" element={<Payments />} />
-                <Route path="/dashboard/invoices" element={<Invoices />} />
-                <Route path="/dashboard/knowledge" element={<KnowledgeBase />} />
-                <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
-                <Route path="/dashboard/renewals" element={<RenewalsPage />} />
-                <Route path="/dashboard/renewals/:id" element={<RenewalDetailPage />} />
-                <Route path="/dashboard/knowledge-base" element={<Navigate to="/dashboard/ai-assistants" replace />} />
-                <Route path="/dashboard/ai-profiles" element={<Navigate to="/dashboard/ai-assistants" replace />} />
-                <Route path="/dashboard/ai-assistants" element={<AIAssistants />} />
-                <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
-                <Route path="/dashboard/ai-employees" element={<AIEmployeesPage />} />
-                <Route path="/dashboard/ai-employees/new" element={<AIEmployeeNewPage />} />
-                <Route path="/dashboard/ai-employees/:botId" element={<AIEmployeeDetailPage />} />
-                <Route path="/dashboard/ai-employees/:botId/analytics" element={<AIEmployeeDetailPage />} />
-                <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-                <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
-                <Route path="/dashboard/sequences" element={<Sequences />} />
-                <Route path="/dashboard/reports" element={<ReportsOverview />} />
-                <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
-                <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
-                <Route path="/dashboard/reports/retention" element={<ReportsRetention />} />
-                <Route path="/dashboard/reports/kpis" element={<ReportsKPIs />} />
-                <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
-                <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
-                <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
-                <Route path="/dashboard/reports/dashboards" element={<ReportsDashboards />} />
-                <Route path="/dashboard/reports/dashboards/:id" element={<ReportDashboardView />} />
-                <Route path="/dashboard/marketplace" element={<Marketplace />} />
-                <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
-                <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
-                <Route path="/dashboard/calendars" element={<Navigate to="/dashboard/scheduling" replace />} />
-                <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
-                <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
-                <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
-                <Route path="/dashboard/meetings/:meetingId/transcript" element={<MeetingTranscriptPage />} />
-                <Route path="/dashboard/feed" element={<FeedPage />} />
-                <Route path="/dashboard/productivity" element={<ProductivityPage />} />
-                <Route path="/dashboard/member" element={<MemberPanelPage />} />
-                <Route path="/dashboard/profile" element={<Profile />} />
-                <Route path="/dashboard/marketing" element={<Marketing />} />
-                <Route path="/dashboard/seo" element={<SEOAdminPage />} />
-                <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
-                <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
-                <Route path="/dashboard/credit" element={<CreditIntermediation />} />
-                <Route path="/dashboard/strategy" element={<StrategyPage />} />
-                <Route path="/dashboard/ceo-copilot" element={<CEOCopilotPage />} />
-                <Route path="/command-center" element={<CommandCenterV2Page />} />
-                <Route path="/command-center/:conversationId" element={<CommandCenterV2Page />} />
-                <Route path="/dashboard/daily-brief" element={<DailyBriefPage />} />
-                <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
-                <Route path="/dashboard/events" element={<EventsManagementPage />} />
-                <Route path="/dashboard/events/:eventId" element={<EventDetailPage />} />
-                <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
-                <Route path="/dashboard/ai-sales-coach" element={<AISalesCoachPage />} />
-                <Route path="/dashboard/ai-agents" element={<AIAgentsPage />} />
-                <Route path="/dashboard/ai-agents/executions" element={<AIAgentExecutionsPage />} />
-                <Route path="/dashboard/ai-agents/:id" element={<AIAgentJobDetailPage />} />
-                <Route path="/dashboard/ai-document-ocr" element={<AIDocumentOCRPage />} />
-                <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
-                <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
-                <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
-                <Route path="/dashboard/ai-settings" element={<AISettingsPage />} />
-                <Route path="/dashboard/ai-usage" element={<AIUsagePage />} />
-                <Route path="/dashboard/zapier" element={<ZapierPage />} />
-                <Route path="/dashboard/background-jobs" element={<BackgroundJobsPage />} />
-                <Route path="/dashboard/ai-operations" element={<AIOperationsCenterPage />} />
-                
-                {/* Account Brief */}
-                <Route path="/dashboard/account-brief" element={<AccountBriefDashboardPage />} />
-                <Route path="/dashboard/account-brief/onboarding" element={<AccountBriefOnboardingPage />} />
-                <Route path="/dashboard/account-brief/accounts" element={<AccountBriefAccountsPage />} />
-                <Route path="/dashboard/account-brief/accounts/:id" element={<AccountBriefAccountDetailPage />} />
-                <Route path="/dashboard/account-brief/analysis" element={<AccountBriefAnalysisPage />} />
-                <Route path="/dashboard/account-brief/settings" element={<AccountBriefSettingsPage />} />
-                <Route path="/dashboard/account-brief/watchlist" element={<AccountBriefWatchlistPage />} />
-                <Route path="/dashboard/account-brief/alerts" element={<AccountBriefAlertsPage />} />
-                <Route path="/dashboard/account-brief/segments" element={<AccountBriefSegmentsPage />} />
-                <Route path="/dashboard/account-brief/compare" element={<AccountBriefComparePage />} />
-                <Route path="/dashboard/account-brief/notifications" element={<AccountBriefNotificationsPage />} />
-                <Route path="/dashboard/account-brief/batch" element={<AccountBriefBatchOpsPage />} />
-                <Route path="/dashboard/account-brief/kpis" element={<AccountBriefKPIsPage />} />
-                <Route path="/dashboard/account-brief/score-admin" element={<AccountBriefScoreAdminPage />} />
-                <Route path="/dashboard/account-brief/trial-demo" element={<AccountBriefTrialDemoPage />} />
-                <Route path="/dashboard/account-brief/health" element={<AccountBriefHealthPage />} />
-                <Route path="/dashboard/admin/account-brief" element={<AccountBriefAdminPage />} />
-                
-                {/* Método Vision */}
-                <Route path="/dashboard/vision" element={<VisionPage />} />
-                
-                {/* Revenue Flight Control */}
-                <Route path="/dashboard/revenue-flight-control" element={<RevenueFlightControlPage />} />
-                <Route path="/dashboard/revenue-flight-control/deals" element={<RFCDealsPage />} />
-                <Route path="/dashboard/revenue-flight-control/forecast" element={<RFCForecastPage />} />
-                <Route path="/dashboard/revenue-flight-control/scenarios" element={<RFCScenariosPage />} />
-                <Route path="/dashboard/revenue-flight-control/settings" element={<RFCSettingsPage />} />
-                
-                {/* Performance Engine */}
-                <Route path="/dashboard/performance" element={<PerformanceDashboardPage />} />
-                <Route path="/dashboard/performance/goals" element={<PerformanceGoalsPage />} />
-                <Route path="/dashboard/performance/leaderboard" element={<PerformanceLeaderboardPage />} />
-                <Route path="/dashboard/performance/challenges" element={<PerformanceChallengesPage />} />
-                <Route path="/dashboard/performance/recognition" element={<PerformanceRecognitionPage />} />
-                <Route path="/dashboard/performance/tv-mode" element={<PerformanceTVModePage />} />
-                <Route path="/dashboard/performance/settings" element={<PerformanceSettingsPage />} />
-                
-                {/* Procurement Routes */}
-                <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
-                <Route path="/dashboard/procurement/suppliers" element={<SuppliersPage />} />
-                <Route path="/dashboard/procurement/requests" element={<PurchaseRequestsPage />} />
-                <Route path="/dashboard/procurement/orders" element={<PurchaseOrdersPage />} />
-                <Route path="/dashboard/procurement/receipts" element={<GoodsReceiptsPage />} />
-                <Route path="/dashboard/procurement/invoices" element={<SupplierInvoicesPage />} />
-                <Route path="/dashboard/procurement/catalog" element={<SupplierProductsPage />} />
-                <Route path="/dashboard/procurement/price-import" element={<SupplierPriceImportPage />} />
-                <Route path="/dashboard/procurement/projects" element={<ProcurementProjectsPage />} />
-                <Route path="/dashboard/procurement/projects/:id" element={<ProcurementProjectDetailPage />} />
-                <Route path="/dashboard/procurement/rfqs" element={<RFQsPage />} />
-                <Route path="/dashboard/procurement/rfqs/:id" element={<RFQDetailPage />} />
-                <Route path="/dashboard/procurement/rfqs-dashboard" element={<RFQsDashboardPage />} />
-                <Route path="/dashboard/procurement/needs" element={<ProcurementNeedsBoardPage />} />
-                
-                {/* Order Notes Admin Routes */}
-                <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
-                <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
-                <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
-                <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
-                <Route path="/dashboard/bundles" element={<BundlesPage />} />
-                <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
-                <Route path="/dashboard/b2b-clients" element={<ClientUsersPage />} />
-                <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
-                <Route path="/dashboard/b2b-config" element={<B2BPortalSettingsPage />} />
-                <Route path="/dashboard/b2b-stock" element={<B2BStockPage />} />
-                <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
-                <Route path="/dashboard/store-orders/:id" element={<StoreOrderDetailPage />} />
-                <Route path="/dashboard/store-settings" element={<StoreSettingsPage />} />
-                <Route path="/dashboard/store-products" element={<StoreProductsAdminPage />} />
-                <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
-                <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
-                <Route path="/dashboard/store-analytics" element={<StoreAnalyticsPage />} />
-                
-                {/* Mobile Quick Product Creator */}
-                <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
-                
-                {/* Checkout System (admin) */}
-                <Route path="/dashboard/checkout" element={<CheckoutFunnelsPage />} />
-                <Route path="/dashboard/checkout/offers" element={<CheckoutOffersPage />} />
-                <Route path="/dashboard/checkout/abandoned" element={<AbandonedCartsPage />} />
-                <Route path="/dashboard/checkout/bundles" element={<CheckoutBundlesPage />} />
-                <Route path="/dashboard/checkout/analytics" element={<CheckoutAnalyticsPage />} />
-                <Route path="/dashboard/checkout/ab-tests" element={<ABTestsPage />} />
-                <Route path="/dashboard/checkout/discounts" element={<DynamicDiscountsPage />} />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* SEO Public Routes */}
+                  <Route path="/keywords" element={<KeywordsListPage />} />
+                  <Route path="/keywords/:slug" element={<KeywordDetailPage />} />
+                  <Route path="/templates" element={<TemplatesListPage />} />
+                  <Route path="/templates/:slug" element={<TemplateDetailPage />} />
+                  <Route path="/tools" element={<ToolsListPage />} />
+                  <Route path="/tools/keyword-ideas" element={<KeywordIdeasToolPage />} />
+                  <Route path="/tools/:slug" element={<ToolDetailPage />} />
+                  <Route path="/categories" element={<CategoriesListPage />} />
+                  <Route path="/categories/:slug" element={<CategoryDetailPage />} />
+                  <Route path="/compare" element={<CompareListPage />} />
+                  <Route path="/compare/:slug" element={<ComparePage />} />
+                  <Route path="/blog" element={<BlogListPage />} />
+                  <Route path="/blog/:slug" element={<BlogPostPage />} />
+                  <Route path="/guides" element={<GuidesListPage />} />
+                  <Route path="/guides/:slug" element={<GuidePage />} />
+                  <Route path="/glossary" element={<GlossaryListPage />} />
+                  <Route path="/glossary/:slug" element={<GlossaryTermPage />} />
+                  
+                  {/* Legal Pages */}
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms" element={<TermsOfUsePage />} />
+                  <Route path="/gdpr" element={<GDPRPage />} />
+                  <Route path="/cookies" element={<CookiePolicyPage />} />
+                  
+                  {/* Main Routes */}
+                  <Route path="/" element={<FastCRMLanding />} />
+                  <Route path="/fastcrm" element={<FastCRMLanding />} />
+                  <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
+                  <Route path="/proposal/:id" element={<ProposalView />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/dashboard" element={<WeeklyDashboard />} />
+                  <Route path="/dashboard/command-center" element={<CommandCenter />} />
+                  <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
+                  
+                  {/* Objects MVP routes */}
+                  <Route path="/objects" element={<ObjectsHomePage />} />
+                  <Route path="/objects/:type" element={<ObjectListPage />} />
+                  <Route path="/objects/:type/:id" element={<ObjectDetailPage />} />
+                  <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
+                  <Route path="/dashboard/context-os" element={<ContextOSPage />} />
+                  <Route path="/dashboard/revenue" element={<RevenueOverviewPage />} />
+                  <Route path="/dashboard/ask" element={<Navigate to="/dashboard/command-center" replace />} />
+                  <Route path="/dashboard/tasks" element={<TasksPage />} />
+                  <Route path="/dashboard/alerts" element={<AlertsPage />} />
+                  <Route path="/dashboard/impact-map" element={<ImpactMapPage />} />
+                  <Route path="/dashboard/system/health" element={<SystemHealthPage />} />
+                  <Route path="/dashboard/system/events" element={<EventMapPage />} />
+                  <Route path="/dashboard/system/event-matrix" element={<EventMatrixPage />} />
+                  <Route path="/dashboard/system/event-tests" element={<EventTestsPage />} />
+                  <Route path="/dashboard/system/dependencies" element={<DependenciesPage />} />
+                  <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
+                  <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
+                  
+                  {/* Settings */}
+                  <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
+                  <Route path="/dashboard/settings/:section" element={<Navigate to="/settings" replace />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/settings/data-model" element={<DataModelPage />} />
+                  <Route path="/platform/data" element={<VisualDataModelPage />} />
+                  <Route path="/settings/:section" element={<Settings />} />
 
-                {/* C2C Marketplace */}
-                <Route path="/dashboard/c2c" element={<C2CMarketplace />} />
-                <Route path="/dashboard/c2c/create" element={<C2CCreateListing />} />
-                <Route path="/dashboard/c2c/my-listings" element={<C2CMyListings />} />
-                <Route path="/dashboard/c2c/messages" element={<C2CMessages />} />
-                <Route path="/dashboard/c2c/favorites" element={<C2CFavorites />} />
-                <Route path="/dashboard/c2c/boost" element={<C2CSellerBoost />} />
-                <Route path="/dashboard/c2c/sellers" element={<C2CSellersAdmin />} />
-                <Route path="/dashboard/c2c/sponsors" element={<C2CSponsorAdmin />} />
-                <Route path="/dashboard/c2c/analytics" element={<C2CSellerDashboard />} />
-                <Route path="/dashboard/c2c/seller-area" element={<C2CSellerArea />} />
-                <Route path="/dashboard/c2c/affiliates" element={<C2CAffiliateCenter />} />
-                <Route path="/dashboard/c2c/referrals" element={<C2CReferralCenter />} />
-                <Route path="/dashboard/c2c/affiliate-admin" element={<C2CAffiliateAdmin />} />
-                <Route path="/dashboard/c2c/notifications" element={<C2CNotifications />} />
-                <Route path="/dashboard/c2c/orders" element={<C2COrders />} />
-                <Route path="/dashboard/c2c/moderation" element={<C2CContentModeration />} />
-                <Route path="/dashboard/c2c/loyalty" element={<C2CLoyaltyProgram />} />
-                <Route path="/dashboard/c2c/verification" element={<C2CVerificationPage />} />
-                <Route path="/dashboard/c2c/disputes" element={<C2CDisputesPage />} />
-                <Route path="/dashboard/c2c/tiers" element={<C2CSellerTiersPage />} />
-                <Route path="/dashboard/c2c/config" element={<MarketplaceConfigPage />} />
-                <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
-                <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
-                <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
-                <Route path="/dashboard/c2c/public-links" element={<C2CPublicLinksManager />} />
-                <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
-                
-                {/* FastClub - redirect old paths */}
-                <Route path="/dashboard/fastclub" element={<Navigate to="/club/fastclub" replace />} />
-                <Route path="/dashboard/fastclub/candidaturas" element={<FastClubApplicationsPage />} />
-                <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
-                
-                {/* FastMatch Discovery (CRM) */}
-                <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
+                  {/* Sales & CRM Routes */}
+                  <SalesCRMRoutes />
 
-                {/* Security Ops Routes */}
-                <Route path="/dashboard/security" element={<SecurityDashboardPage />} />
-                <Route path="/dashboard/security/partner-requests" element={<SecurityPartnerRequestsPage />} />
-                <Route path="/dashboard/security/partner-requests/:id" element={<SecurityPartnerRequestDetailPage />} />
-                <Route path="/dashboard/security/sites" element={<SecuritySitesPage />} />
-                <Route path="/dashboard/security/sites/:id" element={<SecuritySiteDetailPage />} />
-                <Route path="/dashboard/security/systems" element={<SecuritySystemsPage />} />
-                <Route path="/dashboard/security/systems/:id" element={<SecuritySystemDetailPage />} />
-                <Route path="/dashboard/security/equipment" element={<SecurityEquipmentPage />} />
-                <Route path="/dashboard/security/equipment/:id" element={<SecurityEquipmentDetailPage />} />
-                <Route path="/dashboard/security/clients" element={<SecurityClientsPage />} />
-                <Route path="/dashboard/security/clients/:id" element={<SecurityClientDetailPage />} />
-                <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
-                <Route path="/dashboard/security/contracts/:id" element={<SecurityContractDetailPage />} />
-                <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
-                <Route path="/dashboard/security/proposals/:id" element={<SecurityProposalDetailPage />} />
-                <Route path="/dashboard/security/leads" element={<SecurityLeadsPage />} />
-                <Route path="/dashboard/security/leads/:id" element={<SecurityLeadDetailPage />} />
-                <Route path="/dashboard/security/documents" element={<SecurityDocumentsPage />} />
-                <Route path="/dashboard/security/documents/:id" element={<SecurityDocumentDetailPage />} />
-                <Route path="/dashboard/security/maintenance" element={<SecurityMaintenancePage />} />
-                <Route path="/dashboard/security/maintenance/:id" element={<SecurityMaintenanceVisitDetailPage />} />
-                <Route path="/dashboard/security/occurrences" element={<SecurityOccurrencesPage />} />
-                <Route path="/dashboard/security/occurrences/:id" element={<SecurityOccurrenceDetailPage />} />
-                <Route path="/dashboard/security/renewals" element={<SecurityRenewalsPage />} />
-                <Route path="/dashboard/security/renewals/:id" element={<SecurityRenewalDetailPage />} />
-                <Route path="/dashboard/security/management" element={<SecurityManagementPage />} />
+                  {/* AI Routes */}
+                  <AIRoutes />
+                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
 
-                {/* Student Journey Module Routes */}
-                <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
-                <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
-                <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
-                <Route path="/dashboard/student-journey/profiles/:id" element={<SJLayout><SJProfileDetail /></SJLayout>} />
-                <Route path="/dashboard/student-journey/courses" element={<SJLayout><SJCourses /></SJLayout>} />
-                <Route path="/dashboard/student-journey/cohorts" element={<SJLayout><SJCohorts /></SJLayout>} />
-                <Route path="/dashboard/student-journey/cohorts/:id" element={<SJLayout><SJCohortDetail /></SJLayout>} />
-                
-                <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
-                <Route path="/product/:slug" element={<PublicProductSheet />} />
-                <Route path="/p/:slug" element={<PublicProposalPage />} />
-                <Route path="/super-admin" element={<SuperAdmin />} />
-                {/* Vertical Landing Pages (static + dynamic, catch-all at the end) */}
-                <Route path="/clinicas" element={<VerticalLandingPage />} />
-                <Route path="/imobiliarias" element={<VerticalLandingPage />} />
-                <Route path="/formacao" element={<VerticalLandingPage />} />
-                <Route path="/condominios" element={<VerticalLandingPage />} />
-                <Route path="/agencias" element={<VerticalLandingPage />} />
-                <Route path="/empresas" element={<VerticalLandingPage />} />
-                <Route path="/event-rsvp" element={<EventRsvpResponse />} />
-                <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
-                <Route path="/vision/duo/accept/:token" element={<VisionDuoAcceptPage />} />
-                
-                <Route path="/:slug" element={<VerticalLandingPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  {/* Reports */}
+                  <ReportsRoutes />
+
+                  {/* Account Brief */}
+                  <AccountBriefRoutes />
+
+                  {/* Revenue Flight Control */}
+                  <RevenueFlightControlRoutes />
+
+                  {/* Performance Engine */}
+                  <PerformanceRoutes />
+
+                  {/* Procurement */}
+                  <ProcurementRoutes />
+
+                  {/* Security Ops */}
+                  <SecurityRoutes />
+
+                  {/* Student Journey */}
+                  <StudentJourneyRoutes />
+
+                  {/* Checkout Admin */}
+                  <CheckoutAdminRoutes />
+
+                  {/* C2C Marketplace (Dashboard) */}
+                  <C2CDashboardRoutes />
+
+                  {/* Store Admin */}
+                  <StoreAdminRoutes />
+
+                  {/* B2B Admin */}
+                  <B2BAdminRoutes />
+
+                  {/* Marketplace */}
+                  <Route path="/dashboard/marketplace" element={<Marketplace />} />
+                  <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
+
+                  {/* Dashboard misc */}
+                  <Route path="/dashboard/seo" element={<SEOAdminPage />} />
+                  <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
+                  <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
+                  <Route path="/dashboard/credit" element={<CreditIntermediation />} />
+                  <Route path="/dashboard/strategy" element={<StrategyPage />} />
+                  <Route path="/dashboard/daily-brief" element={<DailyBriefPage />} />
+                  <Route path="/dashboard/vision" element={<VisionPage />} />
+                  <Route path="/dashboard/zapier" element={<ZapierPage />} />
+                  <Route path="/dashboard/background-jobs" element={<BackgroundJobsPage />} />
+                  <Route path="/command-center" element={<CommandCenterV2Page />} />
+                  <Route path="/command-center/:conversationId" element={<CommandCenterV2Page />} />
+
+                  {/* FastClub redirect */}
+                  <Route path="/dashboard/fastclub" element={<Navigate to="/club/fastclub" replace />} />
+                  <Route path="/dashboard/fastclub/candidaturas" element={<FastClubApplicationsPage />} />
+                  <Route path="/dashboard/fastclub/*" element={<Navigate to="/club/fastclub" replace />} />
+                  
+                  {/* Mobile */}
+                  <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
+                  
+                  {/* Public pages */}
+                  <Route path="/p/:workspaceSlug/:pageSlug" element={<PublicLandingPage />} />
+                  <Route path="/product/:slug" element={<PublicProductSheet />} />
+                  <Route path="/p/:slug" element={<PublicProposalPage />} />
+                  <Route path="/super-admin" element={<SuperAdmin />} />
+                  <Route path="/clinicas" element={<VerticalLandingPage />} />
+                  <Route path="/imobiliarias" element={<VerticalLandingPage />} />
+                  <Route path="/formacao" element={<VerticalLandingPage />} />
+                  <Route path="/condominios" element={<VerticalLandingPage />} />
+                  <Route path="/agencias" element={<VerticalLandingPage />} />
+                  <Route path="/empresas" element={<VerticalLandingPage />} />
+                  <Route path="/event-rsvp" element={<EventRsvpResponse />} />
+                  <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
+                  <Route path="/vision/duo/accept/:token" element={<VisionDuoAcceptPage />} />
+                  
+                  <Route path="/:slug" element={<VerticalLandingPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
               <GDPRBanner />
             </SubscriptionProvider>
           </WorkspaceInstanceProvider>
@@ -848,6 +317,9 @@ function CRMRoutes() {
     </AuthProvider>
   );
 }
+
+// Import ReportsKPIs for the kpis redirect
+const ReportsKPIs = lazy(() => import("@/pages/ReportsKPIs"));
 
 const App = () => (
   <HelmetProvider>
@@ -859,103 +331,62 @@ const App = () => (
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
-            <Routes>
-              {/* Public Funnel Pages */}
-              <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public Funnel Pages */}
+                <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
 
-              {/* Public Bio Pages */}
-              <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
-              <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
+                {/* Public Bio Pages */}
+                <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
+                <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
 
-              {/* Store - ISOLATED from CRM providers */}
-              <Route path="/store/*" element={<StoreRoutes />} />
-              
-              {/* C2C / Marketplace Public */}
-              <Route path="/marketplace/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
-              <Route path="/marketplace/:workspaceSlug/category/:category" element={<C2CPublicCategoryPage />} />
-              <Route path="/marketplace/:workspaceSlug/search" element={<C2CPublicSearchPage />} />
-              <Route path="/marketplace/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
-              <Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
-              <Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
-              <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
-              <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
-              <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
-              <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
-              {/* Legacy /c2c/ routes → redirect to /marketplace/ */}
-              <Route path="/c2c/:workspaceSlug/*" element={<C2CRedirectToMarketplace />} />
-              <Route path="/c2c/:workspaceSlug" element={<C2CRedirectToMarketplace />} />
+                {/* Store - ISOLATED from CRM providers */}
+                <Route path="/store/*" element={<StoreRoutes />} />
+                
+                {/* C2C / Marketplace Public */}
+                <Route path="/marketplace/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
+                <Route path="/marketplace/:workspaceSlug/category/:category" element={<C2CPublicCategoryPage />} />
+                <Route path="/marketplace/:workspaceSlug/search" element={<C2CPublicSearchPage />} />
+                <Route path="/marketplace/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
+                <Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
+                <Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
+                <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+                <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
+                <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
+                <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
+                {/* Legacy /c2c/ routes → redirect to /marketplace/ */}
+                <Route path="/c2c/:workspaceSlug/*" element={<C2CRedirectToMarketplace />} />
+                <Route path="/c2c/:workspaceSlug" element={<C2CRedirectToMarketplace />} />
 
-              {/* Checkout System (public) */}
-              <Route path="/checkout/recover/:token" element={<RecoverCartPage />} />
-              <Route path="/checkout/:funnelSlug" element={<CheckoutPage />} />
-              <Route path="/checkout/:funnelSlug/upsell/:offerId" element={<UpsellPage />} />
-              <Route path="/checkout/:funnelSlug/downsell/:offerId" element={<DownsellPage />} />
-              <Route path="/checkout/:funnelSlug/thank-you" element={<ThankYouPage />} />
+                {/* Checkout System (public) */}
+                <Route path="/checkout/recover/:token" element={<RecoverCartPage />} />
+                <Route path="/checkout/:funnelSlug" element={<CheckoutPage />} />
+                <Route path="/checkout/:funnelSlug/upsell/:offerId" element={<UpsellPage />} />
+                <Route path="/checkout/:funnelSlug/downsell/:offerId" element={<DownsellPage />} />
+                <Route path="/checkout/:funnelSlug/thank-you" element={<ThankYouPage />} />
 
-              {/* Supplier Portal (public, token-based) */}
-              <Route path="/supplier-portal/:token" element={<SupplierPortalPage />} />
-              
-              {/* Public FastClub Landing */}
-              <Route path="/fastclub" element={<FastClubLandingPage />} />
-              <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
-              
-              {/* FastClub Portal Routes - BEFORE /club/:slug to prevent catch-all */}
-              <Route path="/club/fastclub" element={
-                <AuthProvider>
-                  <WorkspaceProvider>
-                    <WorkspaceInstanceProvider>
-                      <ActivityProfileProvider>
-                        <SubscriptionProvider>
-                          <ClubLayout><Outlet /></ClubLayout>
-                        </SubscriptionProvider>
-                      </ActivityProfileProvider>
-                    </WorkspaceInstanceProvider>
-                  </WorkspaceProvider>
-                </AuthProvider>
-              }>
-                <Route index element={<FastClubPage />} />
-                <Route path="forum" element={<ForumPage />} />
-                <Route path="forum/:topicId" element={<ForumTopicPage />} />
-                <Route path="rewards" element={<LoyaltyPage />} />
-                <Route path="start-here" element={<StartHerePage />} />
-                <Route path="metodo-pare" element={<MetodoParePage />} />
-                <Route path="metodo-pare/planeamento" element={<PlaneamentoParePage />} />
-                <Route path="metodo-pare/automacao" element={<AutomacaoParePage />} />
-                <Route path="metodo-pare/resultados" element={<ResultadosParePage />} />
-                <Route path="metodo-pare/eficiencia" element={<EficienciaParePage />} />
-                <Route path="demos" element={<DemosPage />} />
-                <Route path="demos/demonstracoes" element={<DemonstracoesPage />} />
-                <Route path="demos/casos-praticos" element={<CasosPraticosPage />} />
-                <Route path="demos/roadmap" element={<RoadmapFCPage />} />
-                <Route path="desafio-7-dias" element={<DesafioPage />} />
-                <Route path="resultados" element={<ResultadosPage />} />
-                <Route path="rede-privada" element={<RedePrivadaPage />} />
-                <Route path="rede-privada/como-funciona" element={<ComoFuncionaPage />} />
-                <Route path="rede-privada/otimizar-perfil" element={<OtimizarPerfilPage />} />
-                <Route path="rede-privada/indicadores" element={<IndicadoresPage />} />
-                <Route path="rede-privada/negocios-fechados" element={<NegociosFechadosPage />} />
-                <Route path="rede-privada/estrategias" element={<EstrategiasPage />} />
-                <Route path="anuncios" element={<AnunciosPage />} />
-                <Route path="atualizacoes" element={<AtualizacoesPage />} />
-                <Route path="missao-semana" element={<MissaoSemanaPage />} />
-                <Route path="implementacao" element={<ImplementacaoPage />} />
-                <Route path="ia-avancada" element={<IAAvancadaPage />} />
-                <Route path="fastmatch" element={<FastMatchPage />} />
-                <Route path="laboratorio" element={<LaboratorioPage />} />
-                <Route path="hot-seats" element={<HotSeatsPage />} />
-              </Route>
+                {/* Supplier Portal (public, token-based) */}
+                <Route path="/supplier-portal/:token" element={<SupplierPortalPage />} />
+                
+                {/* Public FastClub Landing */}
+                <Route path="/fastclub" element={<FastClubLandingPage />} />
+                <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
+                
+                {/* FastClub Portal Routes */}
+                <FastClubPortalRoute />
 
-              {/* Public Community */}
-              <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
-              <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
-              <Route path="/club/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
-              
-              {/* Client Portal - ISOLATED from CRM providers */}
-              <Route path="/client/*" element={<ClientPortalRoutes />} />
-              
-              {/* CRM and all other routes - WITH CRM providers */}
-              <Route path="/*" element={<CRMRoutes />} />
-            </Routes>
+                {/* Public Community */}
+                <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
+                <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
+                <Route path="/club/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
+                
+                {/* Client Portal - ISOLATED from CRM providers */}
+                <Route path="/client/*" element={<ClientPortalRoutes />} />
+                
+                {/* CRM and all other routes - WITH CRM providers */}
+                <Route path="/*" element={<CRMRoutes />} />
+              </Routes>
+            </Suspense>
           </GTMProvider>
         </BrowserRouter>
       </TooltipProvider>
