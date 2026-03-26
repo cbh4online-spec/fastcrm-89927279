@@ -8,13 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useCreateBookingPage } from '@/hooks/useBookingPages';
+import { useCreateBookingPage, useUpdateBookingPage, type BookingPage } from '@/hooks/useBookingPages';
 import type { Calendar } from '@/hooks/useCalendars';
 
 interface BookingPageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   calendars: Calendar[];
+  editingPage?: BookingPage | null;
 }
 
 const DAY_LABELS = [
