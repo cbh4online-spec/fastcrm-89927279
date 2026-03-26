@@ -34,7 +34,7 @@ export function useLandingPageCopy() {
       if (user) {
         // Try to get workspace from context - fire and forget credit consumption
         const { data: creditResult } = await (supabase as any).rpc("consume_funnel_credits", {
-          p_workspace_id: context.workspaceId || null,
+          p_workspace_id: (context as any).workspaceId || null,
           p_user_id: user.id,
           p_action_key: "funnel_ai_copy",
           p_idempotency_key: null,
