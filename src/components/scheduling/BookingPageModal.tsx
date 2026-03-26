@@ -138,7 +138,6 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Link de Agendamento' : 'Novo Link de Agendamento'}</DialogTitle>
         </DialogHeader>
-        </DialogHeader>
         <div className="space-y-5">
           {/* Basic info */}
           <div className="space-y-3">
