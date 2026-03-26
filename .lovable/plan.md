@@ -1,24 +1,58 @@
 
 
-# Step 2 — Cleanup Legacy Files
+# PASSO 2 — Cleanup Final da Arquitetura de Rotas
 
-## Current State
+## Estado Atual Verificado
 
-- `src/App.tsx` already uses the modular architecture (imports `StoreRoutes`, `ClientPortalRoutes`, `CRMRoutesV2`)
-- `src/App.v2.tsx` exists as a **duplicate** — identical content to `App.tsx`, no longer needed
-- There is **no old `CRMRoutes.tsx`** — only `CRMRoutes.v2.tsx` which is actively used
-- `src/routes/StoreClientRoutes.tsx` still exists and is still imported by `CRMRoutes.v2.tsx` for `StoreAdminRoutes` and `B2BAdminRoutes` — this must stay
+| Ficheiro | Existe? | Estado |
+|---|---|---|
+| `src/App.v2.tsx` | **Não** | Já foi apagado anteriormente |
+| `src/routes/CRMRoutes.v2.tsx` | **Sim** | Ativo, usado por `App.tsx` |
+| `src/routes/CRMRoutes.tsx` (sem .v2) | **Não** | Nunca existiu |
+| `src/routes/StoreRoutes.tsx` | **Sim** | Ativo |
+| `src/routes/ClientPortalRoutes.tsx` | **Sim** | Ativo |
+| `src/routes/StoreClientRoutes.tsx` | **Sim** | Ativo (exporta `StoreAdminRoutes`, `B2BAdminRoutes`) |
+| `src/routes/crm/*.tsx` (4 ficheiros) | **Sim** | Todos ativos |
 
-## Action
+- Nenhum import morto ou duplicado encontrado
+- Nenhuma rota duplicada ou conflituante
+- Nenhum ficheiro legacy adicional a remover
 
-**Delete 1 file:**
-- `src/App.v2.tsx` — redundant duplicate of `App.tsx`
+## Ação Necessária
 
-**No other files to delete.** `StoreClientRoutes.tsx` is still actively imported and must remain.
+Apenas **1 normalização**:
 
-## Technical Details
+### Renomear `CRMRoutes.v2.tsx` → `CRMRoutes.tsx`
 
-- No imports reference `App.v2.tsx` anywhere in the codebase
-- Content of `App.v2.tsx` is identical to `App.tsx` (same 135 lines, same BUILD_VERSION, same imports)
-- Zero risk of breakage
+1. **Criar** `src/routes/CRMRoutes.tsx` com o conteúdo exato de `CRMRoutes.v2.tsx` (sem alterações)
+2. **Atualizar** `src/App.tsx` linha 18: `import CRMRoutesV2 from "@/routes/CRMRoutes.v2"` → `import CRMRoutesV2 from "@/routes/CRMRoutes"`
+3. **Apagar** `src/routes/CRMRoutes.v2.tsx`
+
+O nome do export `CRMRoutesV2` mantém-se inalterado — apenas o nome do ficheiro é normalizado.
+
+## Ficheiros Não Alterados
+
+- `StoreClientRoutes.tsx` — mantém-se (ainda exporta rotas usadas pelo CRM)
+- Todos os `src/routes/crm/*.tsx` — intactos
+- Todos os outros route modules — intactos
+- Nenhum URL muda
+
+## Validação de Rotas
+
+Todas as rotas listadas continuam a resolver após esta mudança porque nenhuma lógica de routing é alterada — apenas o nome do ficheiro de import:
+
+- `/login`, `/dashboard`, `/dashboard/leads`, `/dashboard/opportunities`, `/dashboard/inbox` — via `DashboardCoreRoutes`
+- `/dashboard/proposals`, `/dashboard/products` — via `SalesCRMRoutes`
+- `/dashboard/marketplace` — via `RevenueCommerceRoutes`
+- `/dashboard/procurement` — via `ProcurementRoutes`
+- `/dashboard/security` — via `SecurityRoutes`
+- `/dashboard/student-journey` — via `StudentJourneyRoutes`
+- `/client/login` — via `ClientPortalRoutes`
+- `/store/:workspaceSlug` — via `StoreRoutes`
+- `/club/fastclub` — via `App.tsx` (public route)
+- `/fastcrm` — via `DashboardCoreRoutes`
+- `/marketplace/:workspaceSlug` — via `App.tsx` (public route)
+- `/c2c/:workspaceSlug` — redirect em `App.tsx`
+- `/p/:workspaceSlug/:pageSlug` — via `PublicSeoRoutes`
+- `/:slug` — via `PublicSeoRoutes`
 
