@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +53,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
   const [customMessageLabel, setCustomMessageLabel] = useState('');
 
   // Populate form when editing
-  useState(() => {
+  useEffect(() => {
     if (editingPage) {
       setTitle(editingPage.title);
       setSlug(editingPage.slug);
@@ -71,7 +71,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
     } else {
       resetForm();
     }
-  });
+  }, [editingPage]);
 
   const generateSlug = (text: string) => {
     return text
