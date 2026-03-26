@@ -293,9 +293,17 @@ export default function LeadEnricher() {
                       ? `A enriquecer: ${batchProgress.current}`
                       : "Concluído!"}
                   </span>
-                  <span className="font-medium">
-                    {batchProgress.done}/{batchProgress.total}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">
+                      {batchProgress.done}/{batchProgress.total}
+                    </span>
+                    {isBatchRunning && (
+                      <Button size="sm" variant="ghost" onClick={requestStop} disabled={stopRequested}>
+                        <Square className="h-3 w-3 mr-1" />
+                        Parar
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <Progress
                   value={Math.round((batchProgress.done / batchProgress.total) * 100)}
