@@ -45933,6 +45933,7 @@ export type Database = {
       whatsapp_connections: {
         Row: {
           access_token: string | null
+          auto_create_leads: boolean | null
           connected_by: string | null
           created_at: string
           display_phone_number: string | null
@@ -45946,6 +45947,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          auto_create_leads?: boolean | null
           connected_by?: string | null
           created_at?: string
           display_phone_number?: string | null
@@ -45959,6 +45961,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          auto_create_leads?: boolean | null
           connected_by?: string | null
           created_at?: string
           display_phone_number?: string | null
