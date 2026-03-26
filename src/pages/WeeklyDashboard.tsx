@@ -6,13 +6,11 @@ import { ImmediateAttentionBanner } from "@/components/weekly-dashboard/Immediat
 import { PremiumKPICards } from "@/components/weekly-dashboard/PremiumKPICards";
 import { RevenueTargetStrip } from "@/components/weekly-dashboard/RevenueTargetStrip";
 import { QuarterGoalsProjection } from "@/components/weekly-dashboard/QuarterGoalsProjection";
-import { TrendCompositionSection } from "@/components/weekly-dashboard/TrendCompositionSection";
 import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
 import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
 import { QuickAccessFooter } from "@/components/weekly-dashboard/QuickAccessFooter";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
-import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
@@ -55,40 +53,31 @@ export default function WeeklyDashboard() {
           pendingDecisions={openDecisions.length}
         />
 
-        {/* 2. AI Command Area */}
+        {/* 2. Assistente de Vendas IA */}
         <PremiumAISection />
 
-        {/* 3. Immediate Attention */}
+        {/* 3. Alertas Imediatos */}
         <ImmediateAttentionBanner
           metrics={data?.metrics || []}
           isLoading={isLoading}
         />
 
-        {/* 4. Premium KPI Cards */}
+        {/* 4. KPI Cards Principais */}
         <PremiumKPICards
           metrics={data?.metrics || []}
           pipelineValue={data?.pipelineValue ?? 0}
           isLoading={isLoading}
         />
 
-        {/* 5. Revenue Target Strip (existing, proven) */}
+        {/* 5. War Room — Situação Semanal */}
         <RevenueTargetStrip
           metrics={data?.metrics || []}
           pipelineValue={data?.pipelineValue ?? 0}
           isLoading={isLoading}
         />
 
-        {/* 6. Quarter Goals with Projections */}
-        <QuarterGoalsProjection
-          metrics={data?.metrics || []}
-          isLoading={isLoading}
-        />
-
-        {/* 7. Trends (placeholder) */}
-        <TrendCompositionSection />
-
-        {/* 8. Opportunities & Actions */}
-        <div className="space-y-3" id="today-action-plan">
+        {/* 7. Oportunidades e Ações (merged section) */}
+        <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Oportunidades e Ações</h3>
@@ -97,28 +86,29 @@ export default function WeeklyDashboard() {
             <PriorityDealsTable />
             <TodayActionPlan />
           </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <DealsAtRiskList />
+            <PipelineHealthCard />
+            <AIStrategyPanel
+              strategy={strategy}
+              isLoading={strategyLoading}
+            />
+          </div>
         </div>
 
-        {/* 9. Risk + Health + AI Strategy */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <DealsAtRiskList />
-          <PipelineHealthCard />
-          <AIStrategyPanel
-            strategy={strategy}
-            isLoading={strategyLoading}
-          />
-        </div>
+        {/* 8. Metas do Trimestre */}
+        <QuarterGoalsProjection
+          metrics={data?.metrics || []}
+          isLoading={isLoading}
+        />
 
-        {/* 10. Executive Daily Brief */}
-        <DailyBriefWidget />
-
-        {/* 11. Quick Access Footer */}
-        <QuickAccessFooter />
-
-        {/* Adaptive Dashboard (conditional) */}
+        {/* 9–10. Comparativo Semanal + Ações Prioritárias (Adaptive) */}
         {showAdaptive && (
           <AdaptiveDashboardGestor layoutConfig={layoutConfig} />
         )}
+
+        {/* 11. Acesso Rápido */}
+        <QuickAccessFooter />
 
         {/* Export + Refresh */}
         <div className="flex items-center justify-end gap-2 pt-2">
