@@ -21,9 +21,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Phone, Loader2, ExternalLink, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save } from "lucide-react";
+import { Phone, Loader2, ExternalLink, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppQRDialog } from "./WhatsAppQRDialog";
 
 export function WhatsAppConfigPanel() {
   const { data: connection, isLoading } = useWhatsAppConnection();
@@ -32,6 +33,7 @@ export function WhatsAppConfigPanel() {
   const disconnectMutation = useDisconnectWhatsApp();
   const { currentWorkspace } = useWorkspace();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
   // Local form state
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
@@ -81,9 +83,11 @@ export function WhatsAppConfigPanel() {
         body: { workspaceId: currentWorkspace.id, userId: user?.id },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
+      if (data?.authUrl) {
+        window.open(data.authUrl, "_blank");
         toast.info("Complete a autorização na janela aberta");
+      } else {
+        toast.error("URL de autorização não recebida. Verifique se o META_APP_ID está configurado.");
       }
     } catch (err: any) {
       toast.error("Erro ao iniciar conexão: " + err.message);
@@ -161,10 +165,16 @@ export function WhatsAppConfigPanel() {
             </AlertDialogContent>
           </AlertDialog>
         ) : (
-          <Button onClick={handleConnect} disabled={isConnecting} size="sm" className="gap-1.5">
-            {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-            Conectar via Meta
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleConnect} disabled={isConnecting} size="sm" variant="outline" className="gap-1.5">
+              {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+              Conectar via Meta
+            </Button>
+            <Button onClick={() => setShowQRDialog(true)} size="sm" className="gap-1.5">
+              <QrCode className="h-3.5 w-3.5" />
+              Conectar via QR
+            </Button>
+          </div>
         )}
       </div>
 
@@ -345,6 +355,9 @@ export function WhatsAppConfigPanel() {
           )}
         </>
       )}
+
+      {/* QR Code Dialog */}
+      <WhatsAppQRDialog open={showQRDialog} onOpenChange={setShowQRDialog} />
     </div>
   );
 }
