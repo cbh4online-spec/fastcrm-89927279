@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 interface AdaptiveSidebarProps {
   open: boolean;
