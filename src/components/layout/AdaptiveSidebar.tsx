@@ -463,6 +463,14 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           )}
         >
           <div className="flex flex-col h-full">
+            {/* ── Workspace Switcher ── */}
+            <div className={cn(
+              "border-b border-border",
+              isCollapsed ? "px-1 py-2" : "px-3 py-2"
+            )}>
+              <WorkspaceSwitcher collapsed={isCollapsed} />
+            </div>
+
             {/* ── Header: User Profile ── */}
             <div className={cn(
               "flex items-center border-b border-border",
@@ -496,11 +504,6 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     <p className="text-xs text-muted-foreground truncate">
                       {roleLabelMap[salesFunction]}
                     </p>
-                    {currentWorkspace && (
-                      <p className="text-[10px] text-muted-foreground/60 truncate">
-                        {currentWorkspace.name}
-                      </p>
-                    )}
                   </div>
                   <button
                     onClick={onClose}
