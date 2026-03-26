@@ -51,7 +51,7 @@ import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
 import { ReportsRoutes } from "@/routes/ReportsRoutes";
 import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
 import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
-import { FastClubPortalRoute } from "@/routes/FastClubRoutes";
+import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
 import { AIRoutes } from "@/routes/AIRoutes";
 import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
 import { StoreRoutes, ClientPortalRoutes, StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
@@ -226,44 +226,44 @@ function CRMRoutes() {
                   <Route path="/settings/:section" element={<Settings />} />
 
                   {/* Sales & CRM Routes */}
-                  <SalesCRMRoutes />
+                  {SalesCRMRoutes()}
 
                   {/* AI Routes */}
-                  <AIRoutes />
+                  {AIRoutes()}
                   <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
 
                   {/* Reports */}
-                  <ReportsRoutes />
+                  {ReportsRoutes()}
 
                   {/* Account Brief */}
-                  <AccountBriefRoutes />
+                  {AccountBriefRoutes()}
 
                   {/* Revenue Flight Control */}
-                  <RevenueFlightControlRoutes />
+                  {RevenueFlightControlRoutes()}
 
                   {/* Performance Engine */}
-                  <PerformanceRoutes />
+                  {PerformanceRoutes()}
 
                   {/* Procurement */}
-                  <ProcurementRoutes />
+                  {ProcurementRoutes()}
 
                   {/* Security Ops */}
-                  <SecurityRoutes />
+                  {SecurityRoutes()}
 
                   {/* Student Journey */}
-                  <StudentJourneyRoutes />
+                  {StudentJourneyRoutes()}
 
                   {/* Checkout Admin */}
-                  <CheckoutAdminRoutes />
+                  {CheckoutAdminRoutes()}
 
                   {/* C2C Marketplace (Dashboard) */}
-                  <C2CDashboardRoutes />
+                  {C2CDashboardRoutes()}
 
                   {/* Store Admin */}
-                  <StoreAdminRoutes />
+                  {StoreAdminRoutes()}
 
                   {/* B2B Admin */}
-                  <B2BAdminRoutes />
+                  {B2BAdminRoutes()}
 
                   {/* Marketplace */}
                   <Route path="/dashboard/marketplace" element={<Marketplace />} />
@@ -373,7 +373,7 @@ const App = () => (
                 <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
                 
                 {/* FastClub Portal Routes */}
-                <FastClubPortalRoute />
+                {FastClubPortalRoutes()}
 
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
