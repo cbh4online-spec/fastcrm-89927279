@@ -136,7 +136,7 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
                 )}
                 <div className="text-left min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white truncate max-w-[150px]">
+                    <p className="text-sm font-semibold text-foreground truncate max-w-[150px]">
                       {currentWorkspace?.name || "Select workspace"}
                     </p>
                     {currentWorkspace?.isAgencyManaged && (
@@ -145,12 +145,12 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-sidebar-foreground/60 capitalize">
+                  <p className="text-xs text-muted-foreground capitalize">
                     {currentWorkspace?.isAgencyManaged ? "Modo agência" : currentWorkspace?.role || "No role"}
                   </p>
                 </div>
               </div>
-              <ChevronDown className="w-4 h-4 text-sidebar-foreground/60 flex-shrink-0" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             </Button>
           )}
         </DropdownMenuTrigger>
