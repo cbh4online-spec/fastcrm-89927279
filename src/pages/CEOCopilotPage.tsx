@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Brain, Briefcase, ShieldAlert, TrendingUp, Sparkles } from "lucide-react";
+import { Brain, Briefcase, ShieldAlert, TrendingUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Tab panels
@@ -9,15 +8,35 @@ import { CEODailyBriefTab } from "@/components/ceo-copilot/CEODailyBriefTab";
 import { CEOWeeklyStrategyTab } from "@/components/ceo-copilot/CEOWeeklyStrategyTab";
 import { CEOPipelineHealthTab } from "@/components/ceo-copilot/CEOPipelineHealthTab";
 import { CEOGrowthInsightsTab } from "@/components/ceo-copilot/CEOGrowthInsightsTab";
+import { CEOCopilotExport } from "@/components/ceo-copilot/CEOCopilotExport";
+
+// Hooks for export data
+import { useDailyBrief } from "@/hooks/useDailyBrief";
+import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
+import { usePipelineRiskReport } from "@/hooks/usePipelineRiskReport";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function CEOCopilotPage() {
+  const { todaysBrief } = useDailyBrief();
+  const { strategy } = useWeeklyStrategy();
+  const { report } = usePipelineRiskReport();
+  const { currentWorkspace } = useWorkspace();
+
   return (
     <DashboardLayout>
     <div className="space-y-6 p-4 md:p-6">
-      <PageHeader
-        title="AI CEO Copilot"
-        description="Inteligência executiva centralizada — briefs, estratégia, risco e crescimento"
-      />
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <PageHeader
+          title="AI CEO Copilot"
+          description="Inteligencia executiva centralizada — briefs, estrategia, risco e crescimento"
+        />
+        <CEOCopilotExport
+          dailyBrief={todaysBrief}
+          strategy={strategy}
+          pipelineReport={report}
+          workspaceName={currentWorkspace?.name}
+        />
+      </div>
 
       <Tabs defaultValue="daily" className="space-y-6">
         <TabsList className="bg-muted/50 border border-border/50 p-1 h-auto flex-wrap">
