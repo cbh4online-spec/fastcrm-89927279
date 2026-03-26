@@ -164,7 +164,7 @@ export function Toolbar({
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {rightActions}
         
         {onSearchChange && (
