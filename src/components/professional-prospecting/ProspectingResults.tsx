@@ -302,7 +302,12 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
         .select()
         .single();
 
-      if (leadError) throw leadError;
+      if (leadError) {
+        if (leadError.code === "23505" && (leadError.message || "").includes("email")) {
+          throw new Error("Já existe um lead com este email neste workspace.");
+        }
+        throw leadError;
+      }
 
       // Update profile status
       await supabase
