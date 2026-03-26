@@ -123,7 +123,7 @@ export function WeeklyHistoryCharts() {
           <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "hsl(var(--primary))" }} /> Atingido
         </span>
         <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "hsl(var(--muted))" }} /> Meta
+          <span className="inline-block w-2.5 h-2.5 rounded-sm border" style={{ background: "hsl(var(--primary) / 0.2)", borderColor: "hsl(var(--primary) / 0.4)" }} /> Meta
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
