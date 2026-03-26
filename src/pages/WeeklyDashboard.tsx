@@ -18,7 +18,7 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Lightbulb } from "lucide-react";
+import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 
 export default function WeeklyDashboard() {
