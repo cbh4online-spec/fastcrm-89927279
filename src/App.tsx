@@ -9,35 +9,16 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
-import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
 
-import { GTMProvider, GDPRBanner, MetaPixelLoader } from "./modules/growth-seo";
+import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
 
-// Route modules (lazy-loaded internally)
-import { SecurityRoutes } from "@/routes/SecurityRoutes";
-import { ProcurementRoutes } from "@/routes/ProcurementRoutes";
-import { C2CDashboardRoutes } from "@/routes/C2CRoutes";
-import { AccountBriefRoutes } from "@/routes/AccountBriefRoutes";
-import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
-import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
-import { ReportsRoutes } from "@/routes/ReportsRoutes";
-import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
-import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
+// Standalone route modules
+import { StoreRoutes } from "@/routes/StoreRoutes";
+import { ClientPortalRoutes } from "@/routes/ClientPortalRoutes";
+import CRMRoutesV2 from "@/routes/CRMRoutes.v2";
 import { FastClubPortalRoutes } from "@/routes/FastClubRoutes";
-import { AIRoutes } from "@/routes/AIRoutes";
-import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
-import { StoreRoutes, ClientPortalRoutes, StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
 
-// CRM sub-modules
-import { PublicSeoRoutes } from "@/routes/crm/PublicSeoRoutes";
-import { DashboardCoreRoutes } from "@/routes/crm/DashboardCoreRoutes";
-import { RevenueCommerceRoutes } from "@/routes/crm/RevenueCommerceRoutes";
-import { VerticalOpsRoutes } from "@/routes/crm/VerticalOpsRoutes";
-
-// Lazy-loaded pages (top-level only)
+// Lazy-loaded pages (top-level public only)
 const PublicFunnelPage = lazy(() => import("@/pages/PublicFunnelPage"));
 const PublicBioPage = lazy(() => import("@/pages/PublicBioPage"));
 const PublicBioShortLink = lazy(() => import("@/pages/PublicBioShortLink"));
@@ -60,7 +41,6 @@ const FastClubApplyPage = lazy(() => import("@/pages/fastclub/FastClubApplyPage"
 const PublicCommunityPage = lazy(() => import("@/pages/community/PublicCommunityPage"));
 const PublicCommunityTopicPage = lazy(() => import("@/pages/community/PublicCommunityTopicPage"));
 const CommunityAuthPage = lazy(() => import("@/pages/community/CommunityAuthPage"));
-const ReportsKPIs = lazy(() => import("@/pages/ReportsKPIs"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -71,78 +51,11 @@ function C2CRedirectToMarketplace() {
 
 const queryClient = new QueryClient();
 
-// Loading fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
   </div>
 );
-
-// CRM Routes - WITH all CRM providers
-function CRMRoutes() {
-  return (
-    <AuthProvider>
-      <WorkspaceProvider>
-        <ActivityProfileProvider>
-          <WorkspaceInstanceProvider>
-            <SubscriptionProvider>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {PublicSeoRoutes()}
-                  {DashboardCoreRoutes()}
-
-                  {/* Sales & CRM */}
-                  {SalesCRMRoutes()}
-
-                  {/* AI */}
-                  {AIRoutes()}
-                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-
-                  {/* Reports */}
-                  {ReportsRoutes()}
-
-                  {/* Account Brief */}
-                  {AccountBriefRoutes()}
-
-                  {/* Revenue Flight Control */}
-                  {RevenueFlightControlRoutes()}
-
-                  {/* Performance Engine */}
-                  {PerformanceRoutes()}
-
-                  {/* Procurement */}
-                  {ProcurementRoutes()}
-
-                  {/* Security Ops */}
-                  {SecurityRoutes()}
-
-                  {/* Student Journey */}
-                  {StudentJourneyRoutes()}
-
-                  {/* Checkout Admin */}
-                  {CheckoutAdminRoutes()}
-
-                  {/* C2C Marketplace (Dashboard) */}
-                  {C2CDashboardRoutes()}
-
-                  {/* Store Admin */}
-                  {StoreAdminRoutes()}
-
-                  {/* B2B Admin */}
-                  {B2BAdminRoutes()}
-
-                  {RevenueCommerceRoutes()}
-                  {VerticalOpsRoutes()}
-                </Routes>
-              </Suspense>
-              <GDPRBanner />
-            </SubscriptionProvider>
-          </WorkspaceInstanceProvider>
-        </ActivityProfileProvider>
-      </WorkspaceProvider>
-    </AuthProvider>
-  );
-}
 
 const App = () => (
   <HelmetProvider>
@@ -207,7 +120,7 @@ const App = () => (
                 <Route path="/client/*" element={<ClientPortalRoutes />} />
                 
                 {/* CRM and all other routes - WITH CRM providers */}
-                <Route path="/*" element={<CRMRoutes />} />
+                <Route path="/*" element={<CRMRoutesV2 />} />
               </Routes>
             </Suspense>
           </GTMProvider>
