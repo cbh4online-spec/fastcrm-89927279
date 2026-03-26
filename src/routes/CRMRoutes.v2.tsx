@@ -1,0 +1,74 @@
+import { Suspense, lazy } from "react";
+import { Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
+import { GDPRBanner } from "@/modules/growth-seo";
+
+// Route modules
+import { SecurityRoutes } from "@/routes/SecurityRoutes";
+import { ProcurementRoutes } from "@/routes/ProcurementRoutes";
+import { C2CDashboardRoutes } from "@/routes/C2CRoutes";
+import { AccountBriefRoutes } from "@/routes/AccountBriefRoutes";
+import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
+import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
+import { ReportsRoutes } from "@/routes/ReportsRoutes";
+import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
+import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
+import { AIRoutes } from "@/routes/AIRoutes";
+import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
+import { StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
+
+// CRM sub-modules
+import { PublicSeoRoutes } from "@/routes/crm/PublicSeoRoutes";
+import { DashboardCoreRoutes } from "@/routes/crm/DashboardCoreRoutes";
+import { RevenueCommerceRoutes } from "@/routes/crm/RevenueCommerceRoutes";
+import { VerticalOpsRoutes } from "@/routes/crm/VerticalOpsRoutes";
+
+const ReportsKPIs = lazy(() => import("@/pages/ReportsKPIs"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
+export default function CRMRoutesV2() {
+  return (
+    <AuthProvider>
+      <WorkspaceProvider>
+        <ActivityProfileProvider>
+          <WorkspaceInstanceProvider>
+            <SubscriptionProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {PublicSeoRoutes()}
+                  {DashboardCoreRoutes()}
+                  {SalesCRMRoutes()}
+                  {AIRoutes()}
+                  <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
+                  {ReportsRoutes()}
+                  {AccountBriefRoutes()}
+                  {RevenueFlightControlRoutes()}
+                  {PerformanceRoutes()}
+                  {ProcurementRoutes()}
+                  {SecurityRoutes()}
+                  {StudentJourneyRoutes()}
+                  {CheckoutAdminRoutes()}
+                  {C2CDashboardRoutes()}
+                  {StoreAdminRoutes()}
+                  {B2BAdminRoutes()}
+                  {RevenueCommerceRoutes()}
+                  {VerticalOpsRoutes()}
+                </Routes>
+              </Suspense>
+              <GDPRBanner />
+            </SubscriptionProvider>
+          </WorkspaceInstanceProvider>
+        </ActivityProfileProvider>
+      </WorkspaceProvider>
+    </AuthProvider>
+  );
+}
