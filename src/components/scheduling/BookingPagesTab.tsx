@@ -16,13 +16,16 @@ interface BookingPagesTabProps {
 
 export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
   const { data: pages = [], isLoading } = useBookingPages();
+  const { currentWorkspace } = useWorkspace();
   const updatePage = useUpdateBookingPage();
   const deletePage = useDeleteBookingPage();
   const [showModal, setShowModal] = useState(false);
   const [editingPage, setEditingPage] = useState<BookingPage | null>(null);
 
   const getPublicUrl = (slug: string) => {
-    return `${window.location.origin}/book/${slug}`;
+    const base = getPublicBaseUrl();
+    const wsSlug = currentWorkspace?.slug || 'workspace';
+    return `${base}/${wsSlug}/book/${slug}`;
   };
 
   const copyLink = (slug: string) => {
