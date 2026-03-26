@@ -225,8 +225,12 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       setNifData(emptyEnrichment);
       setOptionalsOpen(false);
       onOpenChange(false);
-    } catch (error) {
-      toast.error("Erro ao criar lead");
+    } catch (error: any) {
+      if (error?.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe um lead com este email neste workspace.");
+      } else {
+        toast.error("Erro ao criar lead");
+      }
     }
   };
 
