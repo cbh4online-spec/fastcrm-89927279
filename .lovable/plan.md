@@ -1,107 +1,124 @@
 
 
-# Dashboard de Vendas Adaptativo — Plano de Implementação
+# Premium Executive Sales Dashboard — Plano de Implementação
 
-## Análise do Estado Atual
+## Diagnóstico
 
-O projeto já tem infraestrutura relevante:
-- **`useDashboardRole`** — mapeia workspace roles para `comercial | gestor | suporte | admin`
-- **`ActivityProfileContext`** — perfis de atividade por workspace
-- **`WeeklyDashboard`** — dashboard atual com war-room, KPIs, AI strategy, deals at risk
-- **`ProfileSettings`** — secção de perfil em Settings
-- **`birth_date`** campo já existe em `contacts`, `leads`, `companies` (mas NÃO no perfil do utilizador)
-- 40+ componentes dashboard existentes (KPICards, PipelineHealth, SalesGoals, etc.)
+O `WeeklyDashboard` atual é funcional mas apresenta-se como um "war room operacional" denso — muitas secções ao mesmo nível visual, sem hierarquia clara, sem contexto temporal (trimestre/semana), e sem métricas de variação semana-a-semana ou mês-a-mês baseadas em dados reais. O header é genérico ("Bom dia") e os quick actions são botões soltos sem agrupamento visual.
 
-## Diferenças-Chave vs Spec
+Pontos fortes a preservar: hooks de dados reais (`useWeeklyPerformance`, `useDailyBrief`, `useIntelligencePanel`), componentes com loading/empty/error states, i18n PT-PT, lógica de conversão e health score.
 
-O spec pede adaptação por **idade do utilizador** e **função comercial**. O sistema atual adapta por **workspace role** (owner/admin/agent). A ponte é:
-1. Adicionar `birth_date` e `sales_function` ao perfil do utilizador (tabela `profiles`)
-2. Criar um hook `useAdaptiveDashboard` que combina idade + função para determinar layout
-3. Renderizar dashboard adaptativo na rota `/dashboard` baseado no perfil
-
-## Fases de Implementação
-
-### Fase 1 — MVP: Perfil + Dashboard Gestor (prioridade)
-
-**1.1 Schema: adicionar campos ao perfil**
-- Migration: `ALTER TABLE profiles ADD COLUMN birth_date date, ADD COLUMN sales_function text CHECK (sales_function IN ('vendedor','gestor','diretor','ceo'))`
-
-**1.2 UI de perfil obrigatório**
-- Criar `AdaptiveProfileSetup` — modal/step que aparece se `birth_date` ou `sales_function` forem null
-- Integrar no fluxo pós-onboarding ou no `WeeklyDashboard` como gate
-
-**1.3 Hook `useAdaptiveDashboard`**
-- Calcular `ageGroup`: `young` (18-29), `standard` (30-50), `senior` (50+)
-- Mapear `sales_function` para layout config
-- Retornar: `{ ageGroup, salesFunction, layoutConfig, textSize, showGamification }`
-
-**1.4 Dashboard Gestor de Vendas (implementar primeiro)**
-- Criar `AdaptiveDashboardGestor` com as secções do spec:
-  - Header com seletor de período
-  - Alertas inteligentes (3 níveis: crítico/atenção/oportunidade)
-  - 4 MetricCards com comparações (vendas, leads, pipeline, reuniões)
-  - Metas do trimestre com barras de progresso + projeção
-  - Comparativo semanal/mensal
-  - Benchmarking (individual vs equipa vs top vs indústria)
-  - Oportunidades + Ações prioritárias
-- Reutilizar componentes existentes: `RevenueTargetStrip`, `PipelineHealthCard`, `DashboardKPICards`, `SalesGoalsWidget`
-
-**1.5 Componentes reutilizáveis novos**
-- `AdaptiveMetricCard` — valor + % vs semana + % vs mês + projeção
-- `GoalProgressBar` — barra com projeção, gap, ritmo necessário, cor por status
-- `AlertBanner` — 3 níveis com ação sugerida
-- `BenchmarkCard` — comparação 4 eixos
-
-### Fase 2 — Adaptação por idade e função
-
-**2.1 Layouts por função**
-- `AdaptiveDashboardVendedor` — foco individual (quota, pipeline pessoal, leaderboard)
-- `AdaptiveDashboardDiretor` — foco estratégico (CAC, LTV, churn, forecast)
-- `AdaptiveDashboardCEO` — executivo minimalista (6 KPIs, score saúde, decisões pendentes)
-
-**2.2 Adaptação por idade**
-- Young (18-29): cores vibrantes, gamificação (badges, streaks), linguagem casual
-- Standard (30-50): dashboard completo, todas as features
-- Senior (50+): interface simplificada, texto 18px, menos elementos, KPIs essenciais apenas
-
-**2.3 Router adaptativo**
-- No `/dashboard`, o `WeeklyDashboard` delega para o layout correto via `useAdaptiveDashboard`
-
-### Fase 3 — Inteligência (futura)
-
-- Sistema de alertas com dados reais (queries a opportunities, leads, pipeline)
-- Sugestões de ação baseadas em AI (reutilizar `AIStrategyPanel`)
-- Benchmarking com dados reais da equipa
-
-### Fase 4 — Avançado (futura)
-
-- Filtros de período avançados
-- Export PDF/email
-- Gráficos de tendência 6-12 meses
-
-## Dados Mock
-
-Para a Fase 1, criar `src/data/adaptiveDashboardMock.ts` com dados realistas seguindo a estrutura do spec (metrics, alerts, goals, benchmarks).
-
-## Ficheiros a Criar/Modificar
+## Ficheiros a alterar
 
 | Ficheiro | Ação |
 |---|---|
-| `migration` | ADD `birth_date`, `sales_function` a `profiles` |
-| `src/hooks/useAdaptiveDashboard.ts` | Novo hook central |
-| `src/components/adaptive-dashboard/AdaptiveProfileSetup.tsx` | Gate de perfil |
-| `src/components/adaptive-dashboard/AdaptiveMetricCard.tsx` | Card métrica com comparações |
-| `src/components/adaptive-dashboard/GoalProgressBar.tsx` | Barra progresso com projeção |
-| `src/components/adaptive-dashboard/AlertBanner.tsx` | Alertas 3 níveis |
-| `src/components/adaptive-dashboard/BenchmarkCard.tsx` | Comparação 4 eixos |
-| `src/components/adaptive-dashboard/AdaptiveDashboardGestor.tsx` | Layout Gestor completo |
-| `src/data/adaptiveDashboardMock.ts` | Dados mock |
-| `src/pages/WeeklyDashboard.tsx` | Integrar gate + delegação adaptativa |
+| `src/pages/WeeklyDashboard.tsx` | Recompor layout com nova ordem de secções |
+| `src/components/weekly-dashboard/PremiumDashboardHeader.tsx` | **Novo** — header executivo com Q/semana |
+| `src/components/weekly-dashboard/ImmediateAttentionBanner.tsx` | **Novo** — alertas comerciais urgentes |
+| `src/components/weekly-dashboard/PremiumKPICards.tsx` | **Novo** — 4 KPIs com variação semanal/mensal |
+| `src/components/weekly-dashboard/TrendCompositionSection.tsx` | **Novo** — evolução + pipeline por fase (placeholder) |
+| `src/components/weekly-dashboard/QuarterGoalsProjection.tsx` | **Novo** — metas trimestrais com projeção |
+| `src/components/weekly-dashboard/QuickAccessFooter.tsx` | **Novo** — links rápidos compactos |
+| `src/i18n/locales/pt/dashboard.json` | Adicionar ~30 novas keys |
+| `src/i18n/locales/en/dashboard.json` | Adicionar keys correspondentes |
+| `src/i18n/locales/es/dashboard.json` | Adicionar keys correspondentes |
 
-## Notas Técnicas
+## Ficheiros que NÃO mudam
 
-- Usar validation trigger (não CHECK constraint) para `sales_function` se necessário
-- O `useDashboardRole` existente pode coexistir — o novo hook `useAdaptiveDashboard` é complementar e foca na experiência visual, não nos permissões
-- Dados mock na Fase 1, queries reais progressivamente na Fase 3
-- Começar pela Fase 1 completa (Gestor de Vendas), depois expandir
+- `src/hooks/useWeeklyPerformance.ts` — dados já suficientes
+- `src/hooks/useDailyBrief.ts`, `useWeeklyStrategy.ts`, `useKernelDecisions.ts`
+- `src/components/weekly-dashboard/RevenueTargetStrip.tsx` — mantém-se (integrado no layout)
+- `src/components/weekly-dashboard/ExecutionRequirements.tsx` — mantém-se
+- `src/components/weekly-dashboard/PriorityDealsTable.tsx` — mantém-se
+- `src/components/weekly-dashboard/TodayActionPlan.tsx` — mantém-se
+- `src/components/weekly-dashboard/AIStrategyPanel.tsx` — mantém-se
+- `src/components/dashboard/DealsAtRiskList.tsx` — mantém-se
+- `src/components/dashboard/PipelineHealthCard.tsx` — mantém-se
+- `src/components/dashboard/DailyBriefWidget.tsx` — mantém-se
+- Auth, billing, roles, schema, layout — intocados
+
+## Plano por passos
+
+### 1. PremiumDashboardHeader
+- Título "Dashboard de Vendas" (sem "Premium" — é demasiado marketing)
+- Subtítulo dinâmico: "Q1 2026 • Semana 12 de 13" (calculado a partir da data)
+- Manter chips de Revenue/Hot Leads/Decisões do `CommandCenterHeader` actual
+- Adicionar badge de comparação "Semana vs semana" (visual, sem funcionalidade por agora)
+- Saudação e nome do utilizador mantidos
+
+### 2. AI Command Box (evolução leve)
+- Manter o `AIQuestionBox` actual
+- Envolver com título "Assistente de Vendas IA" e 4 quick chips abaixo: "Como aumentar vendas?", "Deals prioritários", "Analisar pipeline", "Diagnóstico de leads"
+- Os chips disparam `handleSubmit` do `AIQuestionBox` — wrapper component `PremiumAISection`
+
+### 3. ImmediateAttentionBanner
+- Card destacado (border-l-4 amber ou red)
+- Consome `useWeeklyPerformance` → se revenue < 50% da meta, mostrar "Vendas abaixo do ritmo"
+- Se leads < 50%, mostrar "Leads abaixo da meta"
+- Calcular "falta X por semana para atingir objectivo" a partir do gap e semanas restantes no trimestre
+- CTA "Ver plano de ação" → scroll ou navigate para TodayActionPlan
+- Empty state: "Tudo no bom caminho" com ícone de check
+
+### 4. PremiumKPICards (4 cards)
+- Vendas fechadas, Leads qualificados, Negócios em pipeline, Reuniões realizadas
+- Dados de `useWeeklyPerformance` (actual e target já existem)
+- Variação semana/mês: sem dados históricos no hook actual → mostrar "vs meta: X%" como proxy, com nota de que WoW/MoM requer dados futuros
+- Visual state: healthy (green border-top) / warning (amber) / critical (red) baseado no `status` do metric
+- Projeção trimestral: derivada do ritmo semanal × semanas restantes (calculável)
+
+### 5. TrendCompositionSection
+- 3 mini-cards lado a lado: "Evolução Vendas", "Leads por Fonte", "Pipeline por Fase"
+- Sem dados de séries temporais no hook actual → mostrar placeholder elegante: "Dados de tendência disponíveis brevemente" com ícone de gráfico
+- Serve de placeholder para futura integração de gráficos (Recharts)
+
+### 6. QuarterGoalsProjection
+- Reutilizar lógica do `ExecutionRequirements` (target, actual, gap) + cálculo de semanas restantes no trimestre
+- Barras de progresso com projeção: barra sólida (actual) + barra tracejada (projeção)
+- Status labels: "Meta superada" / "No caminho" / "Atenção" / "Em risco"
+- Ritmo necessário: "Precisas de X€/semana para atingir a meta"
+
+### 7. Opportunities & Actions (recomposição)
+- Manter `PriorityDealsTable` e `TodayActionPlan` — reorganizar com header de secção "Oportunidades e Ações"
+- Adicionar separador visual com título e subtítulo
+
+### 8. QuickAccessFooter
+- 4 compact cards em row: Pipeline detalhado, Previsões IA, Alertas, Exportar
+- Cada um navega para rota existente (`/dashboard/opportunities`, `/dashboard/strategy`, etc.)
+- Estilo: ícone + label, hover com sombra leve
+
+### 9. Recomposição do WeeklyDashboard
+Nova ordem:
+1. `PremiumDashboardHeader`
+2. `PremiumAISection` (wrapper do AIQuestionBox + chips)
+3. `ImmediateAttentionBanner`
+4. `PremiumKPICards`
+5. `RevenueTargetStrip` (mantido — é valioso)
+6. `QuarterGoalsProjection`
+7. `TrendCompositionSection` (placeholder)
+8. Section header "Oportunidades e Ações" + `PriorityDealsTable` / `TodayActionPlan`
+9. `DealsAtRiskList` + `PipelineHealthCard` + `AIStrategyPanel`
+10. `DailyBriefWidget`
+11. `QuickAccessFooter`
+12. `AdaptiveDashboardGestor` (condicional, mantido)
+
+O `ExecutionRequirements` é movido para dentro do `QuarterGoalsProjection` ou removido da page principal (o conteúdo é subsumido pela nova secção de metas).
+
+### 10. i18n
+Adicionar ~30 keys novas em PT, EN, ES para headers, labels, estados e placeholders.
+
+## Riscos e mitigação
+
+| Risco | Mitigação |
+|---|---|
+| Dados WoW/MoM não existem no hook | Mostrar "vs meta" como proxy, placeholder para variação real |
+| Dados de tendência (séries) inexistentes | Placeholder visual elegante, sem dados falsos |
+| Quebrar fluxos existentes | Componentes existentes mantidos intactos, apenas reordenados |
+| Mobile layout com demasiadas secções | Usar `grid-cols-1` em mobile, colapsar secções menos críticas |
+
+## Dados em falta
+
+- **Week-over-week / Month-over-month reais**: o hook `useWeeklyPerformance` só calcula a semana actual. Para variação real seria preciso queries a semanas anteriores. Usaremos "vs meta %" como proxy.
+- **Séries temporais (6 semanas)**: não existem agregados históricos. Placeholder.
+- **Leads por fonte**: a tabela `leads` tem `source` mas não é agregada. Placeholder.
+- **Pipeline por fase**: `useIntelligencePanel` tem dados de stages mas não formatados para gráfico. Placeholder.
 
