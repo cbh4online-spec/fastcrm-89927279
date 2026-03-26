@@ -14,6 +14,7 @@ import {
   Zap,
   Settings,
   Video,
+  Phone,
 } from "lucide-react";
 import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
@@ -53,6 +54,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { isZoomConfigured, isGoogleMeetConnected } = useWorkspaceVideoConfig();
+  const { data: waConnection } = useWhatsAppConnection();
   const hasSearch = searchQuery.trim().length > 0;
 
   const shouldShow = (sectionId: string) => {
@@ -61,6 +63,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
   };
 
   const visibleSections = [
+    { id: "integrations-whatsapp", show: shouldShow("integrations-whatsapp") },
     { id: "integrations-stripe", show: shouldShow("integrations-stripe") },
     { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
     { id: "integrations-autopilot-monitor", show: shouldShow("integrations-autopilot-monitor") },
@@ -82,6 +85,16 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
 
   return (
     <div className="space-y-6">
+      {shouldShow("integrations-whatsapp") && (
+        <SettingsSection
+          title="WhatsApp Business"
+          description="Conecte a API do WhatsApp Business para receber e enviar mensagens"
+          icon={<Phone className="h-5 w-5 text-green-600" />}
+        >
+          <WhatsAppConfigPanel />
+        </SettingsSection>
+      )}
+
       {shouldShow("integrations-stripe") && (
         <SettingsSection
           title="Pagamentos (Stripe)"
