@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useEnrichmentProcessor } from "@/contexts/EnrichmentProcessorContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import {
   getEnrichmentStatus,
   getEnrichmentStats,
   useEnrichLead,
-  useEnrichLeadsBatch,
   type EnrichmentStatus,
 } from "@/hooks/useLeadEnrichment";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
@@ -170,11 +170,7 @@ export default function LeadEnricher() {
   const { data: leads = [], isLoading } = useLeads();
   const { settings, isLoading: settingsLoading, updateSettings } = useLeadEnricherSettings();
   const enrichLead = useEnrichLead(settings);
-  const { enrichBatch } = useEnrichLeadsBatch(settings);
-
-  // Batch processing state
-  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; current: string } | null>(null);
-  const isBatchRunning = batchProgress !== null && batchProgress.done < batchProgress.total;
+  const { batchProgress, isBatchRunning, startBatchEnrichment, requestStop, stopRequested } = useEnrichmentProcessor();
 
   // Auto-enrich: track previously seen lead IDs
   const seenLeadIdsRef = useRef<Set<string>>(new Set());
@@ -186,7 +182,6 @@ export default function LeadEnricher() {
     const currentIds = new Set(leads.map((l) => l.id));
 
     if (!autoEnrichInitializedRef.current) {
-      // First load: populate seen IDs without triggering enrichment
       seenLeadIdsRef.current = currentIds;
       autoEnrichInitializedRef.current = true;
       return;
@@ -194,7 +189,6 @@ export default function LeadEnricher() {
 
     if (!settings.auto_enrich_enabled) return;
 
-    // Find new leads not seen before
     const newLeads = leads.filter(
       (l) => !seenLeadIdsRef.current.has(l.id) && getEnrichmentStatus(l) === "pending"
     );
@@ -202,7 +196,6 @@ export default function LeadEnricher() {
     seenLeadIdsRef.current = currentIds;
 
     if (newLeads.length > 0) {
-      // Auto-enrich new leads
       for (const lead of newLeads) {
         enrichLead.mutate(lead);
       }
@@ -245,12 +238,8 @@ export default function LeadEnricher() {
 
   const handleEnrichAll = useCallback(async () => {
     if (pendingLeads.length === 0) return;
-    setBatchProgress({ done: 0, total: pendingLeads.length, current: pendingLeads[0].name });
-    await enrichBatch(pendingLeads, (done, total, current) => {
-      setBatchProgress({ done, total, current });
-    });
-    setTimeout(() => setBatchProgress(null), 2000);
-  }, [pendingLeads, enrichBatch]);
+    await startBatchEnrichment(pendingLeads);
+  }, [pendingLeads, startBatchEnrichment]);
 
   const handleProcessQueue = useCallback(async () => {
     await handleEnrichAll();
@@ -303,9 +292,17 @@ export default function LeadEnricher() {
                       ? `A enriquecer: ${batchProgress.current}`
                       : "Concluído!"}
                   </span>
-                  <span className="font-medium">
-                    {batchProgress.done}/{batchProgress.total}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">
+                      {batchProgress.done}/{batchProgress.total}
+                    </span>
+                    {isBatchRunning && (
+                      <Button size="sm" variant="ghost" onClick={requestStop} disabled={stopRequested}>
+                        <Square className="h-3 w-3 mr-1" />
+                        Parar
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <Progress
                   value={Math.round((batchProgress.done / batchProgress.total) * 100)}
