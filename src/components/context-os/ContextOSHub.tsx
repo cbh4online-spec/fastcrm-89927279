@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useContextScore, BlockStatus } from "@/hooks/useContextScore";
 import { BusinessContext, BusinessContextUpdate, useBusinessContext } from "@/hooks/useBusinessContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { motion } from "framer-motion";
 import { ContextBlockEditor } from "./ContextBlockEditor";
+import { ContextOSExport } from "./ContextOSExport";
 
 interface ContextOSHubProps {
   data: BusinessContext | null;
@@ -40,6 +42,7 @@ function staleDaysLabel(block: BlockStatus) {
 export function ContextOSHub({ data }: ContextOSHubProps) {
   const { blocks, globalScore, emptyCount, totalBlocks } = useContextScore(data);
   const { upsert } = useBusinessContext();
+  const { currentWorkspace } = useWorkspace();
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
 
   return (
@@ -55,7 +58,7 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
           <span className="text-sm font-semibold text-primary">Context OS</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold">A memória estratégica do teu negócio</h1>
-        
+        <ContextOSExport data={data} blocks={blocks} globalScore={globalScore} workspaceName={currentWorkspace?.name} />
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Context Score global:</span>
