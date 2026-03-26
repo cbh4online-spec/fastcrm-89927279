@@ -1,66 +1,65 @@
 
 
-# Copiar Relatório do Account Brief ao Associar a Lead/Empresa
+# Adaptação WhatsApp — Auto-Lead, Autopilot e Painel de Configuração
 
-## Objetivo
-Quando uma conta do Account Brief é associada a uma Lead ou Empresa no CRM, os dados do briefing devem ser copiados automaticamente para enriquecer o registo CRM.
+## Diagnóstico
+A infraestrutura WhatsApp Cloud API está completa (webhook, envio, OAuth, normalize-message). O inbox UI já suporta WhatsApp nativamente. Faltam 3 peças:
 
-## Mapeamento de campos
+1. **Auto-criação de leads** — o `whatsapp-webhook` cria conversas mas não leads
+2. **Autopilot IA** — existe no GHL (`ghl-webhook-message`) mas não no WhatsApp
+3. **Painel de configuração** — não existe UI para gerir a conexão WhatsApp
 
-### Account Brief → Company
-| Account Brief | Company |
-|---|---|
-| `description_short` / `executive_summary` | `description` / `ai_summary` |
-| `probable_sector` | `industry` |
-| `probable_geography` | `country` |
-| `domain` | `domain` |
-| `nif` | `tax_id` |
-| `email_main` | `email` |
-| `phone_main` | `phone` |
-| `tagline` | `notes` (append) |
-| Social URLs (linkedin, facebook, instagram, twitter, tiktok, youtube) | Campos correspondentes |
-| Corporate data: `capital_social`, `legal_nature`, `founding_date`, `company_status` | Campos correspondentes |
-| Corporate data: `shareholders`, `managers` | `company_context` (JSONB) |
-| Corporate data: `annual_revenue` (array) | `sales_2023`/`sales_2024`/`sales_2025` |
-| `total_score` | `company_score` |
+## Plano
 
-### Account Brief → Lead
-| Account Brief | Lead |
-|---|---|
-| `description_short` | `about` |
-| `probable_sector` | `industry` |
-| `domain` → website | `website` |
-| `nif` | `tax_id` |
-| `email_main` | `email` (se vazio) |
-| `phone_main` | `phone` (se vazio) |
-| Social URLs | Campos correspondentes |
-| Corporate data: `capital_social`, `legal_nature`, `founding_date`, `company_status` | Campos correspondentes |
-| Corporate data: `annual_revenue[0].revenue` | `annual_revenue` |
-| `total_score` | `lead_score` |
+### 1. Auto-criação de leads no webhook WhatsApp
+**Ficheiro**: `supabase/functions/whatsapp-webhook/index.ts`
 
-## Regra importante
-Apenas preencher campos **vazios/null** no registo CRM — nunca sobrescrever dados existentes.
+Após `normalizeIncomingMessage`, quando `is_new_conversation === true`:
+- Procurar lead existente pelo phone (`sender_id`)
+- Se não existir → criar lead com `name: "WhatsApp +{phone}"`, `phone`, `source: "whatsapp"`, `status: "new"`
+- Associar a conversa ao `lead_id` criado (update conversation)
+- Se existir → associar conversa ao lead existente
 
-## Alterações
+Respeitará um flag `auto_create_leads` na `whatsapp_connections` (default: true).
 
-### 1. Edge function `account-brief-link-company` (editar)
-- Após associar (tanto para empresa existente como nova), buscar todos os dados do account brief + corporate data
-- Fazer UPDATE na empresa com os campos mapeados, usando `COALESCE` para não sobrescrever dados existentes
-- Registar na `account_brief_account_sources` que houve enriquecimento
+### 2. Autopilot trigger no webhook WhatsApp
+**Ficheiro**: `supabase/functions/whatsapp-webhook/index.ts`
 
-### 2. Hook `useAccountBriefCRMLink.ts` — mutação `linkLead` (editar)
-- Transformar a associação de lead numa chamada a uma nova edge function (ou expandir a existente) para que o servidor faça o enriquecimento
-- **Nova edge function**: `account-brief-link-lead`
-  - Recebe `accountId`, `workspaceId`, `leadId`
-  - Busca account brief + corporate data
-  - Faz UPDATE na lead com campos mapeados (só preenche nulls)
-  - Atualiza `account_brief_accounts.lead_id`
+Replicar o padrão `triggerAutopilotResponse` do `ghl-webhook-message`:
+- Verificar `ai_agents` (canal `whatsapp`, `autopilot_enabled`) → fallback para `autopilot_config`
+- Verificar horário de funcionamento, limites de mensagens, dedup
+- Chamar `ai-inbox-reply` com delay configurado
+- Enviar resposta via `whatsapp-send-message`
+- Registar em `autopilot_events`
 
-### 3. Toast de feedback (sem alteração de ficheiro adicional)
-- Mensagem atualizada: "Lead associada e enriquecida com dados do briefing!"
+A lógica será extraída para `_shared/whatsapp-autopilot.ts` para reutilização.
+
+### 3. Migração DB — nova coluna
+**SQL Migration**:
+```sql
+ALTER TABLE whatsapp_connections
+  ADD COLUMN IF NOT EXISTS auto_create_leads BOOLEAN DEFAULT true;
+```
+
+### 4. Painel de Configuração WhatsApp (UI)
+**Criado**: `src/components/settings/WhatsAppConfigPanel.tsx`
+
+Card com:
+- **Estado da conexão**: número conectado, status ativo/inativo, expiração do token
+- **Botão Conectar** (chama `whatsapp-auth-url`) / **Desconectar**
+- **Toggle "Criar leads automaticamente"** → atualiza `auto_create_leads`
+- **Toggle "Autopilot ativo"** → link rápido para configuração do AI Agent
+- **Número de telefone** e WABA ID (read-only)
+
+**Integrado em**: página de Settings/Integrações existente
 
 ## Ficheiros afetados
-- **Editado**: `supabase/functions/account-brief-link-company/index.ts`
-- **Criado**: `supabase/functions/account-brief-link-lead/index.ts`
-- **Editado**: `src/hooks/useAccountBriefCRMLink.ts` (linkLead usa nova edge function)
+| Ação | Ficheiro |
+|---|---|
+| Migração | Nova migração SQL (coluna `auto_create_leads`) |
+| Editado | `supabase/functions/whatsapp-webhook/index.ts` |
+| Criado | `supabase/functions/_shared/whatsapp-autopilot.ts` |
+| Criado | `src/components/settings/WhatsAppConfigPanel.tsx` |
+| Criado | `src/hooks/useWhatsAppConfig.ts` |
+| Editado | Página de Settings (integrar painel) |
 
