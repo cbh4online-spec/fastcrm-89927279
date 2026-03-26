@@ -72,18 +72,33 @@ export default function PerformanceGoalsPage() {
     toast.success("Meta removida");
   };
 
+  const SCOPE_TYPES = [
+    { value: "company", label: "Empresa" },
+    { value: "team", label: "Equipa" },
+    { value: "individual", label: "Individual" },
+  ];
+
+  const PERIOD_TYPES = [
+    { value: "daily", label: "Diário" },
+    { value: "weekly", label: "Semanal" },
+    { value: "monthly", label: "Mensal" },
+    { value: "quarterly", label: "Trimestral" },
+  ];
+
+  const isSaving = createGoal.isPending || updateGoal.isPending;
+
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <PageHeader title="Metas de Performance" description="Define objetivos por empresa, equipa ou individual" />
-          <Dialog open={showCreate} onOpenChange={setShowCreate}>
+          <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" /> Nova Meta</Button>
+              <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Nova Meta</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Criar Meta</DialogTitle>
+                <DialogTitle>{editingGoal ? "Editar Meta" : "Criar Meta"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -124,7 +139,9 @@ export default function PerformanceGoalsPage() {
                     <Input type="date" value={form.period_end} onChange={e => setForm(f => ({ ...f, period_end: e.target.value }))} />
                   </div>
                 </div>
-                <Button onClick={handleCreate} disabled={createGoal.isPending} className="w-full">Criar Meta</Button>
+                <Button onClick={handleSubmit} disabled={isSaving} className="w-full">
+                  {editingGoal ? "Guardar Alterações" : "Criar Meta"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -136,9 +153,14 @@ export default function PerformanceGoalsPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{g.goal_name}</CardTitle>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(g.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(g)}>
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(g.id)}>
+                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
