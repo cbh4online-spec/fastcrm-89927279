@@ -1,4 +1,4 @@
-import { CommandResponse } from "@/hooks/useCommandOrchestrator";
+import { CommandResponse, CommandFollowUp } from "@/hooks/useCommandOrchestrator";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
