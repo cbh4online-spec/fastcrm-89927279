@@ -559,22 +559,22 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     <div className="space-y-0.5">
                       {extensionSettingsPages.map((ext) => (
                         <Link
-                          key={ext.path}
-                          to={`/settings/${ext.path}`}
+                          key={ext.key}
+                          to={`/settings/${ext.key}`}
                           onClick={onClose}
                           className={cn(
                             "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
                             style.itemHeight,
                             style.textSize,
-                            location.pathname.includes(ext.path)
+                            location.pathname.includes(ext.key)
                               ? "bg-primary/10 text-primary"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground",
                             "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                           )}
-                          aria-current={location.pathname.includes(ext.path) ? "page" : undefined}
+                          aria-current={location.pathname.includes(ext.key) ? "page" : undefined}
                         >
                           <Puzzle className={cn(style.iconSize, "shrink-0")} />
-                          <span className="flex-1 truncate">{ext.title}</span>
+                          <span className="flex-1 truncate">{ext.label}</span>
                         </Link>
                       ))}
                     </div>
