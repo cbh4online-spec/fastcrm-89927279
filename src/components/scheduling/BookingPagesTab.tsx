@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, ExternalLink, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Copy, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
   const updatePage = useUpdateBookingPage();
   const deletePage = useDeleteBookingPage();
   const [showModal, setShowModal] = useState(false);
+  const [editingPage, setEditingPage] = useState<BookingPage | null>(null);
 
   const getPublicUrl = (slug: string) => {
     return `${window.location.origin}/book/${slug}`;

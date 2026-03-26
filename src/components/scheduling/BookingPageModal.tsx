@@ -136,7 +136,8 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Link de Agendamento</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Link de Agendamento' : 'Novo Link de Agendamento'}</DialogTitle>
+        </DialogHeader>
         </DialogHeader>
         <div className="space-y-5">
           {/* Basic info */}
@@ -282,8 +283,8 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!title || !slug || !calendarId || workingDays.length === 0 || createPage.isPending}>
-            {createPage.isPending ? 'A criar...' : 'Criar Link'}
+          <Button onClick={handleSubmit} disabled={!title || !slug || !calendarId || workingDays.length === 0 || isPending}>
+            {isPending ? (isEditing ? 'A guardar...' : 'A criar...') : (isEditing ? 'Guardar Alterações' : 'Criar Link')}
           </Button>
         </DialogFooter>
       </DialogContent>
