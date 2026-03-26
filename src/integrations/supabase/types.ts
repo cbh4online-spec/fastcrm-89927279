@@ -6011,53 +6011,139 @@ export type Database = {
           },
         ]
       }
+      booking_leads: {
+        Row: {
+          booking_page_id: string
+          created_at: string
+          event_id: string | null
+          guest_email: string
+          guest_message: string | null
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          booking_page_id: string
+          created_at?: string
+          event_id?: string | null
+          guest_email: string
+          guest_message?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          booking_page_id?: string
+          created_at?: string
+          event_id?: string | null
+          guest_email?: string
+          guest_message?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_leads_booking_page_id_fkey"
+            columns: ["booking_page_id"]
+            isOneToOne: false
+            referencedRelation: "booking_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_leads_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_pages: {
         Row: {
+          availability_id: string | null
           brand_color: string | null
           buffer_minutes: number
           calendar_id: string
           created_at: string
+          custom_message_label: string | null
           description: string | null
           duration_minutes: number
+          end_hour: string
           id: string
           is_active: boolean
           max_advance_days: number
+          require_phone: boolean
           slug: string
+          start_hour: string
           title: string
           updated_at: string
+          working_days: number[]
           workspace_id: string
         }
         Insert: {
+          availability_id?: string | null
           brand_color?: string | null
           buffer_minutes?: number
           calendar_id: string
           created_at?: string
+          custom_message_label?: string | null
           description?: string | null
           duration_minutes?: number
+          end_hour?: string
           id?: string
           is_active?: boolean
           max_advance_days?: number
+          require_phone?: boolean
           slug: string
+          start_hour?: string
           title: string
           updated_at?: string
+          working_days?: number[]
           workspace_id: string
         }
         Update: {
+          availability_id?: string | null
           brand_color?: string | null
           buffer_minutes?: number
           calendar_id?: string
           created_at?: string
+          custom_message_label?: string | null
           description?: string | null
           duration_minutes?: number
+          end_hour?: string
           id?: string
           is_active?: boolean
           max_advance_days?: number
+          require_phone?: boolean
           slug?: string
+          start_hour?: string
           title?: string
           updated_at?: string
+          working_days?: number[]
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "booking_pages_availability_id_fkey"
+            columns: ["availability_id"]
+            isOneToOne: false
+            referencedRelation: "user_availability"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booking_pages_calendar_id_fkey"
             columns: ["calendar_id"]

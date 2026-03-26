@@ -15,6 +15,12 @@ export interface BookingPage {
   max_advance_days: number;
   is_active: boolean;
   brand_color: string;
+  working_days: number[];
+  start_hour: string;
+  end_hour: string;
+  availability_id: string | null;
+  require_phone: boolean;
+  custom_message_label: string | null;
   created_at: string;
   updated_at: string;
 }
