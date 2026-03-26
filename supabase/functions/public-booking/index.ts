@@ -79,7 +79,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
     });
   }
 
-  // Create lead
+  // Create booking lead
   const { data: lead, error: leadErr } = await supabase
     .from("booking_leads")
     .insert({
@@ -102,8 +102,57 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
     });
   }
 
+  // Check if email already exists in leads or contacts tables
+  const trimmedEmail = guest_email.trim().toLowerCase();
+  let existingMatch: { type: string; name: string; id: string } | null = null;
+
+  // Check leads table first
+  const { data: existingLead } = await supabase
+    .from("leads")
+    .select("id, name")
+    .eq("workspace_id", page.workspace_id)
+    .ilike("email", trimmedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingLead) {
+    existingMatch = { type: "lead", name: existingLead.name, id: existingLead.id };
+  } else {
+    // Check contacts table
+    const { data: existingContact } = await supabase
+      .from("contacts")
+      .select("id, name")
+      .eq("workspace_id", page.workspace_id)
+      .is("deleted_at", null)
+      .ilike("email", trimmedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingContact) {
+      existingMatch = { type: "contact", name: existingContact.name, id: existingContact.id };
+    }
+  }
+
+  // If match found, store reference in booking_lead metadata
+  if (existingMatch) {
+    await supabase
+      .from("booking_leads")
+      .update({
+        metadata: {
+          existing_match_type: existingMatch.type,
+          existing_match_id: existingMatch.id,
+          existing_match_name: existingMatch.name,
+        },
+      })
+      .eq("id", lead.id);
+  }
+
   return new Response(
-    JSON.stringify({ success: true, lead_id: lead.id }),
+    JSON.stringify({
+      success: true,
+      lead_id: lead.id,
+      existing_match: existingMatch,
+    }),
     { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
   );
 }
