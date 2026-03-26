@@ -116,6 +116,9 @@ export default function WeeklyDashboard() {
           </div>
         </div>
 
+        {/* 7. Evolução Semanal */}
+        <WeeklyHistoryCharts />
+
         {/* 8. Metas do Trimestre */}
         <QuarterGoalsProjection
           metrics={data?.metrics || []}
