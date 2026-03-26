@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
 import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
@@ -7,7 +8,6 @@ import { ContextAwareQuickActions } from "@/components/weekly-dashboard/ContextA
 import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
 import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
-import { TargetsSettingsSheet } from "@/components/weekly-dashboard/TargetsSettingsSheet";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
 import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
@@ -16,6 +16,9 @@ import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
+import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
+import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
+import { AdaptiveDashboardGestor } from "@/components/adaptive-dashboard/AdaptiveDashboardGestor";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Crosshair } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -29,11 +32,22 @@ export default function WeeklyDashboard() {
   const weekLabel = data?.weekLabel || "...";
   const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
+  const { needsSetup, salesFunction, layoutConfig, isLoading: adaptiveLoading } = useAdaptiveDashboard();
+  const [setupDismissed, setSetupDismissed] = useState(false);
 
   const briefMetrics = todaysBrief?.key_metrics;
 
+  // Show adaptive dashboard for gestor function (others fallback to war-room)
+  const showAdaptive = !adaptiveLoading && !needsSetup && salesFunction !== null;
+
   return (
     <DashboardLayout>
+      {/* Profile setup gate */}
+      <AdaptiveProfileSetup
+        open={!!needsSetup && !setupDismissed}
+        onComplete={() => setSetupDismissed(true)}
+      />
+
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Greeting Header */}
         <CommandCenterHeader
@@ -44,6 +58,11 @@ export default function WeeklyDashboard() {
 
         {/* AI Command Input */}
         <AIQuestionBox />
+
+        {/* Adaptive Dashboard Section */}
+        {showAdaptive && (
+          <AdaptiveDashboardGestor layoutConfig={layoutConfig} />
+        )}
 
         {/* WAR ROOM Header */}
         <div className="flex items-center justify-between">
