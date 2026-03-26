@@ -6015,6 +6015,7 @@ export type Database = {
         Row: {
           booking_page_id: string
           created_at: string
+          custom_field_values: Json | null
           event_id: string | null
           guest_email: string
           guest_message: string | null
@@ -6027,6 +6028,7 @@ export type Database = {
         Insert: {
           booking_page_id: string
           created_at?: string
+          custom_field_values?: Json | null
           event_id?: string | null
           guest_email: string
           guest_message?: string | null
@@ -6039,6 +6041,7 @@ export type Database = {
         Update: {
           booking_page_id?: string
           created_at?: string
+          custom_field_values?: Json | null
           event_id?: string | null
           guest_email?: string
           guest_message?: string | null

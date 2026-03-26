@@ -1,0 +1,1 @@
+ALTER TABLE public.booking_leads ADD COLUMN IF NOT EXISTS custom_field_values jsonb DEFAULT NULL;
