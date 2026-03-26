@@ -1,63 +1,52 @@
 
 
-# Implement Command Center Quick Actions: "Gerar PDF da Proposta" and "Agendar Review com Cliente"
+# Step 1 — Route Migration: Extract & Replace App.tsx
 
-## Current State
+## Overview
 
-The `CommandQuickActions` component renders action buttons but all non-navigate actions show placeholder toasts ("Funcionalidade em breve"). The AI orchestrator already returns `entity_id` and `entity_name` in the `CommandResponse`, but these are not passed to the action handlers.
+Extract `StoreRoutes` and `ClientPortalRoutes` into their own files, create `CRMRoutes.v2.tsx` as the CRM composition module, build `App.v2.tsx` with the new clean imports, and finally replace `App.tsx`.
 
-## Changes
+## Files to Create
 
-### 1. Pass entity context to CommandQuickActions
+### 1. `src/routes/StoreRoutes.tsx`
+Move the `StoreRoutes` function + its lazy imports from `StoreClientRoutes.tsx` (lines 8-83) into a standalone file. Same code, same `StoreCartProvider` wrapper, own file.
 
-**File: `src/pages/CommandCenterV2Page.tsx`**
+### 2. `src/routes/ClientPortalRoutes.tsx`
+Move the `ClientPortalRoutes` function + its lazy imports from `StoreClientRoutes.tsx` (lines 30-119) into a standalone file. Same `CartProvider` wrapper.
 
-Pass `entity_id` and `entity_name` from `currentResponse` to `CommandQuickActions`:
+### 3. `src/routes/CRMRoutes.v2.tsx`
+New file that exports `CRMRoutesV2` as a component (not a function returning fragments). It contains:
+- The provider stack (`AuthProvider` → `WorkspaceProvider` → `ActivityProfileProvider` → `WorkspaceInstanceProvider` → `SubscriptionProvider`)
+- A `<Routes>` block composing all existing sub-modules: `PublicSeoRoutes()`, `DashboardCoreRoutes()`, `SalesCRMRoutes()`, `AIRoutes()`, `ReportsRoutes()`, `AccountBriefRoutes()`, `RevenueFlightControlRoutes()`, `PerformanceRoutes()`, `ProcurementRoutes()`, `SecurityRoutes()`, `StudentJourneyRoutes()`, `CheckoutAdminRoutes()`, `C2CDashboardRoutes()`, `StoreAdminRoutes()`, `B2BAdminRoutes()`, `RevenueCommerceRoutes()`, `VerticalOpsRoutes()`
+- The `ReportsKPIs` lazy import and `GDPRBanner`
+- The `PageLoader` component
 
-```tsx
-<CommandQuickActions
-  actions={currentResponse.result.suggested_actions}
-  entityId={currentResponse.entity_id}
-  entityName={currentResponse.entity_name}
-/>
+### 4. `src/App.v2.tsx`
+Clean App shell importing from new standalone files:
 ```
+import { StoreRoutes } from "@/routes/StoreRoutes"
+import { ClientPortalRoutes } from "@/routes/ClientPortalRoutes"
+import CRMRoutesV2 from "@/routes/CRMRoutes.v2"
+```
+Contains only:
+- Top-level providers (`HelmetProvider`, `ThemeProvider`, `QueryClientProvider`, `TooltipProvider`, `BrowserRouter`, `GTMProvider`)
+- Top-level public routes (funnel, bio, marketplace, checkout, supplier, fastclub, community)
+- `<Route path="/store/*" element={<StoreRoutes />} />`
+- `<Route path="/client/*" element={<ClientPortalRoutes />} />`
+- `<Route path="/*" element={<CRMRoutesV2 />} />`
+- C2C redirects, lazy page imports for public pages
+- `Toaster`, `Sonner`, `MetaPixelLoader`
 
-### 2. Implement action handlers in CommandQuickActions
+### 5. Replace `src/App.tsx`
+Copy content of `App.v2.tsx` into `App.tsx`. Do NOT delete `App.v2.tsx` yet (per instructions).
 
-**File: `src/components/command-center-v2/CommandQuickActions.tsx`**
+## What stays unchanged
+- `src/routes/StoreClientRoutes.tsx` — kept as-is (still exports `StoreAdminRoutes` and `B2BAdminRoutes` used by CRMRoutes.v2)
+- All `src/routes/crm/*.tsx` files — untouched
+- All other route modules — untouched
+- All URLs remain identical
 
-Add `entityId` and `entityName` props. Implement:
-
-- **`generate_report`**: If `target` contains a proposal-related path or entity context suggests a proposal, navigate to `/dashboard/proposals` (or the specific proposal if `entityId` is available). If the target is more generic, navigate to the target path. This lets the user open the existing PDF export dialog from the proposal detail page.
-
-- **`schedule_meeting`**: Use the existing `useTasks` `useCreateTask` mutation to insert a task with:
-  - `title`: action label or "Review com Cliente - {entityName}"
-  - `related_type`: "opportunity" (when entityId references an opportunity)
-  - `related_id`: entityId
-  - `due_date`: tomorrow
-  - `priority`: "high"
-  - Show a success toast with a link to `/dashboard/tasks`
-
-- **`create_task`**: Similar to schedule_meeting but with `priority: "medium"` and no preset title override.
-
-- **`send_email`**: Navigate to `/dashboard/inbox` (or compose view if available).
-
-### 3. Import task creation hook
-
-Use the existing `useCreateTask` from `src/hooks/useTasks.ts` to insert tasks directly from the Command Center without a modal.
-
-## Technical Details
-
-- `CommandQuickActions` gains two optional props: `entityId?: string`, `entityName?: string`
-- `useCreateTask` is imported from existing `useTasks.ts` — no new DB tables or migrations needed
-- The `generate_report` action navigates to proposal detail where the existing `ProposalDocumentPreviewDialog` handles PDF generation via html2canvas + jsPDF
-- For `schedule_meeting`, the task is created immediately with a toast confirmation, avoiding a complex meeting scheduling UI
-
-## Files Modified
-- `src/components/command-center-v2/CommandQuickActions.tsx` — implement action handlers
-- `src/pages/CommandCenterV2Page.tsx` — pass entity context props
-
-## Files Not Changed
-- No edge function changes needed — the orchestrator already returns entity context
-- No database migrations — uses existing `tasks` table
+## Key decisions
+- `StoreAdminRoutes` and `B2BAdminRoutes` stay in `StoreClientRoutes.tsx` since they're dashboard routes consumed inside `CRMRoutes.v2`, not standalone route trees
+- `CRMRoutesV2` is a JSX component (not a function returning fragments) since it wraps its own `<Routes>` and providers — used as `<CRMRoutesV2 />` in the catch-all
 
