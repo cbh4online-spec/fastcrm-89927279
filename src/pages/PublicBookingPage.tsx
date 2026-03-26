@@ -61,6 +61,7 @@ export default function PublicBookingPage() {
   const [guestMessage, setGuestMessage] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
   const [savingLead, setSavingLead] = useState(false);
+  const [existingMatch, setExistingMatch] = useState<{ type: string; name: string; id: string } | null>(null);
 
   // Step 2 — Schedule
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -226,6 +227,9 @@ export default function PublicBookingPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao guardar dados');
       setLeadId(result.lead_id);
+      if (result.existing_match) {
+        setExistingMatch(result.existing_match);
+      }
       setStep('schedule');
     } catch (err) {
       setError((err as Error).message);
@@ -364,6 +368,12 @@ export default function PublicBookingPage() {
         {/* STEP 2: Date/Time selection */}
         {step === 'schedule' && (
           <div>
+            {existingMatch && (
+              <div className="mb-4 p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                <span>Bem-vindo de volta, <strong>{existingMatch.name}</strong>! Já temos o seu registo.</span>
+              </div>
+            )}
             <Button variant="ghost" size="sm" className="mb-4 gap-1" onClick={() => setStep('info')}>
               <ArrowLeft className="h-4 w-4" /> Voltar
             </Button>
