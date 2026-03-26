@@ -717,7 +717,19 @@ export default function StrategyPage() {
             },
           ]}
         />
-        <ExecutiveBriefExport brief={latestBrief} workspaceName={currentWorkspace?.name} />
+        <ExecutiveBriefExport
+          brief={latestBrief}
+          workspaceName={currentWorkspace?.name}
+          pipelineReport={pipelineReport}
+          pipelineBuckets={pipelineBuckets}
+          growthData={{
+            topCustomers,
+            topSellers,
+            needMatches,
+            summary: growthSummary,
+            aiAnalysis,
+          }}
+        />
       </div>
 
       <Tabs defaultValue="brief">
