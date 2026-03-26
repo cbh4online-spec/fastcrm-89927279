@@ -11955,6 +11955,56 @@ export type Database = {
           },
         ]
       }
+      command_center_sessions: {
+        Row: {
+          command: string
+          created_at: string
+          entity_id: string | null
+          entity_name: string | null
+          id: string
+          intent: string | null
+          response_confidence: number | null
+          response_json: Json | null
+          response_summary: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          command: string
+          created_at?: string
+          entity_id?: string | null
+          entity_name?: string | null
+          id?: string
+          intent?: string | null
+          response_confidence?: number | null
+          response_json?: Json | null
+          response_summary?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          command?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_name?: string | null
+          id?: string
+          intent?: string | null
+          response_confidence?: number | null
+          response_json?: Json | null
+          response_summary?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "command_center_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_conversations: {
         Row: {
           context: Json | null
