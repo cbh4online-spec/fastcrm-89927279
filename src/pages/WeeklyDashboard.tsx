@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
-import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
+import { PremiumDashboardHeader } from "@/components/weekly-dashboard/PremiumDashboardHeader";
+import { PremiumAISection } from "@/components/weekly-dashboard/PremiumAISection";
+import { ImmediateAttentionBanner } from "@/components/weekly-dashboard/ImmediateAttentionBanner";
+import { PremiumKPICards } from "@/components/weekly-dashboard/PremiumKPICards";
 import { RevenueTargetStrip } from "@/components/weekly-dashboard/RevenueTargetStrip";
-import { ExecutionRequirements } from "@/components/weekly-dashboard/ExecutionRequirements";
-import { ContextAwareQuickActions } from "@/components/weekly-dashboard/ContextAwareQuickActions";
+import { QuarterGoalsProjection } from "@/components/weekly-dashboard/QuarterGoalsProjection";
+import { TrendCompositionSection } from "@/components/weekly-dashboard/TrendCompositionSection";
 import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
 import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
+import { QuickAccessFooter } from "@/components/weekly-dashboard/QuickAccessFooter";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
 import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
@@ -20,12 +23,10 @@ import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
 import { AdaptiveDashboardGestor } from "@/components/adaptive-dashboard/AdaptiveDashboardGestor";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Crosshair } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { RefreshCw, Lightbulb } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 
 export default function WeeklyDashboard() {
-  const { t } = useTranslation("dashboard");
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
   const { todaysBrief } = useDailyBrief();
@@ -36,8 +37,6 @@ export default function WeeklyDashboard() {
   const [setupDismissed, setSetupDismissed] = useState(false);
 
   const briefMetrics = todaysBrief?.key_metrics;
-
-  // Show adaptive dashboard for gestor function (others fallback to war-room)
   const showAdaptive = !adaptiveLoading && !needsSetup && salesFunction !== null;
 
   return (
@@ -49,79 +48,58 @@ export default function WeeklyDashboard() {
       />
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Greeting Header */}
-        <CommandCenterHeader
+        {/* 1. Executive Header */}
+        <PremiumDashboardHeader
           revenueToday={briefMetrics?.revenue_today ?? null}
           hotLeadsCount={briefMetrics?.leads_today ?? 0}
           pendingDecisions={openDecisions.length}
         />
 
-        {/* AI Command Input */}
-        <AIQuestionBox />
+        {/* 2. AI Command Area */}
+        <PremiumAISection />
 
-        {/* Adaptive Dashboard Section */}
-        {showAdaptive && (
-          <AdaptiveDashboardGestor layoutConfig={layoutConfig} />
-        )}
+        {/* 3. Immediate Attention */}
+        <ImmediateAttentionBanner
+          metrics={data?.metrics || []}
+          isLoading={isLoading}
+        />
 
-        {/* WAR ROOM Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Crosshair className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">{t("warRoom")}</h2>
-              <p className="text-sm text-muted-foreground">
-                {t("warRoomSubtitle", { week: data?.weekLabel || "..." })}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <WarRoomBriefingExport
-              metrics={data?.metrics || []}
-              pipelineValue={data?.pipelineValue ?? 0}
-              weekLabel={weekLabel}
-              todaysBrief={todaysBrief}
-              strategy={strategy}
-              workspaceName={currentWorkspace?.name}
-              workspaceLogoUrl={currentWorkspace?.logo_url}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={generate}
-              disabled={strategyLoading}
-              className="gap-1.5"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
-              {t("refresh")}
-            </Button>
-          </div>
-        </div>
+        {/* 4. Premium KPI Cards */}
+        <PremiumKPICards
+          metrics={data?.metrics || []}
+          pipelineValue={data?.pipelineValue ?? 0}
+          isLoading={isLoading}
+        />
 
-        {/* SECTION 1 — Weekly Situation Engine */}
+        {/* 5. Revenue Target Strip (existing, proven) */}
         <RevenueTargetStrip
           metrics={data?.metrics || []}
           pipelineValue={data?.pipelineValue ?? 0}
           isLoading={isLoading}
         />
 
-        {/* SECTION 2 — Execution Requirements */}
-        <ExecutionRequirements
+        {/* 6. Quarter Goals with Projections */}
+        <QuarterGoalsProjection
           metrics={data?.metrics || []}
-          pipelineValue={data?.pipelineValue ?? 0}
           isLoading={isLoading}
         />
 
-        {/* SECTION 7 — Smart Quick Actions */}
-        <ContextAwareQuickActions />
+        {/* 7. Trends (placeholder) */}
+        <TrendCompositionSection />
 
-        {/* SECTIONS 3+4 — Priority Deals + Today Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <PriorityDealsTable />
-          <TodayActionPlan />
+        {/* 8. Opportunities & Actions */}
+        <div className="space-y-3" id="today-action-plan">
+          <div className="flex items-center gap-2 px-1">
+            <Lightbulb className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Oportunidades e Ações</h3>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PriorityDealsTable />
+            <TodayActionPlan />
+          </div>
         </div>
 
-        {/* SECTIONS 5+6 — Deals at Risk + Pipeline Health + AI Strategy */}
+        {/* 9. Risk + Health + AI Strategy */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <DealsAtRiskList />
           <PipelineHealthCard />
@@ -131,8 +109,39 @@ export default function WeeklyDashboard() {
           />
         </div>
 
-        {/* SECTION 8 — Executive Daily Brief (full width) */}
+        {/* 10. Executive Daily Brief */}
         <DailyBriefWidget />
+
+        {/* 11. Quick Access Footer */}
+        <QuickAccessFooter />
+
+        {/* Adaptive Dashboard (conditional) */}
+        {showAdaptive && (
+          <AdaptiveDashboardGestor layoutConfig={layoutConfig} />
+        )}
+
+        {/* Export + Refresh */}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <WarRoomBriefingExport
+            metrics={data?.metrics || []}
+            pipelineValue={data?.pipelineValue ?? 0}
+            weekLabel={weekLabel}
+            todaysBrief={todaysBrief}
+            strategy={strategy}
+            workspaceName={currentWorkspace?.name}
+            workspaceLogoUrl={currentWorkspace?.logo_url}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={generate}
+            disabled={strategyLoading}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
     </DashboardLayout>
   );
