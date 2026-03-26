@@ -116,6 +116,22 @@ function RFCMainPage() {
                 {status.label}
               </Badge>
             )}
+            <RFCExport
+              snapshot={latest}
+              target={target}
+              topDeals={topDeals}
+              riskSignals={riskSignals || []}
+              recommendations={topRecs}
+              workspaceName={currentWorkspace?.name}
+              pipelineBuckets={pipelineBuckets}
+              growthData={{
+                topCustomers,
+                topSellers,
+                needMatches,
+                summary: growthSummary,
+                aiAnalysis,
+              }}
+            />
             <Button variant="outline" size="sm" onClick={() => recompute.mutate()} disabled={recompute.isPending}>
               {recompute.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
