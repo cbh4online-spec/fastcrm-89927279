@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useCreateBookingPage, useUpdateBookingPage, type BookingPage } from '@/hooks/useBookingPages';
+import { useCreateBookingPage, useUpdateBookingPage, type BookingPage, type BookingCustomField } from '@/hooks/useBookingPages';
+import { Plus, X, GripVertical } from 'lucide-react';
 import type { Calendar } from '@/hooks/useCalendars';
 
 interface BookingPageModalProps {

@@ -3,6 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
 
+export interface BookingCustomField {
+  id: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'select';
+  required: boolean;
+  placeholder?: string;
+  options?: string[]; // for select type
+}
+
 export interface BookingPage {
   id: string;
   workspace_id: string;
@@ -21,6 +30,7 @@ export interface BookingPage {
   availability_id: string | null;
   require_phone: boolean;
   custom_message_label: string | null;
+  custom_fields: BookingCustomField[];
   created_at: string;
   updated_at: string;
 }
