@@ -8,10 +8,7 @@ import { RevenueTargetStrip } from "@/components/weekly-dashboard/RevenueTargetS
 import { QuarterGoalsProjection } from "@/components/weekly-dashboard/QuarterGoalsProjection";
 import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
 import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
-import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
 import { QuickAccessFooter } from "@/components/weekly-dashboard/QuickAccessFooter";
-import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
-import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -19,7 +16,6 @@ import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
-import { AdaptiveDashboardGestor } from "@/components/adaptive-dashboard/AdaptiveDashboardGestor";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Lightbulb } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
@@ -31,11 +27,10 @@ export default function WeeklyDashboard() {
   const weekLabel = data?.weekLabel || "...";
   const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
-  const { needsSetup, salesFunction, layoutConfig, isLoading: adaptiveLoading } = useAdaptiveDashboard();
+  const { needsSetup, isLoading: adaptiveLoading } = useAdaptiveDashboard();
   const [setupDismissed, setSetupDismissed] = useState(false);
 
   const briefMetrics = todaysBrief?.key_metrics;
-  const showAdaptive = !adaptiveLoading && !needsSetup && salesFunction !== null;
 
   return (
     <DashboardLayout>
