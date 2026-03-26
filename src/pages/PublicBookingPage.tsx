@@ -48,7 +48,7 @@ interface AvailabilityException {
 type Step = 'info' | 'schedule' | 'confirmed';
 
 export default function PublicBookingPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug } = useParams<{ slug: string; workspaceSlug?: string }>();
   const [page, setPage] = useState<BookingPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
