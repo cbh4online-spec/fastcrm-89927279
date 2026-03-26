@@ -94,6 +94,9 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
                   <Button variant="ghost" size="icon" onClick={() => window.open(getPublicUrl(page.slug), '_blank')} title="Abrir">
                     <ExternalLink className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setEditingPage(page); setShowModal(true); }} title="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => toggleActive(page)} title={page.is_active ? 'Desativar' : 'Ativar'}>
                     {page.is_active ? <ToggleRight className="h-4 w-4 text-green-500" /> : <ToggleLeft className="h-4 w-4" />}
                   </Button>
@@ -109,8 +112,9 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
 
       <BookingPageModal
         open={showModal}
-        onOpenChange={setShowModal}
+        onOpenChange={(v) => { setShowModal(v); if (!v) setEditingPage(null); }}
         calendars={calendars}
+        editingPage={editingPage}
       />
     </div>
   );
