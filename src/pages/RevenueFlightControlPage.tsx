@@ -23,6 +23,10 @@ import {
   formatCurrency,
   getTargetStatus,
 } from "@/hooks/useRevenueFlightControl";
+import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
+import { useGrowthInsights } from "@/hooks/useGrowthInsights";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { RFCExport } from "@/components/revenue-flight-control/RFCExport";
 
 function RFCMainPage() {
   const navigate = useNavigate();
@@ -32,6 +36,9 @@ function RFCMainPage() {
   const { data: riskSignals } = useDealRiskSignals();
   const { data: recommendations } = useRevenueRecommendations();
   const recompute = useRecomputeRevenueFlightControl();
+  const { buckets: pipelineBuckets } = usePipelineRiskAnalysis();
+  const { topCustomers, topSellers, needMatches, summary: growthSummary, aiAnalysis } = useGrowthInsights({ autoRefresh: false });
+  const { currentWorkspace } = useWorkspace();
 
   const latest = snapshots?.[0];
   const previous = snapshots?.[1];
@@ -109,6 +116,22 @@ function RFCMainPage() {
                 {status.label}
               </Badge>
             )}
+            <RFCExport
+              snapshot={latest}
+              target={target}
+              topDeals={topDeals}
+              riskSignals={riskSignals || []}
+              recommendations={topRecs}
+              workspaceName={currentWorkspace?.name}
+              pipelineBuckets={pipelineBuckets}
+              growthData={{
+                topCustomers,
+                topSellers,
+                needMatches,
+                summary: growthSummary,
+                aiAnalysis,
+              }}
+            />
             <Button variant="outline" size="sm" onClick={() => recompute.mutate()} disabled={recompute.isPending}>
               {recompute.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
