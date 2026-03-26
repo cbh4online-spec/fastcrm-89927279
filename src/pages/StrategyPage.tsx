@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
+import { ExecutiveBriefExport } from "@/components/strategy/ExecutiveBriefExport";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory, useBulkConvertAllDecisions } from "@/hooks/useStrategicDecisions";
 import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
