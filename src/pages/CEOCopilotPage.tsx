@@ -14,12 +14,16 @@ import { CEOCopilotExport } from "@/components/ceo-copilot/CEOCopilotExport";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { usePipelineRiskReport } from "@/hooks/usePipelineRiskReport";
+import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
+import { useGrowthInsights } from "@/hooks/useGrowthInsights";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function CEOCopilotPage() {
   const { todaysBrief } = useDailyBrief();
   const { strategy } = useWeeklyStrategy();
   const { report } = usePipelineRiskReport();
+  const { buckets } = usePipelineRiskAnalysis();
+  const { topCustomers, topSellers, needMatches, summary, aiAnalysis } = useGrowthInsights({ autoRefresh: false });
   const { currentWorkspace } = useWorkspace();
 
   return (
@@ -35,6 +39,14 @@ export default function CEOCopilotPage() {
           strategy={strategy}
           pipelineReport={report}
           workspaceName={currentWorkspace?.name}
+          pipelineBuckets={buckets}
+          growthData={{
+            topCustomers,
+            topSellers,
+            needMatches,
+            summary,
+            aiAnalysis,
+          }}
         />
       </div>
 
