@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { X, Sparkles, History, Save, Loader2 } from "lucide-react";
+import { X, Sparkles, Save, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { BusinessContext, BusinessContextUpdate } from "@/hooks/useBusinessContext";
 import { cn } from "@/lib/utils";
+import { TagInput } from "./TagInput";
 
 interface Props {
   blockKey: string;
@@ -13,14 +15,17 @@ interface Props {
   onSave: (updates: BusinessContextUpdate) => void;
 }
 
-const BLOCK_META: Record<string, { title: string; icon: string; hints: string[]; fields: { key: string; label: string; type: 'text' | 'textarea' | 'number' | 'array' }[] }> = {
+type FieldType = 'text' | 'textarea' | 'number' | 'tags' | 'offers' | 'scripts';
+
+const BLOCK_META: Record<string, { title: string; icon: string; hints: string[]; fields: { key: string; label: string; type: FieldType; placeholder?: string }[] }> = {
   strategy: {
     title: 'Estratégia',
     icon: '🎯',
     hints: ['Visão e missão da empresa', 'Posicionamento no mercado', 'Vantagem competitiva', 'Proposta de valor única'],
     fields: [
-      { key: 'business_description', label: 'Descrição do negócio', type: 'textarea' },
-      { key: 'business_model', label: 'Modelo de negócio', type: 'text' },
+      { key: 'business_description', label: 'Descrição do negócio', type: 'textarea', placeholder: 'O que faz a tua empresa, para quem e porquê...' },
+      { key: 'business_model', label: 'Modelo de negócio', type: 'text', placeholder: 'Ex: SaaS, Consultoria, E-commerce...' },
+      { key: 'active_strategies', label: 'Estratégias ativas', type: 'tags', placeholder: 'Ex: Outbound, Inbound, Parcerias...' },
     ],
   },
   offers: {
@@ -28,7 +33,8 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     icon: '💼',
     hints: ['Lista de produtos/serviços principais', 'Preço e modelo de pricing', 'Proposta de valor única', 'Para quem é destinado'],
     fields: [
-      { key: 'pricing_model', label: 'Modelo de pricing', type: 'text' },
+      { key: 'offers', label: 'Produtos / Serviços', type: 'offers' },
+      { key: 'pricing_model', label: 'Modelo de pricing', type: 'text', placeholder: 'Ex: Subscrição mensal, Por projeto, Freemium...' },
       { key: 'average_ticket', label: 'Ticket médio (€)', type: 'number' },
     ],
   },
@@ -38,6 +44,7 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     hints: ['Tamanho da equipa', 'Papéis e responsabilidades', 'Competências-chave'],
     fields: [
       { key: 'team_size', label: 'Tamanho da equipa', type: 'number' },
+      { key: 'team_roles', label: 'Papéis na equipa', type: 'tags', placeholder: 'Ex: CEO, SDR, Closer, CS Manager...' },
     ],
   },
   goals: {
@@ -56,9 +63,11 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     icon: '🎯',
     hints: ['Perfil do cliente ideal', 'Dores e motivações', 'Onde encontrá-lo', 'Decisor típico'],
     fields: [
-      { key: 'icp_description', label: 'Descrição do ICP', type: 'textarea' },
-      { key: 'icp_company_size', label: 'Tamanho da empresa', type: 'text' },
-      { key: 'icp_decision_maker', label: 'Decisor típico', type: 'text' },
+      { key: 'icp_description', label: 'Descrição do ICP', type: 'textarea', placeholder: 'Descreve o teu cliente ideal...' },
+      { key: 'icp_industries', label: 'Indústrias-alvo', type: 'tags', placeholder: 'Ex: Tecnologia, Saúde, Retalho...' },
+      { key: 'icp_company_size', label: 'Tamanho da empresa', type: 'text', placeholder: 'Ex: 10-50 colaboradores, PME...' },
+      { key: 'icp_decision_maker', label: 'Decisor típico', type: 'text', placeholder: 'Ex: CEO, Diretor Comercial, CTO...' },
+      { key: 'icp_pain_points', label: 'Dores principais', type: 'tags', placeholder: 'Ex: Falta de leads, Ciclo longo...' },
     ],
   },
   process: {
@@ -66,6 +75,7 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     icon: '⚙️',
     hints: ['Etapas do processo comercial', 'Ciclo de vendas em dias', 'SLA de follow-up'],
     fields: [
+      { key: 'sales_process_steps', label: 'Etapas do processo de vendas', type: 'tags', placeholder: 'Ex: Qualificação, Demo, Proposta, Fecho...' },
       { key: 'sales_cycle_days', label: 'Ciclo de vendas (dias)', type: 'number' },
       { key: 'follow_up_sla_hours', label: 'SLA follow-up (horas)', type: 'number' },
     ],
@@ -75,8 +85,8 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     icon: '💰',
     hints: ['Como gera receita', 'Estrutura de preços', 'Margens e custos'],
     fields: [
-      { key: 'business_model', label: 'Tipo de modelo', type: 'text' },
-      { key: 'pricing_model', label: 'Modelo de pricing', type: 'text' },
+      { key: 'business_model', label: 'Tipo de modelo', type: 'text', placeholder: 'Ex: SaaS, Marketplace, Serviços...' },
+      { key: 'pricing_model', label: 'Modelo de pricing', type: 'text', placeholder: 'Ex: Por utilizador, Por projeto...' },
       { key: 'average_ticket', label: 'Ticket médio (€)', type: 'number' },
     ],
   },
@@ -84,7 +94,10 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
     title: 'Scripts & Objeções',
     icon: '🛡️',
     hints: ['Objeções mais comuns', 'Scripts de vendas por etapa', 'Estratégias de resposta'],
-    fields: [],
+    fields: [
+      { key: 'objections_common', label: 'Objeções mais comuns', type: 'tags', placeholder: 'Ex: Preço alto, Já tenho solução...' },
+      { key: 'scripts', label: 'Scripts de vendas', type: 'scripts' },
+    ],
   },
 };
 
