@@ -271,6 +271,18 @@ export function AIQuestionBox() {
     setDrawerOpen(false);
   }, []);
 
+  // Listen for suggestion chip clicks from external components (e.g. PremiumAISection)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const query = (e as CustomEvent).detail;
+      if (typeof query === "string" && query.trim()) {
+        handleSubmit(query.trim());
+      }
+    };
+    window.addEventListener("ai-suggestion-click", handler);
+    return () => window.removeEventListener("ai-suggestion-click", handler);
+  }, [handleSubmit]);
+
   // Keyboard: Esc to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
