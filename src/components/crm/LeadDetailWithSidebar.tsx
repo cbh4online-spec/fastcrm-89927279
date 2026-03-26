@@ -31,7 +31,11 @@ import {
   Instagram,
   Globe,
   MessageSquare,
-  UserCircle
+  UserCircle,
+  Linkedin,
+  Facebook,
+  Twitter,
+  Youtube,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
@@ -362,6 +366,38 @@ export function LeadDetailWithSidebar() {
                 <Clock className="w-3.5 h-3.5 shrink-0" />
                 Atualizado há {getTimeAgo(new Date(lead.updated_at))}
               </p>
+              {/* Social quick-links */}
+              {(() => {
+                const l = lead as any;
+                const socials = [
+                  { url: l.linkedin_url, icon: Linkedin, label: 'LinkedIn', color: '#0A66C2' },
+                  { url: l.facebook_url, icon: Facebook, label: 'Facebook', color: '#1877F2' },
+                  { url: l.instagram_url, icon: Instagram, label: 'Instagram', color: '#E4405F' },
+                  { url: l.twitter_url, icon: Twitter, label: 'X (Twitter)', color: '#000000' },
+                  { url: l.youtube_url, icon: Youtube, label: 'YouTube', color: '#FF0000' },
+                ].filter(s => !!s.url);
+                if (!socials.length) return null;
+                return (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {socials.map(s => {
+                      const Icon = s.icon;
+                      const href = String(s.url).startsWith('http') ? String(s.url) : `https://${s.url}`;
+                      return (
+                        <TooltipProvider key={s.label}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-md p-1 hover:bg-muted/60 transition-colors">
+                                <Icon className="w-4 h-4" style={{ color: s.color }} />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">{s.label}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
