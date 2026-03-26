@@ -1,39 +1,29 @@
 
 
-## Diagnóstico: Porque o Lead Enricher não funciona
+## Pesquisa Ativa de Redes Sociais no Lead Enricher
 
-Identifiquei o problema raiz. A grande maioria dos teus leads (992 pendentes) são **empresas sem email nem telefone** — visível no ecrã com "Sem contacto". O motor de enriquecimento (`contact-enrich`) depende **completamente do email** para funcionar:
+### Problema
+Atualmente, as redes sociais (LinkedIn, Facebook, Instagram, Twitter) só são extraídas se estiverem presentes no conteúdo do website da empresa (via scraping + IA). Se o website não mencionar links sociais, o lead fica sem essa informação.
 
-1. Extrai domínio do email → busca empresa no CRM → define website
-2. Sem website, **salta toda a análise IA, Firecrawl, Google Places, NIF, Instagram**
-3. Resultado: retorna `{}` vazio → nada é atualizado no lead → fica eternamente "Pendente"
+### Solução
+Adicionar um **bloco de pesquisa ativa** após o passo 4 (AI enrichment) que usa **Firecrawl Search** para encontrar perfis de redes sociais quando a IA não os conseguiu extrair do website.
 
-Basicamente, um lead só com nome de empresa (ex: "ZPC - Serviços Informáticos") passa por toda a pipeline sem que nenhuma etapa se active.
+### Alterações
 
----
+**`supabase/functions/contact-enrich/index.ts`** — Novo passo 4b entre AI (passo 4) e Google Places (passo 5):
 
-## Plano de Correção
+1. Após o AI enrichment, verificar se `linkedinUrl`, `facebookUrl`, `instagramUrl` ou `twitterUrl` ficaram vazios
+2. Se o nome da empresa existe e faltam perfis sociais, fazer até 2 pesquisas Firecrawl:
+   - **Pesquisa 1**: `"<nome empresa>" LinkedIn OR Facebook OR Instagram site:linkedin.com OR site:facebook.com OR site:instagram.com`
+   - **Pesquisa 2** (se necessário): `"<nome empresa>" Twitter OR X site:twitter.com OR site:x.com`
+3. Parsear os URLs retornados e preencher os campos correspondentes com `confidence: "medium"` e `source: "Pesquisa web"`
+4. Validar URLs com regex para cada plataforma (ex: `linkedin.com/company/`, `facebook.com/`, `instagram.com/`, `twitter.com/` ou `x.com/`)
 
-### 1. Adicionar path de enriquecimento por nome de empresa
-Quando não há email nem phone, usar o **nome da empresa** como sinal primário:
-- Pesquisar website via **Firecrawl Search** (`firecrawl-search`) usando o nome da empresa
-- Se encontrar website, prosseguir com o fluxo normal de AI + scraping
-
-### 2. Alterações na Edge Function `contact-enrich`
-- **Novo bloco** entre os passos 1 e 4 (após extrações de email/phone): se `result.companyWebsite` ainda é `null` e existe `name` ou `company_name`, fazer Firecrawl search para descobrir o website
-- Usar o website encontrado para alimentar o resto do pipeline (AI, Google Places, NIF)
-- Garantir que o `company_name` do lead é usado como `result.company.value` quando não há email
-
-### 3. Bug fix: variável `workspace_id` inexistente
-- Linha 352: `logAIUsage` usa `workspace_id` (não existe), deveria ser `workspaceId` — causa erro silencioso na instrumentação
-
-### 4. Melhorar o `getEnrichmentStatus`
-- Incluir `website` e `industry` nos campos de enriquecimento para refletir melhor o que foi preenchido por empresa
-
-### Ficheiros a modificar
-- `supabase/functions/contact-enrich/index.ts` — novo path de busca por nome + bug fix
-- `src/hooks/useLeadEnrichment.ts` — passar `company_name` no body + melhorar status check
+**Condições de execução**:
+- Só executa se `webscrapingEnabled` estiver activo e `FIRECRAWL_API_KEY` disponível
+- Só pesquisa os perfis que faltam (não sobrescreve dados já encontrados pela IA)
+- Limitado a 3 resultados por pesquisa para poupar créditos
 
 ### Resultado esperado
-Leads com apenas nome de empresa passarão a ser enriquecidos: website descoberto via Firecrawl → AI extrai indústria, empregados, revenue, redes sociais → Google Places adiciona morada → NIF lookup adiciona dados fiscais. O status passará de "Pendente" para "Parcial" ou "Enriquecido".
+Leads passarão a ter perfis de redes sociais descobertos mesmo que o website da empresa não os mencione. O ICP Fit Score também beneficia, pois a presença social contribui +10 pontos.
 
