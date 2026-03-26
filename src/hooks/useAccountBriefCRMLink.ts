@@ -75,17 +75,21 @@ export function useAccountBriefCRMLink(accountId?: string, leadSearchTerm?: stri
   const linkLead = useMutation({
     mutationFn: async ({ leadId }: { leadId: string }) => {
       if (!workspaceId || !accountId) throw new Error("Dados insuficientes");
-      const { error } = await (supabase as any)
-        .from("account_brief_accounts")
-        .update({ lead_id: leadId })
-        .eq("id", accountId)
-        .eq("workspace_id", workspaceId);
+      const { data, error } = await supabase.functions.invoke("account-brief-link-lead", {
+        body: { accountId, workspaceId, leadId },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
-    onSuccess: () => {
-      toast.success("Lead associada com sucesso!");
+    onSuccess: (data) => {
+      const msg = data?.enrichedFields > 0
+        ? `Lead associada e enriquecida com ${data.enrichedFields} campos do briefing!`
+        : "Lead associada com sucesso!";
+      toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ["account-brief-account"] });
       queryClient.invalidateQueries({ queryKey: ["account-brief-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["crm-leads-search"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Erro ao associar lead"),
   });
