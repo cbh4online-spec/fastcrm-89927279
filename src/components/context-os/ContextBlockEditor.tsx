@@ -101,12 +101,77 @@ const BLOCK_META: Record<string, { title: string; icon: string; hints: string[];
   },
 };
 
+const EMPTY_OFFER = { name: '', price: '', type: '', description: '' };
+const EMPTY_SCRIPT = { name: '', content: '', stage: '' };
+
+function OffersEditor({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const items = value?.length ? value : [];
+  const add = () => onChange([...items, { ...EMPTY_OFFER }]);
+  const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
+  const update = (i: number, field: string, val: string) =>
+    onChange(items.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="rounded-lg border border-border p-3 space-y-2 relative">
+          <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(i)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+          <Input placeholder="Nome do produto/serviço" value={item.name || ''} onChange={(e) => update(i, 'name', e.target.value)} className="text-sm" />
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="Preço (ex: 500€/mês)" value={item.price || ''} onChange={(e) => update(i, 'price', e.target.value)} className="text-sm" />
+            <Input placeholder="Tipo (ex: SaaS, Serviço)" value={item.type || ''} onChange={(e) => update(i, 'type', e.target.value)} className="text-sm" />
+          </div>
+          <Textarea placeholder="Descrição curta..." value={item.description || ''} onChange={(e) => update(i, 'description', e.target.value)} rows={2} className="text-sm" />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={add} className="gap-1 text-xs w-full">
+        <Plus className="h-3 w-3" /> Adicionar produto/serviço
+      </Button>
+    </div>
+  );
+}
+
+function ScriptsEditor({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const items = value?.length ? value : [];
+  const add = () => onChange([...items, { ...EMPTY_SCRIPT }]);
+  const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
+  const update = (i: number, field: string, val: string) =>
+    onChange(items.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, i) => (
+        <div key={i} className="rounded-lg border border-border p-3 space-y-2 relative">
+          <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(i)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="Nome do script" value={item.name || ''} onChange={(e) => update(i, 'name', e.target.value)} className="text-sm" />
+            <Input placeholder="Etapa (ex: Qualificação)" value={item.stage || ''} onChange={(e) => update(i, 'stage', e.target.value)} className="text-sm" />
+          </div>
+          <Textarea placeholder="Conteúdo do script..." value={item.content || ''} onChange={(e) => update(i, 'content', e.target.value)} rows={3} className="text-sm" />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={add} className="gap-1 text-xs w-full">
+        <Plus className="h-3 w-3" /> Adicionar script
+      </Button>
+    </div>
+  );
+}
+
 export function ContextBlockEditor({ blockKey, data, onClose, onSave }: Props) {
   const meta = BLOCK_META[blockKey];
   const [localData, setLocalData] = useState<Record<string, any>>(() => {
     const result: Record<string, any> = {};
     meta?.fields.forEach(f => {
-      result[f.key] = (data as any)?.[f.key] ?? '';
+      const raw = (data as any)?.[f.key];
+      if (f.type === 'tags' || f.type === 'offers' || f.type === 'scripts') {
+        result[f.key] = Array.isArray(raw) ? raw : [];
+      } else {
+        result[f.key] = raw ?? '';
+      }
     });
     return result;
   });
@@ -121,6 +186,10 @@ export function ContextBlockEditor({ blockKey, data, onClose, onSave }: Props) {
       const val = localData[f.key];
       if (f.type === 'number') {
         (updates as any)[f.key] = val ? Number(val) : null;
+      } else if (f.type === 'tags') {
+        (updates as any)[f.key] = Array.isArray(val) && val.length > 0 ? val : null;
+      } else if (f.type === 'offers' || f.type === 'scripts') {
+        (updates as any)[f.key] = Array.isArray(val) && val.length > 0 ? val : [];
       } else {
         (updates as any)[f.key] = val || null;
       }
@@ -130,6 +199,53 @@ export function ContextBlockEditor({ blockKey, data, onClose, onSave }: Props) {
       setSaving(false);
       onClose();
     }, 500);
+  };
+
+  const renderField = (field: typeof meta.fields[number]) => {
+    switch (field.type) {
+      case 'textarea':
+        return (
+          <Textarea
+            value={localData[field.key] || ''}
+            onChange={(e) => setLocalData(prev => ({ ...prev, [field.key]: e.target.value }))}
+            rows={4}
+            className="text-sm"
+            placeholder={field.placeholder || `Descreve ${field.label.toLowerCase()}...`}
+          />
+        );
+      case 'tags':
+        return (
+          <TagInput
+            values={localData[field.key] || []}
+            onChange={(tags) => setLocalData(prev => ({ ...prev, [field.key]: tags }))}
+            placeholder={field.placeholder || `Adicionar ${field.label.toLowerCase()}...`}
+          />
+        );
+      case 'offers':
+        return (
+          <OffersEditor
+            value={localData[field.key] || []}
+            onChange={(v) => setLocalData(prev => ({ ...prev, [field.key]: v }))}
+          />
+        );
+      case 'scripts':
+        return (
+          <ScriptsEditor
+            value={localData[field.key] || []}
+            onChange={(v) => setLocalData(prev => ({ ...prev, [field.key]: v }))}
+          />
+        );
+      default:
+        return (
+          <input
+            type={field.type === 'number' ? 'number' : 'text'}
+            value={localData[field.key] || ''}
+            onChange={(e) => setLocalData(prev => ({ ...prev, [field.key]: e.target.value }))}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder={field.placeholder || field.label}
+          />
+        );
+    }
   };
 
   return (
@@ -185,23 +301,7 @@ export function ContextBlockEditor({ blockKey, data, onClose, onSave }: Props) {
               {meta.fields.map(field => (
                 <div key={field.key} className="space-y-1.5">
                   <label className="text-sm font-medium">{field.label}</label>
-                  {field.type === 'textarea' ? (
-                    <Textarea
-                      value={localData[field.key] || ''}
-                      onChange={(e) => setLocalData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      rows={4}
-                      className="text-sm"
-                      placeholder={`Descreve ${field.label.toLowerCase()}...`}
-                    />
-                  ) : (
-                    <input
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      value={localData[field.key] || ''}
-                      onChange={(e) => setLocalData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      placeholder={field.label}
-                    />
-                  )}
+                  {renderField(field)}
                 </div>
               ))}
             </div>
