@@ -65,7 +65,7 @@ export function useAccountBriefCRMLink(accountId?: string, leadSearchTerm?: stri
       return data;
     },
     onSuccess: (data) => {
-      toast.success(data.created ? "Empresa criada e associada!" : "Empresa associada!");
+      toast.success(data.created ? "Empresa criada e enriquecida com dados do briefing!" : "Empresa associada e enriquecida!");
       queryClient.invalidateQueries({ queryKey: ["account-brief-account"] });
       queryClient.invalidateQueries({ queryKey: ["account-brief-accounts"] });
     },
