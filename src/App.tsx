@@ -41,6 +41,7 @@ const FastClubApplyPage = lazy(() => import("@/pages/fastclub/FastClubApplyPage"
 const PublicCommunityPage = lazy(() => import("@/pages/community/PublicCommunityPage"));
 const PublicCommunityTopicPage = lazy(() => import("@/pages/community/PublicCommunityTopicPage"));
 const CommunityAuthPage = lazy(() => import("@/pages/community/CommunityAuthPage"));
+const PublicBookingPage = lazy(() => import("@/pages/PublicBookingPage"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -110,6 +111,9 @@ const App = () => (
                 
                 {/* FastClub Portal Routes */}
                 {FastClubPortalRoutes()}
+
+                {/* Public Booking */}
+                <Route path="/book/:slug" element={<PublicBookingPage />} />
 
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />

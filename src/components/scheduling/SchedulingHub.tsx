@@ -5,6 +5,7 @@ import {
   Clock, 
   Briefcase, 
   CalendarClock,
+  ExternalLink,
   Plus,
   PanelLeft,
   PanelLeftClose,
@@ -32,6 +33,9 @@ import { ServicesDashboard } from '@/components/services/ServicesDashboard';
 // Availability components
 import { AvailabilityDashboard } from '@/components/availability/AvailabilityDashboard';
 
+// Booking pages
+import { BookingPagesTab } from '@/components/scheduling/BookingPagesTab';
+
 // Common components
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
@@ -39,13 +43,14 @@ import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
 
 import { Loader2 } from 'lucide-react';
 
-type TabValue = 'calendar' | 'meetings' | 'services' | 'availability';
+type TabValue = 'calendar' | 'meetings' | 'services' | 'availability' | 'booking-links';
 
 const pageTabs = [
   { id: 'calendar', label: 'Agenda', icon: <CalendarDays className="h-4 w-4" /> },
   { id: 'meetings', label: 'Reuniões', icon: <Clock className="h-4 w-4" /> },
   { id: 'services', label: 'Serviços', icon: <Briefcase className="h-4 w-4" /> },
   { id: 'availability', label: 'Disponibilidade', icon: <CalendarClock className="h-4 w-4" /> },
+  { id: 'booking-links', label: 'Links', icon: <ExternalLink className="h-4 w-4" /> },
 ];
 
 const sortOptions = [
@@ -393,6 +398,12 @@ export function SchedulingHub() {
           {activeTab === 'availability' && (
             <div className="h-full overflow-auto">
               <AvailabilityDashboard />
+            </div>
+          )}
+
+          {activeTab === 'booking-links' && (
+            <div className="h-full overflow-auto">
+              <BookingPagesTab calendars={calendars} />
             </div>
           )}
         </div>
