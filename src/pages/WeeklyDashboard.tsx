@@ -9,6 +9,7 @@ import { RevenueTargetStrip } from "@/components/weekly-dashboard/RevenueTargetS
 import { QuarterGoalsProjection } from "@/components/weekly-dashboard/QuarterGoalsProjection";
 import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
 import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
+import { WeeklyHistoryCharts } from "@/components/weekly-dashboard/WeeklyHistoryCharts";
 import { QuickAccessFooter } from "@/components/weekly-dashboard/QuickAccessFooter";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
@@ -115,6 +116,9 @@ export default function WeeklyDashboard() {
             <TodayActionPlan />
           </div>
         </div>
+
+        {/* 7. Evolução Semanal */}
+        <WeeklyHistoryCharts />
 
         {/* 8. Metas do Trimestre */}
         <QuarterGoalsProjection
