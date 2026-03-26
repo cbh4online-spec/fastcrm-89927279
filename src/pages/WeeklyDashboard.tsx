@@ -70,13 +70,34 @@ export default function WeeklyDashboard() {
         />
 
         {/* 5. War Room — Situação Semanal */}
-        <RevenueTargetStrip
-          metrics={data?.metrics || []}
-          pipelineValue={data?.pipelineValue ?? 0}
-          isLoading={isLoading}
-        />
-
-        {/* 7. Oportunidades e Ações (merged section) */}
+        <div className="space-y-0">
+          <RevenueTargetStrip
+            metrics={data?.metrics || []}
+            pipelineValue={data?.pipelineValue ?? 0}
+            isLoading={isLoading}
+          />
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <WarRoomBriefingExport
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              weekLabel={weekLabel}
+              todaysBrief={todaysBrief}
+              strategy={strategy}
+              workspaceName={currentWorkspace?.name}
+              workspaceLogoUrl={currentWorkspace?.logo_url}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={generate}
+              disabled={strategyLoading}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
+        </div>
         <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
@@ -98,28 +119,8 @@ export default function WeeklyDashboard() {
         {/* 11. Acesso Rápido */}
         <QuickAccessFooter />
 
-        {/* Export + Refresh */}
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <WarRoomBriefingExport
-            metrics={data?.metrics || []}
-            pipelineValue={data?.pipelineValue ?? 0}
-            weekLabel={weekLabel}
-            todaysBrief={todaysBrief}
-            strategy={strategy}
-            workspaceName={currentWorkspace?.name}
-            workspaceLogoUrl={currentWorkspace?.logo_url}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={generate}
-            disabled={strategyLoading}
-            className="gap-1.5"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
-        </div>
+
+
       </div>
     </DashboardLayout>
   );
