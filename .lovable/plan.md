@@ -1,98 +1,63 @@
 
 
-# Split CRMRoutes into modular sub-files
+# Implement Command Center Quick Actions: "Gerar PDF da Proposta" and "Agendar Review com Cliente"
 
-## What changes
+## Current State
 
-The monolithic `CRMRoutes()` function in `App.tsx` (lines 153-318, ~165 lines, ~110 routes) will be split into 4 domain files under `src/routes/crm/`, each exporting a function that returns `<Route>` fragments. `App.tsx` will import and compose them.
+The `CommandQuickActions` component renders action buttons but all non-navigate actions show placeholder toasts ("Funcionalidade em breve"). The AI orchestrator already returns `entity_id` and `entity_name` in the `CommandResponse`, but these are not passed to the action handlers.
 
-## New files
+## Changes
 
-### 1. `src/routes/crm/PublicSeoRoutes.tsx`
-Routes for SEO content pages and legal pages (lines 162-185):
-- `/keywords`, `/templates`, `/tools`, `/categories`, `/compare`, `/blog`, `/guides`, `/glossary`
-- `/privacy`, `/terms`, `/gdpr`, `/cookies`
-- Imports come from `@/modules/growth-seo`
+### 1. Pass entity context to CommandQuickActions
 
-### 2. `src/routes/crm/DashboardCoreRoutes.tsx`
-Core dashboard, auth, settings, objects, system routes (lines 187-226):
-- `/`, `/fastcrm`, `/login`, `/signup`, `/auth`, `/forgot-password`, `/onboarding`
-- `/dashboard`, `/dashboard/command-center`, `/dashboard/intelligence`, `/dashboard/context-os`, `/dashboard/revenue`, `/dashboard/tasks`, `/dashboard/alerts`, `/dashboard/impact-map`
-- `/dashboard/system/*`, `/dashboard/revenue-radar`, `/dashboard/kernel`
-- `/objects/*`, `/settings/*`, `/platform/data`
-- Lazy imports for all corresponding page components
+**File: `src/pages/CommandCenterV2Page.tsx`**
 
-### 3. `src/routes/crm/RevenueCommerceRoutes.tsx`
-Marketplace, credit, strategy, misc dashboard tools (lines 269-288):
-- `/dashboard/marketplace`, `/dashboard/admin/marketplace`
-- `/dashboard/seo`, `/dashboard/instagram-looter`, `/dashboard/credit`
-- `/dashboard/strategy`, `/dashboard/daily-brief`, `/dashboard/vision`
-- `/dashboard/zapier`, `/dashboard/background-jobs`
-- `/command-center`, `/command-center/:conversationId`
-- `/dashboard/fastclub` redirects, `/mobile/*`
+Pass `entity_id` and `entity_name` from `currentResponse` to `CommandQuickActions`:
 
-### 4. `src/routes/crm/VerticalOpsRoutes.tsx`
-Public-facing pages, verticals, catch-all (lines 293-309):
-- `/p/:workspaceSlug/:pageSlug`, `/product/:slug`, `/p/:slug`
-- `/super-admin`, vertical landing pages (`/clinicas`, `/imobiliarias`, etc.)
-- `/event-rsvp`, `/invite/:token`, `/vision/duo/accept/:token`
-- `/:slug` catch-all, `*` not-found
+```tsx
+<CommandQuickActions
+  actions={currentResponse.result.suggested_actions}
+  entityId={currentResponse.entity_id}
+  entityName={currentResponse.entity_name}
+/>
+```
 
-## Changes to App.tsx
+### 2. Implement action handlers in CommandQuickActions
 
-1. Remove all lazy `const` declarations that move into sub-modules (lines 60-134)
-2. Remove the inline `CRMRoutes()` function (lines 153-318)
-3. Add imports:
-   ```ts
-   import { PublicSeoRoutes } from "@/routes/crm/PublicSeoRoutes";
-   import { DashboardCoreRoutes } from "@/routes/crm/DashboardCoreRoutes";
-   import { RevenueCommerceRoutes } from "@/routes/crm/RevenueCommerceRoutes";
-   import { VerticalOpsRoutes } from "@/routes/crm/VerticalOpsRoutes";
-   ```
-4. New `CRMRoutes()` function (~30 lines): just the provider wrapper + `<Routes>` composing all sub-modules:
-   ```tsx
-   function CRMRoutes() {
-     return (
-       <AuthProvider>
-         <WorkspaceProvider>
-           <ActivityProfileProvider>
-             <WorkspaceInstanceProvider>
-               <SubscriptionProvider>
-                 <Suspense fallback={<PageLoader />}>
-                   <Routes>
-                     {PublicSeoRoutes()}
-                     {DashboardCoreRoutes()}
-                     {SalesCRMRoutes()}
-                     {AIRoutes()}
-                     <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
-                     {ReportsRoutes()}
-                     {AccountBriefRoutes()}
-                     {RevenueFlightControlRoutes()}
-                     {PerformanceRoutes()}
-                     {ProcurementRoutes()}
-                     {SecurityRoutes()}
-                     {StudentJourneyRoutes()}
-                     {CheckoutAdminRoutes()}
-                     {C2CDashboardRoutes()}
-                     {StoreAdminRoutes()}
-                     {B2BAdminRoutes()}
-                     {RevenueCommerceRoutes()}
-                     {VerticalOpsRoutes()}
-                   </Routes>
-                 </Suspense>
-                 <GDPRBanner />
-               </SubscriptionProvider>
-             </WorkspaceInstanceProvider>
-           </ActivityProfileProvider>
-         </WorkspaceProvider>
-       </AuthProvider>
-     );
-   }
-   ```
+**File: `src/components/command-center-v2/CommandQuickActions.tsx`**
 
-## Result
-- `App.tsx` drops from ~400 lines to ~150 lines
-- Each sub-module is self-contained with its own lazy imports
-- Zero URL changes — all routes remain identical
-- Pattern matches existing route modules (functions returning `<>` fragments)
+Add `entityId` and `entityName` props. Implement:
+
+- **`generate_report`**: If `target` contains a proposal-related path or entity context suggests a proposal, navigate to `/dashboard/proposals` (or the specific proposal if `entityId` is available). If the target is more generic, navigate to the target path. This lets the user open the existing PDF export dialog from the proposal detail page.
+
+- **`schedule_meeting`**: Use the existing `useTasks` `useCreateTask` mutation to insert a task with:
+  - `title`: action label or "Review com Cliente - {entityName}"
+  - `related_type`: "opportunity" (when entityId references an opportunity)
+  - `related_id`: entityId
+  - `due_date`: tomorrow
+  - `priority`: "high"
+  - Show a success toast with a link to `/dashboard/tasks`
+
+- **`create_task`**: Similar to schedule_meeting but with `priority: "medium"` and no preset title override.
+
+- **`send_email`**: Navigate to `/dashboard/inbox` (or compose view if available).
+
+### 3. Import task creation hook
+
+Use the existing `useCreateTask` from `src/hooks/useTasks.ts` to insert tasks directly from the Command Center without a modal.
+
+## Technical Details
+
+- `CommandQuickActions` gains two optional props: `entityId?: string`, `entityName?: string`
+- `useCreateTask` is imported from existing `useTasks.ts` — no new DB tables or migrations needed
+- The `generate_report` action navigates to proposal detail where the existing `ProposalDocumentPreviewDialog` handles PDF generation via html2canvas + jsPDF
+- For `schedule_meeting`, the task is created immediately with a toast confirmation, avoiding a complex meeting scheduling UI
+
+## Files Modified
+- `src/components/command-center-v2/CommandQuickActions.tsx` — implement action handlers
+- `src/pages/CommandCenterV2Page.tsx` — pass entity context props
+
+## Files Not Changed
+- No edge function changes needed — the orchestrator already returns entity context
+- No database migrations — uses existing `tasks` table
 
