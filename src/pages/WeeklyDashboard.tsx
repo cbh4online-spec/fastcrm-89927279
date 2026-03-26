@@ -86,14 +86,6 @@ export default function WeeklyDashboard() {
             <PriorityDealsTable />
             <TodayActionPlan />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <DealsAtRiskList />
-            <PipelineHealthCard />
-            <AIStrategyPanel
-              strategy={strategy}
-              isLoading={strategyLoading}
-            />
-          </div>
         </div>
 
         {/* 8. Metas do Trimestre */}
