@@ -57,6 +57,26 @@ export function useCreateGoal() {
   });
 }
 
+export function useUpdateGoal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<PerformanceGoal> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("performance_goals")
+        .update(updates as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["performance-goals"] });
+    },
+  });
+}
+
 export function useDeleteGoal() {
   const queryClient = useQueryClient();
 

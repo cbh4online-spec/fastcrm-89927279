@@ -9,46 +9,62 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePerformanceGoals, useCreateGoal, useDeleteGoal } from "@/hooks/usePerformanceGoals";
-import { Target, Plus, Trash2 } from "lucide-react";
+import { usePerformanceGoals, useCreateGoal, useUpdateGoal, useDeleteGoal, PerformanceGoal } from "@/hooks/usePerformanceGoals";
+import { Target, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-const SCOPE_TYPES = [
-  { value: "company", label: "Empresa" },
-  { value: "team", label: "Equipa" },
-  { value: "individual", label: "Individual" },
-];
-
-const PERIOD_TYPES = [
-  { value: "daily", label: "Diário" },
-  { value: "weekly", label: "Semanal" },
-  { value: "monthly", label: "Mensal" },
-  { value: "quarterly", label: "Trimestral" },
-];
+const DEFAULT_FORM = {
+  goal_name: "",
+  goal_type: "company",
+  target_value: 0,
+  period_type: "monthly",
+  period_start: new Date().toISOString().split("T")[0],
+  period_end: "",
+  scope_type: "company",
+};
 
 export default function PerformanceGoalsPage() {
   const { data: goals, isLoading } = usePerformanceGoals();
   const createGoal = useCreateGoal();
+  const updateGoal = useUpdateGoal();
   const deleteGoal = useDeleteGoal();
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    goal_name: "",
-    goal_type: "company",
-    target_value: 0,
-    period_type: "monthly",
-    period_start: new Date().toISOString().split("T")[0],
-    period_end: "",
-    scope_type: "company",
-  });
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<PerformanceGoal | null>(null);
+  const [form, setForm] = useState(DEFAULT_FORM);
 
-  const handleCreate = async () => {
+  const openCreate = () => {
+    setEditingGoal(null);
+    setForm(DEFAULT_FORM);
+    setShowDialog(true);
+  };
+
+  const openEdit = (goal: PerformanceGoal) => {
+    setEditingGoal(goal);
+    setForm({
+      goal_name: goal.goal_name,
+      goal_type: goal.goal_type,
+      target_value: goal.target_value,
+      period_type: goal.period_type,
+      period_start: goal.period_start,
+      period_end: goal.period_end,
+      scope_type: goal.scope_type,
+    });
+    setShowDialog(true);
+  };
+
+  const handleSubmit = async () => {
     if (!form.goal_name || !form.period_end) {
       toast.error("Preenche nome e data fim");
       return;
     }
-    await createGoal.mutateAsync(form as any);
-    toast.success("Meta criada!");
-    setShowCreate(false);
+    if (editingGoal) {
+      await updateGoal.mutateAsync({ id: editingGoal.id, ...form } as any);
+      toast.success("Meta atualizada!");
+    } else {
+      await createGoal.mutateAsync(form as any);
+      toast.success("Meta criada!");
+    }
+    setShowDialog(false);
   };
 
   const handleDelete = async (id: string) => {
