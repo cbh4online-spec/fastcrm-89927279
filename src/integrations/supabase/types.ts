@@ -6079,6 +6079,7 @@ export type Database = {
           buffer_minutes: number
           calendar_id: string
           created_at: string
+          custom_fields: Json | null
           custom_message_label: string | null
           description: string | null
           duration_minutes: number
@@ -6100,6 +6101,7 @@ export type Database = {
           buffer_minutes?: number
           calendar_id: string
           created_at?: string
+          custom_fields?: Json | null
           custom_message_label?: string | null
           description?: string | null
           duration_minutes?: number
@@ -6121,6 +6123,7 @@ export type Database = {
           buffer_minutes?: number
           calendar_id?: string
           created_at?: string
+          custom_fields?: Json | null
           custom_message_label?: string | null
           description?: string | null
           duration_minutes?: number
