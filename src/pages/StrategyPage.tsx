@@ -652,6 +652,9 @@ function DecisionHistorySection() {
 export default function StrategyPage() {
   const { briefs, latestBrief, isLoading, isGenerating, generateBrief } = useStrategicBriefs();
   const { currentWorkspace } = useWorkspace();
+  const { report: pipelineReport } = usePipelineRiskReport();
+  const { buckets: pipelineBuckets } = usePipelineRiskAnalysis();
+  const { topCustomers, topSellers, needMatches, summary: growthSummary, aiAnalysis } = useGrowthInsights({ autoRefresh: false });
 
   const createTask = useCreateTask();
   const [creatingTaskIndex, setCreatingTaskIndex] = useState<number | null>(null);
