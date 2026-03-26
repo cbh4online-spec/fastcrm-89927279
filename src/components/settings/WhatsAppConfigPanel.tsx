@@ -165,10 +165,16 @@ export function WhatsAppConfigPanel() {
             </AlertDialogContent>
           </AlertDialog>
         ) : (
-          <Button onClick={handleConnect} disabled={isConnecting} size="sm" className="gap-1.5">
-            {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-            Conectar via Meta
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleConnect} disabled={isConnecting} size="sm" variant="outline" className="gap-1.5">
+              {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+              Conectar via Meta
+            </Button>
+            <Button onClick={() => setShowQRDialog(true)} size="sm" className="gap-1.5">
+              <QrCode className="h-3.5 w-3.5" />
+              Conectar via QR
+            </Button>
+          </div>
         )}
       </div>
 
