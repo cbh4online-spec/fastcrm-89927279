@@ -133,15 +133,49 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
     }
   }
 
-  // If match found, store reference in booking_lead metadata
+  // If no existing match, create a new lead in the CRM
+  if (!existingMatch) {
+    // Get a workspace member to use as created_by
+    const { data: member } = await supabase
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", page.workspace_id)
+      .limit(1)
+      .single();
+
+    const { data: newLead, error: newLeadErr } = await supabase
+      .from("leads")
+      .insert({
+        workspace_id: page.workspace_id,
+        name: guest_name.trim().slice(0, 100),
+        email: trimmedEmail,
+        phone: guest_phone?.trim().slice(0, 30) || null,
+        source: "public_booking",
+        status: "new",
+        created_by: member?.user_id || null,
+        notes: guest_message?.trim().slice(0, 1000) || null,
+        tags: ["booking"],
+      })
+      .select("id, name")
+      .single();
+
+    if (newLeadErr) {
+      console.error("CRM lead creation failed (non-blocking):", newLeadErr);
+    } else if (newLead) {
+      existingMatch = { type: "lead", name: newLead.name, id: newLead.id };
+      console.log(`[BOOKING] New CRM lead created: ${newLead.id}`);
+    }
+  }
+
+  // Store CRM reference in booking_lead metadata
   if (existingMatch) {
     await supabase
       .from("booking_leads")
       .update({
         metadata: {
-          existing_match_type: existingMatch.type,
-          existing_match_id: existingMatch.id,
-          existing_match_name: existingMatch.name,
+          crm_record_type: existingMatch.type,
+          crm_record_id: existingMatch.id,
+          crm_record_name: existingMatch.name,
         },
       })
       .eq("id", lead.id);
