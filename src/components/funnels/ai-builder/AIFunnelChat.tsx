@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function AIFunnelChat({ onRecommendation }: Props) {
+  const { canAfford, consumeCredits } = useCreditWallet();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -59,6 +61,14 @@ export function AIFunnelChat({ onRecommendation }: Props) {
     setIsLoading(true);
 
     try {
+      // Consume credits
+      if (!canAfford("funnel_ai_create")) {
+        toast.error("Créditos insuficientes para criar funil com IA");
+        setIsLoading(false);
+        return;
+      }
+      await consumeCredits.mutateAsync({ actionKey: "funnel_ai_create", referenceType: "funnel" });
+
       // Build conversation history for AI
       const conversationMessages = [...messages.filter(m => m.id !== "welcome"), userMsg]
         .map(m => ({ role: m.role, content: m.content }));

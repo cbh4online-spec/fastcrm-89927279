@@ -58,7 +58,24 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
     mutationFn: async (lead: Lead) => {
       if (!currentWorkspace) throw new Error("No workspace");
 
-      // Emit ENRICH_REQUESTED before API call
+      // Consume credit before enrichment
+      const { data: creditResult, error: creditError } = await (supabase as any).rpc("consume_funnel_credits", {
+        p_workspace_id: currentWorkspace.id,
+        p_user_id: (await supabase.auth.getUser()).data.user?.id,
+        p_action_key: "lead_enrich_single",
+        p_idempotency_key: `enrich-${lead.id}-${Date.now()}`,
+        p_reference_type: "lead",
+        p_reference_id: lead.id,
+        p_metadata: {},
+      });
+      if (creditError) {
+        console.warn("[ENRICHER] Credit check failed, proceeding anyway:", creditError.message);
+      } else {
+        const cr = (creditResult as any)?.[0];
+        if (cr && !cr.success) {
+          throw new Error(cr.message || "Créditos insuficientes para enriquecer");
+        }
+      }
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'LEAD.ENRICH_REQUESTED',

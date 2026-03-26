@@ -131,6 +131,24 @@ export function useAskFastCRM() {
       setPendingAction(null);
 
       try {
+        // Consume credit for AI copilot
+        const userId = user?.id;
+        if (userId && currentWorkspace?.id) {
+          const { data: creditResult } = await (supabase as any).rpc("consume_funnel_credits", {
+            p_workspace_id: currentWorkspace.id,
+            p_user_id: userId,
+            p_action_key: "ai_copilot_chat",
+            p_idempotency_key: null,
+            p_reference_type: null,
+            p_reference_id: null,
+            p_metadata: {},
+          });
+          const cr = (creditResult as any)?.[0];
+          if (cr && !cr.success) {
+            throw new Error(cr.message || "Créditos insuficientes");
+          }
+        }
+
         // Fetch lightweight CRM context
         const crmSummary = await fetchCrmSummary();
 
