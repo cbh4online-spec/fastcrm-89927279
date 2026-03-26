@@ -45935,8 +45935,11 @@ export type Database = {
           access_token: string | null
           auto_create_leads: boolean | null
           connected_by: string | null
+          connection_type: string | null
           created_at: string
           display_phone_number: string | null
+          evolution_instance_id: string | null
+          evolution_instance_name: string | null
           id: string
           is_active: boolean
           phone_number_id: string | null
@@ -45949,8 +45952,11 @@ export type Database = {
           access_token?: string | null
           auto_create_leads?: boolean | null
           connected_by?: string | null
+          connection_type?: string | null
           created_at?: string
           display_phone_number?: string | null
+          evolution_instance_id?: string | null
+          evolution_instance_name?: string | null
           id?: string
           is_active?: boolean
           phone_number_id?: string | null
@@ -45963,8 +45969,11 @@ export type Database = {
           access_token?: string | null
           auto_create_leads?: boolean | null
           connected_by?: string | null
+          connection_type?: string | null
           created_at?: string
           display_phone_number?: string | null
+          evolution_instance_id?: string | null
+          evolution_instance_name?: string | null
           id?: string
           is_active?: boolean
           phone_number_id?: string | null
