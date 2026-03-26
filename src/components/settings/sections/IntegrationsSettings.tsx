@@ -19,9 +19,11 @@ import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
 import { WorkspaceGHLSettings } from "./WorkspaceGHLSettings";
 import { WorkspaceVideoSettings } from "./WorkspaceVideoSettings";
+import { WhatsAppConfigPanel } from "@/components/settings/WhatsAppConfigPanel";
 import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useWorkspaceVideoConfig } from "@/hooks/useWorkspaceVideoConfig";
+import { useWhatsAppConnection } from "@/hooks/useWhatsAppConnection";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const integrations = [
