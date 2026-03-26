@@ -93,6 +93,7 @@ export function CommandInput({ onSubmit, onSlashCommand, isLoading }: Props) {
         <Slash className="h-4 w-4 text-muted-foreground shrink-0" />
         <input
           ref={inputRef}
+          data-command-input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKey}
