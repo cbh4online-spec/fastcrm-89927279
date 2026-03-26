@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { CommandHero } from "@/components/command-center-v2/CommandHero";
 import { CommandResponseCard } from "@/components/command-center-v2/CommandResponseCard";
 import { CommandQuickActions } from "@/components/command-center-v2/CommandQuickActions";
+import { CommandFollowUpChips } from "@/components/command-center-v2/CommandFollowUpChips";
+import { CommandLiveDashboard } from "@/components/command-center-v2/CommandLiveDashboard";
 import { CommandSuggestionGrid } from "@/components/command-center-v2/CommandSuggestionGrid";
 import { useCommandOrchestrator } from "@/hooks/useCommandOrchestrator";
 import { Skeleton } from "@/components/ui/skeleton";
