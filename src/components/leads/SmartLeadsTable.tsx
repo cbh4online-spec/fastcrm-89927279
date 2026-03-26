@@ -329,10 +329,10 @@ export function SmartLeadsTable() {
   const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartLeadsFilters]);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full">
+    <div className="flex flex-col lg:flex-row h-full min-h-0">
       <FilterSidebar filterGroups={filterGroups} activeFilterId={activeFilterId} onFilterSelect={handleFilterSelect} onClearFilter={() => setActiveFilterId(undefined)} isOpen={showFilterSidebar} onClose={() => setShowFilterSidebar(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <PageHeader title={t("leads")} count={totalLeads} tabs={pageTabs} activeTab={activeTab} onTabChange={setActiveTab}
           actions={[
             { label: t("import"), icon: <Upload className="h-4 w-4" />, onClick: () => setActiveTab("import"), variant: "outline" },
@@ -443,7 +443,7 @@ export function SmartLeadsTable() {
               </div>
             )}
 
-            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 max-h-[calc(100vh-320px)] overflow-y-auto">
+            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 min-h-0 overflow-y-auto">
               <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
                 <TableHeader>
                   <TableRow>
