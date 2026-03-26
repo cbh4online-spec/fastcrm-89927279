@@ -58,7 +58,7 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
           <span className="text-sm font-semibold text-primary">Context OS</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold">A memória estratégica do teu negócio</h1>
-        
+        <ContextOSExport data={data} blocks={blocks} globalScore={globalScore} workspaceName={currentWorkspace?.name} />
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Context Score global:</span>
