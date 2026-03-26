@@ -467,6 +467,12 @@ Extract ALL available information. Return ONLY a JSON object (no markdown):
               if (parsed.twitterUrl) {
                 result.twitterUrl = { value: parsed.twitterUrl, confidence: "medium", source: "Website" };
               }
+              if (parsed.contactEmail) {
+                result.contactEmail = { value: parsed.contactEmail, confidence: "medium", source: "Website" };
+              }
+              if (parsed.contactPhone) {
+                result.contactPhone = { value: parsed.contactPhone, confidence: "medium", source: "Website" };
+              }
             } catch (e) {
               console.log("Failed to parse AI response:", e);
             }
