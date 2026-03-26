@@ -56,12 +56,15 @@ const GENERIC_FOLLOW_UPS = [
 ];
 
 export function CommandFollowUpChips({ response, onSelect, isLoading }: CommandFollowUpChipsProps) {
-  const followUps = FOLLOW_UP_MAP[response.intent] || GENERIC_FOLLOW_UPS;
+  // Prioritize AI-generated follow-ups from the response
+  const dynamicFollowUps = response.result?.follow_up_suggestions;
+  const staticFollowUps = FOLLOW_UP_MAP[response.intent] || GENERIC_FOLLOW_UPS;
+  const followUps = (dynamicFollowUps && dynamicFollowUps.length > 0) ? dynamicFollowUps : staticFollowUps;
 
-  // If entity context exists, enhance commands with entity reference
+  // If entity context exists and using static, enhance commands with entity reference
   const enhancedFollowUps = followUps.map((f) => ({
     ...f,
-    command: response.entity_name
+    command: (!dynamicFollowUps?.length && response.entity_name)
       ? `${f.command} — ${response.entity_name}`
       : f.command,
   }));
