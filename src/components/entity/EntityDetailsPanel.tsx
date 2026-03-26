@@ -232,7 +232,7 @@ function DatesSection({ entity }: { entity: Entity }) {
 
 export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetailsPanelProps) {
   return (
-    <div className="w-80 border-l bg-muted/20 flex-shrink-0 overflow-hidden flex flex-col">
+    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-muted/20 flex-shrink-0 overflow-hidden flex flex-col max-h-[50vh] lg:max-h-none">
       <div className="border-b px-4 py-2.5 flex items-center gap-4">
         <span className="text-sm font-medium text-foreground">Detalhes</span>
       </div>

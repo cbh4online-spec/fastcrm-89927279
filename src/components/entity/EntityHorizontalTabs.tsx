@@ -84,8 +84,8 @@ export function EntityHorizontalTabs({
   const getCount = (id: MenuSection): number | undefined => counts[id as keyof typeof counts];
 
   return (
-    <div className="border-b bg-background px-6">
-      <div className="flex items-center gap-1 -mb-px overflow-x-auto">
+    <div className="border-b bg-background px-2 sm:px-6">
+      <div className="flex items-center gap-0.5 sm:gap-1 -mb-px overflow-x-auto scrollbar-none">
         {visibleTabs.map((tab) => {
           const count = getCount(tab.id);
           const isActive = activeSection === tab.id;
@@ -95,7 +95,7 @@ export function EntityHorizontalTabs({
               key={tab.id}
               onClick={() => onSectionChange(tab.id)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
                 isActive
                   ? 'border-primary text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
