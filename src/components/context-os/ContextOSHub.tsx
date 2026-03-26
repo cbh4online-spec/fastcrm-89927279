@@ -42,6 +42,7 @@ function staleDaysLabel(block: BlockStatus) {
 export function ContextOSHub({ data }: ContextOSHubProps) {
   const { blocks, globalScore, emptyCount, totalBlocks } = useContextScore(data);
   const { upsert } = useBusinessContext();
+  const { currentWorkspace } = useWorkspace();
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
 
   return (
