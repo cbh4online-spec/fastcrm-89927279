@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <WorkspaceStatusGuard>
       <div className="min-h-screen flex bg-background">
         {useAdaptive ? (
-          <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
         ) : shellV2 ? (
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         ) : (

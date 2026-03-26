@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
+import { useSidebarAlerts } from "@/hooks/useSidebarAlerts";
+import { useExtensionManifests } from "@/hooks/useExtensionManifests";
 import {
   getAdaptiveSections,
   getQuickActions,
@@ -17,6 +19,7 @@ import type { AgeGroup } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Settings, Flame, Medal, TrendingUp,
+  AlertTriangle, Puzzle,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -30,6 +33,7 @@ import { Progress } from "@/components/ui/progress";
 interface AdaptiveSidebarProps {
   open: boolean;
   onClose: () => void;
+  onOpen?: () => void;
 }
 
 // ── Age-based style config ──
@@ -61,19 +65,17 @@ const ageStyles: Record<AgeGroup, AgeStyle> = {
     textSize: "text-lg",
     itemHeight: "py-3",
     animationsEnabled: false,
-    collapsibleGroups: false, // always expanded
+    collapsibleGroups: false,
   },
 };
 
 // ── Badge Component ──
 function SidebarBadge({ count, animate }: { count: number; animate?: boolean }) {
   if (count <= 0) return null;
-
   const color =
     count > 5 ? "bg-destructive text-destructive-foreground" :
     count >= 3 ? "bg-yellow-500 text-white" :
     "bg-blue-500 text-white";
-
   return (
     <span
       className={cn(
@@ -81,6 +83,7 @@ function SidebarBadge({ count, animate }: { count: number; animate?: boolean }) 
         color,
         animate && count > 5 && "animate-pulse"
       )}
+      aria-label={`${count > 99 ? "mais de 99" : count} notificações`}
     >
       {count > 99 ? "99+" : count}
     </span>
@@ -94,7 +97,6 @@ function QuotaProgressBar({ current, target }: { current: number; target: number
     pct >= 90 ? "bg-emerald-500" :
     pct >= 71 ? "bg-yellow-500" :
     "bg-destructive";
-
   return (
     <div className="px-4 py-3 border-b border-border">
       <div className="flex items-center justify-between mb-1.5">
@@ -140,18 +142,43 @@ function GamificationStrip() {
   );
 }
 
-export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
+// ── Critical Alerts Section ──
+function CriticalAlertsSection({ alerts }: { alerts: { id: string; message: string; severity: "danger" | "warning" }[] }) {
+  if (alerts.length === 0) return null;
+  return (
+    <div className="px-4 py-3 border-b border-border bg-destructive/5">
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle className="w-4 h-4 text-destructive" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-destructive">Requer Atenção</span>
+      </div>
+      <ul className="space-y-1">
+        {alerts.map((a) => (
+          <li key={a.id} className="text-xs text-muted-foreground flex items-start gap-1.5">
+            <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full shrink-0", a.severity === "danger" ? "bg-destructive" : "bg-yellow-500")} />
+            <span>{a.message}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { collapsed, toggleCollapse } = useSidebarCollapse();
-  const { ageGroup, salesFunction, layoutConfig } = useAdaptiveDashboard();
+  const { ageGroup, salesFunction } = useAdaptiveDashboard();
   const badges = useSidebarBadges();
+  const criticalAlerts = useSidebarAlerts();
+  const { extensionSettingsPages } = useExtensionManifests();
   const touchStartX = useRef(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const style = ageStyles[ageGroup];
-  const isCollapsed = collapsed && !open;
+  // Seniors: never collapse
+  const isSenior = ageGroup === "senior";
+  const isCollapsed = !isSenior && collapsed && !open;
 
   const sections = useMemo(() => {
     const age = ageGroup === "young" ? 25 : ageGroup === "senior" ? 55 : 40;
@@ -183,7 +210,7 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
 
   const isGroupOpen = useCallback(
     (label: string, section: AdaptiveNavSection) => {
-      if (!style.collapsibleGroups) return true; // seniors: always open
+      if (!style.collapsibleGroups) return true;
       if (openGroups[label] !== undefined) return openGroups[label];
       return sectionHasActive(section);
     },
@@ -194,19 +221,20 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
     setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
   }, []);
 
-  // Badge mock lookup
+  // Real badge lookup
   const getBadge = useCallback(
     (badgeKey?: string): number => {
       if (!badgeKey) return 0;
       if (badgeKey === "new_leads") return badges.pendingLeads;
-      if (badgeKey === "pending_decisions") return 3; // mock
-      if (badgeKey === "activities_today") return 5; // mock
+      if (badgeKey === "pending_decisions") return badges.pendingDecisions;
+      if (badgeKey === "activities_today") return badges.activitiesToday;
+      if (badgeKey === "overdue_followups") return badges.overdueFollowups;
       return 0;
     },
     [badges]
   );
 
-  // Touch swipe handling
+  // Touch swipe handling for closing
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       touchStartX.current = e.touches[0].clientX;
@@ -228,26 +256,42 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
 
   // Swipe from left edge to open
   useEffect(() => {
-    const handleEdgeSwipe = (e: TouchEvent) => {
+    let edgeStartX = 0;
+    const handleEdgeStart = (e: TouchEvent) => {
       if (e.touches[0].clientX < 20 && !open) {
-        touchStartX.current = e.touches[0].clientX;
+        edgeStartX = e.touches[0].clientX;
+      } else {
+        edgeStartX = -1;
       }
     };
     const handleEdgeEnd = (e: TouchEvent) => {
-      if (touchStartX.current < 20) {
-        const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-        if (deltaX > 50) {
-          // We can't "open" from here without a callback, but the hamburger handles it
+      if (edgeStartX >= 0 && edgeStartX < 20) {
+        const deltaX = e.changedTouches[0].clientX - edgeStartX;
+        if (deltaX > 50 && onOpen) {
+          onOpen();
         }
       }
     };
-    document.addEventListener("touchstart", handleEdgeSwipe, { passive: true });
+    document.addEventListener("touchstart", handleEdgeStart, { passive: true });
     document.addEventListener("touchend", handleEdgeEnd, { passive: true });
     return () => {
-      document.removeEventListener("touchstart", handleEdgeSwipe);
+      document.removeEventListener("touchstart", handleEdgeStart);
       document.removeEventListener("touchend", handleEdgeEnd);
     };
-  }, [open]);
+  }, [open, onOpen]);
+
+  // Keyboard shortcut: Cmd/Ctrl+B to toggle collapse
+  useEffect(() => {
+    if (isSenior) return; // no collapse for seniors
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+        e.preventDefault();
+        toggleCollapse();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [toggleCollapse, isSenior]);
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Utilizador";
   const userInitials = userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -272,11 +316,13 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
             <Link
               to={item.href}
               onClick={onClose}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center justify-center p-2 rounded-lg transition-colors",
+                "relative flex items-center justify-center p-2 rounded-lg transition-colors",
                 active
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               )}
             >
               <Icon className={cn(style.iconSize, active && "text-primary")} />
@@ -297,6 +343,7 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
         key={item.href}
         to={item.href}
         onClick={onClose}
+        aria-current={active ? "page" : undefined}
         className={cn(
           "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
           style.itemHeight,
@@ -317,13 +364,11 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
 
   // ── Render Section ──
   const renderSection = (section: AdaptiveNavSection, idx: number) => {
-    const Icon = section.icon;
     const hasActive = sectionHasActive(section);
 
-    // Non-collapsible (senior or non-collapsible sections)
     if (!section.collapsible || !style.collapsibleGroups) {
       return (
-        <div key={section.label} className={cn(idx > 0 && "mt-2")}>
+        <div key={section.label} className={cn(idx > 0 && "mt-2")} role="group" aria-label={section.label}>
           {!isCollapsed && (
             <div className="flex items-center gap-2 px-3 pt-3 pb-1">
               <span className={cn(
@@ -342,7 +387,6 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
       );
     }
 
-    // Collapsible group
     const groupOpen = isGroupOpen(section.label, section);
     return (
       <Collapsible
@@ -352,8 +396,8 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
         className={cn(idx > 0 && "mt-1")}
       >
         {!isCollapsed ? (
-          <>
-            <CollapsibleTrigger className="w-full">
+          <div role="group" aria-label={section.label}>
+            <CollapsibleTrigger className="w-full" aria-expanded={groupOpen}>
               <div
                 className={cn(
                   "flex items-center gap-3 px-3 rounded-lg font-medium cursor-pointer transition-colors",
@@ -364,7 +408,7 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <Icon className={cn(style.iconSize, "shrink-0", hasActive && "text-primary")} />
+                <section.icon className={cn(style.iconSize, "shrink-0", hasActive && "text-primary")} />
                 <span className="flex-1 text-left truncate">{section.label}</span>
                 <ChevronRight
                   className={cn(
@@ -377,7 +421,7 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
             <CollapsibleContent className="space-y-0.5 mt-0.5">
               {section.items.map((item) => renderLink(item, true))}
             </CollapsibleContent>
-          </>
+          </div>
         ) : (
           <>
             {idx > 0 && <div className="my-2 mx-1 border-t border-border/50" />}
@@ -387,6 +431,9 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
       </Collapsible>
     );
   };
+
+  // Marketplace modules section
+  const hasExtensions = extensionSettingsPages.length > 0;
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -401,11 +448,17 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
 
         <aside
           ref={sidebarRef}
+          role="navigation"
+          aria-label="Menu principal"
           className={cn(
             "fixed inset-y-0 left-0 z-50 transform transition-all duration-200 ease-out lg:translate-x-0",
             "bg-background border-r border-border",
-            isCollapsed ? "w-16" : "w-[280px] md:w-[240px] lg:w-[280px]",
-            open ? "translate-x-0 w-[280px]" : "-translate-x-full"
+            isSenior
+              ? "w-[280px]"
+              : isCollapsed ? "w-16" : "w-[280px] md:w-[240px] lg:w-[280px]",
+            open ? "translate-x-0 w-[280px]" : "-translate-x-full",
+            // Seniors: no animations
+            isSenior && "[&_*]:!transition-none"
           )}
         >
           <div className="flex flex-col h-full">
@@ -451,6 +504,7 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
                   <button
                     onClick={onClose}
                     className="lg:hidden p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                    aria-label="Fechar menu"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -465,6 +519,9 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
             {salesFunction === "vendedor" && !isCollapsed && (
               <QuotaProgressBar current={45000} target={65000} />
             )}
+
+            {/* ── Critical Alerts ── */}
+            {!isCollapsed && <CriticalAlertsSection alerts={criticalAlerts} />}
 
             {/* ── Quick Actions (< 40 anos) ── */}
             {ageGroup !== "senior" && !isCollapsed && (
@@ -487,22 +544,54 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
             <nav className={cn(
               "flex-1 overflow-y-auto",
               isCollapsed ? "px-1 py-2" : "px-3 py-2"
-            )}>
+            )} aria-label="Navegação principal">
               <div className="space-y-0.5">
                 {sections.map((section, idx) => renderSection(section, idx))}
+
+                {/* ── Marketplace Modules ── */}
+                {hasExtensions && !isCollapsed && (
+                  <div className="mt-3" role="group" aria-label="Extensões">
+                    <div className="flex items-center gap-2 px-3 pt-3 pb-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                        Extensões
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {extensionSettingsPages.map((ext) => (
+                        <Link
+                          key={ext.key}
+                          to={`/settings/${ext.key}`}
+                          onClick={onClose}
+                          className={cn(
+                            "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
+                            style.itemHeight,
+                            style.textSize,
+                            location.pathname.includes(ext.key)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                          )}
+                          aria-current={location.pathname.includes(ext.key) ? "page" : undefined}
+                        >
+                          <Puzzle className={cn(style.iconSize, "shrink-0")} />
+                          <span className="flex-1 truncate">{ext.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </nav>
 
             {/* ── Footer: Settings + Collapse ── */}
             <div className={cn("border-t border-border", isCollapsed ? "px-1 py-2" : "px-3 py-2")}>
-              {/* Settings link */}
               {isCollapsed ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
                       to="/settings"
                       onClick={onClose}
-                      className="flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className="flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <Settings className={style.iconSize} />
                     </Link>
@@ -516,7 +605,8 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 rounded-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
                     style.itemHeight,
-                    style.textSize
+                    style.textSize,
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   )}
                 >
                   <Settings className={cn(style.iconSize, "shrink-0")} />
@@ -524,34 +614,39 @@ export function AdaptiveSidebar({ open, onClose }: AdaptiveSidebarProps) {
                 </Link>
               )}
 
-              {/* Collapse toggle — desktop only */}
-              <div className="hidden lg:block mt-1">
-                {isCollapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={toggleCollapse}
-                        className="flex items-center justify-center w-full p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                      >
-                        <PanelLeftOpen className="w-4 h-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Expandir</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <button
-                    onClick={toggleCollapse}
-                    className={cn(
-                      "flex items-center gap-3 w-full px-3 rounded-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-                      style.itemHeight,
-                      style.textSize
-                    )}
-                  >
-                    <PanelLeftClose className={cn(style.iconSize, "shrink-0")} />
-                    <span>Recolher</span>
-                  </button>
-                )}
-              </div>
+              {/* Collapse toggle — desktop only, NOT for seniors */}
+              {!isSenior && (
+                <div className="hidden lg:block mt-1">
+                  {isCollapsed ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={toggleCollapse}
+                          className="flex items-center justify-center w-full p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label="Expandir menu"
+                        >
+                          <PanelLeftOpen className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Expandir</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <button
+                      onClick={toggleCollapse}
+                      className={cn(
+                        "flex items-center gap-3 w-full px-3 rounded-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+                        style.itemHeight,
+                        style.textSize,
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                      )}
+                      aria-label="Recolher menu"
+                    >
+                      <PanelLeftClose className={cn(style.iconSize, "shrink-0")} />
+                      <span>Recolher</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </aside>
