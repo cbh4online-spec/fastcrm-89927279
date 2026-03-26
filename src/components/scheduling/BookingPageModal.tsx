@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useCreateBookingPage } from '@/hooks/useBookingPages';
+import { useCreateBookingPage, useUpdateBookingPage, type BookingPage } from '@/hooks/useBookingPages';
 import type { Calendar } from '@/hooks/useCalendars';
 
 interface BookingPageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   calendars: Calendar[];
+  editingPage?: BookingPage | null;
 }
 
 const DAY_LABELS = [
@@ -32,8 +33,11 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => {
   return { value: `${h}:00`, label: `${h}:00` };
 });
 
-export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageModalProps) {
+export function BookingPageModal({ open, onOpenChange, calendars, editingPage }: BookingPageModalProps) {
   const createPage = useCreateBookingPage();
+  const updatePage = useUpdateBookingPage();
+  const isEditing = !!editingPage;
+
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [calendarId, setCalendarId] = useState('');
@@ -48,6 +52,27 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
   const [requirePhone, setRequirePhone] = useState(false);
   const [customMessageLabel, setCustomMessageLabel] = useState('');
 
+  // Populate form when editing
+  useEffect(() => {
+    if (editingPage) {
+      setTitle(editingPage.title);
+      setSlug(editingPage.slug);
+      setCalendarId(editingPage.calendar_id);
+      setDescription(editingPage.description || '');
+      setDuration(String(editingPage.duration_minutes));
+      setBuffer(String(editingPage.buffer_minutes));
+      setMaxDays(String(editingPage.max_advance_days));
+      setBrandColor(editingPage.brand_color);
+      setWorkingDays(editingPage.working_days);
+      setStartHour(editingPage.start_hour);
+      setEndHour(editingPage.end_hour);
+      setRequirePhone(editingPage.require_phone);
+      setCustomMessageLabel(editingPage.custom_message_label || '');
+    } else {
+      resetForm();
+    }
+  }, [editingPage]);
+
   const generateSlug = (text: string) => {
     return text
       .toLowerCase()
@@ -59,7 +84,7 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (!slug || slug === generateSlug(title)) {
+    if (!isEditing && (!slug || slug === generateSlug(title))) {
       setSlug(generateSlug(value));
     }
   };
@@ -72,7 +97,7 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
 
   const handleSubmit = async () => {
     if (!title || !slug || !calendarId || workingDays.length === 0) return;
-    await createPage.mutateAsync({
+    const payload = {
       title,
       slug,
       calendar_id: calendarId,
@@ -80,15 +105,20 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
       duration_minutes: parseInt(duration),
       buffer_minutes: parseInt(buffer),
       max_advance_days: parseInt(maxDays),
-      is_active: true,
+      is_active: editingPage?.is_active ?? true,
       brand_color: brandColor,
       working_days: workingDays,
       start_hour: startHour,
       end_hour: endHour,
-      availability_id: null,
+      availability_id: editingPage?.availability_id ?? null,
       require_phone: requirePhone,
       custom_message_label: customMessageLabel || null,
-    });
+    };
+    if (isEditing) {
+      await updatePage.mutateAsync({ id: editingPage!.id, ...payload });
+    } else {
+      await createPage.mutateAsync(payload);
+    }
     onOpenChange(false);
     resetForm();
   };
@@ -100,11 +130,13 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
     setRequirePhone(false); setCustomMessageLabel('');
   };
 
+  const isPending = createPage.isPending || updatePage.isPending;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Link de Agendamento</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Link de Agendamento' : 'Novo Link de Agendamento'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-5">
           {/* Basic info */}
@@ -250,8 +282,8 @@ export function BookingPageModal({ open, onOpenChange, calendars }: BookingPageM
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!title || !slug || !calendarId || workingDays.length === 0 || createPage.isPending}>
-            {createPage.isPending ? 'A criar...' : 'Criar Link'}
+          <Button onClick={handleSubmit} disabled={!title || !slug || !calendarId || workingDays.length === 0 || isPending}>
+            {isPending ? (isEditing ? 'A guardar...' : 'A criar...') : (isEditing ? 'Guardar Alterações' : 'Criar Link')}
           </Button>
         </DialogFooter>
       </DialogContent>
