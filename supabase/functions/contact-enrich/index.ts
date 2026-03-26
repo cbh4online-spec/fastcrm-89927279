@@ -41,6 +41,9 @@ interface EnrichmentResult {
   legalNature?: EnrichmentField;
   capitalSocial?: EnrichmentField;
   foundingDate?: EnrichmentField;
+  // Contact info extracted from website
+  contactEmail?: EnrichmentField;
+  contactPhone?: EnrichmentField;
   // Instagram metrics
   instagramFollowers?: { value: number; confidence: "high" | "medium" | "low"; source: string };
   instagramBio?: EnrichmentField;
