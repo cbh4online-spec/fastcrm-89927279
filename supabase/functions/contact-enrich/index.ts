@@ -41,6 +41,9 @@ interface EnrichmentResult {
   legalNature?: EnrichmentField;
   capitalSocial?: EnrichmentField;
   foundingDate?: EnrichmentField;
+  // Contact info extracted from website
+  contactEmail?: EnrichmentField;
+  contactPhone?: EnrichmentField;
   // Instagram metrics
   instagramFollowers?: { value: number; confidence: "high" | "medium" | "low"; source: string };
   instagramBio?: EnrichmentField;
@@ -390,6 +393,8 @@ Extract ALL available information. Return ONLY a JSON object (no markdown):
   "annualRevenue": "string or null (e.g. '< 100k€', '100k-500k€', '500k-2M€', '2M-10M€', '> 10M€')",
   "revenueConfidence": "low" | "medium" | "high",
   "about": "string or null (brief company description, max 200 chars)",
+  "contactEmail": "string or null (main contact email found on website, e.g. info@, geral@, contacto@)",
+  "contactPhone": "string or null (main phone number found on website, include country code if visible e.g. +351 xxx xxx xxx)",
   "linkedinUrl": "string or null (company LinkedIn URL if found on website)",
   "facebookUrl": "string or null",
   "instagramUrl": "string or null",
@@ -461,6 +466,12 @@ Extract ALL available information. Return ONLY a JSON object (no markdown):
               }
               if (parsed.twitterUrl) {
                 result.twitterUrl = { value: parsed.twitterUrl, confidence: "medium", source: "Website" };
+              }
+              if (parsed.contactEmail) {
+                result.contactEmail = { value: parsed.contactEmail, confidence: "medium", source: "Website" };
+              }
+              if (parsed.contactPhone) {
+                result.contactPhone = { value: parsed.contactPhone, confidence: "medium", source: "Website" };
               }
             } catch (e) {
               console.log("Failed to parse AI response:", e);
