@@ -373,7 +373,7 @@ const App = () => (
                 <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
                 
                 {/* FastClub Portal Routes */}
-                <FastClubPortalRoute />
+                {FastClubPortalRoutes()}
 
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
