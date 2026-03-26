@@ -38,6 +38,9 @@ import {
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { ExecutiveBriefExport } from "@/components/strategy/ExecutiveBriefExport";
+import { usePipelineRiskReport } from "@/hooks/usePipelineRiskReport";
+import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
+import { useGrowthInsights } from "@/hooks/useGrowthInsights";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory, useBulkConvertAllDecisions } from "@/hooks/useStrategicDecisions";
 import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
@@ -649,6 +652,9 @@ function DecisionHistorySection() {
 export default function StrategyPage() {
   const { briefs, latestBrief, isLoading, isGenerating, generateBrief } = useStrategicBriefs();
   const { currentWorkspace } = useWorkspace();
+  const { report: pipelineReport } = usePipelineRiskReport();
+  const { buckets: pipelineBuckets } = usePipelineRiskAnalysis();
+  const { topCustomers, topSellers, needMatches, summary: growthSummary, aiAnalysis } = useGrowthInsights({ autoRefresh: false });
 
   const createTask = useCreateTask();
   const [creatingTaskIndex, setCreatingTaskIndex] = useState<number | null>(null);
@@ -711,7 +717,19 @@ export default function StrategyPage() {
             },
           ]}
         />
-        <ExecutiveBriefExport brief={latestBrief} workspaceName={currentWorkspace?.name} />
+        <ExecutiveBriefExport
+          brief={latestBrief}
+          workspaceName={currentWorkspace?.name}
+          pipelineReport={pipelineReport}
+          pipelineBuckets={pipelineBuckets}
+          growthData={{
+            topCustomers,
+            topSellers,
+            needMatches,
+            summary: growthSummary,
+            aiAnalysis,
+          }}
+        />
       </div>
 
       <Tabs defaultValue="brief">
