@@ -36,8 +36,9 @@ export function WhatsAppConfigPanel() {
     if (!currentWorkspace?.id) return;
     setIsConnecting(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke("whatsapp-auth-url", {
-        body: { workspace_id: currentWorkspace.id },
+        body: { workspaceId: currentWorkspace.id, userId: user?.id },
       });
       if (error) throw error;
       if (data?.url) {
