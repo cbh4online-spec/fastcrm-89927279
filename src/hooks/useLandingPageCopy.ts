@@ -29,6 +29,25 @@ export function useLandingPageCopy() {
     setError(null);
 
     try {
+      // Consume credit for AI copy generation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Try to get workspace from context - fire and forget credit consumption
+        const { data: creditResult } = await (supabase as any).rpc("consume_funnel_credits", {
+          p_workspace_id: context.workspaceId || null,
+          p_user_id: user.id,
+          p_action_key: "funnel_ai_copy",
+          p_idempotency_key: null,
+          p_reference_type: "landing_page",
+          p_reference_id: null,
+          p_metadata: {},
+        });
+        const cr = (creditResult as any)?.[0];
+        if (cr && !cr.success) {
+          throw new Error(cr.message || "Créditos insuficientes");
+        }
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke("landing-page-copy", {
         body: { type, context },
       });
