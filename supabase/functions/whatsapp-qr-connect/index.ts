@@ -29,6 +29,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate that EVOLUTION_API_URL is an HTTP(S) URL, not a database connection string
+    if (!EVOLUTION_API_URL.startsWith("http://") && !EVOLUTION_API_URL.startsWith("https://")) {
+      console.error(`EVOLUTION_API_URL has invalid scheme. Value starts with: "${EVOLUTION_API_URL.substring(0, 15)}...". Expected https://`);
+      return new Response(
+        JSON.stringify({ error: "EVOLUTION_API_URL is misconfigured — it must be an HTTP(S) URL (e.g. https://your-evolution-api.example.com), not a database connection string." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
     const baseUrl = EVOLUTION_API_URL.replace(/\/$/, "");
 
