@@ -1,31 +1,39 @@
 
 
-## Adicionar assunto e nome do destinatário ao inserir link de pagamento
+## Substituir todos os mailto: pelo compositor interno de email
 
-### O que muda
+### Problema
+O botão de email nas páginas de detalhe de Lead, Contacto e no painel EntityDetailsPanel ainda usa `mailto:` que abre o cliente externo. Deve abrir o `ComposeEmailDialog` interno, tal como já foi feito nas oportunidades.
 
-Quando se insere um link de pagamento no email, além do texto contextual já existente, o sistema vai:
+### Ficheiros a alterar
 
-1. **Dirigir-se ao destinatário pelo nome** no texto introdutório (ex: "Caro Daniel,")
-2. **Sugerir automaticamente o assunto** do email (ex: "Link de Pagamento - Desenvolvimento há medida")
-
-### Alterações
-
-| Ficheiro | Detalhe |
+| Ficheiro | Alteração |
 |---|---|
-| `InsertPaymentLinkDialog.tsx` | Receber `recipientName` e `onSubjectSuggestion` como props. Pre-preencher o texto com saudação personalizada. Adicionar campo editável para assunto sugerido. |
-| `ComposeEmailDialog.tsx` | Passar `recipient.name` e callback para atualizar o assunto ao `InsertPaymentLinkDialog` |
+| `src/components/crm/LeadDetail.tsx` | Substituir `<a href="mailto:...">` (linha 211) por botão que abre `ComposeEmailDialog` com dados do lead |
+| `src/components/contacts/ContactDetail.tsx` | Substituir os 2 botões `mailto:` (linhas 423 e 962) por botão que abre `ComposeEmailDialog` com dados do contacto |
+| `src/components/entity/EntityDetailsPanel.tsx` | No fallback sem `onEmailClick` (linha 145), usar o mesmo padrão interno em vez de `mailto:` |
+| `src/components/contacts/ContactInsightsPanel.tsx` | Substituir `window.open(mailto:...)` (linha 129) pelo compositor interno |
 
-### Resultado
+### Padrão de implementação
 
+Cada componente recebe um `useState` para controlar o dialog e renderiza o `ComposeEmailDialog` com:
+- `recipient`: `{ email, name, entityType: 'lead'|'contact', entityId }`
+- `defaultSubject`: vazio (ou nome do lead/contacto)
+
+Exemplo para `LeadDetail.tsx`:
 ```text
-Assunto sugerido: "Link de Pagamento - Desenvolvimento há medida"
+// Substituir <a href="mailto:..."> por:
+<Button onClick={() => setShowEmailDialog(true)}>
+  <Mail /> 
+</Button>
 
-Texto no email:
-  "Caro Daniel,
-   Segue o link para efetuar o pagamento de Desenvolvimento há medida:"
-  [Card de pagamento]
+// Adicionar no final:
+<ComposeEmailDialog
+  open={showEmailDialog}
+  onOpenChange={setShowEmailDialog}
+  recipient={{ email: lead.email, name: lead.name, entityType: 'lead', entityId: lead.id }}
+/>
 ```
 
-O utilizador pode editar tanto o assunto como o texto antes de inserir. O assunto só é aplicado se o campo estiver vazio (não sobrescreve assuntos já preenchidos).
+O mesmo padrão aplica-se aos outros ficheiros. Nenhuma alteração de base de dados necessária.
 
