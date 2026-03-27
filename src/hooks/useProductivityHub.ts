@@ -9,8 +9,14 @@ export interface UnifiedItem {
   message: string | null;
   severity: 'critical' | 'warning' | 'info' | 'success';
   status: string;
+  priority?: string | null;
   created_at: string;
   due_at?: string | null;
+  assigned_to?: string | null;
+  assigned_name?: string | null;
+  related_type?: string | null;
+  related_id?: string | null;
+  related_name?: string | null;
   metadata?: Record<string, unknown>;
   source_table: string;
   actionUrl?: string;
@@ -67,14 +73,67 @@ export function useProductivityHub() {
         source_table: 'admin_notifications',
       }));
 
-      // 3. Pending tasks
+      // 3. Pending tasks — with assigned user name
       const { data: tasks } = await supabase
         .from('tasks')
-        .select('id, title, description, status, priority, due_at, created_at')
+        .select('id, title, description, status, priority, due_at, created_at, assigned_to, related_id, related_type')
         .eq('workspace_id', wsId)
         .in('status', ['pending', 'in_progress', 'open'])
         .order('due_at', { ascending: true, nullsFirst: false })
-        .limit(20);
+        .limit(30);
+
+      // Resolve assigned user names
+      const assigneeIds = [...new Set(tasks?.map(t => t.assigned_to).filter(Boolean) as string[])];
+      let profileMap: Record<string, string> = {};
+      if (assigneeIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', assigneeIds);
+        profiles?.forEach(p => { profileMap[p.user_id] = p.full_name || 'Sem nome'; });
+      }
+
+      // Resolve related entity names (contacts, companies, leads)
+      const relatedGroups: Record<string, string[]> = {};
+      tasks?.forEach(t => {
+        if (t.related_id && t.related_type) {
+          if (!relatedGroups[t.related_type]) relatedGroups[t.related_type] = [];
+          if (!relatedGroups[t.related_type].includes(t.related_id)) {
+            relatedGroups[t.related_type].push(t.related_id);
+          }
+        }
+      });
+
+      const relatedNameMap: Record<string, string> = {};
+      const tableNameField: Record<string, { table: string; field: string }> = {
+        contact: { table: 'contacts', field: 'name' },
+        company: { table: 'companies', field: 'name' },
+        lead: { table: 'leads', field: 'name' },
+        opportunity: { table: 'opportunities', field: 'title' },
+      };
+
+      await Promise.all(
+        Object.entries(relatedGroups).map(async ([type, ids]) => {
+          const cfg = tableNameField[type];
+          if (!cfg || ids.length === 0) return;
+          const { data } = await supabase
+            .from(cfg.table as any)
+            .select(`id, ${cfg.field}`)
+            .in('id', ids);
+          data?.forEach((d: any) => { relatedNameMap[d.id] = d[cfg.field] || type; });
+        })
+      );
+
+      // Build action URL for tasks based on related_type
+      const taskActionUrl = (t: { related_type: string; related_id: string }) => {
+        const routes: Record<string, string> = {
+          contact: `/dashboard/contacts/${t.related_id}`,
+          company: `/dashboard/companies/${t.related_id}`,
+          lead: `/dashboard/leads/${t.related_id}`,
+          opportunity: `/dashboard/pipeline`,
+        };
+        return routes[t.related_type] || `/dashboard/tasks`;
+      };
 
       tasks?.forEach(t => {
         const isOverdue = t.due_at && new Date(t.due_at) < new Date();
@@ -85,9 +144,16 @@ export function useProductivityHub() {
           message: t.description,
           severity: isOverdue ? 'critical' : t.priority === 'high' ? 'warning' : 'info',
           status: t.status,
+          priority: t.priority,
           created_at: t.created_at,
           due_at: t.due_at,
+          assigned_to: t.assigned_to,
+          assigned_name: t.assigned_to ? profileMap[t.assigned_to] || null : null,
+          related_type: t.related_type,
+          related_id: t.related_id,
+          related_name: t.related_id ? relatedNameMap[t.related_id] || null : null,
           source_table: 'tasks',
+          actionUrl: t.related_id && t.related_type ? taskActionUrl(t as any) : '/dashboard/tasks',
         });
       });
 
