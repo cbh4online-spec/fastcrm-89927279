@@ -555,6 +555,24 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               )}
             </div>
 
+            {/* ── Preview Mode Banner ── */}
+            {isOverridden && !isCollapsed && (
+              <div className="px-4 py-2 border-b border-border bg-amber-500/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[11px] font-semibold text-amber-700">Modo Preview</span>
+                  </div>
+                  <button
+                    onClick={clearOverride}
+                    className="text-[10px] font-medium text-amber-600 hover:text-amber-800 underline"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ── Gamification (< 35 anos) ── */}
             {ageGroup === "young" && !isCollapsed && <GamificationStrip />}
 
