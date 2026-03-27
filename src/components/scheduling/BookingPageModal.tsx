@@ -391,7 +391,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 shrink-0 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={!title || !slug || !calendarId || workingDays.length === 0 || isPending}>
             {isPending ? (isEditing ? 'A guardar...' : 'A criar...') : (isEditing ? 'Guardar Alterações' : 'Criar Link')}
