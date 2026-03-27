@@ -112,6 +112,33 @@ describe("Search routes", () => {
       expect(p.label).toBeTruthy();
     }
   });
+
+  it("hidden entries do not appear in searchable pages", () => {
+    const hiddenEntries = ROUTE_MANIFEST.filter((r) => r.status === "hidden");
+    expect(hiddenEntries.length).toBeGreaterThan(0); // we have at least 'diagnostics'
+    const pages = getAllSearchablePages();
+    const pagePaths = new Set(pages.map((p) => p.path));
+    for (const h of hiddenEntries) {
+      expect(pagePaths.has(h.href)).toBe(false);
+    }
+  });
+
+  it("hidden entries do not appear in sidebar sections", () => {
+    const allAccess = () => true;
+    const allModules = [
+      "account-brief", "prospecting-pro", "lead-enricher", "google-local-services",
+      "email-campaigns", "seo-growth", "bio-os", "instagram-looter",
+      "proposals", "invoices", "online-store", "marketplace-c2c", "b2b-portal",
+      "procurement", "student-journey", "security-ops", "credit-intermediation",
+      "imo-ai",
+    ];
+    const sections = buildSidebarSections(allModules, allAccess);
+    const allSidebarHrefs = sections.flatMap((s) => s.items.map((i) => i.href));
+    const hiddenEntries = ROUTE_MANIFEST.filter((r) => r.status === "hidden");
+    for (const h of hiddenEntries) {
+      expect(allSidebarHrefs).not.toContain(h.href);
+    }
+  });
 });
 
 describe("Portal segregation", () => {

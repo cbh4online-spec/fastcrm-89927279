@@ -9,6 +9,17 @@
  *  - moduleSlug gates visibility when module is not installed (hidden, not disabled)
  *  - menuKey ties into useMenuPermissions for role-based access
  *  - visibleInSidebar = false keeps the route searchable but off the sidebar
+ *
+ * ─── AUDIT REPORT ────────────────────────────────────────────────────────────
+ *
+ * UNIMPLEMENTED / MISSING PAGES (status: "hidden"):
+ *  - diagnostics (/dashboard/diagnostics) — No page file or route exists. Hidden from sidebar and search.
+ *
+ * FIXED HREFS:
+ *  - system-health: /dashboard/system-health → /dashboard/system/health (matched real route)
+ *
+ * All other entries verified against src/routes/*.tsx — no further discrepancies found.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 import type { LucideIcon } from "lucide-react";
 import {
@@ -255,8 +266,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("settings-workspace",    "Workspace",       "/settings/workspace",         FolderCog,    "administracao"),
   e("settings-roles",        "Roles",           "/settings/roles",             ShieldCheck,  "administracao"),
   e("marketplace",           "Marketplace",     "/dashboard/marketplace",      Puzzle,       "administracao"),
-  e("diagnostics",           "Diagnósticos",    "/dashboard/diagnostics",      Stethoscope,  "administracao"),
-  e("system-health",         "System Health",   "/dashboard/system-health",    HeartPulse,   "administracao"),
+  e("diagnostics",           "Diagnósticos",    "/dashboard/diagnostics",      Stethoscope,  "administracao", { status: "hidden", visibleInSidebar: false, visibleInSearch: false }),
+  e("system-health",         "System Health",   "/dashboard/system/health",    HeartPulse,   "administracao"),
   e("super-admin",           "Super Admin",     "/super-admin",                Shield,       "administracao"),
   // Search-only admin routes
   e("settings-main",  "Definições",    "/settings",                Settings,       "administracao", { visibleInSidebar: false, menuKey: "settings" }),
