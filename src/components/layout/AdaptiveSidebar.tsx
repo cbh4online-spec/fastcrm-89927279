@@ -8,16 +8,16 @@ import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { getInstalledModuleNav } from "@/config/moduleNavRegistry";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import {
-  getAdaptiveSections,
-  type AdaptiveNavSection,
-  type AdaptiveNavItem,
-} from "@/config/nav.adaptive";
-import type { AgeGroup } from "@/data/adaptiveDashboardMock";
+  buildSidebarSections,
+  type RouteEntry,
+  type NavGroupMeta,
+} from "@/config/routeManifest";
+import type { AgeGroup, SalesFunction } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
-  Settings, Eye, ChevronDown, RotateCcw, Puzzle, Search,
+  Eye, ChevronDown, RotateCcw, Search, Sparkles, Crown,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import type { SalesFunction } from "@/data/adaptiveDashboardMock";
+import { Badge } from "@/components/ui/badge";
 
 interface AdaptiveSidebarProps {
   open: boolean;
@@ -52,9 +52,9 @@ interface AgeStyle {
 }
 
 const ageStyles: Record<AgeGroup, AgeStyle> = {
-  young: { iconSize: "w-4 h-4", textSize: "text-sm", itemHeight: "py-2", animationsEnabled: true, collapsibleGroups: true },
+  young:    { iconSize: "w-4 h-4", textSize: "text-sm", itemHeight: "py-2", animationsEnabled: true, collapsibleGroups: true },
   standard: { iconSize: "w-4 h-4", textSize: "text-sm", itemHeight: "py-2", animationsEnabled: true, collapsibleGroups: true },
-  senior: { iconSize: "w-5 h-5", textSize: "text-base", itemHeight: "py-2.5", animationsEnabled: false, collapsibleGroups: false },
+  senior:   { iconSize: "w-5 h-5", textSize: "text-base", itemHeight: "py-2.5", animationsEnabled: false, collapsibleGroups: false },
 };
 
 // ── Badge Component ──
@@ -73,6 +73,13 @@ function SidebarBadge({ count, animate }: { count: number; animate?: boolean }) 
   );
 }
 
+// ── Pro / Beta tag ──
+function ItemTag({ isPro, isBeta }: { isPro?: boolean; isBeta?: boolean }) {
+  if (isPro) return <Badge variant="outline" className="ml-auto h-4 px-1 text-[9px] font-semibold border-amber-500/40 text-amber-500">Pro</Badge>;
+  if (isBeta) return <Badge variant="outline" className="ml-auto h-4 px-1 text-[9px] font-semibold border-blue-400/40 text-blue-400">Beta</Badge>;
+  return null;
+}
+
 export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
@@ -82,7 +89,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const badges = useSidebarBadges();
   const { installedModuleIds } = useWorkspaceModules();
   const { data: storeSettings } = useStoreSettings();
-  const touchStartX = useRef(0);
+  const { canAccessMenu } = useMenuPermissions();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [menuFilter, setMenuFilter] = useState("");
 
@@ -90,42 +97,31 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const isSenior = ageGroup === "senior";
   const isCollapsed = !isSenior && collapsed && !open;
 
-  // Core sections from role config
-  const sections = useMemo(() => {
-    const age = ageGroup === "young" ? 25 : ageGroup === "senior" ? 55 : 40;
-    return getAdaptiveSections(salesFunction).filter((s) => {
-      if (s.minAge && age < s.minAge) return false;
-      if (s.maxAge && age > s.maxAge) return false;
-      return true;
-    });
-  }, [salesFunction, ageGroup]);
-
-  // Flat list of active modules
-  const moduleNavItems = useMemo(
-    () => getInstalledModuleNav(installedModuleIds),
-    [installedModuleIds]
+  // ── Build sidebar sections from manifest ──
+  const sections = useMemo(
+    () => buildSidebarSections(installedModuleIds, canAccessMenu),
+    [installedModuleIds, canAccessMenu]
   );
 
-  // Filtered modules by search
-  const filteredModules = useMemo(() => {
-    if (!menuFilter.trim()) return moduleNavItems;
+  // ── Filter sections by search ──
+  const filteredSections = useMemo(() => {
+    if (!menuFilter.trim()) return sections;
     const q = menuFilter.toLowerCase();
-    return moduleNavItems.filter((m) => m.label.toLowerCase().includes(q));
-  }, [moduleNavItems, menuFilter]);
+    return sections
+      .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+      .filter((s) => s.items.length > 0);
+  }, [sections, menuFilter]);
 
-  // Collapsible group state
+  // ── Collapsible group state ──
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
       const [basePath, hrefSearch] = href.split("?");
-      // If href has query params, match both path AND query params exactly
       if (hrefSearch) {
         return location.pathname === basePath && location.search === `?${hrefSearch}`;
       }
-      // For base routes without query params, check if current URL also has no relevant view params
       if (end || basePath === "/dashboard") return location.pathname === basePath;
-      // Prefix match, but exclude if current URL has query params that would match a sibling
       if (location.pathname === basePath && location.search) return false;
       return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
     },
@@ -133,16 +129,15 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   const sectionHasActive = useCallback(
-    (section: AdaptiveNavSection) => section.items.some((i) => isActive(i.href, i.end)),
+    (items: RouteEntry[]) => items.some((i) => isActive(i.href, i.end)),
     [isActive]
   );
 
   const isGroupOpen = useCallback(
-    (label: string, section: AdaptiveNavSection | boolean) => {
+    (key: string, items: RouteEntry[]) => {
       if (!style.collapsibleGroups) return true;
-      if (openGroups[label] !== undefined) return openGroups[label];
-      if (typeof section === "boolean") return section;
-      return sectionHasActive(section);
+      if (openGroups[key] !== undefined) return openGroups[key];
+      return sectionHasActive(items);
     },
     [openGroups, sectionHasActive, style.collapsibleGroups]
   );
@@ -163,7 +158,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     [badges]
   );
 
-  // Touch swipe handling
+  // ── Touch swipe ──
   useEffect(() => {
     const el = sidebarRef.current;
     if (!el) return;
@@ -203,19 +198,19 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const roleLabelMap: Record<string, string> = {
     vendedor: "Vendedor", gestor: "Gestor de Vendas", diretor: "Diretor Comercial", ceo: "CEO / Founder",
   };
-
   const workspaceName = storeSettings?.store_name || currentWorkspace?.name || "Workspace";
   const logoUrl = storeSettings?.logo_url;
 
   // ── Render Link ──
-  const renderLink = (item: AdaptiveNavItem, indent = false) => {
+  const renderLink = (item: RouteEntry, indent = false) => {
     const active = isActive(item.href, item.end);
     const Icon = item.icon;
     const badgeCount = getBadge(item.badgeKey);
+    const hasTag = item.isPro || item.isBeta;
 
     if (isCollapsed) {
       return (
-        <Tooltip key={item.href}>
+        <Tooltip key={item.key}>
           <TooltipTrigger asChild>
             <Link
               to={item.href}
@@ -236,14 +231,18 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               )}
             </Link>
           </TooltipTrigger>
-          <TooltipContent side="right">{item.name}</TooltipContent>
+          <TooltipContent side="right">
+            {item.label}
+            {item.isPro && <span className="ml-1 text-amber-400 text-[9px]">Pro</span>}
+            {item.isBeta && <span className="ml-1 text-blue-400 text-[9px]">Beta</span>}
+          </TooltipContent>
         </Tooltip>
       );
     }
 
     return (
       <Link
-        key={item.href}
+        key={item.key}
         to={item.href}
         onClick={onClose}
         aria-current={active ? "page" : undefined}
@@ -257,19 +256,21 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         )}
       >
         <Icon className={cn(style.iconSize, "shrink-0", active && "text-sidebar-primary")} />
-        <span className="flex-1 truncate">{item.name}</span>
+        <span className="flex-1 truncate">{item.label}</span>
+        {hasTag && !badgeCount ? <ItemTag isPro={item.isPro} isBeta={item.isBeta} /> : null}
         <SidebarBadge count={badgeCount} animate={style.animationsEnabled} />
       </Link>
     );
   };
 
   // ── Render Section ──
-  const renderSection = (section: AdaptiveNavSection, idx: number) => {
-    const hasActive = sectionHasActive(section);
+  const renderSection = (section: NavGroupMeta & { items: RouteEntry[] }, idx: number) => {
+    const hasActive = sectionHasActive(section.items);
+    const SectionIcon = section.icon;
 
     if (!section.collapsible || !style.collapsibleGroups) {
       return (
-        <div key={section.label} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
+        <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
           {!isCollapsed && (
             <div className="px-3 pb-1">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
@@ -283,9 +284,9 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
       );
     }
 
-    const groupOpen = isGroupOpen(section.label, section);
+    const groupOpen = isGroupOpen(section.key, section.items);
     return (
-      <Collapsible key={section.label} open={groupOpen} onOpenChange={() => toggleGroup(section.label)} className={cn(idx > 0 && "mt-1")}>
+      <Collapsible key={section.key} open={groupOpen} onOpenChange={() => toggleGroup(section.key)} className={cn(idx > 0 && "mt-1")}>
         {!isCollapsed ? (
           <div role="group" aria-label={section.label}>
             <CollapsibleTrigger className="w-full">
@@ -294,7 +295,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                 style.itemHeight, style.textSize,
                 hasActive ? "text-sidebar-foreground" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}>
-                <section.icon className={cn(style.iconSize, "shrink-0", hasActive && "text-sidebar-primary")} />
+                <SectionIcon className={cn(style.iconSize, "shrink-0", hasActive && "text-sidebar-primary")} />
                 <span className="flex-1 text-left truncate">{section.label}</span>
                 <ChevronRight className={cn("w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform duration-200", groupOpen && "rotate-90")} />
               </div>
@@ -355,7 +356,6 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                 </Tooltip>
               ) : (
                 <div className="space-y-3">
-                  {/* Logo + Workspace Name */}
                   <div className="flex items-center gap-3">
                     {logoUrl ? (
                       <img src={logoUrl} alt={workspaceName} className="w-9 h-9 rounded-lg object-contain" />
@@ -373,7 +373,6 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     </button>
                   </div>
 
-                  {/* User info */}
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-7 w-7 shrink-0">
                       <AvatarImage src={user?.user_metadata?.avatar_url} />
@@ -429,7 +428,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             )}
 
             {/* ═══ Search filter ═══ */}
-            {!isCollapsed && moduleNavItems.length > 5 && (
+            {!isCollapsed && (
               <div className="px-3 py-2 border-b border-sidebar-border">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-sidebar-foreground/30" />
@@ -437,7 +436,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     type="text"
                     value={menuFilter}
                     onChange={(e) => setMenuFilter(e.target.value)}
-                    placeholder="Pesquisar menu..."
+                    placeholder="Pesquisar menu... (⌘K)"
                     className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-sidebar-accent/50 border border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/30 focus:outline-none focus:ring-1 focus:ring-sidebar-primary/50"
                   />
                 </div>
@@ -446,104 +445,16 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
             {/* ═══ BLOCK 2: Navigation ═══ */}
             <nav className={cn("flex-1 overflow-y-auto scrollbar-thin", isCollapsed ? "px-1 py-2" : "px-2 py-2")} aria-label="Navegação principal">
-              
-              {/* Core sections */}
               <div className="space-y-0.5">
-                {sections.map((section, idx) => renderSection(section, idx))}
+                {filteredSections.map((section, idx) => renderSection(section, idx))}
               </div>
-
-              {/* ── Modules separator ── */}
-              {filteredModules.length > 0 && (
-                <div className={cn("mt-4", isCollapsed ? "mx-2" : "mx-1")}>
-                  {!isCollapsed && (
-                    <div className="flex items-center gap-2 px-2 pb-1.5">
-                      <Puzzle className="w-3 h-3 text-sidebar-primary/50" />
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
-                        Módulos
-                      </span>
-                      <span className="text-[10px] text-sidebar-foreground/20">{filteredModules.length}</span>
-                    </div>
-                  )}
-                  {isCollapsed && <div className="mb-2 border-t border-sidebar-border" />}
-
-                  <div className="space-y-0.5">
-                    {filteredModules.map((mod) => {
-                      const ModIcon = mod.icon;
-                      const active = isActive(mod.href);
-
-                      if (isCollapsed) {
-                        return (
-                          <Tooltip key={mod.slug}>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={mod.href}
-                                onClick={onClose}
-                                className={cn(
-                                  "flex items-center justify-center p-2 rounded-lg transition-colors",
-                                  active
-                                    ? "bg-sidebar-accent text-sidebar-primary"
-                                    : "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                                )}
-                                aria-current={active ? "page" : undefined}
-                              >
-                                <ModIcon className={cn(style.iconSize, "shrink-0")} />
-                              </Link>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">{mod.label}</TooltipContent>
-                          </Tooltip>
-                        );
-                      }
-
-                      return (
-                        <Link
-                          key={mod.slug}
-                          to={mod.href}
-                          onClick={onClose}
-                          className={cn(
-                            "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
-                            style.itemHeight, style.textSize,
-                            active
-                              ? "bg-sidebar-accent text-sidebar-primary"
-                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                          )}
-                          aria-current={active ? "page" : undefined}
-                        >
-                          <ModIcon className={cn(style.iconSize, "shrink-0", active && "text-sidebar-primary")} />
-                          <span className="flex-1 truncate">{mod.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </nav>
 
             {/* ═══ BLOCK 3: Footer ═══ */}
             <div className={cn("border-t border-sidebar-border", isCollapsed ? "px-1 py-2" : "px-2 py-2")}>
-              {isCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to="/settings" onClick={onClose}
-                      className="flex items-center justify-center p-2 rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors">
-                      <Settings className={style.iconSize} />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Definições</TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link to="/settings" onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-3 px-3 rounded-lg font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors",
-                    style.itemHeight, style.textSize
-                  )}>
-                  <Settings className={cn(style.iconSize, "shrink-0")} />
-                  <span>Definições</span>
-                </Link>
-              )}
-
               {/* Collapse toggle — desktop only, NOT for seniors */}
               {!isSenior && (
-                <div className="hidden lg:block mt-1">
+                <div className="hidden lg:block">
                   {isCollapsed ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
