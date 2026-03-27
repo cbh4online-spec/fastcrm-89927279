@@ -48763,6 +48763,23 @@ export type Database = {
           success: boolean
         }[]
       }
+      consume_funnel_credits: {
+        Args: {
+          p_action_key: string
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_reference_id?: string
+          p_reference_type?: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          balance_remaining: number
+          credits_consumed: number
+          message: string
+          success: boolean
+        }[]
+      }
       consume_module_credits: {
         Args: {
           p_action_key: string
