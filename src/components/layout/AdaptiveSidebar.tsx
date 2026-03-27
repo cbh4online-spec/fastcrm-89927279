@@ -451,8 +451,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     );
   };
 
-  // Marketplace modules section
-  const hasExtensions = extensionSettingsPages.length > 0;
+  // Module nav groups are computed above via getInstalledModuleNav
 
   return (
     <TooltipProvider delayDuration={0}>
