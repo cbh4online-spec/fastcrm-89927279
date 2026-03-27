@@ -203,6 +203,12 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   const quickActions = useMemo(() => getQuickActions(salesFunction), [salesFunction]);
 
+  // Dynamic module nav from installed marketplace modules
+  const moduleNavGroups = useMemo(
+    () => getInstalledModuleNav(installedModuleIds),
+    [installedModuleIds]
+  );
+
   // Collapsible group state
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
