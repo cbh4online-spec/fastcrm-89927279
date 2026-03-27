@@ -20,6 +20,8 @@ interface InsertPaymentLinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInsert: (html: string) => void;
+  recipientName?: string;
+  onSubjectSuggestion?: (subject: string) => void;
 }
 
 function formatCurrency(amount: number | null, currency?: string | null): string {
@@ -28,11 +30,12 @@ function formatCurrency(amount: number | null, currency?: string | null): string
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: cur }).format(amount);
 }
 
-export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: InsertPaymentLinkDialogProps) {
+export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert, recipientName, onSubjectSuggestion }: InsertPaymentLinkDialogProps) {
   const [search, setSearch] = useState("");
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [contextText, setContextText] = useState("");
+  const [suggestedSubject, setSuggestedSubject] = useState("");
   const [paymentData, setPaymentData] = useState<{ url: string; name: string; price: string } | null>(null);
   const { currentWorkspace } = useWorkspace();
 
@@ -63,6 +66,7 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: Insert
     setContextText("");
     setPaymentData(null);
     setGeneratingId(null);
+    setSuggestedSubject("");
   };
 
   const handleOpenChange = (val: boolean) => {
@@ -87,7 +91,9 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: Insert
       const price = formatCurrency(data.price ?? product.base_price, data.currency ?? product.currency);
 
       setPaymentData({ url: data.url, name, price });
-      setContextText(`Segue o link para efetuar o pagamento de ${name}:`);
+      const greeting = recipientName ? `Caro(a) ${recipientName},\n\n` : "";
+      setContextText(`${greeting}Segue o link para efetuar o pagamento de ${name}:`);
+      setSuggestedSubject(`Link de Pagamento - ${name}`);
     } catch (err: any) {
       console.error("Error creating payment link:", err);
       toast.error(`Erro ao gerar link: ${err.message}`);
@@ -100,8 +106,9 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: Insert
   const handleInsert = () => {
     if (!paymentData) return;
 
-    const textHtml = contextText.trim()
-      ? `<p style="margin: 0 0 12px 0; font-size: 14px; color: #374151;">${contextText.trim()}</p>`
+    const textLines = contextText.trim().split("\n").filter(Boolean);
+    const textHtml = textLines.length
+      ? textLines.map(line => `<p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">${line}</p>`).join("")
       : "";
 
     const html = `${textHtml}<div style="margin: 1em 0; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; max-width: 400px; font-family: sans-serif;">
@@ -110,6 +117,10 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: Insert
   <div style="font-size: 18px; font-weight: 700; color: #059669; margin-bottom: 12px;">${paymentData.price}</div>
   <a href="${paymentData.url}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600;">Pagar Agora →</a>
 </div>`;
+
+    if (suggestedSubject.trim() && onSubjectSuggestion) {
+      onSubjectSuggestion(suggestedSubject.trim());
+    }
 
     onInsert(html);
     handleOpenChange(false);
@@ -140,6 +151,16 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert }: Insert
 
         {showConfirmStep ? (
           <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Assunto sugerido</label>
+              <Input
+                value={suggestedSubject}
+                onChange={(e) => setSuggestedSubject(e.target.value)}
+                placeholder="Ex: Link de Pagamento - Produto"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Só será aplicado se o assunto do email estiver vazio</p>
+            </div>
+
             <div>
               <label className="text-sm font-medium mb-1.5 block">Texto introdutório</label>
               <Textarea

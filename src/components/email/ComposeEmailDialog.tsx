@@ -751,6 +751,8 @@ export function ComposeEmailDialog({
         open={showPaymentDialog}
         onOpenChange={setShowPaymentDialog}
         onInsert={handlePaymentLinkInsert}
+        recipientName={recipient?.name}
+        onSubjectSuggestion={(s) => { if (!subject.trim()) setSubject(s); }}
       />
     </>
   );
