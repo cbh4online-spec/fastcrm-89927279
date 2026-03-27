@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ComposeEmailDialog } from "@/components/email";
 
 interface ContactInsightsPanelProps {
   contactId: string;
@@ -88,6 +89,8 @@ export function ContactInsightsPanel({
   const [showAIDraft, setShowAIDraft] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailDraft, setEmailDraft] = useState("");
 
   const handleRefresh = () => {
     refreshInsights.mutate(contactId, {
@@ -126,9 +129,8 @@ export function ContactInsightsPanel({
     const message = draftMessage || insights?.personalizedMessage || "";
     
     if (channel === "email" && contactEmail) {
-      const mailtoUrl = `mailto:${contactEmail}?body=${encodeURIComponent(message)}`;
-      window.open(mailtoUrl, "_blank");
-      toast.success("A abrir cliente de email...");
+      setEmailDraft(message);
+      setShowEmailDialog(true);
     } else if (channel === "whatsapp" && contactPhone) {
       const cleanPhone = contactPhone.replace(/[^\d+]/g, "");
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
@@ -196,6 +198,7 @@ export function ContactInsightsPanel({
   }
 
   return (
+    <>
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -444,5 +447,20 @@ export function ContactInsightsPanel({
         )}
       </CardContent>
     </Card>
+
+    {contactEmail && (
+      <ComposeEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        recipient={{
+          email: contactEmail,
+          name: contactName || '',
+          entityType: 'contact',
+          entityId: contactId,
+        }}
+        defaultBody={emailDraft}
+      />
+    )}
+    </>
   );
 }

@@ -76,6 +76,7 @@ import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { cn } from "@/lib/utils";
+import { ComposeEmailDialog } from "@/components/email";
 
 // Reusable row component for label-value display
 interface DetailRowProps {
@@ -165,6 +166,7 @@ export function ContactDetail() {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
   const [layoutCustomizerOpen, setLayoutCustomizerOpen] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   // Layout configuration
   const { data: layoutData } = useLayoutConfig("contact");
@@ -419,11 +421,9 @@ export function ContactDetail() {
                   {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
                 </Button>
                 {contact.email && (
-                  <Button variant="default" className="gap-2" asChild>
-                    <a href={`mailto:${contact.email}`}>
-                      <Mail className="w-4 h-4" />
-                      Enviar E-mail
-                    </a>
+                  <Button variant="default" className="gap-2" onClick={() => setShowEmailDialog(true)}>
+                    <Mail className="w-4 h-4" />
+                    Enviar E-mail
                   </Button>
                 )}
                 <Button variant="outline" onClick={handleEdit}>
@@ -958,11 +958,9 @@ export function ContactDetail() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {contact.email && (
-                    <Button variant="outline" size="sm" className="w-full justify-start" asChild>
-                      <a href={`mailto:${contact.email}`}>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Enviar E-mail
-                      </a>
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowEmailDialog(true)}>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Enviar E-mail
                     </Button>
                   )}
                   {contact.phone && (
@@ -1007,6 +1005,19 @@ export function ContactDetail() {
         layoutSource={layoutData?.source || "default"}
         isAdmin={isAdmin}
       />
+
+      {contact.email && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={{
+            email: contact.email,
+            name: contact.name,
+            entityType: 'contact',
+            entityId: contact.id,
+          }}
+        />
+      )}
     </div>
   );
 }
