@@ -12,6 +12,7 @@ import { usePerformanceRecognition, RECOGNITION_TYPES } from "@/hooks/usePerform
 import { usePerformanceGoals } from "@/hooks/usePerformanceGoals";
 import { TrendingUp, Target, Trophy, Zap, Users, DollarSign, Calendar, RefreshCw, BarChart3 } from "lucide-react";
 import { MetricWidgets } from "@/components/metrics/MetricWidgets";
+import { useSeedDefaultMetrics } from "@/hooks/useSeedDefaultMetrics";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,7 @@ import { formatCurrency } from "@/lib/formatters";
 
 export default function PerformanceDashboardPage() {
   const { t } = useTranslation("performance");
+  useSeedDefaultMetrics();
   const navigate = useNavigate();
   const { data: scores, isLoading: scoresLoading } = usePerformanceScores("weekly");
   const { data: leaderboard, isLoading: lbLoading } = useLeaderboard("score_total", "weekly");

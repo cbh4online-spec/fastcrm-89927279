@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSeedDefaultMetrics } from "@/hooks/useSeedDefaultMetrics";
 
 const METRIC_TYPES: { value: MetricType; label: string; icon: typeof BarChart3 }[] = [
   { value: "volume", label: "Volume", icon: BarChart3 },
@@ -88,6 +89,7 @@ const TYPE_COLORS: Record<MetricType, string> = {
 
 export default function PipelineMetricsPage() {
   const { metrics, metricsLoading, targets, alerts, createMetric, createTarget, createAlert, deleteMetric } = usePipelineMetrics();
+  useSeedDefaultMetrics();
   const { data: pipelines } = usePipelines();
   const { data: stages } = usePipelineStagesEnhanced();
   const { currentWorkspace } = useWorkspace();
