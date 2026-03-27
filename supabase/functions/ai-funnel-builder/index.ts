@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -57,7 +58,17 @@ Deno.serve(async (req) => {
 
     logStep("User authenticated", { userId: user.id });
 
-    const { messages, mode, wizardAnswers } = await req.json();
+    const { messages, mode, wizardAnswers, workspace_id } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'heavy', 'ai-funnel-builder', user.id);
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Build messages for AI
     const aiMessages: { role: string; content: string }[] = [
