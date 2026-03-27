@@ -42,12 +42,14 @@ serve(async (req: Request) => {
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspace_id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
-    const isSuperAdmin = user.user_metadata?.is_super_admin || user.app_metadata?.is_super_admin;
+    // Check super admin via service client
+    const { data: userData } = await serviceClient.auth.admin.getUserById(userId);
+    const isSuperAdmin = userData?.user?.user_metadata?.is_super_admin || userData?.user?.app_metadata?.is_super_admin;
     if (!member && !isSuperAdmin) {
-      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Fetch metrics
