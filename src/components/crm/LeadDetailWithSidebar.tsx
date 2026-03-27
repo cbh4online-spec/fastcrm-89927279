@@ -70,7 +70,7 @@ import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesS
 import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 import { EntityTimelineSection } from "@/components/timeline";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
-import { EmailHistorySection } from "@/components/email";
+import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
 import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
@@ -114,6 +114,8 @@ export function LeadDetailWithSidebar() {
   const { data: counts } = useEntityCounts('lead', id);
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
   const generateSuggestions = useGenerateFieldSuggestions();
 
 
@@ -502,8 +504,15 @@ export function LeadDetailWithSidebar() {
         </main>
 
         {/* Right Details Panel */}
-        <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} />
+        <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} onEmailClick={(email) => { setEmailTo(email); setShowEmailDialog(true); }} />
       </div>
+
+      {/* Compose Email Dialog */}
+      <ComposeEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        recipient={{ email: emailTo, name: lead.name, entityType: 'lead', entityId: lead.id }}
+      />
     </div>
   );
 }

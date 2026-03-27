@@ -19,6 +19,7 @@ interface EntityDetailsPanelProps {
   entityType: EntityType;
   entity: Entity;
   onUpdate?: (field: string, value: unknown) => void;
+  onEmailClick?: (email: string) => void;
 }
 
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -62,7 +63,7 @@ function ProgressiveFields({ children, limit = 5 }: { children: React.ReactNode;
 }
 
 function EditableFieldRow({ 
-  label, value, icon: Icon, iconClassName, isLink, linkType, fieldKey, onUpdate 
+  label, value, icon: Icon, iconClassName, isLink, linkType, fieldKey, onUpdate, onEmailClick 
 }: { 
   label: string; 
   value: string | number | null | undefined; 
@@ -72,6 +73,7 @@ function EditableFieldRow({
   linkType?: string;
   fieldKey?: string;
   onUpdate?: (field: string, value: unknown) => void;
+  onEmailClick?: (email: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value ?? ''));
@@ -137,6 +139,9 @@ function EditableFieldRow({
       return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'email') {
+      if (onEmailClick) {
+        return <button type="button" onClick={(e) => { e.stopPropagation(); onEmailClick(String(value)); }} className="text-primary hover:underline text-[13px] font-medium break-all text-left">{String(value)}</button>;
+      }
       return <a href={`mailto:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'phone') {
@@ -237,7 +242,7 @@ function DatesSection({ entity }: { entity: Entity }) {
   );
 }
 
-export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetailsPanelProps) {
+export function EntityDetailsPanel({ entityType, entity, onUpdate, onEmailClick }: EntityDetailsPanelProps) {
   return (
     <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-card flex-shrink-0 overflow-hidden flex flex-col max-h-[50vh] lg:max-h-none">
       <div className="border-b px-4 py-2.5 flex items-center gap-4">
@@ -245,16 +250,16 @@ export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetai
       </div>
 
       <ScrollArea className="flex-1">
-        {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} onUpdate={onUpdate} />}
-        {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} onUpdate={onUpdate} />}
-        {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} onUpdate={onUpdate} />}
+        {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
+        {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
+        {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
         <DatesSection entity={entity} />
       </ScrollArea>
     </div>
   );
 }
 
-function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?: (field: string, value: unknown) => void }) {
+function CompanyDetails({ entity, onUpdate, onEmailClick }: { entity: CompanyEntity; onUpdate?: (field: string, value: unknown) => void; onEmailClick?: (email: string) => void }) {
   const e = entity as any;
   const hasSocialUrls = !!(e.linkedin_url || e.facebook_url || e.instagram_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
@@ -262,7 +267,7 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
       <CollapsibleSection title="Dados da Empresa">
         <ProgressiveFields>
           <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} iconClassName="text-purple-500" isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
-          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} onEmailClick={onEmailClick} />
           <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
           <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} iconClassName="text-amber-500" fieldKey="industry" onUpdate={onUpdate} />
           <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} iconClassName="text-indigo-500" fieldKey="size" onUpdate={onUpdate} />
@@ -304,14 +309,14 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
   );
 }
 
-function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?: (field: string, value: unknown) => void }) {
+function ContactDetails({ entity, onUpdate, onEmailClick }: { entity: ContactEntity; onUpdate?: (field: string, value: unknown) => void; onEmailClick?: (email: string) => void }) {
   const e = entity as any;
   const hasSocialUrls = !!(e.linkedin_url || e.facebook_url || e.instagram_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
         <ProgressiveFields>
-          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} onEmailClick={onEmailClick} />
           <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
           <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
           <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} iconClassName="text-amber-500" fieldKey="job_title" onUpdate={onUpdate} />
@@ -346,14 +351,14 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
   );
 }
 
-function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (field: string, value: unknown) => void }) {
+function LeadDetails({ entity, onUpdate, onEmailClick }: { entity: LeadEntity; onUpdate?: (field: string, value: unknown) => void; onEmailClick?: (email: string) => void }) {
   const e = entity as any;
   const hasSocialUrls = !!(e.linkedin_url || e.instagram_url || e.facebook_url || e.twitter_url || e.youtube_url || e.tiktok_url || e.pinterest_url || e.whatsapp_url);
   return (
     <div>
       <CollapsibleSection title="Dados do Lead">
         <ProgressiveFields>
-          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} onEmailClick={onEmailClick} />
           <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
           <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} iconClassName="text-emerald-500" fieldKey="source" onUpdate={onUpdate} />
           <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
