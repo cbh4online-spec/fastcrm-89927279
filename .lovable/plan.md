@@ -1,65 +1,29 @@
 
 
-# Pipeline Mortgage Journey — Crédito Habitação
+# Adicionar 5 Templates de Pedido de Documentação ao Workspace Blecksen
 
-## Objetivo
-Criar o pipeline "Mortgage Journey / Crédito Habitação" com 12 estágios completos, incluindo metadados ricos (critérios de entrada/saída, campos obrigatórios, tarefas padrão, regras de bloqueio) que o sistema atual não suporta.
+## O que será feito
 
-## Situação atual
-- Tabelas `pipelines` e `pipeline_stages` existem com: name, position, probability, color, description, expected_days
-- **Não existe** suporte para: entry/exit criteria, required_fields, default_tasks, blocked_if, phase, next_stage
-- Estes metadados precisam de ser armazenados — a forma mais limpa é adicionar uma coluna JSONB `config` ao `pipeline_stages`
+Inserir os 5 templates do ficheiro DOCX na tabela `communication_templates` do workspace **Blecksen** (`6d108e84-389c-42de-bd19-277f210823f2`), com tag `Financiamento`:
 
-## Plano
+| Template | Assunto |
+|----------|---------|
+| Pedido Documentação — Empresas | Check-list documentos para financiamento de empresas |
+| Pedido Documentação — ENI | Check-list documentos para ENI |
+| Pedido Documentação — Conta de Outrem | Check-list documentos para trabalhadores por conta de outrem |
+| Pedido Documentação — Conta Própria / Sócios Gerentes | Check-list documentos para conta própria e sócios gerentes |
+| Pedido Documentação — Garantia Jovem | Check-list documentos para garantia jovem |
 
-### 1. Migração — Adicionar coluna `config` ao `pipeline_stages`
+## Como
 
-```sql
-ALTER TABLE pipeline_stages 
-  ADD COLUMN IF NOT EXISTS config jsonb DEFAULT '{}';
-```
+- Usar uma **migração SQL** com 5 `INSERT INTO communication_templates` (canal: `email`, tags: `["Financiamento"]`)
+- O corpo de cada template será extraído do DOCX com formatação HTML limpa (listas de documentos com `<ul>/<li>`, links clicáveis, saudação e fecho)
+- Usar variáveis `{{nome_cliente}}` no corpo para personalização
+- `created_by`: utilizador existente do workspace (`0ab92eb1-91aa-43fd-97a8-e30ed63ce9da`)
 
-A coluna `config` guarda por estágio:
-```json
-{
-  "phase": "Preparation",
-  "objective": "...",
-  "entry_criteria": ["..."],
-  "exit_criteria": ["..."],
-  "required_fields": ["..."],
-  "default_tasks": ["..."],
-  "blocked_if": ["..."],
-  "next_stage_code": "research_budget"
-}
-```
-
-### 2. Migração — Criar pipeline e 12 estágios
-
-Função `create_mortgage_pipeline_for_workspace(p_workspace_id)` que:
-- Cria registo em `pipelines` (name: "Mortgage Journey", type: "sales", code: "mortgage_journey")
-- Adicionar coluna `code` à tabela `pipelines` para identificação por código
-- Insere 12 estágios com probability, color por fase, expected_days e config JSONB completo
-- Cria benchmarks em `pipeline_stage_benchmarks` para cada estágio
-- Executa para todos os workspaces existentes + trigger para novos
-
-**Cores por fase:**
-- Preparation (3 stages): tons de azul (#3b82f6, #60a5fa, #93c5fd)
-- Approval (3 stages): tons de amber (#f59e0b, #fbbf24, #fcd34d)
-- Application (3 stages): tons de violet (#8b5cf6, #a78bfa, #c4b5fd)
-- Closing (3 stages): tons de verde (#22c55e, #4ade80, #86efac)
-
-### 3. UI — Suporte à visualização de config nos estágios
-
-Atualizar o hook `usePipelineStages` e componentes de pipeline para:
-- Expor o campo `config` no tipo `PipelineStage`
-- Mostrar fase (phase) como badge no card de estágio
-- Mostrar critérios de entrada/saída e tarefas padrão no painel de detalhe do estágio
-
-### Ficheiros alterados
+## Ficheiros
 
 | Ficheiro | Ação |
 |----------|------|
-| Nova migração SQL | Coluna `config` + coluna `code` + pipeline mortgage + 12 estágios |
-| `src/hooks/usePipelineStages.ts` | Adicionar `config` ao tipo PipelineStage |
-| `src/components/pipeline/` | Exibir metadados ricos (fase, critérios, tarefas) nos cards |
+| Nova migração SQL | Inserir 5 templates |
 
