@@ -71,6 +71,7 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
       setRequirePhone(editingPage.require_phone);
       setCustomMessageLabel(editingPage.custom_message_label || '');
       setCustomFields(editingPage.custom_fields || []);
+    } else {
       resetForm();
     }
   }, [editingPage]);
