@@ -32213,6 +32213,7 @@ export type Database = {
       pipeline_stages: {
         Row: {
           color: string
+          config: Json | null
           created_at: string
           description: string | null
           expected_days: number
@@ -32226,6 +32227,7 @@ export type Database = {
         }
         Insert: {
           color?: string
+          config?: Json | null
           created_at?: string
           description?: string | null
           expected_days?: number
@@ -32239,6 +32241,7 @@ export type Database = {
         }
         Update: {
           color?: string
+          config?: Json | null
           created_at?: string
           description?: string | null
           expected_days?: number
@@ -32269,6 +32272,7 @@ export type Database = {
       }
       pipelines: {
         Row: {
+          code: string | null
           created_at: string
           description: string | null
           id: string
@@ -32279,6 +32283,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -32289,6 +32294,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -48940,6 +48946,10 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      create_mortgage_pipeline_for_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
       }
       create_workspace_for_user: {
         Args: {
