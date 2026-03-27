@@ -25,16 +25,16 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border/50 last:border-0">
+    <div className="border-b border-border/40 last:border-0">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+        className="flex items-center gap-2 w-full px-4 py-3 text-[13px] font-semibold text-foreground hover:bg-muted/40 transition-colors"
       >
         <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', open && 'rotate-90')} />
         {title}
       </button>
       {open && (
-        <div className="px-4 pb-3 space-y-2">
+        <div className="px-4 pb-3 space-y-1">
           {children}
         </div>
       )}
