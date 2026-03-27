@@ -1,43 +1,86 @@
 
 
-# Inserir 5 Templates de Pedido de Documentação — Workspace Blecksen
+## Problemas Identificados
 
-## Contexto
+1. **Excesso de grupos** — A sidebar tem ~12 secções colapsáveis (role sections + module groups), criando um menu extremamente longo e confuso
+2. **Duplicação** — CRM, Pipeline, Faturas aparecem tanto nas secções hardcoded do cargo como nos módulos dinâmicos
+3. **Branding fraco** — Não há logo, cor de marca, ou identidade visual na sidebar (apenas texto)
+4. **Hierarquia visual plana** — Todos os grupos têm o mesmo peso visual, sem distinção entre funcionalidades core e extensões
+5. **Navegação fragmentada** — Quick Actions, Gamification, Quota, Alertas ocupam espaço antes do menu real
 
-O ficheiro DOCX contém os mesmos 5 templates de pedido de documentação para financiamento. A tabela `communication_templates` ainda não tem estes templates inseridos.
+---
 
-## O que será feito
+## Nova Arquitectura Proposta
 
-Inserir 5 registos na tabela `communication_templates` usando o insert tool (não migração, pois é inserção de dados):
+```text
+┌─────────────────────────────┐
+│  🏢 Logo + Workspace Name   │  ← Brand header com logo/cor
+│  Jorge Cardoso · CEO        │
+├─────────────────────────────┤
+│  🔍 Pesquisar... (⌘K)      │  ← Command palette trigger
+├─────────────────────────────┤
+│  CORE (sempre visível)      │
+│   📊 Dashboard              │
+│   👥 CRM (colapsável)       │
+│      Leads · Contactos      │
+│      Empresas · Pipeline    │
+│   📅 Atividades             │
+│   📈 Performance            │
+├─────────────────────────────┤
+│  MÓDULOS ATIVOS             │  ← Apenas 1 secção dinâmica
+│   (agrupados por ícone,     │
+│    max 2 níveis)            │
+│   🔎 Lead Enricher          │
+│   📄 Propostas              │
+│   🧾 Faturas                │
+│   💬 WhatsApp               │
+│   ... (scroll se necessário)│
+├─────────────────────────────┤
+│  ⚙️ Definições              │
+│  ◀ Recolher                 │
+└─────────────────────────────┘
+```
 
-| # | Template | Assunto |
-|---|----------|---------|
-| 1 | Pedido Documentação — Empresas | Documentos para Financiamento — Empresas |
-| 2 | Pedido Documentação — ENI | Documentos para Financiamento — ENI |
-| 3 | Pedido Documentação — Conta de Outrem | Documentos para Financiamento — Conta de Outrem |
-| 4 | Pedido Documentação — Conta Própria / Sócios Gerentes | Documentos para Financiamento — Conta Própria |
-| 5 | Pedido Documentação — Garantia Jovem | Documentos para Financiamento — Garantia Jovem |
+---
 
-## Configuração de cada template
+## Plano de Implementação
 
-- **workspace_id**: `6d108e84-389c-42de-bd19-277f210823f2` (Blecksen)
-- **created_by**: `2e9c047c-b035-4ff4-98e4-b5874c487c92` (owner)
-- **channel**: `email`
-- **language**: `pt`
-- **tags**: `{Financiamento}`
-- **is_active**: `true`
-- **body**: texto limpo com listas de documentos
-- **body_html**: HTML formatado com `<ul>/<li>`, links clicáveis, e `{{nome_cliente}}` para personalização
+### 1. Brand Header melhorado
+- Integrar o `logo_url` do workspace (já existe em `store_settings`) no topo da sidebar
+- Mostrar nome do workspace com tipografia premium e cor de marca (`primary_color`)
+- User info compacto: avatar real (da tabela `profiles`) + nome + cargo numa linha
 
-## Como
+### 2. Unificar navegação em 3 blocos
+- **Core** — Dashboard, CRM, Atividades, Performance (hardcoded, sempre visível, sem duplicação com módulos)
+- **Módulos** — Lista flat dos módulos ativos do marketplace, sem sub-categorias (remover os headers "Inteligência", "Prospecção", etc.). Cada item é um link directo com ícone
+- **Footer** — Definições + Recolher
 
-Uma única chamada SQL INSERT com 5 registos via insert tool. O conteúdo de cada template será extraído fielmente do DOCX, convertido em HTML limpo com:
-- Saudação: `Estimado/a {{nome_cliente}}`
-- Listas de documentos com `<ul>/<li>`
-- Links clicáveis (Portal das Finanças, ePortugal, Banco de Portugal, etc.)
-- Fecho: `Grata`
+### 3. Eliminar duplicação
+- Remover das secções de cargo (`nav.adaptive.ts`) todos os items que já existem como módulos no registry (Propostas, Faturas, etc.)
+- O CRM fica como bloco core obrigatório (já é), mas items como "Account Brief" vêm apenas dos módulos
 
-## Ficheiros alterados
+### 4. Simplificar categorias de módulos
+- Em vez de 11 headers colapsáveis, mostrar os módulos numa lista flat ordenada por categoria (sem header de categoria)
+- Opcionalmente, um separador fino entre categorias diferentes (sem texto)
 
-Nenhum ficheiro do projecto será alterado. Apenas inserção de dados na base de dados.
+### 5. Mover elementos secundários
+- Quick Actions → mover para a TopBar ou Command Palette
+- Gamification Strip → mover para o Dashboard ou perfil
+- Quota Progress → mover para o Dashboard
+- Critical Alerts → mover para TopBar notification bell
+- Isto liberta ~120px de espaço vertical na sidebar
+
+### 6. Pesquisa inline
+- Adicionar um campo de pesquisa no topo que filtra os items do menu (ou trigger para o Command Palette existente)
+
+---
+
+## Ficheiros a Alterar
+
+| Ficheiro | Alteração |
+|---|---|
+| `src/config/nav.adaptive.ts` | Reduzir para 3 secções core (Dashboard, CRM, Atividades/Performance), remover items duplicados com módulos |
+| `src/config/moduleNavRegistry.ts` | Remover `categoryLabels`/headers, simplificar para lista flat |
+| `src/components/layout/AdaptiveSidebar.tsx` | Redesign completo: brand header, 3 blocos, remover gamification/quota/alerts inline |
+| `src/components/layout/TopBar.tsx` | Absorver quick actions e alertas críticos |
 
