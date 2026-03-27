@@ -7,21 +7,44 @@ interface Props {
   description: string;
   durationMinutes: number;
   brandColor: string;
+  hostAvatarUrl?: string | null;
+  hostName?: string | null;
   className?: string;
 }
 
-export function BookingHeroPanel({ title, description, durationMinutes, brandColor, className }: Props) {
+export function BookingHeroPanel({ title, description, durationMinutes, brandColor, hostAvatarUrl, hostName, className }: Props) {
   const { t } = useTranslation('booking');
 
   return (
     <div className={cn('flex flex-col gap-8', className)}>
       <div>
-        <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
-          style={{ backgroundColor: brandColor, boxShadow: `0 8px 32px ${brandColor}50` }}
-        >
-          <Sparkles className="h-6 w-6 text-white" />
+        {/* Host avatar or brand icon */}
+        <div className="flex items-center gap-4 mb-5">
+          {hostAvatarUrl ? (
+            <img
+              src={hostAvatarUrl}
+              alt={hostName || ''}
+              className="w-14 h-14 rounded-2xl object-cover ring-2 ring-border/30 shadow-lg"
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ backgroundColor: brandColor, boxShadow: `0 8px 32px ${brandColor}50` }}
+            >
+              {hostName ? (
+                <span className="text-xl font-bold text-white">{hostName.charAt(0).toUpperCase()}</span>
+              ) : (
+                <Sparkles className="h-6 w-6 text-white" />
+              )}
+            </div>
+          )}
+          {hostName && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{hostName}</p>
+            </div>
+          )}
         </div>
+
         <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-tight">
           {title}
         </h1>
