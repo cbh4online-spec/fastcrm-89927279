@@ -730,6 +730,12 @@ export function ComposeEmailDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InsertPaymentLinkDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        onInsert={handlePaymentLinkInsert}
+      />
     </>
   );
 }
