@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
     
-    if (!member || !["owner", "admin"].includes(member.role)) {
+    if (!member || !["owner", "admin", "member"].includes(member.role)) {
       throw new Error("Permission denied");
     }
 
