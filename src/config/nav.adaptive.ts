@@ -2,7 +2,8 @@ import { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, TrendingUp, Target, Users, Calendar,
   BarChart3, Settings, Building2, UserCheck, GitBranch,
-  Phone, Gauge, Brain,
+  Phone, Gauge, Brain, Inbox, MessageSquare, Radio,
+  FileText, Send,
 } from "lucide-react";
 import type { SalesFunction } from "@/data/adaptiveDashboardMock";
 
