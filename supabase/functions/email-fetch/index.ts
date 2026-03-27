@@ -354,9 +354,9 @@ class SimpleIMAPClient {
   private async readResponse(expectedTag: string): Promise<string> {
     if (!this.conn) throw new Error("Not connected");
     
-    const buf = new Uint8Array(8192);
+    const buf = new Uint8Array(4096);
     let response = this.buffer;
-    const timeout = 30000;
+    const timeout = 15000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
     }
 
     const body: FetchEmailsRequest = await req.json();
-    const { connectionId, workspaceId, limit = 50, forceResync = false } = body;
+    const { connectionId, workspaceId, limit = 20, forceResync = false } = body;
 
     // Get email connection
     const { data: connection, error: connError } = await supabaseClient
