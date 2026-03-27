@@ -629,8 +629,8 @@ export function ComposeEmailDialog({
                   className="w-full h-full min-h-[200px] p-3 text-sm resize-none rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               ) : (
-                <ScrollArea className="h-full min-h-[200px] rounded-md border bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-                  <div className="p-4 prose prose-sm max-w-none dark:prose-invert prose-p:text-inherit prose-li:text-inherit prose-strong:text-inherit" dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                <ScrollArea className="h-full min-h-[200px] rounded-md border bg-white text-gray-900">
+                  <div className="p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: htmlPreview }} />
                 </ScrollArea>
               )}
             </div>
