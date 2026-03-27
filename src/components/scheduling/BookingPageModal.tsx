@@ -138,11 +138,11 @@ export function BookingPageModal({ open, onOpenChange, calendars, editingPage }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>{isEditing ? 'Editar Link de Agendamento' : 'Novo Link de Agendamento'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 pb-2 space-y-5">
           {/* Basic info */}
           <div className="space-y-3">
             <div className="space-y-2">
