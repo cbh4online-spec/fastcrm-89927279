@@ -1,33 +1,24 @@
 
 
-# CRM como módulo base em todos os perfis de sidebar
+# Seletor de vista de perfil na sidebar
 
-## Problema
-A secção CRM (Leads, Contactos, Empresas, Pipeline, Ciclo de Vida) só existe no perfil **CEO**. Os perfis Vendedor, Gestor e Diretor não têm acesso direto a estes itens na sidebar, apesar de serem funcionalidades core do sistema.
+## Objetivo
+Adicionar um seletor rápido de perfil (Vendedor, Gestor, Diretor, CEO) na sidebar para permitir pré-visualizar como cada perfil vê o menu — sem alterar o perfil guardado na base de dados.
 
-## Plano
+## Como funciona
 
-### 1. Adicionar secção CRM a todos os perfis
+### 1. Estado local de override no hook `useAdaptiveDashboard`
+- Adicionar um estado `overrideFunction` (guardado em `localStorage` para persistir entre reloads).
+- Expor `setSalesFunctionOverride(fn)` e `clearOverride()`.
+- O `salesFunction` retornado pelo hook usa o override quando presente, caso contrário usa o valor do perfil.
 
-Atualizar `src/config/nav.adaptive.ts` para incluir um bloco CRM em cada perfil, adaptado por relevância:
-
-**Vendedor** — CRM focado na execução diária:
-- Leads (com badge), Contactos, Pipeline
-
-**Gestor** — CRM com visão de equipa:
-- Leads (com badge), Contactos, Empresas, Pipeline, Ciclo de Vida
-
-**Diretor** — CRM com visão estratégica:
-- Leads, Contactos, Empresas, Pipeline, Ciclo de Vida
-
-**CEO** — já tem, mantém como está.
-
-### 2. Reorganizar distribuição no menu
-
-- O bloco CRM ficará posicionado logo após a secção "Principal" (Dashboard) em todos os perfis, por ser funcionalidade core.
-- Marcar como `collapsible: true` para não ocupar espaço excessivo.
-- Remover duplicações — por exemplo, no perfil Vendedor a secção "Leads" atual será absorvida pela secção CRM unificada.
+### 2. Seletor visual na sidebar (junto ao nome do utilizador)
+- Dropdown compacto ao lado do role label atual (ex: "Gestor de Vendas ▾").
+- Ao clicar, mostra as 4 opções: Vendedor, Gestor, Diretor, CEO.
+- Ao selecionar, aplica o override — a sidebar e o dashboard mudam instantaneamente.
+- Badge visual "Preview" quando o override está ativo, com botão para voltar ao perfil real.
 
 ### Ficheiros alterados
-- `src/config/nav.adaptive.ts` — adicionar secção CRM a `vendedorSections`, `gestorSections` e `diretorSections`; reordenar secções.
+- `src/hooks/useAdaptiveDashboard.ts` — adicionar override state + localStorage
+- `src/components/layout/AdaptiveSidebar.tsx` — adicionar dropdown de seleção de perfil no header
 
