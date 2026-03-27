@@ -1,39 +1,24 @@
 
 
-## Substituir todos os mailto: pelo compositor interno de email
+## Melhorar visibilidade do texto no compositor de email
 
 ### Problema
-O botão de email nas páginas de detalhe de Lead, Contacto e no painel EntityDetailsPanel ainda usa `mailto:` que abre o cliente externo. Deve abrir o `ComposeEmailDialog` interno, tal como já foi feito nas oportunidades.
 
-### Ficheiros a alterar
+Na aba "Preview" do compositor, o texto do corpo do email (saudação, descrição do link de pagamento) aparece com baixo contraste, difícil de ler no tema escuro.
 
-| Ficheiro | Alteração |
+### Causa
+
+- A textarea (aba "Escrever") usa `bg-background` sem cor de texto explícita — depende do tema
+- O preview usa `bg-white dark:bg-gray-950` com `prose dark:prose-invert`, mas o texto fica cinzento em vez de branco
+
+### Alterações
+
+| Ficheiro | Detalhe |
 |---|---|
-| `src/components/crm/LeadDetail.tsx` | Substituir `<a href="mailto:...">` (linha 211) por botão que abre `ComposeEmailDialog` com dados do lead |
-| `src/components/contacts/ContactDetail.tsx` | Substituir os 2 botões `mailto:` (linhas 423 e 962) por botão que abre `ComposeEmailDialog` com dados do contacto |
-| `src/components/entity/EntityDetailsPanel.tsx` | No fallback sem `onEmailClick` (linha 145), usar o mesmo padrão interno em vez de `mailto:` |
-| `src/components/contacts/ContactInsightsPanel.tsx` | Substituir `window.open(mailto:...)` (linha 129) pelo compositor interno |
+| `ComposeEmailDialog.tsx` (linha 624-629) | Adicionar `text-foreground` à textarea para garantir contraste no modo escuro |
+| `ComposeEmailDialog.tsx` (linha 632-633) | Forçar cor de texto no preview: `dark:text-gray-100` e usar classes prose mais explícitas para garantir legibilidade |
 
-### Padrão de implementação
+### Resultado
 
-Cada componente recebe um `useState` para controlar o dialog e renderiza o `ComposeEmailDialog` com:
-- `recipient`: `{ email, name, entityType: 'lead'|'contact', entityId }`
-- `defaultSubject`: vazio (ou nome do lead/contacto)
-
-Exemplo para `LeadDetail.tsx`:
-```text
-// Substituir <a href="mailto:..."> por:
-<Button onClick={() => setShowEmailDialog(true)}>
-  <Mail /> 
-</Button>
-
-// Adicionar no final:
-<ComposeEmailDialog
-  open={showEmailDialog}
-  onOpenChange={setShowEmailDialog}
-  recipient={{ email: lead.email, name: lead.name, entityType: 'lead', entityId: lead.id }}
-/>
-```
-
-O mesmo padrão aplica-se aos outros ficheiros. Nenhuma alteração de base de dados necessária.
+Texto do email claramente legível tanto na aba "Escrever" como na aba "Preview", em ambos os temas (claro e escuro).
 
