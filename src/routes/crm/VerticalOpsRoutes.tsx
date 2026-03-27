@@ -9,6 +9,7 @@ const VerticalLandingPage = lazy(() => import("@/pages/VerticalLandingPage"));
 const EventRsvpResponse = lazy(() => import("@/pages/EventRsvpResponse"));
 const AcceptWorkspaceInvite = lazy(() => import("@/pages/AcceptWorkspaceInvite"));
 const VisionDuoAcceptPage = lazy(() => import("@/pages/VisionDuoAcceptPage"));
+const UnsubscribePage = lazy(() => import("@/pages/UnsubscribePage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 export function VerticalOpsRoutes() {
@@ -26,6 +27,7 @@ export function VerticalOpsRoutes() {
       <Route path="/agencias" element={<VerticalLandingPage />} />
       <Route path="/empresas" element={<VerticalLandingPage />} />
       <Route path="/event-rsvp" element={<EventRsvpResponse />} />
+      <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
       <Route path="/vision/duo/accept/:token" element={<VisionDuoAcceptPage />} />
 
