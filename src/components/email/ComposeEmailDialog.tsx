@@ -552,6 +552,18 @@ export function ComposeEmailDialog({
                 {/* Attachments */}
                 <EmailAttachmentList attachments={attachments} onChange={setAttachments} disabled={isBusy} />
 
+                {/* Payment link */}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={() => setShowPaymentDialog(true)}>
+                        <CreditCard className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Inserir link de pagamento</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 <Separator orientation="vertical" className="h-6 mx-1" />
 
                 {/* Translation */}
