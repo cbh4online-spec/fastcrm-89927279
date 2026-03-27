@@ -1,3 +1,4 @@
+import { Locale } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { enUS } from 'date-fns/locale';
 import { es } from 'date-fns/locale';
