@@ -66,6 +66,7 @@ export function useStrategicBriefs() {
       triggerNoCreditsDialog({ actionLabel: "Brief Estratégico", creditsNeeded: cost });
       return;
     }
+    setIsGenerating(true);
     try {
       // Consume credits first
       if (cost > 0) {

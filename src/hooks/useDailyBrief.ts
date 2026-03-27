@@ -65,6 +65,7 @@ export function useDailyBrief() {
       triggerNoCreditsDialog({ actionLabel: "Daily Brief", creditsNeeded: cost });
       return;
     }
+    setIsGenerating(true);
     try {
       // Consume credits first
       if (cost > 0) {
