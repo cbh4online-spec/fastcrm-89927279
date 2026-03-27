@@ -509,9 +509,40 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     <p className={cn("font-semibold truncate text-foreground", style.textSize === "text-lg" ? "text-base" : "text-sm")}>
                       {userName}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {roleLabelMap[salesFunction]}
-                    </p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
+                          {isOverridden && <Eye className="w-3 h-3 text-amber-500 shrink-0" />}
+                          <span className="truncate">{roleLabelMap[salesFunction]}</span>
+                          <ChevronDown className="w-3 h-3 shrink-0 opacity-50 group-hover:opacity-100" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-48">
+                        {(["vendedor", "gestor", "diretor", "ceo"] as SalesFunction[]).map((fn) => (
+                          <DropdownMenuItem
+                            key={fn}
+                            onClick={() => setSalesFunctionOverride(fn)}
+                            className={cn(
+                              salesFunction === fn && "bg-primary/10 text-primary font-medium"
+                            )}
+                          >
+                            {roleLabelMap[fn]}
+                            {fn === realSalesFunction && (
+                              <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                        {isOverridden && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={clearOverride} className="text-muted-foreground">
+                              <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                              Voltar ao perfil real
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <button
                     onClick={onClose}
