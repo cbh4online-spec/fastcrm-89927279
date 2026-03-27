@@ -46,9 +46,9 @@ export function CalendarView({
 
   return (
     <TooltipProvider delayDuration={300}>
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
         {viewMode === 'month' && (
           <MonthView
             currentDate={currentDate}
@@ -104,7 +104,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
   };
 
   return (
-    <div className="h-full flex flex-col rounded-2xl overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
+    <div className="h-full min-h-0 flex flex-col rounded-2xl overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
       {/* Week day headers */}
       <div className="grid grid-cols-7 bg-muted/30 backdrop-blur-sm">
         {weekDays.map(day => (
@@ -115,7 +115,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
       </div>
 
       {/* Days grid */}
-      <div className="flex-1 grid grid-cols-7 auto-rows-fr">
+      <div className="flex-1 min-h-0 grid grid-cols-7 auto-rows-fr overflow-y-auto">
         {days.map(day => {
           const dayEvents = getEventsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
@@ -125,7 +125,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
             <div
               key={day.toISOString()}
               className={cn(
-                "border-b border-r border-border/30 p-2 min-h-[110px] cursor-pointer",
+                "border-b border-r border-border/30 p-2 min-h-[80px] cursor-pointer",
                 "transition-all duration-200 ease-out",
                 "hover:bg-accent/40 hover:scale-[1.01] hover:shadow-lg hover:z-10",
                 !isCurrentMonth && "bg-muted/20 opacity-60",
