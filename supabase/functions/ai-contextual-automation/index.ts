@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
       return new Response(
         JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
