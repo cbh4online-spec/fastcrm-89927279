@@ -1,64 +1,65 @@
 
 
-# Emails Automáticos de Eventos — Convite, Confirmação e Alerta
+# Pipeline Mortgage Journey — Crédito Habitação
 
-## Situação Atual
+## Objetivo
+Criar o pipeline "Mortgage Journey / Crédito Habitação" com 12 estágios completos, incluindo metadados ricos (critérios de entrada/saída, campos obrigatórios, tarefas padrão, regras de bloqueio) que o sistema atual não suporta.
 
-- Já existe um `send-event-invite` que usa **Resend** (API key externa) para enviar convites
-- Já existe um `event-rsvp-respond` que atualiza o RSVP e redireciona para uma página de confirmação
-- O domínio de email Lovable (`notify.fastcrm.metodopare.ai`) está configurado mas com DNS falhado — precisa ser corrigido para os emails funcionarem
-- Não existem emails de **confirmação** (quando alguém confirma presença) nem de **alerta/lembrete** antes do evento
+## Situação atual
+- Tabelas `pipelines` e `pipeline_stages` existem com: name, position, probability, color, description, expected_days
+- **Não existe** suporte para: entry/exit criteria, required_fields, default_tasks, blocked_if, phase, next_stage
+- Estes metadados precisam de ser armazenados — a forma mais limpa é adicionar uma coluna JSONB `config` ao `pipeline_stages`
 
 ## Plano
 
-### 1. Corrigir infraestrutura de email
+### 1. Migração — Adicionar coluna `config` ao `pipeline_stages`
 
-O domínio de email tem DNS falhado. Antes de migrar, é necessário verificar a configuração DNS em **Cloud → Emails**. Enquanto isso, podemos avançar com o scaffolding e templates — os emails começam a ser enviados assim que o DNS estiver verificado.
+```sql
+ALTER TABLE pipeline_stages 
+  ADD COLUMN IF NOT EXISTS config jsonb DEFAULT '{}';
+```
 
-- Configurar infraestrutura de email (setup_email_infra)
-- Scaffolding de emails transacionais (scaffold_transactional_email)
+A coluna `config` guarda por estágio:
+```json
+{
+  "phase": "Preparation",
+  "objective": "...",
+  "entry_criteria": ["..."],
+  "exit_criteria": ["..."],
+  "required_fields": ["..."],
+  "default_tasks": ["..."],
+  "blocked_if": ["..."],
+  "next_stage_code": "research_budget"
+}
+```
 
-### 2. Criar 3 templates de email transacional
+### 2. Migração — Criar pipeline e 12 estágios
 
-Todos em `supabase/functions/_shared/transactional-email-templates/`:
+Função `create_mortgage_pipeline_for_workspace(p_workspace_id)` que:
+- Cria registo em `pipelines` (name: "Mortgage Journey", type: "sales", code: "mortgage_journey")
+- Adicionar coluna `code` à tabela `pipelines` para identificação por código
+- Insere 12 estágios com probability, color por fase, expected_days e config JSONB completo
+- Cria benchmarks em `pipeline_stage_benchmarks` para cada estágio
+- Executa para todos os workspaces existentes + trigger para novos
 
-| Template | Trigger | Dados dinâmicos |
-|----------|---------|-----------------|
-| `event-invitation` | Ao criar RSVP com email | nome, título evento, data, local, botões confirmar/recusar |
-| `event-confirmation` | Quando RSVP muda para "confirmed" | nome, título evento, data, local, link |
-| `event-reminder` | 24h antes do evento (cron) | nome, título evento, data, local, link |
+**Cores por fase:**
+- Preparation (3 stages): tons de azul (#3b82f6, #60a5fa, #93c5fd)
+- Approval (3 stages): tons de amber (#f59e0b, #fbbf24, #fcd34d)
+- Application (3 stages): tons de violet (#8b5cf6, #a78bfa, #c4b5fd)
+- Closing (3 stages): tons de verde (#22c55e, #4ade80, #86efac)
 
-Estilo visual alinhado com a identidade da app (cores amber/dark theme, tipografia).
+### 3. UI — Suporte à visualização de config nos estágios
 
-### 3. Migrar `send-event-invite` para transactional email
+Atualizar o hook `usePipelineStages` e componentes de pipeline para:
+- Expor o campo `config` no tipo `PipelineStage`
+- Mostrar fase (phase) como badge no card de estágio
+- Mostrar critérios de entrada/saída e tarefas padrão no painel de detalhe do estágio
 
-- Atualizar `useInviteToEvent` em `src/hooks/useEvents.ts` para chamar `send-transactional-email` em vez de `send-event-invite`
-- Remover dependência de `RESEND_API_KEY`
-- Manter os botões de RSVP (confirmar/recusar) no email usando o `event-rsvp-respond` existente
-
-### 4. Adicionar email de confirmação
-
-- Atualizar `event-rsvp-respond/index.ts` para, após confirmar um RSVP, invocar `send-transactional-email` com template `event-confirmation`
-- O convidado recebe um email "Presença confirmada!" com os detalhes do evento
-
-### 5. Criar sistema de lembrete pré-evento
-
-- Criar edge function `event-reminder-cron` que:
-  - Busca eventos que começam nas próximas 24h
-  - Busca RSVPs confirmados desses eventos
-  - Envia email de lembrete via `send-transactional-email` para cada convidado confirmado
-  - Marca RSVPs como "reminded" para não duplicar
-- Registar pg_cron para executar a cada hora
-
-### Ficheiros criados/alterados
+### Ficheiros alterados
 
 | Ficheiro | Ação |
 |----------|------|
-| `_shared/transactional-email-templates/event-invitation.tsx` | Novo template |
-| `_shared/transactional-email-templates/event-confirmation.tsx` | Novo template |
-| `_shared/transactional-email-templates/event-reminder.tsx` | Novo template |
-| `_shared/transactional-email-templates/registry.ts` | Registar 3 templates |
-| `supabase/functions/event-rsvp-respond/index.ts` | Adicionar envio de email de confirmação |
-| `supabase/functions/event-reminder-cron/index.ts` | Nova edge function de lembrete |
-| `src/hooks/useEvents.ts` | Migrar para `send-transactional-email` |
+| Nova migração SQL | Coluna `config` + coluna `code` + pipeline mortgage + 12 estágios |
+| `src/hooks/usePipelineStages.ts` | Adicionar `config` ao tipo PipelineStage |
+| `src/components/pipeline/` | Exibir metadados ricos (fase, critérios, tarefas) nos cards |
 
