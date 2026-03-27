@@ -5,6 +5,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 export interface CreditWallet {
   id: string;
@@ -158,7 +159,11 @@ export function useCreditWallet() {
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : "Erro ao consumir créditos";
-      toast.error(msg);
+      if (msg.includes("Saldo insuficiente") || msg.includes("créditos") || msg.includes("Insufficient")) {
+        triggerNoCreditsDialog({ actionLabel: "Ação IA" });
+      } else {
+        toast.error(msg);
+      }
     },
   });
 
