@@ -39275,6 +39275,71 @@ export type Database = {
           },
         ]
       }
+      scheduled_emails: {
+        Row: {
+          attachments: Json | null
+          body: string
+          connection_id: string
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          is_html: boolean
+          recipient_email: string
+          recipient_name: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          subject: string
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          body: string
+          connection_id: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          is_html?: boolean
+          recipient_email: string
+          recipient_name?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          body?: string
+          connection_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          is_html?: boolean
+          recipient_email?: string
+          recipient_name?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_emails_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_comparisons: {
         Row: {
           content: Json | null
