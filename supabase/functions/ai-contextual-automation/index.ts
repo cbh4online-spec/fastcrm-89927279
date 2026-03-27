@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
