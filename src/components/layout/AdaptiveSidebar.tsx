@@ -177,7 +177,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { collapsed, toggleCollapse } = useSidebarCollapse();
-  const { ageGroup, salesFunction } = useAdaptiveDashboard();
+  const { ageGroup, salesFunction, realSalesFunction, isOverridden, setSalesFunctionOverride, clearOverride } = useAdaptiveDashboard();
   const badges = useSidebarBadges();
   const criticalAlerts = useSidebarAlerts();
   const { extensionSettingsPages } = useExtensionManifests();
