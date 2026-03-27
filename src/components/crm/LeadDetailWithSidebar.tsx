@@ -504,8 +504,16 @@ export function LeadDetailWithSidebar() {
         </main>
 
         {/* Right Details Panel */}
-        <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} />
+        <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} onEmailClick={(email) => { setEmailTo(email); setShowEmailDialog(true); }} />
       </div>
+
+      {/* Compose Email Dialog */}
+      <ComposeEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        recipientEmail={emailTo}
+        recipientName={lead.name}
+      />
     </div>
   );
 }
