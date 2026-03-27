@@ -64,6 +64,18 @@ const coreSections: AdaptiveNavSection[] = [
       { name: "Follow-ups", href: "/dashboard/scheduling?view=followups", icon: Phone },
     ],
   },
+  {
+    label: "Canais & Fontes",
+    icon: Radio,
+    collapsible: true,
+    items: [
+      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
+      { name: "Grupos", href: "/dashboard/groups", icon: Users },
+      { name: "Telegram", href: "/dashboard/telegram", icon: Send },
+      { name: "Templates", href: "/dashboard/communication/templates", icon: FileText },
+      { name: "Sequências", href: "/dashboard/sequences", icon: MessageSquare },
+    ],
+  },
 ];
 
 // ── Role-specific extras (only items NOT covered by modules) ──
