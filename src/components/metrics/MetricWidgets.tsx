@@ -6,7 +6,7 @@ import { useCalculatedMetrics } from "@/hooks/useCalculatedMetrics";
 import { cn } from "@/lib/utils";
 
 export function MetricWidgets() {
-  const { data: metrics, isLoading } = useCalculatedMetrics();
+  const { data: metrics, isLoading, isError } = useCalculatedMetrics();
 
   if (isLoading) {
     return (
@@ -16,7 +16,7 @@ export function MetricWidgets() {
     );
   }
 
-  if (!metrics || metrics.length === 0) return null;
+  if (isError || !metrics || metrics.length === 0) return null;
 
   return (
     <div className="space-y-3">

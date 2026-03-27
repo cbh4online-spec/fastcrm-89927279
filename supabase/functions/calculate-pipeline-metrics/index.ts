@@ -10,20 +10,23 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user } } = await supabaseClient.auth.getUser(token);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: corsHeaders });
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const userId = claimsData.claims.sub;
 
     const { workspace_id, metric_id } = await req.json();
     if (!workspace_id) throw new Error("workspace_id required");
@@ -39,12 +42,14 @@ serve(async (req: Request) => {
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspace_id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
-    const isSuperAdmin = user.user_metadata?.is_super_admin || user.app_metadata?.is_super_admin;
+    // Check super admin via service client
+    const { data: userData } = await serviceClient.auth.admin.getUserById(userId);
+    const isSuperAdmin = userData?.user?.user_metadata?.is_super_admin || userData?.user?.app_metadata?.is_super_admin;
     if (!member && !isSuperAdmin) {
-      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Fetch metrics
