@@ -209,6 +209,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
             title={opportunity.title}
             isFavorite={isFavorite}
             onToggleFavorite={() => setIsFavorite(!isFavorite)}
+            contactEmail={opportunity.contact?.email || opportunity.lead?.email}
+            contactName={opportunity.contact?.name || opportunity.lead?.name}
+            contactId={opportunity.contact?.id || opportunity.lead?.id}
+            contactEntityType={opportunity.contact ? 'contact' : opportunity.lead ? 'lead' : undefined}
+            stageName={currentStage?.name}
+            companyName={opportunity.company?.name}
           />
         </div>
       </div>

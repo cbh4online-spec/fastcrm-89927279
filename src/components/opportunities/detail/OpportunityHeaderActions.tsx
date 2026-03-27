@@ -27,6 +27,7 @@ import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, 
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { ComposeEmailDialog } from "@/components/email";
 
 interface OpportunityHeaderActionsProps {
   opportunityId: string;
@@ -34,12 +35,19 @@ interface OpportunityHeaderActionsProps {
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   onDelete?: () => Promise<void>;
+  contactEmail?: string;
+  contactName?: string;
+  contactId?: string;
+  contactEntityType?: 'contact' | 'lead';
+  stageName?: string;
+  companyName?: string;
 }
 
-export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete }: OpportunityHeaderActionsProps) {
+export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete, contactEmail, contactName, contactId, contactEntityType, stageName, companyName }: OpportunityHeaderActionsProps) {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   const copyUrl = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -64,7 +72,11 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
   };
 
   const handleComposeEmail = () => {
-    window.open(`mailto:?subject=${encodeURIComponent(title)}`, "_blank");
+    if (!contactEmail) {
+      toast.warning(t("oppDetail_noEmailContact", "Não existe email associado a esta oportunidade"));
+      return;
+    }
+    setShowEmailDialog(true);
   };
 
   return (
@@ -155,6 +167,26 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {contactEmail && contactId && contactEntityType && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={{
+            email: contactEmail,
+            name: contactName || "",
+            entityType: contactEntityType,
+            entityId: contactId,
+          }}
+          defaultSubject={title}
+          templateContext={{
+            pipeline_stage: stageName,
+            opportunity_title: title,
+            contact_name: contactName,
+            company_name: companyName,
+          }}
+        />
+      )}
     </>
   );
 }
