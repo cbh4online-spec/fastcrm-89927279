@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -21,6 +22,16 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       try {
         const body = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'heavy', 'daily-revenue-brief');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
         workspaceId = body?.workspace_id ?? null;
       } catch { /* no body */ }
     }

@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 // ============================================================
 // FastCRM | AI Employee Executor  v3
 // POST /functions/v1/ai-employee-executor
@@ -1405,6 +1406,16 @@ Deno.serve(async (req) => {
     let body: ExecutorRequest;
     try {
       body = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'agent', 'ai-employee-executor');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     } catch {
       return new Response(
         JSON.stringify({ status: "error", reply: { text: "Invalid JSON body", attachments: [] } }),
