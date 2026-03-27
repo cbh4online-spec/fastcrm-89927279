@@ -19,7 +19,7 @@ import type { AgeGroup } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Settings, Flame, Medal, TrendingUp,
-  AlertTriangle, Puzzle,
+  AlertTriangle, Puzzle, Eye, ChevronDown, RotateCcw,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -30,6 +30,14 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import type { SalesFunction } from "@/data/adaptiveDashboardMock";
 
 interface AdaptiveSidebarProps {
   open: boolean;
