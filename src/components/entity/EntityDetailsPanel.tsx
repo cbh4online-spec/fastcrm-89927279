@@ -128,30 +128,30 @@ function EditableFieldRow({
   }
 
   const renderValue = () => {
-    if (!value) return <span className="text-muted-foreground">—</span>;
+    if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     if (isLink && linkType === 'url') {
       const href = String(value).startsWith('http') ? String(value) : `https://${value}`;
-      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">{String(value)}</a>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate text-[13px] font-medium">{String(value)}</a>;
     }
     if (isLink && linkType === 'email') {
-      return <a href={`mailto:${value}`} className="text-primary hover:underline truncate">{String(value)}</a>;
+      return <a href={`mailto:${value}`} className="text-primary hover:underline truncate text-[13px] font-medium">{String(value)}</a>;
     }
     if (isLink && linkType === 'phone') {
-      return <a href={`tel:${value}`} className="text-primary hover:underline">{String(value)}</a>;
+      return <a href={`tel:${value}`} className="text-primary hover:underline text-[13px] font-medium">{String(value)}</a>;
     }
-    return <span className="text-foreground truncate">{String(value)}</span>;
+    return <span className="text-foreground truncate text-[13px]">{String(value)}</span>;
   };
 
   return (
     <div 
       className={cn(
-        "flex items-start gap-2 text-sm group",
-        canEdit && "cursor-pointer rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/50 transition-colors"
+        "flex items-start gap-2 text-sm group py-1",
+        canEdit && "cursor-pointer rounded-md -mx-1 px-1 hover:bg-muted/50 transition-colors"
       )}
       onClick={canEdit ? () => setEditing(true) : undefined}
     >
-      {Icon && <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
-      <span className="text-muted-foreground shrink-0 min-w-[80px]">{label}</span>
+      {Icon && <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
+      <span className="text-muted-foreground shrink-0 min-w-[80px] text-[13px]">{label}</span>
       <div className="flex-1 text-right truncate flex items-center justify-end gap-1">
         {renderValue()}
         {canEdit && (
@@ -232,7 +232,7 @@ function DatesSection({ entity }: { entity: Entity }) {
 
 export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetailsPanelProps) {
   return (
-    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-muted/20 flex-shrink-0 overflow-hidden flex flex-col max-h-[50vh] lg:max-h-none">
+    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-card flex-shrink-0 overflow-hidden flex flex-col max-h-[50vh] lg:max-h-none">
       <div className="border-b px-4 py-2.5 flex items-center gap-4">
         <span className="text-sm font-medium text-foreground">Detalhes</span>
       </div>
