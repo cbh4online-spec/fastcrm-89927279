@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,16 @@ Deno.serve(async (req) => {
   try {
     const { field_config, record_data, field_name } = await req.json();
 
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'micro', 'ai-autofill-field');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!field_config || !field_name) {
       return new Response(JSON.stringify({ error: "field_config and field_name are required" }), {
         status: 400,

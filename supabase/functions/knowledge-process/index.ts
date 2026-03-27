@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 
 
@@ -94,6 +95,16 @@ Deno.serve(async (req) => {
 
   try {
     const body: ProcessRequest = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'knowledge-process');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const { sourceId, sourceType, content, url, knowledgeBaseType } = body;
 
     console.log("[AI-KNOWLEDGE] PROCESS_START", { sourceId, sourceType, url, knowledgeBaseType });

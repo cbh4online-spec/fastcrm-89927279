@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 
 
@@ -67,6 +68,16 @@ Deno.serve(async (req) => {
   try {
     const { description, currentIndustry, existingStages } = await req.json();
 
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'heavy', 'generate-pipeline');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!description || typeof description !== "string") {
       return new Response(
         JSON.stringify({ error: "Descrição é obrigatória" }),

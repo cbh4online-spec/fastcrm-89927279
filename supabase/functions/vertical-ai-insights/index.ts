@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 
@@ -23,6 +24,16 @@ Deno.serve(async (req) => {
     if (!user) throw new Error("Unauthorized");
 
     const { template_slug, stats } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'vertical-ai-insights');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!template_slug) throw new Error("template_slug is required");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

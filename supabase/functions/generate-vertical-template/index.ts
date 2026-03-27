@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -80,6 +81,16 @@ Deno.serve(async (req) => {
 
   try {
     const { nome } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'generate-vertical-template');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!nome || typeof nome !== "string" || nome.trim().length < 2) {
       return new Response(JSON.stringify({ error: "Nome da vertical é obrigatório (mín. 2 caracteres)" }), {
         status: 400,
