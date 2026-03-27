@@ -8,6 +8,7 @@ const PerformanceChallengesPage = lazy(() => import("@/pages/performance/Perform
 const PerformanceRecognitionPage = lazy(() => import("@/pages/performance/PerformanceRecognitionPage"));
 const PerformanceTVModePage = lazy(() => import("@/pages/performance/PerformanceTVModePage"));
 const PerformanceSettingsPage = lazy(() => import("@/pages/performance/PerformanceSettingsPage"));
+const PipelineMetricsPage = lazy(() => import("@/pages/performance/PipelineMetricsPage"));
 
 export function PerformanceRoutes() {
   return (
@@ -19,6 +20,7 @@ export function PerformanceRoutes() {
       <Route path="/dashboard/performance/recognition" element={<PerformanceRecognitionPage />} />
       <Route path="/dashboard/performance/tv-mode" element={<PerformanceTVModePage />} />
       <Route path="/dashboard/performance/settings" element={<PerformanceSettingsPage />} />
+      <Route path="/dashboard/performance/metrics" element={<PipelineMetricsPage />} />
     </>
   );
 }

@@ -10,7 +10,8 @@ import { usePerformanceScores, useLeaderboard, useRecalculateScores } from "@/ho
 import { usePerformanceChallenges } from "@/hooks/usePerformanceChallenges";
 import { usePerformanceRecognition, RECOGNITION_TYPES } from "@/hooks/usePerformanceRecognition";
 import { usePerformanceGoals } from "@/hooks/usePerformanceGoals";
-import { TrendingUp, Target, Trophy, Zap, Users, DollarSign, Calendar, RefreshCw } from "lucide-react";
+import { TrendingUp, Target, Trophy, Zap, Users, DollarSign, Calendar, RefreshCw, BarChart3 } from "lucide-react";
+import { MetricWidgets } from "@/components/metrics/MetricWidgets";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
@@ -106,6 +107,16 @@ export default function PerformanceDashboardPage() {
             variant="default"
           />
         </KPIGrid>
+
+        {/* Pipeline Metrics Widgets */}
+        <MetricWidgets />
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/dashboard/performance/metrics")}>
+            <BarChart3 className="h-4 w-4" />
+            Gerir Métricas
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
