@@ -183,6 +183,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const badges = useSidebarBadges();
   const criticalAlerts = useSidebarAlerts();
   const { extensionSettingsPages } = useExtensionManifests();
+  const { installedModuleIds } = useWorkspaceModules();
   const touchStartX = useRef(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
