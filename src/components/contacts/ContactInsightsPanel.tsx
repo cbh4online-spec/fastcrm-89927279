@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,8 @@ export function ContactInsightsPanel({
   const [showAIDraft, setShowAIDraft] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailDraft, setEmailDraft] = useState("");
 
   const handleRefresh = () => {
     refreshInsights.mutate(contactId, {

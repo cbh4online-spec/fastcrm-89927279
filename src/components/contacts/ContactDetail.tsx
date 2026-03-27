@@ -76,6 +76,7 @@ import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { useCustomFields, useCustomFieldValues, useSetCustomFieldValue } from "@/hooks/useCustomFields";
 import { CustomFieldWithSuggestion, getCustomFieldSuggestion } from "@/components/ai/CustomFieldWithSuggestion";
 import { cn } from "@/lib/utils";
+import { ComposeEmailDialog } from "@/components/email";
 
 // Reusable row component for label-value display
 interface DetailRowProps {
@@ -165,6 +166,7 @@ export function ContactDetail() {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
   const [layoutCustomizerOpen, setLayoutCustomizerOpen] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   // Layout configuration
   const { data: layoutData } = useLayoutConfig("contact");
