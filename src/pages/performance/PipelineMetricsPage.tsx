@@ -88,6 +88,7 @@ const TYPE_COLORS: Record<MetricType, string> = {
 
 export default function PipelineMetricsPage() {
   const { metrics, metricsLoading, targets, alerts, createMetric, createTarget, createAlert, deleteMetric } = usePipelineMetrics();
+  useSeedDefaultMetrics();
   const { data: pipelines } = usePipelines();
   const { data: stages } = usePipelineStagesEnhanced();
   const { currentWorkspace } = useWorkspace();
