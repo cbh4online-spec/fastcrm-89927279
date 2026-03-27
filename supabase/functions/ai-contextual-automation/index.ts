@@ -42,7 +42,16 @@ Deno.serve(async (req) => {
       context: Context;
     };
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'medium', 'ai-contextual-automation');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!lovableApiKey) {
       return new Response(
         JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
