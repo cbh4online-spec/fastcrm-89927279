@@ -66,6 +66,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </main>
           {showFAB && <MQPCFloatingButton />}
           <VoiceConversationWidget />
+          <GlobalNoCreditsDialog />
         </div>
       </div>
     </WorkspaceStatusGuard>
