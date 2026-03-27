@@ -13,33 +13,34 @@ serve(async (req) => {
   }
 
   try {
-    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
-    const supabase = createClient(
+    // Use service role client for all DB queries (bypasses RLS)
+    const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
     );
 
+    // Auth via getUser (standard pattern)
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+    if (userError || !userData?.user) {
+      console.error("[CREATE-PAYMENT-LINK] Auth error:", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const userId = claimsData.claims.sub;
+    const userId = userData.user.id;
 
-    // Parse body
     const { productId, workspaceId } = await req.json();
     if (!productId || !workspaceId) {
       return new Response(JSON.stringify({ error: "productId and workspaceId are required" }), { status: 400, headers: corsHeaders });
     }
 
     // Verify workspace membership
-    const { data: member } = await supabase
+    const { data: member } = await adminClient
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspaceId)
@@ -50,25 +51,23 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not a workspace member" }), { status: 403, headers: corsHeaders });
     }
 
-    // Fetch product
-    const { data: product, error: productError } = await supabase
+    // Fetch product using admin client (no RLS issues)
+    const { data: product, error: productError } = await adminClient
       .from("products")
       .select("id, name, base_price, currency")
       .eq("id", productId)
       .eq("workspace_id", workspaceId)
       .maybeSingle();
 
-    if (productError || !product) {
+    if (productError) {
+      console.error("[CREATE-PAYMENT-LINK] Product query error:", productError.message);
+      return new Response(JSON.stringify({ error: "Product query failed" }), { status: 500, headers: corsHeaders });
+    }
+    if (!product) {
       return new Response(JSON.stringify({ error: "Product not found" }), { status: 404, headers: corsHeaders });
     }
 
-    // Get Stripe key from workspace config
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
-    );
-
+    // Get Stripe key
     const { data: stripeConfig } = await adminClient
       .from("workspace_stripe_config")
       .select("stripe_secret_key_encrypted, is_active")
@@ -82,7 +81,6 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    let paymentUrl: string;
     const productName = product.name;
     const price = product.base_price ?? 0;
     const currency = (product.currency || "eur").toLowerCase();
@@ -100,9 +98,8 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-success`,
       cancel_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-canceled`,
     });
-    paymentUrl = session.url!;
 
-    return new Response(JSON.stringify({ url: paymentUrl, productName, price, currency }), {
+    return new Response(JSON.stringify({ url: session.url, productName, price, currency }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
