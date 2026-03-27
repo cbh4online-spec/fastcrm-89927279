@@ -180,10 +180,21 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
           }}
           defaultSubject={title}
           templateContext={{
-            pipeline_stage: stageName,
-            opportunity_title: title,
-            contact_name: contactName,
-            company_name: companyName,
+            opportunity: {
+              title: title,
+              stage: stageName,
+            },
+            contact: contactEntityType === 'contact' ? {
+              name: contactName,
+              email: contactEmail,
+            } : undefined,
+            lead: contactEntityType === 'lead' ? {
+              name: contactName,
+              email: contactEmail,
+            } : undefined,
+            company: companyName ? {
+              name: companyName,
+            } : undefined,
           }}
         />
       )}
