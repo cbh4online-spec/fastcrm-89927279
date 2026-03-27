@@ -1,4 +1,4 @@
-
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -30,6 +30,14 @@ Deno.serve(async (req) => {
       .single();
     if (!membership) throw new Error("No workspace");
     const workspaceId = membership.workspace_id;
+
+    // AI Gate — enforce credit consumption
+    const gate = await aiGate(workspaceId, 'medium', 'ai-store-offers', user.id);
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch top contacts with purchase history
     const { data: orders } = await supabase
