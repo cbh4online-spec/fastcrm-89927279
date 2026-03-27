@@ -396,6 +396,11 @@ export function ComposeEmailDialog({
     toast.success("Template aplicado");
   };
 
+  const handlePaymentLinkInsert = (html: string) => {
+    setBody((prev) => prev + "\n" + html);
+    setIsHtml(true);
+  };
+
   const insertFormatting = (tag: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
