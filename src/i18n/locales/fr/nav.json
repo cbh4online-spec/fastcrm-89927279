@@ -168,5 +168,6 @@
   "securityMaintenance": "Maintenance",
   "securityOccurrences": "Incidents",
   "securityRenewals": "Renouvellements",
-  "securityManagement": "Direction"
+  "securityManagement": "Direction",
+  "groupAiStrategy": "AI Strategy"
 }
