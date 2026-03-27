@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -19,7 +20,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { prompt, stepType, currentContent, funnelName, funnelType, generateImage, imageStyle } = await req.json();
+    const { prompt, stepType, currentContent, funnelName, funnelType, generateImage, imageStyle, workspace_id } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'ai-funnel-content');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
