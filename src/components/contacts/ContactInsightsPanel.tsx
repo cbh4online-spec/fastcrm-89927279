@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ComposeEmailDialog } from "@/components/email";
 
 interface ContactInsightsPanelProps {
   contactId: string;
@@ -445,5 +446,20 @@ export function ContactInsightsPanel({
         )}
       </CardContent>
     </Card>
+
+    {contactEmail && (
+      <ComposeEmailDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        recipient={{
+          email: contactEmail,
+          name: contactName || '',
+          entityType: 'contact',
+          entityId: contactId,
+        }}
+        defaultBody={emailDraft}
+      />
+    )}
+    </>
   );
 }
