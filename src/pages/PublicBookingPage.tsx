@@ -92,6 +92,8 @@ export default function PublicBookingPage() {
   // Availability
   const [availSlots, setAvailSlots] = useState<AvailabilitySlot[]>([]);
   const [availExceptions, setAvailExceptions] = useState<AvailabilityException[]>([]);
+  const [hostAvatarUrl, setHostAvatarUrl] = useState<string | null>(null);
+  const [hostName, setHostName] = useState<string | null>(null);
 
   // Fetch booking page
   useEffect(() => {
@@ -110,6 +112,22 @@ export default function PublicBookingPage() {
       }
       const pageData = data as unknown as BookingPageData;
       setPage(pageData);
+
+      // Fetch host avatar via calendar owner
+      const { data: calData } = await supabase
+        .from('calendars')
+        .select('created_by')
+        .eq('id', pageData.calendar_id)
+        .maybeSingle();
+      if (calData?.created_by) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url, full_name')
+          .eq('user_id', calData.created_by)
+          .maybeSingle();
+        if (profile?.avatar_url) setHostAvatarUrl(profile.avatar_url);
+        if (profile?.full_name) setHostName(profile.full_name);
+      }
 
       if (pageData.availability_id) {
         const [slotsRes, exceptionsRes] = await Promise.all([
@@ -296,11 +314,25 @@ export default function PublicBookingPage() {
               description={page.description}
               durationMinutes={page.duration_minutes}
               brandColor={page.brand_color}
+              hostAvatarUrl={hostAvatarUrl}
+              hostName={hostName}
               className="hidden lg:flex"
             />
             {/* Mobile: compact header */}
             <div className="lg:hidden space-y-3">
-              <h1 className="text-2xl font-bold tracking-tight">{page.title}</h1>
+              <div className="flex items-center gap-3">
+                {hostAvatarUrl ? (
+                  <img src={hostAvatarUrl} alt={hostName || ''} className="w-10 h-10 rounded-full object-cover ring-2 ring-border/50" />
+                ) : hostName ? (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground" style={{ backgroundColor: page.brand_color }}>
+                    {hostName.charAt(0).toUpperCase()}
+                  </div>
+                ) : null}
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">{page.title}</h1>
+                  {hostName && <p className="text-xs text-muted-foreground">{hostName}</p>}
+                </div>
+              </div>
               {page.description && <p className="text-sm text-muted-foreground">{page.description}</p>}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
