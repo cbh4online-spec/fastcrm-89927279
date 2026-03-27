@@ -487,7 +487,7 @@ export function InboxTemplatePanel({
             </div>
 
             {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <TabsList className="mx-3 mt-2 h-8 w-auto justify-start">
                 <TabsTrigger value="all" className="text-xs h-7">
                   Todos ({filteredTemplates.length})
