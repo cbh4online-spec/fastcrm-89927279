@@ -1,16 +1,9 @@
 import { motion } from 'framer-motion';
 import { Check, CalendarDays, User, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export type BookingStep = 'schedule' | 'details' | 'confirmed';
-
-const STEPS: { key: BookingStep; label: string; icon: React.ElementType }[] = [
-  { key: 'schedule', label: 'Horário', icon: CalendarDays },
-  { key: 'details', label: 'Dados', icon: User },
-  { key: 'confirmed', label: 'Confirmado', icon: PartyPopper },
-];
-
-const stepIndex = (s: BookingStep) => STEPS.findIndex(x => x.key === s);
 
 interface Props {
   current: BookingStep;
@@ -18,6 +11,15 @@ interface Props {
 }
 
 export function BookingStepProgress({ current, brandColor }: Props) {
+  const { t } = useTranslation('booking');
+
+  const STEPS: { key: BookingStep; label: string; icon: React.ElementType }[] = [
+    { key: 'schedule', label: t('stepSchedule'), icon: CalendarDays },
+    { key: 'details', label: t('stepDetails'), icon: User },
+    { key: 'confirmed', label: t('stepConfirmed'), icon: PartyPopper },
+  ];
+
+  const stepIndex = (s: BookingStep) => STEPS.findIndex(x => x.key === s);
   const currentIdx = stepIndex(current);
 
   return (

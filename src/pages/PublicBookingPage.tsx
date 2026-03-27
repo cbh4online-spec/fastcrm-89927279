@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, startOfDay } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import { Loader2, AlertCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,7 +11,10 @@ import { BookingStepProgress, type BookingStep } from '@/components/booking/Book
 import { BookingSlotPicker } from '@/components/booking/BookingSlotPicker';
 import { BookingParticipantForm } from '@/components/booking/BookingParticipantForm';
 import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
+import { BookingLanguageSelector } from '@/components/booking/BookingLanguageSelector';
 import { safePush, isProdEnvironment, getDeviceType } from '@/lib/analyticsHelpers';
+import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/dateLocales';
 
 interface BookingPageData {
   id: string;
@@ -33,6 +35,7 @@ interface BookingPageData {
   require_phone: boolean;
   custom_message_label: string | null;
   custom_fields: { id: string; label: string; type: string; required: boolean; placeholder?: string; options?: string[] }[];
+  host_user_ids: string[] | null;
 }
 
 interface AvailabilitySlot { day_of_week: number; start_time: string; end_time: string; }
@@ -53,6 +56,18 @@ const stepAnim = {
 
 export default function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const { t, i18n } = useTranslation('booking');
+  const locale = getDateLocale(i18n.language);
+
+  // Apply lang param from URL if present
+  useEffect(() => {
+    const langParam = searchParams.get('lang');
+    if (langParam && ['pt', 'en', 'es', 'fr'].includes(langParam)) {
+      i18n.changeLanguage(langParam);
+    }
+  }, [searchParams, i18n]);
+
   const [page, setPage] = useState<BookingPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +104,7 @@ export default function PublicBookingPage() {
         .eq('is_active', true)
         .maybeSingle();
       if (err || !data) {
-        setError('Link de agendamento não encontrado ou inativo.');
+        setError(t('notFound'));
         setLoading(false);
         return;
       }
@@ -110,20 +125,46 @@ export default function PublicBookingPage() {
     fetchPage();
   }, [slug]);
 
-  // Fetch events for selected date
+  // Fetch events for selected date — cross-check all host calendars
   useEffect(() => {
     if (!selectedDate || !page) return;
     setLoadingSlots(true);
     async function fetchEvents() {
       const dayStart = startOfDay(selectedDate!);
       const dayEnd = addDays(dayStart, 1);
-      const { data } = await supabase
-        .from('calendar_events')
-        .select('start_time, end_time')
-        .eq('calendar_id', page!.calendar_id)
-        .gte('start_time', dayStart.toISOString())
-        .lt('start_time', dayEnd.toISOString());
-      setExistingEvents(data || []);
+
+      const hostIds = page!.host_user_ids;
+      if (hostIds && hostIds.length > 0) {
+        // Cross-check: find all calendars owned by host users, then fetch events from all
+        const { data: hostCalendars } = await supabase
+          .from('calendars')
+          .select('id')
+          .eq('workspace_id', page!.workspace_id)
+          .in('created_by', hostIds);
+
+        const calendarIds = (hostCalendars || []).map((c: any) => c.id);
+        // Always include the page's primary calendar
+        if (!calendarIds.includes(page!.calendar_id)) {
+          calendarIds.push(page!.calendar_id);
+        }
+
+        const { data } = await supabase
+          .from('calendar_events')
+          .select('start_time, end_time')
+          .in('calendar_id', calendarIds)
+          .gte('start_time', dayStart.toISOString())
+          .lt('start_time', dayEnd.toISOString());
+        setExistingEvents(data || []);
+      } else {
+        // Single calendar mode
+        const { data } = await supabase
+          .from('calendar_events')
+          .select('start_time, end_time')
+          .eq('calendar_id', page!.calendar_id)
+          .gte('start_time', dayStart.toISOString())
+          .lt('start_time', dayEnd.toISOString());
+        setExistingEvents(data || []);
+      }
       setLoadingSlots(false);
     }
     fetchEvents();
@@ -206,7 +247,7 @@ export default function PublicBookingPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">A carregar...</p>
+          <p className="text-sm text-muted-foreground">{t('loading')}</p>
         </motion.div>
       </div>
     );
@@ -240,6 +281,11 @@ export default function PublicBookingPage() {
         style={{ backgroundColor: page.brand_color }}
       />
 
+      {/* Language selector - top right */}
+      <div className="absolute top-4 right-4 z-20">
+        <BookingLanguageSelector />
+      </div>
+
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 lg:py-16">
         <div className="grid lg:grid-cols-[1fr,1.2fr] gap-8 lg:gap-16 items-start">
 
@@ -258,7 +304,7 @@ export default function PublicBookingPage() {
               {page.description && <p className="text-sm text-muted-foreground">{page.description}</p>}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                  {page.duration_minutes} min
+                  {page.duration_minutes} {t('min')}
                 </span>
               </div>
             </div>
@@ -306,11 +352,11 @@ export default function PublicBookingPage() {
                             className="mb-4 p-3 rounded-xl bg-muted/50 text-sm text-muted-foreground"
                           >
                             <span className="font-medium text-foreground">
-                              {format(selectedDate, "EEEE, d 'de' MMMM", { locale: pt })}
+                              {format(selectedDate, 'EEEE, d MMMM', { locale })}
                             </span>
-                            {' às '}
+                            {` ${t('at')} `}
                             <span className="font-medium text-foreground">{selectedSlot}</span>
-                            {' · '}{page.duration_minutes} min
+                            {' · '}{page.duration_minutes} {t('min')}
                           </motion.div>
                         )}
                         <Button
@@ -322,7 +368,7 @@ export default function PublicBookingPage() {
                             boxShadow: canProceedToDetails ? `0 4px 20px ${page.brand_color}40` : undefined,
                           }}
                         >
-                          Continuar
+                          {t('continue')}
                           <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -337,21 +383,21 @@ export default function PublicBookingPage() {
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-5"
                       >
                         <ArrowLeft className="h-4 w-4" />
-                        Alterar horário
+                        {t('changeTime')}
                       </button>
 
                       {/* Selected slot reminder */}
                       <div className="mb-5 p-3 rounded-xl bg-muted/50 text-sm text-muted-foreground">
                         <span className="font-medium text-foreground">
-                          {selectedDate && format(selectedDate, "EEEE, d 'de' MMMM", { locale: pt })}
+                          {selectedDate && format(selectedDate, 'EEEE, d MMMM', { locale })}
                         </span>
-                        {' às '}
+                        {` ${t('at')} `}
                         <span className="font-medium text-foreground">{selectedSlot}</span>
-                        {' · '}{page.duration_minutes} min
+                        {' · '}{page.duration_minutes} {t('min')}
                       </div>
 
                       <h3 className="text-lg font-semibold text-foreground mb-4">
-                        Os seus dados
+                        {t('yourDetails')}
                       </h3>
 
                       <BookingParticipantForm
@@ -388,18 +434,18 @@ export default function PublicBookingPage() {
                         {savingLead || submitting ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            A confirmar...
+                            {t('confirming')}
                           </>
                         ) : (
-                          'Confirmar Marcação'
+                          t('confirmBooking')
                         )}
                       </Button>
 
                       {/* Trust micro-signals */}
                       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                        <span>🔒 Dados seguros</span>
-                        <span>📅 Reagendamento fácil</span>
-                        <span>✨ Sem compromisso</span>
+                        <span>🔒 {t('trustSecure')}</span>
+                        <span>📅 {t('trustReschedule')}</span>
+                        <span>✨ {t('trustNoCommitment')}</span>
                       </div>
                     </motion.div>
                   )}
@@ -424,8 +470,8 @@ export default function PublicBookingPage() {
 
             {/* Mobile trust signals */}
             <div className="lg:hidden mt-6 space-y-2 text-center">
-              <p className="text-xs text-muted-foreground">🛡️ Reunião sem compromisso · Reagendamento fácil</p>
-              <p className="text-xs text-muted-foreground">Os seus dados são usados apenas para esta marcação</p>
+              <p className="text-xs text-muted-foreground">🛡️ {t('mobileTrust')}</p>
+              <p className="text-xs text-muted-foreground">{t('mobileDataNote')}</p>
             </div>
           </div>
         </div>
