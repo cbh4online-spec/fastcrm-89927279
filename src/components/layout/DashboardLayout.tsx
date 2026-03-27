@@ -13,6 +13,7 @@ import { useFeatureFlag } from "@/hooks/useFeatureFlags";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
 import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
+import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
 
 interface DashboardLayoutProps {
   children: ReactNode;
