@@ -117,9 +117,9 @@ export function useProductivityHub() {
 
       const { data: stalledDeals } = await supabase
         .from('opportunities')
-        .select('id, title, value, stage, updated_at, created_at')
+        .select('id, title, value, status, updated_at, created_at')
         .eq('workspace_id', wsId)
-        .not('stage', 'in', '("won","lost")')
+        .not('status', 'in', '("won","lost")')
         .lt('updated_at', fiveDaysAgo.toISOString())
         .order('updated_at', { ascending: true })
         .limit(10);
@@ -130,7 +130,7 @@ export function useProductivityHub() {
           id: d.id,
           category: 'deal',
           title: `${d.title} — ${d.value ? d.value.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' }) : '€0'}`,
-          message: `Parado há ${daysStalled} dias na fase "${d.stage}"`,
+          message: `Parado há ${daysStalled} dias (status: "${d.status}")`,
           severity: daysStalled > 10 ? 'critical' : 'warning',
           status: 'stalled',
           created_at: d.updated_at,
