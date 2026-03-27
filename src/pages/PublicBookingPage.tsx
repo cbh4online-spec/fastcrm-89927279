@@ -92,6 +92,8 @@ export default function PublicBookingPage() {
   // Availability
   const [availSlots, setAvailSlots] = useState<AvailabilitySlot[]>([]);
   const [availExceptions, setAvailExceptions] = useState<AvailabilityException[]>([]);
+  const [hostAvatarUrl, setHostAvatarUrl] = useState<string | null>(null);
+  const [hostName, setHostName] = useState<string | null>(null);
 
   // Fetch booking page
   useEffect(() => {
@@ -110,6 +112,22 @@ export default function PublicBookingPage() {
       }
       const pageData = data as unknown as BookingPageData;
       setPage(pageData);
+
+      // Fetch host avatar via calendar owner
+      const { data: calData } = await supabase
+        .from('calendars')
+        .select('created_by')
+        .eq('id', pageData.calendar_id)
+        .maybeSingle();
+      if (calData?.created_by) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url, full_name')
+          .eq('user_id', calData.created_by)
+          .maybeSingle();
+        if (profile?.avatar_url) setHostAvatarUrl(profile.avatar_url);
+        if (profile?.full_name) setHostName(profile.full_name);
+      }
 
       if (pageData.availability_id) {
         const [slotsRes, exceptionsRes] = await Promise.all([
