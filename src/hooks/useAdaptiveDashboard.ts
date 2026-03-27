@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SalesFunction, AgeGroup } from '@/data/adaptiveDashboardMock';
+
+const OVERRIDE_KEY = 'salesFunctionOverride';
 
 export interface AdaptiveLayoutConfig {
   textSizeClass: string;
@@ -94,7 +96,25 @@ export function useAdaptiveDashboard() {
     [profile?.birth_date]
   );
 
-  const salesFunction: SalesFunction = profile?.sales_function ?? 'gestor';
+  const realSalesFunction: SalesFunction = profile?.sales_function ?? 'gestor';
+
+  const [overrideFunction, setOverrideFunctionState] = useState<SalesFunction | null>(() => {
+    const stored = localStorage.getItem(OVERRIDE_KEY);
+    return stored ? (stored as SalesFunction) : null;
+  });
+
+  const setSalesFunctionOverride = useCallback((fn: SalesFunction) => {
+    localStorage.setItem(OVERRIDE_KEY, fn);
+    setOverrideFunctionState(fn);
+  }, []);
+
+  const clearOverride = useCallback(() => {
+    localStorage.removeItem(OVERRIDE_KEY);
+    setOverrideFunctionState(null);
+  }, []);
+
+  const salesFunction: SalesFunction = overrideFunction ?? realSalesFunction;
+  const isOverridden = overrideFunction !== null;
 
   const needsSetup = !isLoading && profile && !profile.birth_date && !profile.sales_function;
 
@@ -113,9 +133,13 @@ export function useAdaptiveDashboard() {
   return {
     ageGroup,
     salesFunction,
+    realSalesFunction,
     layoutConfig,
     needsSetup,
     isLoading,
     profile,
+    isOverridden,
+    setSalesFunctionOverride,
+    clearOverride,
   };
 }

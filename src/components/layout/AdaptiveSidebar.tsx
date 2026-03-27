@@ -19,7 +19,7 @@ import type { AgeGroup } from "@/data/adaptiveDashboardMock";
 import {
   X, PanelLeftClose, PanelLeftOpen, ChevronRight,
   Settings, Flame, Medal, TrendingUp,
-  AlertTriangle, Puzzle,
+  AlertTriangle, Puzzle, Eye, ChevronDown, RotateCcw,
 } from "lucide-react";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -30,6 +30,14 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import type { SalesFunction } from "@/data/adaptiveDashboardMock";
 
 interface AdaptiveSidebarProps {
   open: boolean;
@@ -169,7 +177,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { collapsed, toggleCollapse } = useSidebarCollapse();
-  const { ageGroup, salesFunction } = useAdaptiveDashboard();
+  const { ageGroup, salesFunction, realSalesFunction, isOverridden, setSalesFunctionOverride, clearOverride } = useAdaptiveDashboard();
   const badges = useSidebarBadges();
   const criticalAlerts = useSidebarAlerts();
   const { extensionSettingsPages } = useExtensionManifests();
@@ -501,9 +509,40 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                     <p className={cn("font-semibold truncate text-foreground", style.textSize === "text-lg" ? "text-base" : "text-sm")}>
                       {userName}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {roleLabelMap[salesFunction]}
-                    </p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
+                          {isOverridden && <Eye className="w-3 h-3 text-amber-500 shrink-0" />}
+                          <span className="truncate">{roleLabelMap[salesFunction]}</span>
+                          <ChevronDown className="w-3 h-3 shrink-0 opacity-50 group-hover:opacity-100" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-48">
+                        {(["vendedor", "gestor", "diretor", "ceo"] as SalesFunction[]).map((fn) => (
+                          <DropdownMenuItem
+                            key={fn}
+                            onClick={() => setSalesFunctionOverride(fn)}
+                            className={cn(
+                              salesFunction === fn && "bg-primary/10 text-primary font-medium"
+                            )}
+                          >
+                            {roleLabelMap[fn]}
+                            {fn === realSalesFunction && (
+                              <span className="ml-auto text-[10px] text-muted-foreground">atual</span>
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                        {isOverridden && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={clearOverride} className="text-muted-foreground">
+                              <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                              Voltar ao perfil real
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <button
                     onClick={onClose}
@@ -515,6 +554,24 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                 </>
               )}
             </div>
+
+            {/* ── Preview Mode Banner ── */}
+            {isOverridden && !isCollapsed && (
+              <div className="px-4 py-2 border-b border-border bg-amber-500/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[11px] font-semibold text-amber-700">Modo Preview</span>
+                  </div>
+                  <button
+                    onClick={clearOverride}
+                    className="text-[10px] font-medium text-amber-600 hover:text-amber-800 underline"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ── Gamification (< 35 anos) ── */}
             {ageGroup === "young" && !isCollapsed && <GamificationStrip />}
