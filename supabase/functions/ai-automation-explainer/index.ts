@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 
 
 const corsHeaders = {
@@ -43,6 +44,17 @@ Deno.serve(async (req) => {
       rule: AutomationRule;
       plainLanguageSummary: string;
     };
+
+    // AI Gate — enforce credit consumption
+    const wsHeader = req.headers.get("X-Workspace-Id");
+    if (wsHeader) {
+      const gate = await aiGate(wsHeader, 'light', 'ai-automation-explainer');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {

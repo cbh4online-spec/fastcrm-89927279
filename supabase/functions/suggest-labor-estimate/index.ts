@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 
 
 const corsHeaders = {
@@ -25,6 +26,17 @@ Deno.serve(async (req) => {
 
   try {
     const { productName, productCategory, productType, existingRates } = await req.json() as RequestBody;
+
+    // AI Gate — enforce credit consumption
+    const wsHeader = req.headers.get("X-Workspace-Id");
+    if (wsHeader) {
+      const gate = await aiGate(wsHeader, 'light', 'suggest-labor-estimate');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!productName) {
       return new Response(
