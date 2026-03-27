@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface CustomField {
   id: string;
@@ -58,36 +59,38 @@ export function BookingParticipantForm({
   onGuestName, onGuestEmail, onGuestPhone, onGuestMessage, onCustomField,
   error,
 }: Props) {
+  const { t } = useTranslation('booking');
+
   return (
     <div className="space-y-4">
-      <FormField icon={User} label="Nome completo" required>
+      <FormField icon={User} label={t('fullName')} required>
         <Input
           value={guestName}
           onChange={e => onGuestName(e.target.value)}
-          placeholder="O seu nome"
+          placeholder={t('namePlaceholder')}
           className={inputClass}
           autoComplete="name"
         />
       </FormField>
 
-      <FormField icon={Mail} label="Email" required>
+      <FormField icon={Mail} label={t('email')} required>
         <Input
           type="email"
           value={guestEmail}
           onChange={e => onGuestEmail(e.target.value)}
-          placeholder="email@exemplo.com"
+          placeholder={t('emailPlaceholder')}
           className={inputClass}
           autoComplete="email"
         />
       </FormField>
 
       {requirePhone && (
-        <FormField icon={Phone} label="Telefone" required>
+        <FormField icon={Phone} label={t('phone')} required>
           <Input
             type="tel"
             value={guestPhone}
             onChange={e => onGuestPhone(e.target.value)}
-            placeholder="+351 912 345 678"
+            placeholder={t('phonePlaceholder')}
             className={inputClass}
             autoComplete="tel"
           />
@@ -100,7 +103,7 @@ export function BookingParticipantForm({
             value={guestMessage}
             onChange={e => onGuestMessage(e.target.value)}
             rows={3}
-            placeholder="Partilhe contexto que ajude a preparar a reunião..."
+            placeholder={t('messagePlaceholder')}
             className={textareaClass}
           />
         </FormField>
@@ -122,7 +125,7 @@ export function BookingParticipantForm({
               onValueChange={v => onCustomField(field.id, v)}
             >
               <SelectTrigger className={cn(inputClass, 'h-11')}>
-                <SelectValue placeholder={field.placeholder || 'Selecionar...'} />
+                <SelectValue placeholder={field.placeholder || t('selectPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {(field.options || []).map(opt => (

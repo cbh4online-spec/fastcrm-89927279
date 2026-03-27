@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, CalendarPlus, Clock, User, Mail, ExternalLink, RefreshCw, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/dateLocales';
 
 interface Props {
   title: string;
@@ -34,12 +35,13 @@ function generateOutlookUrl(title: string, date: Date, time: string, durationMin
 export function BookingConfirmation({
   title, guestName, guestEmail, selectedDate, selectedSlot, durationMinutes, brandColor,
 }: Props) {
+  const { t, i18n } = useTranslation('booking');
+  const locale = getDateLocale(i18n.language);
   const googleUrl = generateGoogleCalendarUrl(title, selectedDate, selectedSlot, durationMinutes);
   const outlookUrl = generateOutlookUrl(title, selectedDate, selectedSlot, durationMinutes);
 
   return (
     <div className="text-center space-y-6">
-      {/* Success icon */}
       <motion.div
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
@@ -56,21 +58,19 @@ export function BookingConfirmation({
         </motion.div>
       </motion.div>
 
-      {/* Message */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
         <h2 className="text-2xl font-bold text-foreground">
-          Reunião Confirmada!
+          {t('meetingConfirmed')}
         </h2>
         <p className="text-muted-foreground mt-2">
-          Tudo pronto, {guestName.split(' ')[0]}. Receberá uma confirmação por email.
+          {t('confirmationMessage', { name: guestName.split(' ')[0] })}
         </p>
       </motion.div>
 
-      {/* Summary card */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,11 +81,11 @@ export function BookingConfirmation({
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-3 text-muted-foreground">
             <CalendarPlus className="h-4 w-4 shrink-0" />
-            <span>{format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt })}</span>
+            <span>{format(selectedDate, 'EEEE, d MMMM yyyy', { locale })}</span>
           </div>
           <div className="flex items-center gap-3 text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0" />
-            <span>{selectedSlot} · {durationMinutes} minutos</span>
+            <span>{selectedSlot} · {durationMinutes} {t('minutes')}</span>
           </div>
           <div className="flex items-center gap-3 text-muted-foreground">
             <User className="h-4 w-4 shrink-0" />
@@ -98,7 +98,6 @@ export function BookingConfirmation({
         </div>
       </motion.div>
 
-      {/* Calendar buttons */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,7 +124,6 @@ export function BookingConfirmation({
         </Button>
       </motion.div>
 
-      {/* Footer trust */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -134,11 +132,11 @@ export function BookingConfirmation({
       >
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <RefreshCw className="h-3 w-3" />
-          <span>Precisa reagendar? Use o link no email de confirmação.</span>
+          <span>{t('rescheduleHint')}</span>
         </div>
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <MessageCircle className="h-3 w-3" />
-          <span>Dúvidas? Responda ao email de confirmação.</span>
+          <span>{t('questionsHint')}</span>
         </div>
       </motion.div>
     </div>

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { format, addDays, startOfDay, isBefore, isAfter, parseISO, addMinutes } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CalendarDays, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/dateLocales';
 
 interface AvailabilitySlot {
   day_of_week: number;
@@ -48,6 +49,8 @@ export function BookingSlotPicker({
   selectedDate, selectedSlot, onSelectDate, onSelectSlot,
   brandColor, loadingSlots,
 }: Props) {
+  const { t, i18n } = useTranslation('booking');
+  const locale = getDateLocale(i18n.language);
   const [weekOffset, setWeekOffset] = useState(0);
 
   const availableDates = useMemo(() => {
@@ -70,7 +73,6 @@ export function BookingSlotPicker({
     return dates;
   }, [page, availSlots, availExceptions]);
 
-  // Show 7 dates at a time
   const DATES_PER_PAGE = 7;
   const visibleDates = availableDates.slice(
     weekOffset * DATES_PER_PAGE,
@@ -123,12 +125,11 @@ export function BookingSlotPicker({
 
   return (
     <div className="space-y-6">
-      {/* Date picker header */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            Escolha um dia
+            {t('chooseDay')}
           </h3>
           <div className="flex items-center gap-1">
             <button
@@ -176,7 +177,7 @@ export function BookingSlotPicker({
                     'text-[10px] uppercase font-medium tracking-wider',
                     isSelected ? 'text-white/80' : 'text-muted-foreground',
                   )}>
-                    {format(date, 'EEE', { locale: pt })}
+                    {format(date, 'EEE', { locale })}
                   </span>
                   <span className={cn(
                     'text-lg font-bold mt-0.5',
@@ -188,7 +189,7 @@ export function BookingSlotPicker({
                     'text-[10px]',
                     isSelected ? 'text-white/70' : 'text-muted-foreground',
                   )}>
-                    {format(date, 'MMM', { locale: pt })}
+                    {format(date, 'MMM', { locale })}
                   </span>
                   {isToday && !isSelected && (
                     <div className="absolute bottom-1 w-1 h-1 rounded-full" style={{ backgroundColor: brandColor }} />
@@ -200,7 +201,6 @@ export function BookingSlotPicker({
         </div>
       </div>
 
-      {/* Time slots */}
       <AnimatePresence mode="wait">
         {selectedDate && (
           <motion.div
@@ -212,7 +212,7 @@ export function BookingSlotPicker({
           >
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-3">
               <Clock className="h-4 w-4" />
-              {format(selectedDate, "d 'de' MMMM", { locale: pt })}
+              {format(selectedDate, 'd MMMM', { locale })}
             </h3>
 
             {loadingSlots ? (
@@ -224,8 +224,8 @@ export function BookingSlotPicker({
             ) : timeSlots.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CalendarDays className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">Sem horários disponíveis</p>
-                <p className="text-xs mt-1">Tente outro dia</p>
+                <p className="text-sm font-medium">{t('noSlotsTitle')}</p>
+                <p className="text-xs mt-1">{t('noSlotsHint')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
