@@ -42,6 +42,7 @@ import { IdentificationSection } from "@/components/leads/sections/Identificatio
 import { TagsSection } from "@/components/leads/sections/TagsSection";
 import { SocialMediaSection } from "@/components/leads/sections/SocialMediaSection";
 import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
+import { ComposeEmailDialog } from "@/components/email";
 
 // Status colors and labels
 const statusColors: Record<string, string> = {
