@@ -32085,6 +32085,286 @@ export type Database = {
           },
         ]
       }
+      pipeline_metric_alerts: {
+        Row: {
+          channel: Database["public"]["Enums"]["pipeline_alert_channel"]
+          condition: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          metric_id: string
+          recipient_user_ids: string[] | null
+          target_id: string | null
+          threshold_pct: number | null
+          webhook_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["pipeline_alert_channel"]
+          condition?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          metric_id: string
+          recipient_user_ids?: string[] | null
+          target_id?: string | null
+          threshold_pct?: number | null
+          webhook_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["pipeline_alert_channel"]
+          condition?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          metric_id?: string
+          recipient_user_ids?: string[] | null
+          target_id?: string | null
+          threshold_pct?: number | null
+          webhook_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_metric_alerts_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_metric_alerts_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_metric_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_metric_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_metric_snapshots: {
+        Row: {
+          breakdown_json: Json | null
+          calculated_at: string
+          current_value: number
+          id: string
+          metric_id: string
+          pct_change: number | null
+          pct_of_target: number | null
+          period: Database["public"]["Enums"]["pipeline_metric_period"]
+          period_end: string
+          period_start: string
+          previous_value: number | null
+          target_id: string | null
+          target_value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          breakdown_json?: Json | null
+          calculated_at?: string
+          current_value?: number
+          id?: string
+          metric_id: string
+          pct_change?: number | null
+          pct_of_target?: number | null
+          period?: Database["public"]["Enums"]["pipeline_metric_period"]
+          period_end: string
+          period_start: string
+          previous_value?: number | null
+          target_id?: string | null
+          target_value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          breakdown_json?: Json | null
+          calculated_at?: string
+          current_value?: number
+          id?: string
+          metric_id?: string
+          pct_change?: number | null
+          pct_of_target?: number | null
+          period?: Database["public"]["Enums"]["pipeline_metric_period"]
+          period_end?: string
+          period_start?: string
+          previous_value?: number | null
+          target_id?: string | null
+          target_value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_metric_snapshots_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_metric_snapshots_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_metric_targets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_metric_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_metric_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          metric_id: string
+          period: Database["public"]["Enums"]["pipeline_metric_period"]
+          pipeline_id: string | null
+          stage_id: string | null
+          starts_at: string | null
+          target_value: number
+          team_id: string | null
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metric_id: string
+          period?: Database["public"]["Enums"]["pipeline_metric_period"]
+          pipeline_id?: string | null
+          stage_id?: string | null
+          starts_at?: string | null
+          target_value?: number
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metric_id?: string
+          period?: Database["public"]["Enums"]["pipeline_metric_period"]
+          pipeline_id?: string | null
+          stage_id?: string | null
+          starts_at?: string | null
+          target_value?: number
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_metric_targets_metric_id_fkey"
+            columns: ["metric_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_metric_targets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_metrics: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          filter_json: Json
+          formula: Database["public"]["Enums"]["pipeline_metric_formula"]
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          metric_type: Database["public"]["Enums"]["pipeline_metric_type"]
+          name: string
+          source_field: string | null
+          source_table: string
+          unit: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filter_json?: Json
+          formula?: Database["public"]["Enums"]["pipeline_metric_formula"]
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          metric_type?: Database["public"]["Enums"]["pipeline_metric_type"]
+          name: string
+          source_field?: string | null
+          source_table?: string
+          unit?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filter_json?: Json
+          formula?: Database["public"]["Enums"]["pipeline_metric_formula"]
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          metric_type?: Database["public"]["Enums"]["pipeline_metric_type"]
+          name?: string
+          source_field?: string | null
+          source_table?: string
+          unit?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_risk_reports: {
         Row: {
           at_risk_count: number
@@ -49934,6 +50214,27 @@ export type Database = {
         | "cash"
         | "other"
       payment_provider: "stripe" | "manual" | "other"
+      pipeline_alert_channel: "in_app" | "email" | "webhook"
+      pipeline_metric_formula:
+        | "count"
+        | "sum"
+        | "avg"
+        | "percentage"
+        | "duration"
+        | "event_count"
+      pipeline_metric_period:
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "quarterly"
+        | "annual"
+      pipeline_metric_type:
+        | "volume"
+        | "value"
+        | "conversion"
+        | "time"
+        | "quality"
+        | "custom"
       post_type:
         | "update"
         | "help_request"
@@ -50397,6 +50698,30 @@ export const Constants = {
         "other",
       ],
       payment_provider: ["stripe", "manual", "other"],
+      pipeline_alert_channel: ["in_app", "email", "webhook"],
+      pipeline_metric_formula: [
+        "count",
+        "sum",
+        "avg",
+        "percentage",
+        "duration",
+        "event_count",
+      ],
+      pipeline_metric_period: [
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly",
+        "annual",
+      ],
+      pipeline_metric_type: [
+        "volume",
+        "value",
+        "conversion",
+        "time",
+        "quality",
+        "custom",
+      ],
       post_type: [
         "update",
         "help_request",
