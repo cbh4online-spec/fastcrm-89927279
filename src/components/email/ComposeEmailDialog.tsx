@@ -626,11 +626,11 @@ export function ComposeEmailDialog({
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Escreva o conteúdo do seu email..."
-                  className="w-full h-full min-h-[200px] p-3 text-sm resize-none rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full h-full min-h-[200px] p-3 text-sm resize-none rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               ) : (
-                <ScrollArea className="h-full min-h-[200px] rounded-md border bg-white dark:bg-gray-950">
-                  <div className="p-4 prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                <ScrollArea className="h-full min-h-[200px] rounded-md border bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+                  <div className="p-4 prose prose-sm max-w-none dark:prose-invert prose-p:text-inherit prose-li:text-inherit prose-strong:text-inherit" dangerouslySetInnerHTML={{ __html: htmlPreview }} />
                 </ScrollArea>
               )}
             </div>
