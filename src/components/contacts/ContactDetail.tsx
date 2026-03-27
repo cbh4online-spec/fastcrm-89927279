@@ -419,11 +419,9 @@ export function ContactDetail() {
                   {generateSuggestions.isPending ? "A analisar..." : "Sugestões IA"}
                 </Button>
                 {contact.email && (
-                  <Button variant="default" className="gap-2" asChild>
-                    <a href={`mailto:${contact.email}`}>
-                      <Mail className="w-4 h-4" />
-                      Enviar E-mail
-                    </a>
+                  <Button variant="default" className="gap-2" onClick={() => setShowEmailDialog(true)}>
+                    <Mail className="w-4 h-4" />
+                    Enviar E-mail
                   </Button>
                 )}
                 <Button variant="outline" onClick={handleEdit}>
@@ -958,11 +956,9 @@ export function ContactDetail() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {contact.email && (
-                    <Button variant="outline" size="sm" className="w-full justify-start" asChild>
-                      <a href={`mailto:${contact.email}`}>
-                        <Mail className="w-4 h-4 mr-2" />
-                        Enviar E-mail
-                      </a>
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => setShowEmailDialog(true)}>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Enviar E-mail
                     </Button>
                   )}
                   {contact.phone && (

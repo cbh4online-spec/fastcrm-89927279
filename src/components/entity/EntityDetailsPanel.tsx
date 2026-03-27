@@ -142,7 +142,7 @@ function EditableFieldRow({
       if (onEmailClick) {
         return <button type="button" onClick={(e) => { e.stopPropagation(); onEmailClick(String(value)); }} className="text-primary hover:underline text-[13px] font-medium break-all text-left">{String(value)}</button>;
       }
-      return <a href={`mailto:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
+      return <button type="button" onClick={(e) => { e.stopPropagation(); onEmailClick?.(String(value)); }} className="text-primary hover:underline text-[13px] font-medium break-all text-left">{String(value)}</button>;
     }
     if (isLink && linkType === 'phone') {
       return <a href={`tel:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium">{String(value)}</a>;

@@ -126,9 +126,8 @@ export function ContactInsightsPanel({
     const message = draftMessage || insights?.personalizedMessage || "";
     
     if (channel === "email" && contactEmail) {
-      const mailtoUrl = `mailto:${contactEmail}?body=${encodeURIComponent(message)}`;
-      window.open(mailtoUrl, "_blank");
-      toast.success("A abrir cliente de email...");
+      setEmailDraft(message);
+      setShowEmailDialog(true);
     } else if (channel === "whatsapp" && contactPhone) {
       const cleanPhone = contactPhone.replace(/[^\d+]/g, "");
       const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
@@ -207,10 +207,8 @@ export function LeadDetail() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" asChild>
-                    <a href={`mailto:${lead.email}`}>
-                      <Mail className="w-4 h-4" />
-                    </a>
+                  <Button variant="outline" size="icon" onClick={() => setShowEmailDialog(true)}>
+                    <Mail className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Enviar E-mail</TooltipContent>
