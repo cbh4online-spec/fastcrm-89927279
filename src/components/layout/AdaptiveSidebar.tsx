@@ -227,10 +227,11 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   const isGroupOpen = useCallback(
-    (label: string, section: AdaptiveNavSection) => {
+    (label: string, sectionOrHasActive: AdaptiveNavSection | boolean) => {
       if (!style.collapsibleGroups) return true;
       if (openGroups[label] !== undefined) return openGroups[label];
-      return sectionHasActive(section);
+      if (typeof sectionOrHasActive === "boolean") return sectionOrHasActive;
+      return sectionHasActive(sectionOrHasActive);
     },
     [openGroups, sectionHasActive, style.collapsibleGroups]
   );
