@@ -49614,6 +49614,10 @@ export type Database = {
         }
         Returns: number
       }
+      seed_communication_templates_for_workspace: {
+        Args: { p_created_by: string; p_workspace_id: string }
+        Returns: undefined
+      }
       seed_context_blocks: {
         Args: { p_workspace_id: string }
         Returns: undefined
