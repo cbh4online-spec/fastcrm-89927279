@@ -205,8 +205,8 @@ class SimpleIMAPClient {
     }> = [];
 
     const tag = this.getTag();
-    // Include INTERNALDATE for reliable date fallback
-    await this.sendCommand(`${tag} FETCH ${range} (UID FLAGS INTERNALDATE ENVELOPE BODY.PEEK[TEXT])`);
+    // Only fetch envelope + date — skip BODY.PEEK[TEXT] to save CPU
+    await this.sendCommand(`${tag} FETCH ${range} (UID FLAGS INTERNALDATE ENVELOPE)`);
     const resp = await this.readResponse(tag);
 
     // Parse responses - simplified parsing
@@ -311,10 +311,6 @@ class SimpleIMAPClient {
       // Use INTERNALDATE as fallback if envelope date is missing/invalid
       const finalDate = date || internalDate || "";
 
-      // Extract body
-      const bodyMatch = block.match(/BODY\[TEXT\] \{(\d+)\}\r?\n([\s\S]*?)(?=\r?\n\)|\r?\n\* |\r?\nA\d+)/);
-      const body = bodyMatch ? bodyMatch[2]?.substring(0, 2000) || "" : "";
-
       messages.push({
         uid,
         subject,
@@ -324,7 +320,7 @@ class SimpleIMAPClient {
         date: finalDate,
         messageId,
         inReplyTo,
-        body,
+        body: subject || "", // Use subject as preview — body fetch removed for CPU savings
       });
     }
 
@@ -356,7 +352,7 @@ class SimpleIMAPClient {
     
     const buf = new Uint8Array(4096);
     let response = this.buffer;
-    const timeout = 15000;
+    const timeout = 10000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
@@ -422,7 +418,7 @@ Deno.serve(async (req) => {
     }
 
     const body: FetchEmailsRequest = await req.json();
-    const { connectionId, workspaceId, limit = 20, forceResync = false } = body;
+    const { connectionId, workspaceId, limit = 5, forceResync = false } = body;
 
     // Get email connection
     const { data: connection, error: connError } = await supabaseClient
@@ -510,63 +506,117 @@ Deno.serve(async (req) => {
       const messages = await client.fetchMessages(range);
       let maxUid = lastUid;
 
-      for (const msg of messages) {
-        if (msg.uid <= lastUid) continue;
+      // Filter to only new messages
+      const newMessages = messages.filter(m => m.uid > lastUid);
+      if (newMessages.length === 0) {
+        await supabaseClient
+          .from("email_connections")
+          .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
+          .eq("id", connectionId);
+        await client.logout();
+        return new Response(
+          JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // === BATCH: collect all unique emails, message IDs, and thread keys upfront ===
+      const senderEmails = new Set<string>();
+      const emailMsgIds: string[] = [];
+      const threadKeys = new Set<string>();
+
+      for (const msg of newMessages) {
+        const senderEmail = (msg.from || "unknown@email.com").toLowerCase();
+        if (senderEmail !== connection.email_address.toLowerCase()) {
+          senderEmails.add(senderEmail);
+        }
+        emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
+        const cleanSubject = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${Date.now()}`;
+        threadKeys.add(cleanSubject);
+      }
+
+      // Batch query 1: existing email_message_ids for dedup
+      const { data: existingMsgs } = await supabaseClient
+        .from("messages")
+        .select("email_message_id")
+        .eq("workspace_id", workspaceId)
+        .in("email_message_id", emailMsgIds);
+      const existingMsgIdSet = new Set((existingMsgs || []).map(m => m.email_message_id));
+
+      // Batch query 2: existing leads by email
+      const senderEmailArr = Array.from(senderEmails);
+      const leadMap = new Map<string, string>();
+      if (senderEmailArr.length > 0) {
+        const { data: existingLeads } = await supabaseClient
+          .from("leads")
+          .select("id, external_email")
+          .eq("workspace_id", workspaceId)
+          .in("external_email", senderEmailArr);
+        for (const l of existingLeads || []) {
+          if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
+        }
+      }
+
+      // Batch query 3: existing conversations by thread
+      const threadArr = Array.from(threadKeys);
+      const convMap = new Map<string, string>();
+      if (threadArr.length > 0) {
+        const { data: existingConvs } = await supabaseClient
+          .from("conversations")
+          .select("id, external_thread_id")
+          .eq("workspace_id", workspaceId)
+          .eq("channel", "email")
+          .in("external_thread_id", threadArr);
+        for (const c of existingConvs || []) {
+          if (c.external_thread_id) convMap.set(c.external_thread_id, c.id);
+        }
+      }
+
+      // === Process each message using in-memory lookups ===
+      for (const msg of newMessages) {
         if (msg.uid > maxUid) maxUid = msg.uid;
 
-        const senderEmail = msg.from || "unknown@email.com";
-        const senderName = msg.fromName || senderEmail;
-        const isInbound = senderEmail.toLowerCase() !== connection.email_address.toLowerCase();
-        
-        console.log(`Processing email - From: ${senderEmail}, Name: ${senderName}, Subject: ${msg.subject}`);
+        const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
+        if (existingMsgIdSet.has(emailMsgId)) {
+          console.log(`[Email Fetch] Skipping duplicate: ${emailMsgId}`);
+          continue;
+        }
 
-        // Find or create lead by email
+        const senderEmail = (msg.from || "unknown@email.com").toLowerCase();
+        const senderName = msg.fromName || senderEmail;
+        const isInbound = senderEmail !== connection.email_address.toLowerCase();
+
+        // Lead lookup/create (only DB call if lead doesn't exist)
         let leadId: string | null = null;
         if (isInbound && senderEmail) {
-          const { data: existingLead } = await supabaseClient
-            .from("leads")
-            .select("id")
-            .eq("workspace_id", workspaceId)
-            .eq("external_email", senderEmail.toLowerCase())
-            .maybeSingle();
-
-          if (existingLead) {
-            leadId = existingLead.id;
-          } else {
+          leadId = leadMap.get(senderEmail) || null;
+          if (!leadId) {
             const { data: newLead } = await supabaseClient
               .from("leads")
               .insert({
                 workspace_id: workspaceId,
                 created_by: user.id,
                 name: senderName,
-                email: senderEmail.toLowerCase(),
-                external_email: senderEmail.toLowerCase(),
+                email: senderEmail,
+                external_email: senderEmail,
                 source: "email",
                 status: "new",
               })
               .select("id")
               .single();
-            
-            if (newLead) leadId = newLead.id;
+            if (newLead) {
+              leadId = newLead.id;
+              leadMap.set(senderEmail, leadId);
+            }
           }
         }
 
-        // Find existing conversation or create new
+        // Conversation lookup/create
         const cleanSubject = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${Date.now()}`;
-        
-        let conversationId: string;
-        const { data: existingConv } = await supabaseClient
-          .from("conversations")
-          .select("id")
-          .eq("workspace_id", workspaceId)
-          .eq("channel", "email")
-          .eq("external_thread_id", cleanSubject)
-          .maybeSingle();
+        const messagePreview = (msg.subject || "").substring(0, 100);
+        let conversationId = convMap.get(cleanSubject) || null;
 
-        if (existingConv) {
-          conversationId = existingConv.id;
-          // Get message preview (first 100 chars)
-          const messagePreview = (msg.body || msg.subject || "").substring(0, 100);
+        if (conversationId) {
           await supabaseClient
             .from("conversations")
             .update({
@@ -577,8 +627,6 @@ Deno.serve(async (req) => {
             })
             .eq("id", conversationId);
         } else {
-          // Get message preview (first 100 chars)
-          const messagePreview = (msg.body || msg.subject || "").substring(0, 100);
           const { data: newConv } = await supabaseClient
             .from("conversations")
             .insert({
@@ -590,30 +638,13 @@ Deno.serve(async (req) => {
               unread_count: isInbound ? 1 : 0,
               last_message_at: new Date().toISOString(),
               last_message_preview: messagePreview,
-              channel_metadata: {
-                connection_id: connectionId,
-                subject: msg.subject,
-              },
+              channel_metadata: { connection_id: connectionId, subject: msg.subject },
             })
             .select("id")
             .single();
-          
           if (!newConv) continue;
           conversationId = newConv.id;
-        }
-
-        // Deduplicate by email_message_id before inserting
-        const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
-        const { data: existingMsg } = await supabaseClient
-          .from("messages")
-          .select("id")
-          .eq("workspace_id", workspaceId)
-          .eq("email_message_id", emailMsgId)
-          .maybeSingle();
-
-        if (existingMsg) {
-          console.log(`[Email Fetch] Skipping duplicate email: ${emailMsgId}`);
-          continue;
+          convMap.set(cleanSubject, conversationId);
         }
 
         // Insert message
@@ -623,7 +654,7 @@ Deno.serve(async (req) => {
             conversation_id: conversationId,
             workspace_id: workspaceId,
             direction: isInbound ? "inbound" : "outbound",
-            content: msg.body || msg.subject || "(Sem conteúdo)",
+            content: msg.subject || "(Sem conteúdo)",
             sent_at: parseDateSafe(msg.date),
             email_message_id: emailMsgId,
             email_in_reply_to: msg.inReplyTo || null,
@@ -631,7 +662,10 @@ Deno.serve(async (req) => {
             sender_id: isInbound ? null : user.id,
           });
 
-        if (!msgError) fetchedCount++;
+        if (!msgError) {
+          fetchedCount++;
+          existingMsgIdSet.add(emailMsgId);
+        }
       }
 
       // Update sync status
