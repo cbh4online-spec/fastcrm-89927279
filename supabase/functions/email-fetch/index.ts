@@ -9,384 +9,153 @@ const corsHeaders = {
 async function decryptCredential(encrypted: string, key: string): Promise<string> {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-  
   const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
   const iv = combined.slice(0, 12);
   const data = combined.slice(12);
-  
   const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(key.padEnd(32, "0").slice(0, 32)),
-    { name: "AES-GCM" },
-    false,
-    ["decrypt"]
+    "raw", encoder.encode(key.padEnd(32, "0").slice(0, 32)),
+    { name: "AES-GCM" }, false, ["decrypt"]
   );
-  
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    keyMaterial,
-    data
-  );
-  
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, keyMaterial, data);
   return decoder.decode(decrypted);
 }
 
-// Parse email address from header
-function parseEmailAddress(header: string): { name: string; email: string } {
-  if (!header) return { name: "", email: "" };
-  const match = header.match(/^(?:"?([^"]*)"?\s*)?<?([^>]+@[^>]+)>?$/);
-  if (match) {
-    return { name: match[1]?.trim() || match[2], email: match[2].toLowerCase() };
-  }
-  return { name: header, email: header.toLowerCase() };
-}
-
-// Parse IMAP envelope address format: ((name NIL local domain)) or (("Name" NIL "local" "domain"))
-function parseEnvelopeAddress(addressBlock: string): { email: string; name: string } | null {
-  if (!addressBlock || addressBlock === "NIL") return null;
-  
-  // Match pattern: (("name" NIL "local" "domain")) or ((NIL NIL "local" "domain"))
-  // The structure is: ((personal-name NIL mailbox-name host-name))
-  const match = addressBlock.match(/\(\((?:"([^"]*)"|NIL)\s+NIL\s+(?:"([^"]+)"|NIL)\s+(?:"([^"]+)"|NIL)\)\)/);
-  
-  if (match) {
-    const name = match[1] || "";
-    const local = match[2] || "";
-    const domain = match[3] || "";
-    
-    if (local && domain) {
-      const email = `${local}@${domain}`.toLowerCase();
-      return { 
-        email, 
-        name: name ? decodeMimeWord(name) : email 
-      };
-    }
-  }
-  
-  // Try simpler format without nested parens
-  const simpleMatch = addressBlock.match(/\("([^"]*)"\s+NIL\s+"([^"]+)"\s+"([^"]+)"\)/);
-  if (simpleMatch) {
-    const name = simpleMatch[1] || "";
-    const local = simpleMatch[2] || "";
-    const domain = simpleMatch[3] || "";
-    
-    if (local && domain) {
-      const email = `${local}@${domain}`.toLowerCase();
-      return { 
-        email, 
-        name: name ? decodeMimeWord(name) : email 
-      };
-    }
-  }
-  
-  return null;
-}
-
-// Decode MIME encoded words
+// Decode MIME encoded words (minimal)
 function decodeMimeWord(str: string): string {
   if (!str) return "";
-  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_, charset, encoding, text) => {
+  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_, _cs, encoding, text) => {
     try {
-      if (encoding.toUpperCase() === "B") {
-        return atob(text);
-      } else if (encoding.toUpperCase() === "Q") {
-        return text.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (match: string, hex: string) =>
-          String.fromCharCode(parseInt(hex, 16))
-        );
-      }
-    } catch {
-      return text;
-    }
+      if (encoding.toUpperCase() === "B") return atob(text);
+      if (encoding.toUpperCase() === "Q") return text.replace(/_/g, " ").replace(/=([0-9A-F]{2})/gi, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    } catch { /* ignore */ }
     return text;
   });
 }
 
-// Safe date parsing - handles invalid dates gracefully
-function parseDateSafe(dateStr: string | undefined | null): string {
-  if (!dateStr || dateStr.trim() === "") {
-    return new Date().toISOString();
-  }
-  
-  try {
-    // Try parsing directly
-    const parsed = new Date(dateStr);
-    
-    // Check if it's a valid date
-    if (isNaN(parsed.getTime())) {
-      console.warn(`Invalid date format: "${dateStr}", using current date`);
-      return new Date().toISOString();
-    }
-    
-    // Check for reasonable date range (1990 to 10 years from now)
-    const year = parsed.getFullYear();
-    if (year < 1990 || year > new Date().getFullYear() + 10) {
-      console.warn(`Date out of range: "${dateStr}", using current date`);
-      return new Date().toISOString();
-    }
-    
-    return parsed.toISOString();
-  } catch (e) {
-    console.warn(`Failed to parse date: "${dateStr}", using current date`);
-    return new Date().toISOString();
-  }
-}
-
-// Parse IMAP INTERNALDATE format: "15-Jan-2026 10:30:00 +0000"
-function parseInternalDate(dateStr: string | undefined | null): string {
+function parseDateSafe(dateStr: string | null | undefined): string {
   if (!dateStr) return new Date().toISOString();
-  
   try {
-    // Remove quotes if present
     const cleaned = dateStr.replace(/^"|"$/g, "").trim();
     const parsed = new Date(cleaned);
-    
-    if (isNaN(parsed.getTime())) {
-      return new Date().toISOString();
-    }
-    
+    if (isNaN(parsed.getTime())) return new Date().toISOString();
+    const year = parsed.getFullYear();
+    if (year < 1990 || year > new Date().getFullYear() + 10) return new Date().toISOString();
     return parsed.toISOString();
-  } catch {
-    return new Date().toISOString();
-  }
+  } catch { return new Date().toISOString(); }
 }
 
-// IMAP command builder and parser
-class SimpleIMAPClient {
-  private conn: Deno.TlsConn | null = null;
-  private encoder = new TextEncoder();
-  private decoder = new TextDecoder();
-  private tagCounter = 0;
-  private buffer = "";
+// Minimal IMAP — just get UIDs, subjects, from, date via ENVELOPE
+// Disconnects ASAP to free CPU for DB work
+interface RawMsg {
+  uid: number;
+  subject: string;
+  fromEmail: string;
+  fromName: string;
+  date: string;
+  messageId: string;
+  inReplyTo: string | null;
+}
 
-  async connect(host: string, port: number, user: string, password: string): Promise<void> {
-    this.conn = await Deno.connectTls({ hostname: host, port });
-    
-    // Read greeting
-    await this.readResponse("*");
-    
-    // Login
-    const loginTag = this.getTag();
-    await this.sendCommand(`${loginTag} LOGIN "${user}" "${password}"`);
-    const loginResp = await this.readResponse(loginTag);
-    if (!loginResp.includes("OK")) {
-      throw new Error("Login failed: " + loginResp);
-    }
+async function fetchImapMessages(
+  host: string, port: number, user: string, pass: string, limit: number
+): Promise<RawMsg[]> {
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+  let tagN = 0;
+  const tag = () => `A${++tagN}`;
+
+  const conn = await Deno.connectTls({ hostname: host, port });
+
+  async function send(cmd: string) {
+    await conn.write(enc.encode(cmd + "\r\n"));
   }
 
-  async selectMailbox(name: string): Promise<{ exists: number }> {
-    const tag = this.getTag();
-    await this.sendCommand(`${tag} SELECT "${name}"`);
-    const resp = await this.readResponse(tag);
-    const existsMatch = resp.match(/\* (\d+) EXISTS/);
-    return { exists: existsMatch ? parseInt(existsMatch[1]) : 0 };
-  }
-
-  async fetchMessages(range: string): Promise<Array<{
-    uid: number;
-    subject: string;
-    from: string;
-    fromName: string;
-    to: string;
-    date: string;
-    messageId: string;
-    inReplyTo: string | null;
-    body: string;
-  }>> {
-    const messages: Array<{
-      uid: number;
-      subject: string;
-      from: string;
-      fromName: string;
-      to: string;
-      date: string;
-      messageId: string;
-      inReplyTo: string | null;
-      body: string;
-    }> = [];
-
-    const tag = this.getTag();
-    // Only fetch envelope + date — skip BODY.PEEK[TEXT] to save CPU
-    await this.sendCommand(`${tag} FETCH ${range} (UID FLAGS INTERNALDATE ENVELOPE)`);
-    const resp = await this.readResponse(tag);
-
-    // Parse responses - simplified parsing
-    const fetchBlocks = resp.split(/\* \d+ FETCH/);
-    
-    for (const block of fetchBlocks) {
-      if (!block.trim()) continue;
-      
-      const uidMatch = block.match(/UID (\d+)/);
-      const uid = uidMatch ? parseInt(uidMatch[1]) : 0;
-      if (!uid) continue;
-
-      // Extract INTERNALDATE first (always reliable)
-      const internalDateMatch = block.match(/INTERNALDATE "([^"]+)"/);
-      const internalDate = internalDateMatch ? internalDateMatch[1] : null;
-
-      // Extract envelope data - IMAP ENVELOPE format:
-      // (date subject ((from)) ((sender)) ((reply-to)) ((to)) ((cc)) ((bcc)) in-reply-to message-id)
-      const envelopeMatch = block.match(/ENVELOPE \((.+)\)/s);
-      let subject = "";
-      let from = "";
-      let fromName = "";
-      let to = "";
-      let date = "";
-      let messageId = "";
-      let inReplyTo: string | null = null;
-
-      if (envelopeMatch) {
-        const envelope = envelopeMatch[1];
-        
-        // Log envelope for debugging
-        console.log("Parsing envelope:", envelope.substring(0, 200));
-        
-        // Extract date - first quoted string
-        const dateMatch = envelope.match(/^"([^"]*)"/);
-        if (dateMatch && dateMatch[1]) {
-          date = dateMatch[1];
-        }
-        
-        // Extract subject - second field (after date)
-        const afterDate = envelope.replace(/^"[^"]*"\s*/, "");
-        const subjectMatch = afterDate.match(/^(?:NIL|"([^"]*)")/);
-        if (subjectMatch && subjectMatch[1]) {
-          subject = decodeMimeWord(subjectMatch[1]);
-        }
-        
-        // Extract FROM address - find first address block after subject
-        // Pattern: ((name NIL local domain)) or (("name" NIL "local" "domain"))
-        const fromMatch = envelope.match(/\(\((?:"[^"]*"|NIL)\s+NIL\s+(?:"[^"]+"|NIL)\s+(?:"[^"]+"|NIL)\)\)/);
-        if (fromMatch) {
-          const parsed = parseEnvelopeAddress(fromMatch[0]);
-          if (parsed) {
-            from = parsed.email;
-            fromName = parsed.name;
-            console.log("Parsed FROM:", from, "name:", fromName);
-          }
-        }
-        
-        // Extract TO address - find address blocks, TO comes after from/sender/reply-to
-        // We'll look for all address blocks and use heuristics
-        const addressBlocks = envelope.match(/\(\([^)]+\)\)/g);
-        if (addressBlocks && addressBlocks.length > 0) {
-          // First address block is FROM
-          const fromParsed = parseEnvelopeAddress(addressBlocks[0]);
-          if (fromParsed && !from) {
-            from = fromParsed.email;
-            fromName = fromParsed.name;
-          }
-          // Fourth address block (index 3) would be TO if sender and reply-to exist
-          // But often they're NIL, so TO might be at index 1, 2, or 3
-          for (let i = 1; i < Math.min(addressBlocks.length, 4); i++) {
-            const toParsed = parseEnvelopeAddress(addressBlocks[i]);
-            if (toParsed) {
-              to = toParsed.email;
-              break;
-            }
-          }
-        }
-        
-        // Extract message-id - last quoted string that looks like a message ID
-        const msgIdMatches = envelope.match(/<[^>]+@[^>]+>/g);
-        if (msgIdMatches && msgIdMatches.length > 0) {
-          messageId = msgIdMatches[msgIdMatches.length - 1];
-          if (msgIdMatches.length > 1) {
-            inReplyTo = msgIdMatches[0];
-          }
-        }
-        
-        // Alternative: extract message-id from the end
-        const lastMsgIdMatch = envelope.match(/"(<[^>]+>)"[^"]*$/);
-        if (lastMsgIdMatch) {
-          messageId = lastMsgIdMatch[1];
-        }
-        
-        // Extract in-reply-to
-        const inReplyMatch = envelope.match(/"(<[^>]+>)"\s+"<[^>]+>"/);
-        if (inReplyMatch) {
-          inReplyTo = inReplyMatch[1];
-        }
-      }
-
-      // Use INTERNALDATE as fallback if envelope date is missing/invalid
-      const finalDate = date || internalDate || "";
-
-      messages.push({
-        uid,
-        subject,
-        from,
-        fromName: fromName || from,
-        to,
-        date: finalDate,
-        messageId,
-        inReplyTo,
-        body: subject || "", // Use subject as preview — body fetch removed for CPU savings
-      });
-    }
-
-    return messages;
-  }
-
-  async logout(): Promise<void> {
-    if (!this.conn) return;
-    try {
-      const tag = this.getTag();
-      await this.sendCommand(`${tag} LOGOUT`);
-      this.conn.close();
-    } catch {
-      // Ignore logout errors
-    }
-  }
-
-  private getTag(): string {
-    return `A${++this.tagCounter}`;
-  }
-
-  private async sendCommand(cmd: string): Promise<void> {
-    if (!this.conn) throw new Error("Not connected");
-    await this.conn.write(this.encoder.encode(cmd + "\r\n"));
-  }
-
-  private async readResponse(expectedTag: string): Promise<string> {
-    if (!this.conn) throw new Error("Not connected");
-    
-    const buf = new Uint8Array(4096);
-    let response = this.buffer;
-    const timeout = 10000;
-    const start = Date.now();
-
-    while (Date.now() - start < timeout) {
-      // Check if we have a complete response
-      if (expectedTag === "*") {
-        if (response.includes("\r\n")) {
-          this.buffer = "";
-          return response;
-        }
-      } else {
-        const tagLine = response.split("\r\n").find(line => 
-          line.startsWith(expectedTag + " ")
-        );
-        if (tagLine) {
-          this.buffer = "";
-          return response;
-        }
-      }
-
-      const n = await this.conn.read(buf);
+  async function readUntilTag(t: string): Promise<string> {
+    const buf = new Uint8Array(8192);
+    let resp = "";
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      if (t === "*" && resp.includes("\r\n")) return resp;
+      if (t !== "*" && resp.split("\r\n").some(l => l.startsWith(t + " "))) return resp;
+      const n = await conn.read(buf);
       if (n === null) break;
-      response += this.decoder.decode(buf.subarray(0, n));
+      resp += dec.decode(buf.subarray(0, n));
+    }
+    return resp;
+  }
+
+  // Greeting
+  await readUntilTag("*");
+
+  // Login
+  const lt = tag();
+  await send(`${lt} LOGIN "${user}" "${pass}"`);
+  const lr = await readUntilTag(lt);
+  if (!lr.includes("OK")) { conn.close(); throw new Error("Login failed"); }
+
+  // Select INBOX
+  const st = tag();
+  await send(`${st} SELECT INBOX`);
+  const sr = await readUntilTag(st);
+  const existsMatch = sr.match(/\* (\d+) EXISTS/);
+  const exists = existsMatch ? parseInt(existsMatch[1]) : 0;
+
+  if (exists === 0) { 
+    const lot = tag(); await send(`${lot} LOGOUT`); conn.close();
+    return []; 
+  }
+
+  // Fetch last N messages — ENVELOPE only
+  const start = Math.max(1, exists - limit + 1);
+  const ft = tag();
+  await send(`${ft} FETCH ${start}:${exists} (UID INTERNALDATE ENVELOPE)`);
+  const fr = await readUntilTag(ft);
+
+  // Logout immediately — free TLS resources before parsing
+  try { const lot = tag(); await send(`${lot} LOGOUT`); conn.close(); } catch { /* ok */ }
+
+  // Parse offline — no more TLS CPU usage
+  const messages: RawMsg[] = [];
+  const blocks = fr.split(/\* \d+ FETCH/);
+
+  for (const block of blocks) {
+    if (!block.trim()) continue;
+    const uidM = block.match(/UID (\d+)/);
+    if (!uidM) continue;
+    const uid = parseInt(uidM[1]);
+
+    const idM = block.match(/INTERNALDATE "([^"]+)"/);
+    const date = idM ? idM[1] : "";
+
+    // Extract envelope
+    const envM = block.match(/ENVELOPE \((.+)\)/s);
+    let subject = "", fromEmail = "", fromName = "", messageId = "", inReplyTo: string | null = null;
+
+    if (envM) {
+      const env = envM[1];
+      // Subject is second quoted field
+      const parts = env.match(/"([^"]*)"/g);
+      if (parts && parts.length >= 2) {
+        subject = decodeMimeWord(parts[1].replace(/^"|"$/g, ""));
+      }
+      // From: find pattern ("name" NIL "local" "domain")
+      const fromM = env.match(/\(\((?:"([^"]*)"|NIL)\s+NIL\s+"([^"]+)"\s+"([^"]+)"\)\)/);
+      if (fromM) {
+        fromEmail = `${fromM[2]}@${fromM[3]}`.toLowerCase();
+        fromName = fromM[1] ? decodeMimeWord(fromM[1]) : fromEmail;
+      }
+      // Message-ID: last angle-bracket ID
+      const msgIds = env.match(/<[^>]+@[^>]+>/g);
+      if (msgIds) {
+        messageId = msgIds[msgIds.length - 1];
+        if (msgIds.length > 1) inReplyTo = msgIds[0];
+      }
     }
 
-    this.buffer = "";
-    return response;
+    messages.push({ uid, subject, fromEmail, fromName: fromName || fromEmail, date, messageId, inReplyTo });
   }
-}
 
-interface FetchEmailsRequest {
-  connectionId: string;
-  workspaceId: string;
-  limit?: number;
-  forceResync?: boolean;
+  return messages;
 }
 
 Deno.serve(async (req) => {
@@ -398,320 +167,185 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const encryptionKey = Deno.env.get("EMAIL_ENCRYPTION_KEY") || supabaseServiceKey.slice(0, 32);
-    
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
+    if (!authHeader) throw new Error("Missing authorization header");
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Verify user
+
     const { data: { user }, error: authError } = await createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     ).auth.getUser();
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    if (authError || !user) throw new Error("Unauthorized");
 
-    const body: FetchEmailsRequest = await req.json();
-    const { connectionId, workspaceId, limit = 5, forceResync = false } = body;
+    const body = await req.json();
+    const { connectionId, workspaceId, limit = 3, forceResync = false } = body;
 
-    // Get email connection
+    // Get connection
     const { data: connection, error: connError } = await supabaseClient
-      .from("email_connections")
-      .select("*")
-      .eq("id", connectionId)
-      .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
-      .single();
+      .from("email_connections").select("*")
+      .eq("id", connectionId).eq("workspace_id", workspaceId).eq("is_active", true).single();
+    if (connError || !connection) throw new Error("Email connection not found");
 
-    if (connError || !connection) {
-      throw new Error("Email connection not found");
-    }
+    await supabaseClient.from("email_connections").update({ sync_status: "syncing" }).eq("id", connectionId);
 
-    // Update sync status
-    await supabaseClient
-      .from("email_connections")
-      .update({ sync_status: "syncing" })
-      .eq("id", connectionId);
-
-    // Decrypt password
+    // Decrypt
+    if (!connection.encrypted_app_password) throw new Error("No password configured");
     let password: string;
     try {
-      if (!connection.encrypted_app_password) {
-        throw new Error("No password configured");
-      }
       password = await decryptCredential(connection.encrypted_app_password, encryptionKey);
-    } catch (decryptError) {
-      console.error("Decryption error:", decryptError);
-      await supabaseClient
-        .from("email_connections")
-        .update({ 
-          sync_status: "error",
-          sync_error: "Failed to decrypt credentials"
-        })
-        .eq("id", connectionId);
+    } catch {
+      await supabaseClient.from("email_connections")
+        .update({ sync_status: "error", sync_error: "Failed to decrypt credentials" }).eq("id", connectionId);
       throw new Error("Failed to decrypt credentials");
     }
 
-    const client = new SimpleIMAPClient();
-    let fetchedCount = 0;
-
+    // === PHASE 1: IMAP fetch (CPU-intensive) — then disconnect ===
+    console.log(`Connecting to IMAP: ${connection.imap_host}:${connection.imap_port}, limit=${limit}`);
+    let rawMessages: RawMsg[];
     try {
-      // Connect to IMAP server
-      console.log(`Connecting to IMAP: ${connection.imap_host}:${connection.imap_port}`);
-      
-      await client.connect(
-        connection.imap_host,
-        connection.imap_port,
-        connection.email_address,
-        password
+      rawMessages = await fetchImapMessages(
+        connection.imap_host, connection.imap_port,
+        connection.email_address, password, limit
       );
-      console.log("IMAP connected successfully");
-
-      // Select INBOX
-      const mailbox = await client.selectMailbox("INBOX");
-      console.log(`Mailbox selected: ${mailbox.exists} messages`);
-
-      if (mailbox.exists === 0) {
-        await supabaseClient
-          .from("email_connections")
-          .update({ 
-            sync_status: "synced",
-            last_sync_at: new Date().toISOString(),
-            sync_error: null,
-          })
-          .eq("id", connectionId);
-
-        await client.logout();
-        
-        return new Response(
-          JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Determine range to fetch - if forceResync, ignore last_sync_uid
-      const lastUid = forceResync ? 0 : (connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0);
-      const startMsg = Math.max(1, mailbox.exists - limit + 1);
-      const range = `${startMsg}:${mailbox.exists}`;
-      
-      console.log(`Force resync: ${forceResync}, Last UID: ${lastUid}`);
-      
-      // Fetch messages
-      const messages = await client.fetchMessages(range);
-      let maxUid = lastUid;
-
-      // Filter to only new messages
-      const newMessages = messages.filter(m => m.uid > lastUid);
-      if (newMessages.length === 0) {
-        await supabaseClient
-          .from("email_connections")
-          .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
-          .eq("id", connectionId);
-        await client.logout();
-        return new Response(
-          JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // === BATCH: collect all unique emails, message IDs, and thread keys upfront ===
-      const senderEmails = new Set<string>();
-      const emailMsgIds: string[] = [];
-      const threadKeys = new Set<string>();
-
-      for (const msg of newMessages) {
-        const senderEmail = (msg.from || "unknown@email.com").toLowerCase();
-        if (senderEmail !== connection.email_address.toLowerCase()) {
-          senderEmails.add(senderEmail);
-        }
-        emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
-        const cleanSubject = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${Date.now()}`;
-        threadKeys.add(cleanSubject);
-      }
-
-      // Batch query 1: existing email_message_ids for dedup
-      const { data: existingMsgs } = await supabaseClient
-        .from("messages")
-        .select("email_message_id")
-        .eq("workspace_id", workspaceId)
-        .in("email_message_id", emailMsgIds);
-      const existingMsgIdSet = new Set((existingMsgs || []).map(m => m.email_message_id));
-
-      // Batch query 2: existing leads by email
-      const senderEmailArr = Array.from(senderEmails);
-      const leadMap = new Map<string, string>();
-      if (senderEmailArr.length > 0) {
-        const { data: existingLeads } = await supabaseClient
-          .from("leads")
-          .select("id, external_email")
-          .eq("workspace_id", workspaceId)
-          .in("external_email", senderEmailArr);
-        for (const l of existingLeads || []) {
-          if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
-        }
-      }
-
-      // Batch query 3: existing conversations by thread
-      const threadArr = Array.from(threadKeys);
-      const convMap = new Map<string, string>();
-      if (threadArr.length > 0) {
-        const { data: existingConvs } = await supabaseClient
-          .from("conversations")
-          .select("id, external_thread_id")
-          .eq("workspace_id", workspaceId)
-          .eq("channel", "email")
-          .in("external_thread_id", threadArr);
-        for (const c of existingConvs || []) {
-          if (c.external_thread_id) convMap.set(c.external_thread_id, c.id);
-        }
-      }
-
-      // === Process each message using in-memory lookups ===
-      for (const msg of newMessages) {
-        if (msg.uid > maxUid) maxUid = msg.uid;
-
-        const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
-        if (existingMsgIdSet.has(emailMsgId)) {
-          console.log(`[Email Fetch] Skipping duplicate: ${emailMsgId}`);
-          continue;
-        }
-
-        const senderEmail = (msg.from || "unknown@email.com").toLowerCase();
-        const senderName = msg.fromName || senderEmail;
-        const isInbound = senderEmail !== connection.email_address.toLowerCase();
-
-        // Lead lookup/create (only DB call if lead doesn't exist)
-        let leadId: string | null = null;
-        if (isInbound && senderEmail) {
-          leadId = leadMap.get(senderEmail) || null;
-          if (!leadId) {
-            const { data: newLead } = await supabaseClient
-              .from("leads")
-              .insert({
-                workspace_id: workspaceId,
-                created_by: user.id,
-                name: senderName,
-                email: senderEmail,
-                external_email: senderEmail,
-                source: "email",
-                status: "new",
-              })
-              .select("id")
-              .single();
-            if (newLead) {
-              leadId = newLead.id;
-              leadMap.set(senderEmail, leadId);
-            }
-          }
-        }
-
-        // Conversation lookup/create
-        const cleanSubject = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${Date.now()}`;
-        const messagePreview = (msg.subject || "").substring(0, 100);
-        let conversationId = convMap.get(cleanSubject) || null;
-
-        if (conversationId) {
-          await supabaseClient
-            .from("conversations")
-            .update({
-              last_message_at: new Date().toISOString(),
-              last_message_preview: messagePreview,
-              lead_id: leadId || undefined,
-              unread_count: isInbound ? 1 : 0,
-            })
-            .eq("id", conversationId);
-        } else {
-          const { data: newConv } = await supabaseClient
-            .from("conversations")
-            .insert({
-              workspace_id: workspaceId,
-              channel: "email",
-              external_thread_id: cleanSubject,
-              lead_id: leadId,
-              status: "open",
-              unread_count: isInbound ? 1 : 0,
-              last_message_at: new Date().toISOString(),
-              last_message_preview: messagePreview,
-              channel_metadata: { connection_id: connectionId, subject: msg.subject },
-            })
-            .select("id")
-            .single();
-          if (!newConv) continue;
-          conversationId = newConv.id;
-          convMap.set(cleanSubject, conversationId);
-        }
-
-        // Insert message
-        const { error: msgError } = await supabaseClient
-          .from("messages")
-          .insert({
-            conversation_id: conversationId,
-            workspace_id: workspaceId,
-            direction: isInbound ? "inbound" : "outbound",
-            content: msg.subject || "(Sem conteúdo)",
-            sent_at: parseDateSafe(msg.date),
-            email_message_id: emailMsgId,
-            email_in_reply_to: msg.inReplyTo || null,
-            email_subject: msg.subject,
-            sender_id: isInbound ? null : user.id,
-          });
-
-        if (!msgError) {
-          fetchedCount++;
-          existingMsgIdSet.add(emailMsgId);
-        }
-      }
-
-      // Update sync status
-      await supabaseClient
-        .from("email_connections")
-        .update({ 
-          sync_status: "synced",
-          last_sync_at: new Date().toISOString(),
-          last_sync_uid: maxUid.toString(),
-          sync_error: null,
-        })
-        .eq("id", connectionId);
-
-      await client.logout();
-
-    } catch (imapError: unknown) {
-      console.error("IMAP error:", imapError);
-      const errorMessage = imapError instanceof Error ? imapError.message : "IMAP connection failed";
-      
-      await supabaseClient
-        .from("email_connections")
-        .update({ 
-          sync_status: "error",
-          sync_error: errorMessage,
-        })
-        .eq("id", connectionId);
-
-      try { await client.logout(); } catch { /* ignore */ }
-
-      throw new Error(`IMAP error: ${errorMessage}`);
+    } catch (imapErr: unknown) {
+      const msg = imapErr instanceof Error ? imapErr.message : "IMAP connection failed";
+      await supabaseClient.from("email_connections")
+        .update({ sync_status: "error", sync_error: msg }).eq("id", connectionId);
+      throw new Error(`IMAP error: ${msg}`);
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Synced ${fetchedCount} new emails`,
-        fetchedCount,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.log(`IMAP done, got ${rawMessages.length} raw messages`);
+
+    if (rawMessages.length === 0) {
+      await supabaseClient.from("email_connections")
+        .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
+        .eq("id", connectionId);
+      return new Response(JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // === PHASE 2: DB work (no more TLS overhead) ===
+    const lastUid = forceResync ? 0 : (connection.last_sync_uid ? parseInt(connection.last_sync_uid) : 0);
+    const newMessages = rawMessages.filter(m => m.uid > lastUid);
+
+    if (newMessages.length === 0) {
+      await supabaseClient.from("email_connections")
+        .update({ sync_status: "synced", last_sync_at: new Date().toISOString(), sync_error: null })
+        .eq("id", connectionId);
+      return new Response(JSON.stringify({ success: true, message: "No new emails", fetchedCount: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Collect unique keys
+    const senderEmails = new Set<string>();
+    const emailMsgIds: string[] = [];
+    const threadKeys = new Set<string>();
+
+    for (const msg of newMessages) {
+      const email = (msg.fromEmail || "unknown@email.com").toLowerCase();
+      if (email !== connection.email_address.toLowerCase()) senderEmails.add(email);
+      emailMsgIds.push(msg.messageId || `<${msg.uid}@${connection.imap_host}>`);
+      threadKeys.add((msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`);
+    }
+
+    // 3 batch queries
+    const [dedupRes, leadsRes, convsRes] = await Promise.all([
+      supabaseClient.from("messages").select("email_message_id")
+        .eq("workspace_id", workspaceId).in("email_message_id", emailMsgIds),
+      senderEmails.size > 0
+        ? supabaseClient.from("leads").select("id, external_email")
+            .eq("workspace_id", workspaceId).in("external_email", Array.from(senderEmails))
+        : Promise.resolve({ data: [] }),
+      threadKeys.size > 0
+        ? supabaseClient.from("conversations").select("id, external_thread_id")
+            .eq("workspace_id", workspaceId).eq("channel", "email").in("external_thread_id", Array.from(threadKeys))
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const existingIds = new Set((dedupRes.data || []).map((m: { email_message_id: string }) => m.email_message_id));
+    const leadMap = new Map<string, string>();
+    for (const l of (leadsRes.data || []) as Array<{ id: string; external_email: string | null }>) {
+      if (l.external_email) leadMap.set(l.external_email.toLowerCase(), l.id);
+    }
+    const convMap = new Map<string, string>();
+    for (const c of (convsRes.data || []) as Array<{ id: string; external_thread_id: string | null }>) {
+      if (c.external_thread_id) convMap.set(c.external_thread_id, c.id);
+    }
+
+    let fetchedCount = 0;
+    let maxUid = lastUid;
+
+    for (const msg of newMessages) {
+      if (msg.uid > maxUid) maxUid = msg.uid;
+      const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
+      if (existingIds.has(emailMsgId)) continue;
+
+      const senderEmail = (msg.fromEmail || "unknown@email.com").toLowerCase();
+      const isInbound = senderEmail !== connection.email_address.toLowerCase();
+
+      // Lead
+      let leadId: string | null = null;
+      if (isInbound && senderEmail) {
+        leadId = leadMap.get(senderEmail) || null;
+        if (!leadId) {
+          const { data: nl } = await supabaseClient.from("leads")
+            .insert({ workspace_id: workspaceId, created_by: user.id, name: msg.fromName || senderEmail, email: senderEmail, external_email: senderEmail, source: "email", status: "new" })
+            .select("id").single();
+          if (nl) { leadId = nl.id; leadMap.set(senderEmail, leadId); }
+        }
+      }
+
+      // Conversation
+      const threadKey = (msg.subject || "").replace(/^(Re:|Fwd:|Fw:)\s*/gi, "").trim() || `email-${msg.uid}`;
+      let conversationId = convMap.get(threadKey) || null;
+
+      if (conversationId) {
+        await supabaseClient.from("conversations").update({
+          last_message_at: new Date().toISOString(),
+          last_message_preview: (msg.subject || "").substring(0, 100),
+          lead_id: leadId || undefined,
+          unread_count: isInbound ? 1 : 0,
+        }).eq("id", conversationId);
+      } else {
+        const { data: nc } = await supabaseClient.from("conversations")
+          .insert({
+            workspace_id: workspaceId, channel: "email", external_thread_id: threadKey,
+            lead_id: leadId, status: "open", unread_count: isInbound ? 1 : 0,
+            last_message_at: new Date().toISOString(),
+            last_message_preview: (msg.subject || "").substring(0, 100),
+            channel_metadata: { connection_id: connectionId, subject: msg.subject },
+          }).select("id").single();
+        if (!nc) continue;
+        conversationId = nc.id;
+        convMap.set(threadKey, conversationId);
+      }
+
+      // Message
+      const { error: msgErr } = await supabaseClient.from("messages").insert({
+        conversation_id: conversationId, workspace_id: workspaceId,
+        direction: isInbound ? "inbound" : "outbound",
+        content: msg.subject || "(Sem conteúdo)",
+        sent_at: parseDateSafe(msg.date),
+        email_message_id: emailMsgId, email_in_reply_to: msg.inReplyTo || null,
+        email_subject: msg.subject, sender_id: isInbound ? null : user.id,
+      });
+      if (!msgErr) { fetchedCount++; existingIds.add(emailMsgId); }
+    }
+
+    await supabaseClient.from("email_connections").update({
+      sync_status: "synced", last_sync_at: new Date().toISOString(),
+      last_sync_uid: maxUid.toString(), sync_error: null,
+    }).eq("id", connectionId);
+
+    return new Response(JSON.stringify({ success: true, message: `Synced ${fetchedCount} new emails`, fetchedCount }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (error: unknown) {
     console.error("Email fetch error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: message }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
