@@ -8,9 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, BarChart3, TrendingUp, Clock, Target, Trash2, Bell, Zap } from "lucide-react";
+import { Plus, BarChart3, TrendingUp, Clock, Target, Trash2, Bell, Zap, Filter, Shield } from "lucide-react";
 import { usePipelineMetrics, MetricType, MetricFormula, MetricPeriod, AlertChannel } from "@/hooks/usePipelineMetrics";
+import { usePipelines, usePipelineStagesEnhanced } from "@/hooks/useOpportunitiesEnhanced";
 import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const METRIC_TYPES: { value: MetricType; label: string; icon: typeof BarChart3 }[] = [
   { value: "volume", label: "Volume", icon: BarChart3 },
@@ -21,13 +27,13 @@ const METRIC_TYPES: { value: MetricType; label: string; icon: typeof BarChart3 }
   { value: "custom", label: "Customizada", icon: BarChart3 },
 ];
 
-const FORMULAS: { value: MetricFormula; label: string }[] = [
-  { value: "count", label: "Contagem" },
-  { value: "sum", label: "Soma" },
-  { value: "avg", label: "Média" },
-  { value: "percentage", label: "Percentagem" },
-  { value: "duration", label: "Duração" },
-  { value: "event_count", label: "Eventos" },
+const FORMULAS: { value: MetricFormula; label: string; hint: string }[] = [
+  { value: "count", label: "Contagem", hint: "Conta o número de registos" },
+  { value: "sum", label: "Soma", hint: "Soma o valor de um campo" },
+  { value: "avg", label: "Média", hint: "Média do valor de um campo" },
+  { value: "percentage", label: "Percentagem", hint: "% de registos com valor > 0" },
+  { value: "duration", label: "Duração", hint: "Média de duração em dias" },
+  { value: "event_count", label: "Eventos", hint: "Conta eventos do Kernel" },
 ];
 
 const SOURCE_TABLES = [
@@ -38,6 +44,7 @@ const SOURCE_TABLES = [
   { value: "tasks", label: "Tarefas" },
   { value: "messages", label: "Mensagens" },
   { value: "kernel_events", label: "Eventos Kernel" },
+  { value: "activity_logs", label: "Atividades" },
 ];
 
 const PERIODS: { value: MetricPeriod; label: string }[] = [
@@ -54,6 +61,22 @@ const ALERT_CHANNELS: { value: AlertChannel; label: string }[] = [
   { value: "webhook", label: "Webhook" },
 ];
 
+const ALERT_CONDITIONS = [
+  { value: "below_target", label: "Abaixo da meta" },
+  { value: "above_target", label: "Acima da meta" },
+  { value: "sla_breach", label: "Violação de SLA" },
+  { value: "trend_down", label: "Tendência negativa" },
+];
+
+const LEAD_STATUSES = [
+  { value: "new", label: "Novo" },
+  { value: "contacted", label: "Contactado" },
+  { value: "qualified", label: "Qualificado" },
+  { value: "proposal", label: "Proposta" },
+  { value: "won", label: "Ganho" },
+  { value: "lost", label: "Perdido" },
+];
+
 const TYPE_COLORS: Record<MetricType, string> = {
   volume: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   value: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -65,6 +88,11 @@ const TYPE_COLORS: Record<MetricType, string> = {
 
 export default function PipelineMetricsPage() {
   const { metrics, metricsLoading, targets, alerts, createMetric, createTarget, createAlert, deleteMetric } = usePipelineMetrics();
+  const { data: pipelines } = usePipelines();
+  const { data: stages } = usePipelineStagesEnhanced();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
   const [tab, setTab] = useState("metrics");
   const [metricOpen, setMetricOpen] = useState(false);
   const [targetOpen, setTargetOpen] = useState(false);
@@ -78,22 +106,44 @@ export default function PipelineMetricsPage() {
   const [mSource, setMSource] = useState("leads");
   const [mField, setMField] = useState("");
   const [mUnit, setMUnit] = useState("");
+  // Filters
+  const [fPipelineId, setFPipelineId] = useState("");
+  const [fStageId, setFStageId] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fSource, setFSource] = useState("");
+  const [fChannel, setFChannel] = useState("");
+  const [fEventType, setFEventType] = useState("");
 
   // Target form
   const [tMetricId, setTMetricId] = useState("");
   const [tPeriod, setTPeriod] = useState<MetricPeriod>("monthly");
   const [tValue, setTValue] = useState("");
+  const [tPipelineId, setTPipelineId] = useState("");
+  const [tStageId, setTStageId] = useState("");
 
   // Alert form
   const [aMetricId, setAMetricId] = useState("");
   const [aChannel, setAChannel] = useState<AlertChannel>("in_app");
+  const [aCondition, setACondition] = useState("below_target");
   const [aThreshold, setAThreshold] = useState("80");
   const [aWebhook, setAWebhook] = useState("");
 
-  const resetMetricForm = () => { setMName(""); setMDesc(""); setMType("volume"); setMFormula("count"); setMSource("leads"); setMField(""); setMUnit(""); };
+  const resetMetricForm = () => {
+    setMName(""); setMDesc(""); setMType("volume"); setMFormula("count");
+    setMSource("leads"); setMField(""); setMUnit("");
+    setFPipelineId(""); setFStageId(""); setFStatus(""); setFSource(""); setFChannel(""); setFEventType("");
+  };
 
   const handleCreateMetric = () => {
     if (!mName.trim()) return;
+    const filterJson: Record<string, unknown> = {};
+    if (fPipelineId) filterJson.pipeline_id = fPipelineId;
+    if (fStageId) filterJson.stage_id = fStageId;
+    if (fStatus) filterJson.status = fStatus;
+    if (fSource) filterJson.source = fSource;
+    if (fChannel) filterJson.channel = fChannel;
+    if (fEventType) filterJson.event_type = fEventType;
+
     createMetric.mutate({
       name: mName.trim(),
       description: mDesc.trim() || null,
@@ -102,6 +152,7 @@ export default function PipelineMetricsPage() {
       source_table: mSource,
       source_field: mField.trim() || null,
       unit: mUnit.trim(),
+      filter_json: filterJson,
     }, {
       onSuccess: () => { resetMetricForm(); setMetricOpen(false); },
     });
@@ -113,8 +164,10 @@ export default function PipelineMetricsPage() {
       metric_id: tMetricId,
       period: tPeriod,
       target_value: parseFloat(tValue),
+      pipeline_id: tPipelineId || null,
+      stage_id: tStageId || null,
     }, {
-      onSuccess: () => { setTMetricId(""); setTValue(""); setTargetOpen(false); },
+      onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
     });
   };
 
@@ -123,11 +176,16 @@ export default function PipelineMetricsPage() {
     createAlert.mutate({
       metric_id: aMetricId,
       channel: aChannel,
+      condition: aCondition,
       threshold_pct: parseFloat(aThreshold),
       webhook_url: aChannel === "webhook" ? aWebhook.trim() : null,
     }, {
-      onSuccess: () => { setAMetricId(""); setAThreshold("80"); setAWebhook(""); setAlertOpen(false); },
+      onSuccess: () => { setAMetricId(""); setAThreshold("80"); setAWebhook(""); setACondition("below_target"); setAlertOpen(false); },
     });
+  };
+
+  const activeFiltersCount = (filters: Record<string, unknown>) => {
+    return Object.values(filters).filter(v => v !== undefined && v !== null && v !== "").length;
   };
 
   return (
@@ -153,45 +211,127 @@ export default function PipelineMetricsPage() {
               <DialogTrigger asChild>
                 <Button className="gap-1.5"><Plus className="h-4 w-4" />Nova Métrica</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
+              <DialogContent className="sm:max-w-xl max-h-[85vh]">
                 <DialogHeader><DialogTitle>Criar Métrica</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div><Label>Nome</Label><Input value={mName} onChange={e => setMName(e.target.value)} placeholder="ex: Leads criados por semana" /></div>
-                  <div><Label>Descrição</Label><Textarea value={mDesc} onChange={e => setMDesc(e.target.value)} placeholder="Descrição opcional..." rows={2} /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Tipo</Label>
-                      <Select value={mType} onValueChange={v => setMType(v as MetricType)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{METRIC_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                <ScrollArea className="max-h-[65vh] pr-4">
+                  <div className="space-y-4">
+                    <div><Label>Nome *</Label><Input value={mName} onChange={e => setMName(e.target.value)} placeholder="ex: Leads criados por semana" /></div>
+                    <div><Label>Descrição</Label><Textarea value={mDesc} onChange={e => setMDesc(e.target.value)} placeholder="Descrição opcional..." rows={2} /></div>
+
+                    <Separator />
+                    <h4 className="text-sm font-semibold text-foreground">Definição</h4>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Tipo</Label>
+                        <Select value={mType} onValueChange={v => setMType(v as MetricType)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{METRIC_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Fórmula</Label>
+                        <Select value={mFormula} onValueChange={v => setMFormula(v as MetricFormula)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{FORMULAS.map(f => (
+                            <SelectItem key={f.value} value={f.value}>
+                              <div><span>{f.label}</span><span className="text-xs text-muted-foreground ml-1">— {f.hint}</span></div>
+                            </SelectItem>
+                          ))}</SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Fórmula</Label>
-                      <Select value={mFormula} onValueChange={v => setMFormula(v as MetricFormula)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{FORMULAS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
-                      </Select>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Fonte de dados</Label>
+                        <Select value={mSource} onValueChange={setMSource}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{SOURCE_TABLES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Campo (soma/média)</Label>
+                        <Input value={mField} onChange={e => setMField(e.target.value)} placeholder="ex: total_value" />
+                      </div>
                     </div>
+
+                    <div><Label>Unidade</Label><Input value={mUnit} onChange={e => setMUnit(e.target.value)} placeholder="ex: €, %, dias, leads" /></div>
+
+                    {/* === FILTERS === */}
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="filters" className="border rounded-lg px-3">
+                        <AccordionTrigger className="text-sm py-2">
+                          <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            <span>Filtros avançados</span>
+                            {(fPipelineId || fStageId || fStatus || fSource || fChannel || fEventType) && (
+                              <Badge variant="secondary" className="text-xs">
+                                {[fPipelineId, fStageId, fStatus, fSource, fChannel, fEventType].filter(Boolean).length} activo(s)
+                              </Badge>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-3 pb-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">Pipeline</Label>
+                              <Select value={fPipelineId} onValueChange={setFPipelineId}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Todos</SelectItem>
+                                  {(pipelines || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Fase / Stage</Label>
+                              <Select value={fStageId} onValueChange={setFStageId}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Todas</SelectItem>
+                                  {(stages || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">Estado</Label>
+                              <Select value={fStatus} onValueChange={setFStatus}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Todos</SelectItem>
+                                  {LEAD_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Origem</Label>
+                              <Input value={fSource} onChange={e => setFSource(e.target.value)} placeholder="ex: website, referral" className="h-8 text-xs" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs">Canal</Label>
+                              <Input value={fChannel} onChange={e => setFChannel(e.target.value)} placeholder="ex: email, phone" className="h-8 text-xs" />
+                            </div>
+                            {mSource === "kernel_events" && (
+                              <div>
+                                <Label className="text-xs">Tipo de evento</Label>
+                                <Input value={fEventType} onChange={e => setFEventType(e.target.value)} placeholder="ex: lead.created" className="h-8 text-xs" />
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+
+                    <Button onClick={handleCreateMetric} disabled={createMetric.isPending || !mName.trim()} className="w-full">
+                      {createMetric.isPending ? "A criar..." : "Criar Métrica"}
+                    </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Fonte de dados</Label>
-                      <Select value={mSource} onValueChange={setMSource}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>{SOURCE_TABLES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Campo (para soma/média)</Label>
-                      <Input value={mField} onChange={e => setMField(e.target.value)} placeholder="ex: total_value" />
-                    </div>
-                  </div>
-                  <div><Label>Unidade</Label><Input value={mUnit} onChange={e => setMUnit(e.target.value)} placeholder="ex: €, %, dias, leads" /></div>
-                  <Button onClick={handleCreateMetric} disabled={createMetric.isPending || !mName.trim()} className="w-full">
-                    {createMetric.isPending ? "A criar..." : "Criar Métrica"}
-                  </Button>
-                </div>
+                </ScrollArea>
               </DialogContent>
             </Dialog>
           </div>
@@ -211,13 +351,17 @@ export default function PipelineMetricsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {metrics.map(m => {
                 const t = targets.find(t => t.metric_id === m.id);
+                const filterCount = activeFiltersCount(m.filter_json || {});
                 return (
                   <Card key={m.id} className="group relative">
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={TYPE_COLORS[m.metric_type]}>{METRIC_TYPES.find(t => t.value === m.metric_type)?.label}</Badge>
                           <Badge variant="outline" className="text-xs">{FORMULAS.find(f => f.value === m.formula)?.label}</Badge>
+                          {filterCount > 0 && (
+                            <Badge variant="secondary" className="text-xs gap-1"><Filter className="h-2.5 w-2.5" />{filterCount}</Badge>
+                          )}
                         </div>
                         <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => deleteMetric.mutate(m.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -227,7 +371,7 @@ export default function PipelineMetricsPage() {
                     </CardHeader>
                     <CardContent>
                       {m.description && <p className="text-xs text-muted-foreground mb-2">{m.description}</p>}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span>Fonte: {SOURCE_TABLES.find(s => s.value === m.source_table)?.label || m.source_table}</span>
                         {m.source_field && <span>Campo: {m.source_field}</span>}
                         {m.unit && <span>Unidade: {m.unit}</span>}
@@ -254,24 +398,58 @@ export default function PipelineMetricsPage() {
               <DialogTrigger asChild>
                 <Button className="gap-1.5" disabled={metrics.length === 0}><Plus className="h-4 w-4" />Nova Meta</Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-lg">
                 <DialogHeader><DialogTitle>Definir Meta</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>Métrica</Label>
+                    <Label>Métrica *</Label>
                     <Select value={tMetricId} onValueChange={setTMetricId}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>{metrics.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>Período</Label>
-                    <Select value={tPeriod} onValueChange={v => setTPeriod(v as MetricPeriod)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{PERIODS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Período *</Label>
+                      <Select value={tPeriod} onValueChange={v => setTPeriod(v as MetricPeriod)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{PERIODS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Valor da Meta *</Label>
+                      <Input type="number" value={tValue} onChange={e => setTValue(e.target.value)} placeholder="ex: 100" />
+                    </div>
                   </div>
-                  <div><Label>Valor da Meta</Label><Input type="number" value={tValue} onChange={e => setTValue(e.target.value)} placeholder="ex: 100" /></div>
+
+                  <Separator />
+                  <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5" />Âmbito (opcional)
+                  </h4>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Pipeline</Label>
+                      <Select value={tPipelineId} onValueChange={setTPipelineId}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todos</SelectItem>
+                          {(pipelines || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Fase / Stage</Label>
+                      <Select value={tStageId} onValueChange={setTStageId}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Todas</SelectItem>
+                          {(stages || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <Button onClick={handleCreateTarget} disabled={createTarget.isPending || !tMetricId || !tValue} className="w-full">
                     {createTarget.isPending ? "A criar..." : "Definir Meta"}
                   </Button>
@@ -294,6 +472,7 @@ export default function PipelineMetricsPage() {
                 <TableRow>
                   <TableHead>Métrica</TableHead>
                   <TableHead>Período</TableHead>
+                  <TableHead>Âmbito</TableHead>
                   <TableHead className="text-right">Meta</TableHead>
                   <TableHead>Criada em</TableHead>
                 </TableRow>
@@ -301,10 +480,18 @@ export default function PipelineMetricsPage() {
               <TableBody>
                 {targets.map(t => {
                   const m = metrics.find(m => m.id === t.metric_id);
+                  const pipeline = (pipelines || []).find((p: any) => p.id === t.pipeline_id);
+                  const stage = (stages || []).find((s: any) => s.id === t.stage_id);
                   return (
                     <TableRow key={t.id}>
                       <TableCell className="font-medium">{m?.name ?? "—"}</TableCell>
                       <TableCell><Badge variant="outline">{PERIODS.find(p => p.value === t.period)?.label}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {pipeline ? pipeline.name : ""}
+                        {pipeline && stage ? " → " : ""}
+                        {stage ? stage.name : ""}
+                        {!pipeline && !stage ? "Global" : ""}
+                      </TableCell>
                       <TableCell className="text-right font-semibold">{t.target_value}{m?.unit}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{new Date(t.created_at).toLocaleDateString("pt-PT")}</TableCell>
                     </TableRow>
@@ -326,20 +513,32 @@ export default function PipelineMetricsPage() {
                 <DialogHeader><DialogTitle>Criar Alerta</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label>Métrica</Label>
+                    <Label>Métrica *</Label>
                     <Select value={aMetricId} onValueChange={setAMetricId}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>{metrics.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>Canal</Label>
-                    <Select value={aChannel} onValueChange={v => setAChannel(v as AlertChannel)}>
+                    <Label>Condição</Label>
+                    <Select value={aCondition} onValueChange={setACondition}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{ALERT_CHANNELS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{ALERT_CONDITIONS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Threshold (%)</Label><Input type="number" value={aThreshold} onChange={e => setAThreshold(e.target.value)} placeholder="80" /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Canal</Label>
+                      <Select value={aChannel} onValueChange={v => setAChannel(v as AlertChannel)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{ALERT_CHANNELS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Threshold (%)</Label>
+                      <Input type="number" value={aThreshold} onChange={e => setAThreshold(e.target.value)} placeholder="80" />
+                    </div>
+                  </div>
                   {aChannel === "webhook" && (
                     <div><Label>Webhook URL</Label><Input value={aWebhook} onChange={e => setAWebhook(e.target.value)} placeholder="https://..." /></div>
                   )}
@@ -364,6 +563,7 @@ export default function PipelineMetricsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Métrica</TableHead>
+                  <TableHead>Condição</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Último disparo</TableHead>
@@ -375,6 +575,7 @@ export default function PipelineMetricsPage() {
                   return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{m?.name ?? "—"}</TableCell>
+                      <TableCell><Badge variant="secondary" className="text-xs">{ALERT_CONDITIONS.find(c => c.value === a.condition)?.label || a.condition}</Badge></TableCell>
                       <TableCell><Badge variant="outline">{ALERT_CHANNELS.find(c => c.value === a.channel)?.label}</Badge></TableCell>
                       <TableCell>{a.threshold_pct}%</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
