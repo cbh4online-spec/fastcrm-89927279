@@ -3,14 +3,13 @@
  * 
  * Maps marketplace module slugs to their sidebar navigation entries.
  * When a module is installed (active in workspace_modules), its nav items
- * are automatically injected into the sidebar grouped by category.
+ * appear as a flat list in the sidebar under "Módulos".
  */
 import {
   Briefcase, Receipt, FileText, ShoppingCart, Shield, Target,
   TrendingUp, Link2, Search, MapPin, Instagram, UserPlus,
   Home, Mail, MessageSquare, Users, Zap, BookOpen, Brain,
-  Sparkles, ScanText, UserCircle, Lightbulb, MessageSquareText,
-  Package, Store, ShoppingBag, Building2, Landmark, Phone, Bot,
+  ScanText, Package, Store, ShoppingBag, Building2, Landmark, Phone, Bot,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,273 +18,69 @@ export interface ModuleNavEntry {
   label: string;
   icon: LucideIcon;
   href: string;
-  category: ModuleNavCategory;
-  /** Optional sub-items for modules with multiple pages */
-  children?: { label: string; href: string; icon: LucideIcon }[];
+  /** Sort order within the flat list (lower = higher) */
+  order: number;
 }
-
-export type ModuleNavCategory =
-  | "intelligence"
-  | "marketing"
-  | "sales"
-  | "operations"
-  | "finance"
-  | "prospecting"
-  | "communication"
-  | "ai"
-  | "integrations"
-  | "education"
-  | "real_estate";
-
-export const categoryLabels: Record<ModuleNavCategory, string> = {
-  intelligence: "Inteligência",
-  marketing: "Marketing",
-  sales: "Vendas & Comércio",
-  operations: "Operações",
-  finance: "Financeiro",
-  prospecting: "Prospecção",
-  communication: "Comunicação",
-  ai: "Automação & IA",
-  integrations: "Integrações",
-  education: "Educação",
-  real_estate: "Imobiliário",
-};
-
-export const categorySortOrder: ModuleNavCategory[] = [
-  "intelligence",
-  "prospecting",
-  "sales",
-  "marketing",
-  "finance",
-  "operations",
-  "communication",
-  "ai",
-  "integrations",
-  "education",
-  "real_estate",
-];
 
 /**
  * Registry of all modules that have navigable pages.
- * Modules without a `href` (e.g. pure AI capabilities) are excluded
- * since they don't have standalone pages.
+ * Sorted by logical grouping order.
  */
 export const moduleNavRegistry: ModuleNavEntry[] = [
-  // ── Intelligence ──
-  {
-    slug: "account-brief",
-    label: "Account Brief",
-    icon: Briefcase,
-    href: "/dashboard/account-brief",
-    category: "intelligence",
-  },
-  {
-    slug: "metodo-vision",
-    label: "Método Vision",
-    icon: Target,
-    href: "/dashboard/metodo-vision",
-    category: "intelligence",
-  },
+  // Intelligence
+  { slug: "account-brief", label: "Account Brief", icon: Briefcase, href: "/dashboard/account-brief", order: 10 },
+  { slug: "metodo-vision", label: "Método Vision", icon: Target, href: "/dashboard/metodo-vision", order: 11 },
 
-  // ── Prospecting ──
-  {
-    slug: "lead-enricher",
-    label: "Lead Enricher",
-    icon: Search,
-    href: "/dashboard/lead-enricher",
-    category: "prospecting",
-  },
-  {
-    slug: "instagram-looter",
-    label: "Instagram Looter",
-    icon: Instagram,
-    href: "/dashboard/instagram-looter",
-    category: "prospecting",
-  },
-  {
-    slug: "google-local-services",
-    label: "Google Local",
-    icon: MapPin,
-    href: "/dashboard/google-local",
-    category: "prospecting",
-  },
-  {
-    slug: "prospecting-pro",
-    label: "Prospecção Pro",
-    icon: UserPlus,
-    href: "/dashboard/prospecting",
-    category: "prospecting",
-  },
+  // Prospecting
+  { slug: "lead-enricher", label: "Lead Enricher", icon: Search, href: "/dashboard/lead-enricher", order: 20 },
+  { slug: "instagram-looter", label: "Instagram Looter", icon: Instagram, href: "/dashboard/instagram-looter", order: 21 },
+  { slug: "google-local-services", label: "Google Local", icon: MapPin, href: "/dashboard/google-local", order: 22 },
+  { slug: "prospecting-pro", label: "Prospecção Pro", icon: UserPlus, href: "/dashboard/prospecting", order: 23 },
 
-  // ── Sales ──
-  {
-    slug: "proposals",
-    label: "Propostas",
-    icon: FileText,
-    href: "/dashboard/proposals",
-    category: "sales",
-  },
-  {
-    slug: "online-store",
-    label: "Loja Online",
-    icon: ShoppingBag,
-    href: "/dashboard/store",
-    category: "sales",
-  },
-  {
-    slug: "marketplace-c2c",
-    label: "Marketplace C2C",
-    icon: Store,
-    href: "/dashboard/marketplace-c2c",
-    category: "sales",
-  },
-  {
-    slug: "b2b-portal",
-    label: "Portal B2B",
-    icon: Building2,
-    href: "/dashboard/b2b",
-    category: "sales",
-  },
+  // Sales
+  { slug: "proposals", label: "Propostas", icon: FileText, href: "/dashboard/proposals", order: 30 },
+  { slug: "online-store", label: "Loja Online", icon: ShoppingBag, href: "/dashboard/store", order: 31 },
+  { slug: "marketplace-c2c", label: "Marketplace C2C", icon: Store, href: "/dashboard/marketplace-c2c", order: 32 },
+  { slug: "b2b-portal", label: "Portal B2B", icon: Building2, href: "/dashboard/b2b", order: 33 },
 
-  // ── Marketing ──
-  {
-    slug: "bio-os",
-    label: "Bio OS",
-    icon: Link2,
-    href: "/dashboard/bio",
-    category: "marketing",
-  },
-  {
-    slug: "email-campaigns",
-    label: "Email Marketing",
-    icon: Mail,
-    href: "/dashboard/email-campaigns",
-    category: "marketing",
-  },
-  {
-    slug: "seo-growth",
-    label: "SEO & Growth",
-    icon: TrendingUp,
-    href: "/dashboard/seo",
-    category: "marketing",
-  },
+  // Marketing
+  { slug: "bio-os", label: "Bio OS", icon: Link2, href: "/dashboard/bio", order: 40 },
+  { slug: "email-campaigns", label: "Email Marketing", icon: Mail, href: "/dashboard/email-campaigns", order: 41 },
+  { slug: "seo-growth", label: "SEO & Growth", icon: TrendingUp, href: "/dashboard/seo", order: 42 },
 
-  // ── Finance ──
-  {
-    slug: "invoices",
-    label: "Faturas",
-    icon: Receipt,
-    href: "/dashboard/invoices",
-    category: "finance",
-  },
-  {
-    slug: "credit-intermediation",
-    label: "Crédito",
-    icon: Landmark,
-    href: "/dashboard/credit",
-    category: "finance",
-  },
+  // Finance
+  { slug: "invoices", label: "Faturas", icon: Receipt, href: "/dashboard/invoices", order: 50 },
+  { slug: "credit-intermediation", label: "Crédito", icon: Landmark, href: "/dashboard/credit", order: 51 },
 
-  // ── Operations ──
-  {
-    slug: "procurement",
-    label: "Procurement",
-    icon: ShoppingCart,
-    href: "/dashboard/procurement",
-    category: "operations",
-  },
-  {
-    slug: "security-ops",
-    label: "Segurança",
-    icon: Shield,
-    href: "/dashboard/security",
-    category: "operations",
-  },
+  // Operations
+  { slug: "procurement", label: "Procurement", icon: ShoppingCart, href: "/dashboard/procurement", order: 60 },
+  { slug: "security-ops", label: "Segurança", icon: Shield, href: "/dashboard/security", order: 61 },
 
-  // ── Communication ──
-  {
-    slug: "fastclub",
-    label: "Comunidade",
-    icon: Users,
-    href: "/dashboard/community",
-    category: "communication",
-  },
-  {
-    slug: "whatsapp-business",
-    label: "WhatsApp",
-    icon: MessageSquare,
-    href: "/dashboard/whatsapp",
-    category: "communication",
-  },
+  // Communication
+  { slug: "fastclub", label: "Comunidade", icon: Users, href: "/dashboard/community", order: 70 },
+  { slug: "whatsapp-business", label: "WhatsApp", icon: MessageSquare, href: "/dashboard/whatsapp", order: 71 },
 
-  // ── AI (only modules with dedicated pages) ──
-  {
-    slug: "knowledge-base",
-    label: "Knowledge Base",
-    icon: BookOpen,
-    href: "/dashboard/knowledge-base",
-    category: "ai",
-  },
-  {
-    slug: "ai-assistants",
-    label: "Assistentes IA",
-    icon: Bot,
-    href: "/dashboard/ai-assistants",
-    category: "ai",
-  },
+  // AI
+  { slug: "knowledge-base", label: "Knowledge Base", icon: BookOpen, href: "/dashboard/knowledge-base", order: 80 },
+  { slug: "ai-assistants", label: "Assistentes IA", icon: Bot, href: "/dashboard/ai-assistants", order: 81 },
 
-  // ── Education ──
-  {
-    slug: "student-journey",
-    label: "Student Journey",
-    icon: Package,
-    href: "/dashboard/student-journey",
-    category: "education",
-  },
+  // Education
+  { slug: "student-journey", label: "Student Journey", icon: Package, href: "/dashboard/student-journey", order: 90 },
 
-  // ── Real Estate ──
-  {
-    slug: "imo-ai",
-    label: "IMO AI",
-    icon: Home,
-    href: "/dashboard/imo",
-    category: "real_estate",
-  },
+  // Real Estate
+  { slug: "imo-ai", label: "IMO AI", icon: Home, href: "/dashboard/imo", order: 100 },
 
-  // ── Integrations ──
-  {
-    slug: "zapier-integration",
-    label: "Zapier",
-    icon: Zap,
-    href: "/dashboard/integrations/zapier",
-    category: "integrations",
-  },
+  // Integrations
+  { slug: "zapier-integration", label: "Zapier", icon: Zap, href: "/dashboard/integrations/zapier", order: 110 },
 ];
 
 /**
- * Given a list of installed module slugs, returns the nav entries
- * grouped by category, sorted by category priority.
+ * Given a list of installed module slugs, returns the matching nav entries
+ * sorted by order (flat list, no categories).
  */
-export function getInstalledModuleNav(
-  installedSlugs: string[]
-): { category: ModuleNavCategory; label: string; items: ModuleNavEntry[] }[] {
+export function getInstalledModuleNav(installedSlugs: string[]): ModuleNavEntry[] {
   const installed = new Set(installedSlugs);
-  const activeEntries = moduleNavRegistry.filter((e) => installed.has(e.slug));
-
-  // Group by category
-  const grouped = new Map<ModuleNavCategory, ModuleNavEntry[]>();
-  for (const entry of activeEntries) {
-    const list = grouped.get(entry.category) || [];
-    list.push(entry);
-    grouped.set(entry.category, list);
-  }
-
-  // Sort by category priority
-  return categorySortOrder
-    .filter((cat) => grouped.has(cat))
-    .map((cat) => ({
-      category: cat,
-      label: categoryLabels[cat],
-      items: grouped.get(cat)!,
-    }));
+  return moduleNavRegistry
+    .filter((e) => installed.has(e.slug))
+    .sort((a, b) => a.order - b.order);
 }
