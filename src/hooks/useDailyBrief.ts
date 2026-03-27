@@ -5,6 +5,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 const ACTION_KEY = "daily_brief";
 
@@ -60,6 +61,10 @@ export function useDailyBrief() {
 
   const generateDailyBrief = async () => {
     if (!currentWorkspace?.id) return;
+    if (!affordable) {
+      triggerNoCreditsDialog({ actionLabel: "Daily Brief", creditsNeeded: cost });
+      return;
+    }
     setIsGenerating(true);
     try {
       // Consume credits first
