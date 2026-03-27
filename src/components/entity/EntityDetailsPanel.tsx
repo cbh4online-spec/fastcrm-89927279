@@ -19,6 +19,7 @@ interface EntityDetailsPanelProps {
   entityType: EntityType;
   entity: Entity;
   onUpdate?: (field: string, value: unknown) => void;
+  onEmailClick?: (email: string) => void;
 }
 
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -62,7 +63,7 @@ function ProgressiveFields({ children, limit = 5 }: { children: React.ReactNode;
 }
 
 function EditableFieldRow({ 
-  label, value, icon: Icon, iconClassName, isLink, linkType, fieldKey, onUpdate 
+  label, value, icon: Icon, iconClassName, isLink, linkType, fieldKey, onUpdate, onEmailClick 
 }: { 
   label: string; 
   value: string | number | null | undefined; 
@@ -72,6 +73,7 @@ function EditableFieldRow({
   linkType?: string;
   fieldKey?: string;
   onUpdate?: (field: string, value: unknown) => void;
+  onEmailClick?: (email: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value ?? ''));
@@ -137,6 +139,9 @@ function EditableFieldRow({
       return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'email') {
+      if (onEmailClick) {
+        return <button type="button" onClick={(e) => { e.stopPropagation(); onEmailClick(String(value)); }} className="text-primary hover:underline text-[13px] font-medium break-all text-left">{String(value)}</button>;
+      }
       return <a href={`mailto:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'phone') {
