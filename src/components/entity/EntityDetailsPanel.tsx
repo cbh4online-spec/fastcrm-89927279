@@ -111,9 +111,11 @@ function EditableFieldRow({
 
   if (editing) {
     return (
-      <div className="flex items-start gap-2 text-sm">
-        {Icon && <Icon className={cn("h-3.5 w-3.5 mt-2 shrink-0", iconClassName || "text-muted-foreground")} />}
-        <span className="text-muted-foreground shrink-0 min-w-[80px] mt-1.5">{label}</span>
+      <div className="text-sm py-1.5">
+        <div className="flex items-center gap-1.5 mb-1">
+          {Icon && <Icon className={cn("h-3.5 w-3.5 shrink-0", iconClassName || "text-muted-foreground")} />}
+          <span className="text-muted-foreground text-xs">{label}</span>
+        </div>
         <Input
           ref={inputRef}
           type={inputType}
@@ -131,32 +133,34 @@ function EditableFieldRow({
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     if (isLink && linkType === 'url') {
       const href = String(value).startsWith('http') ? String(value) : `https://${value}`;
-      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate text-[13px] font-medium">{String(value)}</a>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'email') {
-      return <a href={`mailto:${value}`} className="text-primary hover:underline truncate text-[13px] font-medium">{String(value)}</a>;
+      return <a href={`mailto:${value}`} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'phone') {
       return <a href={`tel:${value}`} className="text-primary hover:underline text-[13px] font-medium">{String(value)}</a>;
     }
-    return <span className="text-foreground truncate text-[13px]">{String(value)}</span>;
+    return <span className="text-foreground text-[13px] break-words">{String(value)}</span>;
   };
 
   return (
     <div 
       className={cn(
-        "flex items-start gap-2 text-sm group py-1",
+        "text-sm group py-1.5",
         canEdit && "cursor-pointer rounded-md -mx-1 px-1 hover:bg-muted/50 transition-colors"
       )}
       onClick={canEdit ? () => setEditing(true) : undefined}
     >
-      {Icon && <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
-      <span className="text-muted-foreground shrink-0 min-w-[80px] text-[13px]">{label}</span>
-      <div className="flex-1 text-right truncate flex items-center justify-end gap-1">
-        {renderValue()}
+      <div className="flex items-center gap-1.5">
+        {Icon && <Icon className={cn("h-3.5 w-3.5 shrink-0", iconClassName || "text-muted-foreground")} />}
+        <span className="text-muted-foreground text-xs">{label}</span>
         {canEdit && (
-          <Pencil className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          <Pencil className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto" />
         )}
+      </div>
+      <div className="mt-0.5 pl-5">
+        {renderValue()}
       </div>
     </div>
   );
@@ -169,11 +173,13 @@ function ReadOnlyFieldRow({ label, value, icon: Icon, iconClassName }: {
   iconClassName?: string;
 }) {
   return (
-    <div className="flex items-start gap-2 text-sm">
-      {Icon && <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
-      <span className="text-muted-foreground shrink-0 min-w-[80px]">{label}</span>
-      <div className="flex-1 text-right truncate">
-        <span className="text-foreground">{value || '—'}</span>
+    <div className="text-sm py-1.5">
+      <div className="flex items-center gap-1.5">
+        {Icon && <Icon className={cn("h-3.5 w-3.5 shrink-0", iconClassName || "text-muted-foreground")} />}
+        <span className="text-muted-foreground text-xs">{label}</span>
+      </div>
+      <div className="mt-0.5 pl-5">
+        <span className="text-foreground text-[13px] break-words">{value || '—'}</span>
       </div>
     </div>
   );
