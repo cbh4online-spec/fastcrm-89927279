@@ -2,7 +2,8 @@ import { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, TrendingUp, Target, Users, Calendar,
   BarChart3, Settings, Building2, UserCheck, GitBranch,
-  Phone, Gauge, Brain,
+  Phone, Gauge, Brain, Inbox, MessageSquare, Radio,
+  FileText, Send,
 } from "lucide-react";
 import type { SalesFunction } from "@/data/adaptiveDashboardMock";
 
@@ -61,6 +62,18 @@ const coreSections: AdaptiveNavSection[] = [
     items: [
       { name: "Calendário", href: "/dashboard/scheduling", icon: Calendar, badgeKey: "activities_today" },
       { name: "Follow-ups", href: "/dashboard/scheduling?view=followups", icon: Phone },
+    ],
+  },
+  {
+    label: "Canais & Fontes",
+    icon: Radio,
+    collapsible: true,
+    items: [
+      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
+      { name: "Grupos", href: "/dashboard/groups", icon: Users },
+      { name: "Telegram", href: "/dashboard/telegram", icon: Send },
+      { name: "Templates", href: "/dashboard/communication/templates", icon: FileText },
+      { name: "Sequências", href: "/dashboard/sequences", icon: MessageSquare },
     ],
   },
 ];
