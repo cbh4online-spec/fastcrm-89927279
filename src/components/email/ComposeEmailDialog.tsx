@@ -62,6 +62,7 @@ import {
   PenLine,
   X,
   CreditCard,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -78,6 +79,7 @@ import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useScheduleEmail } from "@/hooks/useScheduledEmails";
 import { EmailAttachmentList, type EmailAttachment } from "./EmailAttachmentList";
 import { InsertPaymentLinkDialog } from "./InsertPaymentLinkDialog";
+import { AIEmailAssistPanel } from "./AIEmailAssistPanel";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
@@ -568,6 +570,15 @@ export function ComposeEmailDialog({
                     <TooltipContent>Inserir link de pagamento</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+
+                {/* AI Assist */}
+                <AIEmailAssistPanel
+                  body={body}
+                  subject={subject}
+                  onApplyBody={setBody}
+                  onApplySubject={setSubject}
+                  disabled={isBusy}
+                />
 
                 <Separator orientation="vertical" className="h-6 mx-1" />
 
