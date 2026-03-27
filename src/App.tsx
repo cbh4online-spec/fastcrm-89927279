@@ -65,6 +65,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <GlobalNoCreditsDialog />
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
