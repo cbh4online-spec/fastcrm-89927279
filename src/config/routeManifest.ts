@@ -132,8 +132,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // INÍCIO
   // ══════════════════════════════════════════════════════════════
   e("dashboard",              "Dashboard",               "/dashboard",                       LayoutDashboard, "inicio", { end: true, menuKey: "dashboard" }),
-  e("daily-brief",            "Daily Brief",             "/dashboard/daily-brief",           Newspaper,       "inicio"),
-  e("revenue-flight-control", "Revenue Control",         "/dashboard/revenue-flight-control", Gauge,          "inicio"),
+  e("daily-brief",            "Daily Brief",             "/dashboard/daily-brief",           Newspaper,       "ai-strategy"),
+  e("revenue-flight-control", "Revenue Control",         "/dashboard/revenue-flight-control", Gauge,          "ai-strategy"),
   e("alerts",                 "Alertas",                 "/dashboard/alerts",                Bell,            "inicio"),
   e("feed",                   "Feed",                    "/dashboard/feed",                  Newspaper,       "inicio", { visibleInSidebar: false, menuKey: "feed" }),
   e("productivity",           "Produtividade",           "/dashboard/productivity",          Target,          "inicio", { visibleInSidebar: false, menuKey: "productivity" }),
