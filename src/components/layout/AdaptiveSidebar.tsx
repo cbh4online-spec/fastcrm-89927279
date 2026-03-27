@@ -8,6 +8,8 @@ import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 import { useSidebarAlerts } from "@/hooks/useSidebarAlerts";
 import { useExtensionManifests } from "@/hooks/useExtensionManifests";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { getInstalledModuleNav } from "@/config/moduleNavRegistry";
 import {
   getAdaptiveSections,
   getQuickActions,
@@ -181,6 +183,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   const badges = useSidebarBadges();
   const criticalAlerts = useSidebarAlerts();
   const { extensionSettingsPages } = useExtensionManifests();
+  const { installedModuleIds } = useWorkspaceModules();
   const touchStartX = useRef(0);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -200,6 +203,12 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   const quickActions = useMemo(() => getQuickActions(salesFunction), [salesFunction]);
 
+  // Dynamic module nav from installed marketplace modules
+  const moduleNavGroups = useMemo(
+    () => getInstalledModuleNav(installedModuleIds),
+    [installedModuleIds]
+  );
+
   // Collapsible group state
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -218,10 +227,11 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   );
 
   const isGroupOpen = useCallback(
-    (label: string, section: AdaptiveNavSection) => {
+    (label: string, sectionOrHasActive: AdaptiveNavSection | boolean) => {
       if (!style.collapsibleGroups) return true;
       if (openGroups[label] !== undefined) return openGroups[label];
-      return sectionHasActive(section);
+      if (typeof sectionOrHasActive === "boolean") return sectionOrHasActive;
+      return sectionHasActive(sectionOrHasActive);
     },
     [openGroups, sectionHasActive, style.collapsibleGroups]
   );
@@ -441,8 +451,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
     );
   };
 
-  // Marketplace modules section
-  const hasExtensions = extensionSettingsPages.length > 0;
+  // Module nav groups are computed above via getInstalledModuleNav
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -609,38 +618,80 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
               <div className="space-y-0.5">
                 {sections.map((section, idx) => renderSection(section, idx))}
 
-                {/* ── Marketplace Modules ── */}
-                {hasExtensions && !isCollapsed && (
-                  <div className="mt-3" role="group" aria-label="Extensões">
-                    <div className="flex items-center gap-2 px-3 pt-3 pb-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                        Extensões
-                      </span>
-                    </div>
-                    <div className="space-y-0.5">
-                      {extensionSettingsPages.map((ext) => (
-                        <Link
-                          key={ext.key}
-                          to={`/settings/${ext.key}`}
-                          onClick={onClose}
+                {/* ── Dynamic Module Nav Groups ── */}
+                {moduleNavGroups.map((group) => (
+                  <Collapsible
+                    key={group.category}
+                    open={isGroupOpen(group.label, group.items.some((item) => isActive(item.href)))}
+                    onOpenChange={() => toggleGroup(group.label)}
+                  >
+                    {!isCollapsed && (
+                      <CollapsibleTrigger asChild>
+                        <div
                           className={cn(
-                            "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
-                            style.itemHeight,
-                            style.textSize,
-                            location.pathname.includes(ext.key)
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                            "flex items-center gap-2 px-3 pt-3 pb-1 cursor-pointer select-none",
                           )}
-                          aria-current={location.pathname.includes(ext.key) ? "page" : undefined}
                         >
-                          <Puzzle className={cn(style.iconSize, "shrink-0")} />
-                          <span className="flex-1 truncate">{ext.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                            {group.label}
+                          </span>
+                          <ChevronRight
+                            className={cn(
+                              "w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-200",
+                              isGroupOpen(group.label, false) && "rotate-90"
+                            )}
+                          />
+                        </div>
+                      </CollapsibleTrigger>
+                    )}
+                    <CollapsibleContent className="space-y-0.5 mt-0.5">
+                      {group.items.map((mod) => {
+                        const ModIcon = mod.icon;
+                        const active = isActive(mod.href);
+                        return isCollapsed ? (
+                          <Tooltip key={mod.slug}>
+                            <TooltipTrigger asChild>
+                              <Link
+                                to={mod.href}
+                                onClick={onClose}
+                                className={cn(
+                                  "flex items-center justify-center p-2 rounded-lg transition-colors",
+                                  active
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                )}
+                                aria-current={active ? "page" : undefined}
+                              >
+                                <ModIcon className={cn(style.iconSize, "shrink-0")} />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">{mod.label}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Link
+                            key={mod.slug}
+                            to={mod.href}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center gap-3 px-3 rounded-lg font-medium transition-colors",
+                              style.itemHeight,
+                              style.textSize,
+                              active
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                            )}
+                            aria-current={active ? "page" : undefined}
+                          >
+                            <ModIcon className={cn(style.iconSize, "shrink-0")} />
+                            <span className="flex-1 truncate">{mod.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
               </div>
             </nav>
 
