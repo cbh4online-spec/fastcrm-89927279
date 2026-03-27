@@ -131,15 +131,16 @@ function EditableFieldRow({
 
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
+    const stopProp = (e: React.MouseEvent) => e.stopPropagation();
     if (isLink && linkType === 'url') {
       const href = String(value).startsWith('http') ? String(value) : `https://${value}`;
-      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'email') {
-      return <a href={`mailto:${value}`} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
+      return <a href={`mailto:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
     }
     if (isLink && linkType === 'phone') {
-      return <a href={`tel:${value}`} className="text-primary hover:underline text-[13px] font-medium">{String(value)}</a>;
+      return <a href={`tel:${value}`} onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium">{String(value)}</a>;
     }
     return <span className="text-foreground text-[13px] break-words">{String(value)}</span>;
   };
