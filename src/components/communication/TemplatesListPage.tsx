@@ -961,6 +961,39 @@ export function TemplatesListPage() {
           setShowCreateDialog(true);
         }}
       />
+
+      <ImportTemplateDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImport={(imported) => {
+          setEditingTemplate({
+            id: '',
+            workspaceId: '',
+            name: imported.name,
+            channel: 'email',
+            language: 'pt',
+            journeyContexts: [],
+            subject: imported.subject,
+            body: imported.body,
+            tone: 'professional',
+            structureType: 'custom',
+            isActive: true,
+            usageCount: 0,
+            conversionCount: 0,
+            isDynamic: false,
+            dynamicRules: {},
+            personalizationLevel: 'basic',
+            structureFamilies: [],
+            brandConstraints: {},
+            maxLengthByChannel: {},
+            tags: [],
+            createdBy: '',
+            createdAt: '',
+            updatedAt: '',
+          } as CommunicationTemplate);
+          setShowCreateDialog(true);
+        }}
+      />
     </div>
   );
 }
