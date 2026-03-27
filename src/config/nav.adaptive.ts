@@ -42,11 +42,20 @@ const vendedorSections: AdaptiveNavSection[] = [
     ],
   },
   {
+    label: "CRM",
+    icon: Users,
+    collapsible: true,
+    items: [
+      { name: "Leads", href: "/dashboard/leads", icon: Users, badgeKey: "new_leads" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: UserCheck },
+      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp },
+    ],
+  },
+  {
     label: "Minhas Vendas",
     icon: TrendingUp,
     collapsible: true,
     items: [
-      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp },
       { name: "Metas", href: "/dashboard/performance/goals", icon: Target },
       { name: "Histórico", href: "/dashboard/reports", icon: BarChart3 },
     ],
@@ -59,16 +68,6 @@ const vendedorSections: AdaptiveNavSection[] = [
       { name: "Hoje", href: "/dashboard/scheduling", icon: Calendar, badgeKey: "activities_today" },
       { name: "Semana", href: "/dashboard/scheduling?view=week", icon: Calendar },
       { name: "Follow-ups", href: "/dashboard/scheduling?view=followups", icon: Phone },
-    ],
-  },
-  {
-    label: "Leads",
-    icon: Users,
-    collapsible: true,
-    items: [
-      { name: "Novos", href: "/dashboard/leads?status=new", icon: Users, badgeKey: "new_leads" },
-      { name: "Prospeção", href: "/dashboard/prospecting", icon: Search },
-      { name: "Qualificados", href: "/dashboard/leads?status=qualified", icon: UserCheck },
     ],
   },
   {
@@ -102,13 +101,24 @@ const gestorSections: AdaptiveNavSection[] = [
     ],
   },
   {
+    label: "CRM",
+    icon: Users,
+    collapsible: true,
+    items: [
+      { name: "Leads", href: "/dashboard/leads", icon: Users, badgeKey: "new_leads" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: UserCheck },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp },
+      { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch },
+    ],
+  },
+  {
     label: "Vendas",
     icon: TrendingUp,
     collapsible: true,
     items: [
       { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3 },
       { name: "Metas", href: "/dashboard/performance/goals", icon: Target },
-      { name: "Pipeline Equipa", href: "/dashboard/opportunities", icon: TrendingUp },
       { name: "Histórico", href: "/dashboard/reports/goals", icon: FileText },
     ],
   },
@@ -130,16 +140,6 @@ const gestorSections: AdaptiveNavSection[] = [
       { name: "Relatórios", href: "/dashboard/kpis", icon: Gauge },
       { name: "Tendências", href: "/dashboard/reports/forecasts", icon: LineChart },
       { name: "Benchmarking", href: "/dashboard/reports/consumption", icon: PieChart },
-    ],
-  },
-  {
-    label: "Leads & Pipeline",
-    icon: GitBranch,
-    collapsible: true,
-    items: [
-      { name: "Equipa", href: "/dashboard/leads", icon: Users, badgeKey: "new_leads" },
-      { name: "Distribuição", href: "/dashboard/leads?view=distribution", icon: GitBranch },
-      { name: "Conversão", href: "/dashboard/lifecycle", icon: TrendingUp },
     ],
   },
   {
@@ -172,6 +172,18 @@ const diretorSections: AdaptiveNavSection[] = [
     items: [
       { name: "Dashboard Executivo", href: "/dashboard", icon: LayoutDashboard, end: true },
       { name: "Revenue Control", href: "/dashboard/revenue-flight-control", icon: Gauge },
+    ],
+  },
+  {
+    label: "CRM",
+    icon: Users,
+    collapsible: true,
+    items: [
+      { name: "Leads", href: "/dashboard/leads", icon: Users, badgeKey: "new_leads" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: UserCheck },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp },
+      { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch },
     ],
   },
   {
