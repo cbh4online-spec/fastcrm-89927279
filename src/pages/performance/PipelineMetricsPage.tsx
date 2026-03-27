@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSeedDefaultMetrics } from "@/hooks/useSeedDefaultMetrics";
 
 const METRIC_TYPES: { value: MetricType; label: string; icon: typeof BarChart3 }[] = [
   { value: "volume", label: "Volume", icon: BarChart3 },
