@@ -77,6 +77,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useScheduleEmail } from "@/hooks/useScheduledEmails";
 import { EmailAttachmentList, type EmailAttachment } from "./EmailAttachmentList";
+import { InsertPaymentLinkDialog } from "./InsertPaymentLinkDialog";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
