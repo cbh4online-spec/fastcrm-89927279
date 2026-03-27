@@ -90,14 +90,14 @@ export interface RouteEntry {
 // ─── Group Metadata ──────────────────────────────────────────────────────────
 
 export const NAV_GROUPS: NavGroupMeta[] = [
-  { key: "inicio",        label: "Início",        icon: LayoutDashboard, order: 1, collapsible: false },
-  { key: "comercial",     label: "Comercial",     icon: Users,           order: 2, collapsible: true },
-  { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 3, collapsible: true },
-  { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 4, collapsible: true },
-  { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 5, collapsible: true },
-  { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 6, collapsible: true },
-  { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 7, collapsible: true },
-  { key: "ai-strategy",   label: "AI Strategy",   icon: Crown,           order: 8, collapsible: true },
+  { key: "ai-strategy",   label: "AI Strategy",   icon: Crown,           order: 1, collapsible: false },
+  { key: "inicio",        label: "Início",        icon: LayoutDashboard, order: 2, collapsible: false },
+  { key: "comercial",     label: "Comercial",     icon: Users,           order: 3, collapsible: true },
+  { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
+  { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 5, collapsible: true },
+  { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
+  { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 7, collapsible: true },
+  { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 8, collapsible: true },
   { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 9, collapsible: true },
   { key: "administracao", label: "Administração", icon: Settings,        order: 10, collapsible: true },
 ];
