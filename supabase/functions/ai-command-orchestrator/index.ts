@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -174,6 +175,14 @@ serve(async (req) => {
 
     const { workspace_id, command, entity_id, entity_name } = await req.json() as CommandRequest;
     if (!workspace_id || !command) throw new Error("workspace_id and command are required");
+
+    // AI Gate — enforce credit consumption
+    const gate = await aiGate(workspace_id, 'heavy', 'ai-command-orchestrator', user.id);
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Verify workspace membership
     const { data: membership } = await userClient.from("workspace_members").select("id").eq("workspace_id", workspace_id).eq("user_id", user.id).maybeSingle();
