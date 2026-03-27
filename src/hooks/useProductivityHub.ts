@@ -201,7 +201,7 @@ export function useProductivityHub() {
           status: 'stalled',
           created_at: d.updated_at,
           source_table: 'opportunities',
-          actionUrl: `/dashboard/opportunities`,
+          actionUrl: `/dashboard/opportunities/${d.id}`,
         });
       });
 
