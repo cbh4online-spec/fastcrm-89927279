@@ -64,8 +64,9 @@ import { TemplatePreviewDialog } from './TemplatePreviewDialog';
 import { SendEmailFromTemplateDialog } from './SendEmailFromTemplateDialog';
 import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
 import { TemplateLibraryDialog } from './TemplateLibraryDialog';
+import { ImportTemplateDialog } from './ImportTemplateDialog';
 import type { LibraryTemplate } from './templateLibraryData';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Upload } from 'lucide-react';
 import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
@@ -96,6 +97,7 @@ export function TemplatesListPage() {
   const [sendEmailTemplate, setSendEmailTemplate] = useState<CommunicationTemplate | null>(null);
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [showLibraryDialog, setShowLibraryDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [activePageTab, setActivePageTab] = useState('templates');
   const [selectedStatsTemplate, setSelectedStatsTemplate] = useState<string | undefined>();
   
@@ -323,6 +325,12 @@ export function TemplatesListPage() {
           count={stats.total}
           description="Crie e gira mensagens reutilizáveis com IA preditiva"
           actions={[
+            {
+              label: 'Importar',
+              icon: <Upload className="h-4 w-4" />,
+              onClick: () => setShowImportDialog(true),
+              variant: 'outline',
+            },
             {
               label: 'Biblioteca',
               icon: <BookOpen className="h-4 w-4" />,
