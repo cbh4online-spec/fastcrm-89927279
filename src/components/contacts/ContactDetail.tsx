@@ -1005,6 +1005,19 @@ export function ContactDetail() {
         layoutSource={layoutData?.source || "default"}
         isAdmin={isAdmin}
       />
+
+      {contact.email && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={{
+            email: contact.email,
+            name: contact.name,
+            entityType: 'contact',
+            entityId: contact.id,
+          }}
+        />
+      )}
     </div>
   );
 }
