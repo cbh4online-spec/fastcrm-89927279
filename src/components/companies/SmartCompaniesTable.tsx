@@ -129,7 +129,8 @@ export function SmartCompaniesTable() {
     .filter(col => visibleColumns.has(col.id))
     .sort((a, b) => columnOrder.indexOf(a.id) - columnOrder.indexOf(b.id));
 
-  const { data: companies, isLoading, refetch } = useSmartCompanies(filters);
+  const { data: companiesResult, isLoading, refetch } = useSmartCompanies(filters);
+  const companies = companiesResult?.data;
   const { deleteCompany, updateCompany } = useCompanies();
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();

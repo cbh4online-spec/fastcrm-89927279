@@ -141,7 +141,8 @@ export function AttioContactsTable() {
       });
   }, [visibleColumns, columnOrder, CONTACT_COLUMNS]);
 
-  const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
+  const { data: contactsResult, isLoading, refetch } = useSmartContacts(filters);
+  const contacts = contactsResult?.data;
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts, updateContact } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
