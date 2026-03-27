@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useProductivityHub, UnifiedItem } from '@/hooks/useProductivityHub';
 import { useContextAlerts } from '@/hooks/useContextAlerts';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
@@ -79,6 +80,7 @@ export default function AlertsPage() {
   };
 
   return (
+    <DashboardLayout>
     <div className="max-w-5xl mx-auto space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -262,5 +264,6 @@ export default function AlertsPage() {
         </ScrollArea>
       )}
     </div>
+    </DashboardLayout>
   );
 }
