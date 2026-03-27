@@ -6087,6 +6087,7 @@ export type Database = {
           description: string | null
           duration_minutes: number
           end_hour: string
+          host_user_ids: string[] | null
           id: string
           is_active: boolean
           max_advance_days: number
@@ -6109,6 +6110,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           end_hour?: string
+          host_user_ids?: string[] | null
           id?: string
           is_active?: boolean
           max_advance_days?: number
@@ -6131,6 +6133,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           end_hour?: string
+          host_user_ids?: string[] | null
           id?: string
           is_active?: boolean
           max_advance_days?: number
