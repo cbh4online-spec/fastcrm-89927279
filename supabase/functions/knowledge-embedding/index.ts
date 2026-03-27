@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -16,6 +17,16 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'light', 'knowledge-embedding');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     // Support both old format (entryId) and new format (document_id)
     if (body.entryId) {
       // Legacy: keyword extraction for knowledge_entries

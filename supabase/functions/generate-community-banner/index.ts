@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,6 +17,16 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const { prompt, workspaceId } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'medium', 'generate-community-banner');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: "workspaceId is required" }), {
         status: 400,

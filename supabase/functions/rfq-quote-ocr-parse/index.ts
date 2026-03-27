@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
@@ -46,6 +47,16 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'rfq-quote-ocr-parse');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     importId = body.import_id;
     if (!importId) throw new Error("import_id is required");
 

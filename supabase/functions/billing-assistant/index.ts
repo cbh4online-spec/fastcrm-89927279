@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -207,6 +208,16 @@ Deno.serve(async (req) => {
     }
 
     const body: AssistantRequest = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'light', 'billing-assistant');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const { workspaceId, opportunityId, subscriptionId, action, userMessage, conversationHistory } = body;
 
     logStep("Request received", { workspaceId, action, opportunityId, subscriptionId });
