@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,8 @@ export interface SmartContactsFilters {
   smartFilter?: SmartFilterType;
   company?: string;
   contactType?: ContactType | "all";
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ContactsKPIs {
@@ -58,21 +60,41 @@ export interface ContactsKPIs {
   totalPipelineValue: number;
 }
 
-export function useSmartContacts(filters?: SmartContactsFilters) {
+export interface SmartContactsResult {
+  data: SmartContact[];
+  totalCount: number;
+}
+
+const CONTACTS_SELECT_COLUMNS = `
+  id, workspace_id, name, email, phone, company, company_id,
+  job_title, notes, tags, source, created_at, updated_at,
+  last_contact_at, ai_temperature, contact_score,
+  ai_next_action, ai_next_action_type, ai_insight, ai_contact_type,
+  estimated_value, conversion_probability, ai_analyzed_at,
+  assigned_to, automation_active,
+  companies:company_id (id, name)
+`;
+
+export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typeof useQuery<SmartContactsResult>> {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
+  const page = filters?.page ?? 0;
+  const pageSize = filters?.pageSize ?? 50;
+
   return useQuery({
     queryKey: ["smart-contacts", currentWorkspace?.id, filters],
-    queryFn: async () => {
-      if (!currentWorkspace) return [];
+    queryFn: async (): Promise<SmartContactsResult> => {
+      if (!currentWorkspace) return { data: [], totalCount: 0 };
+
+      const now = new Date();
+      const today = startOfDay(now);
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       let query = workspaceClient
         .from("contacts")
-        .select(`
-          *,
-          companies:company_id (id, name)
-        `)
+        .select(CONTACTS_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .is("deleted_at", null)
         .order("contact_score", { ascending: false });
@@ -86,22 +108,37 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
       if (filters?.company) {
         query = query.ilike("company", `%${filters.company}%`);
       }
+      if (filters?.contactType && filters.contactType !== "all") {
+        query = query.eq("ai_contact_type", filters.contactType);
+      }
       if (filters?.search) {
         query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,company.ilike.%${filters.search}%`);
       }
 
-      const { data, error } = await query;
+      // Smart filters at SQL level
+      if (filters?.smartFilter) {
+        switch (filters.smartFilter) {
+          case "hot": query = query.eq("ai_temperature", "hot"); break;
+          case "no_response": query = query.lt("last_contact_at", threshold24h); break;
+          case "high_intent": query = query.gte("contact_score", 70); break;
+          case "automation_active": query = query.eq("automation_active", true); break;
+          case "decision_makers": query = query.eq("ai_contact_type", "decision_maker"); break;
+          case "today": query = query.gte("created_at", today.toISOString()); break;
+          case "this_week": query = query.gte("created_at", weekStart.toISOString()); break;
+        }
+      }
+
+      // Server-side pagination
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
 
-      const now = new Date();
-      const today = startOfDay(now);
-      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-
-      let contacts: SmartContact[] = (data || []).map((c: any) => {
+      const contacts: SmartContact[] = (data || []).map((c: any) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;
         const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
-
-        // Get company name from relation or fallback to company text field
         const companyName = c.companies?.name || c.company || null;
 
         return {
@@ -117,26 +154,11 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
         } as SmartContact;
       });
 
-      // Filter by contact type
-      if (filters?.contactType && filters.contactType !== "all") {
-        contacts = contacts.filter(c => c.ai_contact_type === filters.contactType);
-      }
-
-      if (filters?.smartFilter) {
-        switch (filters.smartFilter) {
-          case "hot": contacts = contacts.filter(c => c.ai_temperature === "hot"); break;
-          case "no_response": contacts = contacts.filter(c => c.hoursSinceLastContact && c.hoursSinceLastContact > 24); break;
-          case "high_intent": contacts = contacts.filter(c => c.contact_score >= 70); break;
-          case "automation_active": contacts = contacts.filter(c => c.automation_active); break;
-          case "decision_makers": contacts = contacts.filter(c => c.ai_contact_type === "decision_maker"); break;
-          case "today": contacts = contacts.filter(c => new Date(c.created_at) >= today); break;
-          case "this_week": contacts = contacts.filter(c => new Date(c.created_at) >= weekStart); break;
-        }
-      }
-
-      return contacts;
+      return { data: contacts, totalCount: count ?? 0 };
     },
     enabled: !!currentWorkspace,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -149,25 +171,39 @@ export function useContactsKPIs() {
     queryFn: async (): Promise<ContactsKPIs> => {
       if (!currentWorkspace) return { totalContacts: 0, hotContacts: 0, noResponseOver24h: 0, avgScore: 0, decisionMakers: 0, totalPipelineValue: 0 };
 
-      const now = new Date();
-      const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const threshold24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const { data: contacts } = await workspaceClient
-        .from("contacts")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .is("deleted_at", null);
+      const baseQuery = () => workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("deleted_at", null);
 
-      const totalContacts = contacts?.length || 0;
-      const hotContacts = contacts?.filter(c => c.ai_temperature === "hot").length || 0;
-      const noResponseOver24h = contacts?.filter(c => c.last_contact_at && c.last_contact_at < threshold24h).length || 0;
-      const avgScore = totalContacts > 0 ? Math.round(contacts!.reduce((s, c) => s + (c.contact_score || 0), 0) / totalContacts) : 0;
-      const decisionMakers = contacts?.filter(c => c.ai_contact_type === "decision_maker").length || 0;
-      const totalPipelineValue = contacts?.reduce((s, c) => s + (c.estimated_value || 0), 0) || 0;
+      const [totalRes, hotRes, noResponseRes, dmRes, valueRes] = await Promise.all([
+        baseQuery(),
+        baseQuery().eq("ai_temperature", "hot"),
+        baseQuery().lt("last_contact_at", threshold24h),
+        baseQuery().eq("ai_contact_type", "decision_maker"),
+        workspaceClient.from("contacts").select("estimated_value, contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null).gt("estimated_value", 0),
+      ]);
 
-      return { totalContacts, hotContacts, noResponseOver24h, avgScore, decisionMakers, totalPipelineValue };
+      const totalContacts = totalRes.count ?? 0;
+      const values = valueRes.data || [];
+      const totalPipelineValue = values.reduce((s: number, c: any) => s + (c.estimated_value || 0), 0);
+      
+      // For avg score, we need a lightweight query
+      const { data: scoreData } = await workspaceClient.from("contacts").select("contact_score").eq("workspace_id", currentWorkspace.id).is("deleted_at", null);
+      const avgScore = scoreData && scoreData.length > 0
+        ? Math.round(scoreData.reduce((s: number, c: any) => s + (c.contact_score || 0), 0) / scoreData.length)
+        : 0;
+
+      return {
+        totalContacts,
+        hotContacts: hotRes.count ?? 0,
+        noResponseOver24h: noResponseRes.count ?? 0,
+        avgScore,
+        decisionMakers: dmRes.count ?? 0,
+        totalPipelineValue,
+      };
     },
     enabled: !!currentWorkspace,
+    staleTime: 30_000,
     refetchInterval: 60000,
   });
 }

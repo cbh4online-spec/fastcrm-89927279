@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +42,6 @@ export interface SmartCompany {
   employee_count: number | null;
   hoursSinceLastContact: number | null;
   slaBreach: boolean;
-  // Relations
   contactsCount: number;
   opportunitiesCount: number;
   opportunitiesValue: number;
@@ -50,7 +49,6 @@ export interface SmartCompany {
   facebook_url: string | null;
   instagram_url: string | null;
   google_rating: number | null;
-  // AI Revenue Engine fields
   icp_fit_score: number;
   estimated_arr: number | null;
   buying_signal: string | null;
@@ -65,6 +63,8 @@ export interface SmartCompaniesFilters {
   industry?: string | "all";
   smartFilter?: SmartFilterType;
   companyType?: CompanyType | "all";
+  page?: number;
+  pageSize?: number;
 }
 
 export interface CompaniesKPIs {
@@ -77,22 +77,45 @@ export interface CompaniesKPIs {
   noResponseOver24h: number;
 }
 
-export function useSmartCompanies(filters?: SmartCompaniesFilters) {
+export interface SmartCompaniesResult {
+  data: SmartCompany[];
+  totalCount: number;
+}
+
+const COMPANIES_SELECT_COLUMNS = `
+  id, workspace_id, name, email, phone, website, industry, size,
+  address, city, notes, tags, source, created_at, updated_at,
+  last_contact_at, ai_temperature, company_score,
+  ai_next_action, ai_next_action_type, ai_insight, ai_company_type,
+  estimated_value, conversion_probability, ai_analyzed_at,
+  assigned_to, automation_active, annual_revenue, employee_count,
+  linkedin_url, facebook_url, instagram_url, google_rating,
+  icp_fit_score, estimated_arr, buying_signal, expansion_probability,
+  company_growth_stage, ai_revenue_analyzed_at,
+  contacts:contacts(count),
+  opportunities:opportunities(count)
+`;
+
+export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<typeof useQuery<SmartCompaniesResult>> {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
+  const page = filters?.page ?? 0;
+  const pageSize = filters?.pageSize ?? 50;
+
   return useQuery({
     queryKey: ["smart-companies", currentWorkspace?.id, filters],
-    queryFn: async () => {
-      if (!currentWorkspace) return [];
+    queryFn: async (): Promise<SmartCompaniesResult> => {
+      if (!currentWorkspace) return { data: [], totalCount: 0 };
+
+      const now = new Date();
+      const today = startOfDay(now);
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const threshold48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
       let query = workspaceClient
         .from("companies")
-        .select(`
-          *,
-          contacts:contacts(count),
-          opportunities:opportunities(count)
-        `)
+        .select(COMPANIES_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order("company_score", { ascending: false });
 
@@ -109,18 +132,30 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
         query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,industry.ilike.%${filters.search}%`);
       }
 
-      const { data, error } = await query;
+      // Smart filters at SQL level
+      if (filters?.smartFilter) {
+        switch (filters.smartFilter) {
+          case "hot": query = query.eq("ai_temperature", "hot"); break;
+          case "no_response": query = query.lt("last_contact_at", threshold48h); break;
+          case "high_intent": query = query.gte("company_score", 70); break;
+          case "automation_active": query = query.eq("automation_active", true); break;
+          case "clients": query = query.eq("ai_company_type", "client"); break;
+          case "today": query = query.gte("created_at", today.toISOString()); break;
+          case "this_week": query = query.gte("created_at", weekStart.toISOString()); break;
+        }
+      }
+
+      // Server-side pagination
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
 
-      const now = new Date();
-      const today = startOfDay(now);
-      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-
-      let companies: SmartCompany[] = (data || []).map((c: any) => {
+      const companies: SmartCompany[] = (data || []).map((c: any) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;
         const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
-        
-        // Extract counts from relations
         const contactsCount = c.contacts?.[0]?.count || 0;
         const opportunitiesCount = c.opportunities?.[0]?.count || 0;
 
@@ -137,7 +172,7 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
           slaBreach: hoursSinceLastContact !== null && hoursSinceLastContact > 48,
           contactsCount,
           opportunitiesCount,
-          opportunitiesValue: 0, // Would need separate query
+          opportunitiesValue: 0,
           linkedin_url: c.linkedin_url || null,
           facebook_url: c.facebook_url || null,
           instagram_url: c.instagram_url || null,
@@ -151,21 +186,11 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
         } as SmartCompany;
       });
 
-      if (filters?.smartFilter) {
-        switch (filters.smartFilter) {
-          case "hot": companies = companies.filter(c => c.ai_temperature === "hot"); break;
-          case "no_response": companies = companies.filter(c => c.hoursSinceLastContact && c.hoursSinceLastContact > 48); break;
-          case "high_intent": companies = companies.filter(c => c.company_score >= 70); break;
-          case "automation_active": companies = companies.filter(c => c.automation_active); break;
-          case "clients": companies = companies.filter(c => c.ai_company_type === "client"); break;
-          case "today": companies = companies.filter(c => new Date(c.created_at) >= today); break;
-          case "this_week": companies = companies.filter(c => new Date(c.created_at) >= weekStart); break;
-        }
-      }
-
-      return companies;
+      return { data: companies, totalCount: count ?? 0 };
     },
     enabled: !!currentWorkspace,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -178,25 +203,36 @@ export function useCompaniesKPIs() {
     queryFn: async (): Promise<CompaniesKPIs> => {
       if (!currentWorkspace) return { totalCompanies: 0, hotCompanies: 0, clients: 0, prospects: 0, avgScore: 0, totalPipelineValue: 0, noResponseOver24h: 0 };
 
-      const now = new Date();
-      const threshold48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+      const threshold48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
-      const { data: companies } = await workspaceClient
-        .from("companies")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id);
+      const baseQuery = () => workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
 
-      const totalCompanies = companies?.length || 0;
-      const hotCompanies = companies?.filter(c => c.ai_temperature === "hot").length || 0;
-      const clients = companies?.filter(c => c.ai_company_type === "client").length || 0;
-      const prospects = companies?.filter(c => c.ai_company_type === "prospect").length || 0;
-      const avgScore = totalCompanies > 0 ? Math.round(companies!.reduce((s, c) => s + (c.company_score || 0), 0) / totalCompanies) : 0;
-      const totalPipelineValue = companies?.reduce((s, c) => s + (c.estimated_value || 0), 0) || 0;
-      const noResponseOver24h = companies?.filter(c => c.last_contact_at && c.last_contact_at < threshold48h).length || 0;
+      const [totalRes, hotRes, clientsRes, prospectsRes, noResponseRes, valueRes] = await Promise.all([
+        baseQuery(),
+        baseQuery().eq("ai_temperature", "hot"),
+        baseQuery().eq("ai_company_type", "client"),
+        baseQuery().eq("ai_company_type", "prospect"),
+        baseQuery().lt("last_contact_at", threshold48h),
+        workspaceClient.from("companies").select("estimated_value, company_score").eq("workspace_id", currentWorkspace.id),
+      ]);
 
-      return { totalCompanies, hotCompanies, clients, prospects, avgScore, totalPipelineValue, noResponseOver24h };
+      const totalCompanies = totalRes.count ?? 0;
+      const values = valueRes.data || [];
+      const totalPipelineValue = values.reduce((s: number, c: any) => s + (c.estimated_value || 0), 0);
+      const avgScore = values.length > 0 ? Math.round(values.reduce((s: number, c: any) => s + (c.company_score || 0), 0) / values.length) : 0;
+
+      return {
+        totalCompanies,
+        hotCompanies: hotRes.count ?? 0,
+        clients: clientsRes.count ?? 0,
+        prospects: prospectsRes.count ?? 0,
+        avgScore,
+        totalPipelineValue,
+        noResponseOver24h: noResponseRes.count ?? 0,
+      };
     },
     enabled: !!currentWorkspace,
+    staleTime: 30_000,
     refetchInterval: 60000,
   });
 }

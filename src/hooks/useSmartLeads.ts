@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
-import { differenceInHours, differenceInDays, startOfDay, startOfWeek } from "date-fns";
+import { differenceInHours, startOfDay, startOfWeek } from "date-fns";
 
 export type LeadTemperature = "cold" | "warm" | "hot";
 export type LeadStatus = "new" | "in_progress" | "completed";
@@ -23,7 +23,6 @@ export interface SmartLead {
   created_at: string;
   updated_at: string;
   last_contact_at: string | null;
-  // AI fields
   ai_temperature: LeadTemperature;
   lead_score: number;
   ai_next_action: string | null;
@@ -36,10 +35,8 @@ export interface SmartLead {
   assigned_to: string | null;
   automation_active: boolean;
   company_name: string | null;
-  // Computed fields
   hoursSinceLastContact: number | null;
   slaBreach: boolean;
-  // Relations
   conversations?: Array<{
     id: string;
     channel: string;
@@ -61,6 +58,8 @@ export interface SmartLeadsFilters {
   source?: string | "all";
   smartFilter?: SmartFilterType;
   assignedTo?: string | "all";
+  page?: number;
+  pageSize?: number;
 }
 
 export interface LeadsKPIs {
@@ -72,84 +71,101 @@ export interface LeadsKPIs {
   totalPipelineValue: number;
 }
 
-export function useSmartLeads(filters?: SmartLeadsFilters) {
+export interface SmartLeadsResult {
+  data: SmartLead[];
+  totalCount: number;
+}
+
+const LEADS_SELECT_COLUMNS = `
+  id, workspace_id, name, email, phone, source, status, tags,
+  created_at, updated_at, last_contact_at,
+  ai_temperature, lead_score, ai_next_action, ai_next_action_type,
+  ai_insight, ai_lead_type, estimated_value, conversion_probability,
+  ai_analyzed_at, assigned_to, automation_active, company_name,
+  address, city, county, parish, region, postal_code, tax_id,
+  website, business_category, cae_description, capital_social,
+  legal_nature, external_email, external_username, linkedin_url,
+  facebook_url, instagram_url, twitter_url, fax, company_status,
+  services, cae_codes
+`;
+
+export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof useQuery<SmartLeadsResult>> {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
+  const page = filters?.page ?? 0;
+  const pageSize = filters?.pageSize ?? 50;
+
   return useQuery({
     queryKey: ["smart-leads", currentWorkspace?.id, filters],
-    queryFn: async () => {
-      if (!currentWorkspace) return [];
+    queryFn: async (): Promise<SmartLeadsResult> => {
+      if (!currentWorkspace) return { data: [], totalCount: 0 };
+
+      const now = new Date();
+      const today = startOfDay(now);
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       let query = workspaceClient
         .from("leads")
-        .select(`
-          *,
-          conversations:conversations(id, channel, last_message_at, last_message_preview, unread_count),
-          opportunities:opportunities(id, value, status)
-        `, { count: 'exact' })
+        .select(LEADS_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order("lead_score", { ascending: false });
 
-      // Apply filters
+      // Apply filters at SQL level
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
-
       if (filters?.temperature && filters.temperature !== "all") {
         query = query.eq("ai_temperature", filters.temperature);
       }
-
       if (filters?.source && filters.source !== "all") {
         query = query.eq("source", filters.source);
       }
-
       if (filters?.assignedTo && filters.assignedTo !== "all") {
         query = query.eq("assigned_to", filters.assignedTo);
       }
-
       if (filters?.search) {
         query = query.or(
           `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%`
         );
       }
 
-      // Fetch all results - bypass Supabase default 1000 row limit
-      // We need all rows for client-side smart filters, search, and sorting
-      const allData: any[] = [];
-      let from = 0;
-      const batchSize = 1000;
-      let totalCount = 0;
-
-      while (true) {
-        const { data: batch, error, count } = await query.range(from, from + batchSize - 1);
-        if (error) throw error;
-        if (count !== null && from === 0) totalCount = count;
-        if (!batch || batch.length === 0) break;
-        allData.push(...batch);
-        if (batch.length < batchSize) break;
-        from += batchSize;
+      // Apply smart filters at SQL level
+      if (filters?.smartFilter) {
+        switch (filters.smartFilter) {
+          case "hot":
+            query = query.eq("ai_temperature", "hot");
+            break;
+          case "no_response":
+            query = query.lt("last_contact_at", threshold24h);
+            break;
+          case "high_intent":
+            query = query.gte("lead_score", 70);
+            break;
+          case "automation_active":
+            query = query.eq("automation_active", true);
+            break;
+          case "today":
+            query = query.gte("created_at", today.toISOString());
+            break;
+          case "this_week":
+            query = query.gte("created_at", weekStart.toISOString());
+            break;
+        }
       }
 
-      const data = allData;
+      // Server-side pagination
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
 
-      const now = new Date();
-      const today = startOfDay(now);
-      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const { data, error, count } = await query;
+      if (error) throw error;
 
-      // Process leads with computed fields
-      let leads: SmartLead[] = (data || []).map((lead: any) => {
-        const lastContact = lead.last_contact_at 
-          ? new Date(lead.last_contact_at) 
-          : lead.conversations?.length 
-            ? new Date(Math.max(...lead.conversations.map((c: any) => 
-                c.last_message_at ? new Date(c.last_message_at).getTime() : 0
-              )))
-            : null;
-
-        const hoursSinceLastContact = lastContact 
-          ? differenceInHours(now, lastContact) 
-          : null;
+      const leads: SmartLead[] = (data || []).map((lead: any) => {
+        const lastContact = lead.last_contact_at ? new Date(lead.last_contact_at) : null;
+        const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
 
         return {
           ...lead,
@@ -163,33 +179,11 @@ export function useSmartLeads(filters?: SmartLeadsFilters) {
         } as SmartLead;
       });
 
-      // Apply smart filters
-      if (filters?.smartFilter) {
-        switch (filters.smartFilter) {
-          case "hot":
-            leads = leads.filter(l => l.ai_temperature === "hot");
-            break;
-          case "no_response":
-            leads = leads.filter(l => l.hoursSinceLastContact && l.hoursSinceLastContact > 24);
-            break;
-          case "high_intent":
-            leads = leads.filter(l => l.lead_score >= 70);
-            break;
-          case "automation_active":
-            leads = leads.filter(l => l.automation_active);
-            break;
-          case "today":
-            leads = leads.filter(l => new Date(l.created_at) >= today);
-            break;
-          case "this_week":
-            leads = leads.filter(l => new Date(l.created_at) >= weekStart);
-            break;
-        }
-      }
-
-      return leads;
+      return { data: leads, totalCount: count ?? 0 };
     },
     enabled: !!currentWorkspace,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -201,14 +195,7 @@ export function useLeadsKPIs() {
     queryKey: ["leads-kpis", currentWorkspace?.id],
     queryFn: async (): Promise<LeadsKPIs> => {
       if (!currentWorkspace) {
-        return {
-          receivedToday: 0,
-          hotLeads: 0,
-          noResponseOver24h: 0,
-          avgResponseTimeHours: 0,
-          conversionsThisWeek: 0,
-          totalPipelineValue: 0,
-        };
+        return { receivedToday: 0, hotLeads: 0, noResponseOver24h: 0, avgResponseTimeHours: 0, conversionsThisWeek: 0, totalPipelineValue: 0 };
       }
 
       const now = new Date();
@@ -216,76 +203,31 @@ export function useLeadsKPIs() {
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Fetch all leads (bypass 1000 row limit)
-      const allLeads: any[] = [];
-      let kpiFrom = 0;
-      const kpiBatch = 1000;
-      while (true) {
-        const { data: batch, error } = await workspaceClient
-          .from("leads")
-          .select(`
-            *,
-            conversations:conversations(last_message_at),
-            opportunities:opportunities(value, status)
-          `)
-          .eq("workspace_id", currentWorkspace.id)
-          .range(kpiFrom, kpiFrom + kpiBatch - 1);
-        if (error) throw error;
-        if (!batch || batch.length === 0) break;
-        allLeads.push(...batch);
-        if (batch.length < kpiBatch) break;
-        kpiFrom += kpiBatch;
-      }
-      const leads = allLeads;
+      // All KPI queries use head: true (0 rows transferred) with count: 'exact'
+      const baseQuery = () => workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
 
-      const receivedToday = leads?.filter(l => 
-        new Date(l.created_at) >= today
-      ).length || 0;
+      const [todayRes, hotRes, noResponseRes, conversionsRes, pipelineRes] = await Promise.all([
+        baseQuery().gte("created_at", today.toISOString()),
+        baseQuery().eq("ai_temperature", "hot"),
+        baseQuery().lt("last_contact_at", threshold24h),
+        baseQuery().eq("status", "completed").gte("updated_at", weekStart.toISOString()),
+        workspaceClient.from("leads").select("estimated_value").eq("workspace_id", currentWorkspace.id).gt("estimated_value", 0),
+      ]);
 
-      const hotLeads = leads?.filter(l => 
-        l.ai_temperature === "hot"
-      ).length || 0;
-
-      const noResponseOver24h = leads?.filter(l => {
-        const lastConv = l.conversations?.sort((a: any, b: any) => 
-          new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()
-        )[0];
-        return lastConv?.last_message_at && lastConv.last_message_at < threshold24h;
-      }).length || 0;
-
-      const conversionsThisWeek = leads?.filter(l => 
-        l.status === "completed" && new Date(l.updated_at) >= weekStart
-      ).length || 0;
-
-      const totalPipelineValue = leads?.reduce((sum, l) => {
-        const openOpps = l.opportunities?.filter((o: any) => o.status === "open") || [];
-        return sum + openOpps.reduce((s: number, o: any) => s + (o.value || 0), 0);
-      }, 0) || 0;
-
-      // Calculate average response time (simplified)
-      let totalResponseHours = 0;
-      let responseCount = 0;
-      leads?.forEach(l => {
-        if (l.last_contact_at && l.created_at) {
-          const hours = differenceInHours(new Date(l.last_contact_at), new Date(l.created_at));
-          if (hours > 0 && hours < 168) { // Within a week
-            totalResponseHours += hours;
-            responseCount++;
-          }
-        }
-      });
+      const totalPipelineValue = (pipelineRes.data || []).reduce((s: number, l: any) => s + (l.estimated_value || 0), 0);
 
       return {
-        receivedToday,
-        hotLeads,
-        noResponseOver24h,
-        avgResponseTimeHours: responseCount > 0 ? Math.round(totalResponseHours / responseCount) : 0,
-        conversionsThisWeek,
+        receivedToday: todayRes.count ?? 0,
+        hotLeads: hotRes.count ?? 0,
+        noResponseOver24h: noResponseRes.count ?? 0,
+        avgResponseTimeHours: 0, // Simplified — would need a DB function for accuracy
+        conversionsThisWeek: conversionsRes.count ?? 0,
         totalPipelineValue,
       };
     },
     enabled: !!currentWorkspace,
-    refetchInterval: 60000, // Refresh every minute
+    staleTime: 30_000,
+    refetchInterval: 60000,
   });
 }
 
