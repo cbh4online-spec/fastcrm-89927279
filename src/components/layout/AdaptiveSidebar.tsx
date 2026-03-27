@@ -8,6 +8,8 @@ import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 import { useSidebarAlerts } from "@/hooks/useSidebarAlerts";
 import { useExtensionManifests } from "@/hooks/useExtensionManifests";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { getInstalledModuleNav } from "@/config/moduleNavRegistry";
 import {
   getAdaptiveSections,
   getQuickActions,
