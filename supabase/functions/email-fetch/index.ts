@@ -313,7 +313,7 @@ class SimpleIMAPClient {
 
       // Extract body
       const bodyMatch = block.match(/BODY\[TEXT\] \{(\d+)\}\r?\n([\s\S]*?)(?=\r?\n\)|\r?\n\* |\r?\nA\d+)/);
-      const body = bodyMatch ? bodyMatch[2]?.substring(0, 5000) || "" : "";
+      const body = bodyMatch ? bodyMatch[2]?.substring(0, 2000) || "" : "";
 
       messages.push({
         uid,
