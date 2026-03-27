@@ -511,8 +511,7 @@ export function LeadDetailWithSidebar() {
       <ComposeEmailDialog
         open={showEmailDialog}
         onOpenChange={setShowEmailDialog}
-        recipientEmail={emailTo}
-        recipientName={lead.name}
+        recipient={{ email: emailTo, name: lead.name, entityType: 'lead', entityId: lead.id }}
       />
     </div>
   );
