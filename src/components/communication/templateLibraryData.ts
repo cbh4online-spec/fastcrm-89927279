@@ -6,7 +6,7 @@ export interface LibraryTemplateField {
   description?: string;
 }
 
-export type LibraryCategory = 'geral' | 'vendas' | 'sucesso' | 'produto' | 'marketing' | 'recrutamento';
+export type LibraryCategory = 'geral' | 'vendas' | 'sucesso' | 'produto' | 'marketing' | 'recrutamento' | 'financiamento';
 
 export interface LibraryTemplate {
   id: string;
@@ -28,6 +28,7 @@ export const LIBRARY_CATEGORIES: { id: LibraryCategory; label: string; icon: str
   { id: 'produto', label: 'Produto', icon: 'Package', color: 'bg-purple-500' },
   { id: 'marketing', label: 'Marketing', icon: 'Megaphone', color: 'bg-orange-500' },
   { id: 'recrutamento', label: 'Recrutamento', icon: 'Users', color: 'bg-pink-500' },
+  { id: 'financiamento', label: 'Financiamento', icon: 'Landmark', color: 'bg-teal-500' },
 ];
 
 export const CATEGORY_LABELS: Record<LibraryCategory, string> = {
@@ -37,6 +38,7 @@ export const CATEGORY_LABELS: Record<LibraryCategory, string> = {
   produto: 'Produto',
   marketing: 'Marketing',
   recrutamento: 'Recrutamento',
+  financiamento: 'Financiamento',
 };
 
 export const LIBRARY_TEMPLATES: LibraryTemplate[] = [
@@ -454,5 +456,89 @@ export const LIBRARY_TEMPLATES: LibraryTemplate[] = [
     ],
     subject: '🎉 Proposta de Emprego — {{company_name}}',
     body: 'Olá {{primeiro_nome}},\n\nTemos o prazer de lhe apresentar uma proposta formal para a posição na {{company_name}}.\n\nDetalhes da oferta:\n- Cargo: [cargo]\n- Remuneração: [valor]\n- Benefícios: [lista]\n- Data de início prevista: [data]\n\nFicamos a aguardar a sua resposta até [prazo].\n\nCom entusiasmo,\n{{responsavel_nome}}',
+  },
+
+  // ── Financiamento ──
+  {
+    id: 'lib-fin-empresas',
+    name: 'Pedido de Documentação — Empresas',
+    description: 'Check-list de documentos para financiamento de empresas (Certidão Permanente, Balancete, IES, etc.)',
+    category: 'financiamento',
+    channel: 'email',
+    tone: 'professional',
+    structureType: 'custom',
+    fields: [
+      { name: 'Saudação', type: 'Text', description: 'Saudação formal ao cliente.' },
+      { name: 'Documentos Empresa', type: 'List', description: 'Lista de documentos da empresa para financiamento.' },
+      { name: 'Outros Documentos', type: 'List', description: 'Documentos pessoais dos sócios/gerentes e mapa de responsabilidades.' },
+      { name: 'Mapa Responsabilidade', type: 'Text', description: 'Instruções para obtenção do mapa de responsabilidades no Banco de Portugal.' },
+    ],
+    subject: 'Documentação necessária para Financiamento — Empresas',
+    body: 'Estimado/a {{primeiro_nome}},\n\nAbaixo a Check-List de documentos/informações que deverá facultar para a qualificação financeira e subsequentes pedidos de simulações às Instituições de Crédito.\n\n**Documentos para Financiamento de Empresas:**\n\nVerificar com o Contabilista a seguinte documentação:\n\n- Certidão Permanente da Empresa (eportugal.gov.pt)\n- Balancete da Empresa (últimos 3 meses)\n- Balancete Analítico\n- IES\n- Declaração de IVA\n- Declaração de Não Dívida à Segurança Social (SS)\n- Declaração de Não Dívida à Autoridade Tributária (AT)\n\n**Outros Documentos:**\n\n- Cópia do Cartão de Cidadão Gerentes/Sócios\n- Extratos Bancários dos últimos 3 a 6 meses\n- Mapa de Responsabilidade\n\nAceda ao endereço www.bportugal.pt e, com os acessos ao Portal das Finanças (NIF e Password), consulte a Central de Responsabilidades de Crédito. Grave o ficheiro em formato PDF e envie junto com os restantes documentos.\n\nGrata,\n{{responsavel_nome}}',
+  },
+  {
+    id: 'lib-fin-eni',
+    name: 'Pedido de Documentação — ENI',
+    description: 'Check-list para Empresários em Nome Individual (recibos verdes, CC, extratos)',
+    category: 'financiamento',
+    channel: 'email',
+    tone: 'professional',
+    structureType: 'custom',
+    fields: [
+      { name: 'Saudação', type: 'Text', description: 'Saudação formal ao cliente.' },
+      { name: 'Documentos Intervenientes', type: 'List', description: 'Documentos pessoais e recibos verdes dos intervenientes.' },
+    ],
+    subject: 'Documentação necessária para Financiamento — ENI',
+    body: 'Estimado/a {{primeiro_nome}},\n\nConforme combinado, segue abaixo a Check-List de documentos/informações que deverá facultar para a qualificação financeira e subsequentes pedidos de simulações às Instituições de Crédito.\n\n**Documentos dos Intervenientes no Financiamento (Titulares e Fiadores):**\n\n- Cópia do Cartão de Cidadão (https://eportugal.gov.pt/inicio/espaco-empresa)\n- 6 Últimos Recibos Verdes\n\nGrata,\n{{responsavel_nome}}',
+  },
+  {
+    id: 'lib-fin-conta-outrem',
+    name: 'Pedido de Documentação — Conta de Outrem',
+    description: 'Check-list para trabalhadores por conta de outrem (recibos vencimento, IRS, extratos, vínculo laboral)',
+    category: 'financiamento',
+    channel: 'email',
+    tone: 'professional',
+    structureType: 'custom',
+    fields: [
+      { name: 'Saudação', type: 'Text', description: 'Saudação formal ao cliente.' },
+      { name: 'Documentos Intervenientes', type: 'List', description: 'Documentos pessoais, recibos de vencimento, IRS, extratos.' },
+      { name: 'Documentos Adicionais', type: 'List', description: 'Recibos AT, abertura de atividade, certidões.' },
+      { name: 'Mapa Responsabilidade', type: 'Text', description: 'Instruções para obtenção do mapa no Banco de Portugal.' },
+    ],
+    subject: 'Documentação necessária para Financiamento — Conta de Outrem',
+    body: 'Estimado/a {{primeiro_nome}},\n\nConforme combinado, segue abaixo a Check-List de documentos/informações que deverá facultar para a qualificação financeira e subsequentes pedidos de simulações às Instituições de Crédito.\n\n**Documentos dos Intervenientes no Financiamento (Titulares e Fiadores):**\n\n- Cópia do Cartão de Cidadão\n- 3 Últimos Recibos de Vencimento\n- IRS/Declaração Anual de Rendimentos:\n  - Última declaração de IRS — irs.portaldasfinancas.gov.pt\n  - Nota de liquidação de IRS — www.portaldasfinancas.gov.pt\n- 3 Últimos Extratos Bancários (conta onde recebe o vencimento)\n- Informação sobre tipo de contrato de trabalho e envio de declaração de vínculo laboral com indicação da data de admissão (se a admissão tiver ocorrido há menos de 8 meses, deverá ser indicado que não está em período experimental)\n- Mapa de Responsabilidade\n\n**Documentos Adicionais:**\n\n- Printscreen da AT de todos os recibos emitidos no último ano\n- Exportar o último ano de recibos emitidos\n- Comprovativo de Abertura de Atividade (download em www.acesso.gov.pt)\n- Extratos Bancários dos últimos 3 a 6 meses (conta onde recebe remuneração da prestação de serviços)\n- Certidão Predial Negativa\n- Certidão de Domicílio Fiscal\n- Certidão não dívida à Autoridade Tributária (https://www.portaldasfinancas.gov.pt/pt/consultaCertidoesForm.action)\n- Declaração de não dívida à Segurança Social (https://app.seg-social.pt)\n\nAceda ao endereço www.bportugal.pt e, com os acessos ao Portal das Finanças (NIF e Password), consulte a Central de Responsabilidades de Crédito. Grave o ficheiro em formato PDF e envie junto com os restantes documentos.\n\nGrata,\n{{responsavel_nome}}',
+  },
+  {
+    id: 'lib-fin-conta-propria',
+    name: 'Pedido de Documentação — Conta Própria / Sócios Gerentes',
+    description: 'Check-list para trabalhadores por conta própria e sócios gerentes (6 recibos, IES, certidão comercial)',
+    category: 'financiamento',
+    channel: 'email',
+    tone: 'professional',
+    structureType: 'custom',
+    fields: [
+      { name: 'Saudação', type: 'Text', description: 'Saudação formal ao cliente.' },
+      { name: 'Documentos Intervenientes', type: 'List', description: 'Documentos pessoais, 6 recibos, IRS, extratos, vínculo laboral.' },
+      { name: 'Documentos Empresa', type: 'List', description: 'IES da empresa, Certidão Comercial, Balancete analítico.' },
+      { name: 'Mapa Responsabilidade', type: 'Text', description: 'Instruções para obtenção do mapa no Banco de Portugal.' },
+    ],
+    subject: 'Documentação necessária para Financiamento — Conta Própria / Sócios Gerentes',
+    body: 'Estimado/a {{primeiro_nome}},\n\nConforme combinado, segue abaixo a Check-List de documentos/informações que deverá facultar para a qualificação financeira e subsequentes pedidos de simulações às Instituições de Crédito.\n\n**Documentos dos Intervenientes no Financiamento (Titulares e Fiadores):**\n\n- Cópia do Cartão de Cidadão\n- 6 Últimos Recibos de Vencimento\n- IRS/Declaração Anual de Rendimentos:\n  - Última declaração de IRS — irs.portaldasfinancas.gov.pt\n  - Nota de liquidação de IRS — www.portaldasfinancas.gov.pt\n- 6 Últimos Extratos Bancários (conta onde recebe o vencimento)\n- Informação sobre tipo de contrato de trabalho e envio de declaração de vínculo laboral com indicação da data de admissão (se a admissão tiver ocorrido há menos de 8 meses, deverá ser indicado que não está em período experimental)\n- Mapa de Responsabilidade\n\nAceda ao endereço www.bportugal.pt e, com os acessos ao Portal das Finanças (NIF e Password), consulte a Central de Responsabilidades de Crédito. Grave o ficheiro em formato PDF e envie junto com os restantes documentos.\n\n**Documentos da Empresa:**\n\n- 3 últimos IES da empresa\n- Certidão Comercial\n- Balancete analítico\n\nGrata,\n{{responsavel_nome}}',
+  },
+  {
+    id: 'lib-fin-garantia-jovem',
+    name: 'Pedido de Documentação — Garantia Jovem',
+    description: 'Check-list para proponentes particulares com garantia jovem (CC, recibos, IRS, certidões)',
+    category: 'financiamento',
+    channel: 'email',
+    tone: 'professional',
+    structureType: 'custom',
+    fields: [
+      { name: 'Saudação', type: 'Text', description: 'Saudação formal ao cliente.' },
+      { name: 'Documentos Intervenientes', type: 'List', description: 'Documentos pessoais, recibos, IRS, extratos, certidões.' },
+      { name: 'Mapa Responsabilidade', type: 'Text', description: 'Instruções para obtenção do mapa no Banco de Portugal.' },
+    ],
+    subject: 'Documentação necessária para Financiamento — Garantia Jovem',
+    body: 'Estimado/a {{primeiro_nome}},\n\nAbaixo a Check-List de documentos/informações que deverá facultar para a qualificação financeira.\n\n**Documentos dos Intervenientes no Financiamento (Titulares e Fiadores):**\n\n- Cópia do Cartão de Cidadão/Identificação\n- 3 Últimos Recibos de Vencimento\n- IRS/Declaração Anual de Rendimentos:\n  - Última declaração de IRS — irs.portaldasfinancas.gov.pt\n  - Nota de liquidação de IRS — www.portaldasfinancas.gov.pt\n- 3 Últimos Extratos Bancários (conta onde recebe o vencimento)\n- Informação sobre tipo de contrato de trabalho e envio de declaração de vínculo laboral com indicação da data de admissão (se a admissão tiver ocorrido há menos de 8 meses, deverá ser indicado que não está em período experimental)\n- Mapa de Responsabilidade\n\nAceda ao endereço www.bportugal.pt e, com os acessos ao Portal das Finanças (NIF e Password), consulte a Central de Responsabilidades de Crédito. Grave o ficheiro em formato PDF e envie junto com os restantes documentos.\n\n- Certidão Predial Negativa\n- Certidão de Domicílio Fiscal\n- Certidão não dívida à Autoridade Tributária (www.portaldasfinancas.gov.pt)\n- Declaração de não dívida à Segurança Social (app.seg-social.pt)\n\nGrata,\n{{responsavel_nome}}',
   },
 ];

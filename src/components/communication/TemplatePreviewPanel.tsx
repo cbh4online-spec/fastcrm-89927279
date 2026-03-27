@@ -15,6 +15,7 @@ const CATEGORY_COLORS: Record<LibraryCategory, string> = {
   produto: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
   marketing: 'bg-orange-500/10 text-orange-700 dark:text-orange-400',
   recrutamento: 'bg-pink-500/10 text-pink-700 dark:text-pink-400',
+  financiamento: 'bg-teal-500/10 text-teal-700 dark:text-teal-400',
 };
 
 const FIELD_TYPE_ICON: Record<LibraryTemplateField['type'], React.ElementType> = {
