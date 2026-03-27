@@ -118,11 +118,18 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
 
   const isActive = useCallback(
     (href: string, end?: boolean) => {
-      const basePath = href.split("?")[0];
+      const [basePath, hrefSearch] = href.split("?");
+      // If href has query params, match both path AND query params exactly
+      if (hrefSearch) {
+        return location.pathname === basePath && location.search === `?${hrefSearch}`;
+      }
+      // For base routes without query params, check if current URL also has no relevant view params
       if (end || basePath === "/dashboard") return location.pathname === basePath;
+      // Prefix match, but exclude if current URL has query params that would match a sibling
+      if (location.pathname === basePath && location.search) return false;
       return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
     },
-    [location.pathname]
+    [location.pathname, location.search]
   );
 
   const sectionHasActive = useCallback(
