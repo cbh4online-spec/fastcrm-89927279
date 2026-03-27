@@ -198,6 +198,7 @@ export function ContactInsightsPanel({
   }
 
   return (
+    <>
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
