@@ -83,6 +83,7 @@ export function LeadDetail() {
   const { data: lead, isLoading } = useLead(id);
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   
   // AI field suggestions
   const generateSuggestions = useGenerateFieldSuggestions();
@@ -312,6 +313,19 @@ export function LeadDetail() {
           />
         </div>
       </div>
+
+      {lead.email && (
+        <ComposeEmailDialog
+          open={showEmailDialog}
+          onOpenChange={setShowEmailDialog}
+          recipient={{
+            email: lead.email,
+            name: lead.name,
+            entityType: 'lead',
+            entityId: lead.id,
+          }}
+        />
+      )}
     </div>
   );
 }
