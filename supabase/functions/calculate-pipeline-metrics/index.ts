@@ -54,13 +54,18 @@ serve(async (req: Request) => {
 
     for (const metric of metrics || []) {
       try {
-        const value = await calculateMetric(serviceClient, metric, workspace_id, now);
         const target = (targets || []).find((t: any) => t.metric_id === metric.id);
+        const period = target?.period || "monthly";
 
-        // Get previous period value for comparison
-        const prevValue = await calculateMetric(serviceClient, metric, workspace_id, getPreviousPeriodStart(now, target?.period || "monthly"));
+        // Get current period boundaries
+        const { start: periodStart, end: periodEnd } = getPeriodBounds(now, period);
+        const value = await calculateMetric(serviceClient, metric, workspace_id, periodStart, periodEnd);
 
-        const pctOfTarget = target ? (value / target.target_value) * 100 : null;
+        // Get previous period for comparison
+        const { start: prevStart, end: prevEnd } = getPreviousPeriodBounds(now, period);
+        const prevValue = await calculateMetric(serviceClient, metric, workspace_id, prevStart, prevEnd);
+
+        const pctOfTarget = target ? (target.target_value > 0 ? (value / target.target_value) * 100 : 0) : null;
         const pctChange = prevValue > 0 ? ((value - prevValue) / prevValue) * 100 : null;
 
         results.push({
@@ -73,10 +78,10 @@ serve(async (req: Request) => {
           color: metric.color,
           current_value: value,
           target_value: target?.target_value || null,
-          target_period: target?.period || null,
+          target_period: period,
           previous_value: prevValue,
-          pct_of_target: pctOfTarget ? Math.round(pctOfTarget * 10) / 10 : null,
-          pct_change: pctChange ? Math.round(pctChange * 10) / 10 : null,
+          pct_of_target: pctOfTarget !== null ? Math.round(pctOfTarget * 10) / 10 : null,
+          pct_change: pctChange !== null ? Math.round(pctChange * 10) / 10 : null,
         });
       } catch (calcErr) {
         console.error(`Error calculating metric ${metric.name}:`, calcErr);
@@ -85,6 +90,11 @@ serve(async (req: Request) => {
           metric_name: metric.name,
           metric_type: metric.metric_type,
           current_value: 0,
+          target_value: null,
+          target_period: null,
+          previous_value: null,
+          pct_of_target: null,
+          pct_change: null,
           error: calcErr instanceof Error ? calcErr.message : "Calculation error",
         });
       }
@@ -102,54 +112,50 @@ serve(async (req: Request) => {
   }
 });
 
-async function calculateMetric(client: any, metric: any, workspaceId: string, referenceDate: Date): Promise<number> {
+async function calculateMetric(
+  client: any,
+  metric: any,
+  workspaceId: string,
+  periodStart: Date,
+  periodEnd: Date
+): Promise<number> {
   const table = metric.source_table;
   const formula = metric.formula;
   const field = metric.source_field;
   const filters = metric.filter_json || {};
 
-  // Determine period boundaries
-  const periodStart = getMonthStart(referenceDate);
-  const periodEnd = getMonthEnd(referenceDate);
-
-  let query = client.from(table).select("*", { count: "exact", head: formula === "count" || formula === "event_count" });
-
-  // Apply workspace filter
-  if (table !== "kernel_events") {
-    query = query.eq("workspace_id", workspaceId);
-  } else {
-    query = query.eq("workspace_id", workspaceId);
-  }
-
-  // Apply time filter
-  query = query.gte("created_at", periodStart.toISOString()).lte("created_at", periodEnd.toISOString());
-
-  // Apply custom filters
-  if (filters.owner_id) query = query.eq("owner_user_id", filters.owner_id);
-  if (filters.pipeline_id) query = query.eq("pipeline_id", filters.pipeline_id);
-  if (filters.stage_id) query = query.eq("stage_id", filters.stage_id);
-  if (filters.source) query = query.eq("source", filters.source);
-  if (filters.status) query = query.eq("status", filters.status);
-
+  // For count-based formulas, use head mode
   if (formula === "count" || formula === "event_count") {
+    let query = client
+      .from(table)
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", periodStart.toISOString())
+      .lte("created_at", periodEnd.toISOString());
+
+    query = applyFilters(query, filters, table);
     const { count, error } = await query;
     if (error) throw error;
     return count || 0;
   }
 
-  // For sum/avg/percentage/duration, fetch all records
-  query = client.from(table).select(field || "*").eq("workspace_id", workspaceId)
-    .gte("created_at", periodStart.toISOString()).lte("created_at", periodEnd.toISOString());
+  // For aggregation formulas, fetch data
+  const selectField = field || "*";
+  let query = client
+    .from(table)
+    .select(selectField)
+    .eq("workspace_id", workspaceId)
+    .gte("created_at", periodStart.toISOString())
+    .lte("created_at", periodEnd.toISOString());
 
-  if (filters.owner_id) query = query.eq("owner_user_id", filters.owner_id);
-  if (filters.pipeline_id) query = query.eq("pipeline_id", filters.pipeline_id);
-  if (filters.stage_id) query = query.eq("stage_id", filters.stage_id);
-
+  query = applyFilters(query, filters, table);
   const { data, error } = await query;
   if (error) throw error;
   if (!data || data.length === 0) return 0;
 
-  const values = data.map((r: any) => parseFloat(r[field] || 0)).filter((v: number) => !isNaN(v));
+  const values = data
+    .map((r: any) => parseFloat(r[field] || 0))
+    .filter((v: number) => !isNaN(v));
 
   switch (formula) {
     case "sum":
@@ -157,33 +163,87 @@ async function calculateMetric(client: any, metric: any, workspaceId: string, re
     case "avg":
       return values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 0;
     case "percentage":
-      // percentage of records where field > 0
       return values.length > 0 ? (values.filter((v: number) => v > 0).length / values.length) * 100 : 0;
     case "duration":
-      // average duration in days (field should be a timestamp diff)
       return values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 0;
     default:
       return values.length;
   }
 }
 
-function getMonthStart(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+function applyFilters(query: any, filters: Record<string, any>, table: string): any {
+  if (filters.owner_id) query = query.eq("owner_user_id", filters.owner_id);
+  if (filters.pipeline_id) query = query.eq("pipeline_id", filters.pipeline_id);
+  if (filters.stage_id) query = query.eq("stage_id", filters.stage_id);
+  if (filters.source) query = query.eq("source", filters.source);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.channel) query = query.eq("channel", filters.channel);
+  if (filters.event_type && table === "kernel_events") query = query.eq("type", filters.event_type);
+  if (filters.entity_kind && table === "kernel_events") query = query.eq("entity_kind", filters.entity_kind);
+  return query;
 }
 
-function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-}
+// ---- Period boundary helpers ----
 
-function getPreviousPeriodStart(date: Date, period: string): Date {
+function getPeriodBounds(date: Date, period: string): { start: Date; end: Date } {
   const d = new Date(date);
   switch (period) {
-    case "daily": d.setDate(d.getDate() - 1); break;
-    case "weekly": d.setDate(d.getDate() - 7); break;
-    case "monthly": d.setMonth(d.getMonth() - 1); break;
-    case "quarterly": d.setMonth(d.getMonth() - 3); break;
-    case "annual": d.setFullYear(d.getFullYear() - 1); break;
-    default: d.setMonth(d.getMonth() - 1);
+    case "daily":
+      return {
+        start: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+        end: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+      };
+    case "weekly": {
+      const day = d.getDay();
+      const diff = day === 0 ? 6 : day - 1; // Monday start
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+    case "monthly":
+      return {
+        start: new Date(d.getFullYear(), d.getMonth(), 1),
+        end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999),
+      };
+    case "quarterly": {
+      const q = Math.floor(d.getMonth() / 3);
+      return {
+        start: new Date(d.getFullYear(), q * 3, 1),
+        end: new Date(d.getFullYear(), q * 3 + 3, 0, 23, 59, 59, 999),
+      };
+    }
+    case "annual":
+      return {
+        start: new Date(d.getFullYear(), 0, 1),
+        end: new Date(d.getFullYear(), 11, 31, 23, 59, 59, 999),
+      };
+    default:
+      return getPeriodBounds(date, "monthly");
   }
-  return d;
+}
+
+function getPreviousPeriodBounds(date: Date, period: string): { start: Date; end: Date } {
+  const d = new Date(date);
+  switch (period) {
+    case "daily":
+      d.setDate(d.getDate() - 1);
+      return getPeriodBounds(d, "daily");
+    case "weekly":
+      d.setDate(d.getDate() - 7);
+      return getPeriodBounds(d, "weekly");
+    case "monthly":
+      d.setMonth(d.getMonth() - 1);
+      return getPeriodBounds(d, "monthly");
+    case "quarterly":
+      d.setMonth(d.getMonth() - 3);
+      return getPeriodBounds(d, "quarterly");
+    case "annual":
+      d.setFullYear(d.getFullYear() - 1);
+      return getPeriodBounds(d, "annual");
+    default:
+      d.setMonth(d.getMonth() - 1);
+      return getPeriodBounds(d, "monthly");
+  }
 }
