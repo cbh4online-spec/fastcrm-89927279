@@ -192,20 +192,37 @@ export function useInviteToEvent() {
 
       const rsvpId = insertedData?.id;
 
-      // Send invite email (non-blocking)
+      // Send invite email via transactional email system (non-blocking)
       if (rsvpData.email && eventTitle && eventDate) {
         try {
-          await supabase.functions.invoke("send-event-invite", {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+          const confirmUrl = rsvpId ? `${supabaseUrl}/functions/v1/event-rsvp-respond?rsvp_id=${rsvpId}&action=confirm` : "";
+          const declineUrl = rsvpId ? `${supabaseUrl}/functions/v1/event-rsvp-respond?rsvp_id=${rsvpId}&action=decline` : "";
+
+          const dateFormatted = new Date(eventDate).toLocaleDateString("pt-PT", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          await supabase.functions.invoke("send-transactional-email", {
             body: {
-              email: rsvpData.email,
-              name: rsvpData.name || "",
-              eventTitle,
-              eventDate,
-              eventLocation,
-              eventLink,
-              eventId: rsvpData.event_id,
-              workspaceId: rsvpData.workspace_id,
-              rsvpId,
+              templateName: "event-invitation",
+              recipientEmail: rsvpData.email,
+              idempotencyKey: `event-invite-${rsvpId}`,
+              templateData: {
+                name: rsvpData.name || "",
+                eventTitle,
+                eventDate: dateFormatted,
+                eventLocation: eventLocation || "",
+                eventLink: eventLink || "",
+                confirmUrl,
+                declineUrl,
+                eventUrl: `https://fastcrm.lovable.app/dashboard/events/${rsvpData.event_id}`,
+              },
             },
           });
         } catch (emailErr) {
