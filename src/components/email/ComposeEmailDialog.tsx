@@ -61,6 +61,7 @@ import {
   Paperclip,
   PenLine,
   X,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useScheduleEmail } from "@/hooks/useScheduledEmails";
 import { EmailAttachmentList, type EmailAttachment } from "./EmailAttachmentList";
+import { InsertPaymentLinkDialog } from "./InsertPaymentLinkDialog";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
@@ -144,6 +146,7 @@ export function ComposeEmailDialog({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [scheduledTime, setScheduledTime] = useState("09:00");
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -393,6 +396,11 @@ export function ComposeEmailDialog({
     toast.success("Template aplicado");
   };
 
+  const handlePaymentLinkInsert = (html: string) => {
+    setBody((prev) => prev + "\n" + html);
+    setIsHtml(true);
+  };
+
   const insertFormatting = (tag: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -548,6 +556,18 @@ export function ComposeEmailDialog({
 
                 {/* Attachments */}
                 <EmailAttachmentList attachments={attachments} onChange={setAttachments} disabled={isBusy} />
+
+                {/* Payment link */}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={() => setShowPaymentDialog(true)}>
+                        <CreditCard className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Inserir link de pagamento</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
                 <Separator orientation="vertical" className="h-6 mx-1" />
 
@@ -715,6 +735,12 @@ export function ComposeEmailDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InsertPaymentLinkDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        onInsert={handlePaymentLinkInsert}
+      />
     </>
   );
 }
