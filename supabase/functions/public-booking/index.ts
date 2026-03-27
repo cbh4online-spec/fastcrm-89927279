@@ -161,7 +161,22 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
       .single();
 
     if (newLeadErr) {
-      console.error("CRM lead creation failed (non-blocking):", newLeadErr);
+      // Handle duplicate email — fetch existing lead instead
+      if (newLeadErr.code === "23505" || newLeadErr.message?.includes("unique")) {
+        const { data: dupLead } = await supabase
+          .from("leads")
+          .select("id, name")
+          .eq("workspace_id", page.workspace_id)
+          .ilike("email", trimmedEmail)
+          .limit(1)
+          .maybeSingle();
+        if (dupLead) {
+          existingMatch = { type: "lead", name: dupLead.name, id: dupLead.id };
+          console.log(`[BOOKING] Linked to existing CRM lead (dup): ${dupLead.id}`);
+        }
+      } else {
+        console.error("CRM lead creation failed (non-blocking):", newLeadErr);
+      }
     } else if (newLead) {
       existingMatch = { type: "lead", name: newLead.name, id: newLead.id };
       console.log(`[BOOKING] New CRM lead created: ${newLead.id}`);
