@@ -114,6 +114,8 @@ export function LeadDetailWithSidebar() {
   const { data: counts } = useEntityCounts('lead', id);
   
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
   const generateSuggestions = useGenerateFieldSuggestions();
 
 
