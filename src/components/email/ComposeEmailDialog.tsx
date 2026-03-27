@@ -61,6 +61,7 @@ import {
   Paperclip,
   PenLine,
   X,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
