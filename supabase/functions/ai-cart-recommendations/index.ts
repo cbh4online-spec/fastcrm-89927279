@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
@@ -13,6 +14,16 @@ serve(async (req) => {
   try {
     const { cartProductIds, workspaceId } = await req.json();
 
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'light', 'ai-cart-recommendations');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!cartProductIds?.length || !workspaceId) {
       return new Response(JSON.stringify({ recommendations: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
