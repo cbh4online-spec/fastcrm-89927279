@@ -1,48 +1,31 @@
 
 
-## Usar compositor interno de email no detalhe da oportunidade
+## Adicionar assunto e nome do destinatário ao inserir link de pagamento
 
-### Problema
-O botão "Compor email" no detalhe da oportunidade (`OpportunityHeaderActions`) abre o cliente de email externo via `mailto:`. Deveria abrir o `ComposeEmailDialog` interno e incluir contexto do pipeline.
+### O que muda
 
-### Solução
+Quando se insere um link de pagamento no email, além do texto contextual já existente, o sistema vai:
 
-| Ficheiro | Alteração |
+1. **Dirigir-se ao destinatário pelo nome** no texto introdutório (ex: "Caro Daniel,")
+2. **Sugerir automaticamente o assunto** do email (ex: "Link de Pagamento - Desenvolvimento há medida")
+
+### Alterações
+
+| Ficheiro | Detalhe |
 |---|---|
-| `OpportunityHeaderActions.tsx` | Adicionar state `showEmailDialog`, substituir `mailto:` por `setShowEmailDialog(true)`, renderizar `ComposeEmailDialog` com dados do contacto/lead associado |
-| `OpportunityDetailPage.tsx` | Passar dados do contacto/lead/empresa e etapa atual como props ao `OpportunityHeaderActions` |
+| `InsertPaymentLinkDialog.tsx` | Receber `recipientName` e `onSubjectSuggestion` como props. Pre-preencher o texto com saudação personalizada. Adicionar campo editável para assunto sugerido. |
+| `ComposeEmailDialog.tsx` | Passar `recipient.name` e callback para atualizar o assunto ao `InsertPaymentLinkDialog` |
 
-### Detalhes
-
-1. **`OpportunityDetailPage.tsx`** — passar novas props ao `OpportunityHeaderActions`:
-   - `contactEmail` / `contactName` / `contactId` (do contacto ou lead associado)
-   - `stageName` (etapa atual do pipeline)
-   - `pipelineContext` (título da oportunidade + etapa)
-
-2. **`OpportunityHeaderActions.tsx`**:
-   - Adicionar `useState` para controlar o dialog
-   - Substituir `handleComposeEmail` de `window.open(mailto:)` para `setShowEmailDialog(true)`
-   - Renderizar `<ComposeEmailDialog>` com:
-     - `recipient`: email do contacto/lead associado
-     - `defaultSubject`: título da oportunidade
-     - `templateContext`: incluir `pipeline_stage`, `opportunity_title`, `contact_name`
-   - Se não houver email associado, mostrar toast a avisar que não há contacto com email
-
-### Contexto passado ao compositor
+### Resultado
 
 ```text
-recipient: {
-  email: contact.email || lead.email,
-  name: contact.name || lead.name,
-  entityType: "contact" | "lead",
-  entityId: contact.id || lead.id
-}
-defaultSubject: "Re: {opportunity.title}"
-templateContext: {
-  pipeline_stage: currentStage.name,
-  opportunity_title: opportunity.title,
-  contact_name: ...,
-  company_name: ...
-}
+Assunto sugerido: "Link de Pagamento - Desenvolvimento há medida"
+
+Texto no email:
+  "Caro Daniel,
+   Segue o link para efetuar o pagamento de Desenvolvimento há medida:"
+  [Card de pagamento]
 ```
+
+O utilizador pode editar tanto o assunto como o texto antes de inserir. O assunto só é aplicado se o campo estiver vazio (não sobrescreve assuntos já preenchidos).
 
