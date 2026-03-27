@@ -472,7 +472,7 @@ export function InboxTemplatePanel({
 
         <div className="flex-1 flex overflow-hidden">
           {/* Template List */}
-          <div className="w-1/2 border-r flex flex-col">
+          <div className="w-1/2 border-r flex flex-col min-h-0 overflow-hidden">
             {/* Search */}
             <div className="p-3 border-b">
               <div className="relative">
