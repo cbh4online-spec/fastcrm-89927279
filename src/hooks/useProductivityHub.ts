@@ -157,25 +157,96 @@ export function useProductivityHub() {
         });
       });
 
-      // 4. Pending followups
+      // 4. Pending followups — with lead/contact name
       const { data: followups } = await supabase
         .from('conversation_followups')
-        .select('id, prepared_message, status, suggested_at, hours_since_last_reply, created_at')
+        .select('id, prepared_message, status, suggested_at, hours_since_last_reply, created_at, lead_id, conversation_id')
         .eq('workspace_id', wsId)
         .eq('status', 'pending')
         .order('suggested_at', { ascending: false })
         .limit(15);
 
-      followups?.forEach(f => items.push({
-        id: f.id,
-        category: 'followup',
-        title: `Follow-up pendente (${f.hours_since_last_reply}h sem resposta)`,
-        message: f.prepared_message?.substring(0, 120) || null,
-        severity: f.hours_since_last_reply > 48 ? 'critical' : f.hours_since_last_reply > 24 ? 'warning' : 'info',
-        status: f.status,
-        created_at: f.created_at,
-        source_table: 'conversation_followups',
-      }));
+      // Resolve lead names for followups
+      const followupLeadIds = [...new Set(followups?.map(f => f.lead_id).filter(Boolean) as string[])];
+      let followupLeadMap: Record<string, string> = {};
+      if (followupLeadIds.length > 0) {
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, name')
+          .in('id', followupLeadIds);
+        leads?.forEach(l => { followupLeadMap[l.id] = l.name; });
+      }
+
+      // If no lead, try to get contact name from conversation
+      const convIdsWithoutLead = followups
+        ?.filter(f => !f.lead_id && f.conversation_id)
+        .map(f => f.conversation_id) ?? [];
+      let convContactMap: Record<string, { name: string; type: string; id: string }> = {};
+      if (convIdsWithoutLead.length > 0) {
+        const { data: convs } = await supabase
+          .from('conversations')
+          .select('id, lead_id, contact_id')
+          .in('id', convIdsWithoutLead);
+        
+        const extraLeadIds = convs?.map(c => c.lead_id).filter(Boolean) as string[];
+        const contactIds = convs?.map(c => c.contact_id).filter(Boolean) as string[];
+        
+        const [leadsRes, contactsRes] = await Promise.all([
+          extraLeadIds.length > 0
+            ? supabase.from('leads').select('id, name').in('id', extraLeadIds)
+            : { data: [] },
+          contactIds.length > 0
+            ? supabase.from('contacts').select('id, name').in('id', contactIds)
+            : { data: [] },
+        ]);
+
+        convs?.forEach(c => {
+          const lead = leadsRes.data?.find(l => l.id === c.lead_id);
+          const contact = contactsRes.data?.find(ct => ct.id === c.contact_id);
+          if (lead) {
+            convContactMap[c.id] = { name: lead.name, type: 'lead', id: lead.id };
+          } else if (contact) {
+            convContactMap[c.id] = { name: contact.name, type: 'contact', id: contact.id };
+          }
+        });
+      }
+
+      followups?.forEach(f => {
+        let entityName: string | null = null;
+        let actionUrl = '/dashboard/inbox';
+        let relatedType: string | null = null;
+        let relatedId: string | null = null;
+
+        if (f.lead_id && followupLeadMap[f.lead_id]) {
+          entityName = followupLeadMap[f.lead_id];
+          actionUrl = `/dashboard/leads/${f.lead_id}`;
+          relatedType = 'lead';
+          relatedId = f.lead_id;
+        } else if (f.conversation_id && convContactMap[f.conversation_id]) {
+          const info = convContactMap[f.conversation_id];
+          entityName = info.name;
+          relatedType = info.type;
+          relatedId = info.id;
+          actionUrl = relatedType === 'lead' ? `/dashboard/leads/${relatedId}` : `/dashboard/contacts/${relatedId}`;
+        }
+
+        items.push({
+          id: f.id,
+          category: 'followup',
+          title: entityName
+            ? `${entityName} — ${f.hours_since_last_reply}h sem resposta`
+            : `Follow-up pendente (${f.hours_since_last_reply}h sem resposta)`,
+          message: f.prepared_message?.substring(0, 120) || null,
+          severity: f.hours_since_last_reply > 48 ? 'critical' : f.hours_since_last_reply > 24 ? 'warning' : 'info',
+          status: f.status,
+          created_at: f.created_at,
+          source_table: 'conversation_followups',
+          actionUrl,
+          related_type: relatedType,
+          related_id: relatedId,
+          related_name: entityName,
+        });
+      });
 
       // 5. Stalled deals (>5 days no update)
       const fiveDaysAgo = new Date();
