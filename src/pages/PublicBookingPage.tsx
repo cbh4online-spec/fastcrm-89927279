@@ -35,6 +35,7 @@ interface BookingPageData {
   require_phone: boolean;
   custom_message_label: string | null;
   custom_fields: { id: string; label: string; type: string; required: boolean; placeholder?: string; options?: string[] }[];
+  host_user_ids: string[] | null;
 }
 
 interface AvailabilitySlot { day_of_week: number; start_time: string; end_time: string; }
