@@ -125,20 +125,46 @@ export default function PublicBookingPage() {
     fetchPage();
   }, [slug]);
 
-  // Fetch events for selected date
+  // Fetch events for selected date — cross-check all host calendars
   useEffect(() => {
     if (!selectedDate || !page) return;
     setLoadingSlots(true);
     async function fetchEvents() {
       const dayStart = startOfDay(selectedDate!);
       const dayEnd = addDays(dayStart, 1);
-      const { data } = await supabase
-        .from('calendar_events')
-        .select('start_time, end_time')
-        .eq('calendar_id', page!.calendar_id)
-        .gte('start_time', dayStart.toISOString())
-        .lt('start_time', dayEnd.toISOString());
-      setExistingEvents(data || []);
+
+      const hostIds = page!.host_user_ids;
+      if (hostIds && hostIds.length > 0) {
+        // Cross-check: find all calendars owned by host users, then fetch events from all
+        const { data: hostCalendars } = await supabase
+          .from('calendars')
+          .select('id')
+          .eq('workspace_id', page!.workspace_id)
+          .in('created_by', hostIds);
+
+        const calendarIds = (hostCalendars || []).map((c: any) => c.id);
+        // Always include the page's primary calendar
+        if (!calendarIds.includes(page!.calendar_id)) {
+          calendarIds.push(page!.calendar_id);
+        }
+
+        const { data } = await supabase
+          .from('calendar_events')
+          .select('start_time, end_time')
+          .in('calendar_id', calendarIds)
+          .gte('start_time', dayStart.toISOString())
+          .lt('start_time', dayEnd.toISOString());
+        setExistingEvents(data || []);
+      } else {
+        // Single calendar mode
+        const { data } = await supabase
+          .from('calendar_events')
+          .select('start_time, end_time')
+          .eq('calendar_id', page!.calendar_id)
+          .gte('start_time', dayStart.toISOString())
+          .lt('start_time', dayEnd.toISOString());
+        setExistingEvents(data || []);
+      }
       setLoadingSlots(false);
     }
     fetchEvents();
