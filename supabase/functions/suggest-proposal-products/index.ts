@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 
 
 const corsHeaders = {
@@ -33,6 +34,17 @@ Deno.serve(async (req) => {
       context: SuggestionContext;
       products: ProductInfo[];
     };
+
+    // AI Gate — enforce credit consumption
+    const wsHeader = req.headers.get("X-Workspace-Id");
+    if (wsHeader) {
+      const gate = await aiGate(wsHeader, 'light', 'suggest-proposal-products');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!products || products.length === 0) {
       return new Response(

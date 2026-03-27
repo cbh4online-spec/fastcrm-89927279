@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 
 
 const corsHeaders = {
@@ -34,7 +35,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, context, tone, sections }: GenerateProposalRequest = await req.json();
+    const body = await req.json();
+    const { action, context, tone, sections, workspace_id } = body as GenerateProposalRequest & { workspace_id?: string };
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'generate-proposal-copy');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

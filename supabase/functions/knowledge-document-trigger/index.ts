@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from '@supabase/supabase-js';
@@ -39,6 +40,16 @@ Deno.serve(async (req) => {
 
   try {
     const body: JobPayload = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'light', 'knowledge-document-trigger');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const { workspaceId, inputData } = body;
     
     // Validate required fields with fallbacks

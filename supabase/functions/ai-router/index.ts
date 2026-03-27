@@ -1,4 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -30,6 +31,8 @@ serve(async (req) => {
       tools,
       tool_choice,
       stream = false,
+      workspace_id,
+      user_id,
     } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -37,6 +40,17 @@ serve(async (req) => {
         JSON.stringify({ error: "messages array is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // AI Gate — enforce credit consumption when workspace context is available
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'ai-router', user_id);
+      if (!gate.allowed) {
+        return new Response(
+          JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const apiMessages = [];

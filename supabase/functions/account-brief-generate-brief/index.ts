@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 import { corsHeaders } from "../_shared/cors.ts";
 
@@ -6,6 +7,16 @@ Deno.serve(async (req) => {
 
   try {
     const { accountId, workspaceId, extractedData, runId } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'heavy', 'account-brief-generate-brief');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!accountId || !workspaceId) {
       return new Response(JSON.stringify({ error: "accountId e workspaceId obrigatórios" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

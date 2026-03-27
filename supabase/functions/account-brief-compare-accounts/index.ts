@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -22,6 +23,16 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Não autorizado");
 
     const { workspace_id, account_ids } = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'heavy', 'account-brief-compare-accounts');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     if (!workspace_id || !account_ids || account_ids.length < 2 || account_ids.length > 5) {
       return new Response(JSON.stringify({ error: "Selecione entre 2 e 5 contas" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

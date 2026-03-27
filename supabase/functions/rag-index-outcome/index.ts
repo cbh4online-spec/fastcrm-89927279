@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 
 import { createClient } from "@supabase/supabase-js";
 import { 
@@ -33,6 +34,16 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const body: IndexOutcomeRequest = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'light', 'rag-index-outcome');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const { 
       opportunityId, 
       workspaceId, 

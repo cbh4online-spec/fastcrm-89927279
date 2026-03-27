@@ -1,3 +1,4 @@
+import { aiGate } from '../_shared/ai-gate.ts';
 
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
@@ -40,6 +41,16 @@ Deno.serve(async (req) => {
     });
 
     const request: OptimizationRequest = await req.json();
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'ai-pricing-optimizer');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     console.log('AI Pricing Optimizer - Mode:', request.mode);
 
     if (request.mode === "optimize-table" && request.priceTableId) {
