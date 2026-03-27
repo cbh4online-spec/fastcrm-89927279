@@ -53,7 +53,7 @@ serve(async (req) => {
     // Fetch product
     const { data: product, error: productError } = await supabase
       .from("products")
-      .select("id, name, base_price, currency, stripe_price_id")
+      .select("id, name, base_price, currency")
       .eq("id", productId)
       .eq("workspace_id", workspaceId)
       .maybeSingle();
@@ -87,29 +87,20 @@ serve(async (req) => {
     const price = product.base_price ?? 0;
     const currency = (product.currency || "eur").toLowerCase();
 
-    if (product.stripe_price_id) {
-      // Use existing Stripe price
-      const link = await stripe.paymentLinks.create({
-        line_items: [{ price: product.stripe_price_id, quantity: 1 }],
-      });
-      paymentUrl = link.url;
-    } else {
-      // Create inline price via checkout session
-      const session = await stripe.checkout.sessions.create({
-        line_items: [{
-          price_data: {
-            currency,
-            product_data: { name: productName },
-            unit_amount: Math.round(price * 100),
-          },
-          quantity: 1,
-        }],
-        mode: "payment",
-        success_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-success`,
-        cancel_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-canceled`,
-      });
-      paymentUrl = session.url!;
-    }
+    const session = await stripe.checkout.sessions.create({
+      line_items: [{
+        price_data: {
+          currency,
+          product_data: { name: productName },
+          unit_amount: Math.round(price * 100),
+        },
+        quantity: 1,
+      }],
+      mode: "payment",
+      success_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-success`,
+      cancel_url: `${req.headers.get("origin") || "https://fastcrm.lovable.app"}/payment-canceled`,
+    });
+    paymentUrl = session.url!;
 
     return new Response(JSON.stringify({ url: paymentUrl, productName, price, currency }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
