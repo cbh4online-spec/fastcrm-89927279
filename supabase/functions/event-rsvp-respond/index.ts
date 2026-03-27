@@ -26,10 +26,10 @@ Deno.serve(async (req) => {
 
     const newStatus = action === "confirm" ? "confirmed" : "declined";
 
-    // Get the RSVP to find the event title for the redirect
+    // Get the RSVP with email info
     const { data: rsvp, error: fetchErr } = await supabase
       .from("event_rsvps")
-      .select("id, event_id, status")
+      .select("id, event_id, status, email, name")
       .eq("id", rsvpId)
       .single();
 
@@ -48,12 +48,44 @@ Deno.serve(async (req) => {
       return new Response("Erro ao processar resposta", { status: 500, headers: corsHeaders });
     }
 
-    // Get event title for the feedback page
+    // Get event details for email and redirect
     const { data: event } = await supabase
       .from("community_events")
-      .select("title")
+      .select("title, starts_at, location")
       .eq("id", rsvp.event_id)
       .single();
+
+    // Send confirmation email if confirmed and has email
+    if (newStatus === "confirmed" && rsvp.email && event) {
+      const dateFormatted = new Date(event.starts_at).toLocaleDateString("pt-PT", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "event-confirmation",
+            recipientEmail: rsvp.email,
+            idempotencyKey: `event-confirm-${rsvpId}`,
+            templateData: {
+              name: rsvp.name || "",
+              eventTitle: event.title,
+              eventDate: dateFormatted,
+              eventLocation: event.location || "",
+              eventUrl: `https://fastcrm.lovable.app/dashboard/events/${rsvp.event_id}`,
+            },
+          },
+        });
+        console.log("[RSVP-RESPOND] Confirmation email sent to", rsvp.email);
+      } catch (emailErr) {
+        console.warn("[RSVP-RESPOND] Confirmation email failed:", emailErr);
+      }
+    }
 
     const baseUrl = "https://fastcrm.lovable.app";
     const redirectUrl = `${baseUrl}/event-rsvp?status=${newStatus}&event=${encodeURIComponent(event?.title || "")}`;
