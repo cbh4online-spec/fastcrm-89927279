@@ -184,7 +184,9 @@ export function SmartLeadsTable() {
 
   const totalColumns = orderedVisibleColumns.length + 3;
 
-  const { data: leads, isLoading, refetch } = useSmartLeads(filters);
+  const { data: leadsResult, isLoading, refetch } = useSmartLeads(filters);
+  const leads = leadsResult?.data;
+  const serverTotalCount = leadsResult?.totalCount ?? 0;
   const deleteLeads = useDeleteLeads();
   const updateLead = useUpdateLead();
   const analyzeLead = useAnalyzeLead();
