@@ -274,11 +274,41 @@ const ceoSections: AdaptiveNavSection[] = [
     ],
   },
   {
+    label: "CRM",
+    icon: Users,
+    collapsible: true,
+    items: [
+      { name: "Leads", href: "/dashboard/leads", icon: Users, badgeKey: "new_leads" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: UserCheck },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp },
+      { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch },
+    ],
+  },
+  {
+    label: "Comunicação",
+    icon: Inbox,
+    collapsible: true,
+    items: [
+      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
+      { name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar },
+    ],
+  },
+  {
     label: "Relatórios",
     icon: FileText,
+    collapsible: true,
     items: [
       { name: "Relatórios", href: "/dashboard/reports", icon: BarChart3 },
       { name: "Exportar", href: "/dashboard/reports/goals", icon: FileText },
+    ],
+  },
+  {
+    label: "Definições",
+    icon: Settings,
+    collapsible: true,
+    items: [
+      { name: "Definições", href: "/settings", icon: Settings },
     ],
   },
 ];
