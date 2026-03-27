@@ -1,5 +1,5 @@
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
-
+import { aiGate } from '../_shared/ai-gate.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -150,7 +150,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { messages, context } = (await req.json()) as DraftRequest;
+    const body = await req.json();
+    const { messages, context, workspace_id } = body as DraftRequest & { workspace_id?: string };
+
+    // AI Gate — enforce credit consumption
+    if (workspace_id) {
+      const gate = await aiGate(workspace_id, 'medium', 'ai-followup-draft');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (!messages || !context) {
       return new Response(
