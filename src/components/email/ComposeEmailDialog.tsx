@@ -146,6 +146,7 @@ export function ComposeEmailDialog({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [scheduledTime, setScheduledTime] = useState("09:00");
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
