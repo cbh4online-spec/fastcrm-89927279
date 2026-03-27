@@ -130,7 +130,7 @@ export function useProductivityHub() {
           contact: `/dashboard/contacts/${t.related_id}`,
           company: `/dashboard/companies/${t.related_id}`,
           lead: `/dashboard/leads/${t.related_id}`,
-          opportunity: `/dashboard/pipeline`,
+          opportunity: `/dashboard/opportunities/${t.related_id}`,
         };
         return routes[t.related_type] || `/dashboard/tasks`;
       };
@@ -201,7 +201,7 @@ export function useProductivityHub() {
           status: 'stalled',
           created_at: d.updated_at,
           source_table: 'opportunities',
-          actionUrl: `/dashboard/pipeline`,
+          actionUrl: `/dashboard/opportunities`,
         });
       });
 
