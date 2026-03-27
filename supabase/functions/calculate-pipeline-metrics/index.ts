@@ -15,16 +15,27 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user } } = await supabaseClient.auth.getUser(token);
-    if (!user) throw new Error("Not authenticated");
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: corsHeaders });
+    }
 
     const { workspace_id, metric_id } = await req.json();
     if (!workspace_id) throw new Error("workspace_id required");
 
-    // Verify workspace membership
-    const { data: member } = await supabaseClient
+    // Use service role for all DB queries (anon client is RLS-restricted)
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Verify workspace membership using service client
+    const { data: member } = await serviceClient
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspace_id)
@@ -32,13 +43,9 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     const isSuperAdmin = user.user_metadata?.is_super_admin || user.app_metadata?.is_super_admin;
-    if (!member && !isSuperAdmin) throw new Error("Access denied");
-
-    // Use service role for queries
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    if (!member && !isSuperAdmin) {
+      return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: corsHeaders });
+    }
 
     // Fetch metrics
     let metricsQuery = serviceClient.from("pipeline_metrics").select("*").eq("workspace_id", workspace_id).eq("is_active", true);
