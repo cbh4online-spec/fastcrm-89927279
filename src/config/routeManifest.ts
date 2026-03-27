@@ -50,6 +50,7 @@ export type NavGroup =
   | "vendas"
   | "comercio"
   | "operacoes"
+  | "ai-strategy"
   | "inteligencia"
   | "administracao";
 
@@ -96,8 +97,9 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 5, collapsible: true },
   { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 6, collapsible: true },
   { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 7, collapsible: true },
-  { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 8, collapsible: true },
-  { key: "administracao", label: "Administração", icon: Settings,        order: 9, collapsible: true },
+  { key: "ai-strategy",   label: "AI Strategy",   icon: Crown,           order: 8, collapsible: true },
+  { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 9, collapsible: true },
+  { key: "administracao", label: "Administração", icon: Settings,        order: 10, collapsible: true },
 ];
 
 export const NAV_GROUP_ORDER: NavGroup[] = NAV_GROUPS.map((g) => g.key);
@@ -244,11 +246,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("ai-employees",        "AI Employees",         "/dashboard/ai-employees",           Users,          "inteligencia"),
   e("conversational-engine","Motor Conversacional", "/dashboard/conversational-engine",  MessageSquare,  "inteligencia"),
   e("ai-suggestions",      "AI Sugestões",         "/dashboard/ai-suggestions",         Sparkles,       "inteligencia"),
-  e("ai-sales-coach",      "AI Sales Coach",       "/dashboard/ai-sales-coach",         Brain,          "inteligencia"),
+  e("ai-sales-coach",      "AI Sales Coach",       "/dashboard/ai-sales-coach",         Brain,          "ai-strategy"),
   e("ai-agents",           "AI Agents",            "/dashboard/ai-agents",              Cpu,            "inteligencia"),
   e("ai-document-ocr",     "Document OCR",         "/dashboard/ai-document-ocr",        ScanText,       "inteligencia"),
-  e("ceo-copilot",         "CEO Copilot",          "/dashboard/ceo-copilot",            Crown,          "inteligencia"),
-  e("context-os",          "Context OS",           "/dashboard/context-os",             Brain,          "inteligencia"),
+  e("ceo-copilot",         "CEO Copilot",          "/dashboard/ceo-copilot",            Crown,          "ai-strategy"),
+  e("context-os",          "Context OS",           "/dashboard/context-os",             Brain,          "ai-strategy"),
   e("impact-map",          "Change Impact Map",    "/dashboard/impact-map",             Activity,       "inteligencia"),
   e("kernel",              "FastCRM Kernel",       "/dashboard/kernel",                 Cpu,            "inteligencia"),
   e("ai-operations",       "AI Operations",        "/dashboard/ai-operations",          Activity,       "inteligencia", { visibleInSidebar: false }),
