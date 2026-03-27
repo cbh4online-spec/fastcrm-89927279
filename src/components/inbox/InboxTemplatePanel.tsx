@@ -472,7 +472,7 @@ export function InboxTemplatePanel({
 
         <div className="flex-1 flex overflow-hidden">
           {/* Template List */}
-          <div className="w-1/2 border-r flex flex-col">
+          <div className="w-1/2 border-r flex flex-col min-h-0 overflow-hidden">
             {/* Search */}
             <div className="p-3 border-b">
               <div className="relative">
@@ -487,7 +487,7 @@ export function InboxTemplatePanel({
             </div>
 
             {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <TabsList className="mx-3 mt-2 h-8 w-auto justify-start">
                 <TabsTrigger value="all" className="text-xs h-7">
                   Todos ({filteredTemplates.length})
