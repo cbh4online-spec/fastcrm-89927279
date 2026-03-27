@@ -2,6 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 
+export interface PipelineStageConfig {
+  phase?: string;
+  objective?: string;
+  stage_code?: string;
+  entry_criteria?: string[];
+  exit_criteria?: string[];
+  required_fields?: string[];
+  default_tasks?: string[];
+  blocked_if?: string[];
+  next_stage_code?: string | null;
+}
+
 export interface PipelineStage {
   id: string;
   workspace_id: string;
@@ -9,6 +21,7 @@ export interface PipelineStage {
   position: number;
   color: string;
   expected_days: number;
+  config: PipelineStageConfig;
   created_at: string;
   updated_at: string;
 }
