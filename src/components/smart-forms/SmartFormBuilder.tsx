@@ -26,8 +26,7 @@ import {
   Trash2,
   ChevronRight,
 } from 'lucide-react';
-import { SmartForm, SmartFormField, ScoringRule, FormType, FORM_TEMPLATES, AutomationConfig, FormSettings } from '@/types/smartForm';
-import { useCreateSmartForm, useUpdateSmartForm, useGenerateFormWithAI } from '@/hooks/useSmartForms';
+import { SmartForm, SmartFormField, ScoringRule, FormType, FORM_TEMPLATES, AutomationConfig, FormSettings, ConditionalRule } from '@/types/smartForm';
 import { FormFieldEditor } from '@/components/form-studio/FormFieldEditor';
 import { FormField } from '@/types/formSchema';
 import { toast } from 'sonner';
@@ -76,6 +75,16 @@ export function SmartFormBuilder({ form, onBack, onPreview }: SmartFormBuilderPr
   const [scoringRules, setScoringRules] = useState<ScoringRule[]>(form?.scoring_rules || []);
   const [automationConfig, setAutomationConfig] = useState<AutomationConfig>(form?.automation_config || DEFAULT_AUTOMATION);
   const [settings, setSettings] = useState<FormSettings>(form?.settings || DEFAULT_SETTINGS);
+  const [conditions, setConditions] = useState<ConditionalRule[]>(form?.conditions || []);
+  const [webhooks, setWebhooks] = useState<Array<{ id: string; url: string; events: string[]; headers: Record<string, string>; isActive: boolean; retryCount: number }>>([]);
+  const [thankYouConfig, setThankYouConfig] = useState({
+    message: form?.settings?.successMessage || 'Obrigado pela sua submissão!',
+    redirectUrl: form?.settings?.redirectUrl,
+    showCta: false,
+    ctaText: '',
+    ctaUrl: '',
+    calendarUrl: '',
+  });
 
   // Field editor state
   const [editingField, setEditingField] = useState<SmartFormField | null>(null);
