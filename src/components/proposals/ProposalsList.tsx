@@ -412,15 +412,7 @@ export function ProposalsList() {
       case "templates":
         return <ProposalTemplatesList />;
       case "analytics":
-        return (
-          <Card className="p-12 text-center">
-            <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-            <h3 className="text-lg font-medium mb-2">Análise de Propostas</h3>
-            <p className="text-sm text-muted-foreground">
-              Em breve: Dashboard de performance e conversão de propostas.
-            </p>
-          </Card>
-        );
+        return <ProposalAnalyticsTab />;
       default:
         return renderProposalsContent();
     }
