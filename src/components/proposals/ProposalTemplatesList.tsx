@@ -44,7 +44,6 @@ export function ProposalTemplatesList() {
 
   const { data: templates, isLoading } = useProposalTemplates();
   const createTemplate = useCreateProposalTemplate();
-  const updateTemplate = useUpdateProposalTemplate();
   const deleteTemplate = useDeleteProposalTemplate();
 
   // Filter and sort templates
