@@ -164,6 +164,10 @@ export default function Marketing() {
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Multi-Canal</span>
               </TabsTrigger>
+              <TabsTrigger value="automations" className="gap-1.5">
+                <GitBranch className="h-4 w-4" />
+                <span className="hidden sm:inline">Automações</span>
+              </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-1.5">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Analytics</span>
