@@ -9,6 +9,7 @@ export interface EbookChapter {
   description?: string;
   content: string;
   sections?: string[];
+  cover_image?: string;
 }
 
 export interface Ebook {
