@@ -191,14 +191,24 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             <img src={ebook.cover_url} alt="" className="w-full h-full object-cover opacity-60" />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <button
-            onClick={() => coverInputRef.current?.click()}
-            disabled={uploadingCover}
-            className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur border border-border/60 text-xs font-medium hover:bg-background transition-all"
-          >
-            {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Image className="h-3 w-3" />}
-            {ebook.cover_url ? "Alterar capa" : "Adicionar capa"}
-          </button>
+          <div className="absolute top-3 right-3 flex gap-1.5">
+            <button
+              onClick={generateCoverAI}
+              disabled={generatingCoverAI}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/90 backdrop-blur text-primary-foreground text-xs font-medium hover:bg-primary transition-all"
+            >
+              {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+              Gerar com IA
+            </button>
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur border border-border/60 text-xs font-medium hover:bg-background transition-all"
+            >
+              {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Upload
+            </button>
+          </div>
         </div>
         <div className="relative px-5 pb-5 -mt-8">
           <button onClick={onBack} className="text-xs text-primary hover:underline flex items-center gap-1 mb-2">
