@@ -1,45 +1,65 @@
 
 
-# Fix: Métricas de Performance e Nomes no Leaderboard
+# Exportação de Relatórios para Análise
 
-## Problemas Identificados
+## Situação Atual
 
-### 1. Leaderboard mostra "Utilizador" em vez de nomes reais
-No `usePerformanceScores.ts`, o leaderboard faz lookup de profiles por `p.id` mas procura por `s.user_id`. A tabela `profiles` tem `id` (PK do profile) e `user_id` (referência ao auth user). Como `performance_scores.user_id` guarda o auth user ID, o lookup falha e cai para o fallback "Utilizador".
+O botão de download no `ReportsSales` existe mas não faz nada. Não há nenhuma utilidade de export no projeto — nem CSV, nem PDF, nem qualquer outro formato.
 
-**Fix**: Alterar a query de profiles para `select("user_id, full_name, avatar_url")` e mapear por `user_id`.
+## Plano
 
-### 2. Métricas atribuem os mesmos valores a todos os membros
-O `useRecalculateScores` itera por cada membro do workspace, mas as queries a `leads`, `meetings`, `proposals` e `opportunities` filtram apenas por `workspace_id` — nunca por `assigned_to`. Todos os membros recebem exactamente os mesmos números.
+### 1. Utilitário de Export — `src/utils/reportExport.ts`
 
-**Fix**: Adicionar `.eq("assigned_to", uid)` em cada query de recalculação para leads, proposals e opportunities. Para meetings, filtrar por `created_by` ou `assigned_to` conforme disponível.
+Criar funções genéricas reutilizáveis:
+
+- **`exportToCSV(filename, headers, rows)`** — Gera CSV com BOM UTF-8 para compatibilidade com Excel, cria Blob e dispara download automático
+- **`exportSalesReportCSV(data)`** — Transforma os dados do `useSalesPerformance` em múltiplas secções CSV: KPIs, Lead Flow semanal, Receita mensal, Funil, Top Performers, Fontes, Stage Duration, Forecast
+- **`exportSalesReportPDF(data)`** — Gera PDF executivo com jsPDF + jspdf-autotable: header com título/data, tabela de KPIs, tabelas de dados por secção
+
+### 2. Menu de Export no `ReportsSales`
+
+Substituir o botão Download simples por um **DropdownMenu** com 2 opções:
+- **Exportar CSV** — ficheiro `.csv` com todos os dados tabulares para análise em Excel/Sheets
+- **Exportar PDF** — relatório formatado para partilha/impressão
+
+### 3. Export nos Dashboards Custom (`ReportDashboardView`)
+
+Adicionar botão de export ao header do dashboard que exporta os widgets como CSV (uma secção por widget com os seus dados).
 
 ## Ficheiros
 
-| Ficheiro | Mudança |
+| Ficheiro | Ação |
 |---|---|
-| `src/hooks/usePerformanceScores.ts` | **useLeaderboard**: mudar select de profiles para `user_id, full_name, avatar_url` e mapear por `user_id` em vez de `id` |
-| `src/hooks/usePerformanceScores.ts` | **useRecalculateScores**: adicionar filtro `.eq("assigned_to", uid)` nas queries de leads, proposals, opportunities; adicionar filtro equivalente em meetings |
+| `src/utils/reportExport.ts` | **Criar** — funções CSV + PDF |
+| `src/pages/ReportsSales.tsx` | **Editar** — DropdownMenu no botão download |
+| `src/pages/ReportDashboardView.tsx` | **Editar** — adicionar botão export |
+| `package.json` | Adicionar `jspdf` + `jspdf-autotable` |
 
-## Detalhe Técnico
+## Detalhe do CSV
 
 ```text
-Antes (leaderboard):
-  select("id, full_name, avatar_url").in("id", userIds)
-  Map: p.id → p
-  Lookup: profileMap.get(s.user_id) → ❌ miss → "Utilizador"
+=== SALES PERFORMANCE REPORT ===
+Date: 2026-03-28
 
-Depois:
-  select("user_id, full_name, avatar_url").in("user_id", userIds)
-  Map: p.user_id → p
-  Lookup: profileMap.get(s.user_id) → ✅ nome real
+--- KPIs ---
+Metric,Value
+Pipeline Total,€125.3K
+Won Revenue,€45.2K
+Win Rate,32.5%
+...
 
-Antes (recalculate - leads):
-  .eq("workspace_id", wid).gte("created_at", startISO)...
-  → Todos os membros recebem o total do workspace
+--- Lead Flow (Weekly) ---
+Week,Website,Referral,LinkedIn,...
+03/02,5,2,3,...
 
-Depois:
-  .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO)...
-  → Cada membro recebe só os seus leads/deals/propostas
+--- Won Revenue by Month ---
+Month,Value
+Apr 25,€12.3K
+...
+
+--- Top Performers ---
+Name,Won Value,Deals,Win Rate
+João Silva,€25.0K,8,45.0%
+...
 ```
 
