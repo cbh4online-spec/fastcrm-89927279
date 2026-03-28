@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConversations, useDeleteConversations, ConversationChannel, ConversationStatus, Conversation } from "@/hooks/useConversations";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -41,13 +41,36 @@ import {
   Archive,
   AlignJustify,
   List,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Pin,
+  PinOff,
+  Check,
+  CheckCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
-import { formatDistanceToNow } from "date-fns";
+import { isToday, isYesterday, format as fnsFormat } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+
+/** Smart time formatter: "14:32" today, "Ontem 14:32" yesterday, "25/03 14:32" older */
+function formatSmartTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isToday(d)) return fnsFormat(d, "HH:mm", { locale: pt });
+  if (isYesterday(d)) return `Ontem ${fnsFormat(d, "HH:mm", { locale: pt })}`;
+  return fnsFormat(d, "dd/MM HH:mm", { locale: pt });
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isToday(d)) return `Hoje às ${fnsFormat(d, "HH:mm", { locale: pt })}`;
+  if (isYesterday(d)) return `Ontem às ${fnsFormat(d, "HH:mm", { locale: pt })}`;
+  return fnsFormat(d, "d 'de' MMMM 'às' HH:mm", { locale: pt });
+}
+
+const PINNED_KEY = "inbox-pinned-conversations";
 
 const channelIcons: Record<ConversationChannel, React.ElementType> = {
   whatsapp: Phone,
@@ -105,6 +128,12 @@ export function ConversationList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(PINNED_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
   const [density, setDensity] = useState<"normal" | "compact">(() => {
     return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
   });
@@ -117,6 +146,17 @@ export function ConversationList({
     setDensity(next);
     localStorage.setItem("inbox-density", next);
   };
+
+  const togglePin = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPinnedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem(PINNED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // Realtime subscription
   useEffect(() => {
@@ -237,12 +277,16 @@ export function ConversationList({
   const processedConversations = useMemo(() => {
     const filtered = [...tabFilteredConversations];
     filtered.sort((a, b) => {
+      // Pinned conversations first
+      const aPinned = pinnedIds.has(a.id) ? 1 : 0;
+      const bPinned = pinnedIds.has(b.id) ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
       const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
       const dateB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return dateB - dateA;
     });
     return filtered;
-  }, [tabFilteredConversations]);
+  }, [tabFilteredConversations, pinnedIds]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -354,122 +398,187 @@ export function ConversationList({
             </div>
           ) : (
             <div className="divide-y divide-border/50">
-              {processedConversations.map((conv) => {
+              {processedConversations.map((conv, idx) => {
                 const ChannelIcon = channelIcons[conv.channel];
                 const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
                 const avatarUrl = (conv.lead as any)?.avatar_url || (conv.contact as any)?.avatar_url;
                 const isSelected = selectedIds.has(conv.id);
                 const hasUnread = conv.unread_count > 0;
+                const isPinned = pinnedIds.has(conv.id);
+                const isOutbound = (conv as any).last_message_direction === "outbound";
+                const emailSubject = conv.channel === "email" ? ((conv as any).channel_metadata?.subject || (conv as any).channel_metadata?.email_subject) : null;
+
+                // Show pinned divider
+                const prevConv = idx > 0 ? processedConversations[idx - 1] : null;
+                const showPinnedDivider = idx === 0 && isPinned;
+                const showUnpinnedDivider = prevConv && pinnedIds.has(prevConv.id) && !isPinned;
 
                 return (
-                  <div
-                    key={conv.id}
-                    className={cn(
-                      "group relative px-3 hover:bg-accent/50 transition-colors cursor-pointer",
-                      density === "normal" ? "py-2.5" : "py-1.5",
-                      selectedId === conv.id && "bg-accent",
-                      isSelected && "bg-primary/5"
+                  <div key={conv.id}>
+                    {showPinnedDivider && (
+                      <div className="px-3 py-1 flex items-center gap-1.5">
+                        <Pin className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Fixadas</span>
+                      </div>
                     )}
-                    onClick={() => !selectionMode && onSelect(conv.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Selection Checkbox */}
-                      {selectionMode && (
-                        <Checkbox
-                          checked={isSelected}
-                          onClick={(e) => toggleSelect(conv.id, e)}
-                        />
+                    {showUnpinnedDivider && (
+                      <div className="px-3 py-1 border-t border-border">
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Recentes</span>
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        "group relative px-3 hover:bg-accent/50 transition-colors cursor-pointer",
+                        density === "normal" ? "py-2.5" : "py-1.5",
+                        selectedId === conv.id && "bg-accent",
+                        isSelected && "bg-primary/5",
+                        isPinned && "bg-primary/[0.02]"
                       )}
+                      onClick={() => !selectionMode && onSelect(conv.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Selection Checkbox */}
+                        {selectionMode && (
+                          <Checkbox
+                            checked={isSelected}
+                            onClick={(e) => toggleSelect(conv.id, e)}
+                          />
+                        )}
 
-                      {/* Avatar */}
-                      <Avatar className="h-10 w-10 flex-shrink-0">
-                        <AvatarImage src={avatarUrl} />
-                        <AvatarFallback className="text-xs font-medium bg-muted">
-                          {getInitials(displayName)}
-                        </AvatarFallback>
-                      </Avatar>
+                        {/* Avatar */}
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage src={avatarUrl} />
+                          <AvatarFallback className="text-xs font-medium bg-muted">
+                            {getInitials(displayName)}
+                          </AvatarFallback>
+                        </Avatar>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        {/* Line 1: Name + Channel Icon + Time */}
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "text-sm truncate",
-                            hasUnread ? "font-semibold text-foreground" : "font-normal text-foreground"
-                          )}>
-                            {displayName}
-                          </span>
-                          <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
-                          {conv.last_message_at && (
-                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap ml-auto group-hover:hidden">
-                              {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Line 1: Name + Channel Icon + Time */}
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn(
+                              "text-sm truncate",
+                              hasUnread ? "font-semibold text-foreground" : "font-normal text-foreground"
+                            )}>
+                              {displayName}
                             </span>
-                          )}
-                          {/* Hover Quick Actions */}
-                          <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-green-500 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateStatus.mutate({ conversationId: conv.id, status: "closed" });
-                                    toast.success("Conversa resolvida");
-                                  }}
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Resolver</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-amber-500 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toast.success("Marcado para follow-up");
-                                  }}
-                                >
-                                  <Clock className="w-3.5 h-3.5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Follow-up</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateStatus.mutate({ conversationId: conv.id, status: "archived" });
-                                    toast.success("Conversa arquivada");
-                                  }}
-                                >
-                                  <Archive className="w-3.5 h-3.5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Arquivar</p></TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-
-                        {/* Line 2: Preview + Unread dot */}
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <p className={cn(
-                            "text-xs truncate flex-1 min-w-0",
-                            hasUnread ? "text-foreground/80" : "text-muted-foreground"
-                          )}>
-                            {(conv as any).last_message_direction === "outbound" && (
-                              <span className="text-muted-foreground">Tu: </span>
+                            <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
+                            {isPinned && <Pin className="w-3 h-3 text-primary/60 flex-shrink-0" />}
+                            {conv.last_message_at && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn(
+                                    "text-[11px] flex-shrink-0 whitespace-nowrap ml-auto group-hover:hidden",
+                                    hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+                                  )}>
+                                    {formatSmartTime(conv.last_message_at)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs">
+                                  {formatRelativeTime(conv.last_message_at)}
+                                </TooltipContent>
+                              </Tooltip>
                             )}
-                            {conv.channel === 'email' 
-                              ? cleanEmailPreview(conv.last_message_preview) 
-                              : (conv.last_message_preview || "Sem mensagens")}
-                          </p>
-                          {hasUnread && (
-                            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                            {/* Hover Quick Actions */}
+                            <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                                    onClick={(e) => togglePin(conv.id, e)}
+                                  >
+                                    {isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{isPinned ? "Desafixar" : "Fixar"}</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-green-500 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStatus.mutate({ conversationId: conv.id, status: "closed" });
+                                      toast.success("Conversa resolvida");
+                                    }}
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Resolver</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-amber-500 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toast.success("Marcado para follow-up");
+                                    }}
+                                  >
+                                    <Clock className="w-3.5 h-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Follow-up</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateStatus.mutate({ conversationId: conv.id, status: "archived" });
+                                      toast.success("Conversa arquivada");
+                                    }}
+                                  >
+                                    <Archive className="w-3.5 h-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Arquivar</p></TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+
+                          {/* Email subject line */}
+                          {emailSubject && (
+                            <p className="text-[11px] font-medium text-foreground/70 truncate mt-0.5 flex items-center gap-1">
+                              <Mail className="w-3 h-3 flex-shrink-0" />
+                              {emailSubject}
+                            </p>
                           )}
+
+                          {/* Line 2: Direction arrow + Preview + Delivery status + Unread dot */}
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {isOutbound ? (
+                              <ArrowUpRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ArrowDownLeft className="w-3 h-3 text-primary/60 flex-shrink-0" />
+                            )}
+                            <p className={cn(
+                              "text-xs truncate flex-1 min-w-0",
+                              hasUnread ? "text-foreground/80" : "text-muted-foreground"
+                            )}>
+                              {conv.channel === 'email'
+                                ? cleanEmailPreview(conv.last_message_preview)
+                                : (conv.last_message_preview || "Sem mensagens")}
+                            </p>
+                            {/* Delivery status for outbound */}
+                            {isOutbound && (
+                              <span className="flex-shrink-0">
+                                {(conv as any).last_message_read_at ? (
+                                  <CheckCheck className="w-3.5 h-3.5 text-green-500" />
+                                ) : (conv as any).last_message_delivered_at ? (
+                                  <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                              </span>
+                            )}
+                            {hasUnread && (
+                              <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
