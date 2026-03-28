@@ -15,10 +15,10 @@ import { pt } from "date-fns/locale";
 interface Notification {
   id: string;
   title: string;
-  message: string;
+  body: string | null;
   type: string;
-  is_read: boolean;
-  created_at: string;
+  is_read: boolean | null;
+  created_at: string | null;
 }
 
 export function ClientNotificationBadge() {
@@ -27,7 +27,7 @@ export function ClientNotificationBadge() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter(n => n.is_read === false).length;
 
   useEffect(() => {
     if (!clientUser?.id) return;
@@ -35,7 +35,7 @@ export function ClientNotificationBadge() {
     const fetchNotifications = async () => {
       const { data } = await supabase
         .from("c2c_notifications")
-        .select("id, title, message, type, is_read, created_at")
+        .select("id, title, body, type, is_read, created_at")
         .eq("user_id", clientUser.auth_user_id || "")
         .order("created_at", { ascending: false })
         .limit(10);
