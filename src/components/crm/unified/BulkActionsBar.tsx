@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { BulkEditDialog, BulkEditField } from "./BulkEditDialog";
 
 interface BulkActionsBarProps {
-  entityType: CrmEntityType;
+  entityType: CrmEntityType | "leads";
   selectedCount: number;
   onClearSelection: () => void;
   onDelete: () => Promise<void>;
@@ -120,7 +120,7 @@ export function BulkActionsBar({
 
         <div className="flex items-center gap-2">
           {/* Add Tags */}
-          {entityType === "contacts" && (
+          {(entityType === "contacts" || entityType === "leads") && (
             <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -247,7 +247,7 @@ export function BulkActionsBar({
         <BulkEditDialog
           open={bulkEditOpen}
           onOpenChange={setBulkEditOpen}
-          entityType={entityType}
+          entityType={entityType as any}
           selectedCount={selectedCount}
           fields={editableFields}
           onApply={onBulkEdit}

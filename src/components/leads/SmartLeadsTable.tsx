@@ -8,8 +8,10 @@ import {
   SmartLead,
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
-import { useDeleteLeads, useUpdateLead } from "@/hooks/useLeads";
+import { useDeleteLeads, useUpdateLead, useBulkUpdateLeads } from "@/hooks/useLeads";
 import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
+import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
+import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
@@ -34,6 +36,7 @@ import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/c
 import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { LeadDuplicateReviewPanel } from "@/components/leads/LeadDuplicateReviewPanel";
+import { LeadsKanbanView } from "@/components/leads/LeadsKanbanView";
 import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -128,10 +131,29 @@ export function SmartLeadsTable() {
 
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
+    { id: "kanban", label: "Kanban" },
     { id: "duplicates", label: "Duplicate Review" },
     { id: "smart-lists", label: t("tabSmartLists") },
     { id: "automations", label: t("tabAutomations") },
     { id: "import", label: t("tabImport") },
+  ], [t]);
+
+  const leadBulkEditFields: BulkEditField[] = useMemo(() => [
+    { key: "status", label: t("col_status"), type: "select", section: "info", options: [
+      { value: "new", label: "Novo" },
+      { value: "in_progress", label: "Em Progresso" },
+      { value: "completed", label: "Concluído" },
+    ]},
+    { key: "lead_type", label: t("col_leadType"), type: "select", section: "info", options: [
+      { value: "person", label: "Pessoa" },
+      { value: "company", label: "Empresa" },
+    ]},
+    { key: "source", label: t("col_source"), type: "text", section: "info" },
+    { key: "company_name", label: t("col_company"), type: "text", section: "info" },
+    { key: "city", label: t("col_city"), type: "text", section: "location" },
+    { key: "region", label: t("col_region"), type: "text", section: "location" },
+    { key: "industry", label: "Indústria", type: "text", section: "classification" },
+    { key: "business_category", label: t("col_businessCategory"), type: "text", section: "classification" },
   ], [t]);
 
   const sortOptions = useMemo(() => [
@@ -189,6 +211,7 @@ export function SmartLeadsTable() {
   const serverTotalCount = leadsResult?.totalCount ?? 0;
   const deleteLeads = useDeleteLeads();
   const updateLead = useUpdateLead();
+  const bulkUpdateLeads = useBulkUpdateLeads();
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
@@ -360,6 +383,8 @@ export function SmartLeadsTable() {
 
         {activeTab === "duplicates" ? (
           <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
+        ) : activeTab === "kanban" ? (
+          <LeadsKanbanView leads={filteredLeads as SmartLead[]} isLoading={isLoading} />
         ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
@@ -436,12 +461,29 @@ export function SmartLeadsTable() {
         ) : (
           <>
             {selectedIds.size > 0 && (
-              <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
-                <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selected")}</span>
-                <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
-                <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
-                <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
-                <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>
+              <div className="mt-4 space-y-2">
+                <BulkActionsBar
+                  entityType="leads"
+                  selectedCount={selectedIds.size}
+                  onClearSelection={() => setSelectedIds(new Set())}
+                  onDelete={handleBulkDelete}
+                  onExport={handleExport}
+                  onAddTags={async (tags) => {
+                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes: { tags } });
+                    toast.success(`Tags aplicadas a ${selectedIds.size} leads`);
+                    setSelectedIds(new Set());
+                  }}
+                  onBulkEdit={async (changes) => {
+                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes });
+                    toast.success(`${selectedIds.size} leads atualizados`);
+                    setSelectedIds(new Set());
+                  }}
+                  editableFields={leadBulkEditFields}
+                />
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+                  <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
+                </div>
               </div>
             )}
 
