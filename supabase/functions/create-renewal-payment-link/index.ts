@@ -7,6 +7,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Map renewal_interval to Stripe recurring params
+function mapIntervalToStripe(interval: string): { interval: string; interval_count: number } {
+  switch (interval) {
+    case "monthly": return { interval: "month", interval_count: 1 };
+    case "quarterly": return { interval: "month", interval_count: 3 };
+    case "semi_annual": return { interval: "month", interval_count: 6 };
+    case "yearly": return { interval: "year", interval_count: 1 };
+    default: return { interval: "month", interval_count: 1 };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,7 +60,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not a workspace member" }), { status: 403, headers: corsHeaders });
     }
 
-    // Get Stripe config — try workspace-specific first, fall back to global key
+    // Get Stripe config
     const { data: stripeConfig } = await serviceClient
       .from("workspace_stripe_config")
       .select("*")
@@ -93,19 +104,48 @@ serve(async (req) => {
     // Calculate total
     const totalAmount = items.reduce((sum: number, item: any) => sum + (Number(item.qty) * Number(item.unit_price)), 0);
 
-    // Create Stripe checkout session
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Create Stripe instance
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    // Get or create Stripe customer
+    const contactEmail = (contract as any).contact?.email;
+    const companyName = (contract as any).company?.name || "";
+    let customerId: string | undefined;
+
+    if (contactEmail) {
+      const customers = await stripe.customers.list({ email: contactEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const newCustomer = await stripe.customers.create({
+          email: contactEmail,
+          name: (contract as any).contact?.name || companyName,
+          metadata: {
+            workspace_id,
+            contract_id,
+            company_name: companyName,
+          },
+        });
+        customerId = newCustomer.id;
+      }
+    }
+
+    // Map renewal interval to Stripe recurring
+    const stripeRecurring = mapIntervalToStripe(contract.renewal_interval || "monthly");
+
+    // Build line items with recurring price_data
     const lineItems = items.map((item: any) => ({
       price_data: {
         currency: contract.currency?.toLowerCase() || "eur",
         product_data: {
           name: item.name,
-          description: `${item.item_type} — ${(contract as any).company?.name || ""}`,
+          description: `${item.item_type} — ${companyName}`,
         },
         unit_amount: Math.round(Number(item.unit_price) * 100),
+        recurring: {
+          interval: stripeRecurring.interval,
+          interval_count: stripeRecurring.interval_count,
+        },
       },
       quantity: Number(item.qty) || 1,
     }));
@@ -114,7 +154,7 @@ serve(async (req) => {
 
     const sessionParams: any = {
       line_items: lineItems,
-      mode: "payment",
+      mode: "subscription",
       success_url: `${origin}/dashboard/renewals/${contract_id}?payment=success`,
       cancel_url: `${origin}/dashboard/renewals/${contract_id}?payment=cancelled`,
       metadata: {
@@ -122,15 +162,29 @@ serve(async (req) => {
         workspace_id,
         item_ids: JSON.stringify(item_ids || items.map((i: any) => i.id)),
       },
+      subscription_data: {
+        metadata: {
+          contract_id,
+          workspace_id,
+        },
+      },
     };
 
-    // If contact has email, use it
-    const contactEmail = (contract as any).contact?.email;
-    if (contactEmail) {
+    if (customerId) {
+      sessionParams.customer = customerId;
+    } else if (contactEmail) {
       sessionParams.customer_email = contactEmail;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
+
+    // Save customer ID on contract if created
+    if (customerId && !contract.stripe_customer_id) {
+      await serviceClient
+        .from("renewal_contracts")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", contract_id);
+    }
 
     // Save payment link record
     await serviceClient.from("renewal_payment_links").insert({
@@ -154,6 +208,9 @@ serve(async (req) => {
         stripe_session_id: session.id,
         amount: totalAmount,
         items_count: items.length,
+        mode: "subscription",
+        interval: stripeRecurring.interval,
+        interval_count: stripeRecurring.interval_count,
       },
     });
 
