@@ -52,9 +52,9 @@ describe("Route Manifest integrity", () => {
     expect(dupes).toEqual([]);
   });
 
-  it("all 14 nav groups are defined", () => {
-    expect(NAV_GROUPS).toHaveLength(14);
-    expect(NAV_GROUP_ORDER).toHaveLength(14);
+  it("all 15 nav groups are defined", () => {
+    expect(NAV_GROUPS).toHaveLength(15);
+    expect(NAV_GROUP_ORDER).toHaveLength(15);
     expect(NAV_GROUP_ORDER).toContain("ai-strategy");
     expect(NAV_GROUP_ORDER).toContain("suporte");
     expect(NAV_GROUP_ORDER).toContain("inicio");
