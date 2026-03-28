@@ -1,80 +1,77 @@
 
 
-# Enriquecer Módulo de Eventos — Plano Completo
+# Enriquecer Módulo de Fornecedores
 
-O módulo atual é funcional mas básico: lista de cards simples, formulário de criação num dialog, e página de detalhe com RSVPs em lista. Vamos transformá-lo numa experiência de autoridade.
+## Problema Atual
+
+O formulário de fornecedor tem apenas: Nome, NIF, IBAN, Email, Telefone, Morada, Categoria, Condições de Pagamento, Estado, Notas. Faltam dados operacionais importantes e não há forma de descobrir fornecedores automaticamente.
 
 ---
 
-## 1. Página de Listagem — Visual e Informativa
+## 1. Novos Campos na Base de Dados
 
-**Atual**: Grid de cards simples sem métricas, sem pesquisa, sem imagens.
+Adicionar à tabela `suppliers`:
 
-**Proposta**:
-- **Barra de KPIs no topo**: Total de eventos, RSVPs confirmados, próximo evento (countdown), receita total
-- **Barra de pesquisa + filtros**: Por categoria, data, status — com visual refinado
-- **Cards visuais**: Cover image (se existir), barra de progresso de capacidade (ex: 15/30 lugares), cor da categoria como borda lateral, badge de preço, avatar do anfitrião
-- **Vista alternativa**: Toggle entre grid e lista compacta
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `website` | text | Site do fornecedor |
+| `platforms` | jsonb | Plataformas onde operam (ex: Amazon, AliExpress, site próprio) com URLs e credenciais de acesso |
+| `product_categories` | text[] | Categorias de produtos que vendem |
+| `certifications` | text[] | Certificações (ISO, etc.) |
+| `rating` | integer | Avaliação interna 1-5 estrelas |
+| `contact_person` | text | Nome do contacto principal |
+| `contact_person_role` | text | Cargo do contacto |
+| `logo_url` | text | Logo do fornecedor |
+| `min_order_value` | numeric | Valor mínimo de encomenda |
+| `delivery_time_days` | integer | Prazo médio de entrega |
+| `country` | text | País de origem |
+| `tags` | text[] | Tags livres para classificação |
 
-## 2. Página de Detalhe — Centro de Operações do Evento
+## 2. Formulário Expandido com Tabs
 
-**Atual**: Info cards + lista de RSVPs + detalhes básicos.
+Reorganizar o `SupplierForm` em secções com Tabs:
 
-**Proposta**:
-- **Hero com cover image** e overlay com título, data, local
-- **Donut chart de RSVPs**: Convidados vs Confirmados vs Recusados vs Presentes
-- **Check-in tab**: Botão rápido para marcar presença, com pesquisa
-- **Timeline de atividade**: Quem confirmou, quem foi convidado, quando
-- **Ações rápidas**: Duplicar evento, exportar lista de convidados (CSV), partilhar link
-- **Bulk invite**: Selecionar múltiplos contactos existentes do CRM para convidar de uma vez
-- **Edição inline** dos campos do evento diretamente na página de detalhe
+- **Dados Gerais**: Nome, NIF, IBAN, Email, Telefone, Morada, País, Estado, Categoria
+- **Comercial**: Condições de pagamento, Valor mínimo encomenda, Prazo entrega, Rating (estrelas), Certificações
+- **Produtos & Plataformas**: Categorias de produtos (tags), Plataformas com URLs de acesso
+- **Contacto & Notas**: Contacto principal, Cargo, Website, Tags, Notas
 
-## 3. Formulário de Criação/Edição — Mais Rico
+Usar dialog mais largo (`max-w-2xl`) com `Tabs` internos.
 
-**Atual**: Dialog com campos básicos.
+## 3. Tabela de Listagem Melhorada
 
-**Proposta**:
-- **Upload de cover image** com preview (usando Storage)
-- **Campos adicionais**: Agenda/programa, oradores, URL de registo externo
-- **Preview de partilha social**: Como o evento aparecerá quando partilhado
-- **Eventos recorrentes**: Toggle para criar séries (semanal, mensal)
-- **Templates**: Guardar e reutilizar configurações de eventos frequentes
+Adicionar colunas visíveis:
+- Rating (estrelas)
+- País
+- Website (link clicável)
+- Contacto principal
+- Manter as existentes
 
-## 4. Widgets no Dashboard
+## 4. Pesquisa de Fornecedores com Conectores
 
-- **Banner "Próximo Evento"**: Com countdown, botão de check-in rápido
-- **Alertas de RSVPs pendentes**: Quantos convites sem resposta
-- **Quick-invite**: Convidar diretamente do dashboard
+- **SupplierSearchDialog**: Modal com campo de pesquisa livre (ex: "fornecedor de parafusos em Portugal")
+- **Edge function `supplier-web-search`**: Usa Lovable AI (Gemini Flash) para interpretar resultados de pesquisa web e extrair dados estruturados de fornecedores
+- **Import direto**: Dos resultados da pesquisa, o utilizador pode importar diretamente para a tabela de fornecedores com os campos pré-preenchidos
+- Botão "Pesquisar Fornecedores" na page header ao lado do "Adicionar Fornecedor"
 
 ---
 
 ## Implementação Técnica
 
-### Base de Dados
-- Criar bucket `event-covers` no Storage para imagens
-- Adicionar colunas: `agenda jsonb`, `speakers jsonb`, `registration_url text`, `recurring_rule text` à tabela `community_events`
-- Adicionar coluna `checked_in_at timestamptz` à tabela `event_rsvps`
+### Ficheiros Modificados
+- `SupplierForm.tsx` — Expandir com tabs e novos campos
+- `SuppliersPage.tsx` — Adicionar colunas na tabela + botão pesquisa
 
-### Componentes Novos
-- `EventStatsBar.tsx` — KPIs do topo da listagem
-- `EventVisualCard.tsx` — Card rico com imagem e progress bar
-- `EventHero.tsx` — Hero da página de detalhe
-- `RSVPDonutChart.tsx` — Gráfico de distribuição de RSVPs
-- `EventCheckInTab.tsx` — Tab de check-in com pesquisa
-- `EventActivityTimeline.tsx` — Timeline de atividade
-- `BulkInviteDialog.tsx` — Convidar múltiplos contactos
-- `EventCoverUpload.tsx` — Upload de imagem de capa
+### Ficheiros Novos
+- `SupplierSearchDialog.tsx` — Modal de pesquisa com resultados e import
+- `supabase/functions/supplier-web-search/index.ts` — Edge function para descoberta
 
-### Ficheiros Editados
-- `EventsManagementPage.tsx` — Adicionar stats bar, filtros, cards visuais
-- `EventDetailPage.tsx` — Adicionar hero, chart, check-in, timeline, ações
-- `CreateEventDialog.tsx` — Adicionar cover upload, campos extra
-- `useEvents.ts` — Adicionar queries para stats agregados
+### Migração SQL
+- ALTER TABLE suppliers ADD COLUMN para cada novo campo
 
-### Ordem de Execução
-1. Migração DB (novas colunas + storage bucket)
-2. Página de listagem enriquecida
-3. Formulário de criação melhorado
-4. Página de detalhe completa
-5. Widgets de dashboard
+### Ordem
+1. Migração DB
+2. Formulário expandido
+3. Tabela melhorada
+4. Pesquisa de fornecedores
 
