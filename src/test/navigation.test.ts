@@ -52,12 +52,16 @@ describe("Route Manifest integrity", () => {
     expect(dupes).toEqual([]);
   });
 
-  it("all 10 nav groups are defined", () => {
-    expect(NAV_GROUPS).toHaveLength(10);
-    expect(NAV_GROUP_ORDER).toHaveLength(10);
+  it("all 13 nav groups are defined", () => {
+    expect(NAV_GROUPS).toHaveLength(13);
+    expect(NAV_GROUP_ORDER).toHaveLength(13);
     expect(NAV_GROUP_ORDER).toContain("ai-strategy");
     expect(NAV_GROUP_ORDER).toContain("inicio");
     expect(NAV_GROUP_ORDER).toContain("administracao");
+    expect(NAV_GROUP_ORDER).toContain("loja-online");
+    expect(NAV_GROUP_ORDER).toContain("marketplace-c2c");
+    expect(NAV_GROUP_ORDER).toContain("portal-b2b");
+    expect(NAV_GROUP_ORDER).not.toContain("comercio");
   });
 });
 
@@ -96,11 +100,14 @@ describe("Sidebar sections builder", () => {
   });
 
   it("hides groups entirely when all items are module-gated and no modules installed", () => {
-    // Comércio requires online-store, marketplace-c2c, b2b-portal modules
+    // Loja Online, Marketplace C2C, Portal B2B all require modules
     const sections = buildSidebarSections(noModules, allAccess);
-    const comercio = sections.find((s) => s.key === "comercio");
-    // Comércio should be hidden since all its items require modules
-    expect(comercio).toBeUndefined();
+    const lojaOnline = sections.find((s) => s.key === "loja-online");
+    const c2c = sections.find((s) => s.key === "marketplace-c2c");
+    const b2b = sections.find((s) => s.key === "portal-b2b");
+    expect(lojaOnline).toBeUndefined();
+    expect(c2c).toBeUndefined();
+    expect(b2b).toBeUndefined();
   });
 });
 
