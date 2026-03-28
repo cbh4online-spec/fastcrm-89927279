@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -55,14 +54,17 @@ import {
   FileUp,
   BarChart3,
   Download,
-  X,
+  Layers,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDocumentProcessing, DocumentJob, JobStatus } from "@/hooks/useDocumentProcessing";
 import { formatDistanceToNow, format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { ProductionGuideSection, ProductionGuideConfig } from "@/components/shared/ProductionGuideSection";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PipelineHeader, MiniPipelineStages, DocumentEmptyState } from "@/components/document-intelligence/PipelineStages";
+import { ExtractionTemplatesTab } from "@/components/document-intelligence/ExtractionTemplates";
 
 // ============================================================================
 // STATUS HELPERS
@@ -160,12 +162,8 @@ function DocumentUploader({
           "image/gif",
           "image/bmp",
         ];
-        if (!validTypes.includes(file.type)) {
-          continue;
-        }
-        if (file.size > 50 * 1024 * 1024) {
-          continue;
-        }
+        if (!validTypes.includes(file.type)) continue;
+        if (file.size > 50 * 1024 * 1024) continue;
         await onUpload({ file });
       }
       onClose();
@@ -191,16 +189,9 @@ function DocumentUploader({
             "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
             dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
           )}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            handleFiles(e.dataTransfer.files);
-          }}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           onClick={() => {
             const input = document.createElement("input");
             input.type = "file";
@@ -219,9 +210,7 @@ function DocumentUploader({
             <div className="flex flex-col items-center gap-2">
               <FileUp className="h-8 w-8 text-muted-foreground" />
               <p className="text-sm font-medium">Arraste ficheiros ou clique para seleccionar</p>
-              <p className="text-xs text-muted-foreground">
-                Suporta PDFs e imagens
-              </p>
+              <p className="text-xs text-muted-foreground">Suporta PDFs e imagens</p>
             </div>
           )}
         </div>
@@ -247,13 +236,9 @@ function JobDetailDialog({
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const exportData = (format: "json" | "csv") => {
+  const exportData = (fmt: "json" | "csv") => {
     const data = {
-      document_info: {
-        file_name: job.file_name,
-        document_type: job.document_type,
-        processed_at: job.completed_at,
-      },
+      document_info: { file_name: job.file_name, document_type: job.document_type, processed_at: job.completed_at },
       extracted_data: job.extracted_data,
       entities: job.extracted_entities,
     };
@@ -261,7 +246,7 @@ function JobDetailDialog({
     let blob: Blob;
     let filename: string;
 
-    if (format === "json") {
+    if (fmt === "json") {
       blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       filename = `${job.file_name.replace(/\.[^.]+$/, "")}_extracted.json`;
     } else {
@@ -314,7 +299,11 @@ function JobDetailDialog({
 
           <ScrollArea className="max-h-[60vh]">
             <div className="space-y-4 pr-4">
-              {/* Progress */}
+              {/* Pipeline stage indicator */}
+              <div className="p-2 rounded-lg bg-muted/30">
+                <MiniPipelineStages status={job.status} />
+              </div>
+
               {job.status !== "completed" && job.status !== "failed" && job.status !== "cancelled" && (
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
@@ -325,29 +314,20 @@ function JobDetailDialog({
                 </div>
               )}
 
-              {/* Error */}
               {job.error_message && (
                 <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <p className="text-sm text-destructive">{job.error_message}</p>
                 </div>
               )}
 
-              {/* Confidence */}
               {job.status === "completed" && (
                 <div className="grid grid-cols-3 gap-3">
-                  <Card className="p-3">
-                    <ConfidenceMeter value={job.ocr_confidence} label="OCR" />
-                  </Card>
-                  <Card className="p-3">
-                    <ConfidenceMeter value={job.classification_confidence} label="Classificação" />
-                  </Card>
-                  <Card className="p-3">
-                    <ConfidenceMeter value={job.extraction_confidence} label="Extracção" />
-                  </Card>
+                  <Card className="p-3"><ConfidenceMeter value={job.ocr_confidence} label="OCR" /></Card>
+                  <Card className="p-3"><ConfidenceMeter value={job.classification_confidence} label="Classificação" /></Card>
+                  <Card className="p-3"><ConfidenceMeter value={job.extraction_confidence} label="Extracção" /></Card>
                 </div>
               )}
 
-              {/* Classification Reasoning */}
               {job.classification_reasoning && (
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Classificação</h4>
@@ -355,7 +335,6 @@ function JobDetailDialog({
                 </div>
               )}
 
-              {/* Extracted Data */}
               {job.extracted_data && Object.keys(job.extracted_data).length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -382,7 +361,6 @@ function JobDetailDialog({
                 </div>
               )}
 
-              {/* Entities */}
               {job.extracted_entities && job.extracted_entities.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">
@@ -399,7 +377,6 @@ function JobDetailDialog({
                 </div>
               )}
 
-              {/* OCR Text preview */}
               {job.ocr_text && (
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Texto Extraído (OCR)</h4>
@@ -412,7 +389,6 @@ function JobDetailDialog({
             </div>
           </ScrollArea>
 
-          {/* Actions */}
           <div className="flex justify-between pt-2 border-t">
             <div className="flex gap-2">
               {(job.status === "failed" || job.status === "completed") && (
@@ -424,9 +400,7 @@ function JobDetailDialog({
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
               </Button>
             </div>
-            <Button size="sm" variant="ghost" onClick={onClose}>
-              Fechar
-            </Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -442,10 +416,7 @@ function JobDetailDialog({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                onDelete(job.id);
-                onClose();
-              }}
+              onClick={() => { onDelete(job.id); onClose(); }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
@@ -458,7 +429,7 @@ function JobDetailDialog({
 }
 
 // ============================================================================
-// JOB CARD
+// JOB CARD — with mini pipeline
 // ============================================================================
 
 function JobCard({
@@ -485,39 +456,40 @@ function JobCard({
       <Card className="hover:border-primary/30 transition-colors cursor-pointer" onClick={onView}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="flex-1 min-w-0 space-y-2">
+              {/* Title row */}
+              <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm font-medium truncate">{job.file_name}</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <StatusBadge status={job.status} />
                 {job.document_type && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs shrink-0">
                     {TYPE_LABELS[job.document_type] || job.document_type}
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {formatFileSize(job.file_size)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: pt })}
                 </span>
               </div>
 
-              {isProcessing && (
-                <Progress value={job.progress} className="h-1 mt-2" />
-              )}
+              {/* Mini pipeline stages */}
+              <MiniPipelineStages status={job.status} />
 
+              {/* Progress bar for active jobs */}
+              {isProcessing && <Progress value={job.progress} className="h-1" />}
+
+              {/* Confidence for completed */}
               {job.status === "completed" && job.extracted_data && Object.keys(job.extracted_data).length > 0 && (
-                <div className="flex gap-3 mt-2">
+                <div className="flex gap-3">
                   <ConfidenceMeter value={job.ocr_confidence} label="OCR" />
                   <ConfidenceMeter value={job.classification_confidence} label="Class" />
                 </div>
               )}
 
               {job.error_message && (
-                <p className="text-xs text-destructive mt-1 truncate">{job.error_message}</p>
+                <p className="text-xs text-destructive truncate">{job.error_message}</p>
               )}
             </div>
 
@@ -557,32 +529,103 @@ function JobCard({
 }
 
 // ============================================================================
-// PRODUCTION GUIDE CONFIG
+// STATISTICS TAB
 // ============================================================================
 
-const productionGuide: ProductionGuideConfig = {
-  moduleName: "Document Intelligence",
-  dataChecklist: [
-    { label: "Bucket de armazenamento configurado", done: true, hint: "document-intelligence" },
-    { label: "Tabela document_processing_jobs criada", done: true },
-    { label: "Tabela document_extraction_templates criada", done: true },
-    { label: "Edge function document-intelligence-process", done: true },
-    { label: "Templates de extracção customizados", done: false, hint: "Crie templates para os tipos de documento mais comuns" },
-    { label: "Integração com Knowledge Base", done: true, hint: "Documentos processados são indexados automaticamente" },
-  ],
-  automations: [
-    { name: "OCR Automático", active: true, description: "Extrai texto de PDFs e imagens via IA Vision" },
-    { name: "Classificação IA", active: true, description: "Identifica tipo de documento automaticamente" },
-    { name: "Extracção Estruturada", active: true, description: "Extrai campos específicos por tipo de documento" },
-    { name: "Indexação Semântica", active: true, description: "Indexa no Knowledge Base para pesquisa RAG" },
-  ],
-  kpis: [
-    { label: "Taxa de Sucesso", description: "% de documentos processados com sucesso" },
-    { label: "Confiança Média", description: "Score médio de confiança OCR/classificação/extracção" },
-    { label: "Tempo de Processamento", description: "Tempo médio por documento" },
-    { label: "Volume Mensal", description: "Documentos processados nos últimos 30 dias" },
-  ],
-};
+function StatsTab({ stats }: { stats: NonNullable<ReturnType<typeof useDocumentProcessing>["stats"]> }) {
+  return (
+    <div className="space-y-4">
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Total Documentos</p>
+            <p className="text-2xl font-bold">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
+            <p className="text-2xl font-bold">{stats.last30Days}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Taxa de Sucesso</p>
+            <p className="text-2xl font-bold text-primary">{stats.successRate.toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Em Processamento</p>
+            <p className="text-2xl font-bold">
+              {(stats.byStatus.pending || 0) +
+                (stats.byStatus.processing || 0) +
+                (stats.byStatus.ocr || 0) +
+                (stats.byStatus.classifying || 0) +
+                (stats.byStatus.extracting || 0) +
+                (stats.byStatus.embedding || 0)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Type distribution */}
+      {stats.byType && Object.keys(stats.byType).length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Distribuição por Tipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {Object.entries(stats.byType)
+                .sort(([, a], [, b]) => b - a)
+                .map(([type, count]) => {
+                  const pct = stats.total > 0 ? (count / stats.total) * 100 : 0;
+                  return (
+                    <div key={type} className="flex items-center gap-3">
+                      <span className="text-sm min-w-[100px]">{TYPE_LABELS[type] || type}</span>
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary/60 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground w-12 text-right">
+                        {count} ({pct.toFixed(0)}%)
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Status distribution */}
+      {stats.byStatus && Object.keys(stats.byStatus).length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Distribuição por Estado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(stats.byStatus).map(([status, count]) => {
+                const cfg = STATUS_CONFIG[status];
+                return (
+                  <Badge key={status} variant="outline" className={cn("gap-1", cfg?.color)}>
+                    {cfg?.label || status}
+                    <span className="font-bold">{count}</span>
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 // ============================================================================
 // MAIN PAGE
@@ -593,6 +636,7 @@ export default function AIDocumentOCRPage() {
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [showUploader, setShowUploader] = useState(false);
   const [selectedJob, setSelectedJob] = useState<DocumentJob | null>(null);
+  const [activeTab, setActiveTab] = useState("documents");
 
   const {
     jobs,
@@ -606,7 +650,6 @@ export default function AIDocumentOCRPage() {
     refetch,
   } = useDocumentProcessing();
 
-  // Filter jobs
   const filteredJobs = jobs.filter((job) => {
     if (statusFilter !== "all" && job.status !== statusFilter) return false;
     if (searchQuery) {
@@ -620,151 +663,101 @@ export default function AIDocumentOCRPage() {
     return true;
   });
 
+  const tabs = [
+    { id: "documents", label: "Documentos", icon: <FileText className="h-4 w-4" />, count: jobs.length },
+    { id: "templates", label: "Templates", icon: <Layers className="h-4 w-4" /> },
+    { id: "stats", label: "Estatísticas", icon: <TrendingUp className="h-4 w-4" /> },
+  ];
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ScanText className="h-6 w-6 text-primary" />
-              Document Intelligence
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              OCR, classificação e extracção inteligente de documentos
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Actualizar
-            </Button>
-            <Button size="sm" onClick={() => setShowUploader(true)}>
-              <Upload className="h-4 w-4 mr-1" />
-              Carregar
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Document Intelligence"
+          description="Pipeline automático: Upload → OCR → Classificação → Extracção → Indexação"
+          count={jobs.length}
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          actions={[
+            { label: "Actualizar", icon: <RefreshCw className="h-4 w-4" />, onClick: () => refetch(), variant: "outline" },
+            { label: "Carregar", icon: <Upload className="h-4 w-4" />, onClick: () => setShowUploader(true) },
+          ]}
+        />
 
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
-                <p className="text-2xl font-bold">{stats.last30Days}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Taxa de Sucesso</p>
-                <p className="text-2xl font-bold text-primary">{stats.successRate.toFixed(1)}%</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Em Processamento</p>
-                <p className="text-2xl font-bold">
-                  {(stats.byStatus.pending || 0) +
-                    (stats.byStatus.processing || 0) +
-                    (stats.byStatus.ocr || 0) +
-                    (stats.byStatus.classifying || 0) +
-                    (stats.byStatus.extracting || 0) +
-                    (stats.byStatus.embedding || 0)}
-                </p>
-              </CardContent>
-            </Card>
+        {/* Pipeline visual banner */}
+        <PipelineHeader />
+
+        {/* Tab content */}
+        {activeTab === "documents" && (
+          <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Pesquisar documentos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as JobStatus | "all")}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="failed">Falhado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Jobs list */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : filteredJobs.length === 0 && jobs.length === 0 ? (
+              <DocumentEmptyState onUpload={() => setShowUploader(true)} />
+            ) : filteredJobs.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhum resultado para o filtro actual</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {filteredJobs.map((job) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      onView={() => setSelectedJob(job)}
+                      onReprocess={reprocessDocument}
+                      onCancel={cancelJob}
+                      onDelete={deleteJob}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar documentos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as JobStatus | "all")}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="completed">Concluído</SelectItem>
-              <SelectItem value="failed">Falhado</SelectItem>
-              <SelectItem value="cancelled">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {activeTab === "templates" && <ExtractionTemplatesTab />}
 
-        {/* Jobs List */}
-        {isLoading ? (
+        {activeTab === "stats" && stats && <StatsTab stats={stats} />}
+        {activeTab === "stats" && !stats && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : filteredJobs.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <ScanText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground font-medium">Nenhum documento</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Carregue o primeiro documento para começar
-              </p>
-              <Button size="sm" className="mt-4" onClick={() => setShowUploader(true)}>
-                <Upload className="h-4 w-4 mr-1" />
-                Carregar Documento
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            <AnimatePresence>
-              {filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onView={() => setSelectedJob(job)}
-                  onReprocess={reprocessDocument}
-                  onCancel={cancelJob}
-                  onDelete={deleteJob}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
         )}
-
-        {/* Type Distribution */}
-        {stats && stats.byType && Object.keys(stats.byType).length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Distribuição por Tipo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(stats.byType).map(([type, count]) => (
-                  <Badge key={type} variant="outline" className="gap-1">
-                    {TYPE_LABELS[type] || type}
-                    <span className="font-bold">{count}</span>
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Production Guide */}
-        <ProductionGuideSection config={productionGuide} />
       </div>
 
       {/* Upload Dialog */}
@@ -781,14 +774,8 @@ export default function AIDocumentOCRPage() {
         <JobDetailDialog
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
-          onReprocess={(id) => {
-            reprocessDocument(id);
-            setSelectedJob(null);
-          }}
-          onDelete={(id) => {
-            deleteJob(id);
-            setSelectedJob(null);
-          }}
+          onReprocess={(id) => { reprocessDocument(id); setSelectedJob(null); }}
+          onDelete={(id) => { deleteJob(id); setSelectedJob(null); }}
         />
       )}
     </DashboardLayout>
