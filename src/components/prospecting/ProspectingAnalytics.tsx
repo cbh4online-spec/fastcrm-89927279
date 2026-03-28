@@ -4,135 +4,282 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Target, Coins, TrendingUp, Activity } from "lucide-react";
+import { Search, Users, Target, Coins, TrendingUp, Activity, Globe, BarChart3, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useProspectingSearchHistory } from "@/hooks/useProspectingSearchHistory";
+import { format, startOfMonth, subMonths, startOfWeek, endOfWeek, eachWeekOfInterval } from "date-fns";
+import { pt } from "date-fns/locale";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from "recharts";
 
 export function ProspectingAnalytics() {
   const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   const { ledger } = useCreditWallet();
+  const { searches: googleSearches, isLoading: glLoading } = useProspectingSearchHistory("google_local");
+  const { searches: webSearches, isLoading: wlLoading } = useProspectingSearchHistory("web_search");
 
-  // Filter prospecting-related ledger entries
+  const now = new Date();
+  const currentMonthStart = startOfMonth(now).toISOString();
+  const lastMonthStart = startOfMonth(subMonths(now, 1)).toISOString();
+  const lastMonthEnd = startOfMonth(now).toISOString();
+
+  // Combine all searches
+  const allSearches = [...(googleSearches || []), ...(webSearches || [])];
+  const thisMonthSearches = allSearches.filter(s => s.created_at >= currentMonthStart);
+  const lastMonthSearches = allSearches.filter(s => s.created_at >= lastMonthStart && s.created_at < lastMonthEnd);
+
+  // Current month stats from search history
+  const totalSearches = thisMonthSearches.length;
+  const totalResults = thisMonthSearches.reduce((sum, s) => sum + (s.results_count || 0), 0);
+  const totalImported = thisMonthSearches.reduce((sum, s) => sum + (s.imported_count || 0), 0);
+  const googleCount = thisMonthSearches.filter(s => s.search_type === "google_local").length;
+  const webCount = thisMonthSearches.filter(s => s.search_type === "web_search").length;
+
+  // Last month for comparison
+  const lastMonthTotal = lastMonthSearches.length;
+  const lastMonthImported = lastMonthSearches.reduce((sum, s) => sum + (s.imported_count || 0), 0);
+
+  // Conversion rate
+  const conversionRate = totalResults > 0 ? Math.round((totalImported / totalResults) * 100) : 0;
+
+  // Credit consumption
   const prospectingLedger = ledger.filter(
     (e) => e.module === "prospecting" && e.direction === "debit"
   );
-
-  // Get current month stats
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-  const thisMonthEntries = prospectingLedger.filter(
-    (e) => e.created_at >= startOfMonth
-  );
-
-  const totalCreditsSpent = thisMonthEntries.reduce(
-    (sum, e) => sum + Math.abs(e.credits_amount),
-    0
-  );
-
-  const searchCount = thisMonthEntries.filter(
-    (e) =>
-      e.action_key.includes("search")
-  ).length;
-
-  const leadImports = thisMonthEntries.filter(
-    (e) => e.action_key === "prospecting_lead_import"
-  ).length;
-
-  const aiActions = thisMonthEntries.filter(
-    (e) =>
-      e.action_key.includes("ai_enrich") ||
-      e.action_key.includes("ai_qualify") ||
-      e.action_key.includes("bulk_outreach")
-  ).length;
+  const thisMonthCredits = prospectingLedger
+    .filter((e) => e.created_at >= currentMonthStart)
+    .reduce((sum, e) => sum + Math.abs(e.credits_amount), 0);
 
   // Fetch leads from prospecting sources
   const { data: prospectingLeadsCount = 0 } = useQuery({
-    queryKey: ["prospecting-leads-count", currentWorkspace?.id],
+    queryKey: ["prospecting-leads-count", workspaceId],
     queryFn: async () => {
-      if (!currentWorkspace?.id) return 0;
-      const { count, error } = await supabase
+      if (!workspaceId) return 0;
+      const { count, error } = await (supabase as any)
         .from("leads")
         .select("*", { count: "exact", head: true })
-        .eq("workspace_id", currentWorkspace.id)
+        .eq("workspace_id", workspaceId)
         .in("source", ["google_local", "web_search", "instagram", "professional_prospecting"]);
       if (error) return 0;
       return count || 0;
     },
-    enabled: !!currentWorkspace?.id,
+    enabled: !!workspaceId,
   });
+
+  // Weekly chart data (last 8 weeks)
+  const eightWeeksAgo = subMonths(now, 2);
+  const weeks = eachWeekOfInterval({ start: eightWeeksAgo, end: now }, { weekStartsOn: 1 });
+  const weeklyData = weeks.map(weekStart => {
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    const weekSearches = allSearches.filter(s => {
+      const d = new Date(s.created_at);
+      return d >= weekStart && d <= weekEnd;
+    });
+    return {
+      week: format(weekStart, "d MMM", { locale: pt }),
+      google: weekSearches.filter(s => s.search_type === "google_local").length,
+      web: weekSearches.filter(s => s.search_type === "web_search").length,
+      imported: weekSearches.reduce((sum, s) => sum + (s.imported_count || 0), 0),
+    };
+  });
+
+  // Source distribution for pie chart
+  const sourceData = [
+    { name: "Google Local", value: googleCount, color: "#3b82f6" },
+    { name: "Web Search", value: webCount, color: "#f59e0b" },
+  ].filter(d => d.value > 0);
+
+  const isLoading = glLoading || wlLoading;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  const getDelta = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const searchDelta = getDelta(totalSearches, lastMonthTotal);
+  const importDelta = getDelta(totalImported, lastMonthImported);
 
   const kpis = [
     {
       label: "Pesquisas este mês",
-      value: searchCount,
+      value: totalSearches,
       icon: Search,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
+      delta: searchDelta,
+      detail: `${totalResults} resultados encontrados`,
     },
     {
       label: "Leads importados",
-      value: leadImports,
+      value: totalImported,
       icon: Users,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
+      delta: importDelta,
+      detail: `${conversionRate}% taxa de conversão`,
     },
     {
-      label: "Ações IA",
-      value: aiActions,
-      icon: Activity,
+      label: "Total leads prospeção",
+      value: prospectingLeadsCount,
+      icon: Target,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
+      detail: "Todas as fontes",
     },
     {
       label: "Créditos gastos",
-      value: totalCreditsSpent,
+      value: thisMonthCredits,
       icon: Coins,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
+      detail: `${prospectingLedger.length} transações total`,
     },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${kpi.bgColor}`}>
+          <Card key={kpi.label} className="relative overflow-hidden">
+            <div className={`absolute top-0 right-0 w-20 h-20 ${kpi.bgColor} rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 opacity-50`} />
+            <CardContent className="relative p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bgColor}`}>
                   <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                </div>
+                {kpi.delta !== undefined && kpi.delta !== 0 && (
+                  <Badge
+                    variant="outline"
+                    className={`text-xs gap-0.5 ${
+                      kpi.delta > 0
+                        ? "border-emerald-500/30 text-emerald-600 bg-emerald-500/5"
+                        : "border-red-500/30 text-red-600 bg-red-500/5"
+                    }`}
+                  >
+                    {kpi.delta > 0 ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {Math.abs(kpi.delta)}%
+                  </Badge>
+                )}
               </div>
+              <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{kpi.label}</p>
+              {kpi.detail && (
+                <p className="text-[11px] text-muted-foreground/70 mt-1">{kpi.detail}</p>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Total leads from prospecting */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Total de Leads via Prospecção
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-foreground">{prospectingLeadsCount}</span>
-            <span className="text-sm text-muted-foreground">leads gerados</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Leads importados de todas as fontes de prospecção (Google Local, Web, Profissionais)
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Weekly activity chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Atividade Semanal
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">Pesquisas e importações por semana</p>
+          </CardHeader>
+          <CardContent>
+            {weeklyData.some(w => w.google > 0 || w.web > 0) ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={weeklyData} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis dataKey="week" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                  <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="google" name="Google Local" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="web" name="Web Search" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="imported" name="Importados" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
+                <BarChart3 className="h-10 w-10 mb-2 opacity-30" />
+                <p className="text-sm">Sem dados de pesquisa para mostrar</p>
+                <p className="text-xs mt-1">Faça pesquisas de prospeção para ver a atividade aqui</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Recent activity */}
+        {/* Source distribution */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Fontes este mês
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sourceData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={sourceData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {sourceData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend
+                    verticalAlign="bottom"
+                    formatter={(value: string) => (
+                      <span className="text-xs text-foreground">{value}</span>
+                    )}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                    formatter={(value: number) => [`${value} pesquisas`, ""]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[240px] text-muted-foreground">
+                <Target className="h-10 w-10 mb-2 opacity-30" />
+                <p className="text-sm">Nenhuma pesquisa este mês</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent activity from credit ledger */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -141,31 +288,42 @@ export function ProspectingAnalytics() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {thisMonthEntries.length === 0 ? (
+          {thisMonthSearches.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhuma atividade de prospecção este mês.
+              Nenhuma atividade de prospeção este mês.
             </p>
           ) : (
             <div className="divide-y divide-border max-h-64 overflow-y-auto">
-              {thisMonthEntries.slice(0, 15).map((entry) => (
+              {thisMonthSearches.slice(0, 15).map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between py-2.5">
-                  <div>
-                    <p className="text-sm text-foreground">
-                      {entry.description || entry.action_key}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(entry.created_at).toLocaleDateString("pt-PT", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                      entry.search_type === "google_local" ? "bg-blue-500/10" : "bg-amber-500/10"
+                    }`}>
+                      {entry.search_type === "google_local" ? (
+                        <Globe className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <Search className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground truncate">{entry.query}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(entry.created_at), "d MMM, HH:mm", { locale: pt })}
+                        {entry.location && ` • 📍 ${entry.location}`}
+                      </p>
+                    </div>
                   </div>
-                  <Badge variant="outline" className="gap-1 text-xs">
-                    <Coins className="h-3 w-3" />
-                    {Math.abs(entry.credits_amount)}
-                  </Badge>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="secondary" className="text-xs">
+                      {entry.results_count} resultados
+                    </Badge>
+                    {entry.imported_count > 0 && (
+                      <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-600">
+                        {entry.imported_count} importados
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
