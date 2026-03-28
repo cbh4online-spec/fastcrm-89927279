@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Plus, Trash2, Sparkles, Loader2,
   BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3,
-  Image, Upload, Wand2, Coins
+  Image, Upload, Wand2, Coins, Minimize2, Maximize2
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
