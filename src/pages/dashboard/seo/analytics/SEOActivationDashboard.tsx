@@ -58,11 +58,23 @@ function EmptyState() {
     <Card>
       <CardContent className="flex flex-col items-center justify-center py-16 text-center">
         <Eye className="h-12 w-12 text-muted-foreground/30 mb-4" />
-        <h3 className="font-medium mb-2">Sem dados de analytics</h3>
-        <p className="text-sm text-muted-foreground max-w-md">
-          As páginas SEO públicas precisam de ter o tracker ativo para recolher dados.
-          Os dados aparecerão aqui quando visitantes acederem às suas páginas.
+        <h3 className="font-medium mb-2">Sem dados de analytics ainda</h3>
+        <p className="text-sm text-muted-foreground max-w-md mb-4">
+          O tracking está ativo nas páginas públicas SEO. Os dados começarão a aparecer
+          assim que visitantes acederem às suas páginas publicadas.
         </p>
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-4 max-w-sm space-y-2">
+          <p className="font-medium text-foreground">Como funciona:</p>
+          <ol className="list-decimal list-inside space-y-1 text-left">
+            <li>Crie e publique conteúdo SEO (Keywords, Templates, etc.)</li>
+            <li>Partilhe os links ou aguarde indexação nos motores de busca</li>
+            <li>Os dados de visitas, scrolls e cliques aparecem automaticamente</li>
+          </ol>
+        </div>
+        <Badge variant="outline" className="mt-4 gap-1">
+          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          Tracking ativo
+        </Badge>
       </CardContent>
     </Card>
   );
