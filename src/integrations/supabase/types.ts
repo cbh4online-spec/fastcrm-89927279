@@ -48517,6 +48517,41 @@ export type Database = {
           },
         ]
       }
+      workspace_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_tags_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_template_stats: {
         Row: {
           avg_time_to_reply_minutes: number | null
