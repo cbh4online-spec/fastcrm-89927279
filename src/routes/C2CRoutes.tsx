@@ -11,6 +11,7 @@ const C2CSellerBoost = lazy(() => import("@/pages/c2c/C2CSellerBoost"));
 const C2CSponsorAdmin = lazy(() => import("@/pages/c2c/C2CSponsorAdmin"));
 const C2CSellerDashboard = lazy(() => import("@/pages/c2c/C2CSellerDashboard"));
 const C2CSellerArea = lazy(() => import("@/pages/c2c/C2CSellerArea"));
+const C2CMarketplaceAnalytics = lazy(() => import("@/pages/c2c/C2CMarketplaceAnalytics"));
 const C2CAffiliateCenter = lazy(() => import("@/pages/c2c/C2CAffiliateCenter"));
 const C2CReferralCenter = lazy(() => import("@/pages/c2c/C2CReferralCenter"));
 const C2CAffiliateAdmin = lazy(() => import("@/pages/c2c/C2CAffiliateAdmin"));
@@ -42,6 +43,7 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/c2c/sponsors" element={<C2CSponsorAdmin />} />
       <Route path="/dashboard/c2c/analytics" element={<C2CSellerDashboard />} />
       <Route path="/dashboard/c2c/seller-area" element={<C2CSellerArea />} />
+      <Route path="/dashboard/c2c/marketplace-analytics" element={<C2CMarketplaceAnalytics />} />
       <Route path="/dashboard/c2c/affiliates" element={<C2CAffiliateCenter />} />
       <Route path="/dashboard/c2c/referrals" element={<C2CReferralCenter />} />
       <Route path="/dashboard/c2c/affiliate-admin" element={<C2CAffiliateAdmin />} />

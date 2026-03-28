@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -83,6 +83,15 @@ export default function C2CPublicListingDetail() {
   const { data: listing, isLoading: listingLoading } = usePublicListing(id);
   const { data: seller } = useSellerProfile(listing?.seller_id);
 
+  // Track view (debounced per session)
+  useEffect(() => {
+    if (!id) return;
+    const key = `c2c_viewed_${id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    supabase.rpc("increment_listing_views", { p_listing_id: id });
+  }, [id]);
+
   const isLoading = wsLoading || listingLoading;
   const photos = listing?.photos ?? [];
   const condition = conditionLabels[listing?.condition ?? ""] ?? { label: listing?.condition, color: "" };
@@ -133,6 +142,13 @@ export default function C2CPublicListingDetail() {
         <meta property="og:description" content={ogDesc} />
         {ogImage && <meta property="og:image" content={ogImage} />}
         <meta property="og:type" content="product" />
+        <meta property="og:url" content={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`} />
+        {listing && <meta property="product:price:amount" content={listing.price.toFixed(2)} />}
+        {listing && <meta property="product:price:currency" content={listing.currency || "EUR"} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDesc} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
         <link rel="canonical" href={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`} />
       </Helmet>
       <SchemaOrgProduct
