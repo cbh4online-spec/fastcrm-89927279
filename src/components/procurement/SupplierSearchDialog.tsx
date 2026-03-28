@@ -39,13 +39,16 @@ export function SupplierSearchDialog({ open, onOpenChange, onImport }: SupplierS
         body: { query: query.trim() },
       });
       if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+      }
       setResults(data?.suppliers || []);
-      if (!data?.suppliers?.length) {
+      if (!data?.error && !data?.suppliers?.length) {
         toast.info("Nenhum fornecedor encontrado. Tente termos diferentes.");
       }
     } catch (err: any) {
       console.error("Search error:", err);
-      toast.error("Erro na pesquisa. Verifique se o conector Firecrawl está ativo.");
+      toast.error("Erro na pesquisa. Verifique a sua ligação e tente novamente.");
     } finally {
       setSearching(false);
     }
