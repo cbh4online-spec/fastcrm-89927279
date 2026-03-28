@@ -1,58 +1,27 @@
 
 
-# Tipos de Captura — Tornar Completamente Funcional
+# Fix: Métricas & Metas — Sidebar e Atalho no Menu
 
 ## Problema
+A página `/dashboard/performance/metrics` (PipelineMetricsPage) tem dois problemas:
+1. **Sem sidebar** — não está envolvida em `DashboardLayout`, ao contrário de todas as outras páginas do dashboard
+2. **Sem atalho no menu** — não existe entrada no `routeManifest.ts`, por isso não aparece na navegação lateral
 
-A tab "Tipos de Captura" no módulo Funis mostra apenas cards read-only dos 12 tipos existentes na BD. Não há:
-- Criação de novos tipos
-- Edição de tipos existentes
-- Eliminação
-- Associação de tipos de captura aos funis/instâncias
-- Contagem de funis que usam cada tipo
-- Ícones visuais corretos (o campo `icon` existe na BD mas não é renderizado dinamicamente)
-- Indicação de utilização/popularidade
+## Correções
 
-## Plano
+### 1. Envolver em DashboardLayout
+Adicionar `DashboardLayout` ao `PipelineMetricsPage.tsx` — importar e envolver o conteúdo existente.
 
-### 1. CRUD Completo de Tipos de Captura
+### 2. Adicionar ao Route Manifest
+Adicionar entrada em `routeManifest.ts` no grupo "vendas", junto às outras rotas de performance:
+- Key: `"perf-metrics"`
+- Label: `"Métricas & Metas"`
+- Path: `/dashboard/performance/metrics`
+- Ícone: `BarChart3` (já importado)
+- Visível no sidebar
 
-Adicionar ao `useFunnelInstances.ts`:
-- `useCreateCaptureType` — mutation para inserir novo tipo
-- `useUpdateCaptureType` — mutation para editar
-- `useDeleteCaptureType` — mutation para eliminar
-
-Criar `CaptureTypeFormDialog.tsx`:
-- Dialog com campos: Label, Key (auto-gerado do label), Descrição, Ícone (selector de ícones Lucide)
-- Modo criar e modo editar
-- Validação de key único
-
-### 2. Tab de Tipos de Captura Rica
-
-Redesenhar a secção na `FunnelsList.tsx`:
-- **Botão "+ Novo Tipo"** no header
-- **Cards melhorados**: ícone Lucide dinâmico (mapeando o campo `icon` para componentes), label, descrição, key como badge
-- **Contagem de uso**: quantos funis/instâncias usam cada tipo (query count de `funnel_instances.capture_type_id`)
-- **Ações por card**: hover com botões editar e eliminar (com proteção se em uso)
-- **Barra de pesquisa** para filtrar tipos
-
-### 3. Integração nos Funis
-
-No dialog de criação de funil (`createOpen`) e no `FunnelBuilder`:
-- Adicionar campo **"Tipo de Captura"** como select/combobox
-- Mostrar o tipo de captura atribuído nos cards de funis e instâncias
-- Permitir alterar o tipo na edição
-
-### 4. Ícones Dinâmicos
-
-Criar helper `getCaptureTypeIcon(iconName: string)` que mapeia strings do campo `icon` (ex: `calendar`, `mail`, `phone`) para componentes Lucide correspondentes.
-
-## Ficheiros
-
-| Ficheiro | Ação |
+| Ficheiro | Mudança |
 |---|---|
-| `src/hooks/useFunnelInstances.ts` | Adicionar mutations create/update/delete para capture_types |
-| `src/components/funnels/CaptureTypeFormDialog.tsx` | **Criar** — dialog de criação/edição |
-| `src/components/funnels/FunnelsList.tsx` | Redesenhar tab "capture" com CRUD, ícones dinâmicos, contagem de uso |
-| `src/components/funnels/FunnelsList.tsx` | Adicionar capture_type ao dialog de criação de funil |
+| `src/pages/performance/PipelineMetricsPage.tsx` | Envolver em `DashboardLayout` |
+| `src/config/routeManifest.ts` | Adicionar entrada para métricas |
 
