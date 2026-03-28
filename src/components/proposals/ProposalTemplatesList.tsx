@@ -225,15 +225,6 @@ export function ProposalTemplatesList() {
         </div>
       )}
 
-      {/* Form Dialog */}
-      <ProposalTemplateFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        template={editingTemplate}
-        onSave={handleSave}
-        isSaving={isSaving}
-      />
-
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
