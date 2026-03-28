@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { TrendingDown, BarChart3, Clock, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMarketingCampaigns } from '@/hooks/useMarketingCampaigns';
+import { RevenueAttributionPanel } from './RevenueAttributionPanel';
+import { ContactJourneyTimeline } from './ContactJourneyTimeline';
 
 export function AdvancedAnalyticsPanel() {
   const { currentWorkspace } = useWorkspace();
@@ -19,21 +20,100 @@ export function AdvancedAnalyticsPanel() {
 
   const sentCampaigns = campaigns.filter(c => c.status === 'sent');
 
-  // Engagement decay mock data (computed from real campaign data)
-  const decayData = [
-    { hour: '1h', opens: 45, clicks: 12 },
-    { hour: '6h', opens: 28, clicks: 8 },
-    { hour: '24h', opens: 15, clicks: 5 },
-    { hour: '48h', opens: 8, clicks: 3 },
-    { hour: '72h', opens: 4, clicks: 1 },
-    { hour: '7d', opens: 2, clicks: 0.5 },
-  ];
+  // Real engagement decay from marketing_events
+  const { data: decayData = [] } = useQuery({
+    queryKey: ['engagement-decay', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
 
-  // Best time of day (from campaign analytics aggregation)
-  const bestTimeData = Array.from({ length: 24 }, (_, i) => ({
-    hour: `${i}h`,
-    opens: Math.round(Math.random() * 50 + (i >= 9 && i <= 11 ? 40 : i >= 14 && i <= 16 ? 30 : 5)),
-  }));
+      const { data: events } = await supabase
+        .from('marketing_events')
+        .select('event_type, occurred_at, campaign_id')
+        .eq('workspace_id', currentWorkspace.id)
+        .in('event_type', ['open', 'click'])
+        .order('occurred_at', { ascending: true })
+        .limit(1000);
+
+      if (!events || events.length === 0) {
+        return [
+          { hour: '1h', opens: 0, clicks: 0 },
+          { hour: '6h', opens: 0, clicks: 0 },
+          { hour: '24h', opens: 0, clicks: 0 },
+          { hour: '48h', opens: 0, clicks: 0 },
+          { hour: '72h', opens: 0, clicks: 0 },
+          { hour: '7d', opens: 0, clicks: 0 },
+        ];
+      }
+
+      // Get campaign send times to calculate relative timing
+      const campaignIds = [...new Set(events.map(e => e.campaign_id))];
+      const campaignSendTimes = new Map<string, Date>();
+      
+      for (const c of campaigns) {
+        if (c.startedAt && campaignIds.includes(c.id)) {
+          campaignSendTimes.set(c.id, new Date(c.startedAt));
+        }
+      }
+
+      const buckets = [
+        { label: '1h', maxHours: 1, opens: 0, clicks: 0 },
+        { label: '6h', maxHours: 6, opens: 0, clicks: 0 },
+        { label: '24h', maxHours: 24, opens: 0, clicks: 0 },
+        { label: '48h', maxHours: 48, opens: 0, clicks: 0 },
+        { label: '72h', maxHours: 72, opens: 0, clicks: 0 },
+        { label: '7d', maxHours: 168, opens: 0, clicks: 0 },
+      ];
+
+      events.forEach(evt => {
+        const sendTime = campaignSendTimes.get(evt.campaign_id);
+        if (!sendTime) return;
+        const hoursAfter = (new Date(evt.occurred_at).getTime() - sendTime.getTime()) / (1000 * 60 * 60);
+        
+        for (const bucket of buckets) {
+          if (hoursAfter <= bucket.maxHours) {
+            if (evt.event_type === 'open') bucket.opens++;
+            else bucket.clicks++;
+            break;
+          }
+        }
+      });
+
+      // Convert to percentages
+      const maxOpens = Math.max(...buckets.map(b => b.opens), 1);
+      return buckets.map(b => ({
+        hour: b.label,
+        opens: Math.round((b.opens / maxOpens) * 100),
+        clicks: Math.round((b.clicks / maxOpens) * 100),
+      }));
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  // Real best time data
+  const { data: bestTimeData = [] } = useQuery({
+    queryKey: ['best-send-time-analytics', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+
+      const { data: events } = await supabase
+        .from('marketing_events')
+        .select('occurred_at')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('event_type', 'open')
+        .order('occurred_at', { ascending: false })
+        .limit(1000);
+
+      const hours = Array.from({ length: 24 }, (_, i) => ({ hour: `${i}h`, opens: 0 }));
+      
+      events?.forEach(e => {
+        const h = new Date(e.occurred_at).getHours();
+        hours[h].opens++;
+      });
+
+      return hours;
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   // Campaign comparison
   const campaignA = sentCampaigns.find(c => c.id === selectedCampaignA);
@@ -61,7 +141,6 @@ export function AdvancedAnalyticsPanel() {
   ].filter(d => d.value > 0);
 
   const handleExportPdf = () => {
-    // Future: generate PDF with jspdf
     const csvRows = [
       'Campanha,Enviados,Entregues,Abertos,Clicados,Bounced',
       ...sentCampaigns.map(c =>
@@ -93,8 +172,10 @@ export function AdvancedAnalyticsPanel() {
         <TabsList>
           <TabsTrigger value="decay">Engagement Decay</TabsTrigger>
           <TabsTrigger value="besttime">Melhor Horário</TabsTrigger>
-          <TabsTrigger value="compare">Comparar Campanhas</TabsTrigger>
+          <TabsTrigger value="compare">Comparar</TabsTrigger>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="revenue">Receita</TabsTrigger>
+          <TabsTrigger value="journey">Jornada</TabsTrigger>
         </TabsList>
 
         <TabsContent value="decay">
@@ -134,7 +215,7 @@ export function AdvancedAnalyticsPanel() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Aberturas por hora do dia (histórico de todas as campanhas)
+                Aberturas por hora do dia (dados reais das suas campanhas)
               </p>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={bestTimeData}>
@@ -265,6 +346,14 @@ export function AdvancedAnalyticsPanel() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="revenue">
+          <RevenueAttributionPanel />
+        </TabsContent>
+
+        <TabsContent value="journey">
+          <ContactJourneyTimeline />
         </TabsContent>
       </Tabs>
     </div>

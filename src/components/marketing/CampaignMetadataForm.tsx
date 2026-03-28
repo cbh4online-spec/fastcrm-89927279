@@ -16,6 +16,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { SendModeSelector } from './SendModeSelector';
 import { AbTestPanel } from './AbTestPanel';
 import { Separator } from '@/components/ui/separator';
+import { AISubjectLineGenerator } from './AISubjectLineGenerator';
+import { AudienceEstimator } from './AudienceEstimator';
 
 interface CampaignMetadataFormProps {
   html: string;
@@ -125,7 +127,14 @@ export function CampaignMetadataForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject">Assunto do Email *</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="subject">Assunto do Email *</Label>
+                  <AISubjectLineGenerator
+                    emailContent={html}
+                    campaignName={formData.name}
+                    onSelect={(subject) => setFormData({ ...formData, subject })}
+                  />
+                </div>
                 <Input
                   id="subject"
                   placeholder="Ex: 🎉 Novidades de Fevereiro"
