@@ -1,57 +1,27 @@
 
 
-# Redesenhar Mapa de Impacto — Compreensível e Funcional
+# Fix Kernel Monitor — Menu Lateral
 
-## Problema
+## Diagnóstico
 
-O mapa actual é um grafo de nós coloridos sem qualquer explicação do que representam, como interagir, ou o que significam as cores/linhas. Um utilizador novo vê caixas com "Strategy", "Goals", "Offers" ligadas por setas sem legenda, sem instruções, e sem contexto. A funcionalidade de simulação (duplo clique) é completamente invisível.
+A página **já usa `DashboardLayout`** que inclui o sidebar e o TopBar. O problema visual na pré-visualização deve-se a:
 
-## Solução
+1. **Padding duplicado**: O `DashboardLayout` já aplica `p-4 md:p-6` no `<main>`, e a página adiciona outro `p-6` redundante — isto empurra o conteúdo e pode causar overflow
+2. **Viewport estreito**: Na janela de preview, o sidebar colapsa (comportamento responsivo normal para `< lg`), mas o TopBar com o menu hamburger deve estar visível
 
-### 1. Header explicativo com guia contextual
-- Substituir o header minimalista por um que explica **o que é o mapa**: "Visualize como alterações numa área do negócio propagam impacto para outras"
-- Adicionar **3 passos visuais** inline: `1. Clique num bloco para detalhes` → `2. Duplo clique para simular impacto` → `3. Veja propagação a vermelho`
-- Manter toggle Context/Kernel mas com tooltips explicativos
+## Correção
 
-### 2. Barra de resumo (stats)
-Antes do canvas, mostrar 4-5 métricas:
-- **Total de blocos** e quantos estão Completos / Envelhecendo / Desatualizados / Vazios
-- **Dependências activas** (total de arestas)
-- **Alerta de drift**: quantos blocos com drift severo
-- Barra visual de saúde geral (% de blocos healthy vs problematic)
+### Ficheiro: `src/pages/KernelMonitorPage.tsx`
+- **Remover o `p-6` redundante** da div wrapper (o DashboardLayout já fornece padding)
+- Confirmar que não há early returns que saltem o `DashboardLayout`
 
-### 3. Nós redesenhados (ImpactMapNode)
-- **Texto maior**: label com `text-sm` em vez de `text-xs`, nome do tipo em português
-- **Barra de preenchimento mais visível**: altura 2px → 4px
-- **Health badge proeminente**: estado escrito por extenso com cor, não apenas ícone de 3px
-- **Tooltip no hover**: mostra score, dias desde última actualização, nº dependências
-- **Min-width maior**: 180px → 220px para acomodar texto legível
-- Traduzir block types para PT: "strategy" → "Estratégia", "business_model" → "Modelo de Negócio", etc.
+Alteração mínima — apenas remover o padding duplicado na linha 121:
+```
+// De:
+<div className="space-y-6 p-6 max-w-7xl mx-auto animate-fade-in">
+// Para:
+<div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+```
 
-### 4. Legenda flutuante
-Painel fixo no canto inferior esquerdo (colapsável) com:
-- **Tipos de relação**: cor da linha + nome (Depende de, Influencia, Bloqueia, Alimenta)
-- **Estados de saúde**: ícone + cor + significado
-- **Interacções**: ícones de rato para click, double-click, drag
-- Colapsa para ícone para não ocupar espaço
-
-### 5. Edges melhorados
-- Labels de relação traduzidos para PT
-- Linhas mais grossas por defeito (strokeWidth mínimo 2)
-- Tooltips nas arestas com força da relação (%)
-
-### 6. Empty state guiado
-Quando não há blocos, mostrar diagrama esquemático de exemplo com:
-- Explicação do que são blocos de contexto
-- Link directo para Context OS
-- Exemplos visuais de como o mapa fica quando preenchido
-
-## Ficheiros
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/pages/ImpactMapPage.tsx` | Header explicativo, stats bar, legenda, empty state |
-| `src/components/impact-map/ImpactMapNode.tsx` | Cards maiores, labels PT, health badges, tooltips |
-| `src/components/impact-map/ImpactMapSidebar.tsx` | Traduções menores |
-| `src/components/impact-map/ImpactMapLegend.tsx` | **Novo** — legenda flutuante colapsável |
+O sidebar e TopBar já estão presentes no layout — a correcção garante que o conteúdo não transborda e o menu hamburger (mobile) fica acessível.
 
