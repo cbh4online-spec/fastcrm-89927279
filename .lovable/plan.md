@@ -1,37 +1,33 @@
 
 
-# Fix: Flipbook cover page appearing blank
+# Consumo de créditos nas ações IA do eBook
 
-## Problem
-The screenshot shows the flipbook cover page (page 1/16) is completely dark with no visible title, subtitle, or author text. The toolbar at the bottom works, but the page content area is empty.
+## Resumo
+Integrar o sistema de créditos existente (`useCreditWallet`) no editor de eBooks para que cada ação de IA consuma créditos antes de executar.
 
-## Root cause analysis
+## Ações IA e custos propostos
 
-The issue is in **FlipbookReader.tsx** — the page container uses `relative` positioning with the `motion.div` child set to `absolute inset-0`. However, the parent container doesn't explicitly set a sized context that guarantees the absolute child fills it properly across all render cycles. Additionally, the `AnimatePresence mode="wait"` combined with `absolute inset-0` can cause the page to collapse to zero height during animation transitions, since the absolute element doesn't contribute to parent height.
+| Action Key | Label | Custo | Descrição |
+|---|---|---|---|
+| `ebook_generate_chapter` | Gerar Capítulo | 3 créditos | Gerar conteúdo de um capítulo com IA |
+| `ebook_improve_content` | Melhorar Conteúdo | 2 créditos | Reescrever/melhorar texto existente |
+| `ebook_generate_cover` | Gerar Capa IA | 5 créditos | Gerar imagem de capa com IA |
+| `ebook_generate_chapter_image` | Imagem Capítulo IA | 4 créditos | Gerar imagem de capítulo com IA |
 
-Key problems:
-1. **`absolute inset-0` on motion.div** — page content has no intrinsic height contribution; if the parent's height isn't resolved (e.g. `h-[85vh]` on an element inside a flex container that hasn't laid out yet), content is invisible
-2. **Cover page text colors** — white text on slate-900 gradient works in theory, but if the container has zero computed height, nothing is visible
-3. **`overflow-hidden`** on the page container clips everything if sizing is off
+## Alterações
 
-## Fix plan
+### 1. Migration SQL — Inserir pricing rules
+- `INSERT INTO credit_pricing_rules` com as 4 action keys acima
 
-### 1. FlipbookReader.tsx — Fix page container layout
-- Change the page viewport from `relative` + `absolute inset-0` children to a proper flex layout
-- Use `relative w-full h-full` on the motion.div instead of `absolute inset-0`
-- Set explicit `min-h` on the page container as fallback
-- Add `flex flex-col` to ensure the page fills its container
+### 2. `EbookEditor.tsx` — Integrar créditos
+- Importar `useCreditWallet` e `triggerNoCreditsDialog`
+- Em cada função AI (`generateCoverAI`, `generateChapterImageAI`, `generateChapterContent`, `improveContent`):
+  - Verificar `canAfford(actionKey)` antes de chamar a edge function
+  - Se não pode pagar → `triggerNoCreditsDialog()` e return
+  - Se pode → `consumeCredits.mutateAsync({ actionKey })` antes da chamada
+- Nos botões de IA, mostrar badge com custo em créditos (usando `CreditActionButton` ou badge manual)
 
-### 2. FlipbookReader.tsx — Fix animation container
-- Replace `absolute inset-0` on `motion.div` with `w-full h-full` 
-- Wrap in a container that uses `relative overflow-hidden` with explicit dimensions
-- This ensures the page always has computed dimensions even during animation transitions
-
-### 3. FlipbookPage.tsx — Add fallback visibility
-- Add `min-h-[400px]` to cover page as safety net
-- Ensure the cover gradient is always visible regardless of parent sizing
-
-### Files changed
-- `src/components/ebooks/FlipbookReader.tsx` — fix layout/animation container
-- `src/components/ebooks/FlipbookPage.tsx` — add min-height safety
+### Ficheiros alterados
+- Nova migration SQL (pricing rules)
+- `src/components/ebooks/EbookEditor.tsx` (integrar credit checks)
 
