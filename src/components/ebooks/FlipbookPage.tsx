@@ -14,7 +14,7 @@ interface FlipbookPageProps {
 export function FlipbookPage({ page }: FlipbookPageProps) {
   if (page.type === "cover") {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         {page.coverUrl ? (
           <>
             <img src={page.coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />

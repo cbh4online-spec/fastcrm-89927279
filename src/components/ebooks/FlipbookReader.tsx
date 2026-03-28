@@ -224,7 +224,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-                className="absolute inset-0 rounded-lg overflow-hidden"
+                className="w-full h-full rounded-lg overflow-hidden"
               >
                 <FlipbookPage page={pages[currentPage]} />
               </motion.div>
