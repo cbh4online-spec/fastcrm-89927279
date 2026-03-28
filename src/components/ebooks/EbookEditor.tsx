@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Plus, Trash2, Sparkles, Loader2,
   BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3,
-  Image, Upload, Wand2
+  Image, Upload, Wand2, Coins
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,8 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlipbookReader } from "./FlipbookReader";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 
 interface EbookEditorProps {
   ebookId: string;
@@ -34,6 +36,7 @@ async function uploadEbookImage(file: File, path: string): Promise<string | null
 export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { data: ebook, isLoading } = useEbook(ebookId);
   const updateEbook = useUpdateEbook();
+  const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
@@ -101,8 +104,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const generateCoverAI = async () => {
     if (!ebook) return;
+    if (!canAfford("ebook_generate_cover")) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar Capa IA", creditsNeeded: getCost("ebook_generate_cover") });
+      return;
+    }
     setGeneratingCoverAI(true);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_cover", referenceType: "ebook", referenceId: ebookId });
       const prompt = `Create a professional, modern eBook cover image for a book titled "${ebook.title}"${ebook.subtitle ? ` with subtitle "${ebook.subtitle}"` : ""}. The image should be visually striking, suitable for a digital book cover, with abstract or thematic elements. Do NOT include any text in the image. High quality, editorial style.`;
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_image", imagePrompt: prompt, ebookId, target: "cover" },
@@ -120,8 +128,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     if (!ebook || !activeChapterId) return;
     const ch = ebook.chapters.find(c => c.id === activeChapterId);
     if (!ch) return;
+    if (!canAfford("ebook_generate_chapter_image")) {
+      triggerNoCreditsDialog({ actionLabel: "Imagem Capítulo IA", creditsNeeded: getCost("ebook_generate_chapter_image") });
+      return;
+    }
     setGeneratingChapterImgAI(true);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_chapter_image", referenceType: "ebook", referenceId: ebookId });
       const prompt = `Create a professional, atmospheric illustration for an eBook chapter titled "${ch.title}" from the book "${ebook.title}". The image should be evocative, editorial quality, suitable as a chapter header. Abstract or thematic, no text in the image. Wide format, cinematic.`;
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_image", imagePrompt: prompt, ebookId, target: `chapter-${activeChapterId}` },
@@ -137,8 +150,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const generateChapterContent = async (chapter: EbookChapter) => {
     if (!ebook) return;
+    if (!canAfford("ebook_generate_chapter")) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar Capítulo IA", creditsNeeded: getCost("ebook_generate_chapter") });
+      return;
+    }
     setGenerating(chapter.id);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_chapter", referenceType: "ebook", referenceId: ebookId });
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_chapter", title: ebook.title, chapterTitle: chapter.title, chapterContext: chapter.description || "", tone: "Professional" },
       });
@@ -151,8 +169,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const improveContent = async (chapter: EbookChapter) => {
     if (!chapter.content) return;
+    if (!canAfford("ebook_improve_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Melhorar Conteúdo IA", creditsNeeded: getCost("ebook_improve_content") });
+      return;
+    }
     setGenerating(chapter.id);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_improve_content", referenceType: "ebook", referenceId: ebookId });
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "improve_content", chapterContext: chapter.content },
       });
@@ -200,6 +223,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             >
               {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
               Gerar com IA
+              <span className="ml-0.5 opacity-80 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
             </button>
             <button
               onClick={() => coverInputRef.current?.click()}
@@ -346,6 +370,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         {/* Chapter image - AI generate */}
                         <Button variant="outline" size="sm" onClick={generateChapterImageAI} disabled={generatingChapterImgAI} className="border-primary/20 hover:bg-primary/5 text-primary">
                           {generatingChapterImgAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" />Imagem IA</>}
+                          <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter_image")}</span>
                         </Button>
                         {/* Chapter image - upload */}
                         <Button variant="outline" size="sm" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg} className="border-primary/20 hover:bg-primary/5">
@@ -362,10 +387,12 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         </div>
                         <Button variant="outline" size="sm" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
                           {generating === activeChapter.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 mr-1" />Gerar</>}
+                          <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
                         </Button>
                         {activeChapter.content && (
                           <Button variant="outline" size="sm" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
                             <Sparkles className="h-4 w-4 mr-1" />Melhorar
+                            <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_improve_content")}</span>
                           </Button>
                         )}
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeChapter(activeChapter.id)}>
