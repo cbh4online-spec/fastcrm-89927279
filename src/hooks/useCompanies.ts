@@ -410,6 +410,42 @@ export function useCompanies() {
     },
   });
 
+  const addTagsToCompanies = useMutation({
+    mutationFn: async ({ ids, tags }: { ids: string[]; tags: string[] }) => {
+      for (const id of ids) {
+        const { data: current } = await workspaceClient
+          .from("companies")
+          .select("tags")
+          .eq("id", id)
+          .single();
+        const existing: string[] = (current as any)?.tags || [];
+        const merged = [...new Set([...existing, ...tags])];
+        await workspaceClient.from("companies").update({ tags: merged, updated_by: user?.id }).eq("id", id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      toast.success("Tags aplicadas com sucesso");
+    },
+    onError: () => toast.error("Erro ao aplicar tags"),
+  });
+
+  const bulkUpdateCompanies = useMutation({
+    mutationFn: async ({ ids, changes }: { ids: string[]; changes: Record<string, unknown> }) => {
+      const { error } = await workspaceClient
+        .from("companies")
+        .update({ ...changes, updated_by: user?.id })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+    },
+    onError: () => toast.error("Erro ao atualizar empresas"),
+  });
+
   return {
     companies: companiesQuery.data || [],
     isLoading: companiesQuery.isLoading,
@@ -418,6 +454,8 @@ export function useCompanies() {
     updateCompany,
     deleteCompany,
     restoreCompany,
+    addTagsToCompanies,
+    bulkUpdateCompanies,
   };
 }
 
