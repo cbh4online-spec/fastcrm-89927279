@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface EbookChapter {
   id: string;
