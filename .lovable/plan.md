@@ -1,31 +1,33 @@
 
 
-## Pesquisa de Produtos no Dialog de Adicionar Item
+## Corrigir botões CTA das Sugestões IA nas Renovações
 
-### O que muda
+### Problema
 
-O campo "Nome" no `CreateRenewalItemDialog` passa de um simples `Input` de texto livre para um **campo com pesquisa inline de produtos**. O utilizador digita e vê sugestões do catálogo de produtos; ao selecionar, o nome e preço são preenchidos automaticamente. Continua a ser possível escrever um nome livre (para itens que não existem no catálogo).
+Os botões CTA gerados pelas sugestões IA (`RenewalAISuggestions.tsx`, linha 151) não têm `onClick` — o `cta_action` retornado pela edge function é completamente ignorado.
 
-### Como
+### Solução
 
-**Ficheiro: `CreateRenewalItemDialog.tsx`**
+Adicionar lógica de `onClick` ao botão CTA que mapeia `s.cta_action` para ações concretas na aplicação:
 
-1. Substituir o `Input` do nome por um **Combobox/Popover** com pesquisa:
-   - Reutilizar a query de produtos já usada no `ProductSearchDialog` (busca por `name` e `sku` na tabela `products`)
-   - Mostrar dropdown com resultados enquanto o utilizador digita (debounce 300ms)
-   - Cada resultado mostra nome, SKU e preço
-   - Ao selecionar um produto: preencher `name`, `unit_price` e guardar `product_id` no form
-   - O utilizador pode ignorar as sugestões e escrever texto livre
+**Ficheiro: `src/components/renewals/RenewalAISuggestions.tsx`**
 
-2. Adicionar `product_id` opcional ao estado do form e ao payload enviado ao `createItem` (guardado no `meta_json` para rastreabilidade)
+1. Aceitar uma prop `onAction?: (action: string) => void` no componente
+2. Adicionar `onClick={() => onAction?.(s.cta_action)}` ao `<Button>` CTA (linha 151)
+3. Implementar um handler default interno com mapeamento de ações comuns:
+   - `schedule_meeting` → toast "Agendar reunião"
+   - `send_proposal` → toast "Enviar proposta"
+   - `create_task` → toast "Criar tarefa"
+   - Ações desconhecidas → toast informativo genérico
 
-3. Visual: ícone de pesquisa no campo, lista dropdown com hover highlights, indicação de "nome livre" quando não seleciona produto
+**Ficheiro: `src/pages/RenewalDetailPage.tsx`**
+
+4. Passar `onAction` ao `RenewalAISuggestions` para ligar a navegação real quando disponível (ex: abrir tab de faturação, navegar para lead)
 
 ### Ficheiros alterados
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/renewals/CreateRenewalItemDialog.tsx` | Substituir Input por combobox com pesquisa de produtos |
-
-Sem alterações de base de dados.
+| `src/components/renewals/RenewalAISuggestions.tsx` | Adicionar onClick + handler de ações |
+| `src/pages/RenewalDetailPage.tsx` | Passar callback onAction |
 
