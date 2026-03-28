@@ -59,6 +59,8 @@ interface EntityDetailHeaderProps {
   backPath: string;
   statusBadge?: React.ReactNode;
   extraBadges?: React.ReactNode;
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => void;
 }
 
 const TEMPERATURE_CONFIG = {
