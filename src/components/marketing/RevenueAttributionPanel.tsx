@@ -16,24 +16,28 @@ export function RevenueAttributionPanel() {
       if (!currentWorkspace?.id) return [];
 
       // Get contacts who clicked campaign links
-      const { data: clicks } = await supabase
+      const clicksResult = await supabase
         .from('campaign_link_clicks')
         .select('campaign_id, contact_id')
-        .eq('workspace_id', currentWorkspace.id) as { data: Array<{ campaign_id: string; contact_id: string | null }> | null };
+        .eq('workspace_id', currentWorkspace.id);
+      
+      const clicks = (clicksResult.data || []) as Array<{ campaign_id: string; contact_id: string | null }>;
 
-      if (!clicks || clicks.length === 0) return [];
+      if (clicks.length === 0) return [];
 
       // Get unique contact IDs who interacted
       const contactIds = [...new Set(clicks.filter(c => c.contact_id).map(c => c.contact_id!))];
       if (contactIds.length === 0) return [];
 
       // Get won opportunities for those contacts
-      const { data: opportunities } = await supabase
+      const oppsResult = await supabase
         .from('opportunities')
         .select('id, value, contact_id')
         .eq('workspace_id', currentWorkspace.id)
         .eq('stage', 'won')
         .in('contact_id', contactIds);
+      
+      const opportunities = (oppsResult.data || []) as Array<{ id: string; value: number | null; contact_id: string | null }>;
 
       if (!opportunities || opportunities.length === 0) return [];
 
