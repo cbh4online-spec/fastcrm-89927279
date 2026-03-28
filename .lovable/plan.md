@@ -1,62 +1,62 @@
 
 
-# Email Marketing — Módulo Acima da Concorrência
+# Funis — Módulo Acima da Concorrência
 
-## Diagnóstico Atual
+## Diagnóstico
 
-O módulo tem uma base sólida (36 componentes, email builder visual, segmentos dinâmicos, sequências multicanal, heatmaps, deliverability), mas sofre de 4 problemas críticos:
+Após análise detalhada de 36+ ficheiros do módulo, identifiquei 4 problemas críticos:
 
-1. **Dashboard passivo** — Mostra KPIs estáticos sem recomendações. Não diz ao utilizador o que fazer a seguir.
-2. **Analytics com dados falsos** — `AdvancedAnalyticsPanel` usa `Math.random()` para "Melhor Horário" e dados hardcoded para "Engagement Decay".
-3. **Criação de campanhas sem IA** — O utilizador tem de escrever assunto e corpo manualmente. Nenhum co-piloto.
-4. **Sem automações de ciclo de vida** — Welcome series, abandono, win-back não existem como fluxos pré-configurados.
+1. **KPIs da homepage mostram "0"** — Os cards (Total Funis, Publicados, Verticais) usam contagens básicas mas não incluem métricas de performance real (views, conversões, receita). Os KPIs de performance só aparecem dentro de cada funil individualmente.
+
+2. **Sem dashboard proativo** — A homepage é uma lista estática sem recomendações, sem alertas de performance, sem sugestões de otimização. O utilizador não sabe o que fazer a seguir.
+
+3. **Consumo de créditos inconsistente** — O `AIFunnelChat` consome créditos via `useCreditWallet` (sistema legado de créditos de funis), mas TAMBÉM passa pelo `ai-gate` na edge function. Dupla cobrança potencial. O `FunnelAIInsightsTab` e `FunnelAnalyticsTab` chamam IA sem qualquer controlo de créditos no frontend.
+
+4. **Analytics com dados parciais** — `StatsOverviewTab` funciona bem com dados reais de `vertical_landing_events`, mas os cards da homepage não agregam esses dados. Não há visão consolidada cross-funnel.
 
 ---
 
 ## Plano de Implementação (4 blocos)
 
-### Bloco 1: Dashboard Proativo com IA
+### Bloco 1: Fix KPIs + Dashboard Consolidado
 
-**O que muda**: O dashboard deixa de ser um painel de números e passa a ser um **centro de decisão**.
-
-| Componente | Descrição |
-|---|---|
-| `CampaignAdvisorBanner.tsx` | **Novo** — Banner IA no topo: analisa campanhas recentes e sugere próxima ação ("Taxa de abertura caiu 15% — experimente enviar às 10h em vez das 14h", "Tem 47 contactos inactivos — lance campanha de re-engagement") |
-| `HealthScoreCard.tsx` | **Novo** — Score composto 0-100 combinando: deliverability rate, bounce rate, complaint rate, engagement trend. Semáforo visual (verde/âmbar/vermelho) |
-| `SmartSendTimeCard.tsx` | **Novo** — Baseado em dados reais de `campaign_link_clicks` e `campaign_opens`, calcula e apresenta o melhor dia/hora para envio com gráfico |
-
-**Integração**: Substituir o layout atual do `MarketingDashboard.tsx` — Banner IA no topo, Health Score + Send Time + Stats na primeira row, Re-engagement + Segments na segunda.
-
-### Bloco 2: Co-Piloto IA na Criação de Campanhas
-
-**O que muda**: O fluxo de criação passa de manual para assistido.
+Substituir os 4 KPI cards estáticos da homepage por métricas reais agregadas.
 
 | Componente | Descrição |
 |---|---|
-| `AISubjectLineGenerator.tsx` | **Novo** — No `CampaignMetadataForm`, botão "Gerar com IA" que produz 3 variantes de assunto a partir do conteúdo do email. Inclui score de qualidade e sugestão A/B |
-| `AIBodyCopyAssistant.tsx` | **Novo** — Painel lateral no email builder: utilizador descreve em 1-2 frases o que quer comunicar, IA gera o corpo completo em HTML estilizado |
-| `AudienceEstimator.tsx` | **Novo** — No passo de metadados, mostra estimativa do tamanho da audiência + previsão de performance (open rate esperado, cliques estimados) baseado em histórico |
+| `FunnelsHomeDashboard.tsx` | **Novo** — Dashboard consolidado com KPIs reais: Total Views (sum de todos os funis), Total Leads (sum de form_submits), Taxa de Conversão Média, Receita Total. Busca dados de `vertical_landing_events` + `funnel_step_stats` |
+| `FunnelPerformanceRanking.tsx` | **Novo** — Ranking dos funis por performance (views, conversão). Top 3 e worst 3 com indicadores visuais |
+| `FunnelAdvisorBanner.tsx` | **Novo** — Banner IA no topo: "O funil /empresas tem bounce rate de 78% — otimize o headline" ou "Nenhum funil publicado — publique o primeiro" |
 
-**Integração**: Adicionar ao `CampaignCreationFlow` e `CampaignMetadataForm`.
+**Integração**: Substituir a secção de KPI cards na `FunnelsList.tsx` pelo novo `FunnelsHomeDashboard`.
 
-### Bloco 3: Analytics com Dados Reais
+### Bloco 2: Garantir Consumo de Créditos
 
-**O que muda**: Os gráficos passam a refletir a realidade.
+Corrigir a dupla cobrança e garantir que TODA IA consome via `ai-gate`:
 
 | Ficheiro | Mudança |
 |---|---|
-| `AdvancedAnalyticsPanel.tsx` | **Modificar** — Substituir arrays hardcoded por queries reais a `campaign_email_events`. Engagement decay calculado a partir de timestamps de opens/clicks. Best time baseado em distribuição real de opens por hora |
-| `RevenueAttributionPanel.tsx` | **Novo** — Liga cliques em campanhas a deals fechados no pipeline. Mostra receita gerada por campanha |
-| `ContactJourneyTimeline.tsx` | **Novo** — Timeline visual por contacto: emails recebidos, abertos, clicados, deals criados, compras. Acessível a partir da lista de campanhas |
+| `AIFunnelChat.tsx` | **Modificar** — Remover consumo via `useCreditWallet` (legado). O `ai-gate` na edge function `ai-funnel-builder` já cobra. Manter apenas verificação de quota no frontend para UX (mostrar erro antes de chamar) |
+| `FunnelAIInsightsTab.tsx` | **Modificar** — Adicionar verificação de quota no frontend antes de chamar `funnel-ai-insights` (a edge function já tem ai-gate) |
+| `FunnelAnalyticsTab.tsx` | **Modificar** — Idem para o botão "Analisar com IA" |
+| `StatsOverviewTab.tsx` | **Modificar** — O botão "Analisar com IA" precisa de indicação de custo (Badge "1 crédito") |
 
-### Bloco 4: Automações de Ciclo de Vida
-
-**O que muda**: Templates de automação pré-configurados que o utilizador ativa com 1 clique.
+### Bloco 3: Funnel Health Score + Proatividade
 
 | Componente | Descrição |
 |---|---|
-| `LifecycleAutomations.tsx` | **Novo** — Painel com 3 automações prontas: **Welcome Series** (trigger: novo contacto → sequência de 3 emails), **Abandono** (trigger: deal muda para "perdido" ou estagna → email de recuperação), **Win-back** (trigger: contacto inativo > 90 dias → campanha de reativação) |
-| Nova tab "Automações" | Adicionar ao `Marketing.tsx` entre "Multi-Canal" e "Analytics" |
+| `FunnelHealthScore.tsx` | **Novo** — Score 0-100 por funil baseado em: conversion rate vs benchmark, bounce rate, volume de tráfego, recência de updates. Semáforo visual |
+| `FunnelQuickOptimize.tsx` | **Novo** — Cards de ação rápida: "Adicionar opt-in ao step 2", "A/B test do headline", "Ativar tracking UTM". Baseado em análise automática da configuração |
+| `FunnelComparisonView.tsx` | **Novo** — Comparação side-by-side de 2 funis (conversão, tráfego, receita) para identificar o que funciona |
+
+### Bloco 4: Analytics Consolidados Cross-Funnel
+
+| Componente | Descrição |
+|---|---|
+| `CrossFunnelAnalytics.tsx` | **Novo** — Tab "Analytics" na homepage com gráfico de tendência cross-funnel (últimos 30 dias), distribuição de tráfego por funil, top sources UTM agregadas |
+| `FunnelROICard.tsx` | **Novo** — ROI por funil: custo (créditos IA gastos) vs receita gerada |
+
+**Nova tab**: Adicionar "Analytics" entre "Captura" e "Domínios" na `FunnelsList.tsx`.
 
 ---
 
@@ -64,35 +64,31 @@ O módulo tem uma base sólida (36 componentes, email builder visual, segmentos 
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/marketing/CampaignAdvisorBanner.tsx` | **Novo** |
-| `src/components/marketing/HealthScoreCard.tsx` | **Novo** |
-| `src/components/marketing/SmartSendTimeCard.tsx` | **Novo** |
-| `src/components/marketing/AISubjectLineGenerator.tsx` | **Novo** |
-| `src/components/marketing/AIBodyCopyAssistant.tsx` | **Novo** |
-| `src/components/marketing/AudienceEstimator.tsx` | **Novo** |
-| `src/components/marketing/RevenueAttributionPanel.tsx` | **Novo** |
-| `src/components/marketing/ContactJourneyTimeline.tsx` | **Novo** |
-| `src/components/marketing/LifecycleAutomations.tsx` | **Novo** |
-| `src/components/marketing/MarketingDashboard.tsx` | **Modificar** — Novo layout proativo |
-| `src/components/marketing/AdvancedAnalyticsPanel.tsx` | **Modificar** — Dados reais |
-| `src/components/marketing/CampaignMetadataForm.tsx` | **Modificar** — Integrar gerador IA |
-| `src/pages/Marketing.tsx` | **Modificar** — Tab "Automações" |
+| `src/components/funnels/FunnelsHomeDashboard.tsx` | **Novo** — KPIs reais + ranking |
+| `src/components/funnels/FunnelAdvisorBanner.tsx` | **Novo** — Banner proativo |
+| `src/components/funnels/FunnelHealthScore.tsx` | **Novo** — Score composto |
+| `src/components/funnels/FunnelQuickOptimize.tsx` | **Novo** — Ações rápidas |
+| `src/components/funnels/FunnelComparisonView.tsx` | **Novo** — Comparação |
+| `src/components/funnels/CrossFunnelAnalytics.tsx` | **Novo** — Analytics globais |
+| `src/components/funnels/FunnelROICard.tsx` | **Novo** — ROI tracking |
+| `src/components/funnels/FunnelsList.tsx` | **Modificar** — Integrar dashboard, banner, nova tab Analytics |
+| `src/components/funnels/ai-builder/AIFunnelChat.tsx` | **Modificar** — Remover dupla cobrança de créditos |
+| `src/components/funnels/tabs/FunnelAIInsightsTab.tsx` | **Modificar** — Indicação de custo |
+| `src/components/funnels/tabs/FunnelAnalyticsTab.tsx` | **Modificar** — Indicação de custo |
+| `src/components/funnels/stats/StatsOverviewTab.tsx` | **Modificar** — Badge de custo no botão IA |
 
 ## Diferenciadores vs Concorrência
 
 ```text
-Feature                    Mailchimp  ActiveCamp  FastCRM
-─────────────────────────────────────────────────────────
-AI Campaign Advisor           ✗          ✗          ✓
-Health Score composto         ~          ✗          ✓
-AI Subject Generator          ✓          ✗          ✓
-AI Body Copy from brief       ✗          ✗          ✓
-Revenue Attribution           ✓          ✓          ✓
-Contact Journey Timeline      ✓          ✓          ✓
-1-click Lifecycle Automations ✗          ~          ✓
-Smart Send Time (real data)   ✓          ✓          ✓
-CRM-native (pipeline aware)   ✗          ~          ✓
+Feature                  ClickFunnels  Leadpages  FastCRM
+────────────────────────────────────────────────────────
+Cross-funnel dashboard       ✗           ✗         ✓
+AI Advisor proativo          ✗           ✗         ✓
+Health Score automático      ✗           ~         ✓
+Funnel comparison            ~           ✗         ✓
+ROI tracking (custo IA)      ✗           ✗         ✓
+CRM-native (pipeline)        ✗           ✗         ✓
+Quick optimize actions       ✗           ✗         ✓
+Credit enforcement           n/a         n/a       ✓
 ```
-
-O grande diferenciador é que o FastCRM é **CRM-native**: as automações são disparadas por eventos do pipeline, a atribuição de receita é direta, e a IA tem contexto de negócio completo.
 
