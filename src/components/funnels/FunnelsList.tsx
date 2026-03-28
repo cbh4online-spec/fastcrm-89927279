@@ -59,7 +59,6 @@ export function FunnelsList() {
 
   const { data: verticals = [] } = useVerticals();
   const deleteVertical = useDeleteVertical();
-  const deleteVertical = useDeleteVertical();
 
   const { data: customTemplates } = useVerticalTemplates();
   const deleteTemplate = useDeleteVerticalTemplate();
