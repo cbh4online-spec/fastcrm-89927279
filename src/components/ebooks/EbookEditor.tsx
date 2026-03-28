@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Plus, Trash2, Sparkles, Loader2,
   BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3,
-  Image, Upload
+  Image, Upload, Wand2
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingChapterImg, setUploadingChapterImg] = useState(false);
+  const [generatingCoverAI, setGeneratingCoverAI] = useState(false);
+  const [generatingChapterImgAI, setGeneratingChapterImgAI] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chapterImgRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +96,42 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     }
     setUploadingChapterImg(false);
     if (chapterImgRef.current) chapterImgRef.current.value = "";
+  };
+
+  const generateCoverAI = async () => {
+    if (!ebook) return;
+    setGeneratingCoverAI(true);
+    try {
+      const prompt = `Create a professional, modern eBook cover image for a book titled "${ebook.title}"${ebook.subtitle ? ` with subtitle "${ebook.subtitle}"` : ""}. The image should be visually striking, suitable for a digital book cover, with abstract or thematic elements. Do NOT include any text in the image. High quality, editorial style.`;
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "generate_image", imagePrompt: prompt, ebookId, target: "cover" },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.url) {
+        updateEbook.mutate({ id: ebookId, cover_url: data.url });
+        toast.success("Capa gerada com IA!");
+      }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingCoverAI(false); }
+  };
+
+  const generateChapterImageAI = async () => {
+    if (!ebook || !activeChapterId) return;
+    const ch = ebook.chapters.find(c => c.id === activeChapterId);
+    if (!ch) return;
+    setGeneratingChapterImgAI(true);
+    try {
+      const prompt = `Create a professional, atmospheric illustration for an eBook chapter titled "${ch.title}" from the book "${ebook.title}". The image should be evocative, editorial quality, suitable as a chapter header. Abstract or thematic, no text in the image. Wide format, cinematic.`;
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "generate_image", imagePrompt: prompt, ebookId, target: `chapter-${activeChapterId}` },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.url) {
+        saveChapters(ebook.chapters.map(c => c.id === activeChapterId ? { ...c, cover_image: data.url } : c));
+        toast.success("Imagem do capítulo gerada com IA!");
+      }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingChapterImgAI(false); }
   };
 
   const generateChapterContent = async (chapter: EbookChapter) => {
@@ -153,14 +191,24 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             <img src={ebook.cover_url} alt="" className="w-full h-full object-cover opacity-60" />
           ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <button
-            onClick={() => coverInputRef.current?.click()}
-            disabled={uploadingCover}
-            className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur border border-border/60 text-xs font-medium hover:bg-background transition-all"
-          >
-            {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Image className="h-3 w-3" />}
-            {ebook.cover_url ? "Alterar capa" : "Adicionar capa"}
-          </button>
+          <div className="absolute top-3 right-3 flex gap-1.5">
+            <button
+              onClick={generateCoverAI}
+              disabled={generatingCoverAI}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/90 backdrop-blur text-primary-foreground text-xs font-medium hover:bg-primary transition-all"
+            >
+              {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+              Gerar com IA
+            </button>
+            <button
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur border border-border/60 text-xs font-medium hover:bg-background transition-all"
+            >
+              {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Upload
+            </button>
+          </div>
         </div>
         <div className="relative px-5 pb-5 -mt-8">
           <button onClick={onBack} className="text-xs text-primary hover:underline flex items-center gap-1 mb-2">
@@ -294,9 +342,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         />
                       </div>
                       <div className="flex gap-1.5">
-                        {/* Chapter image upload */}
+                        {/* Chapter image - AI generate */}
+                        <Button variant="outline" size="sm" onClick={generateChapterImageAI} disabled={generatingChapterImgAI} className="border-primary/20 hover:bg-primary/5 text-primary">
+                          {generatingChapterImgAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" />Imagem IA</>}
+                        </Button>
+                        {/* Chapter image - upload */}
                         <Button variant="outline" size="sm" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg} className="border-primary/20 hover:bg-primary/5">
-                          {uploadingChapterImg ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Image className="h-4 w-4 mr-1" />{activeChapter.cover_image ? "Imagem" : "Imagem"}</>}
+                          {uploadingChapterImg ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4 mr-1" />Upload</>}
                         </Button>
                         {/* Edit/Preview tabs */}
                         <div className="flex bg-muted/50 rounded-md p-0.5 mr-1">
