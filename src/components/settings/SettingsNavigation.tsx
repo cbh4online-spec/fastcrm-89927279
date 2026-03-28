@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +21,7 @@ import {
   Code,
   Search,
   Crown,
+  Tag,
 } from "lucide-react";
 
 export type SettingsCategory =
