@@ -27,7 +27,7 @@ export function useRenewalAlerts() {
       // Get active contracts with items
       const { data: contracts, error } = await workspaceClient
         .from("renewal_contracts")
-        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, company:companies(id, name)")
+        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, dunning_attempts, company:companies(id, name)")
         .eq("workspace_id", currentWorkspace.id)
         .in("status", ["active", "paused"] as any);
 
