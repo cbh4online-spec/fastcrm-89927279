@@ -42,13 +42,15 @@ export function ProspectingAnalytics() {
   // Conversion rate
   const conversionRate = totalResults > 0 ? Math.round((totalImported / totalResults) * 100) : 0;
 
-  // Credit consumption
+  // Credit consumption — estimate from searches if ledger is empty
   const prospectingLedger = ledger.filter(
     (e) => e.module === "prospecting" && e.direction === "debit"
   );
-  const thisMonthCredits = prospectingLedger
+  const ledgerCredits = prospectingLedger
     .filter((e) => e.created_at >= currentMonthStart)
     .reduce((sum, e) => sum + Math.abs(e.credits_amount), 0);
+  // Fallback: estimate 2 credits per search if no ledger entries
+  const thisMonthCredits = ledgerCredits > 0 ? ledgerCredits : totalSearches * 2;
 
   // Fetch leads from prospecting sources
   const { data: prospectingLeadsCount = 0 } = useQuery({
