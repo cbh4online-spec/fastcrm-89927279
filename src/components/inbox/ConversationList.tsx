@@ -58,7 +58,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 /** Smart time formatter: "14:32" today, "Ontem 14:32" yesterday, "25/03 14:32" older */
 function formatSmartTime(dateStr: string): string {
   const d = new Date(dateStr);
-  if (isToday(d)) return fnsFormat(d, "HH:mm", { locale: pt });
+  if (isToday(d)) return `Hoje ${fnsFormat(d, "HH:mm", { locale: pt })}`;
   if (isYesterday(d)) return `Ontem ${fnsFormat(d, "HH:mm", { locale: pt })}`;
   return fnsFormat(d, "dd/MM HH:mm", { locale: pt });
 }
@@ -468,8 +468,8 @@ export function ConversationList({
                             {conv.last_message_at && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className={cn(
-                                    "text-[11px] flex-shrink-0 whitespace-nowrap ml-auto group-hover:hidden",
+                                   <span className={cn(
+                                    "text-xs flex-shrink-0 whitespace-nowrap ml-auto",
                                     hasUnread ? "text-primary font-medium" : "text-muted-foreground"
                                   )}>
                                     {formatSmartTime(conv.last_message_at)}
@@ -481,7 +481,7 @@ export function ConversationList({
                               </Tooltip>
                             )}
                             {/* Hover Quick Actions */}
-                            <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
+                            <div className="hidden group-hover:flex items-center gap-0.5">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
