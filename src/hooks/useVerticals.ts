@@ -10,6 +10,17 @@ export interface Vertical {
   slug: string;
   description: string | null;
   color_theme: string | null;
+  icon: string | null;
+  target_audience: string | null;
+  keywords: string[] | null;
+  pain_points: string[] | null;
+  value_proposition: string | null;
+  avg_ticket: number | null;
+  market_size: string | null;
+  priority: number | null;
+  logo_url: string | null;
+  default_cta: string | null;
+  notes: string | null;
   status: string;
   created_at: string;
   updated_at: string;

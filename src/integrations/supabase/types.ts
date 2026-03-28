@@ -46134,36 +46134,69 @@ export type Database = {
       }
       verticals: {
         Row: {
+          avg_ticket: number | null
           color_theme: string | null
           created_at: string
+          default_cta: string | null
           description: string | null
+          icon: string | null
           id: string
+          keywords: string[] | null
+          logo_url: string | null
+          market_size: string | null
           name: string
+          notes: string | null
+          pain_points: string[] | null
+          priority: number | null
           slug: string
           status: string
+          target_audience: string | null
           updated_at: string
+          value_proposition: string | null
           workspace_id: string
         }
         Insert: {
+          avg_ticket?: number | null
           color_theme?: string | null
           created_at?: string
+          default_cta?: string | null
           description?: string | null
+          icon?: string | null
           id?: string
+          keywords?: string[] | null
+          logo_url?: string | null
+          market_size?: string | null
           name: string
+          notes?: string | null
+          pain_points?: string[] | null
+          priority?: number | null
           slug: string
           status?: string
+          target_audience?: string | null
           updated_at?: string
+          value_proposition?: string | null
           workspace_id: string
         }
         Update: {
+          avg_ticket?: number | null
           color_theme?: string | null
           created_at?: string
+          default_cta?: string | null
           description?: string | null
+          icon?: string | null
           id?: string
+          keywords?: string[] | null
+          logo_url?: string | null
+          market_size?: string | null
           name?: string
+          notes?: string | null
+          pain_points?: string[] | null
+          priority?: number | null
           slug?: string
           status?: string
+          target_audience?: string | null
           updated_at?: string
+          value_proposition?: string | null
           workspace_id?: string
         }
         Relationships: [
