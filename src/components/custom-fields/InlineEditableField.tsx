@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from "react";
+import { EntityTagEditor } from "@/components/entity/EntityTagEditor";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
