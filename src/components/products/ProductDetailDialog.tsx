@@ -164,7 +164,7 @@ export function ProductDetailDialog({
               <div className="relative w-full sm:w-[260px] h-[200px] sm:h-[220px] shrink-0 bg-muted/60 overflow-hidden">
                 {mainImage ? (
                   <img
-                    src={mainImage.image_url}
+                    src={mainImage.url}
                     alt={mainImage.alt_text || product.name}
                     className="w-full h-full object-cover"
                   />
@@ -184,7 +184,7 @@ export function ProductDetailDialog({
                           idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
                         }`}
                       >
-                        <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                        <img src={img.url} alt="" className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
