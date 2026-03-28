@@ -130,17 +130,18 @@ export function BulkActionsBar({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <h4 className="font-medium text-sm mb-2">Aplicar etiquetas</h4>
+                    <h4 className="font-medium text-sm mb-1">Aplicar etiquetas</h4>
                     <p className="text-xs text-muted-foreground">
                       Adicione etiquetas aos {selectedCount} {selectedCount === 1 ? entityLabel : entityLabelPlural} selecionados.
                     </p>
                   </div>
 
+                  {/* Create new tag */}
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Nova etiqueta..."
+                      placeholder="Criar nova etiqueta..."
                       value={newTag}
                       onChange={(e) => setNewTag(e.target.value)}
                       onKeyDown={(e) => {
@@ -151,21 +152,31 @@ export function BulkActionsBar({
                       }}
                       className="flex-1"
                     />
-                    <Button size="sm" variant="secondary" onClick={handleAddTag}>
+                    <Button size="sm" variant="secondary" onClick={handleAddTag} disabled={!newTag.trim()}>
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  {/* Available tags */}
+                  {/* Search existing tags */}
                   {availableTags.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Etiquetas existentes:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {availableTags.slice(0, 10).map((tag) => (
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Pesquisar etiquetas..."
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          className="pl-7 h-8 text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-1 max-h-[140px] overflow-y-auto">
+                        {availableTags
+                          .filter(tag => !tagSearch || tag.toLowerCase().includes(tagSearch.toLowerCase()))
+                          .map((tag) => (
                           <Badge
                             key={tag}
                             variant={selectedTags.includes(tag) ? "default" : "outline"}
-                            className="cursor-pointer text-xs"
+                            className="cursor-pointer text-xs transition-colors"
                             onClick={() => {
                               if (selectedTags.includes(tag)) {
                                 handleRemoveTag(tag);
@@ -177,6 +188,9 @@ export function BulkActionsBar({
                             {tag}
                           </Badge>
                         ))}
+                        {availableTags.filter(tag => !tagSearch || tag.toLowerCase().includes(tagSearch.toLowerCase())).length === 0 && (
+                          <p className="text-xs text-muted-foreground py-2 w-full text-center">Nenhuma etiqueta encontrada</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -184,7 +198,7 @@ export function BulkActionsBar({
                   {/* Selected tags */}
                   {selectedTags.length > 0 && (
                     <div className="space-y-2 pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">A aplicar:</p>
+                      <p className="text-xs text-muted-foreground">A aplicar ({selectedTags.length}):</p>
                       <div className="flex flex-wrap gap-1">
                         {selectedTags.map((tag) => (
                           <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs">
