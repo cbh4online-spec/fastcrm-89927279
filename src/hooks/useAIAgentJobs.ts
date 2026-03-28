@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
 import type { AIAgentJob, AgentRegistryEntry, AgentSystemStats, CreateAgentJobRequest } from '@/types/ai-agents'
 
 export function useAgentRegistry() {
@@ -114,24 +116,59 @@ export function useAgentSystemStats() {
   return { data: data ?? null, isLoading }
 }
 
+/**
+ * Creates a job by inserting into ai_agent_jobs table.
+ * The ai-agent-processor picks up pending jobs and calls the orchestrator.
+ */
 export function useCreateAgentJob() {
   const qc = useQueryClient()
   const { currentWorkspace } = useWorkspace()
+  const { user } = useAuth()
   const workspaceId = currentWorkspace?.id
 
   return useMutation({
     mutationFn: async (req: CreateAgentJobRequest) => {
-      const { data, error } = await supabase.functions.invoke('ai-agent-orchestrator', {
-        body: { workspace_id: workspaceId, create_job: { ...req, workspace_id: workspaceId } },
-      })
+      if (!workspaceId) throw new Error('Workspace não selecionado')
+
+      const { data, error } = await supabase
+        .from('ai_agent_jobs')
+        .insert({
+          workspace_id: workspaceId,
+          agent_type: req.agent_type,
+          entity_id: req.target_entity_id!,
+          entity_type: req.target_entity_type || req.agent_type,
+          trigger_type: 'manual' as any,
+          name: req.name,
+          task: req.task,
+          description: req.description,
+          priority: req.priority ?? 50,
+          max_steps: req.max_steps ?? 10,
+          input_context: req.input_context ?? {},
+          scheduled_for: req.scheduled_for || new Date().toISOString(),
+          created_by: user?.id,
+        } as any)
+        .select('id')
+        .single()
+
       if (error) throw error
-      return data as { job_id: string; dispatched_to: string }
+      return { job_id: data.id }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success('Job criado com sucesso')
+      // Trigger the processor to pick it up immediately
+      supabase.functions.invoke('ai-agent-processor', {
+        body: { workspaceId },
+      }).catch(() => {
+        // Processor will pick it up on next cycle
+      })
+
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ['ai-agent-jobs', workspaceId] })
         qc.invalidateQueries({ queryKey: ['agent-system-stats', workspaceId] })
       }, 500)
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao criar job: ' + err.message)
     },
   })
 }
@@ -149,6 +186,40 @@ export function useCancelAgentJob() {
       }).eq('id', jobId).eq('workspace_id', workspaceId!)
       await supabase.from('ai_agent_locks').delete().eq('job_id', jobId)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai-agent-jobs', workspaceId] }),
+    onSuccess: () => {
+      toast.success('Job cancelado')
+      qc.invalidateQueries({ queryKey: ['ai-agent-jobs', workspaceId] })
+      qc.invalidateQueries({ queryKey: ['agent-system-stats', workspaceId] })
+    },
+  })
+}
+
+/**
+ * Manually trigger the processor to execute pending jobs now
+ */
+export function useRunProcessor() {
+  const { currentWorkspace } = useWorkspace()
+  const qc = useQueryClient()
+  const workspaceId = currentWorkspace?.id
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('ai-agent-processor', {
+        body: { workspaceId },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: (data: any) => {
+      const msg = data?.processed > 0
+        ? `${data.succeeded} jobs executados com sucesso, ${data.failed} falhados`
+        : 'Nenhum job pendente para processar'
+      toast.success(msg)
+      qc.invalidateQueries({ queryKey: ['ai-agent-jobs', workspaceId] })
+      qc.invalidateQueries({ queryKey: ['agent-system-stats', workspaceId] })
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao processar jobs: ' + err.message)
+    },
   })
 }
