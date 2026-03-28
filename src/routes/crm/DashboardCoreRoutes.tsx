@@ -73,6 +73,7 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/settings/:section" element={<Navigate to="/settings" replace />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/data-model" element={<DataModelPage />} />
+      <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
       <Route path="/platform/data" element={<VisualDataModelPage />} />
       <Route path="/settings/:section" element={<Settings />} />
     </>
