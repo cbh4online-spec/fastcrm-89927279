@@ -62,6 +62,8 @@ export function EntityDetailLayout({
   statusBadge,
   extraBadges,
   counts,
+  tags,
+  onTagsChange,
   children,
 }: EntityDetailLayoutProps) {
   return (
