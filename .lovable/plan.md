@@ -1,55 +1,47 @@
 
 
-# Propostas — Indicadores, Filtros e Layout
+# Propostas — Dashboard de Análise
 
-## Problemas Encontrados
+## O Problema
 
-1. **Sem indicadores**: Não há KPI cards (total, aceitas, valor médio, etc.) — só o "Valor total" no subtítulo
-2. **Filtros laterais não funcionam**: O `handleFilterSelect` só processa filtros `status_*`. Filtros de Valor, Timing e Performance são ignorados — clicam mas não filtram nada
-3. **Tabela transborda**: 10 colunas sem controlo de largura, sem `overflow-x-auto`, o conteúdo sai do ecrã
+O tab "Análise" mostra apenas um placeholder "Em breve". Já existe o hook `useProposalAnalytics` que consulta `proposal_analytics` e o hook `useProposals` que traz todas as propostas — ambos podem alimentar um dashboard completo.
 
-## Plano de Correção
+## Plano
 
-### 1. KPI Indicator Cards
+Criar um componente `ProposalAnalyticsTab` e usá-lo no `case "analytics"` do `ProposalsList.tsx`.
 
-Adicionar uma row de 5 cards compactos acima da toolbar:
+### Conteúdo do Dashboard
 
-| Card | Cálculo |
+**1. KPI Cards (row de 6)**
+- Visualizações totais
+- Checkouts iniciados
+- Pagamentos completos
+- Taxa de conversão (%)
+- Receita total
+- Valor médio por proposta
+
+**2. Gráficos (grid 2 colunas)**
+- **Distribuição por Estado** — Donut/Pie chart com draft/published/accepted/expired/rejected (dados de `useProposals`)
+- **Evolução Mensal** — Bar chart com propostas criadas por mês (últimos 6 meses)
+
+**3. Funil de Conversão**
+- Barra visual: Criadas → Publicadas → Visualizadas → Aceitas (percentagens relativas)
+
+**4. Top 5 Propostas** — tabela compacta das propostas com mais views ou maior valor
+
+**5. Performance por Modelo** — tabela com dados de `useProposalAnalytics().byTemplate`
+
+### Ficheiros
+
+| Ficheiro | Ação |
 |---|---|
-| Total Propostas | `filteredProposals.length` |
-| Valor Total | Soma de `price` |
-| Aceitas | Count com `status === 'accepted'` |
-| Taxa de Conversão | `accepted / total × 100` |
-| Valor Médio | `totalValue / total` |
+| `src/components/proposals/ProposalAnalyticsTab.tsx` | **Criar** — componente completo com KPIs, charts (Recharts), funil e tabelas |
+| `src/components/proposals/ProposalsList.tsx` | **Modificar** — substituir placeholder por `<ProposalAnalyticsTab />` no case "analytics" |
 
-Cada card com ícone, valor grande, e label pequeno. Cards clicáveis para filtrar por estado.
+### Detalhes Técnicos
 
-### 2. Fix Filtros Laterais
-
-O `handleFilterSelect` atual:
-```tsx
-if (filterId.startsWith("status_")) {
-  setStatusFilter(filterId.replace("status_", ""));
-}
-// ← value_, timing_, perf_ são completamente ignorados
-```
-
-Expandir o `filteredProposals` useMemo para processar todos os filtros:
-
-- **`value_high/medium/low`** → filtrar por ranges de `price`
-- **`timing_today/week/month`** → filtrar por `created_at` com comparação de datas
-- **`perf_viewed/not_viewed/high_views`** → filtrar por `views_count`
-
-### 3. Tabela Enquadrada no Ecrã
-
-- Envolver a `<Table>` com `<div className="w-full overflow-x-auto">`
-- Adicionar `min-w-[1000px]` à Table para garantir legibilidade em scroll
-- Truncar colunas longas (Título, Oportunidade, Cliente) com `max-w-[200px] truncate`
-- O layout principal já tem `min-w-0` no flex container
-
-### Ficheiro a Modificar
-
-| Ficheiro | Mudança |
-|---|---|
-| `src/components/proposals/ProposalsList.tsx` | Adicionar KPI cards, fix filter logic, fix table overflow |
+- Usa `useProposals()` para dados de propostas (estados, valores, datas) e `useProposalAnalytics()` para eventos de tracking (views, checkouts, payments)
+- Charts com Recharts (já instalado no projeto) — PieChart para distribuição, BarChart para evolução mensal
+- Funil com barras CSS progressivas (sem lib extra)
+- Empty states informativos quando não há dados suficientes
 
