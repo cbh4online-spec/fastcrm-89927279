@@ -38,6 +38,8 @@ export interface RenewalContract {
     suggested_action?: string;
     updated_at?: string;
   } | null;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
   // Relations (populated on queries)

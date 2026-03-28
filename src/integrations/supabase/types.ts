@@ -37453,6 +37453,8 @@ export type Database = {
           source_type: Database["public"]["Enums"]["renewal_source_type"]
           start_date: string
           status: Database["public"]["Enums"]["renewal_contract_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           total_mrr: number
           updated_at: string
           workspace_id: string
@@ -37478,6 +37480,8 @@ export type Database = {
           source_type?: Database["public"]["Enums"]["renewal_source_type"]
           start_date?: string
           status?: Database["public"]["Enums"]["renewal_contract_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           total_mrr?: number
           updated_at?: string
           workspace_id: string
@@ -37503,6 +37507,8 @@ export type Database = {
           source_type?: Database["public"]["Enums"]["renewal_source_type"]
           start_date?: string
           status?: Database["public"]["Enums"]["renewal_contract_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           total_mrr?: number
           updated_at?: string
           workspace_id?: string
@@ -37655,6 +37661,63 @@ export type Database = {
           },
           {
             foreignKeyName: "renewal_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_payment_events: {
+        Row: {
+          amount: number | null
+          contract_id: string
+          created_at: string
+          currency: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          stripe_event_id: string | null
+          stripe_invoice_id: string | null
+          stripe_subscription_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number | null
+          contract_id: string
+          created_at?: string
+          currency?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          stripe_event_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number | null
+          contract_id?: string
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          stripe_event_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_subscription_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_payment_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_payment_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
