@@ -105,6 +105,7 @@ export function SettingsNavigation({
   matchCount,
 }: SettingsNavigationProps) {
   const { t } = useTranslation("settings");
+  const navigate = useNavigate();
   const hasSearch = searchQuery.trim().length > 0;
 
   return (
