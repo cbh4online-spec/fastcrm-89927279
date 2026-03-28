@@ -126,9 +126,26 @@ export function useRenewalAlerts() {
         }
       }
 
-      // Sort: overdue first, then upcoming, then low packs, then expiring
-      const priority = { overdue: 0, upcoming_7: 1, low_pack: 2, expiring: 3 };
-      alerts.sort((a, b) => priority[a.type] - priority[b.type]);
+      // Check for contracts with dunning (payment failures)
+      for (const contract of (contracts || []) as any[]) {
+        const companyName = contract.company?.name || "—";
+        const dunning = contract.dunning_attempts || 0;
+        if (dunning > 0 && contract.status !== "churned") {
+          alerts.push({
+            id: `dunning-${contract.id}`,
+            type: "payment_failed",
+            title: `Pagamento falhado: ${companyName}`,
+            message: `${dunning} tentativa(s) falhada(s)`,
+            contractId: contract.id,
+            companyName,
+            percentage: dunning,
+          });
+        }
+      }
+
+      // Sort: payment_failed first, then overdue, then upcoming, then low packs, then expiring
+      const priority: Record<string, number> = { payment_failed: -1, overdue: 0, upcoming_7: 1, low_pack: 2, expiring: 3 };
+      alerts.sort((a, b) => (priority[a.type] ?? 4) - (priority[b.type] ?? 4));
 
       return alerts;
     },
