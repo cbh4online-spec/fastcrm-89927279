@@ -10,6 +10,7 @@ import {
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useDeleteLeads, useUpdateLead, useBulkUpdateLeads } from "@/hooks/useLeads";
 import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
+import { useWorkspaceTags, useSyncLeadTagsToWorkspace } from "@/hooks/useWorkspaceTags";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -216,6 +217,8 @@ export function SmartLeadsTable() {
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
   const { data: duplicateGroups = [] } = useLeadDuplicateGroupsPersisted();
+  const { data: workspaceTags = [] } = useWorkspaceTags();
+  const syncTags = useSyncLeadTagsToWorkspace();
 
   const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
     try {
@@ -461,7 +464,9 @@ export function SmartLeadsTable() {
         ) : (
           <>
             {selectedIds.size > 0 && (() => {
-              const allTags = [...new Set((leads || []).flatMap(l => (l as any).tags || []))].sort();
+              const leadTags = [...new Set((leads || []).flatMap(l => (l as any).tags || []))];
+              const wsTags = workspaceTags.map(t => t.name);
+              const allTags = [...new Set([...wsTags, ...leadTags])].sort();
               return (
                 <div className="mt-4 space-y-2">
                   <BulkActionsBar
@@ -472,6 +477,7 @@ export function SmartLeadsTable() {
                     onExport={handleExport}
                     onAddTags={async (tags) => {
                       await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes: { tags } });
+                      syncTags.mutate(tags);
                       toast.success(`Tags aplicadas a ${selectedIds.size} leads`);
                       setSelectedIds(new Set());
                     }}
