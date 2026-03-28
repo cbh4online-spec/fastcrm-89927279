@@ -30,6 +30,8 @@ export interface AIAgentJob {
   id: string
   workspace_id: string
   agent_type: string
+  entity_id?: string
+  entity_type?: string
   agent?: AgentRegistryEntry
   name?: string
   description?: string
