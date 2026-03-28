@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2, Pencil, Trash2, Bot, Zap, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,9 @@ import { AddMemberDialog } from "./AddMemberDialog";
 import { ProductPickerButton } from "./ProductPickerButton";
 import { ProductMessageCard } from "./ProductMessageCard";
 import { TelegramChatPicker } from "./TelegramChatPicker";
+import { BotControlPanel } from "./BotControlPanel";
+import { GroupSignalsPanel } from "./GroupSignalsPanel";
+import { AutopilotMonitorPanel } from "@/components/settings/sections/AutopilotMonitorPanel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
