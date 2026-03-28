@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +21,7 @@ import {
   Code,
   Search,
   Crown,
+  Tag,
 } from "lucide-react";
 
 export type SettingsCategory =
@@ -103,6 +105,7 @@ export function SettingsNavigation({
   matchCount,
 }: SettingsNavigationProps) {
   const { t } = useTranslation("settings");
+  const navigate = useNavigate();
   const hasSearch = searchQuery.trim().length > 0;
 
   return (
@@ -168,6 +171,21 @@ export function SettingsNavigation({
               </div>
             );
           })}
+
+          {/* Standalone links */}
+          {!hasSearch && (
+            <div className="mb-1">
+              <div className="space-y-0.5 px-2">
+                <button
+                  onClick={() => navigate("/settings/tags")}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-foreground/80 hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Tag className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Etiquetas</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

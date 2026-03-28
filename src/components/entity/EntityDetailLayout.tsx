@@ -35,6 +35,8 @@ interface EntityDetailLayoutProps {
     proposals?: number;
     contacts?: number;
   };
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => void;
   children: ReactNode;
 }
 
@@ -60,6 +62,8 @@ export function EntityDetailLayout({
   statusBadge,
   extraBadges,
   counts,
+  tags,
+  onTagsChange,
   children,
 }: EntityDetailLayoutProps) {
   return (
@@ -88,6 +92,8 @@ export function EntityDetailLayout({
         backPath={backPath}
         statusBadge={statusBadge}
         extraBadges={extraBadges}
+        tags={tags}
+        onTagsChange={onTagsChange}
       />
 
       {/* Main Content - Responsive Layout */}

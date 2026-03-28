@@ -14,6 +14,7 @@ const ObjectsHomePage = lazy(() => import("@/pages/ObjectsHomePage"));
 const ObjectListPage = lazy(() => import("@/pages/ObjectListPage"));
 const ObjectDetailPage = lazy(() => import("@/pages/ObjectDetailPage"));
 const DataModelPage = lazy(() => import("@/pages/DataModelPage"));
+const WorkspaceTagsPage = lazy(() => import("@/pages/WorkspaceTagsPage"));
 const VisualDataModelPage = lazy(() => import("@/pages/VisualDataModelPage"));
 const IntelligencePage = lazy(() => import("@/pages/IntelligencePage"));
 const ContextOSPage = lazy(() => import("@/pages/ContextOSPage"));
@@ -72,6 +73,7 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/settings/:section" element={<Navigate to="/settings" replace />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/data-model" element={<DataModelPage />} />
+      <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
       <Route path="/platform/data" element={<VisualDataModelPage />} />
       <Route path="/settings/:section" element={<Settings />} />
     </>

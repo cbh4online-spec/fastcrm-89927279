@@ -52,6 +52,7 @@ import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
+import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
@@ -363,6 +364,10 @@ export function LeadDetailWithSidebar() {
                 <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>
                   {statusLabels[lead.status]}
                 </Badge>
+                <InlineHeaderTags
+                  tags={lead.tags || []}
+                  onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
+                />
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 shrink-0" />
