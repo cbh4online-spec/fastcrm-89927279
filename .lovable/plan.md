@@ -1,55 +1,48 @@
 
 
-## Melhorar editor de etiquetas com autocomplete e workspace_tags
+## Gestão de etiquetas + tags inline no header
 
-### Problema actual
+### 1. Painel de gestão de etiquetas do workspace
 
-O editor de tags nas entidades (Leads, Contactos, Empresas) é um simples input de texto separado por vírgulas — sem autocomplete, sem sugestões, sem cores. As `workspace_tags` já existem na BD com nome e cor, mas não são usadas na edição.
+Criar uma página/dialog acessível via Definições ou menu para CRUD de `workspace_tags`:
+- Listar todas as tags com nome e cor
+- Editar nome e cor (color picker simples com as 7 cores predefinidas)
+- Eliminar tags (com confirmação)
+- Criar novas tags
 
-### Plano
+**Ficheiro:** `src/pages/WorkspaceTagsPage.tsx` — página standalone em `/dashboard/settings/tags`
+- Usa `useWorkspaceTags`, `useCreateWorkspaceTag`, `useUpdateWorkspaceTag`, `useDeleteWorkspaceTag` (já existem)
+- Tabela simples com ações inline (editar cor, renomear, eliminar)
 
-**1. Criar `EntityTagEditor.tsx`** — componente reutilizado nos 3 entity types
-- Input com autocomplete que sugere tags existentes do workspace (`useWorkspaceTags`)
-- Ao digitar, filtra e mostra dropdown com tags correspondentes (nome + cor)
-- Enter ou click na sugestão adiciona a tag
-- Se a tag não existe no workspace, cria automaticamente via `useCreateWorkspaceTag`
-- Cada tag aparece como Badge colorida com botão X para remover
-- Backspace no input vazio remove a última tag
+**Rota:** Adicionar em `App.tsx` sob `/dashboard/settings/tags`
 
-**2. Integrar no `InlineEditableField`**
-- Substituir o input comma-separated do case `"tags"` pelo novo `EntityTagEditor`
-- O componente recebe `value` (string[]) e `onChange` (string[] → void)
+**Navegação:** Adicionar link "Etiquetas" no menu de definições/sidebar
 
-**3. Integrar nas TagsSections**
-- `src/components/leads/sections/TagsSection.tsx` — já usa `InlineEditableField` com `fieldType="tags"`, herda automaticamente
-- `src/components/companies/sections/TagsSection.tsx` — idem
-- `src/components/contacts/eni/sections/CommercialProfileSection.tsx` — idem
+### 2. Tags inline ao lado do nome no header
+
+Alterar `EntityDetailHeader.tsx` para mostrar as tags da entidade como badges clicáveis ao lado do nome, com um botão `+` que abre o `EntityTagEditor` inline.
+
+```text
+[← ] [Avatar]  Nome do Lead  [🔥 Quente] [85 pts] [marketing] [vip] [+]
+                Atualizado há 2h
+```
+
+**Alterações no `EntityDetailHeader.tsx`:**
+- Receber `tags: string[]` e `onTagsChange: (tags: string[]) => void` como props
+- Mostrar tags como badges coloridas (reutilizando as cores do `workspace_tags`)
+- Botão `+` que ao clicar abre um popover com o `EntityTagEditor`
+- Clicar no `×` de uma tag remove-a
+
+**Alterações no `EntityDetailLayout.tsx`:**
+- Passar `entity.tags` e callback `onFieldChange('tags', ...)` ao header
 
 ### Ficheiros
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/entity/EntityTagEditor.tsx` | Criar — autocomplete + badges coloridas + criação inline |
-| `src/components/custom-fields/InlineEditableField.tsx` | Alterar case `"tags"` para usar `EntityTagEditor` |
-
-### UX do componente
-
-```text
-┌─────────────────────────────────────────┐
-│ [marketing ×] [vip ×] [quente ×]        │
-│ ┌─────────────────────────────────────┐ │
-│ │ Adicionar etiqueta...               │ │
-│ └─────────────────────────────────────┘ │
-│  ┌───────────────────────────────┐      │
-│  │ 🟣 marketing-digital          │      │
-│  │ 🟡 marketing-b2b              │      │
-│  │ + Criar "marketin..."         │      │
-│  └───────────────────────────────┘      │
-└─────────────────────────────────────────┘
-```
-
-- Dropdown aparece ao focar/digitar
-- Filtra em tempo real
-- Opção "Criar nova" no final quando não há match exacto
-- Tags com cor do `workspace_tags.color` ou cor default
+| `src/pages/WorkspaceTagsPage.tsx` | Criar — CRUD de tags do workspace |
+| `src/App.tsx` | Alterar — adicionar rota `/dashboard/settings/tags` |
+| `src/components/layout/AdaptiveSidebar.tsx` ou nav config | Alterar — link para gestão de etiquetas |
+| `src/components/entity/EntityDetailHeader.tsx` | Alterar — mostrar tags + botão `+` ao lado do nome |
+| `src/components/entity/EntityDetailLayout.tsx` | Alterar — passar tags e callback ao header |
 
