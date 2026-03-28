@@ -8,11 +8,12 @@ import { CategoryFilter } from "@/components/marketplace/CategoryFilter";
 import { ModuleDetailSheet } from "@/components/marketplace/ModuleDetailSheet";
 import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
 import { ExtensionPackCard } from "@/components/marketplace/ExtensionPackCard";
-import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
+import { MarketplaceModule, ModuleCategory } from "@/types/marketplace";
 import { EXTENSION_PACKS } from "@/config/extensionPacks";
-import { Search, Store, Package, Sparkles, ArrowLeft, Check, Boxes, Puzzle } from "lucide-react";
+import { Search, Store, Package, Sparkles, ArrowLeft, Check, Boxes, Puzzle, Loader2 } from "lucide-react";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useExtensionManifests } from "@/hooks/useExtensionManifests";
+import { useMarketplaceModules } from "@/hooks/useMarketplaceModules";
 import type { ExtensionManifest } from "@/types/extensionManifest";
 
 export default function Marketplace() {
@@ -25,6 +26,7 @@ export default function Marketplace() {
 
   const { installedModuleIds, installModule, uninstallModule, isLoading: isLoadingModules } = useWorkspaceModules();
   const { modulesWithManifest } = useExtensionManifests();
+  const { data: allModules = [], isLoading: isLoadingMarketplace } = useMarketplaceModules();
 
   // Build manifest lookup
   const manifestMap = useMemo(() => {
@@ -35,16 +37,15 @@ export default function Marketplace() {
 
   // Modules that have manifests (are official extensions)
   const extensionSlugs = useMemo(() => {
-    return SAMPLE_MODULES
+    return allModules
       .filter((m) => {
-        // Check if this module has a manifest (fetched or known extension)
         return manifestMap[m.id] || ["proposals", "invoices", "b2b-portal"].includes(m.id);
       })
       .map((m) => m.id);
-  }, [manifestMap]);
+  }, [allModules, manifestMap]);
 
   const filteredModules = useMemo(() => {
-    let modules = SAMPLE_MODULES;
+    let modules = allModules;
 
     if (activeTab === "installed") {
       modules = modules.filter(m => installedModuleIds.includes(m.id));
@@ -66,21 +67,21 @@ export default function Marketplace() {
     }
 
     return modules;
-  }, [searchQuery, selectedCategory, activeTab, installedModuleIds, extensionSlugs]);
+  }, [allModules, searchQuery, selectedCategory, activeTab, installedModuleIds, extensionSlugs]);
 
   const featuredModules = useMemo(() => {
-    return SAMPLE_MODULES.filter(m => m.is_featured);
-  }, []);
+    return allModules.filter(m => m.is_featured);
+  }, [allModules]);
 
   // Base modules for the active tab (before category/search filter)
   const tabModules = useMemo(() => {
     if (activeTab === "installed") {
-      return SAMPLE_MODULES.filter(m => installedModuleIds.includes(m.id));
+      return allModules.filter(m => installedModuleIds.includes(m.id));
     } else if (activeTab === "extensions") {
-      return SAMPLE_MODULES.filter(m => extensionSlugs.includes(m.id));
+      return allModules.filter(m => extensionSlugs.includes(m.id));
     }
-    return SAMPLE_MODULES;
-  }, [activeTab, installedModuleIds, extensionSlugs]);
+    return allModules;
+  }, [allModules, activeTab, installedModuleIds, extensionSlugs]);
 
   const moduleCounts = useMemo(() => {
     const counts: Record<ModuleCategory | "all", number> = {
@@ -106,6 +107,17 @@ export default function Marketplace() {
       setTogglingSlug(null);
     }
   };
+
+  if (isLoadingMarketplace) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">A carregar marketplace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,7 +147,7 @@ export default function Marketplace() {
           <div className="flex items-center gap-3 mt-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <Package className="w-3.5 h-3.5" />
-              <span>{SAMPLE_MODULES.length} módulos</span>
+              <span>{allModules.length} módulos</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
               <Check className="w-3.5 h-3.5" />
@@ -143,7 +155,7 @@ export default function Marketplace() {
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm font-medium">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{SAMPLE_MODULES.filter(m => m.is_new).length} novos</span>
+              <span>{allModules.filter(m => m.is_new).length} novos</span>
             </div>
           </div>
 
