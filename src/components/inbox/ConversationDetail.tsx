@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useConversation, useMarkConversationRead, useUpdateConversationStatus, useAssignConversation } from "@/hooks/useConversations";
-import { isToday, isYesterday, format as formatDateFns, isSameDay } from "date-fns";
+import { isToday, isYesterday, format as formatDateFns, isSameDay, differenceInHours, differenceInMinutes } from "date-fns";
 import { pt } from "date-fns/locale";
 import { MessageBubble } from "./MessageBubble";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
@@ -330,6 +330,14 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                 const prevDate = index > 0 ? new Date(messages[index - 1].created_at || messages[index - 1].sent_at) : null;
                 const showDateSeparator = !prevDate || !isSameDay(msgDate, prevDate);
 
+                // Time gap separator (2+ hours between messages on same day)
+                const showTimeGap = prevDate && isSameDay(msgDate, prevDate) && differenceInHours(msgDate, prevDate) >= 2;
+                const gapHours = prevDate ? differenceInHours(msgDate, prevDate) : 0;
+                const gapMinutes = prevDate ? differenceInMinutes(msgDate, prevDate) : 0;
+                const gapLabel = gapHours >= 1
+                  ? `${gapHours}h depois`
+                  : `${gapMinutes}min depois`;
+
                 const getDateLabel = (date: Date) => {
                   if (isToday(date)) return "Hoje";
                   if (isYesterday(date)) return "Ontem";
@@ -349,6 +357,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                           <div className="flex-1 h-px bg-border" />
                         </div>
                       )}
+                      {showTimeGap && !showDateSeparator && (
+                        <div className="flex items-center gap-3 py-2">
+                          <div className="flex-1 h-px bg-border/50" />
+                          <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {gapLabel}
+                          </span>
+                          <div className="flex-1 h-px bg-border/50" />
+                        </div>
+                      )}
                       <EmailMessageBubble message={message} channelMetadata={(conversation as any).channel_metadata as Record<string, unknown> | null} />
                     </div>
                   );
@@ -364,6 +382,16 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                           {getDateLabel(msgDate)}
                         </span>
                         <div className="flex-1 h-px bg-border" />
+                      </div>
+                    )}
+                    {showTimeGap && !showDateSeparator && (
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="flex-1 h-px bg-border/50" />
+                        <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {gapLabel}
+                        </span>
+                        <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
                     <MessageBubble

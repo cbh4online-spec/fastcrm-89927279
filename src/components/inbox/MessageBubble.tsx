@@ -130,9 +130,10 @@ export function MessageBubble({
 
           {/* Timestamp */}
           {showTimestamp && !isFailed && (
-            <p className="text-[10px] text-muted-foreground mt-1 text-right">
-              Mensagem Enviada {formattedDate}
-            </p>
+            <div className="flex items-center justify-end gap-1.5 mt-1.5">
+              <span className="text-xs text-muted-foreground">{formattedDate}</span>
+              <MessageDeliveryStatus status={deliveryStatus} />
+            </div>
           )}
         </div>
       </div>
@@ -155,7 +156,7 @@ export function MessageBubble({
           <span className="text-xs font-medium text-foreground">
             {senderName || "Desconhecido"}
           </span>
-          <span className="text-[10px] text-muted-foreground">{formattedTime}</span>
+          <span className="text-xs text-muted-foreground">{formattedDate}</span>
         </div>
         
         {/* Bubble */}
@@ -189,8 +190,8 @@ export function MessageBubble({
         
         {/* Timestamp */}
         {showTimestamp && (
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Mensagem Recebida {formattedDate}
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {formattedDate}
           </p>
         )}
       </div>
