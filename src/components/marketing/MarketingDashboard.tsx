@@ -9,7 +9,6 @@ import {
   MousePointer, 
   Eye,
   AlertTriangle,
-  TrendingUp,
   ArrowRight
 } from 'lucide-react';
 import { useMarketingUsage } from '@/hooks/useMarketingSettings';
@@ -19,17 +18,18 @@ import type { MarketingCampaign } from '@/types/marketing';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import { CampaignDetailDialog } from './CampaignDetailDialog';
 import { ReengagementCard } from './ReengagementCard';
 import { DynamicSegmentsPanel } from './DynamicSegmentsPanel';
+import { CampaignAdvisorBanner } from './CampaignAdvisorBanner';
+import { HealthScoreCard } from './HealthScoreCard';
+import { SmartSendTimeCard } from './SmartSendTimeCard';
 
 interface MarketingDashboardProps {
   onCreateCampaign?: () => void;
 }
 
 export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps) {
-  const navigate = useNavigate();
   const { data: usage, isLoading: usageLoading } = useMarketingUsage();
   const { data: campaigns = [], isLoading: campaignsLoading } = useMarketingCampaigns();
   
@@ -43,7 +43,6 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
 
   const recentCampaigns = campaigns.slice(0, 5);
   
-  // Calculate aggregate stats
   const sentCampaigns = campaigns.filter(c => c.status === 'sent');
   const totalSent = sentCampaigns.reduce((sum, c) => sum + c.sentCount, 0);
   const totalDelivered = sentCampaigns.reduce((sum, c) => sum + c.deliveredCount, 0);
@@ -58,8 +57,43 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
 
   return (
     <div className="space-y-6">
-      {/* Usage Stats */}
+      {/* AI Advisor Banner */}
+      <CampaignAdvisorBanner onCreateCampaign={onCreateCampaign} />
+
+      {/* Health Score + Smart Send Time + Key Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <HealthScoreCard />
+        <SmartSendTimeCard />
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxa de Abertura</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{avgOpenRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalOpened} aberturas de {totalDelivered} entregues
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Taxa de Cliques</CardTitle>
+            <MousePointer className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{avgClickRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalClicked} cliques de {totalDelivered} entregues
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Usage Stats */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Emails Enviados</CardTitle>
@@ -94,32 +128,6 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
             <Progress value={contactsUsagePercent} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
               {contactsUsagePercent.toFixed(0)}% do limite
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Abertura</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgOpenRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalOpened} aberturas de {totalDelivered} entregues
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Cliques</CardTitle>
-            <MousePointer className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgClickRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {totalClicked} cliques de {totalDelivered} entregues
             </p>
           </CardContent>
         </Card>
@@ -169,9 +177,7 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
                           {CAMPAIGN_STATUS_LABELS[campaign.status]}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {campaign.subject}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{campaign.subject}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(campaign.createdAt), "d 'de' MMMM, yyyy", { locale: pt })}
                       </p>
@@ -221,7 +227,6 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
         </Card>
       )}
 
-      {/* Campaign Detail Dialog */}
       <CampaignDetailDialog
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}

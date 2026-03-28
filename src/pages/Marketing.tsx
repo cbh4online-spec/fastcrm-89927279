@@ -40,6 +40,7 @@ import { WebhookEventsPanel } from '@/components/marketing/WebhookEventsPanel';
 import { CampaignLandingPages } from '@/components/marketing/CampaignLandingPages';
 import { CampaignReportExport } from '@/components/marketing/CampaignReportExport';
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
+import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { toast } from 'sonner';
 
 export default function Marketing() {
@@ -163,6 +164,10 @@ export default function Marketing() {
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Multi-Canal</span>
               </TabsTrigger>
+              <TabsTrigger value="automations" className="gap-1.5">
+                <GitBranch className="h-4 w-4" />
+                <span className="hidden sm:inline">Automações</span>
+              </TabsTrigger>
               <TabsTrigger value="analytics" className="gap-1.5">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Analytics</span>
@@ -204,6 +209,10 @@ export default function Marketing() {
 
           <TabsContent value="multicanal" className="space-y-6">
             <MultichannelSequenceBuilder />
+          </TabsContent>
+
+          <TabsContent value="automations" className="space-y-6">
+            <LifecycleAutomations />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
