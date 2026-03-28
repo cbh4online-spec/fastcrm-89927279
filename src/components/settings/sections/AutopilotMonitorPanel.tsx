@@ -41,7 +41,12 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof Zap; color
   skipped: { label: "Ignorado", icon: Activity, color: "text-muted-foreground", badgeVariant: "outline" },
 };
 
-export function AutopilotMonitorPanel() {
+interface AutopilotMonitorPanelProps {
+  conversationId?: string;
+  compact?: boolean;
+}
+
+export function AutopilotMonitorPanel({ conversationId, compact }: AutopilotMonitorPanelProps = {}) {
   const { currentWorkspace } = useWorkspace();
   const [events, setEvents] = useState<AutopilotEvent[]>([]);
   const [stats, setStats] = useState<EventStats>({ total: 0, triggered: 0, response_sent: 0, errors: 0 });
@@ -52,12 +57,18 @@ export function AutopilotMonitorPanel() {
     if (!currentWorkspace?.id) return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("autopilot_events")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(compact ? 20 : 50);
+
+      if (conversationId) {
+        query = query.eq("conversation_id", conversationId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
