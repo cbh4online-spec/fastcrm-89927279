@@ -26,6 +26,7 @@ export function RenewalAlerts() {
   }
 
   const grouped = {
+    payment_failed: alerts.filter(a => a.type === "payment_failed"),
     overdue: alerts.filter(a => a.type === "overdue"),
     upcoming_7: alerts.filter(a => a.type === "upcoming_7"),
     low_pack: alerts.filter(a => a.type === "low_pack"),
