@@ -76,6 +76,7 @@ const HEADER_TAG_COLORS: Record<string, string> = {
 };
 const DEFAULT_HEADER_TAG = "bg-primary/10 text-primary border-primary/20";
 
+const TEMPERATURE_CONFIG = {
   hot: { icon: Flame, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Quente' },
   warm: { icon: ThermometerSun, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', label: 'Morno' },
   cold: { icon: Snowflake, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Frio' },
