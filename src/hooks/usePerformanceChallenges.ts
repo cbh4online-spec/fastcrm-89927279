@@ -70,6 +70,8 @@ export function useChallengeParticipants(challengeId: string | null) {
       if (error) throw error;
 
       const userIds = (data || []).map((p: any) => p.user_id);
+      if (!userIds.length) return [] as ChallengeParticipant[];
+
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
@@ -106,6 +108,64 @@ export function useCreateChallenge() {
   });
 }
 
+export function useUpdateChallenge() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<PerformanceChallenge> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("performance_challenges")
+        .update(updates as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["performance-challenges"] });
+    },
+  });
+}
+
+export function useDeleteChallenge() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("performance_challenges")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["performance-challenges"] });
+      queryClient.invalidateQueries({ queryKey: ["challenge-participants"] });
+    },
+  });
+}
+
+export function useUpdateChallengeStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from("performance_challenges")
+        .update({ status } as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["performance-challenges"] });
+    },
+  });
+}
+
 export function useJoinChallenge() {
   const queryClient = useQueryClient();
 
@@ -118,6 +178,24 @@ export function useJoinChallenge() {
         .single();
       if (error) throw error;
       return data;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["challenge-participants", vars.challengeId] });
+    },
+  });
+}
+
+export function useLeaveChallenge() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ challengeId, userId }: { challengeId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("challenge_participants")
+        .delete()
+        .eq("challenge_id", challengeId)
+        .eq("user_id", userId);
+      if (error) throw error;
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["challenge-participants", vars.challengeId] });
