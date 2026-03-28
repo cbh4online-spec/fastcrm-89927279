@@ -112,6 +112,12 @@ Write complete, well-structured content with an introduction, main sections, and
     } else if (action === "improve_content") {
       systemPrompt = `You are an expert editor. Improve the following eBook chapter content in Portuguese (PT-PT). Enhance clarity, engagement, and structure. Keep markdown formatting. Return only the improved content.`;
       userPrompt = chapterContext || "";
+    } else if (action === "condense_content") {
+      systemPrompt = `You are an expert editor. Condense the following eBook chapter content in Portuguese (PT-PT). Keep only the key points, main arguments and essential information. Reduce length by about 40-50% while maintaining clarity and value. Keep markdown formatting. Return only the condensed content.`;
+      userPrompt = chapterContext || "";
+    } else if (action === "expand_content") {
+      systemPrompt = `You are an expert eBook writer. Expand and enrich the following content in Portuguese (PT-PT). Add more detail, examples, practical tips, and deeper explanations. Increase length by about 50-80%. Keep markdown formatting. Return only the expanded content.`;
+      userPrompt = chapterContext || "";
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
