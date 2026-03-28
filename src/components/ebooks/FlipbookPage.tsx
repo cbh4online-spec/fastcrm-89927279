@@ -94,16 +94,17 @@ export function FlipbookPage({ page }: FlipbookPageProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto prose prose-sm max-w-none font-serif
-        prose-p:leading-[1.85] prose-p:text-slate-700 prose-p:mb-4 prose-p:text-[13.5px]
-        prose-headings:text-slate-900 prose-headings:font-bold prose-headings:font-serif prose-headings:text-base prose-headings:mb-3 prose-headings:mt-4
+      <div className="flex-1 overflow-y-auto prose prose-sm max-w-none font-serif text-slate-800
+        prose-p:leading-[1.85] prose-p:!text-slate-800 prose-p:mb-4 prose-p:text-[13.5px]
+        prose-headings:!text-slate-900 prose-headings:font-bold prose-headings:font-serif prose-headings:text-base prose-headings:mb-3 prose-headings:mt-4
         prose-h2:border-l-2 prose-h2:border-amber-600/30 prose-h2:pl-3
-        prose-blockquote:border-amber-600/30 prose-blockquote:bg-amber-50/50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-sm
+        prose-blockquote:border-amber-600/30 prose-blockquote:bg-amber-50/50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-sm prose-blockquote:!text-slate-700
         prose-img:rounded-lg prose-img:shadow-md prose-img:mx-auto prose-img:my-4 prose-img:max-h-48
-        prose-strong:text-slate-800
-        prose-ul:text-slate-700 prose-ol:text-slate-700 prose-li:text-[13.5px]
+        prose-strong:!text-slate-900
+        prose-ul:!text-slate-800 prose-ol:!text-slate-800 prose-li:text-[13.5px] prose-li:!text-slate-800
         prose-code:bg-amber-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
         [&>p:first-of-type]:first-letter:text-4xl [&>p:first-of-type]:first-letter:font-bold [&>p:first-of-type]:first-letter:text-amber-800 [&>p:first-of-type]:first-letter:float-left [&>p:first-of-type]:first-letter:mr-2 [&>p:first-of-type]:first-letter:mt-0.5 [&>p:first-of-type]:first-letter:leading-none [&>p:first-of-type]:first-letter:font-serif
+        [&_*]:!text-slate-800 [&_h1]:!text-slate-900 [&_h2]:!text-slate-900 [&_h3]:!text-slate-900 [&_strong]:!text-slate-900
       ">
         <ReactMarkdown
           components={{
