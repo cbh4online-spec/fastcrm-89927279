@@ -1,61 +1,52 @@
 
 
-# Simplificar Criação de Fluxos para Utilizadores Não-Técnicos
+# Multi-Widget com Associação de Agente
 
 ## Problema
 
-O diálogo atual de criação de fluxos assume conhecimento técnico: pede nome, descrição, objetivo, persona, bases de conhecimento, e canais — tudo de uma vez. Os templates existentes são específicos (Pharliss, Dr. Kraut) e não servem para casos genéricos. Não há opção de descrever o que se quer em linguagem natural.
+Atualmente o sistema só suporta **1 widget por workspace** (query com `.limit(1)`) e não há campo para associar um agente IA ao widget. O widget já tem `default_persona_id` e `default_flow_id`, mas falta o **agente**.
 
-## Solução — 3 Melhorias
+## Solução
 
-### 1. Wizard Guiado (Step-by-Step)
+### 1. Migração DB — Adicionar `default_agent_id`
 
-Substituir o formulário único por um wizard de 4 passos com progresso visual:
+```sql
+ALTER TABLE public.widget_configurations 
+ADD COLUMN default_agent_id UUID REFERENCES public.ai_agents(id) ON DELETE SET NULL;
+```
 
-| Passo | Conteúdo | Ajuda |
-|-------|----------|-------|
-| **1. O que quer fazer?** | Escolher categoria visual (Vendas, Suporte, Onboarding, FAQ, Agendamento, Personalizado) | Cards grandes com ícone e descrição |
-| **2. Detalhes** | Nome (pré-preenchido pela categoria), descrição opcional | Sugestão automática de nome |
-| **3. Configuração** | Persona + Knowledge Bases (com explicação do que cada um faz) | Tooltips explicativos |
-| **4. Canais** | Checkboxes com ícones visuais dos canais | Recomendação automática baseada na categoria |
+O agente associado define o comportamento completo do widget (persona + fluxo + knowledge bases herdados do agente).
 
-Barra de progresso no topo. Botões "Anterior" / "Seguinte" / "Criar". Pode saltar passos opcionais.
+### 2. Reescrever `WidgetTab.tsx` — Lista de Widgets
 
-### 2. Templates Genéricos
+Substituir o wrapper simples por uma **lista de cards**:
 
-Adicionar 4 templates universais ao `FLOW_TEMPLATES`:
+- Cada card mostra: nome, cor, agente associado, status (ativo/inativo), domínios
+- Botão **"Criar Widget"** abre dialog de criação
+- Ações por card: **Editar**, **Duplicar**, **Eliminar**, **Testar**
+- Query sem `.limit(1)` para buscar todos os widgets do workspace
 
-- **Suporte ao Cliente** — Triagem, recolha de problema, encaminhamento para agente
-- **Onboarding** — Boas-vindas, recolha de dados, tour guiado
-- **FAQ Interativo** — Menu de perguntas frequentes com respostas automáticas
-- **Agendamento** — Recolha de data/hora preferida, confirmação, lembrete
+### 3. Adicionar Selector de Agente ao Formulário
 
-Cada template com passos pré-configurados, variáveis, e canais recomendados.
+No tab **Comportamento** do `WidgetConfigPanel`, adicionar dropdown de agente:
 
-### 3. Geração por IA
+- Lista agentes ativos do workspace (canal `widget`)
+- Quando selecionado, o agente traz consigo persona e fluxo configurados
+- Os campos de persona/fluxo manuais ficam como **override** (só usados se não houver agente)
+- Tooltip explica a hierarquia: "O agente define a personalidade e fluxo. Pode sobrepor manualmente abaixo."
 
-Novo tab no wizard: **"Descrever com IA"** — o utilizador escreve em linguagem natural o que quer (ex: "quero um fluxo que qualifique leads de imobiliário") e a IA gera automaticamente nome, passos, variáveis e conexões.
+### 4. Adaptar `WidgetConfigPanel` para modo multi-widget
 
-- Textarea com placeholder exemplificativo
-- Botão "Gerar Fluxo" que chama edge function com prompt
-- Preview do resultado antes de confirmar
-- Usa o modelo Lovable AI (sem API key necessária)
+- Recebe `widgetId` como prop (em vez de buscar o primeiro)
+- Abre em dialog/sheet quando se clica num card
+- Botão guardar cria ou atualiza conforme o caso
 
 ## Ficheiros
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/flow-builder/CreateFlowDialog.tsx` | Reescrever como wizard multi-step com 3 modos (wizard, template, IA) |
-| `src/components/flow-builder/FlowTemplates.tsx` | Adicionar 4 templates genéricos |
-| `src/components/flow-builder/FlowWizardSteps.tsx` | **Novo** — componentes dos 4 passos do wizard |
-| `src/components/flow-builder/GenerateFlowAI.tsx` | **Novo** — textarea + chamada IA para gerar fluxo |
-
-## UX Final
-
-O diálogo abre com 3 opções visuais grandes:
-1. 🧙 **Assistente Guiado** — "Responda algumas perguntas e criamos o fluxo"
-2. 📋 **Usar Template** — "Comece com um modelo pronto"  
-3. ✨ **Descrever com IA** — "Diga o que precisa e a IA cria por si"
-
-Cada opção leva a um percurso diferente, todos terminando na criação do fluxo.
+| **Migração SQL** | Adicionar coluna `default_agent_id` |
+| `src/components/ai-assistants/WidgetTab.tsx` | Reescrever como lista multi-widget |
+| `src/components/chat-widget/WidgetConfigPanel.tsx` | Aceitar `widgetId` prop, adicionar selector de agente |
+| `supabase/functions/chat-widget/index.ts` | Carregar agente associado quando disponível |
 
