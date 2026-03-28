@@ -213,11 +213,11 @@ export function ENIContactDetailWithSidebar() {
               companyId={(contact as any).company_id}
               contactId={contact.id}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />
               <ContactLifecycleSection contact={contact} onFieldChange={handleFieldChange} />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <CustomerJourneySection contactId={id} />
               <AIJourneySuggestionsPanel 
                 entityType="contact" 
