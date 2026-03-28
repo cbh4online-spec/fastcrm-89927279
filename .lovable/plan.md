@@ -1,76 +1,51 @@
 
 
-## Auditoria: Score, Temperatura, Scores e Ciclo de Vida no Lead Detail
+## Campo Gestor editável em Leads, Contactos e Empresas
 
-### Bugs encontrados
+### Situação actual
 
-Analisei a screenshot vs. o código e encontrei **4 problemas concretos**:
+- As 3 tabelas (`leads`, `contacts`, `companies`) já possuem o campo `assigned_to` (UUID nullable)
+- O `EntityContextSidebar` mostra o gestor read-only **mas recebe `assignedUser` como prop** — nenhum componente pai envia esta prop, logo aparece sempre vazio
+- Não existe nenhum seletor para alterar o gestor
 
----
+### Plano
 
-### Bug 1: Score contraditório (90 vs 75)
+**1. Criar `EntityOwnerSelector.tsx`** — componente reutilizável
+- Dropdown com lista de membros do workspace (via `useWorkspaceMembers`)
+- Avatar + nome de cada membro
+- Opção "Sem gestor" para limpar
+- Ao selecionar, faz `update` na tabela correspondente (`leads`/`contacts`/`companies`)
+- Mostra o gestor atual com avatar quando já atribuído
 
-O **Destaques** mostra "Score 90/100" e o card **Score** em baixo mostra "75". São fontes de dados diferentes:
-- `EntityHighlightsGrid` lê `lead.lead_score` (campo na tabela `leads`)
-- `ScoreTemperatureDisplay` lê o resultado da Edge Function `ai-entity-insights` (nunca persiste)
+**2. Integrar no `EntityContextSidebar`**
+- Substituir o card "Responsável" read-only pelo novo `EntityOwnerSelector`
+- Buscar o perfil do `assigned_to` via query à tabela `profiles`
+- Permitir edição inline (click no nome → abre dropdown)
 
-**Causa**: Quando a IA calcula o score (75), esse valor **não é escrito de volta** na tabela `leads`. O `lead_score` na tabela ficou com um valor antigo (90) de outra fonte (ex: importação, enriquecimento).
+**3. Integrar no `EntityHighlightsGrid`**
+- Adicionar highlight "Gestor" que mostra nome+avatar do responsável
+- Se não atribuído, mostrar badge "Sem gestor" com ação rápida para atribuir
 
-**Fix**: Após `ai-entity-insights` retornar, escrever `score.value` → `lead_score` e `score.temperature` → `ai_temperature` na tabela `leads`.
+**4. Integrar nas tabelas de lista**
+- A coluna `assigned_to` já existe em `SmartLeadsTable` (hidden por defeito) — garantir que resolve o UUID para nome do perfil
 
----
+### Ficheiros
 
-### Bug 2: Temperatura contraditória (Frio vs Morno)
-
-Mesmo problema — o **Destaques** mostra "Frio" (da tabela `leads.ai_temperature`) e o card Score mostra "Morno" (do resultado da IA). Sem sync, ficam dessincronizados.
-
-**Fix**: Incluído no fix do Bug 1 — persistir `ai_temperature` junto com o score.
-
----
-
-### Bug 3: ICP Fit, Engagement e PARE sempre 0%
-
-O `LeadScoresCard` lê `lead.icp_fit_score`, `lead.engagement_score`, `lead.pare_score` — campos que **só são atualizados manualmente** (clique do utilizador). Nenhuma análise de IA preenche estes campos automaticamente.
-
-**Fix**: Quando a IA analisa o lead, calcular e preencher estes 3 scores com base nos fatores da análise (ex: ICP Fit a partir de perfil/setor, Engagement a partir de interações, PARE a partir de fatores de risco).
-
----
-
-### Bug 4: "Última Atividade" usa timestamp errado
-
-O `EntityHighlightsGrid` usa `entity.updated_at` — que é o timestamp da última atualização do registo na BD (qualquer campo). Não reflete a última atividade real (email, chamada, tarefa).
-
-**Fix**: Consultar `activity_logs` ou `tasks` para encontrar a data da última interação real.
-
----
-
-### Ciclo de Vida — sem bug
-
-O `LeadLifecycleSection` funciona correctamente: lê `lead.status` e permite alterá-lo via clique. Está a funcionar como esperado.
-
----
-
-### Plano de correção
-
-| Ficheiro | Alteração |
+| Ficheiro | Ação |
 |---|---|
-| `src/hooks/useAIInsights.ts` | Após receber resultado da IA, fazer `update` na tabela `leads` com `lead_score`, `ai_temperature` e os 3 sub-scores |
-| `supabase/functions/ai-entity-insights/index.ts` | Incluir cálculo de `icp_fit_score`, `engagement_score`, `pare_score` no output |
-| `src/components/entity/EntityHighlightsGrid.tsx` | Usar `last_contact_at` como fallback para Última Atividade (campo já existente na tabela) |
+| `src/components/entity/EntityOwnerSelector.tsx` | Criar — dropdown de seleção de gestor |
+| `src/components/entity/EntityContextSidebar.tsx` | Alterar — usar EntityOwnerSelector em vez do card estático |
+| `src/components/entity/EntityHighlightsGrid.tsx` | Alterar — mostrar gestor nos destaques |
+| `src/components/entity/EntityDetailLayout.tsx` | Alterar — passar callbacks de update ao sidebar |
 
-### Fluxo corrigido
+### Fluxo
 
 ```text
-AI Entity Insights executa
-  → retorna score, temperature, factors
-  → hook useAIInsights persiste na tabela leads:
-      lead_score = score.value
-      ai_temperature = score.temperature
-      icp_fit_score = factors.icp_fit
-      engagement_score = factors.engagement
-      pare_score = factors.pare
-  → EntityHighlightsGrid lê da tabela → dados consistentes
-  → ScoreTemperatureDisplay lê do resultado IA → mesmos dados
-  → LeadScoresCard lê da tabela → preenchido automaticamente
+EntityDetailLayout
+  └── EntityContextSidebar
+        └── EntityOwnerSelector
+              ├── useWorkspaceMembers() → lista de membros
+              ├── supabase.from(table).update({ assigned_to }) → persiste
+              └── queryClient.invalidateQueries() → refresh UI
 ```
 
