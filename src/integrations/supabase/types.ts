@@ -12376,6 +12376,7 @@ export type Database = {
       }
       community_events: {
         Row: {
+          agenda: Json | null
           capacity: number | null
           cover_image_url: string | null
           created_at: string
@@ -12394,7 +12395,10 @@ export type Database = {
           location_url: string | null
           metadata: Json | null
           price: number | null
+          recurring_rule: string | null
+          registration_url: string | null
           rsvp_required: boolean | null
+          speakers: Json | null
           starts_at: string
           status: string | null
           tags: string[] | null
@@ -12402,6 +12406,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          agenda?: Json | null
           capacity?: number | null
           cover_image_url?: string | null
           created_at?: string
@@ -12420,7 +12425,10 @@ export type Database = {
           location_url?: string | null
           metadata?: Json | null
           price?: number | null
+          recurring_rule?: string | null
+          registration_url?: string | null
           rsvp_required?: boolean | null
+          speakers?: Json | null
           starts_at: string
           status?: string | null
           tags?: string[] | null
@@ -12428,6 +12436,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          agenda?: Json | null
           capacity?: number | null
           cover_image_url?: string | null
           created_at?: string
@@ -12446,7 +12455,10 @@ export type Database = {
           location_url?: string | null
           metadata?: Json | null
           price?: number | null
+          recurring_rule?: string | null
+          registration_url?: string | null
           rsvp_required?: boolean | null
+          speakers?: Json | null
           starts_at?: string
           status?: string | null
           tags?: string[] | null
@@ -19233,6 +19245,7 @@ export type Database = {
       }
       event_rsvps: {
         Row: {
+          checked_in_at: string | null
           contact_id: string | null
           created_at: string | null
           email: string | null
@@ -19247,6 +19260,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          checked_in_at?: string | null
           contact_id?: string | null
           created_at?: string | null
           email?: string | null
@@ -19261,6 +19275,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          checked_in_at?: string | null
           contact_id?: string | null
           created_at?: string | null
           email?: string | null
