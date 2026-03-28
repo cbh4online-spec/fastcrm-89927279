@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Plus, Trash2, Sparkles, Loader2,
   BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3,
-  Image, Upload, Wand2, Coins
+  Image, Upload, Wand2, Coins, Minimize2, Maximize2
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,6 +183,44 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || chapter.content);
       toast.success("Conteúdo melhorado!");
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+  };
+
+  const condenseContent = async (chapter: EbookChapter) => {
+    if (!chapter.content) return;
+    if (!canAfford("ebook_condense_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Condensar Conteúdo", creditsNeeded: getCost("ebook_condense_content") });
+      return;
+    }
+    setGenerating(chapter.id);
+    try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_condense_content", referenceType: "ebook", referenceId: ebookId });
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "condense_content", chapterContext: chapter.content },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      updateChapter(chapter.id, "content", data?.content || chapter.content);
+      toast.success("Conteúdo condensado!");
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+  };
+
+  const expandContent = async (chapter: EbookChapter) => {
+    if (!chapter.content) return;
+    if (!canAfford("ebook_expand_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Expandir Conteúdo", creditsNeeded: getCost("ebook_expand_content") });
+      return;
+    }
+    setGenerating(chapter.id);
+    try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_expand_content", referenceType: "ebook", referenceId: ebookId });
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "expand_content", chapterContext: chapter.content },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      updateChapter(chapter.id, "content", data?.content || chapter.content);
+      toast.success("Conteúdo expandido!");
     } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
@@ -390,10 +428,20 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                           <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
                         </Button>
                         {activeChapter.content && (
-                          <Button variant="outline" size="sm" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
-                            <Sparkles className="h-4 w-4 mr-1" />Melhorar
-                            <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_improve_content")}</span>
-                          </Button>
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
+                              <Sparkles className="h-4 w-4 mr-1" />Melhorar
+                              <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_improve_content")}</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => condenseContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
+                              <Minimize2 className="h-4 w-4 mr-1" />Condensar
+                              <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_condense_content")}</span>
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => expandContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
+                              <Maximize2 className="h-4 w-4 mr-1" />Expandir
+                              <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_expand_content")}</span>
+                            </Button>
+                          </>
                         )}
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeChapter(activeChapter.id)}>
                           <Trash2 className="h-4 w-4" />

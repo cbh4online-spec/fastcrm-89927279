@@ -18549,11 +18549,14 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          image_keywords: string[] | null
+          image_style: string | null
           metadata: Json | null
           pdf_storage_path: string | null
           slug: string | null
           status: string
           subtitle: string | null
+          theme: string | null
           title: string
           updated_at: string
           workspace_id: string
@@ -18566,11 +18569,14 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_keywords?: string[] | null
+          image_style?: string | null
           metadata?: Json | null
           pdf_storage_path?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null
+          theme?: string | null
           title: string
           updated_at?: string
           workspace_id: string
@@ -18583,11 +18589,14 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_keywords?: string[] | null
+          image_style?: string | null
           metadata?: Json | null
           pdf_storage_path?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null
+          theme?: string | null
           title?: string
           updated_at?: string
           workspace_id?: string
