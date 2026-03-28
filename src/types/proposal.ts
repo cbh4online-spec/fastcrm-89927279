@@ -13,7 +13,7 @@ export type CurrencyCode = typeof SUPPORTED_CURRENCIES[number]['code'];
 
 export interface ContentBlock {
   id: string;
-  type: 'text' | 'image' | 'offer' | 'testimonials' | 'faq' | 'divider' | 'cta';
+  type: 'text' | 'image' | 'offer' | 'testimonials' | 'faq' | 'divider' | 'cta' | 'pricing_table' | 'team' | 'guarantee' | 'video' | 'metrics' | 'signature';
   content: Record<string, unknown>;
   order: number;
 }
