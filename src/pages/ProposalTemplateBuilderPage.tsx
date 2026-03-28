@@ -1,4 +1,4 @@
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProposalTemplateBuilder } from "@/components/proposals/ProposalTemplateBuilder";
 
 export default function ProposalTemplateBuilderPage() {
