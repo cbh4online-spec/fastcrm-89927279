@@ -65,7 +65,17 @@ interface EntityDetailHeaderProps {
   onTagsChange?: (tags: string[]) => void;
 }
 
-const TEMPERATURE_CONFIG = {
+const HEADER_TAG_COLORS: Record<string, string> = {
+  red: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20",
+  blue: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  green: "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20",
+  yellow: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  purple: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  pink: "bg-pink-500/15 text-pink-700 dark:text-pink-400 border-pink-500/20",
+  orange: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20",
+};
+const DEFAULT_HEADER_TAG = "bg-primary/10 text-primary border-primary/20";
+
   hot: { icon: Flame, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Quente' },
   warm: { icon: ThermometerSun, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30', label: 'Morno' },
   cold: { icon: Snowflake, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Frio' },
