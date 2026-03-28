@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { B2BEmailTemplatesManager } from "@/components/b2b-portal/B2BEmailTemplatesManager";
 import { 
   Settings, 
   ExternalLink, 
@@ -362,45 +363,9 @@ export default function B2BPortalSettingsPage() {
           </TabsContent>
 
           <TabsContent value="emails" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Templates de Email</CardTitle>
-                <CardDescription>
-                  Personalizar emails enviados aos clientes
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {emailTemplates.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhum template de email configurado</p>
-                    <p className="text-sm">Os emails usarão o template padrão</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {emailTemplates.map((template: any) => (
-                      <div 
-                        key={template.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{template.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {template.template_type}
-                            </p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          Editar
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {currentWorkspace?.id && (
+              <B2BEmailTemplatesManager workspaceId={currentWorkspace.id} />
+            )}
           </TabsContent>
 
           <TabsContent value="access" className="space-y-4">
