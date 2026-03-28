@@ -1,98 +1,115 @@
 
 
-# C2C Marketplace — Analytics Reais, Trending e Tráfego
+# B2B Portal — Backoffice Completo e Portal Premium
 
-## Diagnóstico
+## Visão Geral
 
-1. **Estatísticas mortas**: A RPC `increment_listing_views` existe na BD mas nunca é chamada — `views_count` é sempre 0.
-2. **Sem analytics de plataforma**: Não existe dashboard com métricas globais do marketplace (tráfego, conversões, tendências).
-3. **Trending é estático**: Não há algoritmo — os "destaques" são apenas `is_featured` manual.
-4. **SEO básico**: As páginas públicas já usam `Helmet` e `SchemaOrgProduct`, mas faltam Open Graph tags otimizadas para WhatsApp/Facebook.
-5. **Notificações existem** mas são limitadas a mensagens e ofertas — não há alertas de novos produtos em categorias favoritas ou descidas de preço.
+Duas frentes paralelas: um **dashboard admin potente** para gestão dos utilizadores do portal, e um **redesign premium do portal do cliente** com personalização por marca e widgets interativos.
 
-## Plano de Implementação
+---
 
-### 1. View Tracking Real
-Chamar `increment_listing_views` em ambas as páginas de detalhe (pública e interna) quando um listing é visualizado, com debounce por sessão para evitar inflação.
+## Parte 1 — Backoffice Admin (Vista Interna)
 
-**Ficheiros**: `C2CPublicListingDetail.tsx`, `C2CListingDetail.tsx`
+### Dashboard de Analytics de Utilizadores
 
-### 2. Dashboard de Analytics do Marketplace
-Criar uma página de analytics para admin/super admin com:
-- **KPIs**: Total listings ativos, vendidos, views totais, vendas do mês, taxa de conversão (views → ofertas → vendas)
-- **Gráfico de tendência**: Listings criados e vendas por semana (últimas 12 semanas)
-- **Top listings**: Mais vistos, mais ofertas
-- **Categorias**: Revenue e volume por categoria
-- Dados calculados por queries directas às tabelas `c2c_listings`, `c2c_orders`, `c2c_commissions`
+Expandir a página `ClientUsersPage` com um dashboard completo:
 
-**Ficheiros**: Novo `src/pages/c2c/C2CMarketplaceAnalytics.tsx`, novo `src/hooks/useMarketplaceAnalytics.ts`, update routes
+- **KPIs expandidos**: Utilizadores activos/inativos, último login, sessões esta semana, taxa de activação (convites → activos)
+- **Gráfico de actividade**: Logins por dia/semana nos últimos 30 dias (Recharts AreaChart)
+- **Tabela de últimos logins**: Utilizador, hora, páginas visitadas, duração da sessão
+- **Alertas de inactividade**: Clientes sem login há 14+ dias, destacados a vermelho
 
-### 3. Algoritmo de Trending/Destaque Automático
-- **Score de trending** calculado client-side: `views_count * 1 + offers_count * 5 + recency_bonus`
-- Secções automáticas no marketplace: "Em Alta" (top por score), "Novidades" (últimos 7 dias), "Mais Vistos"
-- Substituir/complementar o `is_featured` manual com este ranking dinâmico
+Dados extraídos das tabelas `client_users` (campo `last_login_at` se existir, ou `activity_logs` com eventos B2B).
 
-**Ficheiros**: Update `C2CMarketplace.tsx` e `C2CPublicMarketplace.tsx`
+### Gestão Avançada de Clientes
 
-### 4. SEO e Partilha Social Otimizada
-- Adicionar Open Graph meta tags (`og:title`, `og:description`, `og:image`, `og:price:amount`) nas páginas públicas de listing e marketplace
-- Gerar URLs amigáveis com slug do produto quando possível
-- Twitter Card tags para partilha rica
+Adicionar acções directas na lista de clientes:
 
-**Ficheiros**: Update `C2CPublicListingDetail.tsx`, `C2CPublicMarketplace.tsx`
+- **Bloquear/Desbloquear**: Toggle de status `active` ↔ `suspended`
+- **Reset Password**: Chamar edge function `create-client-auth-user` com novas credenciais
+- **Editar Permissões**: Dialog para alterar role (`client_admin`, `client_financial`, `client_operational`, `client_viewer`)
+- **Histórico de Acções**: Timeline de actividade do cliente (encomendas, logins, alterações) via `activity_logs`
 
-### 5. Notificações Push de Engagement
-- **Novos produtos em categorias favoritas**: Quando um listing é criado numa categoria que o utilizador tem nos favoritos, criar notificação
-- **Descida de preço**: Trigger ao editar listing com preço inferior ao anterior
-- **Atividade nos favoritos**: Notificar quando um listing favorito recebe oferta ou está "quase vendido"
-- Implementar via inserção na tabela `c2c_notifications` existente (já tem realtime configurado)
+### Visão Comercial
 
-**Ficheiros**: Update `src/hooks/useC2CListings.ts` (ao criar/editar listing), novo `src/hooks/useC2CPriceAlerts.ts`
+Nova secção com insights de negócio:
+
+- **Ranking de clientes**: Top 10 por volume de encomendas, valor total, frequência
+- **Volume por cliente**: Gráfico de barras horizontal com os maiores compradores
+- **Alertas comerciais**: Clientes com queda de volume >30%, clientes sem encomenda há 30+ dias
+- **Métricas de conversão**: Taxa catálogo→carrinho→encomenda
+
+### Ficheiros
+
+| Ficheiro | Acção |
+|---|---|
+| `src/pages/ClientUsersPage.tsx` | **Editar** — Adicionar tabs: Visão Geral, Clientes, Comercial |
+| `src/hooks/useClientAnalytics.ts` | **Criar** — Queries para analytics de portal |
+| `src/components/client-users/ClientAnalyticsDashboard.tsx` | **Criar** — Dashboard com gráficos |
+| `src/components/client-users/ClientCommercialInsights.tsx` | **Criar** — Rankings e alertas |
+| `src/components/client-users/ClientUsersList.tsx` | **Editar** — Adicionar acções de gestão |
+| `src/components/client-users/ClientActivityTimeline.tsx` | **Criar** — Timeline de actividade |
+
+---
+
+## Parte 2 — Portal do Cliente (Vista Externa)
+
+### Redesign Premium do Dashboard
+
+Transformar o `ClientDashboardPage` com estética sofisticada:
+
+- **Cards com gradientes**: KPIs com fundo gradient (ex: `from-blue-500/10 to-blue-600/5`), bordas subtis, sombras `shadow-lg`
+- **Animações de entrada**: `animate-fade-in` com delay escalonado por card (stagger)
+- **Gráficos animados**: Transições suaves no BarChart, tooltips estilizados
+- **Layout premium**: Mais espaçamento, tipografia hierárquica, ícones com fundo circular colorido
+- **Quick Actions redesenhados**: Cards com hover elevado, gradientes subtis, iconografia premium
+
+### Personalização por Marca (Workspace Branding)
+
+Extender o sistema de branding existente na `ClientLayout`:
+
+- **Cores dinâmicas**: Ler `primary_color` do workspace e aplicar como CSS variables no portal
+- **Logo em contexto**: Logo do workspace no header, footer e páginas de loading
+- **Tema adaptativo**: Se o workspace tem cores definidas, aplicá-las nos botões, badges e acentos
+
+Usar dados já existentes na tabela `workspaces` (`logo_url`, `primary_color`).
+
+### Widgets Interativos
+
+- **Notificações em tempo real**: Badge pulsante no header com novas mensagens/status de encomenda
+- **Atalhos inteligentes**: Se o carrinho tem itens, mostrar CTA destacado; se há encomendas pendentes, mostrar status card
+- **Gráfico de evolução animado**: AreaChart com gradient fill e animação de reveal
+- **Reorder rápido**: Widget "Última Encomenda → Repetir" com um clique
+
+### Ficheiros
+
+| Ficheiro | Acção |
+|---|---|
+| `src/pages/client/ClientDashboardPage.tsx` | **Editar** — Redesign completo com visual premium |
+| `src/components/client-portal/ClientLayout.tsx` | **Editar** — Theming dinâmico por workspace |
+| `src/components/client-portal/ClientNotificationBadge.tsx` | **Criar** — Badge de notificações real-time |
+| `src/components/client-portal/QuickReorderWidget.tsx` | **Criar** — Widget de re-encomenda rápida |
+
+---
 
 ## Detalhe Técnico
 
-### View Tracking (debounce)
 ```text
-// Na página de detalhe:
-useEffect(() => {
-  const key = `c2c_viewed_${listingId}`;
-  if (sessionStorage.getItem(key)) return;
-  sessionStorage.setItem(key, "1");
-  supabase.rpc("increment_listing_views", { p_listing_id: listingId });
-}, [listingId]);
+Backoffice Analytics Query:
+  SELECT cu.id, cu.name, cu.email, cu.status, cu.last_login_at,
+         count(on.id) as total_orders,
+         sum(on.total_gross) as total_value
+  FROM client_users cu
+  LEFT JOIN order_notes on ON on.client_user_id = cu.id
+  WHERE cu.workspace_id = ?
+  GROUP BY cu.id
+  ORDER BY total_value DESC
+
+Portal Theming:
+  // Na ClientLayout, aplicar CSS variables:
+  document.documentElement.style.setProperty('--portal-primary', workspace.primary_color);
+  // Usar var(--portal-primary) nos componentes do portal
 ```
 
-### Trending Score
-```text
-score = views_count + (offers_count * 5) + max(0, 14 - days_since_created) * 3
-```
-Ordenar listings por score descendente para a secção "Em Alta".
-
-### Analytics Queries
-```text
--- KPIs
-SELECT count(*) FILTER (status='active') as active,
-       count(*) FILTER (status='sold') as sold,
-       sum(views_count) as total_views
-FROM c2c_listings WHERE workspace_id = ?
-
--- Weekly trend (listings + sales)
-SELECT date_trunc('week', created_at) as week, count(*) 
-FROM c2c_listings WHERE created_at > now() - interval '12 weeks'
-GROUP BY 1 ORDER BY 1
-```
-
-## Ficheiros Resumo
-
-| Ficheiro | Ação |
-|---|---|
-| `src/hooks/useMarketplaceAnalytics.ts` | **Criar** — queries para KPIs, tendências, top listings |
-| `src/pages/c2c/C2CMarketplaceAnalytics.tsx` | **Criar** — dashboard com gráficos Recharts |
-| `src/pages/c2c/C2CPublicListingDetail.tsx` | **Editar** — view tracking + OG meta tags |
-| `src/pages/c2c/C2CListingDetail.tsx` | **Editar** — view tracking |
-| `src/pages/c2c/C2CPublicMarketplace.tsx` | **Editar** — trending algorithm + OG tags |
-| `src/pages/c2c/C2CMarketplace.tsx` | **Editar** — secções trending/mais vistos |
-| `src/hooks/useC2CListings.ts` | **Editar** — notificações ao criar listing |
-| `src/hooks/useC2CPriceAlerts.ts` | **Criar** — lógica de alertas de preço |
-| Routes file | **Editar** — adicionar rota analytics |
+Total: ~10 ficheiros, 4 novos componentes, 2 novos hooks.
 
