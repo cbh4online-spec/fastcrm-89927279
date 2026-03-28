@@ -7,7 +7,8 @@ import { useReportDashboards } from "@/hooks/useReportDashboards";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Download, Plus } from "lucide-react";
+import { exportWidgetsCSV } from "@/utils/reportExport";
 import { useState, useMemo } from "react";
 
 export default function ReportDashboardView() {

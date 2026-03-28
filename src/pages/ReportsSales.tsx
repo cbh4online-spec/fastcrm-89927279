@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, Download, RefreshCw } from "lucide-react";
+import { Calendar, Download, FileSpreadsheet, FileText, RefreshCw } from "lucide-react";
 import { useSalesPerformance } from "@/hooks/useSalesPerformance";
+import { exportSalesReportCSV, exportSalesReportPDF } from "@/utils/reportExport";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { SalesKPIStrip } from "@/components/reports/sales/SalesKPIStrip";
 import { LeadFlowChart } from "@/components/reports/sales/LeadFlowChart";
@@ -47,9 +49,23 @@ export default function ReportsSales() {
             <Button variant="outline" size="icon" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon">
-              <Download className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" disabled={isLoading || !data}>
+                  <Download className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => data && exportSalesReportCSV(data)}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  {t("export_csv", "Exportar CSV")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => data && exportSalesReportPDF(data)}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  {t("export_pdf", "Exportar PDF")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
