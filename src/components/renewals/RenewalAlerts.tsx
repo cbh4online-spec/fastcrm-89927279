@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Calendar, Clock, Package, ArrowRight } from "lucide-react";
 
 const ALERT_CONFIG: Record<RenewalAlert["type"], { icon: typeof AlertTriangle; label: string; color: string; badgeClass: string }> = {
+  payment_failed: { icon: AlertTriangle, label: "Pgto. Falhado", color: "text-red-700", badgeClass: "bg-red-200 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
   overdue: { icon: AlertTriangle, label: "Em Atraso", color: "text-red-600", badgeClass: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   upcoming_7: { icon: Calendar, label: "Próx. 7 dias", color: "text-yellow-600", badgeClass: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
   low_pack: { icon: Clock, label: "Pack Baixo", color: "text-orange-600", badgeClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
