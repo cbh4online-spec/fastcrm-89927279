@@ -35,6 +35,8 @@ interface EntityDetailLayoutProps {
     proposals?: number;
     contacts?: number;
   };
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => void;
   children: ReactNode;
 }
 
