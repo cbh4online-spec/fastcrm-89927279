@@ -40,7 +40,7 @@ export interface BulkEditField {
 interface BulkEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entityType: CrmEntityType;
+  entityType: CrmEntityType | "leads";
   selectedCount: number;
   fields: BulkEditField[];
   onApply: (changes: Record<string, unknown>) => Promise<void>;

@@ -247,7 +247,7 @@ export function BulkActionsBar({
         <BulkEditDialog
           open={bulkEditOpen}
           onOpenChange={setBulkEditOpen}
-          entityType={entityType}
+          entityType={entityType as any}
           selectedCount={selectedCount}
           fields={editableFields}
           onApply={onBulkEdit}
