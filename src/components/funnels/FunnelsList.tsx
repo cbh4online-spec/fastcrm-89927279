@@ -960,57 +960,7 @@ export function FunnelsList() {
       </Dialog>
 
       {/* Create Vertical Dialog */}
-      <Dialog open={createVerticalOpen} onOpenChange={setCreateVerticalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Vertical</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome</Label>
-              <Input
-                value={verticalName}
-                onChange={(e) => {
-                  setVerticalName(e.target.value);
-                  setVerticalSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""));
-                }}
-                placeholder="Ex: Clínicas Dentárias"
-              />
-            </div>
-            <div>
-              <Label>Slug</Label>
-              <Input value={verticalSlug} onChange={(e) => setVerticalSlug(e.target.value)} placeholder="clinicas-dentarias" />
-            </div>
-            <div>
-              <Label>Descrição (opcional)</Label>
-              <Textarea
-                value={verticalDesc}
-                onChange={(e) => setVerticalDesc(e.target.value)}
-                placeholder="Funis focados em clínicas dentárias..."
-                rows={2}
-              />
-            </div>
-            <div>
-              <Label>Cor</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={verticalColor}
-                  onChange={(e) => setVerticalColor(e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer border-0"
-                />
-                <Input value={verticalColor} onChange={(e) => setVerticalColor(e.target.value)} className="flex-1" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateVerticalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateVertical} disabled={!verticalName || !verticalSlug || createVertical.isPending}>
-              Criar Vertical
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateVerticalDialog open={createVerticalOpen} onOpenChange={setCreateVerticalOpen} />
 
       {/* Delete Funnel Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
