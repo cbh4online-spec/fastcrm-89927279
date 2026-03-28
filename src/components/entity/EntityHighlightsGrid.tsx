@@ -137,17 +137,17 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
         <div className="h-0.5 w-4 bg-primary rounded-full" />
         Destaques
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         {cards.map((card, i) => {
           const Icon = card.icon;
           return (
             <div
               key={i}
-              className="rounded-lg border bg-card p-3 space-y-1"
+              className="rounded-lg border bg-card p-2 space-y-0.5"
             >
               <div className="flex items-center gap-1.5">
                 <Icon className={cn('h-3.5 w-3.5', card.color)} />
