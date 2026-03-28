@@ -77,10 +77,6 @@ export function FunnelsList() {
 
   // Vertical state
   const [createVerticalOpen, setCreateVerticalOpen] = useState(false);
-  const [verticalName, setVerticalName] = useState("");
-  const [verticalSlug, setVerticalSlug] = useState("");
-  const [verticalDesc, setVerticalDesc] = useState("");
-  const [verticalColor, setVerticalColor] = useState("#6366f1");
   const [activeVerticalId, setActiveVerticalId] = useState<string | null>(null);
   const [deleteVerticalId, setDeleteVerticalId] = useState<string | null>(null);
 
