@@ -426,8 +426,59 @@ export function ProposalsList() {
     }
   };
 
-  const renderProposalsContent = () => (
+  const renderProposalsContent = () => {
+    const acceptedCount = (proposals || []).filter(p => p.status === "accepted").length;
+    const allTotal = (proposals || []).length;
+    const conversionRate = allTotal > 0 ? Math.round((acceptedCount / allTotal) * 100) : 0;
+    const avgValue = allTotal > 0 ? Math.round(totalValue / allTotal) : 0;
+
+    return (
     <>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+        <Card
+          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
+          onClick={() => { setActiveFilterId(undefined); setStatusFilter(undefined); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Total</span>
+          </div>
+          <p className="text-xl font-bold">{totalProposals}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Total</span>
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalValue)}</p>
+        </Card>
+        <Card
+          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
+          onClick={() => { setActiveFilterId("status_accepted"); setStatusFilter("accepted"); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <span className="text-xs text-muted-foreground">Aceitas</span>
+          </div>
+          <p className="text-xl font-bold">{acceptedCount}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Percent className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Conversão</span>
+          </div>
+          <p className="text-xl font-bold">{conversionRate}%</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Médio</span>
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(avgValue)}</p>
+        </Card>
+      </div>
+
       {/* Toolbar */}
       <Toolbar
         searchValue={searchValue}
@@ -439,6 +490,9 @@ export function ProposalsList() {
         onClearFilters={() => {
           setActiveFilterId(undefined);
           setStatusFilter(undefined);
+          setValueFilter(undefined);
+          setTimingFilter(undefined);
+          setPerfFilter(undefined);
         }}
         sortOptions={sortOptions}
         sortValue={sortValue}
