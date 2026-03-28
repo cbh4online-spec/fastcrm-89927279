@@ -119,33 +119,12 @@ export function ProposalTemplatesList() {
     });
   };
 
-  const handleSave = async (data: {
-    name: string;
-    description: string;
-    content_blocks: ContentBlock[];
-    cta_text: string;
-    cta_color: string;
-  }) => {
-    if (editingTemplate) {
-      await updateTemplate.mutateAsync({
-        id: editingTemplate.id,
-        ...data,
-      });
-    } else {
-      await createTemplate.mutateAsync(data);
-    }
-    setFormOpen(false);
-    setEditingTemplate(null);
-  };
-
   const handleDelete = async () => {
     if (deleteId) {
       await deleteTemplate.mutateAsync(deleteId);
       setDeleteId(null);
     }
   };
-
-  const isSaving = createTemplate.isPending || updateTemplate.isPending;
 
   return (
     <div className="space-y-6">
