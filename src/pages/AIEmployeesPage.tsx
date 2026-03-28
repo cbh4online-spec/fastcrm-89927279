@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useBots } from "@/hooks/useBots";
+import { useBots, Bot } from "@/hooks/useBots";
 import { BotCard } from "@/components/ai-employees/BotCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
