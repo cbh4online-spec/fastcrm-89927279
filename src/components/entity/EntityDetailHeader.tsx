@@ -204,6 +204,43 @@ export function EntityDetailHeader({
               
               {statusBadge}
               {extraBadges}
+
+              {/* Inline Tags */}
+              {tags && tags.length > 0 && tags.map((tag, i) => {
+                const wt = workspaceTags.find((t) => t.name === tag.toLowerCase());
+                const colorClass = wt?.color ? HEADER_TAG_COLORS[wt.color] || DEFAULT_HEADER_TAG : DEFAULT_HEADER_TAG;
+                return (
+                  <Badge key={i} variant="outline" className={cn("text-xs gap-1 pr-1", colorClass)}>
+                    {tag}
+                    {onTagsChange && (
+                      <button type="button" onClick={() => onTagsChange(tags.filter((_, j) => j !== i))} className="ml-0.5 hover:opacity-70">
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                );
+              })}
+
+              {/* Add tag button */}
+              {onTagsChange && (
+                <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <button type="button" className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-dashed border-muted-foreground/30 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                      <Plus className="h-3 w-3" />
+                      Tag
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2" align="start">
+                    <EntityTagEditor
+                      value={tags || []}
+                      onChange={(newTags) => {
+                        onTagsChange(newTags);
+                      }}
+                      placeholder="Adicionar etiqueta..."
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
             
             <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2">
