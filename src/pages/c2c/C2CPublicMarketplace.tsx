@@ -18,6 +18,7 @@ import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOver
 import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
 import { useC2CSponsoredListings } from "@/hooks/useC2CBoost";
 import type { C2CListing, C2CCategory, C2CListingFilters } from "@/hooks/useC2CListings";
+import { getTrendingScore } from "@/hooks/useMarketplaceAnalytics";
 import {
   Store, Search, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft,
   ShieldCheck, Truck, Award, MessageCircle, Plus, Users, ArrowRight,
@@ -459,6 +460,14 @@ export default function C2CPublicMarketplace() {
     [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 12),
     [listings]
   );
+  const trendingListings = useMemo(() =>
+    [...listings].sort((a, b) => getTrendingScore(b) - getTrendingScore(a)).slice(0, 12),
+    [listings]
+  );
+  const mostViewedListings = useMemo(() =>
+    [...listings].sort((a, b) => (b.views_count || 0) - (a.views_count || 0)).slice(0, 12),
+    [listings]
+  );
 
   const hasActiveFilters = filters.search || filters.category || filters.condition || filters.minPrice || filters.maxPrice;
   const showBrowse = showListings || hasActiveFilters;
@@ -611,6 +620,26 @@ export default function C2CPublicMarketplace() {
                 title="Destaques"
                 icon={<Sparkles className="h-5 w-5 text-amber-400" />}
                 listings={featuredListings}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
+                sponsoredIds={sponsoredIds}
+              />
+            )}
+
+            {trendingListings.length > 0 && (
+              <SectionCarousel
+                title="Em Alta 🔥"
+                icon={<TrendingUp className="h-5 w-5 text-amber-400" />}
+                listings={trendingListings}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
+                sponsoredIds={sponsoredIds}
+              />
+            )}
+
+            {mostViewedListings.length > 0 && mostViewedListings[0].views_count > 0 && (
+              <SectionCarousel
+                title="Mais Vistos"
+                icon={<Eye className="h-5 w-5 text-amber-400" />}
+                listings={mostViewedListings}
                 onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
               />
