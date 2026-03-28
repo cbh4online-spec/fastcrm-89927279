@@ -1,55 +1,61 @@
 
 
-# Auditoria e Melhorias das Personas IA
+# Simplificar Criação de Fluxos para Utilizadores Não-Técnicos
 
-## Estado Atual
+## Problema
 
-As Personas têm **duas camadas desconectadas**:
+O diálogo atual de criação de fluxos assume conhecimento técnico: pede nome, descrição, objetivo, persona, bases de conhecimento, e canais — tudo de uma vez. Os templates existentes são específicos (Pharliss, Dr. Kraut) e não servem para casos genéricos. Não há opção de descrever o que se quer em linguagem natural.
 
-1. **Camada simples** (`PersonasTab.tsx` + `useKnowledgeBase`): CRUD básico com apenas nome, descrição, tipo e tom de voz. É o que aparece na UI (screenshot).
-2. **Camada avançada** (`useAIPersonas.ts` + `ai-persona-chat` edge function): Suporta vibe profiles, backstory, expertise domain, system prompt compilado, RAG com knowledge bases, temperature, max tokens, fallback message — mas **nada disto está exposto na UI**.
+## Solução — 3 Melhorias
 
-Existem também **componentes prontos mas não usados**:
-- `PersonaTestChat.tsx` — chat de teste funcional, nunca importado na tab
-- `GeneratePersonaDialog.tsx` — geração de persona por IA, nunca importado na tab
+### 1. Wizard Guiado (Step-by-Step)
 
-## O Que Falta
+Substituir o formulário único por um wizard de 4 passos com progresso visual:
 
-### 1. Integrar componentes existentes na PersonasTab
-- Adicionar botão **"Gerar com IA"** que abre o `GeneratePersonaDialog`
-- Adicionar botão **"Testar"** em cada card que abre o `PersonaTestChat`
+| Passo | Conteúdo | Ajuda |
+|-------|----------|-------|
+| **1. O que quer fazer?** | Escolher categoria visual (Vendas, Suporte, Onboarding, FAQ, Agendamento, Personalizado) | Cards grandes com ícone e descrição |
+| **2. Detalhes** | Nome (pré-preenchido pela categoria), descrição opcional | Sugestão automática de nome |
+| **3. Configuração** | Persona + Knowledge Bases (com explicação do que cada um faz) | Tooltips explicativos |
+| **4. Canais** | Checkboxes com ícones visuais dos canais | Recomendação automática baseada na categoria |
 
-### 2. Expandir o formulário de criação/edição
-O formulário atual só tem 4 campos. Adicionar:
-- **Vibe Profile** — dropdown para associar um perfil de vibe existente
-- **System Prompt** — textarea para prompt personalizado
-- **Backstory** — textarea para personalidade/história
-- **Expertise Domain** — campo de texto
-- **Fallback Message** — mensagem quando não sabe responder
-- **Temperature** — slider (0-1)
-- **Max Tokens** — input numérico
-- **Knowledge Bases** — multi-select para associar bases de conhecimento
+Barra de progresso no topo. Botões "Anterior" / "Seguinte" / "Criar". Pode saltar passos opcionais.
 
-### 3. Melhorar os cards de persona
-- Badge de **status** (ativo/draft/arquivado) com toggle
-- Indicador de **persona padrão** (estrela) com ação para definir
-- Tags mostrando onde está ativa: Inbox, Copilot, Portal B2B
-- Contagem de bases de conhecimento associadas
+### 2. Templates Genéricos
 
-### 4. Conectar personas aos agentes
-- No formulário de agente (`AIAgentForm`), adicionar dropdown para selecionar persona
-- O agente herda o comportamento da persona quando em execução
+Adicionar 4 templates universais ao `FLOW_TEMPLATES`:
 
-## Ficheiros a Editar
+- **Suporte ao Cliente** — Triagem, recolha de problema, encaminhamento para agente
+- **Onboarding** — Boas-vindas, recolha de dados, tour guiado
+- **FAQ Interativo** — Menu de perguntas frequentes com respostas automáticas
+- **Agendamento** — Recolha de data/hora preferida, confirmação, lembrete
+
+Cada template com passos pré-configurados, variáveis, e canais recomendados.
+
+### 3. Geração por IA
+
+Novo tab no wizard: **"Descrever com IA"** — o utilizador escreve em linguagem natural o que quer (ex: "quero um fluxo que qualifique leads de imobiliário") e a IA gera automaticamente nome, passos, variáveis e conexões.
+
+- Textarea com placeholder exemplificativo
+- Botão "Gerar Fluxo" que chama edge function com prompt
+- Preview do resultado antes de confirmar
+- Usa o modelo Lovable AI (sem API key necessária)
+
+## Ficheiros
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/ai-assistants/PersonasTab.tsx` | Reescrever — usar `useAIPersonas` em vez de `useKnowledgeBase`, integrar TestChat e GenerateDialog, expandir formulário |
-| `src/components/ai-assistants/PersonaTestChat.tsx` | Sem alterações (já funcional) |
-| `src/components/ai-assistants/GeneratePersonaDialog.tsx` | Sem alterações (já funcional) |
-| `src/components/ai-agents/AIAgentForm.tsx` | Adicionar selector de persona |
+| `src/components/flow-builder/CreateFlowDialog.tsx` | Reescrever como wizard multi-step com 3 modos (wizard, template, IA) |
+| `src/components/flow-builder/FlowTemplates.tsx` | Adicionar 4 templates genéricos |
+| `src/components/flow-builder/FlowWizardSteps.tsx` | **Novo** — componentes dos 4 passos do wizard |
+| `src/components/flow-builder/GenerateFlowAI.tsx` | **Novo** — textarea + chamada IA para gerar fluxo |
 
-## Resultado
+## UX Final
 
-Personas passam de CRUD simples a sistema completo: criação manual ou por IA, configuração rica (vibe, prompt, RAG, temperature), teste em tempo real, e integração com agentes.
+O diálogo abre com 3 opções visuais grandes:
+1. 🧙 **Assistente Guiado** — "Responda algumas perguntas e criamos o fluxo"
+2. 📋 **Usar Template** — "Comece com um modelo pronto"  
+3. ✨ **Descrever com IA** — "Diga o que precisa e a IA cria por si"
+
+Cada opção leva a um percurso diferente, todos terminando na criação do fluxo.
 
