@@ -78,7 +78,14 @@ export function SmartFormBuilder({ form, onBack, onPreview }: SmartFormBuilderPr
   const [settings, setSettings] = useState<FormSettings>(form?.settings || DEFAULT_SETTINGS);
   const [conditions, setConditions] = useState<ConditionalRule[]>(form?.conditions || []);
   const [webhooks, setWebhooks] = useState<Array<{ id: string; url: string; events: string[]; headers: Record<string, string>; isActive: boolean; retryCount: number }>>([]);
-  const [thankYouConfig, setThankYouConfig] = useState({
+  const [thankYouConfig, setThankYouConfig] = useState<{
+    message: string;
+    redirectUrl?: string;
+    showCta: boolean;
+    ctaText?: string;
+    ctaUrl?: string;
+    calendarUrl?: string;
+  }>({
     message: form?.settings?.successMessage || 'Obrigado pela sua submissão!',
     redirectUrl: form?.settings?.redirectUrl,
     showCta: false,
