@@ -36,6 +36,7 @@ async function uploadEbookImage(file: File, path: string): Promise<string | null
 export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { data: ebook, isLoading } = useEbook(ebookId);
   const updateEbook = useUpdateEbook();
+  const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
