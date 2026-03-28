@@ -1,82 +1,36 @@
 
 
-# Redesign Premium dos eBooks — 3 Páginas
+# Migrar Marketplace para Base de Dados
 
-## 1. EbooksList — Lista de eBooks
+## Problema
+A página Marketplace usa `SAMPLE_MODULES` — um array hardcoded com 27 módulos. A base de dados tem 30 módulos (faltam `seo-growth`, `proposals`, `invoices` no código). Qualquer módulo novo adicionado à DB não aparece porque a página nunca consulta a DB.
 
-**Header premium**
-- Gradiente subtil de fundo, ícone BookOpen com container gradient (azul/purple), badge "Biblioteca" 
-- Contador de eBooks e palavras totais como KPIs inline
+## Solução
+Substituir `SAMPLE_MODULES` por dados da DB no `Marketplace.tsx`, mantendo compatibilidade com os componentes existentes (`ModuleCard`, `ModuleDetailSheet`, etc.).
 
-**Cards dos eBooks redesenhados**
-- Cover placeholder com gradiente (ou imagem real se existir `cover_url`)
-- Overlay com título e subtítulo sobre o gradient
-- Barra de progresso visual (capítulos com conteúdo vs vazios)
-- Badge de status com cores distintas (verde publicado, âmbar rascunho)
-- Hover com `framer-motion` scale + shadow elevation
-- Footer com autor, contagem de capítulos e palavras
+## Alterações
 
-**Estado vazio premium**
-- Ilustração maior com gradiente, texto motivacional, dois CTAs (Manual + IA)
+### 1. Actualizar `useMarketplaceModules` hook
+- Expandir a query para incluir todos os campos necessários: `target_audience`, `expected_results`, `use_cases`, `internal_type`, `permissions`, `embedded_config`, `publisher`, `reviews_count`
+- Mapear o resultado da DB para o tipo `MarketplaceModule` existente, fazendo cast dos campos JSONB (`pricing`, `permissions`, `expected_results`, etc.)
 
-**Dialog de criação melhorado**
-- Tabs visuais em vez de botões toggle para Manual/IA
-- Ícones com backgrounds coloridos para cada modo
+### 2. Refactorizar `Marketplace.tsx`
+- Substituir todas as referências a `SAMPLE_MODULES` por `modules` retornado do hook `useMarketplaceModules`
+- Adicionar estado de loading enquanto carrega da DB
+- Manter toda a lógica de filtros, tabs e pesquisa existente
 
----
+### 3. Refactorizar `MarketplaceAdmin.tsx`
+- Substituir `SAMPLE_MODULES` pelo mesmo hook de DB
 
-## 2. EbookEditor — Editor de Capítulos
+### 4. Refactorizar `InstalledModules.tsx`
+- Substituir lookup de `SAMPLE_MODULES.find()` por dados vindos da DB (receber módulo como prop ou usar hook)
 
-**Header executivo**
-- Breadcrumb: eBooks > Título do eBook
-- Stats bar: capítulos, palavras totais, progresso de escrita (barra visual)
-- Botões com gradientes (Publicar = gradient primário, Ver = outline premium)
-
-**Sidebar de capítulos melhorada**
-- Card com header gradient subtil
-- Cada capítulo com indicador visual de estado (check verde = tem conteúdo, ponto âmbar = vazio)
-- Drag handle estilizado com hover
-- Botão adicionar com estilo dashed border + ícone
-
-**Área de edição**
-- Toolbar flutuante com botões IA estilizados (gradient sparkles)
-- Separação visual entre edit/preview com tabs animadas
-- Preview com tipografia melhorada e espaçamento de livro real
-- Placeholder com ilustração e dicas visuais
-
-**Animações**
-- `framer-motion` nos cards da sidebar e transição edit/preview
-
----
-
-## 3. PublicEbookPage — Leitor Público
-
-**Header sticky premium**
-- Gradiente subtil, logo/branding, barra de progresso de leitura (scroll-based)
-- Título com tipografia serif/display
-
-**Sidebar de índice**
-- Indicador visual do capítulo actual (barra lateral colorida)
-- Ícone de check para capítulos já lidos (estado local)
-- Hover suave com background gradient
-
-**Área de conteúdo**
-- Tipografia de livro (maior, melhor line-height, max-width optimizado para leitura)
-- Headings com decoração visual (barra lateral colorida)
-- Blockquotes e code blocks estilizados premium
-
-**Navegação entre capítulos**
-- Cards de "próximo capítulo" com preview do título e descrição
-- Animação de transição ao mudar de capítulo
-
-**Footer do capítulo**
-- Autor, data de publicação, partilha social
-
----
+### 5. Manter `SAMPLE_MODULES` como fallback
+- Não apagar o array — mantê-lo como seed/referência mas remover a dependência directa nas páginas
 
 ## Detalhes técnicos
-- Usar `framer-motion` (já no projecto) para animações staggered
-- Manter toda a lógica existente — apenas redesenhar a camada visual
-- Seguir a paleta premium do dashboard (gradientes `from-primary/10`, borders `border-primary/20`)
-- 3 ficheiros alterados: `EbooksList.tsx`, `EbookEditor.tsx`, `PublicEbookPage.tsx`
+- O tipo `MarketplaceModule` continua a ser o contrato dos componentes — a transformação DB→tipo acontece no hook
+- Campos JSONB (`pricing`, `permissions`, `expected_results`, `use_cases`, `embedded_config`) são cast no hook com defaults seguros
+- A query traz `SELECT *` ou campos explícitos da tabela `marketplace_modules`
+- Ficheiros alterados: `useMarketplaceModules.ts`, `Marketplace.tsx`, `MarketplaceAdmin.tsx`, `InstalledModules.tsx`
 
