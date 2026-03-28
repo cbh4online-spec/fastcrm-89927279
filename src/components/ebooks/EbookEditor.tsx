@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useEbook, useUpdateEbook, EbookChapter } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Plus, Trash2, Sparkles, Loader2,
-  BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3
+  BookOpen, Globe, CheckCircle2, Circle, FileText, BarChart3,
+  Image, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,15 @@ interface EbookEditorProps {
   onBack: () => void;
 }
 
+async function uploadEbookImage(file: File, path: string): Promise<string | null> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const filePath = `${path}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("ebook-assets").upload(filePath, file, { upsert: true });
+  if (error) { toast.error("Erro no upload: " + error.message); return null; }
+  const { data } = supabase.storage.from("ebook-assets").getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
 export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { data: ebook, isLoading } = useEbook(ebookId);
   const updateEbook = useUpdateEbook();
@@ -28,6 +38,10 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const [tempTitle, setTempTitle] = useState("");
   const [generating, setGenerating] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingChapterImg, setUploadingChapterImg] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const chapterImgRef = useRef<HTMLInputElement>(null);
 
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
     updateEbook.mutate({ id: ebookId, chapters });
@@ -56,28 +70,44 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     saveChapters(ebook.chapters.map((c) => (c.id === chapterId ? { ...c, [field]: value } : c)));
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !ebook) return;
+    setUploadingCover(true);
+    const url = await uploadEbookImage(file, `covers/${ebookId}`);
+    if (url) {
+      updateEbook.mutate({ id: ebookId, cover_url: url });
+      toast.success("Capa atualizada!");
+    }
+    setUploadingCover(false);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
+
+  const handleChapterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !ebook || !activeChapterId) return;
+    setUploadingChapterImg(true);
+    const url = await uploadEbookImage(file, `chapters/${ebookId}`);
+    if (url) {
+      saveChapters(ebook.chapters.map(c => c.id === activeChapterId ? { ...c, cover_image: url } : c));
+      toast.success("Imagem do capítulo atualizada!");
+    }
+    setUploadingChapterImg(false);
+    if (chapterImgRef.current) chapterImgRef.current.value = "";
+  };
+
   const generateChapterContent = async (chapter: EbookChapter) => {
     if (!ebook) return;
     setGenerating(chapter.id);
     try {
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
-        body: {
-          action: "generate_chapter",
-          title: ebook.title,
-          chapterTitle: chapter.title,
-          chapterContext: chapter.description || "",
-          tone: "Professional",
-        },
+        body: { action: "generate_chapter", title: ebook.title, chapterTitle: chapter.title, chapterContext: chapter.description || "", tone: "Professional" },
       });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || "");
       toast.success("Capítulo gerado com sucesso!");
-    } catch (e: any) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setGenerating(null);
-    }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const improveContent = async (chapter: EbookChapter) => {
@@ -91,18 +121,12 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || chapter.content);
       toast.success("Conteúdo melhorado!");
-    } catch (e: any) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setGenerating(null);
-    }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const publishEbook = () => {
     if (!ebook) return;
-    updateEbook.mutate({ id: ebookId, status: "published" }, {
-      onSuccess: () => toast.success("eBook publicado!"),
-    });
+    updateEbook.mutate({ id: ebookId, status: "published" }, { onSuccess: () => toast.success("eBook publicado!") });
   };
 
   if (isLoading || !ebook) {
@@ -113,13 +137,32 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const totalWords = ebook.chapters.reduce((sum, ch) => sum + (ch.content?.split(/\s+/).filter(Boolean).length || 0), 0);
   const filledChapters = ebook.chapters.filter(ch => ch.content && ch.content.trim().length > 0).length;
   const progress = ebook.chapters.length > 0 ? (filledChapters / ebook.chapters.length) * 100 : 0;
+  const activeChapterIndex = ebook.chapters.findIndex(c => c.id === activeChapterId);
 
   return (
     <div className="space-y-5">
-      {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 p-5">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative">
+      {/* Hidden file inputs */}
+      <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+      <input ref={chapterImgRef} type="file" accept="image/*" className="hidden" onChange={handleChapterImageUpload} />
+
+      {/* Header with cover preview */}
+      <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+        {/* Cover image band */}
+        <div className="relative h-28 overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-accent">
+          {ebook.cover_url ? (
+            <img src={ebook.cover_url} alt="" className="w-full h-full object-cover opacity-60" />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <button
+            onClick={() => coverInputRef.current?.click()}
+            disabled={uploadingCover}
+            className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur border border-border/60 text-xs font-medium hover:bg-background transition-all"
+          >
+            {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Image className="h-3 w-3" />}
+            {ebook.cover_url ? "Alterar capa" : "Adicionar capa"}
+          </button>
+        </div>
+        <div className="relative px-5 pb-5 -mt-8">
           <button onClick={onBack} className="text-xs text-primary hover:underline flex items-center gap-1 mb-2">
             <ArrowLeft className="h-3 w-3" /> eBooks
           </button>
@@ -135,39 +178,19 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   className="text-xl font-bold h-auto py-0 border-none shadow-none focus-visible:ring-0 px-0 bg-transparent"
                 />
               ) : (
-                <h1
-                  className="text-2xl font-bold cursor-pointer hover:text-primary transition-colors text-foreground"
-                  onClick={() => { setTempTitle(ebook.title); setEditingTitle(true); }}
-                >
+                <h1 className="text-2xl font-bold cursor-pointer hover:text-primary transition-colors text-foreground" onClick={() => { setTempTitle(ebook.title); setEditingTitle(true); }}>
                   {ebook.title}
                 </h1>
               )}
-              {/* Stats bar */}
               <div className="flex items-center gap-4 mt-3">
-                <Badge
-                  className={
-                    ebook.status === "published"
-                      ? "bg-emerald-500/90 text-white border-0"
-                      : "bg-amber-500/90 text-white border-0"
-                  }
-                >
+                <Badge className={ebook.status === "published" ? "bg-emerald-500/90 text-white border-0" : "bg-amber-500/90 text-white border-0"}>
                   {ebook.status === "published" ? "Publicado" : "Rascunho"}
                 </Badge>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    {ebook.chapters.length} capítulos
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5" />
-                    {totalWords.toLocaleString()} palavras
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    {Math.round(progress)}% completo
-                  </span>
+                  <span className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />{ebook.chapters.length} capítulos</span>
+                  <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" />{totalWords.toLocaleString()} palavras</span>
+                  <span className="flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />{Math.round(progress)}% completo</span>
                 </div>
-                {/* Mini progress */}
                 <div className="hidden md:flex items-center gap-2 flex-1 max-w-[200px]">
                   <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -193,7 +216,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
       {/* Main layout */}
       <div className="grid grid-cols-12 gap-5 min-h-[60vh]">
-        {/* Sidebar - chapters */}
+        {/* Sidebar */}
         <div className="col-span-3 space-y-2">
           <Card className="border-border/60 overflow-hidden">
             <CardHeader className="py-3 px-4 bg-gradient-to-r from-primary/5 to-transparent border-b border-border/40">
@@ -223,17 +246,10 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                           : "hover:bg-muted/70 border border-transparent"
                       )}
                     >
-                      {hasContent ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-amber-400 shrink-0" />
-                      )}
+                      {hasContent ? <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" /> : <Circle className="h-4 w-4 text-amber-400 shrink-0" />}
                       <span className="truncate flex-1">{ch.title}</span>
-                      {hasContent && (
-                        <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
-                          {ch.content!.split(/\s+/).filter(Boolean).length}w
-                        </span>
-                      )}
+                      {ch.cover_image && <Image className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      {hasContent && <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">{ch.content!.split(/\s+/).filter(Boolean).length}w</span>}
                     </motion.button>
                   );
                 })}
@@ -244,13 +260,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   <p className="text-xs text-muted-foreground">Adicione capítulos</p>
                 </div>
               )}
-              {/* Add chapter dashed button */}
-              <button
-                onClick={addChapter}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-primary border-2 border-dashed border-border/60 hover:border-primary/30 transition-all mt-2"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Adicionar capítulo</span>
+              <button onClick={addChapter} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-primary border-2 border-dashed border-border/60 hover:border-primary/30 transition-all mt-2">
+                <Plus className="h-3.5 w-3.5" /><span>Adicionar capítulo</span>
               </button>
             </CardContent>
           </Card>
@@ -260,15 +271,18 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
         <div className="col-span-9">
           <AnimatePresence mode="wait">
             {activeChapter ? (
-              <motion.div
-                key={activeChapter.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="h-full"
-              >
-                <Card className="h-full border-border/60">
+              <motion.div key={activeChapter.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="h-full">
+                <Card className="h-full border-border/60 overflow-hidden">
+                  {/* Chapter cover image */}
+                  {activeChapter.cover_image && (
+                    <div className="relative h-48 overflow-hidden">
+                      <img src={activeChapter.cover_image} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                      <div className="absolute bottom-4 left-6">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-primary/80">Capítulo {activeChapterIndex + 1}</span>
+                      </div>
+                    </div>
+                  )}
                   <CardHeader className="py-3 px-4 border-b border-border/40">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 mr-4">
@@ -280,83 +294,88 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         />
                       </div>
                       <div className="flex gap-1.5">
+                        {/* Chapter image upload */}
+                        <Button variant="outline" size="sm" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg} className="border-primary/20 hover:bg-primary/5">
+                          {uploadingChapterImg ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Image className="h-4 w-4 mr-1" />{activeChapter.cover_image ? "Imagem" : "Imagem"}</>}
+                        </Button>
                         {/* Edit/Preview tabs */}
                         <div className="flex bg-muted/50 rounded-md p-0.5 mr-1">
-                          <button
-                            onClick={() => setPreviewMode(false)}
-                            className={cn(
-                              "px-3 py-1 rounded text-xs font-medium transition-all",
-                              !previewMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
+                          <button onClick={() => setPreviewMode(false)} className={cn("px-3 py-1 rounded text-xs font-medium transition-all", !previewMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
                             Editar
                           </button>
-                          <button
-                            onClick={() => setPreviewMode(true)}
-                            className={cn(
-                              "px-3 py-1 rounded text-xs font-medium transition-all",
-                              previewMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
+                          <button onClick={() => setPreviewMode(true)} className={cn("px-3 py-1 rounded text-xs font-medium transition-all", previewMode ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
                             Preview
                           </button>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => generateChapterContent(activeChapter)}
-                          disabled={generating === activeChapter.id}
-                          className="border-primary/20 hover:bg-primary/5 text-primary"
-                        >
-                          {generating === activeChapter.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <><Sparkles className="h-4 w-4 mr-1" />Gerar</>
-                          )}
+                        <Button variant="outline" size="sm" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
+                          {generating === activeChapter.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 mr-1" />Gerar</>}
                         </Button>
                         {activeChapter.content && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => improveContent(activeChapter)}
-                            disabled={generating === activeChapter.id}
-                            className="border-primary/20 hover:bg-primary/5 text-primary"
-                          >
+                          <Button variant="outline" size="sm" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
                             <Sparkles className="h-4 w-4 mr-1" />Melhorar
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => removeChapter(activeChapter.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeChapter(activeChapter.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6 h-[calc(100%-60px)] overflow-y-auto">
+                  <CardContent className="p-0 h-[calc(100%-60px)] overflow-y-auto">
                     <AnimatePresence mode="wait">
                       {previewMode ? (
-                        <motion.div
-                          key="preview"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground/80 prose-p:leading-relaxed prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg"
-                        >
-                          <ReactMarkdown>{activeChapter.content || "*Sem conteúdo*"}</ReactMarkdown>
+                        <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          {/* Book-style preview */}
+                          <div className="bg-white dark:bg-card mx-auto max-w-[720px] py-12 px-16 shadow-[0_0_40px_rgba(0,0,0,0.06)] min-h-[60vh]">
+                            {activeChapter.cover_image && (
+                              <div className="mb-10 -mx-16 -mt-12 overflow-hidden rounded-t-lg">
+                                <img src={activeChapter.cover_image} alt="" className="w-full h-56 object-cover" />
+                              </div>
+                            )}
+                            {/* Chapter number + decorative line */}
+                            <div className="mb-8">
+                              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-primary/60">Capítulo {activeChapterIndex + 1}</span>
+                              <div className="w-16 h-0.5 bg-primary/30 mt-2 mb-4" />
+                              <h2 className="text-3xl font-bold text-foreground font-serif">{activeChapter.title}</h2>
+                            </div>
+                            {/* Drop cap + serif prose */}
+                            <div className="prose prose-lg dark:prose-invert max-w-none font-serif
+                              prose-p:leading-[1.9] prose-p:text-foreground/80 prose-p:mb-5
+                              prose-headings:text-foreground prose-headings:font-bold prose-headings:border-l-2 prose-headings:border-primary/30 prose-headings:pl-4 prose-headings:font-serif
+                              prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:py-3 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:font-serif prose-blockquote:text-base
+                              prose-img:rounded-xl prose-img:shadow-lg prose-img:mx-auto prose-img:my-8
+                              prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+                              prose-pre:bg-muted prose-pre:border prose-pre:border-border/50
+                              first:prose-p:first-letter:text-5xl first:prose-p:first-letter:font-bold first:prose-p:first-letter:text-primary first:prose-p:first-letter:float-left first:prose-p:first-letter:mr-3 first:prose-p:first-letter:mt-1 first:prose-p:first-letter:leading-none first:prose-p:first-letter:font-serif
+                            ">
+                              <ReactMarkdown
+                                components={{
+                                  img: ({ node, ...props }) => (
+                                    <figure className="my-8">
+                                      <img {...props} className="rounded-xl shadow-lg mx-auto max-w-full" />
+                                      {props.alt && <figcaption className="text-center text-sm text-muted-foreground mt-3 italic">{props.alt}</figcaption>}
+                                    </figure>
+                                  ),
+                                }}
+                              >
+                                {activeChapter.content || "*Sem conteúdo*"}
+                              </ReactMarkdown>
+                            </div>
+                            {/* Decorative footer */}
+                            <div className="flex items-center justify-center mt-16 gap-3">
+                              <div className="w-12 h-px bg-border" />
+                              <span className="text-xs text-muted-foreground font-serif italic">{ebook.title}</span>
+                              <div className="w-12 h-px bg-border" />
+                            </div>
+                          </div>
                         </motion.div>
                       ) : (
-                        <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
                           <Textarea
                             value={activeChapter.content}
                             onChange={(e) => updateChapter(activeChapter.id, "content", e.target.value)}
                             className="min-h-[50vh] resize-none border-none shadow-none focus-visible:ring-0 px-0 font-mono text-sm leading-relaxed bg-transparent"
-                            placeholder="Escreva o conteúdo do capítulo em Markdown...
-
-A IA pode gerar o conteúdo automaticamente — clique em 'Gerar' acima."
+                            placeholder="Escreva o conteúdo do capítulo em Markdown...&#10;&#10;Use ![legenda](url) para adicionar imagens inline.&#10;A IA pode gerar o conteúdo automaticamente — clique em 'Gerar' acima."
                           />
                         </motion.div>
                       )}
