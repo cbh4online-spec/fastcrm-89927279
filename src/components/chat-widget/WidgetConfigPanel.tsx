@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Palette, MessageCircle, Settings2, Code, RefreshCw, Play } from "lucide-react";
+import { Copy, ExternalLink, Palette, MessageCircle, Settings2, Code, RefreshCw, Play, Info, Bot } from "lucide-react";
 import { WidgetTestChat } from "./WidgetTestChat";
 
 interface WidgetConfig {
@@ -36,66 +37,78 @@ interface WidgetConfig {
   allowed_domains: string[];
   default_flow_id: string | null;
   default_persona_id: string | null;
+  default_agent_id: string | null;
   knowledge_base_ids: string[];
 }
 
-export function WidgetConfigPanel() {
+interface WidgetConfigPanelProps {
+  widgetId?: string;
+  onClose?: () => void;
+}
+
+export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [previewKey, setPreviewKey] = useState(0);
   const [showTestChat, setShowTestChat] = useState(false);
+  const isNew = !widgetId;
 
-  // Fetch widget config
+  // Fetch widget config by ID
   const { data: widget, isLoading } = useQuery({
-    queryKey: ["widget-config", currentWorkspace?.id],
+    queryKey: ["widget-config", widgetId],
     queryFn: async () => {
-      if (!currentWorkspace?.id) return null;
-
+      if (!widgetId) return null;
       const { data, error } = await supabase
         .from("widget_configurations" as any)
-        .select("id, name, primary_color, secondary_color, text_color, position, bubble_icon, welcome_message, placeholder_text, show_branding, avatar_url, company_name, require_email_before_chat, auto_open_delay_ms, custom_css, is_active, allowed_domains, default_flow_id, default_persona_id, knowledge_base_ids")
-        .eq("workspace_id", currentWorkspace.id)
-        .limit(1);
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data || data.length === 0) return null;
-      return data[0] as unknown as WidgetConfig;
+        .select("id, name, primary_color, secondary_color, text_color, position, bubble_icon, welcome_message, placeholder_text, show_branding, avatar_url, company_name, require_email_before_chat, auto_open_delay_ms, custom_css, is_active, allowed_domains, default_flow_id, default_persona_id, default_agent_id, knowledge_base_ids")
+        .eq("id", widgetId)
+        .single();
+      if (error) throw error;
+      return data as unknown as WidgetConfig;
     },
-    enabled: !!currentWorkspace?.id,
+    enabled: !!widgetId,
   });
 
-  // Fetch flows for selection
-  const { data: flows } = useQuery({
-    queryKey: ["flows-list", currentWorkspace?.id],
+  // Fetch agents (widget channel)
+  const { data: agents } = useQuery({
+    queryKey: ["widget-agents", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-
       const { data } = await supabase
-        .from("conversational_flows" as any)
-        .select("id, name, status")
+        .from("ai_agents" as any)
+        .select("id, name, channel, persona_id, flow_id")
         .eq("workspace_id", currentWorkspace.id)
-        .eq("status", "active");
-
+        .eq("is_active", true);
       return (data as any[]) || [];
     },
     enabled: !!currentWorkspace?.id,
   });
 
-  // Fetch personas for selection
+  // Fetch flows
+  const { data: flows } = useQuery({
+    queryKey: ["flows-list", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data } = await supabase
+        .from("conversational_flows" as any)
+        .select("id, name, status")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("status", "active");
+      return (data as any[]) || [];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  // Fetch personas
   const { data: personas } = useQuery({
     queryKey: ["personas-list", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-
       const { data } = await supabase
         .from("ai_personas")
         .select("id, name, is_active")
         .eq("workspace_id", currentWorkspace.id)
         .eq("is_active", true);
-
       return data || [];
     },
     enabled: !!currentWorkspace?.id,
@@ -103,7 +116,7 @@ export function WidgetConfigPanel() {
 
   // Form state
   const [formData, setFormData] = useState<Partial<WidgetConfig>>({
-    name: "Widget Principal",
+    name: "Novo Widget",
     primary_color: "#6366f1",
     secondary_color: "#f1f5f9",
     text_color: "#1e293b",
@@ -116,44 +129,36 @@ export function WidgetConfigPanel() {
     auto_open_delay_ms: 0,
     is_active: true,
     allowed_domains: [],
+    default_agent_id: null,
   });
 
-  // Update form when widget loads
   useEffect(() => {
-    if (widget) {
-      setFormData(widget);
-    }
+    if (widget) setFormData(widget);
   }, [widget]);
 
-  // Create/update widget
+  // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<WidgetConfig>) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
-
-      if (widget?.id) {
-        // Update
+      if (widgetId) {
         const { error } = await supabase
           .from("widget_configurations" as any)
           .update(data)
-          .eq("id", widget.id);
-
+          .eq("id", widgetId);
         if (error) throw error;
       } else {
-        // Create
         const { error } = await supabase
           .from("widget_configurations" as any)
-          .insert({
-            ...data,
-            workspace_id: currentWorkspace.id,
-          });
-
+          .insert({ ...data, workspace_id: currentWorkspace.id });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       toast.success("Widget guardado");
       queryClient.invalidateQueries({ queryKey: ["widget-config"] });
+      queryClient.invalidateQueries({ queryKey: ["widget-list"] });
       setPreviewKey((k) => k + 1);
+      if (isNew && onClose) onClose();
     },
     onError: (error) => {
       console.error("Error saving widget:", error);
@@ -161,17 +166,17 @@ export function WidgetConfigPanel() {
     },
   });
 
-  const handleSave = () => {
-    saveMutation.mutate(formData);
-  };
+  const handleSave = () => saveMutation.mutate(formData);
 
   const updateField = <K extends keyof WidgetConfig>(field: K, value: WidgetConfig[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // When agent is selected, show info about inherited persona/flow
+  const selectedAgent = agents?.find((a: any) => a.id === formData.default_agent_id);
+
   const getEmbedCode = () => {
-    if (!widget?.id) return "";
-    
+    if (!widgetId) return "";
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     return `<!-- FastCRM Chat Widget -->
 <script>
@@ -181,7 +186,7 @@ export function WidgetConfigPanel() {
     w.async = true;
     w.onload = function() {
       FastCRMWidget.init({
-        widgetId: '${widget.id}',
+        widgetId: '${widgetId}',
         supabaseUrl: '${supabaseUrl}'
       });
     };
@@ -207,38 +212,31 @@ export function WidgetConfigPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Widget de Chat</h2>
+          <h2 className="text-2xl font-bold">{isNew ? "Criar Widget" : "Editar Widget"}</h2>
           <p className="text-muted-foreground">
-            Configure o widget embeddable para o seu website
+            {isNew ? "Configure um novo widget de chat" : formData.name}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={formData.is_active ? "default" : "secondary"}>
             {formData.is_active ? "Ativo" : "Inativo"}
           </Badge>
-          {widget?.id && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowTestChat(true)}
-              className="gap-2"
-            >
+          {widgetId && (
+            <Button variant="outline" onClick={() => setShowTestChat(true)} className="gap-2">
               <Play className="h-4 w-4" />
-              Testar Chat
+              Testar
             </Button>
           )}
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? (
-              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
+            {saveMutation.isPending && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
             Guardar
           </Button>
         </div>
       </div>
 
-      {/* Test Chat Modal */}
-      {showTestChat && widget?.id && (
+      {showTestChat && widgetId && (
         <WidgetTestChat
-          widgetId={widget.id}
+          widgetId={widgetId}
           config={{
             primary_color: formData.primary_color || "#6366f1",
             secondary_color: formData.secondary_color || "#f1f5f9",
@@ -254,7 +252,6 @@ export function WidgetConfigPanel() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Configuration */}
         <div className="space-y-6">
           <Tabs defaultValue="appearance">
             <TabsList className="grid w-full grid-cols-4">
@@ -276,79 +273,19 @@ export function WidgetConfigPanel() {
               </TabsTrigger>
             </TabsList>
 
+            {/* ===== APPEARANCE TAB ===== */}
             <TabsContent value="appearance" className="space-y-4 mt-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Cores e Posição</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Identificação</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cor Principal</Label>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={formData.primary_color || "#6366f1"}
-                          onChange={(e) => updateField("primary_color", e.target.value)}
-                          className="h-10 w-10 rounded border cursor-pointer"
-                        />
-                        <Input
-                          value={formData.primary_color || ""}
-                          onChange={(e) => updateField("primary_color", e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cor Secundária</Label>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={formData.secondary_color || "#f1f5f9"}
-                          onChange={(e) => updateField("secondary_color", e.target.value)}
-                          className="h-10 w-10 rounded border cursor-pointer"
-                        />
-                        <Input
-                          value={formData.secondary_color || ""}
-                          onChange={(e) => updateField("secondary_color", e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cor do Texto</Label>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={formData.text_color || "#1e293b"}
-                          onChange={(e) => updateField("text_color", e.target.value)}
-                          className="h-10 w-10 rounded border cursor-pointer"
-                        />
-                        <Input
-                          value={formData.text_color || ""}
-                          onChange={(e) => updateField("text_color", e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label>Posição</Label>
-                    <Select
-                      value={formData.position || "bottom-right"}
-                      onValueChange={(v) => updateField("position", v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
-                        <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Nome do Widget</Label>
+                    <Input
+                      value={formData.name || ""}
+                      onChange={(e) => updateField("name", e.target.value)}
+                      placeholder="Ex: Widget Principal"
+                    />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Nome da Empresa</Label>
                     <Input
@@ -357,7 +294,6 @@ export function WidgetConfigPanel() {
                       placeholder="Aparece no header do widget"
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label>URL do Avatar</Label>
                     <Input
@@ -366,28 +302,60 @@ export function WidgetConfigPanel() {
                       placeholder="https://..."
                     />
                   </div>
-
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Cores e Posição</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: "Cor Principal", field: "primary_color" as const, def: "#6366f1" },
+                      { label: "Cor Secundária", field: "secondary_color" as const, def: "#f1f5f9" },
+                      { label: "Cor do Texto", field: "text_color" as const, def: "#1e293b" },
+                    ].map(({ label, field, def }) => (
+                      <div key={field} className="space-y-2">
+                        <Label>{label}</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={(formData[field] as string) || def}
+                            onChange={(e) => updateField(field, e.target.value)}
+                            className="h-10 w-10 rounded border cursor-pointer"
+                          />
+                          <Input
+                            value={(formData[field] as string) || ""}
+                            onChange={(e) => updateField(field, e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Posição</Label>
+                    <Select value={formData.position || "bottom-right"} onValueChange={(v) => updateField("position", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Canto inferior direito</SelectItem>
+                        <SelectItem value="bottom-left">Canto inferior esquerdo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Mostrar branding FastCRM</Label>
-                      <p className="text-xs text-muted-foreground">
-                        "Powered by FastCRM" no rodapé
-                      </p>
+                      <p className="text-xs text-muted-foreground">"Powered by FastCRM" no rodapé</p>
                     </div>
-                    <Switch
-                      checked={formData.show_branding ?? true}
-                      onCheckedChange={(v) => updateField("show_branding", v)}
-                    />
+                    <Switch checked={formData.show_branding ?? true} onCheckedChange={(v) => updateField("show_branding", v)} />
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* ===== MESSAGES TAB ===== */}
             <TabsContent value="messages" className="space-y-4 mt-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Mensagens</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Mensagens</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Mensagem de Boas-vindas</Label>
@@ -398,7 +366,6 @@ export function WidgetConfigPanel() {
                       rows={3}
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Placeholder do Input</Label>
                     <Input
@@ -411,60 +378,100 @@ export function WidgetConfigPanel() {
               </Card>
             </TabsContent>
 
+            {/* ===== BEHAVIOR TAB ===== */}
             <TabsContent value="behavior" className="space-y-4 mt-4">
-              <Card>
+              {/* Agent Selector - TOP PRIORITY */}
+              <Card className="border-primary/20 bg-primary/5">
                 <CardHeader>
-                  <CardTitle>Comportamento</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    Agente IA
+                  </CardTitle>
+                  <CardDescription>
+                    O agente define a personalidade, fluxo e bases de conhecimento do widget.
+                  </CardDescription>
                 </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label>Agente Associado</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>O agente traz consigo persona, fluxo e knowledge bases configurados. Pode sobrepor manualmente nos campos abaixo.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Select
+                      value={formData.default_agent_id || "none"}
+                      onValueChange={(v) => updateField("default_agent_id", v === "none" ? null : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar agente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum (configuração manual)</SelectItem>
+                        {agents?.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name} {a.channel ? `(${a.channel})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedAgent && (
+                    <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+                      <p className="font-medium text-foreground">Configuração herdada do agente:</p>
+                      {selectedAgent.persona_id && <p>• Persona configurada no agente</p>}
+                      {selectedAgent.flow_id && <p>• Fluxo configurado no agente</p>}
+                      <p className="mt-1 italic">Os campos manuais abaixo funcionam como override.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle>Configuração Manual</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Widget Ativo</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Desativar esconde o widget
-                      </p>
+                      <p className="text-xs text-muted-foreground">Desativar esconde o widget</p>
                     </div>
-                    <Switch
-                      checked={formData.is_active ?? true}
-                      onCheckedChange={(v) => updateField("is_active", v)}
-                    />
+                    <Switch checked={formData.is_active ?? true} onCheckedChange={(v) => updateField("is_active", v)} />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Fluxo Padrão</Label>
+                    <Label>Fluxo Padrão (override)</Label>
                     <Select
                       value={formData.default_flow_id || "none"}
                       onValueChange={(v) => updateField("default_flow_id", v === "none" ? null : v)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar fluxo" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecionar fluxo" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhum (usar IA genérica)</SelectItem>
+                        <SelectItem value="none">Nenhum (usar do agente)</SelectItem>
                         {flows?.map((flow: any) => (
-                          <SelectItem key={flow.id} value={flow.id}>
-                            {flow.name}
-                          </SelectItem>
+                          <SelectItem key={flow.id} value={flow.id}>{flow.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Persona da IA</Label>
+                    <Label>Persona da IA (override)</Label>
                     <Select
                       value={formData.default_persona_id || "none"}
                       onValueChange={(v) => updateField("default_persona_id", v === "none" ? null : v)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecionar persona" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Selecionar persona" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Padrão</SelectItem>
+                        <SelectItem value="none">Padrão (usar do agente)</SelectItem>
                         {personas?.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -478,84 +485,59 @@ export function WidgetConfigPanel() {
                       onChange={(e) => updateField("auto_open_delay_ms", parseInt(e.target.value) || 0)}
                       placeholder="0 = não abre automaticamente"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      0 = não abre automaticamente. 5000 = abre após 5 segundos
-                    </p>
+                    <p className="text-xs text-muted-foreground">0 = não abre automaticamente. 5000 = abre após 5 segundos</p>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Pedir Email Antes do Chat</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Requer email para iniciar conversa
-                      </p>
+                      <p className="text-xs text-muted-foreground">Requer email para iniciar conversa</p>
                     </div>
-                    <Switch
-                      checked={formData.require_email_before_chat ?? false}
-                      onCheckedChange={(v) => updateField("require_email_before_chat", v)}
-                    />
+                    <Switch checked={formData.require_email_before_chat ?? false} onCheckedChange={(v) => updateField("require_email_before_chat", v)} />
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* ===== EMBED TAB ===== */}
             <TabsContent value="embed" className="space-y-4 mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Código de Embed</CardTitle>
-                  <CardDescription>
-                    Copie este código e cole antes da tag {"</body>"} do seu website
-                  </CardDescription>
+                  <CardDescription>Copie este código e cole antes da tag {"</body>"} do seu website</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {widget?.id ? (
+                  {widgetId ? (
                     <>
                       <div className="relative">
                         <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto whitespace-pre-wrap break-all">
                           {getEmbedCode()}
                         </pre>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="absolute top-2 right-2"
-                          onClick={copyEmbedCode}
-                        >
+                        <Button size="sm" variant="secondary" className="absolute top-2 right-2" onClick={copyEmbedCode}>
                           <Copy className="h-4 w-4 mr-1" />
                           Copiar
                         </Button>
                       </div>
-
                       <div className="space-y-2">
                         <Label>Domínios Permitidos</Label>
                         <Textarea
                           value={(formData.allowed_domains || []).join("\n")}
-                          onChange={(e) =>
-                            updateField(
-                              "allowed_domains",
-                              e.target.value.split("\n").filter((d) => d.trim())
-                            )
-                          }
-                          placeholder="example.com&#10;app.example.com&#10;(deixe vazio para permitir todos)"
+                          onChange={(e) => updateField("allowed_domains", e.target.value.split("\n").filter((d) => d.trim()))}
+                          placeholder={"example.com\napp.example.com\n(deixe vazio para permitir todos)"}
                           rows={3}
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Um domínio por linha. Deixe vazio para permitir todos.
-                        </p>
+                        <p className="text-xs text-muted-foreground">Um domínio por linha. Deixe vazio para permitir todos.</p>
                       </div>
                     </>
                   ) : (
                     <div className="text-center py-6 space-y-4">
                       <div className="text-muted-foreground">
                         <Code className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                        <p className="font-medium">Nenhuma configuração guardada</p>
-                        <p className="text-sm mt-1">
-                          Guarde as configurações para gerar o código de embed.
-                        </p>
+                        <p className="font-medium">Guarde primeiro</p>
+                        <p className="text-sm mt-1">Guarde as configurações para gerar o código de embed.</p>
                       </div>
                       <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                        {saveMutation.isPending ? (
-                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
+                        {saveMutation.isPending && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
                         Guardar e Gerar Código
                       </Button>
                     </div>
@@ -576,121 +558,67 @@ export function WidgetConfigPanel() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 min-h-[450px] flex flex-col items-center justify-center">
-              {/* Widget Preview - Full simulation */}
-              <div 
-                key={previewKey}
-                className="rounded-xl shadow-2xl overflow-hidden border-2 border-white/50"
-                style={{ 
-                  width: '320px',
-                  maxWidth: '100%',
-                }}
-              >
+              <div key={previewKey} className="rounded-xl shadow-2xl overflow-hidden border-2 border-white/50" style={{ width: '320px', maxWidth: '100%' }}>
                 {/* Header */}
-                <div 
-                  className="p-4 flex items-center gap-3"
-                  style={{ backgroundColor: formData.primary_color || '#6366f1' }}
-                >
+                <div className="p-4 flex items-center gap-3" style={{ backgroundColor: formData.primary_color || '#6366f1' }}>
                   {formData.avatar_url ? (
-                    <img 
-                      src={formData.avatar_url} 
-                      alt="Avatar" 
-                      className="h-10 w-10 rounded-full object-cover border-2 border-white/30"
-                    />
+                    <img src={formData.avatar_url} alt="Avatar" className="h-10 w-10 rounded-full object-cover border-2 border-white/30" />
                   ) : (
                     <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                       <MessageCircle className="h-5 w-5 text-white" />
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold text-white text-sm">
-                      {formData.company_name || "Assistente"}
-                    </p>
+                    <p className="font-semibold text-white text-sm">{formData.company_name || "Assistente"}</p>
                     <p className="text-white/80 text-xs flex items-center gap-1">
                       <span className="h-2 w-2 rounded-full bg-green-400"></span>
                       Online
                     </p>
                   </div>
                 </div>
-
-                {/* Messages area */}
-                <div 
-                  className="p-4 space-y-3"
-                  style={{ 
-                    backgroundColor: formData.secondary_color || '#f1f5f9',
-                    minHeight: '220px'
-                  }}
-                >
-                  {/* Welcome message */}
+                {/* Messages */}
+                <div className="p-4 space-y-3" style={{ backgroundColor: formData.secondary_color || '#f1f5f9', minHeight: '220px' }}>
                   <div className="flex gap-2">
-                    <div 
-                      className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" 
-                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
-                    >
+                    <div className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: formData.primary_color || '#6366f1' }}>
                       <MessageCircle className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <div 
-                      className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm bg-white"
-                    >
+                    <div className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm bg-white">
                       <p className="text-sm" style={{ color: formData.text_color || '#1e293b' }}>
                         {formData.welcome_message || "Olá! Como posso ajudar?"}
                       </p>
                     </div>
                   </div>
-
-                  {/* Sample user message */}
                   <div className="flex gap-2 justify-end">
-                    <div 
-                      className="rounded-lg rounded-tr-none p-3 max-w-[85%] shadow-sm"
-                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
-                    >
-                      <p className="text-sm text-white">
-                        Olá, gostaria de saber mais informações.
-                      </p>
+                    <div className="rounded-lg rounded-tr-none p-3 max-w-[85%] shadow-sm" style={{ backgroundColor: formData.primary_color || '#6366f1' }}>
+                      <p className="text-sm text-white">Olá, gostaria de saber mais informações.</p>
                     </div>
                   </div>
-
-                  {/* Sample bot response */}
                   <div className="flex gap-2">
-                    <div 
-                      className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" 
-                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
-                    >
+                    <div className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: formData.primary_color || '#6366f1' }}>
                       <MessageCircle className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div className="rounded-lg rounded-tl-none p-3 max-w-[85%] shadow-sm bg-white">
-                      <p className="text-sm" style={{ color: formData.text_color || '#1e293b' }}>
-                        Claro! Estou aqui para ajudar. Qual é a sua dúvida? 😊
-                      </p>
+                      <p className="text-sm" style={{ color: formData.text_color || '#1e293b' }}>Claro! Estou aqui para ajudar. 😊</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Input area */}
+                {/* Input */}
                 <div className="p-3 border-t bg-white">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 px-3 py-2 rounded-full text-sm border bg-gray-50 text-gray-400">
                       {formData.placeholder_text || "Escreva a sua mensagem..."}
                     </div>
-                    <button 
-                      className="p-2 rounded-full" 
-                      style={{ backgroundColor: formData.primary_color || '#6366f1' }}
-                    >
+                    <button className="p-2 rounded-full" style={{ backgroundColor: formData.primary_color || '#6366f1' }}>
                       <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                       </svg>
                     </button>
                   </div>
-                  
-                  {/* Branding */}
                   {formData.show_branding && (
-                    <p className="text-center text-[10px] text-gray-400 mt-2">
-                      Powered by FastCRM
-                    </p>
+                    <p className="text-center text-[10px] text-gray-400 mt-2">Powered by FastCRM</p>
                   )}
                 </div>
               </div>
-
-              {/* Position indicator */}
               <p className="text-center text-xs text-muted-foreground mt-4">
                 📍 {formData.position === "bottom-right" ? "Canto inferior direito" : "Canto inferior esquerdo"}
               </p>
