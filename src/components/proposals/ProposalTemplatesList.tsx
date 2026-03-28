@@ -24,11 +24,9 @@ import { Plus, Search, FileText, Loader2, LayoutTemplate } from "lucide-react";
 import {
   useProposalTemplates,
   useCreateProposalTemplate,
-  useUpdateProposalTemplate,
   useDeleteProposalTemplate,
 } from "@/hooks/useProposals";
 import { ProposalTemplateCard } from "./ProposalTemplateCard";
-import { ProposalTemplateFormDialog } from "./ProposalTemplateFormDialog";
 import type { ProposalTemplate, ContentBlock } from "@/types/proposal";
 
 const sortOptions = [
