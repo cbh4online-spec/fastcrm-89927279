@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
+import { getTrendingScore } from "@/hooks/useMarketplaceAnalytics";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -157,6 +158,8 @@ export default function C2CMarketplace() {
 
   const featuredListings = listings.filter((l) => l.is_featured);
   const recentListings = [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 12);
+  const trendingListings = [...listings].sort((a, b) => getTrendingScore(b) - getTrendingScore(a)).slice(0, 12);
+  const mostViewedListings = [...listings].sort((a, b) => (b.views_count || 0) - (a.views_count || 0)).slice(0, 12);
 
   const listingsByCategory = categories.reduce<Record<string, typeof listings>>((acc, cat) => {
     acc[cat.id] = listings.filter((l) => l.category_id === cat.id).slice(0, 10);
@@ -302,6 +305,30 @@ export default function C2CMarketplace() {
                 seeMoreLabel={t('seeMore')}
               />
             )}
+
+            {trendingListings.length > 0 && (
+              <SectionCarousel
+                title={t('trending', 'Em Alta')}
+                icon={<TrendingUp className="h-5 w-5 text-primary" />}
+                listings={trendingListings}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={toggleFavorite}
+                onNavigate={(id) => navigate(`/dashboard/c2c/${id}`)}
+                seeMoreLabel={t('seeMore')}
+              />
+            )}
+
+            {mostViewedListings.length > 0 && mostViewedListings[0].views_count > 0 && (
+              <SectionCarousel
+                title={t('mostViewed', 'Mais Vistos')}
+                icon={<Eye className="h-5 w-5 text-primary" />}
+                listings={mostViewedListings}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={toggleFavorite}
+                onNavigate={(id) => navigate(`/dashboard/c2c/${id}`)}
+                seeMoreLabel={t('seeMore')}
+              />
+            )
 
             {recentListings.length > 0 && (
               <SectionCarousel
