@@ -1,73 +1,88 @@
 
 
-# Inbox UX Improvements
+# Centro de Agendamento — Funcionalidades Premium Únicas
 
-## Current State
-The inbox already has a solid foundation: 4-column layout, sidebar with channels/categories, conversation list with avatars and quick actions, message bubbles with timestamps, AI composer, and email HTML rendering. However, several UX details are missing or weak.
+## O que já existe
+- Calendário com dia/semana/mês + heatmap + lista
+- Reuniões com kanban, preparação IA, gravação e transcrição
+- Serviços com categorias, preços e filtros
+- Disponibilidade com slots, exceções e timezones
+- Links de agendamento público com fluxo 3 passos, multi-idioma e captura de leads
+- Sincronização Google Calendar
 
-## Issues Identified
-1. **Conversation list shows only relative time** ("há 2 dias") — no absolute date/hour visible
-2. **No email subject in conversation list** — hard to distinguish email conversations
-3. **No clear direction indicator** — only "Tu:" text prefix for outbound, nothing visual for inbound
-4. **Message bubbles lack prominent timestamps** — time is tiny and easy to miss
-5. **No time gap separators** between messages sent hours apart (only date separators exist)
-6. **No read/delivery status in list** — user can't see if their last message was read without opening
+## O que falta para ser único no mercado
+
+### 1. Dashboard de Analytics de Agendamento (nova tab "Analytics")
+- **Taxa de conversão** dos links de booking (visitantes vs agendamentos)
+- **No-show rate** por cliente/serviço/dia da semana
+- **Horários mais procurados** — heatmap de popularidade por hora/dia
+- **Receita gerada** via agendamentos (cruzando com serviços pagos)
+- **Tempo médio de antecedência** (quando marcam vs quando acontece)
+- **Comparação mensal** com tendências
+
+### 2. Lista de Espera (Waitlist)
+- Quando um slot está cheio, o cliente entra numa waitlist automática
+- Notificação automática quando abre vaga (cancelamento)
+- Prioridade configurável (primeiro a chegar, clientes VIP, etc.)
+- Visível no dashboard com contagem por serviço
+
+### 3. Eventos Recorrentes Inteligentes
+- Criar eventos com regra de recorrência (diário, semanal, mensal, custom)
+- Editar "este evento" vs "todos os futuros"
+- Visualização de série no calendário com ícone de recorrência
+- Exceções por data (feriados auto-detetados)
+
+### 4. Round-Robin Multi-Anfitrião
+- Atribuição automática de reuniões entre membros da equipa
+- Algoritmos: round-robin, por disponibilidade, por carga equilibrada
+- Configurável por link de booking
+- Dashboard de distribuição por membro
+
+### 5. Widget Embeddable + QR Code
+- Código embed (`<iframe>` ou `<script>`) para incorporar booking em sites externos
+- Gerador de QR Code para cada link de agendamento
+- Preview do widget dentro do hub
+- Personalização de cores e branding do widget
+
+### 6. Lembretes Inteligentes e Follow-ups
+- Lembretes automáticos pré-reunião (email/WhatsApp) configuráveis (24h, 1h, 15min)
+- Follow-up automático pós-reunião com template personalizável
+- Confirmação obrigatória X horas antes (reduz no-shows)
+- Integração com o módulo de inbox para envio
+
+### 7. Check-in e Feedback
+- Link de check-in enviado ao participante antes da reunião
+- Formulário de feedback pós-reunião (NPS + comentário)
+- Resultados visíveis no card da reunião e no analytics
+- Score de satisfação por serviço/anfitrião
+
+### 8. Mapa de Ocupação Visual
+- Vista semanal tipo "resource view" (linhas = calendários/anfitriões, colunas = horas)
+- Indicador visual de ocupação (verde/amarelo/vermelho)
+- Útil para equipas verem a carga de todos de relance
 
 ---
 
-## Plan
+## Ficheiros a criar/modificar
 
-### 1. Conversation List — Better Date/Time Display
-**File: `ConversationList.tsx`**
-
-- Show **absolute time** (HH:mm) for today's messages, **date + time** (dd/MM HH:mm) for older ones
-- Replace `formatDistanceToNow` with a smart formatter: "14:32" today, "Ontem 14:32", "25/03 14:32"
-- Keep relative time as a tooltip on hover
-
-### 2. Conversation List — Email Subject Preview
-**File: `ConversationList.tsx`**
-
-- For email channel conversations, show the email subject as a secondary line above the message preview
-- Style: smaller, bold text with a Mail icon, truncated
-
-### 3. Conversation List — Direction + Status Indicators
-**File: `ConversationList.tsx`**
-
-- Add a small arrow icon (↗ outbound / ↙ inbound) before the preview text instead of just "Tu:"
-- Add a subtle delivery status icon (single check = sent, double check = delivered, colored = read) for the last outbound message
-
-### 4. Message Bubbles — Enhanced Timestamps
-**File: `MessageBubble.tsx`**
-
-- Make timestamp more visible: increase from `text-[10px]` to `text-xs`
-- Show full date + time format: "25 Mar, 14:32"
-- For outbound, move delivery status inline with timestamp
-
-### 5. Time Gap Separators Between Messages
-**File: `ConversationDetail.tsx`**
-
-- When there's a gap of 2+ hours between consecutive messages (same day), insert a subtle time separator: "— 3h depois —"
-- This complements the existing date separators
-
-### 6. Pinned Conversations
-**File: `ConversationList.tsx`**
-
-- Add a pin icon on hover (quick action) that pins a conversation to the top
-- Pinned state stored in localStorage (no DB change needed)
-- Pinned conversations appear in a separate section above the main list with a subtle divider
-
----
-
-## Files Modified
-
-| File | Changes |
+| Ficheiro | Ação |
 |---|---|
-| `src/components/inbox/ConversationList.tsx` | Smart timestamps, email subject, direction arrows, delivery status, pin support |
-| `src/components/inbox/MessageBubble.tsx` | Larger timestamps, improved layout |
-| `src/components/inbox/ConversationDetail.tsx` | Time gap separators between messages |
+| `src/components/scheduling/SchedulingAnalytics.tsx` | **Novo** — Dashboard analytics com KPIs e gráficos |
+| `src/components/scheduling/WaitlistPanel.tsx` | **Novo** — Gestão de lista de espera |
+| `src/components/scheduling/EmbedWidgetGenerator.tsx` | **Novo** — Gerador de embed + QR code |
+| `src/components/scheduling/OccupancyMapView.tsx` | **Novo** — Resource/ocupação visual |
+| `src/components/scheduling/SchedulingHub.tsx` | Adicionar tab Analytics + integrar novos componentes |
+| `src/components/calendars/CalendarEventModal.tsx` | Adicionar recorrência |
+| `src/components/scheduling/BookingPagesTab.tsx` | Adicionar QR code, embed code, e configuração round-robin |
+| `src/hooks/useSchedulingAnalytics.ts` | **Novo** — Queries para métricas de agendamento |
 
-## Technical Notes
-- Smart time formatting uses `isToday`/`isYesterday` from date-fns (already imported)
-- Pin state uses localStorage to avoid DB migration
-- All existing functionality preserved — changes are additive
+## Prioridade de implementação
+1. **Analytics** — impacto visual imediato, diferenciação clara
+2. **QR Code + Embed** — funcionalidade prática rara em CRMs
+3. **Lembretes + Follow-up** — redução de no-shows, valor tangível
+4. **Waitlist** — funcionalidade premium que poucos têm
+5. **Ocupação visual** — diferenciador para equipas
+6. **Recorrência** — expectável mas complexo
+7. **Round-Robin** — para equipas maiores
+8. **Check-in/Feedback** — complementar
 
