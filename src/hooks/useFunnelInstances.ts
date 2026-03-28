@@ -179,6 +179,81 @@ export interface AIFunnelSession {
   updated_at: string;
 }
 
+export function useCreateCaptureType() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { key: string; label: string; description?: string; icon?: string }) => {
+      const { data, error } = await supabase
+        .from("capture_types")
+        .insert(input)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CaptureType;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["capture-types"] });
+      toast.success("Tipo de captura criado");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useUpdateCaptureType() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: Partial<CaptureType> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("capture_types")
+        .update(input)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CaptureType;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["capture-types"] });
+      toast.success("Tipo de captura atualizado");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useDeleteCaptureType() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("capture_types").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["capture-types"] });
+      toast.success("Tipo de captura eliminado");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+}
+
+export function useCaptureTypeUsageCount() {
+  return useQuery({
+    queryKey: ["capture-type-usage"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funnel_instances")
+        .select("capture_type_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        if (row.capture_type_id) {
+          counts[row.capture_type_id] = (counts[row.capture_type_id] || 0) + 1;
+        }
+      });
+      return counts;
+    },
+  });
+}
+
 export function useCreateAIFunnelSession() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
