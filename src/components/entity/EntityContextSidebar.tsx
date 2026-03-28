@@ -72,11 +72,26 @@ function StatRow({ icon: Icon, label, value }: StatRowProps) {
 export function EntityContextSidebar({
   entityType,
   entity,
-  assignedUser,
   bestChannel = 'Email',
   bestTime = '10h - 12h',
   lastActivityAt,
 }: EntityContextSidebarProps) {
+  const { workspaceClient } = useWorkspaceInstance();
+  const assignedTo = (entity as any).assigned_to as string | null | undefined;
+
+  const { data: assignedProfile } = useQuery({
+    queryKey: ['profile', assignedTo],
+    queryFn: async () => {
+      if (!assignedTo) return null;
+      const { data } = await workspaceClient
+        .from('profiles')
+        .select('full_name, email, avatar_url')
+        .eq('user_id', assignedTo)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!assignedTo,
+  });
   const temperature = entity.ai_temperature as keyof typeof TEMPERATURE_CONFIG | undefined;
   const tempConfig = temperature ? TEMPERATURE_CONFIG[temperature] : null;
   const TempIcon = tempConfig?.icon;

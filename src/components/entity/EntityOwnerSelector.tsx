@@ -47,12 +47,15 @@ export function EntityOwnerSelector({
 
   const handleSelect = async (userId: string | null) => {
     setOpen(false);
-    const table = TABLE_MAP[entityType];
 
-    const { error } = await workspaceClient
-      .from(table)
-      .update({ assigned_to: userId })
-      .eq('id', entityId);
+    let error: any = null;
+    if (entityType === 'lead') {
+      ({ error } = await workspaceClient.from('leads').update({ assigned_to: userId }).eq('id', entityId));
+    } else if (entityType === 'contact') {
+      ({ error } = await workspaceClient.from('contacts').update({ assigned_to: userId }).eq('id', entityId));
+    } else {
+      ({ error } = await workspaceClient.from('companies').update({ assigned_to: userId }).eq('id', entityId));
+    }
 
     if (error) {
       toast.error('Erro ao atribuir gestor');
