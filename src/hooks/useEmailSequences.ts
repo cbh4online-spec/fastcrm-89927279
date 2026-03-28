@@ -295,6 +295,44 @@ export function useSequenceEnrollments(sequenceId?: string) {
   });
 }
 
+export function useUpdateEnrollment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, sequenceId, status }: { id: string; sequenceId: string; status: string }) => {
+      const updates: any = { status, updated_at: new Date().toISOString() };
+      if (status === 'completed') updates.completed_at = new Date().toISOString();
+      const { error } = await supabase
+        .from('email_sequence_enrollments')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', vars.sequenceId] });
+      toast.success('Inscrição atualizada');
+    },
+    onError: () => toast.error('Erro ao atualizar inscrição'),
+  });
+}
+
+export function useRemoveEnrollment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, sequenceId }: { id: string; sequenceId: string }) => {
+      const { error } = await supabase.from('email_sequence_enrollments').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', vars.sequenceId] });
+      queryClient.invalidateQueries({ queryKey: ['email-sequences'] });
+      toast.success('Inscrição removida');
+    },
+    onError: () => toast.error('Erro ao remover inscrição'),
+  });
+}
+
 export function useEnrollContact() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
