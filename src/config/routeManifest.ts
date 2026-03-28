@@ -37,7 +37,7 @@ import {
   UsersRound, KeyRound, Plug, FolderCog, ShieldCheck,
   HeartPulse, Stethoscope, Puzzle, Shield,
   Radio, Search, MapPin,
-  ArrowUpDown,
+  ArrowUpDown, Headphones,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ export type NavGroup =
   | "marketing"
   | "vendas"
   | "compras"
+  | "suporte"
   | "loja-online"
   | "marketplace-c2c"
   | "portal-b2b"
@@ -100,12 +101,13 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 5, collapsible: true },
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
   { key: "compras",          label: "Compras",          icon: ShoppingCart,    order: 7,  collapsible: true },
-  { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 8,  collapsible: true },
-  { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 9,  collapsible: true },
-  { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 10, collapsible: true },
-  { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 11, collapsible: true },
-  { key: "inteligencia",     label: "Inteligência",     icon: Brain,           order: 12, collapsible: true },
-  { key: "administracao",    label: "Administração",    icon: Settings,        order: 13, collapsible: true },
+  { key: "suporte",          label: "Suporte",          icon: Headphones,      order: 8,  collapsible: true },
+  { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 9,  collapsible: true },
+  { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 10, collapsible: true },
+  { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 11, collapsible: true },
+  { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 12, collapsible: true },
+  { key: "inteligencia",     label: "Inteligência",     icon: Brain,           order: 13, collapsible: true },
+  { key: "administracao",    label: "Administração",    icon: Settings,        order: 14, collapsible: true },
 ];
 
 export const NAV_GROUP_ORDER: NavGroup[] = NAV_GROUPS.map((g) => g.key);
@@ -229,6 +231,13 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("b2b-plans",        "Planos",              "/dashboard/b2b/plans",        Package,      "portal-b2b", { moduleSlug: "b2b-portal" }),
   e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b", { visibleInSidebar: false }),
   e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", { visibleInSidebar: false }),
+
+  // ══════════════════════════════════════════════════════════════
+  // SUPORTE (Helpdesk)
+  // ══════════════════════════════════════════════════════════════
+  e("helpdesk",               "Dashboard Suporte",    "/dashboard/helpdesk",                   Headphones,  "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-tickets",       "Tickets",              "/dashboard/helpdesk/tickets",            Headphones,  "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-canned",        "Respostas Rápidas",    "/dashboard/helpdesk/canned-responses",   Zap,         "suporte", { moduleSlug: "helpdesk" }),
 
   // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES

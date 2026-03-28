@@ -44420,6 +44420,171 @@ export type Database = {
           },
         ]
       }
+      support_canned_responses: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          shortcut: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          shortcut?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          shortcut?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_canned_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          id: string
+          is_internal_note: boolean
+          message: string
+          sender_id: string | null
+          sender_type: Database["public"]["Enums"]["support_message_sender"]
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean
+          message: string
+          sender_id?: string | null
+          sender_type?: Database["public"]["Enums"]["support_message_sender"]
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          is_internal_note?: boolean
+          message?: string
+          sender_id?: string | null
+          sender_type?: Database["public"]["Enums"]["support_message_sender"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          channel: Database["public"]["Enums"]["support_ticket_channel"]
+          closed_at: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          department: string | null
+          description: string | null
+          first_response_at: string | null
+          id: string
+          priority: Database["public"]["Enums"]["support_ticket_priority"]
+          resolved_at: string | null
+          sla_deadline: string | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          tags: string[] | null
+          ticket_number: number
+          type: Database["public"]["Enums"]["support_ticket_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          channel?: Database["public"]["Enums"]["support_ticket_channel"]
+          closed_at?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          description?: string | null
+          first_response_at?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          tags?: string[] | null
+          ticket_number?: number
+          type?: Database["public"]["Enums"]["support_ticket_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          channel?: Database["public"]["Enums"]["support_ticket_channel"]
+          closed_at?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          description?: string | null
+          first_response_at?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          tags?: string[] | null
+          ticket_number?: number
+          type?: Database["public"]["Enums"]["support_ticket_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -50705,6 +50870,23 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "past_due"
+      support_message_sender: "agent" | "client" | "system"
+      support_ticket_channel: "email" | "phone" | "portal" | "chat" | "manual"
+      support_ticket_priority: "low" | "medium" | "high" | "urgent"
+      support_ticket_status:
+        | "open"
+        | "in_progress"
+        | "waiting_client"
+        | "waiting_internal"
+        | "on_hold"
+        | "resolved"
+        | "closed"
+      support_ticket_type:
+        | "support"
+        | "commercial"
+        | "technical"
+        | "billing"
+        | "feature_request"
       template_goal:
         | "qualification"
         | "follow_up"
@@ -51201,6 +51383,25 @@ export const Constants = {
         "cancelled",
         "expired",
         "past_due",
+      ],
+      support_message_sender: ["agent", "client", "system"],
+      support_ticket_channel: ["email", "phone", "portal", "chat", "manual"],
+      support_ticket_priority: ["low", "medium", "high", "urgent"],
+      support_ticket_status: [
+        "open",
+        "in_progress",
+        "waiting_client",
+        "waiting_internal",
+        "on_hold",
+        "resolved",
+        "closed",
+      ],
+      support_ticket_type: [
+        "support",
+        "commercial",
+        "technical",
+        "billing",
+        "feature_request",
       ],
       template_goal: [
         "qualification",
