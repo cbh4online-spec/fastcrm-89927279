@@ -48,6 +48,7 @@ export type NavGroup =
   | "comunicacao"
   | "marketing"
   | "vendas"
+  | "compras"
   | "comercio"
   | "operacoes"
   | "ai-strategy"
@@ -96,10 +97,11 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 5, collapsible: true },
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
-  { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 7, collapsible: true },
-  { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 8, collapsible: true },
-  { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 9, collapsible: true },
-  { key: "administracao", label: "Administração", icon: Settings,        order: 10, collapsible: true },
+  { key: "compras",       label: "Compras",       icon: ShoppingCart,    order: 7, collapsible: true },
+  { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 8, collapsible: true },
+  { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 9, collapsible: true },
+  { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 10, collapsible: true },
+  { key: "administracao", label: "Administração", icon: Settings,        order: 11, collapsible: true },
 ];
 
 export const NAV_GROUP_ORDER: NavGroup[] = NAV_GROUPS.map((g) => g.key);
@@ -224,17 +226,21 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("tasks",                   "Tarefas",                "/dashboard/tasks",                        CheckSquare,   "operacoes"),
   e("events",                  "Eventos",                "/dashboard/events",                       CalendarDays,  "operacoes"),
-  e("procurement",             "Compras",                "/dashboard/procurement",                  ShoppingCart,  "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-suppliers",   "Fornecedores",           "/dashboard/procurement/suppliers",         Truck,        "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-requests",    "Pedidos",                "/dashboard/procurement/requests",          ClipboardList,"operacoes", { moduleSlug: "procurement" }),
-  e("procurement-orders",      "Ordens de Compra",       "/dashboard/procurement/orders",            FileText,    "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-receipts",    "Receções",               "/dashboard/procurement/receipts",          Warehouse,   "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-rfqs",        "RFQs",                   "/dashboard/procurement/rfqs",              FileQuestion,"operacoes", { moduleSlug: "procurement" }),
-  e("procurement-rfqs-dash",   "Dashboard RFQs",         "/dashboard/procurement/rfqs-dashboard",    BarChart3,   "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-needs",       "Quadro Necessidades",    "/dashboard/procurement/needs",             ListChecks,  "operacoes", { moduleSlug: "procurement" }),
-  e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "operacoes", { moduleSlug: "procurement", visibleInSidebar: false }),
-  e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "operacoes", { moduleSlug: "procurement", visibleInSidebar: false }),
   e("imports",                 "Importações",            "/dashboard/imports",                       Upload,      "operacoes", { visibleInSidebar: false }),
+
+  // ══════════════════════════════════════════════════════════════
+  // COMPRAS
+  // ══════════════════════════════════════════════════════════════
+  e("procurement",             "Dashboard Compras",      "/dashboard/procurement",                  ShoppingCart,  "compras", { moduleSlug: "procurement" }),
+  e("procurement-suppliers",   "Fornecedores",           "/dashboard/procurement/suppliers",         Truck,        "compras", { moduleSlug: "procurement" }),
+  e("procurement-needs",       "Quadro Necessidades",    "/dashboard/procurement/needs",             ListChecks,  "compras", { moduleSlug: "procurement" }),
+  e("procurement-requests",    "Pedidos",                "/dashboard/procurement/requests",          ClipboardList,"compras", { moduleSlug: "procurement" }),
+  e("procurement-orders",      "Ordens de Compra",       "/dashboard/procurement/orders",            FileText,    "compras", { moduleSlug: "procurement" }),
+  e("procurement-receipts",    "Receções",               "/dashboard/procurement/receipts",          Warehouse,   "compras", { moduleSlug: "procurement" }),
+  e("procurement-rfqs",        "RFQs",                   "/dashboard/procurement/rfqs",              FileQuestion,"compras", { moduleSlug: "procurement" }),
+  e("procurement-rfqs-dash",   "Dashboard RFQs",         "/dashboard/procurement/rfqs-dashboard",    BarChart3,   "compras", { moduleSlug: "procurement" }),
+  e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
+  e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
   e("student-journey",         "Jornada do Aluno",       "/dashboard/student-journey",               Briefcase,   "operacoes", { moduleSlug: "student-journey" }),
   e("security",                "Segurança",              "/dashboard/security",                      Shield,      "operacoes", { moduleSlug: "security-ops", visibleInSidebar: false }),
   e("credit",                  "Crédito",                "/dashboard/credit",                        CreditCard,  "operacoes", { moduleSlug: "credit-intermediation", visibleInSidebar: false }),
