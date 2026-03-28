@@ -145,6 +145,7 @@ export function B2BAdminRoutes() {
       <Route path="/dashboard/b2b-clients" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b/clients" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b/users" element={<ClientUsersPage />} />
+      <Route path="/dashboard/b2b/plans" element={<B2BPortalSettingsPage />} />
       <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
       <Route path="/dashboard/b2b-config" element={<B2BPortalSettingsPage />} />
       <Route path="/dashboard/b2b-stock" element={<B2BStockPage />} />
