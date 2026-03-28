@@ -36,6 +36,8 @@ import {
   GripVertical,
   Eye,
   BarChart3,
+  UserPlus,
+  GitBranch,
 } from 'lucide-react';
 import {
   useSequenceSteps,
@@ -47,6 +49,12 @@ import {
   type SequenceStep,
 } from '@/hooks/useEmailSequences';
 import { useCommunicationTemplates } from '@/hooks/useCommunicationTemplates';
+import { EnrollContactsDialog } from './EnrollContactsDialog';
+import { EnrollmentCard } from './EnrollmentCard';
+import { SequenceAnalytics } from './SequenceAnalytics';
+import { SequenceFlowView } from './SequenceFlowView';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SequenceDetailDialogProps {
   open: boolean;
@@ -125,7 +133,6 @@ function StepEditor({
           </div>
         </div>
 
-        {/* Subject preview */}
         {step.subject && !expanded && (
           <p className="text-sm text-muted-foreground truncate pl-6">
             ✉️ {step.subject}
@@ -134,7 +141,6 @@ function StepEditor({
 
         {expanded && (
           <div className="space-y-3 pt-2 border-t">
-            {/* Template selector */}
             <div className="space-y-1.5">
               <Label className="text-xs">Template</Label>
               <Select
@@ -161,7 +167,6 @@ function StepEditor({
               </Select>
             </div>
 
-            {/* Inline subject/body editing */}
             {!step.templateId && (
               <>
                 <div className="space-y-1.5">
@@ -200,7 +205,6 @@ function StepEditor({
               </>
             )}
 
-            {/* Delay config */}
             {index > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -239,7 +243,6 @@ function StepEditor({
               </div>
             )}
 
-            {/* Channel selector */}
             <div className="space-y-1.5">
               <Label className="text-xs">Canal</Label>
               <Select
@@ -265,10 +268,29 @@ function StepEditor({
 }
 
 export function SequenceDetailDialog({ open, onOpenChange, sequence }: SequenceDetailDialogProps) {
+  const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { data: steps, isLoading: stepsLoading } = useSequenceSteps(sequence.id);
   const { data: enrollments, isLoading: enrollmentsLoading } = useSequenceEnrollments(sequence.id);
   const { data: templates } = useCommunicationTemplates();
   const createStep = useCreateStep();
+
+  // Fetch contact names for enrollments
+  const contactIds = (enrollments || []).map((e) => e.contactId);
+  const { data: contactsData } = useQuery({
+    queryKey: ['contacts-by-ids', contactIds],
+    queryFn: async () => {
+      if (contactIds.length === 0) return [];
+      const { data } = await supabase
+        .from('contacts')
+        .select('id, name, email')
+        .in('id', contactIds);
+      return data || [];
+    },
+    enabled: contactIds.length > 0,
+  });
+
+  const contactMap = new Map((contactsData || []).map((c) => [c.id, c]));
 
   const handleAddStep = () => {
     const nextOrder = (steps?.length || 0) + 1;
@@ -279,236 +301,273 @@ export function SequenceDetailDialog({ open, onOpenChange, sequence }: SequenceD
     });
   };
 
-  const activeEnrollments = enrollments?.filter((e) => e.status === 'active') || [];
-  const completedEnrollments = enrollments?.filter((e) => e.status === 'completed') || [];
-  const exitedEnrollments = enrollments?.filter((e) => e.status === 'exited') || [];
+  const allEnrollments = enrollments || [];
+  const activeEnrollments = allEnrollments.filter((e) => e.status === 'active');
+  const completedEnrollments = allEnrollments.filter((e) => e.status === 'completed');
+  const exitedEnrollments = allEnrollments.filter((e) => e.status === 'exited');
+
+  const filteredEnrollments =
+    statusFilter === 'all'
+      ? allEnrollments
+      : allEnrollments.filter((e) => e.status === statusFilter);
+
+  const enrichedEnrollments = filteredEnrollments.map((e) => ({
+    ...e,
+    contactName: contactMap.get(e.contactId)?.name || undefined,
+    contactEmail: contactMap.get(e.contactId)?.email || undefined,
+  }));
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {sequence.name}
-            <Badge variant={sequence.isActive ? 'default' : 'secondary'}>
-              {sequence.isActive ? 'Ativa' : 'Inativa'}
-            </Badge>
-          </DialogTitle>
-          {sequence.description && (
-            <p className="text-sm text-muted-foreground">{sequence.description}</p>
-          )}
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {sequence.name}
+              <Badge variant={sequence.isActive ? 'default' : 'secondary'}>
+                {sequence.isActive ? 'Ativa' : 'Inativa'}
+              </Badge>
+            </DialogTitle>
+            {sequence.description && (
+              <p className="text-sm text-muted-foreground">{sequence.description}</p>
+            )}
+          </DialogHeader>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Mail className="h-4 w-4 text-primary" />
-            <div>
-              <p className="text-lg font-bold">{steps?.length || 0}</p>
-              <p className="text-[10px] text-muted-foreground">Etapas</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Users className="h-4 w-4 text-emerald-500" />
-            <div>
-              <p className="text-lg font-bold">{activeEnrollments.length}</p>
-              <p className="text-[10px] text-muted-foreground">Ativos</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <BarChart3 className="h-4 w-4 text-blue-500" />
-            <div>
-              <p className="text-lg font-bold">{completedEnrollments.length}</p>
-              <p className="text-[10px] text-muted-foreground">Concluídos</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <div>
-              <p className="text-lg font-bold">{exitedEnrollments.length}</p>
-              <p className="text-[10px] text-muted-foreground">Saídas</p>
-            </div>
-          </div>
-        </div>
-
-        <Tabs defaultValue="steps" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="steps">Etapas</TabsTrigger>
-            <TabsTrigger value="enrollments">Inscritos ({enrollments?.length || 0})</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
-          </TabsList>
-
-          {/* Steps tab */}
-          <TabsContent value="steps" className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
-              <div className="space-y-1 px-1 pb-4">
-                {stepsLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-24" />
-                    ))}
-                  </div>
-                ) : !steps || steps.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Mail className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Sem etapas. Adicione a primeira etapa abaixo.</p>
-                  </div>
-                ) : (
-                  steps.map((step, idx) => (
-                    <div key={step.id}>
-                      {idx > 0 && (
-                        <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
-                          <ArrowDown className="h-3 w-3" />
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            Esperar{' '}
-                            {step.delayDays > 0 ? `${step.delayDays} dia${step.delayDays > 1 ? 's' : ''}` : ''}
-                            {step.delayDays > 0 && step.delayHours > 0 ? ' e ' : ''}
-                            {step.delayHours > 0 ? `${step.delayHours}h` : ''}
-                            {step.delayDays === 0 && step.delayHours === 0 ? 'Imediato' : ''}
-                          </span>
-                        </div>
-                      )}
-                      <StepEditor
-                        step={step}
-                        index={idx}
-                        sequenceId={sequence.id}
-                        templates={templates || []}
-                      />
-                    </div>
-                  ))
-                )}
-
-                <div className="pt-3">
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={handleAddStep}
-                    disabled={createStep.isPending}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar Etapa
-                  </Button>
-                </div>
+          {/* Stats row */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+              <Mail className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-lg font-bold">{steps?.length || 0}</p>
+                <p className="text-[10px] text-muted-foreground">Etapas</p>
               </div>
-            </ScrollArea>
-          </TabsContent>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+              <Users className="h-4 w-4 text-emerald-500" />
+              <div>
+                <p className="text-lg font-bold">{activeEnrollments.length}</p>
+                <p className="text-[10px] text-muted-foreground">Ativos</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+              <BarChart3 className="h-4 w-4 text-blue-500" />
+              <div>
+                <p className="text-lg font-bold">{completedEnrollments.length}</p>
+                <p className="text-[10px] text-muted-foreground">Concluídos</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <div>
+                <p className="text-lg font-bold">{exitedEnrollments.length}</p>
+                <p className="text-[10px] text-muted-foreground">Saídas</p>
+              </div>
+            </div>
+          </div>
 
-          {/* Enrollments tab */}
-          <TabsContent value="enrollments" className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
-              <div className="space-y-2 px-1 pb-4">
-                {enrollmentsLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-14" />
-                    ))}
-                  </div>
-                ) : !enrollments || enrollments.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Sem inscritos nesta sequência.</p>
-                  </div>
-                ) : (
-                  enrollments.map((enrollment) => (
-                    <Card key={enrollment.id} className="border">
-                      <CardContent className="p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {enrollment.currentStep}
-                          </div>
-                          <div>
-                            <p className="text-xs font-mono">{enrollment.contactId.slice(0, 8)}...</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              Inscrito {new Date(enrollment.enrolledAt).toLocaleDateString('pt-PT')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              enrollment.status === 'active'
-                                ? 'default'
-                                : enrollment.status === 'completed'
-                                ? 'secondary'
-                                : 'outline'
-                            }
-                            className="text-[10px]"
-                          >
-                            {enrollment.status === 'active'
-                              ? 'Ativo'
-                              : enrollment.status === 'completed'
-                              ? 'Concluído'
-                              : enrollment.status === 'paused'
-                              ? 'Pausado'
-                              : 'Saiu'}
-                          </Badge>
-                          {enrollment.nextSendAt && (
-                            <span className="text-[10px] text-muted-foreground">
-                              Próximo: {new Date(enrollment.nextSendAt).toLocaleDateString('pt-PT')}
+          <Tabs defaultValue="steps" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="steps">Etapas</TabsTrigger>
+              <TabsTrigger value="flow" className="gap-1">
+                <GitBranch className="h-3 w-3" />
+                Fluxo
+              </TabsTrigger>
+              <TabsTrigger value="enrollments">Inscritos ({allEnrollments.length})</TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-1">
+                <BarChart3 className="h-3 w-3" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="settings">Config</TabsTrigger>
+            </TabsList>
+
+            {/* Steps tab */}
+            <TabsContent value="steps" className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
+                <div className="space-y-1 px-1 pb-4">
+                  {stepsLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-24" />
+                      ))}
+                    </div>
+                  ) : !steps || steps.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Mail className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Sem etapas. Adicione a primeira etapa abaixo.</p>
+                    </div>
+                  ) : (
+                    steps.map((step, idx) => (
+                      <div key={step.id}>
+                        {idx > 0 && (
+                          <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
+                            <ArrowDown className="h-3 w-3" />
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              Esperar{' '}
+                              {step.delayDays > 0 ? `${step.delayDays} dia${step.delayDays > 1 ? 's' : ''}` : ''}
+                              {step.delayDays > 0 && step.delayHours > 0 ? ' e ' : ''}
+                              {step.delayHours > 0 ? `${step.delayHours}h` : ''}
+                              {step.delayDays === 0 && step.delayHours === 0 ? 'Imediato' : ''}
                             </span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
+                          </div>
+                        )}
+                        <StepEditor
+                          step={step}
+                          index={idx}
+                          sequenceId={sequence.id}
+                          templates={templates || []}
+                        />
+                      </div>
+                    ))
+                  )}
 
-          {/* Settings tab */}
-          <TabsContent value="settings" className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
-              <div className="space-y-4 px-1 pb-4">
-                {/* Exit conditions */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium flex items-center gap-1.5">
-                    <Zap className="h-3.5 w-3.5" />
-                    Condições de Saída
-                  </Label>
-                  {sequence.exitConditions.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {sequence.exitConditions.map((cond, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {cond.label || cond.type}
-                        </Badge>
+                  <div className="pt-3">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={handleAddStep}
+                      disabled={createStep.isPending}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Etapa
+                    </Button>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Flow view tab */}
+            <TabsContent value="flow" className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
+                <SequenceFlowView steps={steps || []} exitConditions={sequence.exitConditions} />
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Enrollments tab */}
+            <TabsContent value="enrollments" className="flex-1 overflow-hidden">
+              <div className="flex items-center justify-between px-1 py-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="active">Ativos</SelectItem>
+                    <SelectItem value="paused">Pausados</SelectItem>
+                    <SelectItem value="completed">Concluídos</SelectItem>
+                    <SelectItem value="exited">Saídas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" className="gap-1.5 h-8" onClick={() => setEnrollDialogOpen(true)}>
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Inscrever
+                </Button>
+              </div>
+              <ScrollArea className="h-full max-h-[calc(85vh-320px)]">
+                <div className="space-y-2 px-1 pb-4">
+                  {enrollmentsLoading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20" />
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Sem condições de saída configuradas</p>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Tags */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Tags</Label>
-                  {sequence.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {sequence.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                  ) : enrichedEnrollments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Sem inscritos nesta sequência.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 gap-1.5"
+                        onClick={() => setEnrollDialogOpen(true)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Inscrever Contactos
+                      </Button>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Sem tags</p>
+                    enrichedEnrollments.map((enrollment) => (
+                      <EnrollmentCard
+                        key={enrollment.id}
+                        enrollment={enrollment}
+                        totalSteps={steps?.length || 0}
+                      />
+                    ))
                   )}
                 </div>
+              </ScrollArea>
+            </TabsContent>
 
-                <Separator />
-
-                {/* Info */}
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <p>Criada: {new Date(sequence.createdAt).toLocaleDateString('pt-PT')}</p>
-                  <p>Atualizada: {new Date(sequence.updatedAt).toLocaleDateString('pt-PT')}</p>
+            {/* Analytics tab */}
+            <TabsContent value="analytics" className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
+                <div className="px-1 pb-4">
+                  <SequenceAnalytics
+                    enrollments={allEnrollments}
+                    steps={steps || []}
+                  />
                 </div>
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Settings tab */}
+            <TabsContent value="settings" className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full max-h-[calc(85vh-280px)]">
+                <div className="space-y-4 px-1 pb-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5" />
+                      Condições de Saída
+                    </Label>
+                    {sequence.exitConditions.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {sequence.exitConditions.map((cond, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {cond.label || cond.type}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Sem condições de saída configuradas</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Tags</Label>
+                    {sequence.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {sequence.tags.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Sem tags</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p>Criada: {new Date(sequence.createdAt).toLocaleDateString('pt-PT')}</p>
+                    <p>Atualizada: {new Date(sequence.updatedAt).toLocaleDateString('pt-PT')}</p>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      <EnrollContactsDialog
+        open={enrollDialogOpen}
+        onOpenChange={setEnrollDialogOpen}
+        sequenceId={sequence.id}
+        existingContactIds={contactIds}
+      />
+    </>
   );
 }
