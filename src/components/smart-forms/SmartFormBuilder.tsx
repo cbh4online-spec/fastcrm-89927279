@@ -660,6 +660,18 @@ export function SmartFormBuilder({ form, onBack, onPreview }: SmartFormBuilderPr
               </div>
             </CardContent>
           </Card>
+
+          {/* Webhooks */}
+          <FormWebhooksConfig
+            webhooks={webhooks}
+            onChange={setWebhooks}
+          />
+
+          {/* Thank You Page */}
+          <FormThankYouEditor
+            config={thankYouConfig}
+            onChange={setThankYouConfig}
+          />
         </div>
       </div>
 
