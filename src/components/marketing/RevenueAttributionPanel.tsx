@@ -30,7 +30,7 @@ export function RevenueAttributionPanel() {
       if (contactIds.length === 0) return [];
 
       // Get won opportunities for those contacts
-      const oppsResult: any = await supabase
+      const oppsResult = await (supabase as any)
         .from('opportunities')
         .select('id, value, contact_id')
         .eq('workspace_id', currentWorkspace.id)
