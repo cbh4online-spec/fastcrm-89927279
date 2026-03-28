@@ -109,7 +109,7 @@ export function ClientNotificationBadge() {
                   )}
                   <div className={cn(!n.is_read ? "" : "ml-4")}>
                     <p className="text-sm font-medium">{n.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: pt })}
                     </p>

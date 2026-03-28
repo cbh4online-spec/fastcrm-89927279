@@ -3,7 +3,7 @@ import { useClientOrders } from "@/hooks/client-portal/useClientOrders";
 import { useCart } from "@/contexts/CartContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Package, ArrowRight } from "lucide-react";
+import { RefreshCw, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -19,23 +19,20 @@ export function QuickReorderWidget() {
 
   if (!lastOrder) return null;
 
-  const items = (lastOrder.items || []) as Array<{
-    product_id: string;
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-  }>;
+  const items = lastOrder.items || [];
 
   if (items.length === 0) return null;
 
   const handleReorder = () => {
     items.forEach((item) => {
       addItem({
-        product_id: item.product_id,
+        product_id: item.product_id || "",
         product_name: item.product_name,
+        product_sku: item.product_sku || null,
+        product_image_url: item.product_image_url || null,
         quantity: item.quantity,
-        unit_price: item.unit_price,
+        unit_price_net: item.unit_price_net,
+        vat_rate: item.vat_rate,
       });
     });
     toast.success(`${items.length} produto(s) adicionados ao carrinho!`);
