@@ -62,6 +62,8 @@ export function useLifecycleCounts() {
       })) as LifecycleStageCounts[];
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -90,6 +92,8 @@ export function useLifecycleMetrics() {
       } as LifecycleMetrics;
     },
     enabled: !!currentWorkspace?.id,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }
 
