@@ -751,8 +751,113 @@ export const ATENDIMENTO_PROFISSIONAL_TEMPLATE: FlowTemplate = {
   ]
 };
 
+// ============ GENERIC TEMPLATES ============
+
+export const SUPORTE_CLIENTE_TEMPLATE: FlowTemplate = {
+  id: 'generic-support',
+  name: 'Suporte ao Cliente',
+  description: 'Triagem de problemas, recolha de informação e encaminhamento para agente',
+  category: 'Suporte',
+  icon: HelpCircle,
+  defaultGoalType: 'support',
+  defaultChannels: ['whatsapp', 'widget', 'email'],
+  variables: [
+    { name: 'nome', displayName: 'Nome', variableType: 'text', isRequired: true, mapToField: 'lead.name' },
+    { name: 'problema', displayName: 'Descrição do Problema', variableType: 'text', isRequired: true },
+    { name: 'categoria', displayName: 'Categoria', variableType: 'choice', isRequired: true, choices: ['Produto', 'Pagamento', 'Entrega', 'Conta', 'Outro'] },
+    { name: 'urgencia', displayName: 'Urgência', variableType: 'choice', isRequired: true, choices: ['Baixa', 'Média', 'Alta'] }
+  ],
+  steps: [
+    { id: 'sup-1', stepType: 'message', name: 'Saudação', messageContent: 'Olá! 👋 Bem-vindo ao suporte. Estou aqui para ajudar a resolver o seu problema o mais rápido possível.', isEntryPoint: true, connectsTo: 'sup-2', positionX: 100, positionY: 100 },
+    { id: 'sup-2', stepType: 'question', name: 'Nome', messageContent: 'Para começar, qual é o seu nome?', variableToCollect: 'nome', connectsTo: 'sup-3', positionX: 100, positionY: 220 },
+    { id: 'sup-3', stepType: 'question', name: 'Categoria', messageContent: 'Qual a categoria do seu problema?', variableToCollect: 'categoria', quickReplies: ['Produto', 'Pagamento', 'Entrega', 'Conta', 'Outro'], connectsTo: 'sup-4', positionX: 100, positionY: 340 },
+    { id: 'sup-4', stepType: 'question', name: 'Problema', messageContent: 'Descreva o problema com o máximo de detalhe possível:', variableToCollect: 'problema', connectsTo: 'sup-5', positionX: 100, positionY: 460 },
+    { id: 'sup-5', stepType: 'question', name: 'Urgência', messageContent: 'Qual a urgência?', variableToCollect: 'urgencia', quickReplies: ['Baixa', 'Média', 'Alta'], connectsTo: 'sup-6', positionX: 100, positionY: 580 },
+    { id: 'sup-6', stepType: 'handoff', name: 'Encaminhar', messageContent: 'Obrigado, {nome}! Vou encaminhar o seu pedido para a equipa de suporte. Alguém entrará em contacto brevemente. 🙏', actionType: 'transfer_to_human', actionConfig: { reason: 'Ticket de suporte' }, positionX: 100, positionY: 700 }
+  ]
+};
+
+export const ONBOARDING_TEMPLATE: FlowTemplate = {
+  id: 'generic-onboarding',
+  name: 'Onboarding de Cliente',
+  description: 'Boas-vindas, recolha de dados iniciais e orientação para próximos passos',
+  category: 'Onboarding',
+  icon: Users,
+  defaultGoalType: 'onboarding',
+  defaultChannels: ['whatsapp', 'widget'],
+  variables: [
+    { name: 'nome', displayName: 'Nome', variableType: 'text', isRequired: true, mapToField: 'lead.name' },
+    { name: 'email', displayName: 'Email', variableType: 'email', isRequired: true, mapToField: 'lead.email' },
+    { name: 'empresa', displayName: 'Empresa', variableType: 'text', isRequired: false, mapToField: 'lead.company' },
+    { name: 'objetivo', displayName: 'Objetivo', variableType: 'text', isRequired: true }
+  ],
+  steps: [
+    { id: 'onb-1', stepType: 'message', name: 'Boas-vindas', messageContent: 'Bem-vindo! 🎉 Estamos muito contentes por tê-lo connosco. Vou guiá-lo nos primeiros passos para começar.', isEntryPoint: true, connectsTo: 'onb-2', positionX: 100, positionY: 100 },
+    { id: 'onb-2', stepType: 'question', name: 'Nome', messageContent: 'Como se chama?', variableToCollect: 'nome', connectsTo: 'onb-3', positionX: 100, positionY: 220 },
+    { id: 'onb-3', stepType: 'question', name: 'Email', messageContent: 'Qual o seu email?', variableToCollect: 'email', connectsTo: 'onb-4', positionX: 100, positionY: 340 },
+    { id: 'onb-4', stepType: 'question', name: 'Empresa', messageContent: 'Em que empresa trabalha? (opcional)', variableToCollect: 'empresa', connectsTo: 'onb-5', positionX: 100, positionY: 460 },
+    { id: 'onb-5', stepType: 'question', name: 'Objetivo', messageContent: 'O que espera alcançar connosco?', variableToCollect: 'objetivo', connectsTo: 'onb-6', positionX: 100, positionY: 580 },
+    { id: 'onb-6', stepType: 'message', name: 'Próximos Passos', messageContent: 'Perfeito, {nome}! ✨ Aqui estão os seus próximos passos:\n\n1. Verifique o seu email para o link de acesso\n2. Complete o seu perfil\n3. Explore o painel principal\n\nSe precisar de ajuda, estamos aqui! 💪', positionX: 100, positionY: 700 },
+    { id: 'onb-7', stepType: 'goal', name: 'Onboarding Completo', goalName: 'Onboarding Completo', conversionValue: 1, positionX: 100, positionY: 820 }
+  ]
+};
+
+export const FAQ_TEMPLATE: FlowTemplate = {
+  id: 'generic-faq',
+  name: 'FAQ Interativo',
+  description: 'Menu de perguntas frequentes com respostas automáticas e opção de escalar',
+  category: 'FAQ',
+  icon: HelpCircle,
+  defaultGoalType: 'faq',
+  defaultChannels: ['widget', 'whatsapp'],
+  variables: [
+    { name: 'categoria_faq', displayName: 'Categoria FAQ', variableType: 'choice', isRequired: true, choices: ['Preços', 'Funcionalidades', 'Conta', 'Integrações', 'Outro'] },
+    { name: 'resolvido', displayName: 'Resolvido', variableType: 'boolean', isRequired: true }
+  ],
+  steps: [
+    { id: 'faq-1', stepType: 'message', name: 'Menu FAQ', messageContent: 'Olá! 📚 Sobre que tema precisa de ajuda?', isEntryPoint: true, connectsTo: 'faq-2', positionX: 100, positionY: 100 },
+    { id: 'faq-2', stepType: 'question', name: 'Categoria', messageContent: 'Escolha uma categoria:', variableToCollect: 'categoria_faq', quickReplies: ['Preços', 'Funcionalidades', 'Conta', 'Integrações', 'Outro'], connectsTo: 'faq-3', positionX: 100, positionY: 220 },
+    { id: 'faq-3', stepType: 'message', name: 'Resposta', messageContent: 'Aqui está a informação sobre {categoria_faq}. Consulte a nossa documentação para mais detalhes.', connectsTo: 'faq-4', positionX: 100, positionY: 340 },
+    { id: 'faq-4', stepType: 'question', name: 'Resolvido?', messageContent: 'A sua dúvida ficou esclarecida?', variableToCollect: 'resolvido', quickReplies: ['Sim', 'Não, preciso de mais ajuda'], connectsTo: 'faq-5', positionX: 100, positionY: 460 },
+    { id: 'faq-5', stepType: 'condition', name: 'Verifica Resolução', conditionField: 'resolvido', conditionOperator: 'equals', conditionValue: 'Sim', conditionTrueConnectsTo: 'faq-6', conditionFalseConnectsTo: 'faq-7', positionX: 100, positionY: 580 },
+    { id: 'faq-6', stepType: 'message', name: 'Despedida', messageContent: 'Fico contente em ajudar! 😊 Se tiver mais dúvidas, estou aqui.', positionX: 300, positionY: 700 },
+    { id: 'faq-7', stepType: 'handoff', name: 'Escalar', messageContent: 'Vou transferir para um membro da equipa que poderá ajudar em detalhe. Um momento... 🔄', actionType: 'transfer_to_human', actionConfig: { reason: 'FAQ não resolvido' }, positionX: -100, positionY: 700 }
+  ]
+};
+
+export const AGENDAMENTO_TEMPLATE: FlowTemplate = {
+  id: 'generic-booking',
+  name: 'Agendamento',
+  description: 'Recolha de data/hora preferida, confirmação e lembrete',
+  category: 'Agendamento',
+  icon: Users,
+  defaultGoalType: 'appointment',
+  defaultChannels: ['whatsapp', 'widget', 'email'],
+  variables: [
+    { name: 'nome', displayName: 'Nome', variableType: 'text', isRequired: true, mapToField: 'lead.name' },
+    { name: 'email', displayName: 'Email', variableType: 'email', isRequired: true, mapToField: 'lead.email' },
+    { name: 'data_preferida', displayName: 'Data Preferida', variableType: 'text', isRequired: true },
+    { name: 'hora_preferida', displayName: 'Hora Preferida', variableType: 'text', isRequired: true },
+    { name: 'motivo', displayName: 'Motivo', variableType: 'text', isRequired: false }
+  ],
+  steps: [
+    { id: 'book-1', stepType: 'message', name: 'Saudação', messageContent: 'Olá! 📅 Vou ajudá-lo a agendar uma reunião. Será rápido!', isEntryPoint: true, connectsTo: 'book-2', positionX: 100, positionY: 100 },
+    { id: 'book-2', stepType: 'question', name: 'Nome', messageContent: 'Qual é o seu nome?', variableToCollect: 'nome', connectsTo: 'book-3', positionX: 100, positionY: 220 },
+    { id: 'book-3', stepType: 'question', name: 'Email', messageContent: 'E o seu email para enviarmos a confirmação?', variableToCollect: 'email', connectsTo: 'book-4', positionX: 100, positionY: 340 },
+    { id: 'book-4', stepType: 'question', name: 'Data', messageContent: 'Qual a data preferida? (ex: 15/04/2026)', variableToCollect: 'data_preferida', connectsTo: 'book-5', positionX: 100, positionY: 460 },
+    { id: 'book-5', stepType: 'question', name: 'Hora', messageContent: 'E a hora? (ex: 14:30)', variableToCollect: 'hora_preferida', connectsTo: 'book-6', positionX: 100, positionY: 580 },
+    { id: 'book-6', stepType: 'question', name: 'Motivo', messageContent: 'Qual o motivo da reunião? (opcional)', variableToCollect: 'motivo', connectsTo: 'book-7', positionX: 100, positionY: 700 },
+    { id: 'book-7', stepType: 'message', name: 'Confirmação', messageContent: 'Perfeito, {nome}! ✅ Reunião agendada:\n\n📅 Data: {data_preferida}\n🕐 Hora: {hora_preferida}\n\nReceberá uma confirmação por email em breve.', positionX: 100, positionY: 820 },
+    { id: 'book-8', stepType: 'goal', name: 'Agendamento Completo', goalName: 'Agendamento Realizado', conversionValue: 1, positionX: 100, positionY: 940 }
+  ]
+};
+
 // Lista de todos os templates disponíveis
 export const FLOW_TEMPLATES: FlowTemplate[] = [
+  SUPORTE_CLIENTE_TEMPLATE,
+  ONBOARDING_TEMPLATE,
+  FAQ_TEMPLATE,
+  AGENDAMENTO_TEMPLATE,
   PHARLISS_UNIVERSAL_TEMPLATE,
   DR_KRAUT_TEMPLATE,
   ATENDIMENTO_PROFISSIONAL_TEMPLATE
