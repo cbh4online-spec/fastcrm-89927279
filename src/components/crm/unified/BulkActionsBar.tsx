@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { BulkEditDialog, BulkEditField } from "./BulkEditDialog";
 
 interface BulkActionsBarProps {
-  entityType: CrmEntityType | "leads";
+  entityType: CrmEntityType | "leads" | "companies";
   selectedCount: number;
   onClearSelection: () => void;
   onDelete: () => Promise<void>;
