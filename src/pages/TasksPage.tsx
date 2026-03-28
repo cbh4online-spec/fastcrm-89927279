@@ -11,7 +11,7 @@ import { TaskQuickActions } from "@/components/tasks/TaskQuickActions";
 import { TaskAISuggestions, AITaskSuggestion } from "@/components/tasks/TaskAISuggestions";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useTasks, useCreateTask, useDeleteTask, useToggleTaskStatus, useUpdateTask, Task } from "@/hooks/useTasks";
+import { useTasks, useCreateTask, useDeleteTask, useToggleTaskStatus, useUpdateTask, Task, TaskRelatedType } from "@/hooks/useTasks";
 import { Plus, ListTodo, LayoutGrid, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { isToday, isPast, parseISO, isThisWeek, isThisMonth } from "date-fns";
@@ -61,7 +61,7 @@ export default function TasksPage() {
     });
   }, [tasks, filters]);
 
-  const handleCreate = async (task: { title: string; due_at?: string }) => {
+  const handleCreate = async (task: { title: string; due_at?: string; related_type?: TaskRelatedType; related_id?: string }) => {
     try {
       await createTask.mutateAsync({ ...task });
       toast.success("Tarefa criada com sucesso");

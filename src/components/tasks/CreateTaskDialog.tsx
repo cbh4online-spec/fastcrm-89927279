@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { CalendarIcon, Sparkles, Loader2, Wand2, Search, User, Building2, UserCheck, X, Link } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TaskPriority, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from "@/types/taskTemplate";
+import { TaskRelatedType } from "@/hooks/useTasks";
+import { supabase } from "@/integrations/supabase/client";
+import { useDebounce } from "@/hooks/useDebounce";
+
+type RelatedType = "contact" | "lead" | "company";
+
+interface EntityResult {
+  id: string;
+  name: string;
+  email?: string | null;
+}
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -21,11 +33,19 @@ interface CreateTaskDialogProps {
     title: string;
     due_at?: string;
     assigned_to?: string;
+    related_type?: TaskRelatedType;
+    related_id?: string;
   }) => void;
   initialTitle?: string;
   initialDueDays?: number;
   entityName: string;
 }
+
+const ENTITY_TYPE_CONFIG: Record<RelatedType, { label: string; icon: typeof User; table: string }> = {
+  contact: { label: "Contacto", icon: UserCheck, table: "contacts" },
+  lead: { label: "Lead", icon: User, table: "leads" },
+  company: { label: "Empresa", icon: Building2, table: "companies" },
+};
 
 export function CreateTaskDialog({
   open,
@@ -41,13 +61,56 @@ export function CreateTaskDialog({
   const [dueDate, setDueDate] = useState<Date | undefined>(addDays(new Date(), initialDueDays));
   const [isAIEnhancing, setIsAIEnhancing] = useState(false);
 
-  // Reset form when dialog opens with new initial values
-  useState(() => {
+  // Entity association state
+  const [relatedType, setRelatedType] = useState<RelatedType | "none">("none");
+  const [relatedId, setRelatedId] = useState<string | null>(null);
+  const [relatedName, setRelatedName] = useState<string | null>(null);
+  const [entitySearch, setEntitySearch] = useState("");
+  const [entityResults, setEntityResults] = useState<EntityResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showEntityDropdown, setShowEntityDropdown] = useState(false);
+
+  const debouncedSearch = useDebounce(entitySearch, 300);
+
+  // Reset form when dialog opens
+  useEffect(() => {
     if (open) {
       setTitle(initialTitle);
       setDueDate(addDays(new Date(), initialDueDays));
+      setRelatedType("none");
+      setRelatedId(null);
+      setRelatedName(null);
+      setEntitySearch("");
+      setEntityResults([]);
     }
-  });
+  }, [open, initialTitle, initialDueDays]);
+
+  // Search entities when debounced search changes
+  useEffect(() => {
+    if (relatedType === "none" || !debouncedSearch.trim()) {
+      setEntityResults([]);
+      return;
+    }
+
+    const searchEntities = async () => {
+      setIsSearching(true);
+      try {
+        const table = relatedType === "contact" ? "contacts" : relatedType === "lead" ? "leads" : "companies";
+        const { data } = await (supabase
+          .from(table)
+          .select("id, name, email")
+          .ilike("name", `%${debouncedSearch}%`)
+          .limit(10) as any);
+        setEntityResults((data as EntityResult[]) || []);
+      } catch {
+        setEntityResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    searchEntities();
+  }, [debouncedSearch, relatedType]);
 
   const handleSubmit = () => {
     if (!title.trim()) return;
@@ -55,6 +118,7 @@ export function CreateTaskDialog({
     onCreateTask({
       title: title.trim(),
       due_at: dueDate?.toISOString(),
+      ...(relatedType !== "none" && relatedId ? { related_type: relatedType === "contact" ? "contact" : relatedType === "lead" ? "lead" : "company", related_id: relatedId } : {}),
     });
     
     // Reset form
@@ -62,15 +126,17 @@ export function CreateTaskDialog({
     setDescription("");
     setPriority('medium');
     setDueDate(addDays(new Date(), 3));
+    setRelatedType("none");
+    setRelatedId(null);
+    setRelatedName(null);
+    setEntitySearch("");
     onOpenChange(false);
   };
 
   const handleAIEnhance = async () => {
     setIsAIEnhancing(true);
-    // Simulate AI enhancement
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock AI enhancement
     if (title.toLowerCase().includes('ligar')) {
       setTitle(title + ' - confirmar disponibilidade');
       setDescription('Pontos a abordar:\n1. Confirmar receção da proposta\n2. Esclarecer dúvidas\n3. Definir próximos passos');
@@ -79,6 +145,29 @@ export function CreateTaskDialog({
     }
     
     setIsAIEnhancing(false);
+  };
+
+  const handleSelectEntity = (entity: EntityResult) => {
+    setRelatedId(entity.id);
+    setRelatedName(entity.name);
+    setEntitySearch("");
+    setShowEntityDropdown(false);
+    setEntityResults([]);
+  };
+
+  const handleClearEntity = () => {
+    setRelatedId(null);
+    setRelatedName(null);
+    setEntitySearch("");
+    setEntityResults([]);
+  };
+
+  const handleTypeChange = (value: string) => {
+    setRelatedType(value as RelatedType | "none");
+    setRelatedId(null);
+    setRelatedName(null);
+    setEntitySearch("");
+    setEntityResults([]);
   };
 
   const quickDates = [
@@ -156,6 +245,103 @@ export function CreateTaskDialog({
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Entity Association */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Link className="w-3.5 h-3.5" />
+              Associar a
+            </Label>
+            <Select value={relatedType} onValueChange={handleTypeChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar tipo..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Geral (sem associação)</SelectItem>
+                <SelectItem value="contact">
+                  <span className="flex items-center gap-2"><UserCheck className="w-3.5 h-3.5" /> Contacto</span>
+                </SelectItem>
+                <SelectItem value="lead">
+                  <span className="flex items-center gap-2"><User className="w-3.5 h-3.5" /> Lead</span>
+                </SelectItem>
+                <SelectItem value="company">
+                  <span className="flex items-center gap-2"><Building2 className="w-3.5 h-3.5" /> Empresa</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {relatedType !== "none" && (
+              <div className="relative">
+                {relatedId && relatedName ? (
+                  <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                    {(() => {
+                      const Icon = ENTITY_TYPE_CONFIG[relatedType].icon;
+                      return <Icon className="w-4 h-4 text-muted-foreground" />;
+                    })()}
+                    <span className="text-sm font-medium flex-1">{relatedName}</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {ENTITY_TYPE_CONFIG[relatedType].label}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleClearEntity}>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={`Pesquisar ${ENTITY_TYPE_CONFIG[relatedType].label.toLowerCase()}...`}
+                        value={entitySearch}
+                        onChange={(e) => {
+                          setEntitySearch(e.target.value);
+                          setShowEntityDropdown(true);
+                        }}
+                        onFocus={() => setShowEntityDropdown(true)}
+                        className="pl-8"
+                      />
+                      {isSearching && (
+                        <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    {showEntityDropdown && entitySearch.trim() && (
+                      <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md">
+                        <ScrollArea className="max-h-[160px]">
+                          {isSearching ? (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : entityResults.length === 0 ? (
+                            <div className="py-4 text-center text-sm text-muted-foreground">
+                              Nenhum resultado encontrado
+                            </div>
+                          ) : (
+                            <div className="p-1">
+                              {entityResults.map((entity) => (
+                                <button
+                                  key={entity.id}
+                                  type="button"
+                                  onClick={() => handleSelectEntity(entity)}
+                                  className="w-full flex items-center gap-2 px-2 py-2 text-left rounded-md hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm truncate">{entity.name}</div>
+                                    {entity.email && (
+                                      <div className="text-xs text-muted-foreground truncate">{entity.email}</div>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Due Date */}
