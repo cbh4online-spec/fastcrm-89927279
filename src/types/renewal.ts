@@ -1,7 +1,7 @@
 // Renewal Contracts Module Types
 
 export type RenewalSourceType = 'proposal' | 'order' | 'opportunity' | 'manual';
-export type RenewalContractStatus = 'active' | 'paused' | 'cancelled' | 'expired';
+export type RenewalContractStatus = 'active' | 'paused' | 'cancelled' | 'expired' | 'churned';
 export type RenewalRiskLevel = 'low' | 'medium' | 'high';
 export type RenewalBillingType = 'invoice' | 'stripe' | 'external';
 export type RenewalIntervalType = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'custom';
@@ -40,6 +40,7 @@ export interface RenewalContract {
   } | null;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
+  dunning_attempts: number;
   created_at: string;
   updated_at: string;
   // Relations (populated on queries)
@@ -168,6 +169,7 @@ export const RENEWAL_STATUS_CONFIG: Record<RenewalContractStatus, { label: strin
   paused: { label: 'Pausado', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   cancelled: { label: 'Cancelado', color: 'text-red-600', bgColor: 'bg-red-50' },
   expired: { label: 'Expirado', color: 'text-muted-foreground', bgColor: 'bg-muted' },
+  churned: { label: 'Churned', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 export const RENEWAL_ITEM_STATUS_CONFIG: Record<RenewalItemStatus, { label: string; color: string }> = {
