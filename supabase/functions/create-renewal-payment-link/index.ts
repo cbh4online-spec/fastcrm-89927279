@@ -50,7 +50,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not a workspace member" }), { status: 403, headers: corsHeaders });
     }
 
-    // Get Stripe config
+    // Get Stripe config — try workspace-specific first, fall back to global key
     const { data: stripeConfig } = await serviceClient
       .from("workspace_stripe_config")
       .select("*")
@@ -58,8 +58,9 @@ serve(async (req) => {
       .eq("is_active", true)
       .maybeSingle();
 
-    if (!stripeConfig?.stripe_secret_key_encrypted) {
-      return new Response(JSON.stringify({ error: "Stripe not configured for this workspace" }), { status: 400, headers: corsHeaders });
+    const stripeKey = stripeConfig?.stripe_secret_key_encrypted || Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      return new Response(JSON.stringify({ error: "Stripe not configured" }), { status: 400, headers: corsHeaders });
     }
 
     // Get contract with company and contact
@@ -94,7 +95,7 @@ serve(async (req) => {
     const totalAmount = items.reduce((sum: number, item: any) => sum + (Number(item.qty) * Number(item.unit_price)), 0);
 
     // Create Stripe checkout session
-    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
