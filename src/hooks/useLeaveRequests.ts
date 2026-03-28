@@ -45,7 +45,11 @@ export function useLeaveRequests() {
       const { error } = await supabase.from("leave_requests").insert({
         workspace_id: wsId!,
         user_id: user!.id,
-        ...input,
+        leave_type: input.leave_type as any,
+        start_date: input.start_date,
+        end_date: input.end_date,
+        days_count: input.days_count,
+        reason: input.reason ?? null,
       });
       if (error) throw error;
     },

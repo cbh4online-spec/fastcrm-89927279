@@ -37,7 +37,7 @@ import {
   UsersRound, KeyRound, Plug, FolderCog, ShieldCheck,
   HeartPulse, Stethoscope, Puzzle, Shield,
   Radio, Search, MapPin,
-  ArrowUpDown, Headphones,
+  ArrowUpDown, Headphones, Clock, Timer,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ export type NavGroup =
   | "vendas"
   | "compras"
   | "suporte"
+  | "rh"
   | "loja-online"
   | "marketplace-c2c"
   | "portal-b2b"
@@ -102,7 +103,8 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
   { key: "compras",          label: "Compras",          icon: ShoppingCart,    order: 7,  collapsible: true },
   { key: "suporte",          label: "Suporte",          icon: Headphones,      order: 8,  collapsible: true },
-  { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 9,  collapsible: true },
+  { key: "rh",               label: "RH",               icon: Clock,           order: 9,  collapsible: true },
+  { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 10, collapsible: true },
   { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 10, collapsible: true },
   { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 11, collapsible: true },
   { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 12, collapsible: true },

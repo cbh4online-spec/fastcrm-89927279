@@ -71,6 +71,9 @@ export const moduleNavRegistry: ModuleNavEntry[] = [
   // Real Estate
   { slug: "imo-ai", label: "IMO AI", icon: Home, href: "/dashboard/imo", order: 100 },
 
+  // HR
+  { slug: "hr-time-tracking", label: "Controlo de Ponto", icon: Package, href: "/dashboard/hr/time-clock", order: 105 },
+
   // Integrations
   { slug: "zapier-integration", label: "Zapier", icon: Zap, href: "/dashboard/integrations/zapier", order: 110 },
 ];
