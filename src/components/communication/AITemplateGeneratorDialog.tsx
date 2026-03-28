@@ -55,14 +55,34 @@ const TONE_OPTIONS = [
   { value: 'casual', label: 'Casual' },
 ];
 
-export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated }: AITemplateGeneratorDialogProps) {
+export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, initialRecommendation }: AITemplateGeneratorDialogProps) {
   const [step, setStep] = useState(1);
   const [goal, setGoal] = useState('');
   const [audience, setAudience] = useState('');
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [tone, setTone] = useState<'formal' | 'friendly' | 'direct' | 'casual'>('formal');
+  const [appliedRec, setAppliedRec] = useState(false);
 
+  const { recommendations } = useTemplateRecommendations();
   const generateTemplate = useGenerateTemplate();
+
+  // The active recommendation: either passed from outside or the top one
+  const activeRec = initialRecommendation || (recommendations.length > 0 ? recommendations[0] : null);
+
+  // Apply initial recommendation when dialog opens
+  useEffect(() => {
+    if (open && initialRecommendation && !appliedRec) {
+      applyRecommendation(initialRecommendation);
+      setAppliedRec(true);
+    }
+  }, [open, initialRecommendation]);
+
+  const applyRecommendation = (rec: TemplateRecommendation) => {
+    setGoal(rec.goalValue);
+    setChannel(rec.channel);
+    setTone(rec.tone);
+    if (rec.audienceValue) setAudience(rec.audienceValue);
+  };
 
   const handleGenerate = async () => {
     const goalLabel = GOAL_OPTIONS.find(g => g.value === goal)?.label || goal;
@@ -109,6 +129,7 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated }: A
     setAudience('');
     setChannel('email');
     setTone('formal');
+    setAppliedRec(false);
   };
 
   const canProceed = () => {
