@@ -186,6 +186,44 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
+  const condenseContent = async (chapter: EbookChapter) => {
+    if (!chapter.content) return;
+    if (!canAfford("ebook_condense_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Condensar Conteúdo", creditsNeeded: getCost("ebook_condense_content") });
+      return;
+    }
+    setGenerating(chapter.id);
+    try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_condense_content", referenceType: "ebook", referenceId: ebookId });
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "condense_content", chapterContext: chapter.content },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      updateChapter(chapter.id, "content", data?.content || chapter.content);
+      toast.success("Conteúdo condensado!");
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+  };
+
+  const expandContent = async (chapter: EbookChapter) => {
+    if (!chapter.content) return;
+    if (!canAfford("ebook_expand_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Expandir Conteúdo", creditsNeeded: getCost("ebook_expand_content") });
+      return;
+    }
+    setGenerating(chapter.id);
+    try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_expand_content", referenceType: "ebook", referenceId: ebookId });
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "expand_content", chapterContext: chapter.content },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      updateChapter(chapter.id, "content", data?.content || chapter.content);
+      toast.success("Conteúdo expandido!");
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+  };
+
   const publishEbook = () => {
     if (!ebook) return;
     updateEbook.mutate({ id: ebookId, status: "published" }, { onSuccess: () => toast.success("eBook publicado!") });
