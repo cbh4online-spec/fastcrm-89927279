@@ -5,3 +5,8 @@ export { TaskQuickActions } from './TaskQuickActions';
 export { TaskProductivityStats } from './TaskProductivityStats';
 export { TaskList } from './TaskList';
 export { CreateTaskDialog } from './CreateTaskDialog';
+export { EditTaskDialog } from './EditTaskDialog';
+export { TaskOverdueBanner } from './TaskOverdueBanner';
+export { TaskTodayFocus } from './TaskTodayFocus';
+export { TasksFilterSidebar } from './TasksFilterSidebar';
+export { TaskKanbanView } from './TaskKanbanView';
