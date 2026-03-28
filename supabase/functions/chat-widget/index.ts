@@ -55,13 +55,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch widget configuration
+    // Fetch widget configuration with agent
     const { data: widget, error: widgetError } = await supabase
       .from("widget_configurations")
       .select("*, workspaces(id, name)")
       .eq("id", widgetId)
       .eq("is_active", true)
       .single();
+
+    // If widget has an agent, load agent config
+    let agentConfig: any = null;
+    if (widget?.default_agent_id) {
+      const { data: agent } = await supabase
+        .from("ai_agents")
+        .select("id, name, persona_id, flow_id, knowledge_base_ids, settings")
+        .eq("id", widget.default_agent_id)
+        .eq("is_active", true)
+        .single();
+      if (agent) agentConfig = agent;
+    }
 
     if (widgetError || !widget) {
       console.error("[CHAT-WIDGET] Widget not found:", widgetError);
