@@ -6,6 +6,9 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { useBulkSocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
 import { SmartCompanyRow } from "./SmartCompanyRow";
 import { CreateCompanyDialog } from "./CreateCompanyDialog";
+import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
+import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
+import { useWorkspaceTags, useSyncLeadTagsToWorkspace } from "@/hooks/useWorkspaceTags";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
@@ -131,7 +134,26 @@ export function SmartCompaniesTable() {
 
   const { data: companiesResult, isLoading, refetch } = useSmartCompanies(filters);
   const companies = companiesResult?.data;
-  const { deleteCompany, updateCompany } = useCompanies();
+  const { deleteCompany, updateCompany, addTagsToCompanies, bulkUpdateCompanies } = useCompanies();
+  const { data: workspaceTags } = useWorkspaceTags();
+  const syncTags = useSyncLeadTagsToWorkspace();
+
+  const availableTags = useMemo(() => {
+    const fromCompanies = [...new Set((companies || []).flatMap((c: any) => c.tags || []))];
+    const fromWorkspace = (workspaceTags || []).map((t: any) => t.name);
+    return [...new Set([...fromCompanies, ...fromWorkspace])].sort();
+  }, [companies, workspaceTags]);
+
+  const companyBulkEditFields: BulkEditField[] = useMemo(() => [
+    { key: "industry", label: t("col_industry"), type: "text" },
+    { key: "source", label: t("col_source"), type: "text" },
+    { key: "size", label: t("col_size"), type: "select", options: [
+      { value: "micro", label: t("filterSizeMicro") },
+      { value: "small", label: t("filterSizeSmall") },
+      { value: "medium", label: t("filterSizeMedium") },
+      { value: "large", label: t("filterSizeLarge") },
+    ]},
+  ], [t]);
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
   const bulkSocialAnalyze = useBulkSocialMediaAnalysis();
@@ -271,13 +293,32 @@ export function SmartCompaniesTable() {
         )}
 
         {activeTab === "companies" && selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
-            <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selectedFem")}</span>
-            <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
-            <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />{t("revenueIntelligence")}</Button>
-            <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
-            <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>
+          <div className="mt-4 space-y-2">
+            <BulkActionsBar
+              entityType="companies"
+              selectedCount={selectedIds.size}
+              onClearSelection={() => setSelectedIds(new Set())}
+              onDelete={async () => { setShowDeleteDialog(true); }}
+              onExport={handleExport}
+              onAddTags={async (tags) => {
+                await addTagsToCompanies.mutateAsync({ ids: Array.from(selectedIds), tags });
+                syncTags.mutate(tags);
+                setSelectedIds(new Set());
+              }}
+              onBulkEdit={async (changes) => {
+                await bulkUpdateCompanies.mutateAsync({ ids: Array.from(selectedIds), changes });
+                toast.success(t("companiesUpdated", { count: selectedIds.size }));
+                setSelectedIds(new Set());
+                refetch();
+              }}
+              availableTags={availableTags}
+              editableFields={companyBulkEditFields}
+            />
+            <div className="flex items-center gap-2 px-3">
+              <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+              <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />{t("revenueIntelligence")}</Button>
+              <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
+            </div>
           </div>
         )}
 

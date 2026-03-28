@@ -5,6 +5,7 @@ import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalys
 import { useContacts } from "@/hooks/useContacts";
 import { CreateContactDialog } from "./CreateContactDialog";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import { useWorkspaceTags, useSyncLeadTagsToWorkspace } from "@/hooks/useWorkspaceTags";
 import { AttioViewSelector } from "./AttioViewSelector";
 import { AttioFilterBar, SortOption } from "./AttioFilterBar";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
@@ -147,6 +148,14 @@ export function AttioContactsTable() {
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
+  const { data: workspaceTags } = useWorkspaceTags();
+  const syncTags = useSyncLeadTagsToWorkspace();
+
+  const availableTags = useMemo(() => {
+    const fromContacts = [...new Set((contacts || []).flatMap(c => c.tags || []))];
+    const fromWorkspace = (workspaceTags || []).map(t => t.name);
+    return [...new Set([...fromContacts, ...fromWorkspace])].sort();
+  }, [contacts, workspaceTags]);
 
   const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
     try {
@@ -216,7 +225,7 @@ export function AttioContactsTable() {
   };
 
   const handleBulkDelete = async () => { await deleteContacts.mutateAsync(Array.from(selectedIds)); setSelectedIds(new Set()); };
-  const handleAddTags = async (tags: string[]) => { await addTagsToContacts.mutateAsync({ ids: Array.from(selectedIds), tags }); setSelectedIds(new Set()); };
+  const handleAddTags = async (tags: string[]) => { await addTagsToContacts.mutateAsync({ ids: Array.from(selectedIds), tags }); syncTags.mutate(tags); setSelectedIds(new Set()); };
   const handleBulkEdit = async (changes: Record<string, unknown>) => {
     await bulkUpdateContacts.mutateAsync({ ids: Array.from(selectedIds), changes });
     toast.success(t("contactsUpdated", { count: selectedIds.size }));
@@ -295,7 +304,7 @@ export function AttioContactsTable() {
       {/* ── Bulk actions ── */}
       {selectedIds.size > 0 && (
         <BulkActionsBar entityType="contacts" selectedCount={selectedIds.size} onClearSelection={() => setSelectedIds(new Set())}
-          onDelete={handleBulkDelete} onExport={handleExport} onAddTags={handleAddTags} onBulkEdit={handleBulkEdit} editableFields={contactBulkEditFields} />
+          onDelete={handleBulkDelete} onExport={handleExport} onAddTags={handleAddTags} onBulkEdit={handleBulkEdit} editableFields={contactBulkEditFields} availableTags={availableTags} />
       )}
 
       {/* ── Table ── */}
