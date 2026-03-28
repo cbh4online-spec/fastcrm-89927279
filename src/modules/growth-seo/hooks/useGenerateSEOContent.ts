@@ -9,6 +9,7 @@ interface GenerateContentParams {
   intent?: Intent;
   language?: string;
   additional_context?: string;
+  workspace_id?: string;
 }
 
 interface GeneratedSEOContent {

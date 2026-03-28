@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ArrowRight, Rocket, Sparkles, Zap } from 'lucide-react';
 import { useTracking } from '../../../hooks/useTracking';
+import { useSeoUxTracker } from '@/hooks/useSeoUxTracker';
 import type { CTA } from '../../../types';
 
 interface CTASectionProps {
@@ -37,15 +38,19 @@ export function CTASection({
   className = '' 
 }: CTASectionProps) {
   const { trackCTAClick } = useTracking();
+  const { trackCtaClick } = useSeoUxTracker({ pageType, enabled: true });
   const Icon = ctaIcons[cta.type] || ArrowRight;
 
   const handleClick = () => {
+    // Track via GTM/GA4
     trackCTAClick({
       cta_type: cta.type,
       placement: variant as 'hero' | 'sidebar' | 'inline' | 'footer',
       page_type: pageType,
       entity_slug: entitySlug,
     });
+    // Track via internal seo_page_analytics
+    trackCtaClick(variant, cta.text);
   };
 
   if (variant === 'hero') {

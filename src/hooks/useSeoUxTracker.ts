@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "xqepxufdrsuxlnubuatz";
-const TRACK_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/seo-track`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const TRACK_URL = `${SUPABASE_URL}/functions/v1/seo-track`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface TrackEvent {
