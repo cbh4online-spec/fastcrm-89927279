@@ -79,6 +79,7 @@ import { useConvertProposalToOrderNote } from "@/hooks/useConvertProposalToOrder
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
+import { ProposalAnalyticsTab } from "./ProposalAnalyticsTab";
 import { ProposalTaskDialog } from "./ProposalTaskDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
