@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, Bot, User } from "lucide-react";
+import { Send, Sparkles, Bot, User, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
@@ -32,7 +33,7 @@ interface Props {
 }
 
 export function AIFunnelChat({ onRecommendation }: Props) {
-  const { canAfford, consumeCredits } = useCreditWallet();
+  const { canRun, showUpgrade, overageLabel } = useAIGate("heavy");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -61,13 +62,12 @@ export function AIFunnelChat({ onRecommendation }: Props) {
     setIsLoading(true);
 
     try {
-      // Consume credits
-      if (!canAfford("funnel_ai_create")) {
-        toast.error("Créditos insuficientes para criar funil com IA");
+      // Check AI quota before calling
+      if (showUpgrade) {
+        triggerNoCreditsDialog({ actionLabel: "Criar funil com IA" });
         setIsLoading(false);
         return;
       }
-      await consumeCredits.mutateAsync({ actionKey: "funnel_ai_create", referenceType: "funnel" });
 
       // Build conversation history for AI
       const conversationMessages = [...messages.filter(m => m.id !== "welcome"), userMsg]
