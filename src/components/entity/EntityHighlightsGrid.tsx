@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
-import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3, Users, Zap } from 'lucide-react';
+import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3, Users, Zap, UserCheck } from 'lucide-react';
 import { Entity, EntityType } from '@/types/entity';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 
 interface HighlightCard {
   label: string;

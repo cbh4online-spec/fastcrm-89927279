@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { EntityType, Entity } from '@/types/entity';
 import { cn } from '@/lib/utils';
+import { EntityOwnerSelector } from './EntityOwnerSelector';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 
 interface EntityContextSidebarProps {
   entityType: EntityType;
