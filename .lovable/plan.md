@@ -1,53 +1,58 @@
 
 
-# Produtos — QR Code, Menu, Pagamentos e Ficha Rica
+# Tipos de Captura — Tornar Completamente Funcional
 
-## 4 Problemas Identificados
+## Problema
 
-### 1. QR Code — Verificar Funcionamento
-O QR code usa `react-qr-code` e aponta para `/product/:slug` (ou `/product/:id` se não tiver slug). A rota pública `PublicProductSheet` existe em `VerticalOpsRoutes.tsx`. O problema potencial é que o `getPublicBaseUrl()` usa `window.location.origin` — que no backoffice aponta para o domínio do dashboard, não o domínio público publicado. Se a ficha não está publicada (`sheet_published = false`), o QR aponta para um ID interno que pode não ter página pública.
+A tab "Tipos de Captura" no módulo Funis mostra apenas cards read-only dos 12 tipos existentes na BD. Não há:
+- Criação de novos tipos
+- Edição de tipos existentes
+- Eliminação
+- Associação de tipos de captura aos funis/instâncias
+- Contagem de funis que usam cada tipo
+- Ícones visuais corretos (o campo `icon` existe na BD mas não é renderizado dinamicamente)
+- Indicação de utilização/popularidade
 
-**Fix**: Validar que o QR usa o URL correto, e mostrar aviso visual quando a ficha não está publicada.
+## Plano
 
-### 2. Sidebar — Linhas Sobrepostas
-No `AdaptiveSidebar.tsx`, os links dentro de grupos colapsáveis usam `space-y-0.5` e alturas dinâmicas baseadas no perfil etário (`style.itemHeight`). Quando há muitos itens com ícones + texto, em certas combinações de tamanho o espaçamento é insuficiente.
+### 1. CRUD Completo de Tipos de Captura
 
-**Fix**: Aumentar `space-y` para `space-y-1`, garantir `min-h` nos links e adicionar `py-1.5` padding vertical mínimo nos itens de menu.
+Adicionar ao `useFunnelInstances.ts`:
+- `useCreateCaptureType` — mutation para inserir novo tipo
+- `useUpdateCaptureType` — mutation para editar
+- `useDeleteCaptureType` — mutation para eliminar
 
-### 3. Pagamentos — Módulo Incompleto
-A página `Payments.tsx` existe mas é básica: 4 KPIs + tabela simples. Está **oculta no sidebar** (`visibleInSidebar: false`). Faltam:
-- Visibilidade no menu
-- Filtros por estado/data/valor
-- Pesquisa por oportunidade/cliente
-- Detalhe do pagamento
-- Registo manual de pagamento
-- Ações de reembolso
-- Exportação
+Criar `CaptureTypeFormDialog.tsx`:
+- Dialog com campos: Label, Key (auto-gerado do label), Descrição, Ícone (selector de ícones Lucide)
+- Modo criar e modo editar
+- Validação de key único
 
-**Fix**:
-- Tornar visível no sidebar (`visibleInSidebar: true`)
-- Adicionar toolbar com filtros, pesquisa e exportação
-- Adicionar dialog de registo manual de pagamento
-- Adicionar ações por linha (ver detalhe, marcar como reembolsado)
-- Expandir KPIs (adicionar falhados, reembolsos)
+### 2. Tab de Tipos de Captura Rica
 
-### 4. Ficha do Produto — Precisa de Mais Riqueza Visual
-A ficha atual é funcional mas visualmente pobre no topo. Não mostra imagem principal, logo da empresa, nem galeria. O header é apenas texto + badges.
+Redesenhar a secção na `FunnelsList.tsx`:
+- **Botão "+ Novo Tipo"** no header
+- **Cards melhorados**: ícone Lucide dinâmico (mapeando o campo `icon` para componentes), label, descrição, key como badge
+- **Contagem de uso**: quantos funis/instâncias usam cada tipo (query count de `funnel_instances.capture_type_id`)
+- **Ações por card**: hover com botões editar e eliminar (com proteção se em uso)
+- **Barra de pesquisa** para filtrar tipos
 
-**Fix**: Redesenhar o topo da ficha do produto:
-- **Hero section**: Imagem principal do produto (da galeria `product_images`) em destaque, com fallback para placeholder visual
-- **Logo/marca**: Mostrar logo do workspace (já disponível via `storeSettings?.logo_url`)
-- **Layout rico**: Imagem à esquerda, info à direita (nome, badges, preço, margem, SKU)
-- **Mini-galeria**: Thumbnails das imagens abaixo da imagem principal
-- **Gradiente/overlay**: Visual mais premium no header
+### 3. Integração nos Funis
 
-## Ficheiros a Modificar
+No dialog de criação de funil (`createOpen`) e no `FunnelBuilder`:
+- Adicionar campo **"Tipo de Captura"** como select/combobox
+- Mostrar o tipo de captura atribuído nos cards de funis e instâncias
+- Permitir alterar o tipo na edição
 
-| Ficheiro | Mudança |
+### 4. Ícones Dinâmicos
+
+Criar helper `getCaptureTypeIcon(iconName: string)` que mapeia strings do campo `icon` (ex: `calendar`, `mail`, `phone`) para componentes Lucide correspondentes.
+
+## Ficheiros
+
+| Ficheiro | Ação |
 |---|---|
-| `src/components/products/ProductBarcodeQRSection.tsx` | Validar URL do QR, aviso quando ficha não publicada |
-| `src/components/layout/AdaptiveSidebar.tsx` | Fix spacing nos links de menu |
-| `src/config/routeManifest.ts` | Tornar "Pagamentos" visível no sidebar |
-| `src/pages/Payments.tsx` | Redesenho completo: filtros, pesquisa, registo manual, reembolso, exportação |
-| `src/components/products/ProductDetailDialog.tsx` | Redesenhar header com hero image, logo, mini-galeria |
+| `src/hooks/useFunnelInstances.ts` | Adicionar mutations create/update/delete para capture_types |
+| `src/components/funnels/CaptureTypeFormDialog.tsx` | **Criar** — dialog de criação/edição |
+| `src/components/funnels/FunnelsList.tsx` | Redesenhar tab "capture" com CRUD, ícones dinâmicos, contagem de uso |
+| `src/components/funnels/FunnelsList.tsx` | Adicionar capture_type ao dialog de criação de funil |
 
