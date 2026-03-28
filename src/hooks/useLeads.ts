@@ -394,6 +394,56 @@ export function useDeleteLead() {
   });
 }
 
+export function useBulkUpdateLeads() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async ({ ids, changes }: { ids: string[]; changes: Record<string, unknown> }) => {
+      if (!ids.length) return;
+      // For tags we merge instead of replace
+      if (changes.tags && Array.isArray(changes.tags)) {
+        const newTags = changes.tags as string[];
+        // Fetch current tags for each lead
+        const { data: currentLeads } = await workspaceClient
+          .from("leads")
+          .select("id, tags")
+          .in("id", ids);
+        if (currentLeads) {
+          for (const lead of currentLeads) {
+            const existing = (lead as any).tags || [];
+            const merged = [...new Set([...existing, ...newTags])];
+            await workspaceClient
+              .from("leads")
+              .update({ tags: merged })
+              .eq("id", lead.id);
+          }
+        }
+        const { tags, ...rest } = changes;
+        if (Object.keys(rest).length > 0) {
+          const { error } = await workspaceClient
+            .from("leads")
+            .update(rest)
+            .in("id", ids);
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await workspaceClient
+          .from("leads")
+          .update(changes)
+          .in("id", ids);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
+    },
+  });
+}
+
 export function useDeleteLeads() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();

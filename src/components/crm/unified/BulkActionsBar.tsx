@@ -120,7 +120,7 @@ export function BulkActionsBar({
 
         <div className="flex items-center gap-2">
           {/* Add Tags */}
-          {entityType === "contacts" && (
+          {(entityType === "contacts" || entityType === "leads") && (
             <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="flex items-center gap-2">
