@@ -130,15 +130,6 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
   };
 
-  // Click on left/right edges only (narrower zones to avoid interfering with reading)
-  const onPageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const edgeWidth = 40; // px
-    if (x < edgeWidth) prev();
-    else if (x > rect.width - edgeWidth) next();
-  };
-
   // Fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement && containerRef.current) {
