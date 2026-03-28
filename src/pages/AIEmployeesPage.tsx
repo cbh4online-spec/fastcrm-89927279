@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useBots, Bot } from "@/hooks/useBots";
+import { useBots, type Bot as BotType } from "@/hooks/useBots";
 import { BotCard } from "@/components/ai-employees/BotCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
