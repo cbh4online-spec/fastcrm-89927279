@@ -78,6 +78,11 @@ import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
+import { useProductImages } from "@/hooks/useProductImages";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { ImageIcon } from "lucide-react";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -96,9 +101,15 @@ export function ProductDetailDialog({
 
   const { data: product, isLoading } = useProduct(productId);
   const { data: stats } = useProductStats(productId);
+  const { data: productImages } = useProductImages(productId);
+  const { data: storeSettings } = useStoreSettings();
+  const { currentWorkspace } = useWorkspace();
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
+
+  const [heroIdx, setHeroIdx] = useState(0);
+  const mainImage = productImages?.[heroIdx];
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -145,80 +156,111 @@ export function ProductDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isBundle ? (
-                  <Layers className="h-6 w-6 text-primary" />
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+          {/* ═══ HERO HEADER ═══ */}
+          <div className="relative bg-gradient-to-br from-muted/80 via-muted/40 to-background">
+            <div className="flex flex-col sm:flex-row gap-0">
+              {/* Image area */}
+              <div className="relative w-full sm:w-[260px] h-[200px] sm:h-[220px] shrink-0 bg-muted/60 overflow-hidden">
+                {mainImage ? (
+                  <img
+                    src={mainImage.url}
+                    alt={mainImage.alt_text || product.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <Package className="h-6 w-6" />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
+                  </div>
                 )}
+                {/* Mini gallery thumbnails */}
+                {productImages && productImages.length > 1 && (
+                  <div className="absolute bottom-2 left-2 right-2 flex gap-1.5 overflow-x-auto">
+                    {productImages.slice(0, 5).map((img, idx) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setHeroIdx(idx)}
+                        className={`w-10 h-10 rounded-md overflow-hidden border-2 shrink-0 transition-all ${
+                          idx === heroIdx ? "border-primary shadow-md" : "border-white/50 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={img.url} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Info area */}
+              <div className="flex-1 p-5 flex flex-col justify-between min-w-0">
                 <div>
-                  <DialogTitle className="text-xl">{product.name}</DialogTitle>
-                  <div className="flex items-center gap-2 mt-1">
+                  {/* Logo + brand */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <WorkspaceLogo
+                      logoUrl={storeSettings?.logo_url}
+                      workspaceName={storeSettings?.store_name || currentWorkspace?.name}
+                      size="sm"
+                      variant="portal"
+                    />
+                    <span className="text-xs text-muted-foreground font-medium truncate">
+                      {storeSettings?.store_name || currentWorkspace?.name}
+                    </span>
+                  </div>
+
+                  <DialogHeader className="text-left">
+                    <DialogTitle className="text-xl leading-tight">{product.name}</DialogTitle>
+                  </DialogHeader>
+
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge variant={isBundle ? "default" : "outline"}>
                       {productTypeLabels[product.product_type]}
                     </Badge>
-                    <Badge
-                      className={`border-0 ${
-                        product.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : product.status === "review" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                        : product.status === "discontinued" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-muted text-muted-foreground"
-                      }`}
-                    >
+                    <Badge className={`border-0 ${
+                      product.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : product.status === "review" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      : product.status === "discontinued" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      : "bg-muted text-muted-foreground"
+                    }`}>
                       {productStatusLabels[product.status]}
                     </Badge>
-                    {(product as any).b2b_published !== false ? (
-                      <Badge variant="outline" className="text-green-600 border-green-300">
-                        B2B
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        B2B Oculto
-                      </Badge>
+                    {product.category && <Badge variant="secondary">{product.category}</Badge>}
+                  </div>
+
+                  {/* Price + SKU line */}
+                  <div className="mt-3 flex items-baseline gap-4">
+                    <span className="text-2xl font-bold text-primary">
+                      {formatCurrency(product.base_price, product.currency)}
+                    </span>
+                    {product.direct_cost !== null && (
+                      <span className="text-sm text-muted-foreground">
+                        Margem {((product.base_price - product.direct_cost) / product.base_price * 100).toFixed(0)}%
+                      </span>
                     )}
-                    {product.category && (
-                      <Badge variant="secondary">{product.category}</Badge>
+                    {product.sku && (
+                      <span className="text-xs font-mono text-muted-foreground">SKU: {product.sku}</span>
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editar
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleArchive}
-                >
-                  {product.status === "active" ? (
-                    <>
-                      <Archive className="h-4 w-4 mr-1" />
-                      Arquivar
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Reativar
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDeleteOpen(true)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Eliminar
-                </Button>
+
+                {/* Actions */}
+                <div className="flex gap-2 mt-4">
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                    <Edit className="h-4 w-4 mr-1" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleArchive}>
+                    {product.status === "active" ? (
+                      <><Archive className="h-4 w-4 mr-1" /> Arquivar</>
+                    ) : (
+                      <><RotateCcw className="h-4 w-4 mr-1" /> Reativar</>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                  </Button>
+                </div>
               </div>
             </div>
-          </DialogHeader>
+          </div>
 
           <ScrollArea className="max-h-[calc(90vh-120px)]">
             {/* Bundle warning about historical data */}
