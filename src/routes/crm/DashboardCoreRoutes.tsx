@@ -14,6 +14,7 @@ const ObjectsHomePage = lazy(() => import("@/pages/ObjectsHomePage"));
 const ObjectListPage = lazy(() => import("@/pages/ObjectListPage"));
 const ObjectDetailPage = lazy(() => import("@/pages/ObjectDetailPage"));
 const DataModelPage = lazy(() => import("@/pages/DataModelPage"));
+const WorkspaceTagsPage = lazy(() => import("@/pages/WorkspaceTagsPage"));
 const VisualDataModelPage = lazy(() => import("@/pages/VisualDataModelPage"));
 const IntelligencePage = lazy(() => import("@/pages/IntelligencePage"));
 const ContextOSPage = lazy(() => import("@/pages/ContextOSPage"));
