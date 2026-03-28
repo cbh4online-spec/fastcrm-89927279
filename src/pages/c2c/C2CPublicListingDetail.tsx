@@ -83,6 +83,17 @@ export default function C2CPublicListingDetail() {
   const { data: listing, isLoading: listingLoading } = usePublicListing(id);
   const { data: seller } = useSellerProfile(listing?.seller_id);
 
+  // Track view (debounced per session)
+  useState(() => {
+    if (!id) return;
+    const key = `c2c_viewed_${id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    supabase.rpc("increment_listing_views", { p_listing_id: id }).then(() => {
+      console.log("[C2C] View tracked for listing", id);
+    });
+  });
+
   const isLoading = wsLoading || listingLoading;
   const photos = listing?.photos ?? [];
   const condition = conditionLabels[listing?.condition ?? ""] ?? { label: listing?.condition, color: "" };

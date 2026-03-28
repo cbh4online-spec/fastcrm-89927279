@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -137,6 +137,17 @@ export default function C2CListingDetail() {
   const isMobile = useIsMobile();
 
   const { data: listing, isLoading } = useC2CListingDetail(id);
+
+  // Track view (debounced per session)
+  useState(() => {
+    if (!id) return;
+    const key = `c2c_viewed_${id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    supabase.rpc("increment_listing_views", { p_listing_id: id }).then(() => {
+      console.log("[C2C] View tracked for listing", id);
+    });
+  });
   const { data: sellerReviews } = useC2CSellerReviews(listing?.seller_id);
   const { data: sellerProfile } = useSellerProfile(listing?.seller_id);
   const { data: relatedListings = [] } = useRelatedListings(listing);
