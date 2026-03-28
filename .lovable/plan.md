@@ -1,20 +1,20 @@
 
 
-# Fix `/dashboard/b2b/clients` — 404
+# Fix `/dashboard/b2b/users` — 404
 
 ## Problema
 
-O `routeManifest.ts` define a rota como `/dashboard/b2b/clients`, mas o `StoreClientRoutes.tsx` só regista `/dashboard/client-users` e `/dashboard/b2b-clients` (com hífen, sem barra). Mesmo padrão do fix anterior de `/dashboard/b2b/approvals`.
+O `routeManifest.ts` define `b2b-users` com path `/dashboard/b2b/users`, mas o `StoreClientRoutes.tsx` só tem `/dashboard/client-users` e `/dashboard/b2b-clients`. Falta registar a rota `/dashboard/b2b/users`.
 
 ## Fix
 
 **Ficheiro**: `src/routes/StoreClientRoutes.tsx`
 
-Adicionar uma linha após a rota existente:
+Adicionar após a linha do `/dashboard/b2b/clients`:
 
 ```tsx
-<Route path="/dashboard/b2b/clients" element={<ClientUsersPage />} />
+<Route path="/dashboard/b2b/users" element={<ClientUsersPage />} />
 ```
 
-As rotas anteriores mantêm-se para retrocompatibilidade. Fix de uma linha.
+Fix de uma linha. Rotas existentes mantêm-se.
 
