@@ -58,7 +58,7 @@ export function FunnelsList() {
   const isMetodoPare = currentWorkspace?.slug === "metodopare";
 
   const { data: verticals = [] } = useVerticals();
-  const createVertical = useCreateVertical();
+  const deleteVertical = useDeleteVertical();
   const deleteVertical = useDeleteVertical();
 
   const { data: customTemplates } = useVerticalTemplates();
