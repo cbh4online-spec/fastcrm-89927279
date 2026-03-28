@@ -66,6 +66,8 @@ export function FunnelsList() {
 
   const { data: funnelInstances = [] } = useFunnelInstances();
   const { data: captureTypes = [] } = useCaptureTypes();
+  const deleteCaptureType = useDeleteCaptureType();
+  const { data: captureUsage = {} } = useCaptureTypeUsageCount();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -95,6 +97,12 @@ export function FunnelsList() {
 
   // Active tab for homepage
   const [activeHomeTab, setActiveHomeTab] = useState("overview");
+
+  // Capture type state
+  const [captureFormOpen, setCaptureFormOpen] = useState(false);
+  const [editingCaptureType, setEditingCaptureType] = useState<any>(null);
+  const [deleteCaptureId, setDeleteCaptureId] = useState<string | null>(null);
+  const [captureSearch, setCaptureSearch] = useState("");
 
   const handleCopyShareLink = (type: string, slug: string) => {
     const url = getShareUrl(type, slug);
