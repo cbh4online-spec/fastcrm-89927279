@@ -187,6 +187,45 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
     });
 
+    // Also send via lifecycle engine for custom template support
+    const templateTypeMap: Record<string, string> = {
+      approved: "order_approved",
+      rejected: "order_rejected",
+      in_preparation: "order_shipped",
+      invoiced: "order_delivered",
+    };
+    const lifecycleType = templateTypeMap[newStatus];
+    if (lifecycleType && order.client_user?.workspace_id) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await fetch(
+          `${supabaseUrl}/functions/v1/b2b-send-lifecycle-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              workspaceId: order.client_user.workspace_id,
+              templateType: lifecycleType,
+              recipientEmail: clientEmail,
+              variables: {
+                client_name: order.client_user.name || "Cliente",
+                order_number: order.order_number,
+                rejection_reason: rejectionReason || "",
+                estimated_delivery: "Em breve",
+                tracking_url: "",
+              },
+            }),
+          }
+        );
+      } catch (lcErr) {
+        console.error("[ORDER-NOTIFY] Lifecycle email error:", lcErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, email: clientEmail }),
       {

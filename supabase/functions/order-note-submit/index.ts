@@ -272,6 +272,38 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Send order confirmation email to client via lifecycle engine
+    if (order.client_user?.email && order.client_user?.workspace_id) {
+      try {
+        const lifecycleResponse = await fetch(
+          `${supabaseUrl}/functions/v1/b2b-send-lifecycle-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              workspaceId: order.client_user.workspace_id,
+              templateType: "order_confirmation",
+              recipientEmail: order.client_user.email,
+              variables: {
+                client_name: order.client_user.name || "Cliente",
+                order_number: order.order_number,
+                total: totalGross.toFixed(2),
+                items_count: String((order.items || []).length),
+              },
+            }),
+          }
+        );
+        if (!lifecycleResponse.ok) {
+          console.error("[ORDERS] Lifecycle email failed:", await lifecycleResponse.text());
+        }
+      } catch (lcErr) {
+        console.error("[ORDERS] Lifecycle email error:", lcErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

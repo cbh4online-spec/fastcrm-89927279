@@ -47694,6 +47694,7 @@ export type Database = {
       }
       workspace_email_templates: {
         Row: {
+          body_template: string | null
           button_text: string | null
           created_at: string
           created_by: string | null
@@ -47705,14 +47706,20 @@ export type Database = {
           header_title: string | null
           id: string
           intro_text: string | null
+          is_auto_send: boolean | null
+          last_sent_at: string | null
           logo_url: string | null
           primary_color: string | null
           secondary_color: string | null
+          send_count: number | null
+          subject_template: string | null
           template_type: string
           updated_at: string
+          variables_schema: Json | null
           workspace_id: string
         }
         Insert: {
+          body_template?: string | null
           button_text?: string | null
           created_at?: string
           created_by?: string | null
@@ -47724,14 +47731,20 @@ export type Database = {
           header_title?: string | null
           id?: string
           intro_text?: string | null
+          is_auto_send?: boolean | null
+          last_sent_at?: string | null
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          send_count?: number | null
+          subject_template?: string | null
           template_type?: string
           updated_at?: string
+          variables_schema?: Json | null
           workspace_id: string
         }
         Update: {
+          body_template?: string | null
           button_text?: string | null
           created_at?: string
           created_by?: string | null
@@ -47743,11 +47756,16 @@ export type Database = {
           header_title?: string | null
           id?: string
           intro_text?: string | null
+          is_auto_send?: boolean | null
+          last_sent_at?: string | null
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
+          send_count?: number | null
+          subject_template?: string | null
           template_type?: string
           updated_at?: string
+          variables_schema?: Json | null
           workspace_id?: string
         }
         Relationships: [
