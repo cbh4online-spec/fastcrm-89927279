@@ -158,6 +158,11 @@ SCORE (0-100):
 - 51-75: Quente
 - 76-100: Muito quente/Crítico
 
+SUB-SCORES (0-100, obrigatório para leads):
+- icp_fit_score: Quanto o perfil encaixa no ICP (indústria, tamanho, geografia, budget)
+- engagement_score: Nível de engajamento (respostas, reuniões, interações)
+- pare_score: Score PARE (Potencial, Autoridade, Relevância, Expectativa)
+
 Proatividade: ${proactivityLevel}
 - low: Só insights críticos
 - medium: Insights importantes e oportunidades claras
@@ -201,6 +206,9 @@ Gere insights acionáveis baseados nestes dados.`;
                   properties: {
                     value: { type: "number", minimum: 0, maximum: 100 },
                     temperature: { type: "string", enum: ["cold", "warm", "hot", "critical"] },
+                    icp_fit_score: { type: "number", minimum: 0, maximum: 100, description: "ICP fit score based on profile match" },
+                    engagement_score: { type: "number", minimum: 0, maximum: 100, description: "Engagement level based on interactions" },
+                    pare_score: { type: "number", minimum: 0, maximum: 100, description: "PARE score (Potential, Authority, Relevance, Expectation)" },
                     factors: {
                       type: "array",
                       items: {
@@ -215,7 +223,7 @@ Gere insights acionáveis baseados nestes dados.`;
                       }
                     }
                   },
-                  required: ["value", "temperature", "factors"]
+                  required: ["value", "temperature", "factors", "icp_fit_score", "engagement_score", "pare_score"]
                 },
                 insights: {
                   type: "array",
@@ -325,16 +333,25 @@ Gere insights acionáveis baseados nestes dados.`;
       company: "company_score",
     };
 
+    const updatePayload: Record<string, any> = {
+      ai_temperature: analysis.score.temperature,
+      [scoreFieldMap[entityType]]: analysis.score.value,
+      ai_insight: analysis.summary,
+      ai_next_action: enrichedInsights[0]?.title || null,
+      ai_next_action_type: enrichedInsights[0]?.action?.type || null,
+      ai_analyzed_at: new Date().toISOString(),
+    };
+
+    // Persist sub-scores for leads
+    if (entityType === 'lead') {
+      updatePayload.icp_fit_score = analysis.score.icp_fit_score ?? 0;
+      updatePayload.engagement_score = analysis.score.engagement_score ?? 0;
+      updatePayload.pare_score = analysis.score.pare_score ?? 0;
+    }
+
     await supabase
       .from(tableMap[entityType])
-      .update({
-        ai_temperature: analysis.score.temperature,
-        [scoreFieldMap[entityType]]: analysis.score.value,
-        ai_insight: analysis.summary,
-        ai_next_action: enrichedInsights[0]?.title || null,
-        ai_next_action_type: enrichedInsights[0]?.action?.type || null,
-        ai_analyzed_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", entityId)
       .eq("workspace_id", workspaceId);
 
