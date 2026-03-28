@@ -5,7 +5,7 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import {
   Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink,
   MoreHorizontal, Sparkles, Eye, FileText, TrendingUp,
-  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins
+  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins, Search, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,8 @@ import { useFunnels, useCreateFunnel, useDeleteFunnel } from "@/hooks/useFunnels
 import { useVerticals, useCreateVertical, useDeleteVertical } from "@/hooks/useVerticals";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
 import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
-import { useFunnelInstances, useCaptureTypes } from "@/hooks/useFunnelInstances";
+import { useFunnelInstances, useCaptureTypes, useDeleteCaptureType, useCaptureTypeUsageCount } from "@/hooks/useFunnelInstances";
+import { CaptureTypeFormDialog, getIconComponent } from "./CaptureTypeFormDialog";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FunnelBuilder } from "./FunnelBuilder";
