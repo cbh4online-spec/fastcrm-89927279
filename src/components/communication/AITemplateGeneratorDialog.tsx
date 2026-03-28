@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,14 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check, Lightbulb, Zap } from 'lucide-react';
 import { useGenerateTemplate, GeneratedEmailTemplate, GeneratedWhatsAppTemplate } from '@/hooks/useGenerateTemplate';
 import { CommunicationTemplate, TemplateChannel, TemplateTone, TemplateStructure } from '@/types/communicationTemplate';
+import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerated: (template: Partial<CommunicationTemplate>) => void;
+  initialRecommendation?: TemplateRecommendation | null;
 }
 
 const GOAL_OPTIONS = [
@@ -53,14 +55,34 @@ const TONE_OPTIONS = [
   { value: 'casual', label: 'Casual' },
 ];
 
-export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated }: AITemplateGeneratorDialogProps) {
+export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, initialRecommendation }: AITemplateGeneratorDialogProps) {
   const [step, setStep] = useState(1);
   const [goal, setGoal] = useState('');
   const [audience, setAudience] = useState('');
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [tone, setTone] = useState<'formal' | 'friendly' | 'direct' | 'casual'>('formal');
+  const [appliedRec, setAppliedRec] = useState(false);
 
+  const { recommendations } = useTemplateRecommendations();
   const generateTemplate = useGenerateTemplate();
+
+  // The active recommendation: either passed from outside or the top one
+  const activeRec = initialRecommendation || (recommendations.length > 0 ? recommendations[0] : null);
+
+  // Apply initial recommendation when dialog opens
+  useEffect(() => {
+    if (open && initialRecommendation && !appliedRec) {
+      applyRecommendation(initialRecommendation);
+      setAppliedRec(true);
+    }
+  }, [open, initialRecommendation]);
+
+  const applyRecommendation = (rec: TemplateRecommendation) => {
+    setGoal(rec.goalValue);
+    setChannel(rec.channel);
+    setTone(rec.tone);
+    if (rec.audienceValue) setAudience(rec.audienceValue);
+  };
 
   const handleGenerate = async () => {
     const goalLabel = GOAL_OPTIONS.find(g => g.value === goal)?.label || goal;
@@ -107,6 +129,7 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated }: A
     setAudience('');
     setChannel('email');
     setTone('formal');
+    setAppliedRec(false);
   };
 
   const canProceed = () => {
@@ -138,6 +161,31 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated }: A
             <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${s <= step ? 'bg-primary' : 'bg-muted'}`} />
           ))}
         </div>
+
+        {/* AI Recommendation Banner */}
+        {activeRec && step === 1 && !appliedRec && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">{activeRec.goal}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeRec.reason}</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => {
+                applyRecommendation(activeRec);
+                setAppliedRec(true);
+              }}
+            >
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+              Aceitar recomendação
+            </Button>
+          </div>
+        )}
 
         <div className="min-h-[140px] py-2">
           {step === 1 && (

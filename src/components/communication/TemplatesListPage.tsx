@@ -66,8 +66,10 @@ import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
 import { TemplateLibraryDialog } from './TemplateLibraryDialog';
 import { ImportTemplateDialog } from './ImportTemplateDialog';
 import type { LibraryTemplate } from './templateLibraryData';
-import { BookOpen, Upload } from 'lucide-react';
+import { BookOpen, Upload, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
+import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -108,6 +110,8 @@ export function TemplatesListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<TemplateRecommendation | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   const { data: templates, isLoading } = useCommunicationTemplates(
     channelFilter !== 'all' ? { channel: channelFilter } : undefined
@@ -120,6 +124,7 @@ export function TemplatesListPage() {
   const [lengthChannelFilter, setLengthChannelFilter] = useState<string>('all');
   const { data: favoriteIds } = useTemplateFavorites();
   const toggleFavorite = useToggleFavorite();
+  const { recommendations } = useTemplateRecommendations();
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
@@ -441,6 +446,59 @@ export function TemplatesListPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* AI Suggestion Cards */}
+            {recommendations.length > 0 && (
+              <Collapsible open={showSuggestions} onOpenChange={setShowSuggestions}>
+                <div className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1.5 text-primary hover:text-primary">
+                      <Lightbulb className="h-4 w-4" />
+                      Sugestões IA ({recommendations.length})
+                      {showSuggestions ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CollapsibleContent className="mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {recommendations.map((rec) => (
+                      <Card
+                        key={rec.id}
+                        className="cursor-pointer border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all"
+                        onClick={() => {
+                          setSelectedRecommendation(rec);
+                          setShowAIDialog(true);
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                              rec.priority === 'high' ? 'bg-destructive/10 text-destructive' :
+                              rec.priority === 'medium' ? 'bg-amber-500/10 text-amber-600' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              <Sparkles className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium leading-tight">{rec.goal}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{rec.reason}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {rec.channel === 'email' ? 'Email' : 'WhatsApp'}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {rec.toneLabel}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {/* Toolbar */}
             <Toolbar
@@ -922,11 +980,16 @@ export function TemplatesListPage() {
 
       <AITemplateGeneratorDialog
         open={showAIDialog}
-        onOpenChange={setShowAIDialog}
+        onOpenChange={(v) => {
+          setShowAIDialog(v);
+          if (!v) setSelectedRecommendation(null);
+        }}
         onGenerated={(generated) => {
           setEditingTemplate(generated as CommunicationTemplate);
           setShowCreateDialog(true);
+          setSelectedRecommendation(null);
         }}
+        initialRecommendation={selectedRecommendation}
       />
 
       <TemplateLibraryDialog
