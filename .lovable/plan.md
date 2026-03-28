@@ -1,66 +1,60 @@
 
 
-# Desafios de Vendas — Evolução Completa
+# Metas de Performance — Ligação aos Módulos Reais
 
-## Problema Atual
+## Problema
 
-O módulo é básico: formulário de criação com 6 campos, cards simples sem ações, detalhe limitado a lista de participantes, sem edição/eliminação, sem métricas, sem gestão de participantes, sem recompensas configuráveis.
+As metas estão completamente desligadas dos dados reais do CRM. O progresso é sempre "0" porque não há cálculo automático a partir de leads, oportunidades, propostas ou receita. O formulário é genérico — pede apenas um nome e valor alvo sem indicar a que módulo se refere.
 
-## Plano
+## Solução
 
-### 1. Hook — CRUD Completo e Gestão de Estado
+Transformar as metas num sistema que se liga automaticamente aos dados reais do sistema.
 
-Adicionar ao `usePerformanceChallenges.ts`:
-- **`useUpdateChallenge`** — editar nome, datas, meta, recompensa, status
-- **`useDeleteChallenge`** — eliminar (com proteção se tem participantes)
-- **`useUpdateChallengeStatus`** — ativar, pausar, encerrar desafio
-- **`useLeaveChallenge`** — remover participante
+### 1. Presets de Tipo de Meta (em vez de formulário genérico)
 
-### 2. Dialog de Criação/Edição Rico
+Ao criar uma meta, o utilizador escolhe de um grid visual:
 
-Reescrever o dialog com:
-- **Tipo com ícones visuais** (grid de cards: Revenue Sprint, Meeting Sprint, Pipeline Builder, Deal Closer)
-- **Métrica alinhada ao tipo** (auto-seleciona: revenue → €, meetings → count, pipeline → €, deals → count)
-- **Âmbito** — Empresa inteira, Equipa específica, ou Individual
-- **Recompensa** — Tipo (reconhecimento, prémio, bónus) + valor descritivo
-- **Meta com preview** — "Cada participante precisa atingir X" ou "A equipa precisa atingir X no total"
-- **Convidar participantes** — multi-select de membros do workspace
-- Modo criar e modo editar (reutilizar dialog)
+| Preset | Ícone | Fonte de Dados | Unidade |
+|---|---|---|---|
+| Faturação | TrendingUp | `opportunities` (won, amount) | € |
+| Leads Captados | Users | `leads` (count, created_at) | nº |
+| Propostas Enviadas | FileText | `proposals` (count, created_at) | nº |
+| Negócios Fechados | Handshake | `opportunities` (won, count) | nº |
+| Reuniões | Calendar | `meetings` (count) | nº |
+| Pipeline | BarChart3 | `opportunities` (open, amount) | € |
 
-### 3. Página Redesenhada
+Ao selecionar o preset, os campos "fonte" e "unidade" preenchem automaticamente — o utilizador só define o valor alvo e o período.
 
-**Header com KPIs**: Total desafios ativos, Participantes totais, Maior meta em curso, Taxa de conclusão
+### 2. Cálculo de Progresso Real
 
-**Tabs**: Ativos | Concluídos | Todos
+Criar hook `useGoalProgress(goal)` que, com base no `goal_type`/`entity_source`:
+- Consulta a tabela real (leads, opportunities, proposals, meetings)
+- Filtra por `workspace_id`, `period_start` ≤ `created_at` ≤ `period_end`
+- Para revenue: soma `amount` das opportunities com `status = 'won'`
+- Para leads: conta registos criados no período
+- Para propostas: conta propostas criadas
+- Retorna `{ current_value, percentage, status }` onde status = on_track/at_risk/behind/exceeded
 
-**Cards melhorados** (para cada desafio):
-- Ícone do tipo + badge de estado colorido (verde=ativo, amarelo=pausado, cinza=concluído)
-- Barra de progresso temporal (dias passados / total)
-- Progresso face à meta (agregado dos participantes)
-- Contagem de participantes com avatars empilhados
-- Recompensa como badge
-- Ações hover: editar, pausar/retomar, encerrar, eliminar
+### 3. Cards Redesenhados
 
-**Sheet de detalhe lateral** ao clicar num desafio:
-- Header com info completa + estado + ações
-- **Leaderboard em tempo real** com ranking, avatar, nome, valor atual, % da meta, pontos
-- Barra de progresso individual por participante
-- Botão "Participar" / "Sair" para o utilizador atual
-- Secção de recompensa destacada
-- Timeline: início, fim, dias restantes
+Cada card de meta mostrará:
+- Ícone e label do tipo (ex: "📊 Faturação")
+- Badge colorido do estado (verde = on_track, amarelo = at_risk, vermelho = behind, azul = exceeded)
+- Barra de progresso real com `current / target` e percentagem
+- Progresso temporal (dias passados vs total)
+- Projeção: "A este ritmo, atingirá X no final do período"
 
-### 4. Participação
+### 4. KPI Selector no Formulário
 
-- Botão "Participar" verifica se o user já está inscrito
-- Auto-inscrição de todos os membros se scope = "company"
-- Leaderboard ordena por `current_value` desc com ranking dinâmico
+Ligar o campo `kpi_id` existente na BD à tabela `performance_kpis`:
+- Mostrar KPIs disponíveis como opção avançada
+- Permitir criar metas custom ligadas a KPIs específicos
 
 ## Ficheiros
 
 | Ficheiro | Ação |
 |---|---|
-| `src/hooks/usePerformanceChallenges.ts` | Adicionar mutations update, delete, status, leave |
-| `src/pages/performance/PerformanceChallengesPage.tsx` | Reescrever com KPIs, tabs, cards ricos, sheet detalhe |
-| `src/components/performance/ChallengeFormDialog.tsx` | **Criar** — dialog rico de criação/edição |
-| `src/components/performance/ChallengeDetailSheet.tsx` | **Criar** — sheet lateral com leaderboard e ações |
+| `src/hooks/usePerformanceGoals.ts` | Adicionar `useGoalProgress` hook com queries reais |
+| `src/pages/performance/PerformanceGoalsPage.tsx` | Reescrever com presets, cards ricos, progresso real |
+| `src/hooks/usePerformanceGoals.ts` | Adicionar lógica de projeção e estado automático |
 
