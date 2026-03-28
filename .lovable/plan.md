@@ -1,39 +1,55 @@
 
 
-# Instagram Looter — Sidebar em falta e visual upgrade
+# Propostas — Indicadores, Filtros e Layout
 
-## Problema
+## Problemas Encontrados
 
-A página `InstagramLooterPage.tsx` **não está envolvida** no `DashboardLayout`, ao contrário de todas as outras ~190 páginas do dashboard. Por isso, a barra lateral do menu não aparece. Visualmente, a interface também é básica — tabs genéricos, sem gradientes ou estilo Instagram.
+1. **Sem indicadores**: Não há KPI cards (total, aceitas, valor médio, etc.) — só o "Valor total" no subtítulo
+2. **Filtros laterais não funcionam**: O `handleFilterSelect` só processa filtros `status_*`. Filtros de Valor, Timing e Performance são ignorados — clicam mas não filtram nada
+3. **Tabela transborda**: 10 colunas sem controlo de largura, sem `overflow-x-auto`, o conteúdo sai do ecrã
 
-## Correção
+## Plano de Correção
 
-### 1. Adicionar `DashboardLayout`
+### 1. KPI Indicator Cards
 
-Envolver todo o conteúdo de `InstagramLooterPage.tsx` com `<DashboardLayout>`:
+Adicionar uma row de 5 cards compactos acima da toolbar:
 
+| Card | Cálculo |
+|---|---|
+| Total Propostas | `filteredProposals.length` |
+| Valor Total | Soma de `price` |
+| Aceitas | Count com `status === 'accepted'` |
+| Taxa de Conversão | `accepted / total × 100` |
+| Valor Médio | `totalValue / total` |
+
+Cada card com ícone, valor grande, e label pequeno. Cards clicáveis para filtrar por estado.
+
+### 2. Fix Filtros Laterais
+
+O `handleFilterSelect` atual:
 ```tsx
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-// ...
-return (
-  <DashboardLayout>
-    <div className="space-y-6">
-      {/* existing content */}
-    </div>
-  </DashboardLayout>
-);
+if (filterId.startsWith("status_")) {
+  setStatusFilter(filterId.replace("status_", ""));
+}
+// ← value_, timing_, perf_ são completamente ignorados
 ```
 
-### 2. Visual upgrade do header e tabs
+Expandir o `filteredProposals` useMemo para processar todos os filtros:
 
-- **Header**: Adicionar gradiente estilo Instagram (rosa → roxo → laranja) como accent bar no topo, ícone do Instagram estilizado, e o badge de quota com progress bar circular em vez de texto simples.
-- **Tabs**: Substituir os tabs genéricos por tabs com ícones coloridos, hover effects suaves, e indicador ativo mais visível (underline gradient).
-- **Search bar**: Elevar visualmente com sombra, bordas arredondadas maiores, e placeholder mais descritivo.
-- **Quick filters (Dentistas, Cabeleireiros, etc.)**: Transformar em chips com ícones e cores distintas em vez de badges outline monótonos.
+- **`value_high/medium/low`** → filtrar por ranges de `price`
+- **`timing_today/week/month`** → filtrar por `created_at` com comparação de datas
+- **`perf_viewed/not_viewed/high_views`** → filtrar por `views_count`
 
-### Ficheiro a modificar
+### 3. Tabela Enquadrada no Ecrã
+
+- Envolver a `<Table>` com `<div className="w-full overflow-x-auto">`
+- Adicionar `min-w-[1000px]` à Table para garantir legibilidade em scroll
+- Truncar colunas longas (Título, Oportunidade, Cliente) com `max-w-[200px] truncate`
+- O layout principal já tem `min-w-0` no flex container
+
+### Ficheiro a Modificar
 
 | Ficheiro | Mudança |
 |---|---|
-| `src/pages/dashboard/InstagramLooterPage.tsx` | Envolver em `DashboardLayout`, redesign do header com gradiente Instagram, tabs mais apelativos, quota com progress visual |
+| `src/components/proposals/ProposalsList.tsx` | Adicionar KPI cards, fix filter logic, fix table overflow |
 
