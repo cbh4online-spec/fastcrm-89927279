@@ -16,7 +16,12 @@ export type AgentChannel =
   | 'facebook' 
   | 'email' 
   | 'sms'
-  | 'live_chat';
+  | 'live_chat'
+  | 'telegram'
+  | 'tiktok'
+  | 'twitter'
+  | 'google_business'
+  | 'linkedin';
 
 export interface ChannelConfig {
   id: AgentChannel;
@@ -83,6 +88,46 @@ export const AGENT_CHANNELS: Record<AgentChannel, ChannelConfig> = {
     color: 'text-purple-600',
     bgColor: 'bg-purple-100',
     description: 'Chat ao vivo com suporte'
+  },
+  telegram: {
+    id: 'telegram',
+    label: 'Telegram',
+    icon: 'Send',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-100',
+    description: 'Mensagens via Telegram Bot'
+  },
+  tiktok: {
+    id: 'tiktok',
+    label: 'TikTok',
+    icon: 'Video',
+    color: 'text-gray-900',
+    bgColor: 'bg-gray-100',
+    description: 'DMs do TikTok'
+  },
+  twitter: {
+    id: 'twitter',
+    label: 'Twitter / X',
+    icon: 'Twitter',
+    color: 'text-sky-500',
+    bgColor: 'bg-sky-100',
+    description: 'DMs do Twitter / X'
+  },
+  google_business: {
+    id: 'google_business',
+    label: 'Google Business',
+    icon: 'MapPin',
+    color: 'text-red-500',
+    bgColor: 'bg-red-100',
+    description: 'Mensagens do Google Business'
+  },
+  linkedin: {
+    id: 'linkedin',
+    label: 'LinkedIn',
+    icon: 'Linkedin',
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-100',
+    description: 'Mensagens do LinkedIn'
   }
 };
 

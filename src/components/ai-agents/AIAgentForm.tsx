@@ -16,7 +16,12 @@ import {
   Mail, 
   MessageSquare,
   Headphones,
-  X
+  X,
+  Send,
+  Video,
+  Twitter,
+  MapPin,
+  Linkedin
 } from 'lucide-react';
 import type { AIChannelAgent, AgentChannel, CreateAIAgentData } from '@/types/aiChannelAgents';
 import { AGENT_CHANNELS, getChannelConfig } from '@/types/aiChannelAgents';
@@ -39,6 +44,11 @@ const channelIcons: Record<AgentChannel, React.ReactNode> = {
   email: <Mail className="h-4 w-4" />,
   sms: <MessageSquare className="h-4 w-4" />,
   live_chat: <Headphones className="h-4 w-4" />,
+  telegram: <Send className="h-4 w-4" />,
+  tiktok: <Video className="h-4 w-4" />,
+  twitter: <Twitter className="h-4 w-4" />,
+  google_business: <MapPin className="h-4 w-4" />,
+  linkedin: <Linkedin className="h-4 w-4" />,
 };
 
 export function AIAgentForm({
