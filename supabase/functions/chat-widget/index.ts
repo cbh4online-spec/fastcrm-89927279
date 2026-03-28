@@ -55,13 +55,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch widget configuration
+    // Fetch widget configuration with agent
     const { data: widget, error: widgetError } = await supabase
       .from("widget_configurations")
       .select("*, workspaces(id, name)")
       .eq("id", widgetId)
       .eq("is_active", true)
       .single();
+
+    // If widget has an agent, load agent config
+    let agentConfig: any = null;
+    if (widget?.default_agent_id) {
+      const { data: agent } = await supabase
+        .from("ai_agents")
+        .select("id, name, persona_id, flow_id, knowledge_base_ids, settings")
+        .eq("id", widget.default_agent_id)
+        .eq("is_active", true)
+        .single();
+      if (agent) agentConfig = agent;
+    }
 
     if (widgetError || !widget) {
       console.error("[CHAT-WIDGET] Widget not found:", widgetError);
@@ -378,9 +390,13 @@ async function generateKBResponse(
   }
 
   try {
-    // Get knowledge base IDs
+    // Get knowledge base IDs - agent overrides widget, widget field is override
     let kbIds = widget.knowledge_base_ids || [];
-    console.log("[CHAT-WIDGET] Widget KB IDs:", kbIds);
+    // If agent has KB IDs, use those as base
+    if (agentConfig?.knowledge_base_ids?.length) {
+      kbIds = [...new Set([...agentConfig.knowledge_base_ids, ...kbIds])];
+    }
+    console.log("[CHAT-WIDGET] Effective KB IDs:", kbIds);
     
     if (!kbIds.length) {
       // Get all active KBs for workspace
@@ -428,13 +444,14 @@ async function generateKBResponse(
       .map((e: any) => `## ${e.title}\n${e.content}`)
       .join("\n\n---\n\n");
 
-    // Get persona if configured
+    // Get persona - widget override > agent > null
     let personaInstructions = "";
-    if (widget.default_persona_id) {
+    const effectivePersonaId = widget.default_persona_id || agentConfig?.persona_id;
+    if (effectivePersonaId) {
       const { data: persona } = await supabase
         .from("ai_personas")
         .select("*")
-        .eq("id", widget.default_persona_id)
+        .eq("id", effectivePersonaId)
         .single();
       
       if (persona) {

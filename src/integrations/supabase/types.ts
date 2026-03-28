@@ -47370,6 +47370,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           custom_css: string | null
+          default_agent_id: string | null
           default_flow_id: string | null
           default_persona_id: string | null
           id: string
@@ -47396,6 +47397,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custom_css?: string | null
+          default_agent_id?: string | null
           default_flow_id?: string | null
           default_persona_id?: string | null
           id?: string
@@ -47422,6 +47424,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custom_css?: string | null
+          default_agent_id?: string | null
           default_flow_id?: string | null
           default_persona_id?: string | null
           id?: string
@@ -47440,6 +47443,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "widget_configurations_default_agent_id_fkey"
+            columns: ["default_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "widget_configurations_default_flow_id_fkey"
             columns: ["default_flow_id"]
