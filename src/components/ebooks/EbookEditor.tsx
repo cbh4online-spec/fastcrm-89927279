@@ -150,8 +150,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const generateChapterContent = async (chapter: EbookChapter) => {
     if (!ebook) return;
+    if (!canAfford("ebook_generate_chapter")) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar Capítulo IA", creditsNeeded: getCost("ebook_generate_chapter") });
+      return;
+    }
     setGenerating(chapter.id);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_chapter", referenceType: "ebook", referenceId: ebookId });
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_chapter", title: ebook.title, chapterTitle: chapter.title, chapterContext: chapter.description || "", tone: "Professional" },
       });
@@ -164,8 +169,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const improveContent = async (chapter: EbookChapter) => {
     if (!chapter.content) return;
+    if (!canAfford("ebook_improve_content")) {
+      triggerNoCreditsDialog({ actionLabel: "Melhorar Conteúdo IA", creditsNeeded: getCost("ebook_improve_content") });
+      return;
+    }
     setGenerating(chapter.id);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_improve_content", referenceType: "ebook", referenceId: ebookId });
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "improve_content", chapterContext: chapter.content },
       });
