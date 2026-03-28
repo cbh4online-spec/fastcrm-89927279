@@ -26891,6 +26891,100 @@ export type Database = {
           },
         ]
       }
+      leave_balances: {
+        Row: {
+          id: string
+          pending_days: number
+          total_days: number
+          used_days: number
+          user_id: string
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          id?: string
+          pending_days?: number
+          total_days?: number
+          used_days?: number
+          user_id: string
+          workspace_id: string
+          year?: number
+        }
+        Update: {
+          id?: string
+          pending_days?: number
+          total_days?: number
+          used_days?: number
+          user_id?: string
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          created_at: string
+          days_count: number
+          end_date: string
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_request_status"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          days_count?: number
+          end_date: string
+          id?: string
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          days_count?: number
+          end_date?: string
+          id?: string
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_points: {
         Row: {
           balance: number
@@ -40225,6 +40319,50 @@ export type Database = {
           },
         ]
       }
+      session_time_logs: {
+        Row: {
+          active_seconds: number
+          date: string
+          id: string
+          idle_seconds: number
+          last_activity_at: string | null
+          page_views: number
+          total_seconds: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          active_seconds?: number
+          date?: string
+          id?: string
+          idle_seconds?: number
+          last_activity_at?: string | null
+          page_views?: number
+          total_seconds?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          active_seconds?: number
+          date?: string
+          id?: string
+          idle_seconds?: number
+          last_activity_at?: string | null
+          page_views?: number
+          total_seconds?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_time_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_methods: {
         Row: {
           base_price: number
@@ -45593,6 +45731,74 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          clock_in: string
+          clock_in_address: string | null
+          clock_in_lat: number | null
+          clock_in_lng: number | null
+          clock_out: string | null
+          clock_out_address: string | null
+          clock_out_lat: number | null
+          clock_out_lng: number | null
+          created_at: string
+          edited_by: string | null
+          id: string
+          notes: string | null
+          source: string
+          status: Database["public"]["Enums"]["time_entry_status"]
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          clock_in?: string
+          clock_in_address?: string | null
+          clock_in_lat?: number | null
+          clock_in_lng?: number | null
+          clock_out?: string | null
+          clock_out_address?: string | null
+          clock_out_lat?: number | null
+          clock_out_lng?: number | null
+          created_at?: string
+          edited_by?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          clock_in?: string
+          clock_in_address?: string | null
+          clock_in_lat?: number | null
+          clock_in_lng?: number | null
+          clock_out?: string | null
+          clock_out_address?: string | null
+          clock_out_lat?: number | null
+          clock_out_lng?: number | null
+          created_at?: string
+          edited_by?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trigger_job_runs: {
         Row: {
           attempts: number | null
@@ -50758,6 +50964,8 @@ export type Database = {
         | "paused"
         | "timeout"
       kit_level: "basic" | "advanced" | "custom"
+      leave_request_status: "pending" | "approved" | "rejected" | "cancelled"
+      leave_type: "vacation" | "sick" | "personal" | "remote" | "other"
       opportunity_subscription_status:
         | "draft"
         | "active"
@@ -50905,6 +51113,7 @@ export type Database = {
         | "resolved"
         | "closed"
       ticket_type: "support" | "commercial" | "technical"
+      time_entry_status: "active" | "completed" | "edited" | "flagged"
       workspace_role: "owner" | "admin" | "agent" | "viewer" | "agency"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
@@ -51257,6 +51466,8 @@ export const Constants = {
         "timeout",
       ],
       kit_level: ["basic", "advanced", "custom"],
+      leave_request_status: ["pending", "approved", "rejected", "cancelled"],
+      leave_type: ["vacation", "sick", "personal", "remote", "other"],
       opportunity_subscription_status: [
         "draft",
         "active",
@@ -51423,6 +51634,7 @@ export const Constants = {
         "closed",
       ],
       ticket_type: ["support", "commercial", "technical"],
+      time_entry_status: ["active", "completed", "edited", "flagged"],
       workspace_role: ["owner", "admin", "agent", "viewer", "agency"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
