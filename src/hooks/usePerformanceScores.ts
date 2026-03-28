@@ -143,8 +143,9 @@ export function useRecalculateScores() {
           .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO).lte("created_at", endISO);
         const meetingsQuery = supabase.from("meetings").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid).eq("created_by", uid).gte("created_at", startISO).lte("created_at", endISO);
-        const proposalsQuery = supabase.from("proposals").select("id", { count: "exact", head: true })
-          .eq("workspace_id", wid).eq("created_by", uid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
+        const proposalsBase = supabase.from("proposals").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid).eq("created_by", uid);
+        const proposalsQuery = proposalsBase.eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
         const oppsQuery = supabase.from("opportunities").select("id, value")
           .eq("workspace_id", wid).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
         const pipelineQuery = supabase.from("opportunities").select("id, value")
