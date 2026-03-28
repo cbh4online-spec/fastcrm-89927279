@@ -130,10 +130,29 @@ export function SmartLeadsTable() {
 
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
+    { id: "kanban", label: "Kanban" },
     { id: "duplicates", label: "Duplicate Review" },
     { id: "smart-lists", label: t("tabSmartLists") },
     { id: "automations", label: t("tabAutomations") },
     { id: "import", label: t("tabImport") },
+  ], [t]);
+
+  const leadBulkEditFields: BulkEditField[] = useMemo(() => [
+    { key: "status", label: t("col_status"), type: "select", section: "info", options: [
+      { value: "new", label: "Novo" },
+      { value: "in_progress", label: "Em Progresso" },
+      { value: "completed", label: "Concluído" },
+    ]},
+    { key: "lead_type", label: t("col_leadType"), type: "select", section: "info", options: [
+      { value: "person", label: "Pessoa" },
+      { value: "company", label: "Empresa" },
+    ]},
+    { key: "source", label: t("col_source"), type: "text", section: "info" },
+    { key: "company_name", label: t("col_company"), type: "text", section: "info" },
+    { key: "city", label: t("col_city"), type: "text", section: "location" },
+    { key: "region", label: t("col_region"), type: "text", section: "location" },
+    { key: "industry", label: "Indústria", type: "text", section: "classification" },
+    { key: "business_category", label: t("col_businessCategory"), type: "text", section: "classification" },
   ], [t]);
 
   const sortOptions = useMemo(() => [
