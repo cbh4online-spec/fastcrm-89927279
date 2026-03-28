@@ -52,12 +52,16 @@ describe("Route Manifest integrity", () => {
     expect(dupes).toEqual([]);
   });
 
-  it("all 10 nav groups are defined", () => {
-    expect(NAV_GROUPS).toHaveLength(10);
-    expect(NAV_GROUP_ORDER).toHaveLength(10);
+  it("all 12 nav groups are defined", () => {
+    expect(NAV_GROUPS).toHaveLength(12);
+    expect(NAV_GROUP_ORDER).toHaveLength(12);
     expect(NAV_GROUP_ORDER).toContain("ai-strategy");
     expect(NAV_GROUP_ORDER).toContain("inicio");
     expect(NAV_GROUP_ORDER).toContain("administracao");
+    expect(NAV_GROUP_ORDER).toContain("loja-online");
+    expect(NAV_GROUP_ORDER).toContain("marketplace-c2c");
+    expect(NAV_GROUP_ORDER).toContain("portal-b2b");
+    expect(NAV_GROUP_ORDER).not.toContain("comercio");
   });
 });
 

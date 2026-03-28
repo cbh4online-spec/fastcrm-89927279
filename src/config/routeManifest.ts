@@ -49,7 +49,9 @@ export type NavGroup =
   | "marketing"
   | "vendas"
   | "compras"
-  | "comercio"
+  | "loja-online"
+  | "marketplace-c2c"
+  | "portal-b2b"
   | "operacoes"
   | "ai-strategy"
   | "inteligencia"
@@ -97,11 +99,13 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "comunicacao",   label: "Comunicação",   icon: Radio,           order: 4, collapsible: true },
   { key: "marketing",     label: "Marketing",     icon: Megaphone,       order: 5, collapsible: true },
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
-  { key: "compras",       label: "Compras",       icon: ShoppingCart,    order: 7, collapsible: true },
-  { key: "comercio",      label: "Comércio",      icon: ShoppingBag,     order: 8, collapsible: true },
-  { key: "operacoes",     label: "Operações",     icon: ClipboardList,   order: 9, collapsible: true },
-  { key: "inteligencia",  label: "Inteligência",  icon: Brain,           order: 10, collapsible: true },
-  { key: "administracao", label: "Administração", icon: Settings,        order: 11, collapsible: true },
+  { key: "compras",          label: "Compras",          icon: ShoppingCart,    order: 7,  collapsible: true },
+  { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 8,  collapsible: true },
+  { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 9,  collapsible: true },
+  { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 10, collapsible: true },
+  { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 11, collapsible: true },
+  { key: "inteligencia",     label: "Inteligência",     icon: Brain,           order: 12, collapsible: true },
+  { key: "administracao",    label: "Administração",    icon: Settings,        order: 13, collapsible: true },
 ];
 
 export const NAV_GROUP_ORDER: NavGroup[] = NAV_GROUPS.map((g) => g.key);
@@ -201,25 +205,30 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("checkout",     "Checkout",         "/dashboard/checkout",          ShoppingCart, "vendas", { visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
-  // COMÉRCIO
+  // LOJA ONLINE (B2C)
   // ══════════════════════════════════════════════════════════════
-  // Loja Online
-  e("store-orders",     "Loja - Encomendas",  "/dashboard/store-orders",     ShoppingBag,  "comercio", { moduleSlug: "online-store" }),
-  e("store-products",   "Loja - Produtos",    "/dashboard/store-products",   Package,      "comercio", { moduleSlug: "online-store", visibleInSidebar: false }),
-  e("store-categories", "Loja - Categorias",  "/dashboard/store-categories", Layers,       "comercio", { moduleSlug: "online-store", visibleInSidebar: false }),
-  e("store-coupons",    "Loja - Cupões",      "/dashboard/store-coupons",    CreditCard,   "comercio", { moduleSlug: "online-store", visibleInSidebar: false }),
-  e("store-analytics",  "Loja - Analíticas",  "/dashboard/store-analytics",  BarChart3,    "comercio", { moduleSlug: "online-store", visibleInSidebar: false }),
-  e("store-settings",   "Loja - Definições",  "/dashboard/store-settings",   Settings,     "comercio", { moduleSlug: "online-store", visibleInSidebar: false }),
-  // C2C
-  e("c2c",              "Marketplace C2C",    "/dashboard/c2c",              Store,        "comercio", { moduleSlug: "marketplace-c2c" }),
-  // B2B
-  e("b2b-portal",       "Portal B2B",         "/dashboard/b2b-portal",       Building2,    "comercio", { moduleSlug: "b2b-portal" }),
-  e("b2b-approvals",    "Aprovações B2B",     "/dashboard/b2b/approvals",    CheckSquare,  "comercio", { moduleSlug: "b2b-portal" }),
-  e("b2b-clients",      "Clientes B2B",       "/dashboard/b2b/clients",      Users,        "comercio", { moduleSlug: "b2b-portal" }),
-  e("b2b-users",        "Utilizadores B2B",   "/dashboard/b2b/users",        UserCheck,    "comercio", { moduleSlug: "b2b-portal" }),
-  e("b2b-plans",        "Planos B2B",         "/dashboard/b2b/plans",        Package,      "comercio", { moduleSlug: "b2b-portal" }),
-  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals", CheckSquare,  "comercio", { visibleInSidebar: false }),
-  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",    Users,        "comercio", { visibleInSidebar: false }),
+  e("store-orders",     "Encomendas",     "/dashboard/store-orders",     ShoppingBag,  "loja-online", { moduleSlug: "online-store" }),
+  e("store-products",   "Produtos",       "/dashboard/store-products",   Package,      "loja-online", { moduleSlug: "online-store" }),
+  e("store-categories", "Categorias",     "/dashboard/store-categories", Layers,       "loja-online", { moduleSlug: "online-store" }),
+  e("store-coupons",    "Cupões",         "/dashboard/store-coupons",    CreditCard,   "loja-online", { moduleSlug: "online-store" }),
+  e("store-analytics",  "Analíticas",     "/dashboard/store-analytics",  BarChart3,    "loja-online", { moduleSlug: "online-store" }),
+  e("store-settings",   "Definições",     "/dashboard/store-settings",   Settings,     "loja-online", { moduleSlug: "online-store" }),
+
+  // ══════════════════════════════════════════════════════════════
+  // MARKETPLACE C2C
+  // ══════════════════════════════════════════════════════════════
+  e("c2c",              "Marketplace C2C", "/dashboard/c2c",             Store,        "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+
+  // ══════════════════════════════════════════════════════════════
+  // PORTAL B2B
+  // ══════════════════════════════════════════════════════════════
+  e("b2b-portal",       "Portal B2B",          "/dashboard/b2b-portal",       Building2,    "portal-b2b", { moduleSlug: "b2b-portal" }),
+  e("b2b-approvals",    "Aprovações",          "/dashboard/b2b/approvals",    CheckSquare,  "portal-b2b", { moduleSlug: "b2b-portal" }),
+  e("b2b-clients",      "Clientes",            "/dashboard/b2b/clients",      Users,        "portal-b2b", { moduleSlug: "b2b-portal" }),
+  e("b2b-users",        "Utilizadores",        "/dashboard/b2b/users",        UserCheck,    "portal-b2b", { moduleSlug: "b2b-portal" }),
+  e("b2b-plans",        "Planos",              "/dashboard/b2b/plans",        Package,      "portal-b2b", { moduleSlug: "b2b-portal" }),
+  e("order-approvals",  "Aprovações Encomenda","/dashboard/order-approvals",  CheckSquare,  "portal-b2b", { visibleInSidebar: false }),
+  e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", { visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES
