@@ -1,48 +1,36 @@
 
 
-## Gestão de etiquetas + tags inline no header
+## Reorganizar layout do detalhe de contacto para caber no ecrã
 
-### 1. Painel de gestão de etiquetas do workspace
+### Problema
 
-Criar uma página/dialog acessível via Definições ou menu para CRUD de `workspace_tags`:
-- Listar todas as tags com nome e cor
-- Editar nome e cor (color picker simples com as 7 cores predefinidas)
-- Eliminar tags (com confirmação)
-- Criar novas tags
+O header ocupa demasiado espaço vertical: nome, badges, tags e botões de ação estão todos numa linha que quebra em várias. Os "Destaques" abaixo ocupam mais espaço. Resultado: o conteúdo útil fica abaixo do fold.
 
-**Ficheiro:** `src/pages/WorkspaceTagsPage.tsx` — página standalone em `/dashboard/settings/tags`
-- Usa `useWorkspaceTags`, `useCreateWorkspaceTag`, `useUpdateWorkspaceTag`, `useDeleteWorkspaceTag` (já existem)
-- Tabela simples com ações inline (editar cor, renomear, eliminar)
+### Alterações
 
-**Rota:** Adicionar em `App.tsx` sob `/dashboard/settings/tags`
+**1. Header mais compacto (`ENIContactDetailWithSidebar.tsx`)**
+- Reduzir padding do header de `py-5` para `py-3`
+- Reduzir avatar para tamanho `sm` (de `md`)
+- Nome de `text-2xl` para `text-xl`
+- Mover botões de ação secundários (Convidar B2B, Nova Fatura) para dentro do dropdown `...`
+- Manter visíveis apenas: "Enviar Email" e "Analisar com IA" + dropdown
+- Tags: limitar a 3 visíveis com "+N mais" badge colapsável
 
-**Navegação:** Adicionar link "Etiquetas" no menu de definições/sidebar
+**2. Highlights mais compactos (`EntityHighlightsGrid.tsx`)**
+- Reduzir de `grid-cols-2 sm:grid-cols-3` para `grid-cols-4` em desktop
+- Reduzir padding interno dos cards de `p-3` para `p-2`
+- Reduzir margem inferior de `mb-6` para `mb-4`
 
-### 2. Tags inline ao lado do nome no header
-
-Alterar `EntityDetailHeader.tsx` para mostrar as tags da entidade como badges clicáveis ao lado do nome, com um botão `+` que abre o `EntityTagEditor` inline.
-
-```text
-[← ] [Avatar]  Nome do Lead  [🔥 Quente] [85 pts] [marketing] [vip] [+]
-                Atualizado há 2h
-```
-
-**Alterações no `EntityDetailHeader.tsx`:**
-- Receber `tags: string[]` e `onTagsChange: (tags: string[]) => void` como props
-- Mostrar tags como badges coloridas (reutilizando as cores do `workspace_tags`)
-- Botão `+` que ao clicar abre um popover com o `EntityTagEditor`
-- Clicar no `×` de uma tag remove-a
-
-**Alterações no `EntityDetailLayout.tsx`:**
-- Passar `entity.tags` e callback `onFieldChange('tags', ...)` ao header
+**3. Reduzir espaçamento geral**
+- Breadcrumbs: `pt-4` → `pt-2`
+- Gap entre secções overview: `space-y-6` → `space-y-4`
+- Grids de secções: `gap-6` → `gap-4`
 
 ### Ficheiros
 
-| Ficheiro | Ação |
+| Ficheiro | Alteração |
 |---|---|
-| `src/pages/WorkspaceTagsPage.tsx` | Criar — CRUD de tags do workspace |
-| `src/App.tsx` | Alterar — adicionar rota `/dashboard/settings/tags` |
-| `src/components/layout/AdaptiveSidebar.tsx` ou nav config | Alterar — link para gestão de etiquetas |
-| `src/components/entity/EntityDetailHeader.tsx` | Alterar — mostrar tags + botão `+` ao lado do nome |
-| `src/components/entity/EntityDetailLayout.tsx` | Alterar — passar tags e callback ao header |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Header compacto, botões condensados, tags limitadas |
+| `src/components/entity/EntityHighlightsGrid.tsx` | Grid 4 colunas, padding reduzido |
+| `src/components/entity/InlineHeaderTags.tsx` | Limitar tags visíveis com "+N" |
 
