@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from "react";
+import { EntityTagEditor } from "@/components/entity/EntityTagEditor";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -291,18 +292,11 @@ export function InlineEditableField({
         );
 
       case "tags":
-        const tagsValue = Array.isArray(editedValue) ? editedValue.join(", ") : "";
         return (
-          <Input
-            value={tagsValue}
-            onChange={(e) => {
-              const tags = e.target.value.split(",").map(t => t.trim()).filter(Boolean);
-              setEditedValue(tags);
-            }}
-            onKeyDown={handleKeyDown}
-            className="h-8 text-sm"
-            autoFocus
-            placeholder={placeholder || "tag1, tag2, tag3"}
+          <EntityTagEditor
+            value={Array.isArray(editedValue) ? editedValue : []}
+            onChange={(tags) => setEditedValue(tags)}
+            placeholder={placeholder || "Adicionar etiqueta..."}
           />
         );
 
