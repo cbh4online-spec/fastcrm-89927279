@@ -461,12 +461,29 @@ export function SmartLeadsTable() {
         ) : (
           <>
             {selectedIds.size > 0 && (
-              <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
-                <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selected")}</span>
-                <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
-                <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
-                <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
-                <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>
+              <div className="mt-4 space-y-2">
+                <BulkActionsBar
+                  entityType="leads"
+                  selectedCount={selectedIds.size}
+                  onClearSelection={() => setSelectedIds(new Set())}
+                  onDelete={handleBulkDelete}
+                  onExport={handleExport}
+                  onAddTags={async (tags) => {
+                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes: { tags } });
+                    toast.success(`Tags aplicadas a ${selectedIds.size} leads`);
+                    setSelectedIds(new Set());
+                  }}
+                  onBulkEdit={async (changes) => {
+                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes });
+                    toast.success(`${selectedIds.size} leads atualizados`);
+                    setSelectedIds(new Set());
+                  }}
+                  editableFields={leadBulkEditFields}
+                />
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+                  <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
+                </div>
               </div>
             )}
 
