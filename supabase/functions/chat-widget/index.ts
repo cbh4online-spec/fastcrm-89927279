@@ -390,9 +390,13 @@ async function generateKBResponse(
   }
 
   try {
-    // Get knowledge base IDs
+    // Get knowledge base IDs - agent overrides widget, widget field is override
     let kbIds = widget.knowledge_base_ids || [];
-    console.log("[CHAT-WIDGET] Widget KB IDs:", kbIds);
+    // If agent has KB IDs, use those as base
+    if (agentConfig?.knowledge_base_ids?.length) {
+      kbIds = [...new Set([...agentConfig.knowledge_base_ids, ...kbIds])];
+    }
+    console.log("[CHAT-WIDGET] Effective KB IDs:", kbIds);
     
     if (!kbIds.length) {
       // Get all active KBs for workspace
@@ -440,13 +444,14 @@ async function generateKBResponse(
       .map((e: any) => `## ${e.title}\n${e.content}`)
       .join("\n\n---\n\n");
 
-    // Get persona if configured
+    // Get persona - widget override > agent > null
     let personaInstructions = "";
-    if (widget.default_persona_id) {
+    const effectivePersonaId = widget.default_persona_id || agentConfig?.persona_id;
+    if (effectivePersonaId) {
       const { data: persona } = await supabase
         .from("ai_personas")
         .select("*")
-        .eq("id", widget.default_persona_id)
+        .eq("id", effectivePersonaId)
         .single();
       
       if (persona) {
