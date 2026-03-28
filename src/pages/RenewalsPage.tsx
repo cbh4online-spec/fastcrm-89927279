@@ -123,28 +123,28 @@ export default function RenewalsPage() {
             value={formatCurrency(stats.arr)}
             icon={<TrendingUp className="h-4 w-4" />}
             variant="primary"
-            subtitle={`MRR: ${formatCurrency(stats.totalMRR)}`}
+            description={`MRR: ${formatCurrency(stats.totalMRR)}`}
           />
           <KPICard
             title="Contratos Ativos"
             value={String(stats.active)}
             icon={<Activity className="h-4 w-4" />}
             variant="success"
-            subtitle={`MRR médio: ${formatCurrency(stats.avgMRR)}`}
+            description={`MRR médio: ${formatCurrency(stats.avgMRR)}`}
           />
           <KPICard
             title="Próx. 30 dias"
             value={String(stats.upcoming30)}
             icon={<Calendar className="h-4 w-4" />}
             variant="warning"
-            subtitle={`${stats.overdue} em atraso`}
+            description={`${stats.overdue} em atraso`}
           />
           <KPICard
             title="Taxa de Churn"
             value={`${stats.churnRate.toFixed(1)}%`}
             icon={<PieChart className="h-4 w-4" />}
             variant={stats.churnRate > 10 ? "destructive" : "default"}
-            subtitle={`${stats.total} contratos total`}
+            description={`${stats.total} contratos total`}
           />
         </KPIGrid>
 
