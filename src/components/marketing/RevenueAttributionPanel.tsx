@@ -19,7 +19,7 @@ export function RevenueAttributionPanel() {
       const { data: clicks } = await supabase
         .from('campaign_link_clicks')
         .select('campaign_id, contact_id')
-        .eq('workspace_id', currentWorkspace.id);
+        .eq('workspace_id', currentWorkspace.id) as { data: Array<{ campaign_id: string; contact_id: string | null }> | null };
 
       if (!clicks || clicks.length === 0) return [];
 
