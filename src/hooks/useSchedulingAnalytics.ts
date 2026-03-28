@@ -66,7 +66,7 @@ export function useSchedulingAnalytics() {
         .select('id, title, slug, is_active')
         .eq('workspace_id', currentWorkspace.id);
       if (error) throw error;
-      return (data || []) as { id: string; title: string; slug: string; is_active: boolean }[];
+      return (data || []) as unknown as { id: string; title: string; slug: string; is_active: boolean }[];
     },
     enabled: !!currentWorkspace?.id,
   });
