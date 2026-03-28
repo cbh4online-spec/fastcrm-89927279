@@ -817,27 +817,100 @@ export function FunnelsList() {
 
         {/* Capture Types Tab */}
         <TabsContent value="capture" className="mt-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Tipos de Captura</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Tipos de Captura</h2>
+              <p className="text-sm text-muted-foreground">Define os mecanismos de captura dos teus funis</p>
+            </div>
+            <Button onClick={() => { setEditingCaptureType(null); setCaptureFormOpen(true); }}>
+              <Plus className="h-4 w-4 mr-2" /> Novo Tipo
+            </Button>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {captureTypes.map((ct) => (
-              <Card key={ct.id} className="border-border/50">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Target className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">{ct.label}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ct.description}</p>
-                      <Badge variant="outline" className="text-[10px] mt-2">{ct.key}</Badge>
-                    </div>
-                  </div>
+
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={captureSearch}
+              onChange={(e) => setCaptureSearch(e.target.value)}
+              placeholder="Pesquisar tipos..."
+              className="pl-9"
+            />
+          </div>
+
+          {(() => {
+            const filtered = captureTypes.filter((ct) =>
+              ct.label.toLowerCase().includes(captureSearch.toLowerCase()) ||
+              ct.key.toLowerCase().includes(captureSearch.toLowerCase())
+            );
+            return filtered.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Target className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h3 className="font-semibold mb-1">{captureSearch ? "Nenhum resultado" : "Sem tipos de captura"}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {captureSearch ? "Tenta outro termo de pesquisa." : "Cria o teu primeiro tipo de captura para organizar funis."}
+                  </p>
+                  {!captureSearch && (
+                    <Button onClick={() => { setEditingCaptureType(null); setCaptureFormOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-2" /> Criar Tipo
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((ct) => {
+                  const Icon = getIconComponent(ct.icon);
+                  const usageCount = captureUsage[ct.id] || 0;
+                  return (
+                    <Card key={ct.id} className="group hover:shadow-md transition-shadow border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Icon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <h3 className="font-semibold text-sm">{ct.label}</h3>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => { setEditingCaptureType(ct); setCaptureFormOpen(true); }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteCaptureId(ct.id)}
+                                  disabled={usageCount > 0}
+                                  title={usageCount > 0 ? `Em uso por ${usageCount} funil(s)` : "Eliminar"}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ct.description}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-[10px] font-mono">{ct.key}</Badge>
+                              {usageCount > 0 && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {usageCount} funil{usageCount !== 1 ? "s" : ""}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         {/* Analytics Tab */}
