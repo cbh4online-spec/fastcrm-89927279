@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -23,11 +24,9 @@ import { Plus, Search, FileText, Loader2, LayoutTemplate } from "lucide-react";
 import {
   useProposalTemplates,
   useCreateProposalTemplate,
-  useUpdateProposalTemplate,
   useDeleteProposalTemplate,
 } from "@/hooks/useProposals";
 import { ProposalTemplateCard } from "./ProposalTemplateCard";
-import { ProposalTemplateFormDialog } from "./ProposalTemplateFormDialog";
 import type { ProposalTemplate, ContentBlock } from "@/types/proposal";
 
 const sortOptions = [
@@ -38,15 +37,13 @@ const sortOptions = [
 ];
 
 export function ProposalTemplatesList() {
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<ProposalTemplate | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: templates, isLoading } = useProposalTemplates();
   const createTemplate = useCreateProposalTemplate();
-  const updateTemplate = useUpdateProposalTemplate();
   const deleteTemplate = useDeleteProposalTemplate();
 
   // Filter and sort templates
@@ -93,13 +90,11 @@ export function ProposalTemplatesList() {
   }, [templates]);
 
   const handleCreate = () => {
-    setEditingTemplate(null);
-    setFormOpen(true);
+    navigate("/dashboard/proposals/templates/new");
   };
 
   const handleEdit = (template: ProposalTemplate) => {
-    setEditingTemplate(template);
-    setFormOpen(true);
+    navigate(`/dashboard/proposals/templates/${template.id}`);
   };
 
   const handleDuplicate = async (template: ProposalTemplate) => {
@@ -113,31 +108,7 @@ export function ProposalTemplatesList() {
   };
 
   const handleToggleActive = async (template: ProposalTemplate, active: boolean) => {
-    // Since the hook doesn't support is_active toggle, we'll need to extend it
-    // For now, we'll just call update with the current values
-    await updateTemplate.mutateAsync({
-      id: template.id,
-      name: template.name,
-    });
-  };
-
-  const handleSave = async (data: {
-    name: string;
-    description: string;
-    content_blocks: ContentBlock[];
-    cta_text: string;
-    cta_color: string;
-  }) => {
-    if (editingTemplate) {
-      await updateTemplate.mutateAsync({
-        id: editingTemplate.id,
-        ...data,
-      });
-    } else {
-      await createTemplate.mutateAsync(data);
-    }
-    setFormOpen(false);
-    setEditingTemplate(null);
+    // TODO: extend hook to support is_active toggle
   };
 
   const handleDelete = async () => {
@@ -146,8 +117,6 @@ export function ProposalTemplatesList() {
       setDeleteId(null);
     }
   };
-
-  const isSaving = createTemplate.isPending || updateTemplate.isPending;
 
   return (
     <div className="space-y-6">
@@ -247,15 +216,6 @@ export function ProposalTemplatesList() {
           ))}
         </div>
       )}
-
-      {/* Form Dialog */}
-      <ProposalTemplateFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        template={editingTemplate}
-        onSave={handleSave}
-        isSaving={isSaving}
-      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
