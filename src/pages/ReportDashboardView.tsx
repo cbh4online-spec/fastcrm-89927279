@@ -7,7 +7,8 @@ import { useReportDashboards } from "@/hooks/useReportDashboards";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Download, Plus } from "lucide-react";
+import { exportWidgetsCSV } from "@/utils/reportExport";
 import { useState, useMemo } from "react";
 
 export default function ReportDashboardView() {
@@ -79,6 +80,21 @@ export default function ReportDashboardView() {
               onDateFromChange={setDateFrom}
               onDateToChange={setDateTo}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={!widgets?.length}
+              onClick={() => {
+                if (dashboard && widgets?.length) {
+                  exportWidgetsCSV(
+                    dashboard.name,
+                    widgets.map(w => ({ title: w.title, data: (w as any).cached_data }))
+                  );
+                }
+              }}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
             <Button onClick={() => { setEditingWidget(null); setWidgetModalOpen(true); }}>
               <Plus className="h-4 w-4 mr-2" /> Novo Widget
             </Button>
