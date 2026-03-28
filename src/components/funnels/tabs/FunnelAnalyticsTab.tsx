@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { format, subDays } from "date-fns";
-import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon, Brain, Loader2, Lightbulb, AlertTriangle, DollarSign } from "lucide-react";
+import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon, Brain, Loader2, Lightbulb, AlertTriangle, DollarSign, Coins } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFunnelSteps, useFunnelStepStats } from "@/hooks/useFunnels";
 import { supabase } from "@/integrations/supabase/client";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -31,11 +33,16 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
   const [dateTo, setDateTo] = useState(format(new Date(), "yyyy-MM-dd"));
   const [aiInsights, setAiInsights] = useState<AIInsight | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const { canRun, showUpgrade, overageLabel } = useAIGate("medium");
 
   const { data: steps = [] } = useFunnelSteps(funnelId);
   const { data: rawStats = [] } = useFunnelStepStats(funnelId, dateFrom, dateTo);
 
   const analyzeWithAI = async () => {
+    if (showUpgrade) {
+      triggerNoCreditsDialog({ actionLabel: "Analisar funil com IA" });
+      return;
+    }
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("funnel-ai-insights", {
@@ -105,6 +112,7 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
         <Button onClick={analyzeWithAI} disabled={aiLoading} variant="outline" className="gap-2">
           {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
           {aiInsights ? "Reanalisar com IA" : "Analisar com IA"}
+          {overageLabel && <Badge variant="outline" className="ml-1 text-[10px]"><Coins className="h-3 w-3 mr-1" />{overageLabel}</Badge>}
         </Button>
         <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-background">
           <Input

@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   Eye, Target, Users, TrendingUp, Zap, HelpCircle, X,
   AlertTriangle, Lightbulb, Info, ArrowUpRight, ArrowDownRight, Minus,
-  Brain, BarChart3
+  Brain, BarChart3, Coins
 } from "lucide-react";
 import {
   type StatsEvent, type SourceData, type AutoInsight, type KPITrend,
@@ -105,6 +105,7 @@ function InsightBanner({ insights, onAnalyzeAI, aiLoading }: { insights: AutoIns
             <Button size="sm" variant="outline" className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10" onClick={onAnalyzeAI} disabled={aiLoading}>
               <Brain className="h-3.5 w-3.5 mr-1.5" />
               Analisar com IA
+              <Badge variant="outline" className="ml-1.5 text-[10px] border-amber-500/30"><Coins className="h-3 w-3 mr-0.5" />1 crédito</Badge>
             </Button>
           </div>
         </div>
