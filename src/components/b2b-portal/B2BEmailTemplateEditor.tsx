@@ -45,7 +45,7 @@ function replaceVariables(text: string, variables: { key: string; label: string 
     "{{total_spent}}": "12.500,00",
   };
   for (const v of variables) {
-    result = result.replaceAll(v.key, sampleValues[v.key] || v.label);
+    result = result.split(v.key).join(sampleValues[v.key] || v.label);
   }
   return result;
 }
