@@ -61,7 +61,7 @@ export default function TasksPage() {
     });
   }, [tasks, filters]);
 
-  const handleCreate = async (task: { title: string; due_at?: string; related_type?: string; related_id?: string }) => {
+  const handleCreate = async (task: { title: string; due_at?: string; related_type?: TaskRelatedType; related_id?: string }) => {
     try {
       await createTask.mutateAsync({ ...task });
       toast.success("Tarefa criada com sucesso");

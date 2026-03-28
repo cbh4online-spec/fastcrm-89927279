@@ -14,6 +14,7 @@ import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { TaskPriority, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from "@/types/taskTemplate";
+import { TaskRelatedType } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -32,7 +33,7 @@ interface CreateTaskDialogProps {
     title: string;
     due_at?: string;
     assigned_to?: string;
-    related_type?: string;
+    related_type?: TaskRelatedType;
     related_id?: string;
   }) => void;
   initialTitle?: string;
@@ -94,12 +95,12 @@ export function CreateTaskDialog({
     const searchEntities = async () => {
       setIsSearching(true);
       try {
-        const config = ENTITY_TYPE_CONFIG[relatedType];
-        const { data } = await supabase
-          .from(config.table)
+        const table = relatedType === "contact" ? "contacts" : relatedType === "lead" ? "leads" : "companies";
+        const { data } = await (supabase
+          .from(table)
           .select("id, name, email")
           .ilike("name", `%${debouncedSearch}%`)
-          .limit(10);
+          .limit(10) as any);
         setEntityResults((data as EntityResult[]) || []);
       } catch {
         setEntityResults([]);
