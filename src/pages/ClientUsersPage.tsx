@@ -1,17 +1,21 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ClientUsersList } from "@/components/client-users/ClientUsersList";
-import { ClientUserStats } from "@/components/client-users/ClientUserStats";
+import { ClientAnalyticsDashboard } from "@/components/client-users/ClientAnalyticsDashboard";
+import { ClientCommercialInsights } from "@/components/client-users/ClientCommercialInsights";
 import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
 import { Button } from "@/components/ui/button";
-import { Users, ExternalLink, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, ExternalLink, Settings, BarChart3, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 
 export default function ClientUsersPage() {
   const { currentWorkspace } = useWorkspace();
-  
-  const portalUrl = currentWorkspace?.slug 
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const portalUrl = currentWorkspace?.slug
     ? `${getPublicBaseUrl()}/client/login?workspace=${currentWorkspace.slug}`
     : `${getPublicBaseUrl()}/client/login`;
 
@@ -47,9 +51,34 @@ export default function ClientUsersPage() {
           </div>
         </div>
 
-        <ClientUserStats />
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="overview" className="gap-1.5">
+              <BarChart3 className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              Clientes
+            </TabsTrigger>
+            <TabsTrigger value="commercial" className="gap-1.5">
+              <ShoppingCart className="h-4 w-4" />
+              Comercial
+            </TabsTrigger>
+          </TabsList>
 
-        <ClientUsersList />
+          <TabsContent value="overview" className="mt-6">
+            <ClientAnalyticsDashboard />
+          </TabsContent>
+
+          <TabsContent value="clients" className="mt-6">
+            <ClientUsersList />
+          </TabsContent>
+
+          <TabsContent value="commercial" className="mt-6">
+            <ClientCommercialInsights />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -19,13 +19,15 @@ import {
   CheckCircle,
   Stethoscope,
   BarChart3,
-  Trophy
+  Trophy,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useCart } from "@/contexts/CartContext";
 import { useClientFavorites } from "@/hooks/client-portal/useClientFavorites";
 import { useClientPermissions } from "@/hooks/client-portal/useClientPermissions";
+import { ClientNotificationBadge } from "./ClientNotificationBadge";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +40,7 @@ interface ClientLayoutProps {
 interface WorkspaceBranding {
   name: string;
   logo_url: string | null;
+  primary_color: string | null;
 }
 
 interface NavItem {
@@ -66,8 +69,33 @@ const allNavItems: NavItem[] = [
   { path: "/client/team", icon: Users, label: "Equipa", requiredPermission: "canManageTeam" },
 ];
 
+// Convert hex to HSL for CSS variable
+function hexToHsl(hex: string): string | null {
+  try {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return null;
+    let r = parseInt(result[1], 16) / 255;
+    let g = parseInt(result[2], 16) / 255;
+    let b = parseInt(result[3], 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  } catch {
+    return null;
+  }
+}
+
 export function ClientLayout({ children }: ClientLayoutProps) {
-  // Get workspace ID from localStorage for multi-tenancy
   const savedWorkspaceId = localStorage.getItem("client_workspace_id") || undefined;
   const { clientUser, loading, signOut, isAuthenticated, hasAuthButNoClient } = useClientAuth({ workspaceId: savedWorkspaceId });
   const { itemCount } = useCart();
@@ -83,23 +111,39 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     });
   }, [permissions]);
   
-  // Fetch workspace branding based on client's workspace
+  // Fetch workspace branding and apply dynamic theming
   useEffect(() => {
     async function fetchWorkspaceBranding() {
       if (!clientUser?.workspace_id) return;
       
       const { data } = await supabase
         .from("workspaces")
-        .select("name, logo_url")
+        .select("name, logo_url, primary_color")
         .eq("id", clientUser.workspace_id)
         .single();
       
       if (data) {
-        setWorkspaceBranding(data);
+        setWorkspaceBranding(data as WorkspaceBranding);
+
+        // Apply dynamic brand color as CSS variable
+        if (data.primary_color) {
+          const hsl = hexToHsl(data.primary_color);
+          if (hsl) {
+            document.documentElement.style.setProperty("--portal-primary", hsl);
+            document.documentElement.style.setProperty("--primary", hsl);
+            document.documentElement.style.setProperty("--ring", hsl);
+          }
+        }
       }
     }
     
     fetchWorkspaceBranding();
+
+    // Cleanup: restore original primary on unmount
+    return () => {
+      document.documentElement.style.removeProperty("--portal-primary");
+      // Note: --primary and --ring will be restored by navigating away from portal
+    };
   }, [clientUser?.workspace_id]);
   
   const getBadgeCount = (badgeType?: "cart" | "favorites") => {
@@ -112,13 +156,17 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          {workspaceBranding?.logo_url && (
+            <WorkspaceLogo logoUrl={workspaceBranding.logo_url} workspaceName={workspaceBranding.name} size="lg" variant="portal" />
+          )}
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">A carregar o portal...</p>
+        </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated (either no user or no client record)
-  // The login page handles the hasAuthButNoClient case with a proper error message
   if (!isAuthenticated) {
     return <Navigate to="/client/login" replace />;
   }
@@ -127,36 +175,40 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Header — Premium */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/client/dashboard" className="flex items-center gap-2">
+          <Link to="/client/dashboard" className="flex items-center gap-2.5">
             <WorkspaceLogo
               logoUrl={workspaceBranding?.logo_url}
               workspaceName={workspaceBranding?.name}
               size="md"
               variant="portal"
             />
-            <span className="font-semibold text-lg hidden sm:inline">{portalName}</span>
+            <span className="font-semibold text-lg hidden sm:inline tracking-tight">{portalName}</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-0.5">
             {navItems.map((item) => {
               const badgeCount = getBadgeCount(item.showBadge);
+              const isActive = location.pathname === item.path;
               return (
               <Link key={item.path} to={item.path}>
                 <Button
-                  variant={location.pathname === item.path ? "secondary" : "ghost"}
+                  variant={isActive ? "secondary" : "ghost"}
                   size="sm"
-                  className="relative"
+                  className={cn(
+                    "relative transition-all",
+                    isActive && "bg-primary/10 text-primary hover:bg-primary/15"
+                  )}
                 >
-                  <item.icon className="h-4 w-4 mr-2" />
+                  <item.icon className="h-4 w-4 mr-1.5" />
                   {item.label}
                   {badgeCount > 0 && (
                     <span className={cn(
-                      "absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs flex items-center justify-center",
+                      "absolute -top-1 -right-1 h-5 w-5 rounded-full text-xs flex items-center justify-center font-bold",
                       item.showBadge === "favorites" 
                         ? "bg-red-500 text-white" 
                         : "bg-primary text-primary-foreground"
@@ -169,15 +221,23 @@ export function ClientLayout({ children }: ClientLayoutProps) {
             )})}
           </nav>
 
-          {/* User Menu */}
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
+          {/* User Menu — Premium */}
+          <div className="flex items-center gap-2">
+            <ClientNotificationBadge />
+            <Link to="/client/security">
+              <Button variant="ghost" size="icon" className="hidden sm:flex">
+                <Shield className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div className="hidden sm:flex items-center gap-2 text-sm px-2">
+              <div className="p-1.5 rounded-full bg-primary/10">
+                <User className="h-3.5 w-3.5 text-primary" />
+              </div>
               <span className="font-medium">{clientUser?.name}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={signOut}>
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">Sair</span>
+              <span className="hidden sm:inline ml-1.5">Sair</span>
             </Button>
 
             {/* Mobile Menu Toggle */}
@@ -194,10 +254,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-background p-4">
-            <nav className="flex flex-col gap-2">
+          <div className="md:hidden border-t bg-background/95 backdrop-blur-xl p-4">
+            <nav className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const badgeCount = getBadgeCount(item.showBadge);
+                const isActive = location.pathname === item.path;
                 return (
                 <Link 
                   key={item.path} 
@@ -205,8 +266,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Button
-                    variant={location.pathname === item.path ? "secondary" : "ghost"}
-                    className="w-full justify-start relative"
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start relative",
+                      isActive && "bg-primary/10 text-primary"
+                    )}
                   >
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.label}
@@ -229,14 +293,20 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="container py-6">
+      <main className="container py-8">
         {children}
       </main>
 
-      {/* Footer */}
+      {/* Footer — Premium */}
       <footer className="border-t py-6 mt-auto">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} {workspaceBranding?.name || "FastCRM"} - Portal de Cliente Profissional</p>
+        <div className="container flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            {workspaceBranding?.logo_url && (
+              <WorkspaceLogo logoUrl={workspaceBranding.logo_url} workspaceName={workspaceBranding.name} size="sm" variant="portal" />
+            )}
+            <p>© {new Date().getFullYear()} {workspaceBranding?.name || "FastCRM"}</p>
+          </div>
+          <p className="hidden sm:block">Portal de Cliente Profissional</p>
         </div>
       </footer>
     </div>
