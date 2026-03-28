@@ -188,13 +188,24 @@ export default function Invoices() {
 
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
-    if (!searchValue) return invoices;
-    const lower = searchValue.toLowerCase();
-    return invoices.filter(
-      (inv) =>
-        inv.client_name.toLowerCase().includes(lower) ||
-        inv.invoice_number.toLowerCase().includes(lower)
-    );
+    let result = invoices;
+
+    // Source filter
+    if (activeFilterId === "source_renewal") {
+      result = result.filter((inv) => !!(inv as any).renewal_contract_id);
+    } else if (activeFilterId === "source_manual") {
+      result = result.filter((inv) => !(inv as any).renewal_contract_id);
+    }
+
+    if (searchValue) {
+      const lower = searchValue.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          inv.client_name.toLowerCase().includes(lower) ||
+          inv.invoice_number.toLowerCase().includes(lower)
+      );
+    }
+    return result;
   }, [invoices, searchValue]);
 
   const totalInvoices = filteredInvoices.length;

@@ -188,6 +188,10 @@ serve(async (req) => {
             notes: `Pagamento automático Stripe. Invoice: ${invoice.id}`,
           }).select("id").maybeSingle();
 
+          if (invoiceInsertError) {
+            console.error("[RENEWAL-WEBHOOK] Invoice insert failed:", JSON.stringify(invoiceInsertError));
+          }
+
           // Create invoice items from contract items
           if (newInvoice) {
             const { data: items } = await db.from("renewal_items")
