@@ -139,17 +139,20 @@ export function useRecalculateScores() {
       for (const member of members) {
         const uid = member.user_id;
 
+        const leadsQuery = supabase.from("leads").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO).lte("created_at", endISO);
+        const meetingsQuery = supabase.from("meetings").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid).eq("created_by", uid).gte("created_at", startISO).lte("created_at", endISO);
+        const proposalsQuery = supabase.from("proposals").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid).eq("created_by", uid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
+        const oppsQuery = supabase.from("opportunities").select("id, value")
+          .eq("workspace_id", wid).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
+        const pipelineQuery = supabase.from("opportunities").select("id, value")
+          .eq("workspace_id", wid).eq("assigned_to", uid);
+        const pipelineFiltered = pipelineQuery.in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO);
+
         const [leadsRes, meetingsRes, proposalsRes, oppsRes, pipelineRes] = await Promise.all([
-          supabase.from("leads").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO).lte("created_at", endISO),
-          supabase.from("meetings").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).eq("created_by", uid).gte("created_at", startISO).lte("created_at", endISO),
-          supabase.from("proposals").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).eq("created_by", uid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO),
-          supabase.from("opportunities").select("id, value")
-            .eq("workspace_id", wid).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO),
-          supabase.from("opportunities").select("id, value")
-            .eq("workspace_id", wid).eq("assigned_to", uid).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO),
+          leadsQuery, meetingsQuery, proposalsQuery, oppsQuery, pipelineFiltered,
         ]);
 
         const revenue = (oppsRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);
