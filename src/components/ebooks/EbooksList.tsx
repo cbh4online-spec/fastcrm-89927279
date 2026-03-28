@@ -14,9 +14,10 @@ import { motion } from "framer-motion";
 
 interface EbooksListProps {
   onSelectEbook: (id: string) => void;
+  onOpenWizard?: () => void;
 }
 
-export function EbooksList({ onSelectEbook }: EbooksListProps) {
+export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
   const { data: ebooks, isLoading } = useEbooks();
   const createEbook = useCreateEbook();
   const deleteEbook = useDeleteEbook();
@@ -107,9 +108,13 @@ export function EbooksList({ onSelectEbook }: EbooksListProps) {
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Palavras</p>
               </div>
             </div>
-            <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20">
+            <Button onClick={() => onOpenWizard ? onOpenWizard() : setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Criar com IA
+            </Button>
+            <Button variant="outline" onClick={() => setShowCreate(true)} className="border-primary/20 hover:bg-primary/5">
               <Plus className="h-4 w-4 mr-2" />
-              Criar eBook
+              Criar Manual
             </Button>
           </div>
         </div>
@@ -136,7 +141,7 @@ export function EbooksList({ onSelectEbook }: EbooksListProps) {
                 <PenLine className="h-4 w-4 mr-2" />
                 Criar Manual
               </Button>
-              <Button onClick={() => { setAiMode(true); setShowCreate(true); }} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
+              <Button onClick={() => onOpenWizard ? onOpenWizard() : (() => { setAiMode(true); setShowCreate(true); })()} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Criar com IA
               </Button>
