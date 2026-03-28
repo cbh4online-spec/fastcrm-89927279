@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
 
-export type CrmEntityType = "contacts" | "opportunities" | "leads";
+export type CrmEntityType = "contacts" | "opportunities";
 export type CrmViewMode = "table" | "board";
 
 export interface CrmSavedView {
