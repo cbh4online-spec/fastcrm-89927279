@@ -1,86 +1,60 @@
 
 
-# Reorganizar Navegação — Compras como Grupo Principal
+# Formulário Funcional para Criação de Verticais
 
 ## Problema
 
-O módulo de Compras (Procurement) está enterrado dentro do grupo "Operações" junto com itens não relacionados (Tarefas, Eventos, Student Journey, Segurança). Compras é um módulo principal de negócio com ~10 sub-páginas e merece o seu próprio grupo de navegação.
+O formulário atual de criação de verticais tem apenas 4 campos básicos (Nome, Slug, Descrição, Cor). Uma vertical é um conceito estratégico de mercado que precisa de muito mais dados para ser operacional — público-alvo, keywords, ícone, configurações de funil default, etc.
 
-## Estrutura Atual (Operações)
-
-```text
-Operações
-├── Tarefas
-├── Eventos
-├── Compras (dashboard)
-├── Fornecedores
-├── Pedidos
-├── Ordens de Compra
-├── Receções
-├── RFQs
-├── Dashboard RFQs
-├── Quadro Necessidades
-├── Import. Preços (hidden)
-├── Import. Fornecedores (hidden)
-├── Jornada do Aluno
-├── Segurança (hidden)
-└── Crédito (hidden)
-```
+## Campos Atuais na BD
+`name`, `slug`, `description`, `color_theme`, `status`
 
 ## Nova Estrutura
 
-### Novo grupo: **Compras** (order: 7, entre Vendas e Comércio actual)
+### 1. Migração DB — Novos Campos
 
-```text
-Compras
-├── Dashboard (Compras)
-├── Fornecedores
-├── Quadro Necessidades
-├── Pedidos
-├── Ordens de Compra
-├── Receções
-├── RFQs
-├── Dashboard RFQs
-├── Import. Preços (search-only)
-└── Import. Fornecedores (search-only)
-```
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `icon` | text | Nome do ícone Lucide |
+| `target_audience` | text | Descrição do público-alvo |
+| `keywords` | text[] | Keywords SEO / pesquisa |
+| `pain_points` | text[] | Dores do público |
+| `value_proposition` | text | Proposta de valor principal |
+| `avg_ticket` | numeric | Ticket médio estimado |
+| `market_size` | text | Tamanho do mercado (pequeno/médio/grande) |
+| `priority` | integer | Prioridade 1-5 |
+| `logo_url` | text | Logo/imagem da vertical |
+| `default_cta` | text | CTA padrão dos funis |
+| `notes` | text | Notas internas |
 
-### Grupo Operações fica limpo:
+### 2. Formulário com Tabs (Dialog max-w-2xl)
 
-```text
-Operações
-├── Tarefas
-├── Eventos
-├── Jornada do Aluno
-├── Segurança
-└── Crédito
-```
+**Tab "Identidade"**:
+- Nome, Slug (auto-gerado), Descrição
+- Seletor de ícone (grid de ícones Lucide populares)
+- Color picker, Logo upload
 
-### Reordenação dos grupos:
+**Tab "Mercado"**:
+- Público-alvo (textarea)
+- Dores do público (tag input)
+- Proposta de valor
+- Ticket médio, Tamanho do mercado (select)
+- Prioridade (estrelas 1-5)
 
-| Order | Grupo |
-|-------|-------|
-| 1 | Início |
-| 2 | Estratégia IA |
-| 3 | Comercial |
-| 4 | Comunicação |
-| 5 | Marketing |
-| 6 | Vendas |
-| 7 | **Compras** ← NOVO |
-| 8 | Comércio |
-| 9 | Operações |
-| 10 | Inteligência |
-| 11 | Administração |
+**Tab "SEO & Funis"**:
+- Keywords (tag input)
+- CTA padrão
+- Notas internas
+- Status (ativo/inativo)
 
-## Implementação
+### 3. Componente Separado
 
-**Ficheiro único**: `src/config/routeManifest.ts`
+Extrair o formulário para `src/components/funnels/CreateVerticalDialog.tsx` — componente reutilizável com suporte a criação e edição.
 
-1. Adicionar `"compras"` ao type `NavGroup`
-2. Adicionar entrada no array `NAV_GROUPS` com `{ key: "compras", label: "Compras", icon: ShoppingCart, order: 7, collapsible: true }`
-3. Ajustar `order` dos grupos seguintes (+1)
-4. Mover todas as rotas `procurement-*` de `group: "operacoes"` para `group: "compras"`
-5. Fornecedores fica como item principal visível na sidebar (já está)
+### Ficheiros
 
-Alteração puramente de configuração — nenhuma rota, página ou componente muda.
+- **Migração SQL**: ALTER TABLE verticals ADD COLUMN para cada novo campo
+- **Novo**: `src/components/funnels/CreateVerticalDialog.tsx`
+- **Editado**: `src/components/funnels/FunnelsList.tsx` — substituir dialog inline pelo novo componente
+- **Editado**: `src/hooks/useVerticals.ts` — suportar novos campos no create/update
 
