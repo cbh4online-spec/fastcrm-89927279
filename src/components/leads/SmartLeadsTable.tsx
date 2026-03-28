@@ -8,8 +8,10 @@ import {
   SmartLead,
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
-import { useDeleteLeads, useUpdateLead } from "@/hooks/useLeads";
+import { useDeleteLeads, useUpdateLead, useBulkUpdateLeads } from "@/hooks/useLeads";
 import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
+import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
+import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
