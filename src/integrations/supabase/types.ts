@@ -18540,6 +18540,68 @@ export type Database = {
           },
         ]
       }
+      ebooks: {
+        Row: {
+          author_name: string | null
+          chapters: Json
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          pdf_storage_path: string | null
+          slug: string | null
+          status: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          chapters?: Json
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          pdf_storage_path?: string | null
+          slug?: string | null
+          status?: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          author_name?: string | null
+          chapters?: Json
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          pdf_storage_path?: string | null
+          slug?: string | null
+          status?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebooks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_connections: {
         Row: {
           auth_type: string
