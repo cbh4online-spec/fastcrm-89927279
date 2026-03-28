@@ -27,6 +27,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { SmartForm, SmartFormField, ScoringRule, FormType, FORM_TEMPLATES, AutomationConfig, FormSettings, ConditionalRule } from '@/types/smartForm';
+import { useCreateSmartForm, useUpdateSmartForm, useGenerateFormWithAI } from '@/hooks/useSmartForms';
 import { FormFieldEditor } from '@/components/form-studio/FormFieldEditor';
 import { FormField } from '@/types/formSchema';
 import { toast } from 'sonner';
