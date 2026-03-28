@@ -1,27 +1,28 @@
 
 
-# Fix Kernel Monitor — Menu Lateral
+# Associar Tarefa a Contacto, Lead ou Empresa
 
-## Diagnóstico
+## O que muda
 
-A página **já usa `DashboardLayout`** que inclui o sidebar e o TopBar. O problema visual na pré-visualização deve-se a:
+Adicionar ao diálogo "Nova Tarefa" (`CreateTaskDialog.tsx`) um campo de associação que permite escolher o tipo de entidade (Contacto, Lead, Empresa) e pesquisar/selecionar o registo específico.
 
-1. **Padding duplicado**: O `DashboardLayout` já aplica `p-4 md:p-6` no `<main>`, e a página adiciona outro `p-6` redundante — isto empurra o conteúdo e pode causar overflow
-2. **Viewport estreito**: Na janela de preview, o sidebar colapsa (comportamento responsivo normal para `< lg`), mas o TopBar com o menu hamburger deve estar visível
+## Como funciona
 
-## Correção
+1. **Novo campo "Associar a"** — aparece depois da Prioridade, antes da Data Limite:
+   - Dropdown para selecionar tipo: Contacto, Lead, Empresa (ou "Geral" = sem associação)
+   - Ao selecionar um tipo, aparece um campo de pesquisa com autocomplete que busca registos da tabela respectiva (`contacts`, `leads`, `companies`)
+   - O registo selecionado mostra nome + badge do tipo
 
-### Ficheiro: `src/pages/KernelMonitorPage.tsx`
-- **Remover o `p-6` redundante** da div wrapper (o DashboardLayout já fornece padding)
-- Confirmar que não há early returns que saltem o `DashboardLayout`
+2. **Alteração na interface `onCreateTask`** — passar `related_type` e `related_id` no objecto de criação (o hook `useCreateTask` já suporta estes campos)
 
-Alteração mínima — apenas remover o padding duplicado na linha 121:
-```
-// De:
-<div className="space-y-6 p-6 max-w-7xl mx-auto animate-fade-in">
-// Para:
-<div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
-```
+3. **Pesquisa de entidades** — query simples com `.ilike('name', '%term%')` limitada a 10 resultados, executada com debounce de 300ms
 
-O sidebar e TopBar já estão presentes no layout — a correcção garante que o conteúdo não transborda e o menu hamburger (mobile) fica acessível.
+## Ficheiros
+
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/tasks/CreateTaskDialog.tsx` | Adicionar selector de tipo + campo de pesquisa de entidade com autocomplete |
+| `src/pages/TasksPage.tsx` | Passar `related_type` e `related_id` do dialog para o `createTask.mutateAsync` |
+
+Não são necessárias alterações na base de dados — a tabela `tasks` já tem as colunas `related_type` e `related_id`.
 
