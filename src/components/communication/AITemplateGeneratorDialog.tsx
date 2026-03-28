@@ -162,6 +162,31 @@ export function AITemplateGeneratorDialog({ open, onOpenChange, onGenerated, ini
           ))}
         </div>
 
+        {/* AI Recommendation Banner */}
+        {activeRec && step === 1 && !appliedRec && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">{activeRec.goal}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeRec.reason}</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => {
+                applyRecommendation(activeRec);
+                setAppliedRec(true);
+              }}
+            >
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+              Aceitar recomendação
+            </Button>
+          </div>
+        )}
+
         <div className="min-h-[140px] py-2">
           {step === 1 && (
             <div className="space-y-3">
