@@ -139,15 +139,13 @@ export default function C2CListingDetail() {
   const { data: listing, isLoading } = useC2CListingDetail(id);
 
   // Track view (debounced per session)
-  useState(() => {
+  useEffect(() => {
     if (!id) return;
     const key = `c2c_viewed_${id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    supabase.rpc("increment_listing_views", { p_listing_id: id }).then(() => {
-      console.log("[C2C] View tracked for listing", id);
-    });
-  });
+    supabase.rpc("increment_listing_views", { p_listing_id: id });
+  }, [id]);
   const { data: sellerReviews } = useC2CSellerReviews(listing?.seller_id);
   const { data: sellerProfile } = useSellerProfile(listing?.seller_id);
   const { data: relatedListings = [] } = useRelatedListings(listing);
