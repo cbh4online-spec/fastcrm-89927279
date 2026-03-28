@@ -40,6 +40,10 @@ import { DomainManager } from "./domains/DomainManager";
 import { CreditWalletBadge } from "./credits/CreditWalletBadge";
 import { CreditLedgerPanel } from "./credits/CreditLedgerPanel";
 import { CreditPurchasePanel } from "./credits/CreditPurchasePanel";
+import { FunnelsHomeDashboard, FunnelPerformanceRanking } from "./FunnelsHomeDashboard";
+import { FunnelAdvisorBanner } from "./FunnelAdvisorBanner";
+import { FunnelHealthScore } from "./FunnelHealthScore";
+import { CrossFunnelAnalytics } from "./CrossFunnelAnalytics";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
@@ -299,60 +303,18 @@ export function FunnelsList() {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Target className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{totalFunnels}</p>
-                <p className="text-xs text-muted-foreground">Total Funis</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <Globe className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{publishedFunnels}</p>
-                <p className="text-xs text-muted-foreground">Publicados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Layers className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{verticals.length}</p>
-                <p className="text-xs text-muted-foreground">Verticais</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50 backdrop-blur border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-yellow-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{captureTypes.length}</p>
-                <p className="text-xs text-muted-foreground">Tipos de Captura</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* AI Advisor Banner */}
+      <FunnelAdvisorBanner />
+
+      {/* Real KPI Dashboard */}
+      <FunnelsHomeDashboard />
+
+      {/* Health Score + Performance Ranking */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FunnelHealthScore />
+        <div className="md:col-span-2">
+          <FunnelPerformanceRanking />
+        </div>
       </div>
 
       {/* Published Section */}
@@ -454,6 +416,10 @@ export function FunnelsList() {
             <TabsTrigger value="capture" className="gap-1.5">
               <Target className="h-4 w-4" />
               Captura
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5">
+              <TrendingUp className="h-4 w-4" />
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="domains" className="gap-1.5">
               <Globe className="h-4 w-4" />
@@ -863,6 +829,11 @@ export function FunnelsList() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="mt-4">
+          <CrossFunnelAnalytics />
         </TabsContent>
 
         {/* Domains Tab */}
