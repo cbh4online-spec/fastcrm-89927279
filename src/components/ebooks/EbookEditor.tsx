@@ -377,50 +377,15 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   <CardContent className="p-0 h-[calc(100%-60px)] overflow-y-auto">
                     <AnimatePresence mode="wait">
                       {previewMode ? (
-                        <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                          {/* Book-style preview */}
-                          <div className="bg-white dark:bg-card mx-auto max-w-[720px] py-12 px-16 shadow-[0_0_40px_rgba(0,0,0,0.06)] min-h-[60vh]">
-                            {activeChapter.cover_image && (
-                              <div className="mb-10 -mx-16 -mt-12 overflow-hidden rounded-t-lg">
-                                <img src={activeChapter.cover_image} alt="" className="w-full h-56 object-cover" />
-                              </div>
-                            )}
-                            {/* Chapter number + decorative line */}
-                            <div className="mb-8">
-                              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-primary/60">Capítulo {activeChapterIndex + 1}</span>
-                              <div className="w-16 h-0.5 bg-primary/30 mt-2 mb-4" />
-                              <h2 className="text-3xl font-bold text-foreground font-serif">{activeChapter.title}</h2>
-                            </div>
-                            {/* Drop cap + serif prose */}
-                            <div className="prose prose-lg dark:prose-invert max-w-none font-serif
-                              prose-p:leading-[1.9] prose-p:text-foreground/80 prose-p:mb-5
-                              prose-headings:text-foreground prose-headings:font-bold prose-headings:border-l-2 prose-headings:border-primary/30 prose-headings:pl-4 prose-headings:font-serif
-                              prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:py-3 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:font-serif prose-blockquote:text-base
-                              prose-img:rounded-xl prose-img:shadow-lg prose-img:mx-auto prose-img:my-8
-                              prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-                              prose-pre:bg-muted prose-pre:border prose-pre:border-border/50
-                              first:prose-p:first-letter:text-5xl first:prose-p:first-letter:font-bold first:prose-p:first-letter:text-primary first:prose-p:first-letter:float-left first:prose-p:first-letter:mr-3 first:prose-p:first-letter:mt-1 first:prose-p:first-letter:leading-none first:prose-p:first-letter:font-serif
-                            ">
-                              <ReactMarkdown
-                                components={{
-                                  img: ({ node, ...props }) => (
-                                    <figure className="my-8">
-                                      <img {...props} className="rounded-xl shadow-lg mx-auto max-w-full" />
-                                      {props.alt && <figcaption className="text-center text-sm text-muted-foreground mt-3 italic">{props.alt}</figcaption>}
-                                    </figure>
-                                  ),
-                                }}
-                              >
-                                {activeChapter.content || "*Sem conteúdo*"}
-                              </ReactMarkdown>
-                            </div>
-                            {/* Decorative footer */}
-                            <div className="flex items-center justify-center mt-16 gap-3">
-                              <div className="w-12 h-px bg-border" />
-                              <span className="text-xs text-muted-foreground font-serif italic">{ebook.title}</span>
-                              <div className="w-12 h-px bg-border" />
-                            </div>
-                          </div>
+                        <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex justify-center py-4 px-2">
+                          <FlipbookReader
+                            title={ebook.title}
+                            subtitle={ebook.subtitle || undefined}
+                            author={ebook.author_name || undefined}
+                            coverUrl={ebook.cover_url || undefined}
+                            chapters={ebook.chapters}
+                            compact
+                          />
                         </motion.div>
                       ) : (
                         <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6">
