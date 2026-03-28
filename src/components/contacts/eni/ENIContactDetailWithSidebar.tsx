@@ -42,6 +42,7 @@ import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
+import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";

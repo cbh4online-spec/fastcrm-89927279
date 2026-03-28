@@ -52,6 +52,7 @@ import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
+import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
