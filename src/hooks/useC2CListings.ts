@@ -4,6 +4,7 @@ const supabase = _supabase as any;
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { notifyNewInCategory, notifyPriceDrop } from "@/hooks/useC2CPriceAlerts";
 
 export interface C2CListing {
   id: string;
@@ -229,6 +230,10 @@ export function useCreateC2CListing(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["c2c-listings"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-my-listings"] });
       toast.success("Anúncio publicado com sucesso!");
+      // Notify users who follow this category
+      if (data.category_id && workspaceId && user) {
+        notifyNewInCategory(data.id, workspaceId, data.category_id, data.title, user.id).catch(console.warn);
+      }
       console.log('[MARKETPLACE] Listing created', { id: data.id });
       if (workspaceId) {
         emitKernelEvent({
@@ -251,7 +256,7 @@ export function useCreateC2CListing(workspaceId: string | undefined) {
 export function useUpdateC2CListing() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<C2CListing> & { id: string }) => {
+    mutationFn: async ({ id, _oldPrice, ...updates }: Partial<C2CListing> & { id: string; _oldPrice?: number }) => {
       const { data, error } = await supabase
         .from("c2c_listings")
         .update(updates)
@@ -259,6 +264,10 @@ export function useUpdateC2CListing() {
         .select()
         .single();
       if (error) throw error;
+      // Price drop notification
+      if (_oldPrice && updates.price && updates.price < _oldPrice && data.workspace_id) {
+        notifyPriceDrop(id, data.workspace_id, _oldPrice, updates.price, data.title).catch(console.warn);
+      }
       return data;
     },
     onSuccess: () => {
