@@ -100,11 +100,14 @@ describe("Sidebar sections builder", () => {
   });
 
   it("hides groups entirely when all items are module-gated and no modules installed", () => {
-    // Comércio requires online-store, marketplace-c2c, b2b-portal modules
+    // Loja Online, Marketplace C2C, Portal B2B all require modules
     const sections = buildSidebarSections(noModules, allAccess);
-    const comercio = sections.find((s) => s.key === "comercio");
-    // Comércio should be hidden since all its items require modules
-    expect(comercio).toBeUndefined();
+    const lojaOnline = sections.find((s) => s.key === "loja-online");
+    const c2c = sections.find((s) => s.key === "marketplace-c2c");
+    const b2b = sections.find((s) => s.key === "portal-b2b");
+    expect(lojaOnline).toBeUndefined();
+    expect(c2c).toBeUndefined();
+    expect(b2b).toBeUndefined();
   });
 });
 
