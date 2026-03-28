@@ -233,7 +233,15 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
   // Main insights query
   const insightsQuery = useQuery({
     queryKey: ['ai-insights', entityType, entityId, settings.proactivityLevel],
-    queryFn: invokeInsightsAnalysis,
+    queryFn: async () => {
+      const result = await invokeInsightsAnalysis();
+      // Refetch entity data so EntityHighlightsGrid and LeadScoresCard
+      // pick up the score/temperature the edge function persisted
+      queryClient.invalidateQueries({ queryKey: ['entity-for-insights', entityType, entityId] });
+      queryClient.invalidateQueries({ queryKey: ['lead', entityId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      return result;
+    },
     enabled: autoFetch && !!entityId && !!currentWorkspace?.id && !!entityQuery.data,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

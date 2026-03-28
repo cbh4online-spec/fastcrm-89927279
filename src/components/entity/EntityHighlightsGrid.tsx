@@ -76,10 +76,13 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     });
   }
 
-  // Last update
+  // Last activity — prefer last_contact_at (real interaction) over updated_at (DB timestamp)
+  const lastActivityDate = (e.last_contact_at || e.last_email_at || e.last_call_at)
+    ? new Date(e.last_contact_at || e.last_email_at || e.last_call_at)
+    : new Date(entity.updated_at);
   cards.push({
     label: 'Última Atividade',
-    value: getTimeAgo(new Date(entity.updated_at)),
+    value: getTimeAgo(lastActivityDate),
     icon: Clock,
     color: 'text-muted-foreground',
   });
