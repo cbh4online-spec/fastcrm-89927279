@@ -22,12 +22,6 @@ interface EntityOwnerSelectorProps {
   compact?: boolean;
 }
 
-const TABLE_MAP: Record<EntityType, string> = {
-  lead: 'leads',
-  contact: 'contacts',
-  company: 'companies',
-};
-
 function getInitials(name: string | null | undefined): string {
   if (!name) return '?';
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
