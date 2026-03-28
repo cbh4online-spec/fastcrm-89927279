@@ -1,10 +1,13 @@
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
+import { usePublicCompanyData } from '../hooks/usePublicCompanyData';
 
 export default function CookiePolicyPage() {
+  const { company } = usePublicCompanyData();
+
   return (
     <LegalPageLayout
       title="Política de Cookies"
-      description="Informação sobre os cookies utilizados no FastCRM, suas finalidades e como gerir as suas preferências."
+      description="Informação sobre os cookies utilizados, suas finalidades e como gerir as suas preferências."
       lastUpdated="6 de fevereiro de 2026"
     >
       <section>
@@ -143,7 +146,7 @@ export default function CookiePolicyPage() {
           Para mais informações sobre como tratamos os seus dados pessoais, consulte a nossa{' '}
           <a href="/privacy" className="text-primary hover:underline">Política de Privacidade</a>. 
           Para questões sobre cookies, contacte-nos em{' '}
-          <a href="mailto:privacidade@fastcrm.pt" className="text-primary hover:underline">privacidade@fastcrm.pt</a>.
+          <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>.
         </p>
       </section>
     </LegalPageLayout>

@@ -1,16 +1,19 @@
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
+import { usePublicCompanyData } from '../hooks/usePublicCompanyData';
 
 export default function GDPRPage() {
+  const { company, fullAddress } = usePublicCompanyData();
+
   return (
     <LegalPageLayout
       title="RGPD — Regulamento Geral de Proteção de Dados"
-      description="Como o FastCRM cumpre o RGPD e protege os dados pessoais dos seus utilizadores e dos seus clientes."
+      description="Como cumprimos o RGPD e protegemos os dados pessoais dos utilizadores e dos seus clientes."
       lastUpdated="6 de fevereiro de 2026"
     >
       <section>
         <h2 className="text-xl font-semibold mb-3">1. Compromisso com o RGPD</h2>
         <p className="text-muted-foreground leading-relaxed">
-          O FastCRM está comprometido com o cumprimento integral do Regulamento (UE) 2016/679 — 
+          A <strong>{company.company_name}</strong> está comprometida com o cumprimento integral do Regulamento (UE) 2016/679 — 
           Regulamento Geral sobre a Proteção de Dados (RGPD). Enquanto plataforma de CRM, tratamos 
           dados pessoais tanto como <strong>responsável pelo tratamento</strong> (dados dos nossos utilizadores) 
           como <strong>subcontratante</strong> (dados dos clientes dos nossos utilizadores).
@@ -35,7 +38,7 @@ export default function GDPRPage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">3. FastCRM como Subcontratante</h2>
         <p className="text-muted-foreground leading-relaxed mb-3">
-          Quando os nossos utilizadores utilizam o FastCRM para gerir dados dos seus próprios clientes, 
+          Quando os nossos utilizadores utilizam a plataforma para gerir dados dos seus próprios clientes, 
           atuamos como subcontratante. Nesta qualidade:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
@@ -54,7 +57,7 @@ export default function GDPRPage() {
           Disponibilizamos um Acordo de Processamento de Dados (Data Processing Agreement) que cobre 
           as obrigações do artigo 28.º do RGPD. Este acordo é automaticamente aplicável a todos os 
           utilizadores e pode ser solicitado em formato assinado para{' '}
-          <a href="mailto:dpo@fastcrm.pt" className="text-primary hover:underline">dpo@fastcrm.pt</a>.
+          <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>.
         </p>
       </section>
 
@@ -92,7 +95,7 @@ export default function GDPRPage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">6. Direitos dos Titulares</h2>
         <p className="text-muted-foreground leading-relaxed mb-3">
-          O FastCRM facilita o exercício dos seguintes direitos previstos no RGPD:
+          Facilitamos o exercício dos seguintes direitos previstos no RGPD:
         </p>
         <div className="space-y-3">
           <div className="flex gap-3 items-start">
@@ -196,20 +199,20 @@ export default function GDPRPage() {
         <p className="text-muted-foreground leading-relaxed">
           Para questões relacionadas com a proteção de dados pessoais, pode contactar o nosso 
           Encarregado de Proteção de Dados (DPO) através de{' '}
-          <a href="mailto:dpo@fastcrm.pt" className="text-primary hover:underline">dpo@fastcrm.pt</a>.
+          <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>.
         </p>
       </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">12. Responsabilidades dos Utilizadores</h2>
         <p className="text-muted-foreground leading-relaxed mb-3">
-          Enquanto utilizador do FastCRM que trata dados de terceiros (os seus clientes), é responsável por:
+          Enquanto utilizador da plataforma que trata dados de terceiros (os seus clientes), é responsável por:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>Garantir uma base legal válida para o tratamento dos dados dos seus clientes</li>
           <li>Informar os seus clientes sobre o tratamento dos seus dados</li>
           <li>Responder aos pedidos de exercício de direitos dos seus clientes</li>
-          <li>Notificar o FastCRM em caso de violação de dados que envolva a plataforma</li>
+          <li>Notificar-nos em caso de violação de dados que envolva a plataforma</li>
           <li>Não inserir dados pessoais sensíveis (artigo 9.º do RGPD) sem base legal adequada</li>
         </ul>
       </section>
@@ -218,10 +221,13 @@ export default function GDPRPage() {
         <h2 className="text-xl font-semibold mb-3">13. Contactos</h2>
         <div className="p-4 rounded-lg border bg-muted/50">
           <p className="text-muted-foreground text-sm space-y-1">
-            <strong>FastCRM, Lda.</strong><br />
-            Encarregado de Proteção de Dados (DPO)<br />
-            Email: <a href="mailto:dpo@fastcrm.pt" className="text-primary hover:underline">dpo@fastcrm.pt</a><br />
-            Autoridade de controlo: <a href="https://www.cnpd.pt" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CNPD — www.cnpd.pt</a>
+            <strong>{company.company_name}</strong>
+            {company.nif && <><br />NIF: {company.nif}</>}
+            {fullAddress && <><br />{fullAddress}</>}
+            <br />Encarregado de Proteção de Dados (DPO)
+            <br />Email: <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>
+            {company.phone && <><br />Tel: {company.phone}</>}
+            <br />Autoridade de controlo: <a href="https://www.cnpd.pt" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">CNPD — www.cnpd.pt</a>
           </p>
         </div>
       </section>
