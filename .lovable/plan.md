@@ -1,88 +1,74 @@
 
 
-# Centro de Agendamento — Funcionalidades Premium Únicas
+# Módulo Seguimentos — O que falta para ser funcional
 
-## O que já existe
-- Calendário com dia/semana/mês + heatmap + lista
-- Reuniões com kanban, preparação IA, gravação e transcrição
-- Serviços com categorias, preços e filtros
-- Disponibilidade com slots, exceções e timezones
-- Links de agendamento público com fluxo 3 passos, multi-idioma e captura de leads
-- Sincronização Google Calendar
+## Estado Atual
+O módulo já tem uma base sólida:
+- ✅ CRUD de sequências (nome, descrição, tags, condições de saída)
+- ✅ Gestão de etapas (ordem, template/conteúdo custom, delay dias/horas, canal email/whatsapp)
+- ✅ Tracking de inscrições (contact_id, status, etapa atual)
+- ✅ Hook de inscrição (`useEnrollContact`)
+- ✅ Integração com templates de comunicação
 
-## O que falta para ser único no mercado
+## O que falta (por prioridade)
 
-### 1. Dashboard de Analytics de Agendamento (nova tab "Analytics")
-- **Taxa de conversão** dos links de booking (visitantes vs agendamentos)
-- **No-show rate** por cliente/serviço/dia da semana
-- **Horários mais procurados** — heatmap de popularidade por hora/dia
-- **Receita gerada** via agendamentos (cruzando com serviços pagos)
-- **Tempo médio de antecedência** (quando marcam vs quando acontece)
-- **Comparação mensal** com tendências
+### 1. Inscrição de Contactos via UI
+**Problema**: O hook `useEnrollContact` existe mas não há forma de inscrever contactos na interface.
 
-### 2. Lista de Espera (Waitlist)
-- Quando um slot está cheio, o cliente entra numa waitlist automática
-- Notificação automática quando abre vaga (cancelamento)
-- Prioridade configurável (primeiro a chegar, clientes VIP, etc.)
-- Visível no dashboard com contagem por serviço
+- Botão "Inscrever Contactos" no detail dialog
+- Pesquisa de contactos/leads com autocomplete
+- Inscrição em bulk a partir de segmentos ou filtros do CRM
+- Preview de quantos contactos serão inscritos antes de confirmar
 
-### 3. Eventos Recorrentes Inteligentes
-- Criar eventos com regra de recorrência (diário, semanal, mensal, custom)
-- Editar "este evento" vs "todos os futuros"
-- Visualização de série no calendário com ícone de recorrência
-- Exceções por data (feriados auto-detetados)
+### 2. Gestão de Inscrições
+**Problema**: A tab "Inscritos" mostra dados mas sem ações.
 
-### 4. Round-Robin Multi-Anfitrião
-- Atribuição automática de reuniões entre membros da equipa
-- Algoritmos: round-robin, por disponibilidade, por carga equilibrada
-- Configurável por link de booking
-- Dashboard de distribuição por membro
+- Botões de Pausar/Retomar/Remover por inscrição
+- Filtros por status (Ativo, Pausado, Concluído, Saiu)
+- Mostrar nome do contacto em vez de UUID truncado
+- Indicador visual de em que etapa cada contacto está (progress bar)
 
-### 5. Widget Embeddable + QR Code
-- Código embed (`<iframe>` ou `<script>`) para incorporar booking em sites externos
-- Gerador de QR Code para cada link de agendamento
-- Preview do widget dentro do hub
-- Personalização de cores e branding do widget
+### 3. Log de Atividade por Inscrição
+**Problema**: Não se sabe o que aconteceu com cada contacto.
 
-### 6. Lembretes Inteligentes e Follow-ups
-- Lembretes automáticos pré-reunião (email/WhatsApp) configuráveis (24h, 1h, 15min)
-- Follow-up automático pós-reunião com template personalizável
-- Confirmação obrigatória X horas antes (reduz no-shows)
-- Integração com o módulo de inbox para envio
+- Timeline de eventos: "Email enviado", "Aguardando X dias", "Resposta recebida → saiu"
+- Estado de cada envio (enviado, aberto, clicado, respondeu, bounce)
+- Expandir inscrição para ver histórico completo
 
-### 7. Check-in e Feedback
-- Link de check-in enviado ao participante antes da reunião
-- Formulário de feedback pós-reunião (NPS + comentário)
-- Resultados visíveis no card da reunião e no analytics
-- Score de satisfação por serviço/anfitrião
+### 4. Analytics por Sequência e por Etapa
+**Problema**: Sem métricas de performance.
 
-### 8. Mapa de Ocupação Visual
-- Vista semanal tipo "resource view" (linhas = calendários/anfitriões, colunas = horas)
-- Indicador visual de ocupação (verde/amarelo/vermelho)
-- Útil para equipas verem a carga de todos de relance
+- **Por sequência**: taxa de conclusão, taxa de saída, tempo médio para completar
+- **Por etapa**: taxa de abertura, taxa de clique, taxa de resposta
+- Gráfico de funil (quantos chegam a cada etapa)
+- Comparação entre sequências
+
+### 5. Flow Builder Visual
+**Problema**: As etapas são uma lista simples sem visualização do fluxo.
+
+- Vista de fluxo vertical com nós conectados (etapa → delay → etapa)
+- Drag & drop para reordenar
+- Visualização clara dos delays e condições entre etapas
+- Mini-preview do conteúdo de cada etapa no nó
 
 ---
 
-## Ficheiros a criar/modificar
+## Ficheiros a Criar/Modificar
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/scheduling/SchedulingAnalytics.tsx` | **Novo** — Dashboard analytics com KPIs e gráficos |
-| `src/components/scheduling/WaitlistPanel.tsx` | **Novo** — Gestão de lista de espera |
-| `src/components/scheduling/EmbedWidgetGenerator.tsx` | **Novo** — Gerador de embed + QR code |
-| `src/components/scheduling/OccupancyMapView.tsx` | **Novo** — Resource/ocupação visual |
-| `src/components/scheduling/SchedulingHub.tsx` | Adicionar tab Analytics + integrar novos componentes |
-| `src/components/calendars/CalendarEventModal.tsx` | Adicionar recorrência |
-| `src/components/scheduling/BookingPagesTab.tsx` | Adicionar QR code, embed code, e configuração round-robin |
-| `src/hooks/useSchedulingAnalytics.ts` | **Novo** — Queries para métricas de agendamento |
+| `src/components/sequences/EnrollContactsDialog.tsx` | **Novo** — Pesquisa e inscrição de contactos |
+| `src/components/sequences/EnrollmentCard.tsx` | **Novo** — Card de inscrição com ações e progress |
+| `src/components/sequences/SequenceFlowView.tsx` | **Novo** — Visualização de fluxo vertical |
+| `src/components/sequences/SequenceAnalytics.tsx` | **Novo** — Dashboard de métricas por sequência |
+| `src/components/sequences/EnrollmentTimeline.tsx` | **Novo** — Timeline de atividade por inscrição |
+| `src/components/sequences/SequenceDetailDialog.tsx` | **Modificar** — Integrar enrollment UI, analytics tab, flow view |
+| `src/hooks/useEmailSequences.ts` | **Modificar** — Adicionar mutations para pause/resume/remove enrollment, fetch com nome do contacto |
 
-## Prioridade de implementação
-1. **Analytics** — impacto visual imediato, diferenciação clara
-2. **QR Code + Embed** — funcionalidade prática rara em CRMs
-3. **Lembretes + Follow-up** — redução de no-shows, valor tangível
-4. **Waitlist** — funcionalidade premium que poucos têm
-5. **Ocupação visual** — diferenciador para equipas
-6. **Recorrência** — expectável mas complexo
-7. **Round-Robin** — para equipas maiores
-8. **Check-in/Feedback** — complementar
+## Ordem de Implementação
+1. **Enrollment UI** — sem isto o módulo é literalmente inutilizável
+2. **Gestão de inscrições** — ações básicas sobre contactos inscritos
+3. **Log de atividade** — visibilidade do que acontece
+4. **Analytics** — métricas de performance
+5. **Flow builder** — diferenciação visual
 
