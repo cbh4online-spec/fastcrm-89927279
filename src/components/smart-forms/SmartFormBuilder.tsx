@@ -31,6 +31,10 @@ import { useCreateSmartForm, useUpdateSmartForm, useGenerateFormWithAI } from '@
 import { FormFieldEditor } from '@/components/form-studio/FormFieldEditor';
 import { FormField } from '@/types/formSchema';
 import { toast } from 'sonner';
+import { ConditionalLogicPanel } from './ConditionalLogicPanel';
+import { FormWebhooksConfig } from './FormWebhooksConfig';
+import { FormThankYouEditor } from './FormThankYouEditor';
+import { AIFormOptimizer } from './AIFormOptimizer';
 
 interface SmartFormBuilderProps {
   form?: SmartForm;
