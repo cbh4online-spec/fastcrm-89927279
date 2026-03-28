@@ -65,6 +65,14 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     color: score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-blue-600',
   });
 
+  // Gestor
+  cards.push({
+    label: 'Gestor',
+    value: assignedProfile?.full_name || 'Sem gestor',
+    icon: UserCheck,
+    color: assignedTo ? 'text-primary' : 'text-muted-foreground',
+  });
+
   // Temperature
   if (tempConfig) {
     cards.push({
