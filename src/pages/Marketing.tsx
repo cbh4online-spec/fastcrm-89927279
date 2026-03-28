@@ -211,6 +211,10 @@ export default function Marketing() {
             <MultichannelSequenceBuilder />
           </TabsContent>
 
+          <TabsContent value="automations" className="space-y-6">
+            <LifecycleAutomations />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6">
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
