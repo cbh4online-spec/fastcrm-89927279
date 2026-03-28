@@ -42,6 +42,7 @@ const PublicCommunityPage = lazy(() => import("@/pages/community/PublicCommunity
 const PublicCommunityTopicPage = lazy(() => import("@/pages/community/PublicCommunityTopicPage"));
 const CommunityAuthPage = lazy(() => import("@/pages/community/CommunityAuthPage"));
 const PublicBookingPage = lazy(() => import("@/pages/PublicBookingPage"));
+const PublicEbookPage = lazy(() => import("@/pages/PublicEbookPage"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -115,6 +116,9 @@ const App = () => (
                 {/* Public Booking */}
                 <Route path="/book/:slug" element={<PublicBookingPage />} />
                 <Route path="/:workspaceSlug/book/:slug" element={<PublicBookingPage />} />
+
+                {/* Public eBook Reader */}
+                <Route path="/ebook/:slug" element={<PublicEbookPage />} />
 
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
