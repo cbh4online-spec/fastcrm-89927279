@@ -24,9 +24,16 @@ import {
   Instagram,
   Mail,
   Globe,
+  Copy,
+  Download,
+  Activity,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 
 const TYPE_CONFIG = {
   guided: { label: "Guided", icon: Wand2, color: "text-blue-500 bg-blue-500/10" },
@@ -52,14 +59,47 @@ interface BotCardProps {
   bot: Bot;
   onToggleStatus: (id: string, status: "active" | "paused") => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (bot: Bot) => void;
+  onExport?: (bot: Bot) => void;
 }
 
-export function BotCard({ bot, onToggleStatus, onDelete }: BotCardProps) {
+export function BotCard({ bot, onToggleStatus, onDelete, onDuplicate, onExport }: BotCardProps) {
   const navigate = useNavigate();
   const typeConfig = TYPE_CONFIG[bot.type];
   const statusConfig = STATUS_CONFIG[bot.status];
   const TypeIcon = typeConfig.icon;
   const ChannelIcon = bot.channel ? (CHANNEL_ICONS[bot.channel] || Globe) : Globe;
+
+  // Light metrics query
+  const { data: metrics } = useQuery({
+    queryKey: ["bot-card-metrics", bot.id],
+    queryFn: async () => {
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      const [{ count: last24h }, { data: lastRun }] = await Promise.all([
+        (supabase as any)
+          .from("bot_runs")
+          .select("id", { count: "exact", head: true })
+          .eq("bot_id", bot.id)
+          .gte("created_at", yesterday.toISOString()),
+        (supabase as any)
+          .from("bot_runs")
+          .select("created_at, status")
+          .eq("bot_id", bot.id)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+
+      const lastRunData = lastRun?.[0] || null;
+
+      return {
+        conversations24h: last24h || 0,
+        lastActivity: lastRunData?.created_at || null,
+      };
+    },
+    staleTime: 60_000,
+  });
 
   return (
     <Card className="group hover:shadow-md hover:shadow-primary/5 transition-all duration-200 border-border/60">
@@ -95,6 +135,17 @@ export function BotCard({ bot, onToggleStatus, onDelete }: BotCardProps) {
                   <BarChart3 className="w-3.5 h-3.5 mr-2" /> Analytics
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                {onDuplicate && (
+                  <DropdownMenuItem onClick={() => onDuplicate(bot)}>
+                    <Copy className="w-3.5 h-3.5 mr-2" /> Duplicar
+                  </DropdownMenuItem>
+                )}
+                {onExport && (
+                  <DropdownMenuItem onClick={() => onExport(bot)}>
+                    <Download className="w-3.5 h-3.5 mr-2" /> Exportar
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 {bot.status !== "active" ? (
                   <DropdownMenuItem onClick={() => onToggleStatus(bot.id, "active")}>
                     <Play className="w-3.5 h-3.5 mr-2" /> Ativar
@@ -116,19 +167,28 @@ export function BotCard({ bot, onToggleStatus, onDelete }: BotCardProps) {
           </div>
         </div>
 
-        {/* Metadata row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 gap-1">
-              <TypeIcon className="w-2.5 h-2.5" />
-              {typeConfig.label}
-            </Badge>
-          </div>
+        {/* Metadata + Metrics */}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 gap-1">
+            <TypeIcon className="w-2.5 h-2.5" />
+            {typeConfig.label}
+          </Badge>
           {bot.channel && (
             <div className="flex items-center gap-1">
               <ChannelIcon className="w-3 h-3" />
               <span className="capitalize">{bot.channel}</span>
             </div>
+          )}
+          {metrics && metrics.conversations24h > 0 && (
+            <div className="flex items-center gap-1 text-emerald-500">
+              <Activity className="w-3 h-3" />
+              <span>{metrics.conversations24h} (24h)</span>
+            </div>
+          )}
+          {metrics?.lastActivity && (
+            <span className="text-muted-foreground/60">
+              Último: {formatDistanceToNow(new Date(metrics.lastActivity), { addSuffix: true, locale: pt })}
+            </span>
           )}
         </div>
 
