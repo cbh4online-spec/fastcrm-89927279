@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Globe, Search, Users, ArrowRight, Coins, TrendingUp,
   BarChart3, Zap, Lock, Crown, Target, Activity, History,
-  Clock, Download, Sparkles
+  Clock, Download, Sparkles, CheckCircle2, XCircle, Shield,
+  Rocket, Star, Info
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
