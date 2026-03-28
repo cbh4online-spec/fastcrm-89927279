@@ -65,7 +65,7 @@ export function useCreateVertical() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   return useMutation({
-    mutationFn: async (input: { name: string; slug: string; description?: string; color_theme?: string }) => {
+    mutationFn: async (input: Partial<Omit<Vertical, "id" | "workspace_id" | "created_at" | "updated_at">> & { name: string; slug: string }) => {
       if (!currentWorkspace?.id) throw new Error("Sem workspace");
       const { data, error } = await supabase
         .from("verticals")

@@ -25,7 +25,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useFunnels, useCreateFunnel, useDeleteFunnel } from "@/hooks/useFunnels";
-import { useVerticals, useCreateVertical, useDeleteVertical } from "@/hooks/useVerticals";
+import { useVerticals, useDeleteVertical } from "@/hooks/useVerticals";
+import { CreateVerticalDialog } from "./CreateVerticalDialog";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
 import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 import { useFunnelInstances, useCaptureTypes, useDeleteCaptureType, useCaptureTypeUsageCount } from "@/hooks/useFunnelInstances";
