@@ -47,10 +47,10 @@ export function useSchedulingAnalytics() {
       const sixMonthsAgo = subMonths(new Date(), 6).toISOString();
       const { data, error } = await supabase
         .from('meetings')
-        .select('id, title, scheduled_at, status, created_at, no_show')
+        .select('id, title, start_time, status, created_at, no_show')
         .eq('workspace_id', currentWorkspace.id)
-        .gte('scheduled_at', sixMonthsAgo)
-        .order('scheduled_at', { ascending: false });
+        .gte('start_time', sixMonthsAgo)
+        .order('start_time', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -86,8 +86,8 @@ export function useSchedulingAnalytics() {
         status: e.status || 'confirmed',
         noShow: false,
       })),
-      ...meetings.map(m => ({
-        date: new Date(m.scheduled_at),
+      ...meetings.map((m: any) => ({
+        date: new Date(m.start_time),
         createdAt: new Date(m.created_at),
         status: m.status || 'scheduled',
         noShow: m.no_show || false,
