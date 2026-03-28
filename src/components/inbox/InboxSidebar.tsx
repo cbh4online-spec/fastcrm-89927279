@@ -1,31 +1,33 @@
 import { useState } from "react";
 import {
-  Hash,
+  Inbox,
   FileEdit,
-  AtSign,
-  Paperclip,
-  MessageSquare,
+  Send,
+  CalendarClock,
+  Trash2,
+  AlertOctagon,
   ChevronDown,
   ChevronRight,
-  Users,
   Mail,
-  Phone,
-  Instagram,
-  Facebook,
-  Globe,
-  Star,
-  Archive,
-  CheckCircle,
-  Clock,
+  Eye,
+  EyeOff,
+  MessageSquareReply,
+  MessageSquareX,
+  ThumbsUp,
+  ThumbsDown,
+  List,
+  Tag,
+  Plus,
   Briefcase,
-  Zap,
+  Users,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useConversations, ConversationChannel } from "@/hooks/useConversations";
 
 export type InboxCategory =
@@ -50,40 +52,19 @@ interface InboxSidebarProps {
   onChannelChange: (channel: ChannelFilter) => void;
 }
 
-interface CategoryItem {
-  id: InboxCategory;
-  label: string;
-  icon?: React.ElementType;
-}
-
-interface ChannelItem {
-  id: ChannelFilter;
+interface FolderItem {
+  id: string;
   label: string;
   icon: React.ElementType;
-  color: string;
+  category?: InboxCategory;
+  count?: number;
 }
 
-const channels: ChannelItem[] = [
-  { id: "all", label: "Todos os Canais", icon: MessageSquare, color: "text-foreground" },
-  { id: "email", label: "Email", icon: Mail, color: "text-blue-500" },
-  { id: "whatsapp", label: "WhatsApp", icon: Phone, color: "text-green-500" },
-  { id: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
-  { id: "ghl", label: "GoHighLevel", icon: Zap, color: "text-orange-500" },
-  { id: "sms", label: "SMS", icon: MessageSquare, color: "text-purple-500" },
-  { id: "messenger", label: "Messenger", icon: Facebook, color: "text-blue-600" },
-  { id: "webchat", label: "Website", icon: Globe, color: "text-cyan-500" },
-];
-
-const conversationCategories: CategoryItem[] = [
-  { id: "new", label: "Novas" },
-  { id: "all", label: "Todas" },
-  { id: "assigned", label: "Atribuídas" },
-  { id: "pending", label: "Pendentes", icon: Clock },
-  { id: "favourites", label: "Favoritas", icon: Star },
-  { id: "negotiations", label: "Negociações", icon: Briefcase },
-  { id: "closed", label: "Fechadas", icon: CheckCircle },
-  { id: "archives", label: "Arquivadas", icon: Archive },
-];
+interface ViewItem {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+}
 
 export function InboxSidebar({
   selectedCategory,
@@ -91,194 +72,133 @@ export function InboxSidebar({
   selectedChannel,
   onChannelChange,
 }: InboxSidebarProps) {
-  const [channelsOpen, setChannelsOpen] = useState(true);
-  const [conversationsOpen, setConversationsOpen] = useState(true);
-  const [contactsOpen, setContactsOpen] = useState(false);
+  const [foldersOpen, setFoldersOpen] = useState(true);
+  const [viewsOpen, setViewsOpen] = useState(true);
+  const [labelsOpen, setLabelsOpen] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState("");
 
   const { data: allConversations } = useConversations({});
 
-  const counts = {
-    new: allConversations?.filter(c => c.unread_count > 0 && c.status === "open").length || 0,
-    all: allConversations?.filter(c => c.status === "open").length || 0,
-    assigned: allConversations?.filter(c => c.assigned_to && c.status === "open").length || 0,
-    pending: allConversations?.filter(c => c.status === "pending").length || 0,
-    favourites: 0,
-    negotiations: allConversations?.filter(c => {
-      const intent = c.user_intent || c.ai_intent;
-      return intent === "sales" && c.status === "open";
-    }).length || 0,
-    closed: allConversations?.filter(c => c.status === "closed").length || 0,
-    archives: allConversations?.filter(c => c.status === "archived").length || 0,
-  };
+  const unreadCount = allConversations?.filter(c => c.unread_count > 0 && c.status === "open").length || 0;
+  const openCount = allConversations?.filter(c => c.status === "open").length || 0;
 
-  const channelCounts: Record<ChannelFilter, number> = {
-    all: allConversations?.length || 0,
-    email: allConversations?.filter(c => c.channel === "email").length || 0,
-    whatsapp: allConversations?.filter(c => c.channel === "whatsapp").length || 0,
-    instagram: allConversations?.filter(c => c.channel === "instagram").length || 0,
-    ghl: allConversations?.filter(c => c.channel === "ghl").length || 0,
-    facebook: allConversations?.filter(c => c.channel === "facebook" || c.channel === "messenger").length || 0,
-    messenger: allConversations?.filter(c => c.channel === "messenger").length || 0,
-    webchat: allConversations?.filter(c => c.channel === "webchat" || c.channel === "web_widget" || c.channel === "live_chat").length || 0,
-    sms: allConversations?.filter(c => c.channel === "sms").length || 0,
-    live_chat: allConversations?.filter(c => c.channel === "live_chat").length || 0,
-    web_widget: allConversations?.filter(c => c.channel === "web_widget").length || 0,
-    phone: allConversations?.filter(c => c.channel === "phone").length || 0,
-    other: allConversations?.filter(c => c.channel === "other").length || 0,
-  };
+  const folders: FolderItem[] = [
+    { id: "my", label: "Meu", icon: Users, category: "assigned", count: allConversations?.filter(c => c.assigned_to && c.status === "open").length || 0 },
+    { id: "inbox", label: "Caixa de entrada", icon: Inbox, category: "all", count: unreadCount },
+    { id: "drafts", label: "Rascunhos", icon: FileEdit, category: "drafts" },
+    { id: "scheduled", label: "Agendado", icon: CalendarClock },
+    { id: "sent", label: "Enviado", icon: Send },
+    { id: "spam", label: "Spam", icon: AlertOctagon },
+    { id: "trash", label: "Reciclagem", icon: Trash2 },
+    { id: "closing", label: "A fechar este mês", icon: Briefcase, category: "negotiations", count: allConversations?.filter(c => c.opportunities?.length).length || 0 },
+    { id: "clients", label: "Clientes", icon: Users, category: "closed", count: allConversations?.filter(c => c.status === "closed").length || 0 },
+  ];
 
-  const recentContacts = allConversations?.slice(0, 5).map(c => ({
-    id: c.lead?.id || c.contact?.id || c.id,
-    name: c.lead?.name || c.contact?.name || "Desconhecido",
-    avatar: (c.lead as any)?.avatar_url || (c.contact as any)?.avatar_url,
-  })) || [];
+  const views: ViewItem[] = [
+    { id: "unread", label: "Marcar como não lido", icon: EyeOff },
+    { id: "to-open", label: "Por abrir", icon: Eye },
+    { id: "no-response", label: "Sem resposta", icon: MessageSquareX },
+    { id: "not-replied", label: "Não respondido", icon: MessageSquareReply },
+    { id: "positive", label: "Positivo", icon: ThumbsUp },
+    { id: "negative", label: "Negativo", icon: ThumbsDown },
+    { id: "all-messages", label: "Todas as mensagens", icon: List },
+  ];
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-3 space-y-1">
-        {/* Channels Section */}
-        <Collapsible open={channelsOpen} onOpenChange={setChannelsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <div className="flex items-center gap-2">
-                <Hash className="w-3.5 h-3.5" />
-                <span>Canais</span>
-              </div>
-              {channelsOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 mt-1">
-            {channels.map((channel) => {
-              const Icon = channel.icon;
-              const isActive = selectedChannel === channel.id;
-              const count = channelCounts[channel.id];
+      <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+        {/* Search */}
+        <div className="p-3 pb-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar..."
+              value={sidebarSearch}
+              onChange={(e) => setSidebarSearch(e.target.value)}
+              className="pl-8 h-7 text-xs bg-sidebar-accent border-sidebar-border"
+            />
+          </div>
+        </div>
 
-              return (
-                <Button
-                  key={channel.id}
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  className={cn("w-full justify-between h-8 px-2 text-xs font-normal", isActive && "bg-secondary")}
-                  onClick={() => onChannelChange(channel.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className={cn("w-3.5 h-3.5", channel.color)} />
-                    <span>{channel.label}</span>
-                  </div>
-                  {count > 0 && channel.id !== "all" && (
-                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-normal bg-muted">
-                      {count}
-                    </Badge>
-                  )}
-                </Button>
-              );
-            })}
-          </CollapsibleContent>
-        </Collapsible>
+        <div className="px-2 space-y-0.5">
+          {/* PASTAS */}
+          <Collapsible open={foldersOpen} onOpenChange={setFoldersOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <span>Pastas</span>
+                {foldersOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-0.5">
+              {folders.map((folder) => {
+                const Icon = folder.icon;
+                const isActive = folder.category && selectedCategory === folder.category;
+                return (
+                  <button
+                    key={folder.id}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
+                    )}
+                    onClick={() => folder.category && onCategoryChange(folder.category)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{folder.label}</span>
+                    </div>
+                    {folder.count !== undefined && folder.count > 0 && (
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-medium bg-primary/20 text-primary border-0">
+                        {folder.count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
 
-        {/* Quick Sections */}
-        <Button variant="ghost" size="sm" className="w-full justify-start h-8 px-2 text-xs font-normal gap-2">
-          <FileEdit className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>Rascunhos</span>
-        </Button>
-        <Button variant="ghost" size="sm" className="w-full justify-start h-8 px-2 text-xs font-normal gap-2">
-          <AtSign className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>Menções</span>
-        </Button>
-        <Button variant="ghost" size="sm" className="w-full justify-start h-8 px-2 text-xs font-normal gap-2">
-          <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>Ficheiros & Media</span>
-        </Button>
+          {/* VISTAS */}
+          <Collapsible open={viewsOpen} onOpenChange={setViewsOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors mt-2">
+                <span>Vistas</span>
+                {viewsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-0.5">
+              {views.map((view) => {
+                const Icon = view.icon;
+                return (
+                  <button
+                    key={view.id}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{view.label}</span>
+                  </button>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
 
-        {/* Conversations Section */}
-        <Collapsible open={conversationsOpen} onOpenChange={setConversationsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground mt-2"
-            >
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Conversas</span>
-              </div>
-              {conversationsOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 mt-1">
-            {conversationCategories.map((cat) => {
-              const isActive = selectedCategory === cat.id;
-              const count = counts[cat.id as keyof typeof counts] || 0;
-              const Icon = cat.icon;
-
-              return (
-                <Button
-                  key={cat.id}
-                  variant={isActive ? "secondary" : "ghost"}
-                  size="sm"
-                  className={cn("w-full justify-between h-8 px-2 pl-6 text-xs font-normal", isActive && "bg-secondary")}
-                  onClick={() => onCategoryChange(cat.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
-                    <span>{cat.label}</span>
-                  </div>
-                  {count > 0 && (
-                    <Badge
-                      className={cn(
-                        "h-5 px-1.5 text-[10px] font-medium",
-                        cat.id === "new"
-                          ? "bg-green-500 text-white hover:bg-green-500"
-                          : "bg-muted text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                      {count}
-                    </Badge>
-                  )}
-                </Button>
-              );
-            })}
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Contacts Section */}
-        <Collapsible open={contactsOpen} onOpenChange={setContactsOpen}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground mt-2"
-            >
-              <div className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5" />
-                <span>Contactos Recentes</span>
-              </div>
-              {contactsOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-0.5 mt-1">
-            {recentContacts.map((contact) => (
-              <Button
-                key={contact.id}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start h-8 px-2 text-xs font-normal gap-2"
-              >
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={contact.avatar} />
-                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                    {contact.name?.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate">{contact.name}</span>
-              </Button>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+          {/* ETIQUETAS */}
+          <Collapsible open={labelsOpen} onOpenChange={setLabelsOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors mt-2">
+                <span>Etiquetas</span>
+                {labelsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-0.5">
+              <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 transition-colors">
+                <Plus className="w-3.5 h-3.5" />
+                <span>Adicionar etiqueta</span>
+              </button>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </div>
     </ScrollArea>
   );

@@ -6,10 +6,11 @@ import { InboxContextPanel } from "./InboxContextPanel";
 import { InboxSidebar, InboxCategory, ChannelFilter } from "./InboxSidebar";
 import { ComposeButton } from "./ComposeButton";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
+import { SalesInboxColumns } from "./SalesInboxColumns";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { useConversations, useUpdateConversationStatus } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard } from "lucide-react";
+import { PanelRightClose, PanelRight, PanelLeftClose, PanelLeft, Keyboard, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
@@ -19,7 +20,11 @@ import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnecti
 import { useStaleConversationDetector } from "@/hooks/useStaleConversationDetector";
 import { useInboxHotkeys } from "@/hooks/useInboxHotkeys";
 import { InboxMetricsBar } from "./InboxMetricsBar";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
+
+type ViewMode = "list" | "columns";
 
 export function InboxView() {
   const [searchParams] = useSearchParams();
@@ -29,8 +34,11 @@ export function InboxView() {
   const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem("inbox-view-mode") as ViewMode) || "columns";
+  });
+  const [columnsSearch, setColumnsSearch] = useState("");
 
-  // Get channel filter from URL params
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
   const templateParam = searchParams.get("template");
 
@@ -50,7 +58,6 @@ export function InboxView() {
   const { data: conversations } = useConversations();
   const updateStatus = useUpdateConversationStatus();
 
-  // Build ordered conversation IDs for J/K navigation
   const conversationIds = useMemo(
     () => conversations?.map((c) => c.id) || [],
     [conversations]
@@ -64,7 +71,6 @@ export function InboxView() {
 
   useStaleConversationDetector();
 
-  // Auto-sync on mount (once)
   const hasSyncedRef = useRef(false);
   useEffect(() => {
     if (hasSyncedRef.current) return;
@@ -73,7 +79,6 @@ export function InboxView() {
     if (emailConnection?.id) syncEmail.mutate(emailConnection.id);
   }, [isGHLConfigured, emailConnection?.id]);
 
-  // ── Analytics ──
   const { trackInboxOpened } = useCRMAnalytics();
   const inboxTracked = useRef(false);
   useEffect(() => {
@@ -89,7 +94,6 @@ export function InboxView() {
     });
   }, [conversations, trackInboxOpened]);
 
-  // ── Keyboard shortcuts ──
   const navigateConversation = useCallback(
     (dir: 1 | -1) => {
       if (conversationIds.length === 0) return;
@@ -126,10 +130,17 @@ export function InboxView() {
     onToggleCRMPanel: () => setShowContextPanel((p) => !p),
     onToggleSidebar: () => setShowSidebar((p) => !p),
     onShowShortcuts: () => setShowShortcuts(true),
-    onReply: () => {
-      // Focus will be handled by ConversationDetail's composer ref
-    },
+    onReply: () => {},
   });
+
+  const toggleViewMode = () => {
+    const next = viewMode === "list" ? "columns" : "list";
+    setViewMode(next);
+    localStorage.setItem("inbox-view-mode", next);
+  };
+
+  // In columns mode, if a conversation is selected, show the detail
+  const showDetail = viewMode === "list" || selectedConversationId;
 
   return (
     <TooltipProvider>
@@ -148,14 +159,43 @@ export function InboxView() {
                   {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>Barra lateral [{"]"}</p></TooltipContent>
+              <TooltipContent><p>Barra lateral</p></TooltipContent>
             </Tooltip>
             <ComposeButton />
           </div>
 
-          <InboxMetricsBar />
+          {/* Center: Search (columns mode) or Metrics */}
+          {viewMode === "columns" ? (
+            <div className="flex-1 max-w-md mx-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Pesquisar conversas..."
+                  value={columnsSearch}
+                  onChange={(e) => setColumnsSearch(e.target.value)}
+                  className="pl-9 h-8 text-sm"
+                />
+              </div>
+            </div>
+          ) : (
+            <InboxMetricsBar />
+          )}
 
           <div className="flex items-center gap-1">
+            {/* View mode toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleViewMode}
+                  className="h-8 w-8 p-0"
+                >
+                  {viewMode === "columns" ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{viewMode === "columns" ? "Vista lista" : "Vista colunas"}</p></TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -185,11 +225,11 @@ export function InboxView() {
           </div>
         </div>
 
-        {/* 4-Column Layout */}
+        {/* Main Layout */}
         <div className="flex-1 flex overflow-hidden">
-          {/* LEFT — Sidebar (240px, collapsible) */}
+          {/* LEFT — Sidebar */}
           {showSidebar && (
-            <div className="w-60 flex-shrink-0 border-r border-border hidden lg:block">
+            <div className="w-56 flex-shrink-0 border-r border-border hidden lg:block">
               <InboxSidebar
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
@@ -199,23 +239,49 @@ export function InboxView() {
             </div>
           )}
 
-          {/* CENTER-LEFT — Conversation List (320px) */}
-          <div className={cn("flex-shrink-0 border-r border-border", showSidebar ? "w-80" : "w-96")}>
-            <ConversationList
-              selectedId={selectedConversationId}
-              onSelect={setSelectedConversationId}
-              defaultChannel={channelParam || undefined}
-              categoryFilter={selectedCategory}
-              channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
-            />
-          </div>
+          {viewMode === "columns" ? (
+            <>
+              {/* Multi-column view */}
+              <div className={cn(
+                "flex-1 min-w-0",
+                selectedConversationId && "hidden xl:flex xl:flex-1"
+              )}>
+                <SalesInboxColumns
+                  conversations={conversations || []}
+                  selectedId={selectedConversationId}
+                  onSelect={setSelectedConversationId}
+                  search={columnsSearch}
+                />
+              </div>
 
-          {/* CENTER — Conversation Detail (flex) */}
-          <div className="flex-1 min-w-0">
-            <ConversationDetail conversationId={selectedConversationId} />
-          </div>
+              {/* Conversation Detail (overlay on smaller screens, side panel on xl) */}
+              {selectedConversationId && (
+                <div className={cn(
+                  "flex-1 min-w-0 xl:max-w-[50%] border-l border-border"
+                )}>
+                  <ConversationDetail conversationId={selectedConversationId} />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Classic list view */}
+              <div className={cn("flex-shrink-0 border-r border-border", showSidebar ? "w-80" : "w-96")}>
+                <ConversationList
+                  selectedId={selectedConversationId}
+                  onSelect={setSelectedConversationId}
+                  defaultChannel={channelParam || undefined}
+                  categoryFilter={selectedCategory}
+                  channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <ConversationDetail conversationId={selectedConversationId} />
+              </div>
+            </>
+          )}
 
-          {/* RIGHT — Context Panel (320px, collapsible) */}
+          {/* RIGHT — Context Panel */}
           {showContextPanel && (
             <div className="w-80 flex-shrink-0 border-l border-border hidden xl:block">
               <InboxContextPanel
