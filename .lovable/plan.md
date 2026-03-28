@@ -1,130 +1,155 @@
 
 
-# Módulo Helpdesk — Sistema de Tickets (Zoho-style)
+# Módulo Controlo de Ponto — Time Tracking, Férias e Geolocalização
 
 ## Visão Geral
 
-Módulo completo de helpdesk interno para o backoffice, com dashboard de KPIs, gestão de tickets, atribuição de agentes, SLA com temporizador, departamentos e respostas rápidas (macros). Novo grupo de navegação "Suporte" na sidebar.
+Módulo completo de gestão de tempo e presenças para o backoffice, com clock-in/out, tracking automático de tempo no sistema, gestão e aprovação de férias/ausências, e verificação de localização para trabalhadores remotos.
 
 ## Base de Dados
 
 ### Novas tabelas
 
-**`support_tickets`** — tabela principal (separada de `client_tickets` que é do portal B2B)
+**`time_entries`** — Registos de ponto (clock-in/out)
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
 | id | uuid PK | |
 | workspace_id | uuid FK | |
-| ticket_number | serial | Número sequencial #001 |
-| subject | text | Assunto |
-| description | text | Descrição inicial |
-| status | enum | open, in_progress, waiting_client, waiting_internal, on_hold, resolved, closed |
-| priority | enum | low, medium, high, urgent |
-| type | enum | support, commercial, technical, billing, feature_request |
-| channel | enum | email, phone, portal, chat, manual |
-| department | text | Departamento (Suporte, Comercial, Técnico...) |
-| assigned_to | uuid FK profiles | Agente atribuído |
-| contact_id | uuid FK contacts | Contacto associado |
-| company_id | uuid FK companies | Empresa associada |
-| tags | text[] | Tags livres |
-| sla_deadline | timestamptz | Deadline SLA |
-| first_response_at | timestamptz | Timestamp 1ª resposta |
-| resolved_at | timestamptz | |
-| closed_at | timestamptz | |
-| created_by | uuid FK profiles | Quem criou |
+| user_id | uuid FK profiles | |
+| clock_in | timestamptz | Hora de entrada |
+| clock_out | timestamptz | Hora de saída (null se em curso) |
+| clock_in_lat / clock_in_lng | numeric | Localização GPS entrada |
+| clock_out_lat / clock_out_lng | numeric | Localização GPS saída |
+| clock_in_address | text | Morada reversa (geocoding) |
+| clock_out_address | text | |
+| source | text | manual, system_auto, geofence |
+| notes | text | Observações |
+| status | text | active, completed, edited, flagged |
+| edited_by | uuid | Se corrigido por gestor |
 | created_at / updated_at | timestamptz | |
 
-**`support_ticket_messages`** — thread de conversa
+**`session_time_logs`** — Tempo passado no sistema (tracking automático)
 
-| Campo | Tipo |
-|-------|------|
-| id | uuid PK |
-| ticket_id | uuid FK |
-| sender_type | enum (agent, client, system) |
-| sender_id | uuid |
-| message | text |
-| is_internal_note | boolean | Nota interna (invisível ao cliente) |
-| attachments | jsonb |
-| created_at | timestamptz |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | |
+| workspace_id | uuid FK | |
+| user_id | uuid FK profiles | |
+| date | date | Dia |
+| active_seconds | integer | Segundos ativos (com atividade real) |
+| idle_seconds | integer | Segundos inativos |
+| total_seconds | integer | Total no sistema |
+| page_views | integer | Páginas visitadas |
+| last_activity_at | timestamptz | Última atividade detectada |
 
-**`support_canned_responses`** — respostas rápidas / macros
+**`leave_requests`** — Pedidos de férias/ausências
 
-| Campo | Tipo |
-|-------|------|
-| id | uuid PK |
-| workspace_id | uuid FK |
-| title | text |
-| content | text |
-| category | text |
-| shortcut | text | Ex: /saudacao |
-| created_by | uuid |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | |
+| workspace_id | uuid FK | |
+| user_id | uuid FK profiles | |
+| leave_type | text | vacation, sick, personal, remote, other |
+| start_date | date | |
+| end_date | date | |
+| days_count | numeric | Dias úteis calculados |
+| reason | text | |
+| status | text | pending, approved, rejected, cancelled |
+| reviewed_by | uuid FK profiles | Quem aprovou/rejeitou |
+| reviewed_at | timestamptz | |
+| review_notes | text | |
+| created_at | timestamptz | |
 
-RLS em todas as tabelas escopado por `workspace_id` + `auth.uid()` membership.
+**`leave_balances`** — Saldo de férias por ano
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | |
+| workspace_id | uuid FK | |
+| user_id | uuid FK profiles | |
+| year | integer | |
+| total_days | numeric | Dias disponíveis (default 22) |
+| used_days | numeric | Dias usados |
+| pending_days | numeric | Dias em pedidos pendentes |
+
+RLS em todas as tabelas: utilizador vê os seus registos; gestores/admins vêem todos do workspace.
 
 ## Navegação
 
-Novo grupo **"Suporte"** (order 8, entre Compras e Loja Online):
+Novo grupo **"RH"** (ícone: `Clock`, order entre Suporte e Loja Online):
 
 ```text
-Suporte (ícone: Headphones)
-├── Dashboard Suporte     /dashboard/helpdesk
-├── Tickets               /dashboard/helpdesk/tickets
-├── Respostas Rápidas     /dashboard/helpdesk/canned-responses
+RH
+├── Controlo de Ponto      /dashboard/hr/time-clock
+├── Tempo no Sistema       /dashboard/hr/session-time
+├── Férias & Ausências     /dashboard/hr/leave
+├── Meu Registo            /dashboard/hr/my-time
 ```
 
-Module-gated com `moduleSlug: "helpdesk"`. Reordenar grupos seguintes (+1).
+Module-gated com `moduleSlug: "hr-time-tracking"`.
 
 ## Páginas
 
-### 1. Dashboard Suporte (`/dashboard/helpdesk`)
-- **KPI Cards**: Tickets abertos, Tempo médio resposta, SLA compliance %, Resolvidos hoje
-- **Gráfico**: Tickets por estado (donut) + Tickets criados nos últimos 7 dias (bar)
-- **Lista rápida**: Top 5 tickets urgentes sem atribuição
-- **Filtros globais**: Período, Departamento, Agente
+### 1. Controlo de Ponto (`/dashboard/hr/time-clock`)
+- **Botão Clock-In/Out** grande e claro com hora atual, pede geolocalização (GPS do browser)
+- **Tabela do dia**: Lista de funcionários com hora entrada, hora saída, duração, localização (link Google Maps)
+- **Filtros**: Data, Funcionário, Status
+- **Indicador**: Mapa com pins dos clock-ins (Leaflet ou Google Maps embed)
+- **Edição**: Gestor pode corrigir registos com motivo
 
-### 2. Lista de Tickets (`/dashboard/helpdesk/tickets`)
-- Tabela com colunas: #, Assunto, Contacto, Prioridade, Estado, Agente, SLA, Criado
-- **Filtros**: Status, Prioridade, Tipo, Departamento, Agente, Tags
-- **Pesquisa** por assunto/descrição
-- **Ações em massa**: Atribuir agente, Mudar prioridade, Fechar
-- **Botão "Novo Ticket"**: Dialog com formulário completo
-- Indicador visual de SLA (verde/amarelo/vermelho)
+### 2. Tempo no Sistema (`/dashboard/hr/session-time`)
+- **Dashboard**: KPIs — Média diária ativa, Top 5 utilizadores mais ativos, Tendência semanal
+- **Tabela**: Utilizador, Data, Tempo ativo, Tempo idle, Total, Páginas
+- **Gráfico**: Barras empilhadas (ativo vs idle) por dia/semana
+- Dados recolhidos automaticamente via hook `useSessionTracker`
 
-### 3. Detalhe do Ticket (`/dashboard/helpdesk/tickets/:id`)
-Layout split:
-- **Coluna principal (70%)**: Thread de mensagens (estilo chat), campo de resposta com toolbar (anexos, nota interna, macro), ações de status
-- **Sidebar direita (30%)**: Info do ticket (prioridade, tipo, departamento, tags editáveis), Contacto/Empresa linked, Agente atribuído (dropdown para mudar), SLA countdown timer, Histórico de alterações
+### 3. Férias & Ausências (`/dashboard/hr/leave`)
+- **Calendário visual**: Vista mensal com dias marcados por tipo (cores)
+- **Lista de pedidos**: Pendentes primeiro, com ações Aprovar/Rejeitar
+- **Saldo**: Card por funcionário com dias disponíveis/usados/pendentes
+- **Botão "Novo Pedido"**: Dialog com tipo, datas, motivo
+- **Workflow**: Pedido → Pendente → Aprovado/Rejeitado (notificação)
 
-### 4. Respostas Rápidas (`/dashboard/helpdesk/canned-responses`)
-- CRUD de templates com título, conteúdo (rich text), categoria, atalho
-- Pesquisa e filtro por categoria
+### 4. Meu Registo (`/dashboard/hr/my-time`)
+- Vista pessoal do utilizador: os seus clock-ins, tempo no sistema, saldo de férias
+- Botão de clock-in/out
+- Histórico pessoal de pedidos de férias
 
-## Funcionalidades de Agente
+## Tracking Automático de Sessão
 
-- **Atribuição**: Dropdown com membros do workspace, auto-assign por departamento (futuro)
-- **SLA Timer**: Countdown visual com cores (verde > 50%, amarelo 20-50%, vermelho < 20%, badge "Expirado")
-- **Canned Responses**: Botão no editor de resposta que abre popover com lista pesquisável, insere texto
-- **Notas Internas**: Toggle no editor para marcar mensagem como interna (fundo diferente, não visível no portal)
-- **Departamentos**: Filtro pré-definido (Suporte, Comercial, Técnico) — configurável no workspace
+Hook `useSessionTracker.ts` montado no layout principal:
+- Detecta atividade (mouse, teclado, scroll) com debounce de 30s
+- A cada 5 minutos, faz upsert na `session_time_logs` com incremento de active/idle seconds
+- Sem impacto no performance (requestIdleCallback)
+
+## Geolocalização
+
+- No clock-in/out, pede `navigator.geolocation.getCurrentPosition()`
+- Guarda lat/lng e faz reverse geocoding (display de morada)
+- Mostrar localização no detalhe do registo com link para mapa
+- Opcional: gestor pode ver mapa com todos os clock-ins do dia
 
 ## Ficheiros
 
 | Ficheiro | Ação |
 |----------|------|
-| Migração SQL | Criar 3 tabelas + enums + RLS |
-| `src/config/routeManifest.ts` | Adicionar grupo "suporte" + 3 rotas |
-| `src/hooks/useHelpdeskTickets.ts` | Hook CRUD com filtros, paginação |
-| `src/hooks/useHelpdeskCannedResponses.ts` | Hook CRUD macros |
-| `src/pages/dashboard/helpdesk/HelpdeskDashboard.tsx` | Dashboard KPIs |
-| `src/pages/dashboard/helpdesk/HelpdeskTicketsList.tsx` | Lista filtrada |
-| `src/pages/dashboard/helpdesk/HelpdeskTicketDetail.tsx` | Detalhe split |
-| `src/pages/dashboard/helpdesk/HelpdeskCannedResponses.tsx` | Gestão macros |
-| `src/components/helpdesk/TicketMessageThread.tsx` | Thread mensagens |
-| `src/components/helpdesk/TicketSidebar.tsx` | Sidebar info |
-| `src/components/helpdesk/SLATimer.tsx` | Componente countdown |
-| `src/components/helpdesk/CannedResponsePicker.tsx` | Popover macros |
-| `src/components/helpdesk/CreateTicketDialog.tsx` | Formulário criação |
-| `src/routes/HelpdeskRoutes.tsx` | Rotas do módulo |
-| `src/config/moduleNavRegistry.ts` | Entrada helpdesk |
+| Migração SQL | 4 tabelas + RLS |
+| `src/config/routeManifest.ts` | Grupo "rh" + 4 rotas |
+| `src/hooks/useSessionTracker.ts` | Auto-tracking tempo no sistema |
+| `src/hooks/useTimeEntries.ts` | CRUD clock-in/out |
+| `src/hooks/useLeaveRequests.ts` | CRUD férias + aprovação |
+| `src/hooks/useLeaveBalances.ts` | Saldos de férias |
+| `src/hooks/useSessionTimeLogs.ts` | Query tempo no sistema |
+| `src/pages/dashboard/hr/TimeClockPage.tsx` | Controlo de ponto |
+| `src/pages/dashboard/hr/SessionTimePage.tsx` | Tempo no sistema |
+| `src/pages/dashboard/hr/LeavePage.tsx` | Férias & Ausências |
+| `src/pages/dashboard/hr/MyTimePage.tsx` | Vista pessoal |
+| `src/components/hr/ClockInOutButton.tsx` | Botão principal |
+| `src/components/hr/LeaveCalendar.tsx` | Calendário visual |
+| `src/components/hr/LeaveRequestDialog.tsx` | Formulário pedido |
+| `src/components/hr/LocationMap.tsx` | Mapa de localização |
+| `src/components/hr/SessionTimeChart.tsx` | Gráfico tempo |
+| `src/routes/HRRoutes.tsx` | Rotas do módulo |
+| `src/config/moduleNavRegistry.ts` | Entrada hr-time-tracking |
 
