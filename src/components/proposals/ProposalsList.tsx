@@ -560,7 +560,8 @@ export function ProposalsList() {
             </Button>
           </div>
         ) : (
-          <Table>
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[1000px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">
@@ -791,7 +792,8 @@ export function ProposalsList() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+           </Table>
+          </div>
         )}
       </Card>
 
@@ -847,7 +849,8 @@ export function ProposalsList() {
         </div>
       )}
     </>
-  );
+    );
+  };
 
   return (
     <div className="flex h-full -m-6">
