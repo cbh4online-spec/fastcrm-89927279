@@ -223,6 +223,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             >
               {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
               Gerar com IA
+              <span className="ml-0.5 opacity-80 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
             </button>
             <button
               onClick={() => coverInputRef.current?.click()}
