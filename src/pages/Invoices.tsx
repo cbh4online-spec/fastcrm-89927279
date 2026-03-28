@@ -206,7 +206,7 @@ export default function Invoices() {
       );
     }
     return result;
-  }, [invoices, searchValue]);
+  }, [invoices, searchValue, activeFilterId]);
 
   const totalInvoices = filteredInvoices.length;
   const totalPages = Math.ceil(totalInvoices / pageSize);
