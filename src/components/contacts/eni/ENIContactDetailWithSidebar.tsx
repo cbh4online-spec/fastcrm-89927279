@@ -511,6 +511,10 @@ export function ENIContactDetailWithSidebar() {
                     {contact.company}
                   </Badge>
                 )}
+                <InlineHeaderTags
+                  tags={contact.tags || []}
+                  onTagsChange={(newTags) => handleFieldChange('tags' as keyof ENIContact, newTags)}
+                />
               </div>
               <div className="flex items-center gap-3 mt-1">
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5">

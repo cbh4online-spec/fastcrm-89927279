@@ -454,6 +454,10 @@ export function CompanyDetailWithSidebar() {
                     {generateIndustrySummary(company.industry)}
                   </Badge>
                 )}
+                <InlineHeaderTags
+                  tags={company.tags || []}
+                  onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
+                />
               </div>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />

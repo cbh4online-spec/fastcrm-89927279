@@ -363,6 +363,10 @@ export function LeadDetailWithSidebar() {
                 <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>
                   {statusLabels[lead.status]}
                 </Badge>
+                <InlineHeaderTags
+                  tags={lead.tags || []}
+                  onTagsChange={(newTags) => handleFieldChange('tags', newTags)}
+                />
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 shrink-0" />
