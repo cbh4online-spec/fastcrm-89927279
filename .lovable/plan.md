@@ -1,51 +1,55 @@
 
 
-## Campo Gestor editável em Leads, Contactos e Empresas
+## Melhorar editor de etiquetas com autocomplete e workspace_tags
 
-### Situação actual
+### Problema actual
 
-- As 3 tabelas (`leads`, `contacts`, `companies`) já possuem o campo `assigned_to` (UUID nullable)
-- O `EntityContextSidebar` mostra o gestor read-only **mas recebe `assignedUser` como prop** — nenhum componente pai envia esta prop, logo aparece sempre vazio
-- Não existe nenhum seletor para alterar o gestor
+O editor de tags nas entidades (Leads, Contactos, Empresas) é um simples input de texto separado por vírgulas — sem autocomplete, sem sugestões, sem cores. As `workspace_tags` já existem na BD com nome e cor, mas não são usadas na edição.
 
 ### Plano
 
-**1. Criar `EntityOwnerSelector.tsx`** — componente reutilizável
-- Dropdown com lista de membros do workspace (via `useWorkspaceMembers`)
-- Avatar + nome de cada membro
-- Opção "Sem gestor" para limpar
-- Ao selecionar, faz `update` na tabela correspondente (`leads`/`contacts`/`companies`)
-- Mostra o gestor atual com avatar quando já atribuído
+**1. Criar `EntityTagEditor.tsx`** — componente reutilizado nos 3 entity types
+- Input com autocomplete que sugere tags existentes do workspace (`useWorkspaceTags`)
+- Ao digitar, filtra e mostra dropdown com tags correspondentes (nome + cor)
+- Enter ou click na sugestão adiciona a tag
+- Se a tag não existe no workspace, cria automaticamente via `useCreateWorkspaceTag`
+- Cada tag aparece como Badge colorida com botão X para remover
+- Backspace no input vazio remove a última tag
 
-**2. Integrar no `EntityContextSidebar`**
-- Substituir o card "Responsável" read-only pelo novo `EntityOwnerSelector`
-- Buscar o perfil do `assigned_to` via query à tabela `profiles`
-- Permitir edição inline (click no nome → abre dropdown)
+**2. Integrar no `InlineEditableField`**
+- Substituir o input comma-separated do case `"tags"` pelo novo `EntityTagEditor`
+- O componente recebe `value` (string[]) e `onChange` (string[] → void)
 
-**3. Integrar no `EntityHighlightsGrid`**
-- Adicionar highlight "Gestor" que mostra nome+avatar do responsável
-- Se não atribuído, mostrar badge "Sem gestor" com ação rápida para atribuir
-
-**4. Integrar nas tabelas de lista**
-- A coluna `assigned_to` já existe em `SmartLeadsTable` (hidden por defeito) — garantir que resolve o UUID para nome do perfil
+**3. Integrar nas TagsSections**
+- `src/components/leads/sections/TagsSection.tsx` — já usa `InlineEditableField` com `fieldType="tags"`, herda automaticamente
+- `src/components/companies/sections/TagsSection.tsx` — idem
+- `src/components/contacts/eni/sections/CommercialProfileSection.tsx` — idem
 
 ### Ficheiros
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/entity/EntityOwnerSelector.tsx` | Criar — dropdown de seleção de gestor |
-| `src/components/entity/EntityContextSidebar.tsx` | Alterar — usar EntityOwnerSelector em vez do card estático |
-| `src/components/entity/EntityHighlightsGrid.tsx` | Alterar — mostrar gestor nos destaques |
-| `src/components/entity/EntityDetailLayout.tsx` | Alterar — passar callbacks de update ao sidebar |
+| `src/components/entity/EntityTagEditor.tsx` | Criar — autocomplete + badges coloridas + criação inline |
+| `src/components/custom-fields/InlineEditableField.tsx` | Alterar case `"tags"` para usar `EntityTagEditor` |
 
-### Fluxo
+### UX do componente
 
 ```text
-EntityDetailLayout
-  └── EntityContextSidebar
-        └── EntityOwnerSelector
-              ├── useWorkspaceMembers() → lista de membros
-              ├── supabase.from(table).update({ assigned_to }) → persiste
-              └── queryClient.invalidateQueries() → refresh UI
+┌─────────────────────────────────────────┐
+│ [marketing ×] [vip ×] [quente ×]        │
+│ ┌─────────────────────────────────────┐ │
+│ │ Adicionar etiqueta...               │ │
+│ └─────────────────────────────────────┘ │
+│  ┌───────────────────────────────┐      │
+│  │ 🟣 marketing-digital          │      │
+│  │ 🟡 marketing-b2b              │      │
+│  │ + Criar "marketin..."         │      │
+│  └───────────────────────────────┘      │
+└─────────────────────────────────────────┘
 ```
+
+- Dropdown aparece ao focar/digitar
+- Filtra em tempo real
+- Opção "Criar nova" no final quando não há match exacto
+- Tags com cor do `workspace_tags.color` ou cor default
 
