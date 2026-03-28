@@ -118,7 +118,7 @@ export default function KernelMonitorPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6 max-w-7xl mx-auto animate-fade-in">
+      <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
         {/* Header */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
