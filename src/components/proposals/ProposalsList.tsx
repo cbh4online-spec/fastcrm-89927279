@@ -572,9 +572,9 @@ export function ProposalsList() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Oportunidade</TableHead>
-                <TableHead>Cliente</TableHead>
+                <TableHead className="max-w-[200px]">Título</TableHead>
+                <TableHead className="max-w-[180px]">Oportunidade</TableHead>
+                <TableHead className="max-w-[150px]">Cliente</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Estado</TableHead>
@@ -598,9 +598,9 @@ export function ProposalsList() {
                       }
                     />
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium max-w-[200px]">
                     <button 
-                      className="text-left hover:text-primary hover:underline transition-colors"
+                      className="text-left hover:text-primary hover:underline transition-colors truncate block w-full"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailId(proposal.id);
@@ -609,8 +609,8 @@ export function ProposalsList() {
                       {proposal.title}
                     </button>
                   </TableCell>
-                  <TableCell>{proposal.opportunity?.title || "-"}</TableCell>
-                  <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
+                  <TableCell className="max-w-[180px] truncate">{proposal.opportunity?.title || "-"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{proposal.opportunity?.lead?.name || "-"}</TableCell>
                   <TableCell>
                     {formatCurrency(proposal.price, proposal.currency || "EUR")}
                   </TableCell>
