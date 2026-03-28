@@ -168,7 +168,7 @@ export function useConversationObjectives(personaId?: string) {
     mutationFn: async (orderedIds: string[]) => {
       const positions = orderedIds.map((_, index) => index + 1);
 
-      const { error } = await supabase.rpc("batch_reorder_objectives" as any, {
+      const { error } = await supabase.rpc("batch_reorder_objectives", {
         p_ids: orderedIds,
         p_positions: positions,
       });

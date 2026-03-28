@@ -99,7 +99,7 @@ export function useVibeProfiles() {
       if (!currentWorkspace?.id) throw new Error("Workspace não selecionado");
 
       // Atomic set default via RPC
-      const { error } = await supabase.rpc("set_default_vibe_profile" as any, {
+      const { error } = await supabase.rpc("set_default_vibe_profile", {
         p_workspace_id: currentWorkspace.id,
         p_profile_id: id,
       });
