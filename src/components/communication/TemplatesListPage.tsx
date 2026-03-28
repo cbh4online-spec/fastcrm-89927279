@@ -927,11 +927,16 @@ export function TemplatesListPage() {
 
       <AITemplateGeneratorDialog
         open={showAIDialog}
-        onOpenChange={setShowAIDialog}
+        onOpenChange={(v) => {
+          setShowAIDialog(v);
+          if (!v) setSelectedRecommendation(null);
+        }}
         onGenerated={(generated) => {
           setEditingTemplate(generated as CommunicationTemplate);
           setShowCreateDialog(true);
+          setSelectedRecommendation(null);
         }}
+        initialRecommendation={selectedRecommendation}
       />
 
       <TemplateLibraryDialog
