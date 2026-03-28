@@ -523,6 +523,23 @@ export function ConversationList({
                                 </TooltipTrigger>
                                 <TooltipContent><p>Arquivar</p></TooltipContent>
                               </Tooltip>
+                              </div>
+                              {/* Time — always visible */}
+                              {conv.last_message_at && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className={cn(
+                                      "text-[10px] flex-shrink-0 whitespace-nowrap group-hover:hidden",
+                                      hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+                                    )}>
+                                      {formatSmartTime(conv.last_message_at)}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="text-xs">
+                                    {formatRelativeTime(conv.last_message_at)}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </div>
 
