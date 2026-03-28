@@ -1,74 +1,73 @@
 
 
-# FastMatch — Módulo Completo e Funcional
+# Inbox UX Improvements
 
-## Problema Atual
-O FastMatch existe mas está básico: a discovery page é simples, não há gestão de interesses recebidos, as conexões têm pouca informação, não há analytics e o fluxo é pouco atraente. O matching por IA (edge function) já funciona mas a experiência de utilização precisa de ser elevada.
+## Current State
+The inbox already has a solid foundation: 4-column layout, sidebar with channels/categories, conversation list with avatars and quick actions, message bubbles with timestamps, AI composer, and email HTML rendering. However, several UX details are missing or weak.
 
-**Nota importante**: A discovery filtra apenas perfis do mesmo workspace (`eq("workspace_id", currentWorkspace.id)`). Isto pode ser intencional ou um bug — precisamos confirmar se o matching deve ser cross-workspace.
-
----
-
-## Plano de Implementação
-
-### 1. Redesign da Discovery Page (FastMatchDiscoveryPage.tsx)
-
-**Hero Header premium** com gradiente, ícone grande, e 3 KPIs inline:
-- Matches este mês (da quota)
-- Conexões ativas (total)
-- Score médio de compatibilidade
-
-**4 tabs** em vez de 2:
-- **Descobrir** — Grid de perfis com sorting (Score ↓, Recentes, Indústria)
-- **Interesses** — Recebidos (aceitar/rejeitar) + Enviados (status)
-- **Conexões** — Cards melhorados com detalhe expandível
-- **Analytics** — Stats e atividade recente
-
-**Empty state** melhorado com ilustração, copy motivadora e botão CTA para criar perfil.
-
-### 2. Profile Cards Redesenhados (MatchProfileCard.tsx)
-
-- Avatar/ícone com cor por indústria
-- Badge de compatibilidade com cor dinâmica (verde >75%, amarelo >50%)
-- Tags de serviços oferecidos visíveis (max 3 + counter)
-- Animação hover mais rica (scale + shadow)
-- Botão de interesse com micro-feedback visual
-
-### 3. Tab de Interesses Pendentes (novo)
-
-**Recebidos**: Cards com info do perfil + botões Aceitar/Recusar. Aceitar consome quota e desbloqueia conexão automaticamente.
-
-**Enviados**: Lista com status (Pendente/Mútuo/Expirado) e timestamp.
-
-### 4. Conexões Melhoradas (ConnectionCard.tsx)
-
-- Secção expandível com todos os dados do perfil (bio, serviços, ticket, website, LinkedIn)
-- Quick actions: Ver no CRM, Ver Contacto, Ver Empresa (já existem), + Avaliar
-- Timeline mini da conexão (desbloqueada em X, avaliada em Y)
-
-### 5. Analytics Tab (novo componente)
-
-- **KPIs**: Total matches, taxa de match mútuo, conexões ativas, média de score
-- **Gráfico**: Atividade semanal (interesses enviados vs recebidos)
-- **Lista**: Atividade recente (últimos 10 eventos)
+## Issues Identified
+1. **Conversation list shows only relative time** ("há 2 dias") — no absolute date/hour visible
+2. **No email subject in conversation list** — hard to distinguish email conversations
+3. **No clear direction indicator** — only "Tu:" text prefix for outbound, nothing visual for inbound
+4. **Message bubbles lack prominent timestamps** — time is tiny and easy to miss
+5. **No time gap separators** between messages sent hours apart (only date separators exist)
+6. **No read/delivery status in list** — user can't see if their last message was read without opening
 
 ---
 
-## Ficheiros Afetados
+## Plan
 
-| Ficheiro | Ação |
+### 1. Conversation List — Better Date/Time Display
+**File: `ConversationList.tsx`**
+
+- Show **absolute time** (HH:mm) for today's messages, **date + time** (dd/MM HH:mm) for older ones
+- Replace `formatDistanceToNow` with a smart formatter: "14:32" today, "Ontem 14:32", "25/03 14:32"
+- Keep relative time as a tooltip on hover
+
+### 2. Conversation List — Email Subject Preview
+**File: `ConversationList.tsx`**
+
+- For email channel conversations, show the email subject as a secondary line above the message preview
+- Style: smaller, bold text with a Mail icon, truncated
+
+### 3. Conversation List — Direction + Status Indicators
+**File: `ConversationList.tsx`**
+
+- Add a small arrow icon (↗ outbound / ↙ inbound) before the preview text instead of just "Tu:"
+- Add a subtle delivery status icon (single check = sent, double check = delivered, colored = read) for the last outbound message
+
+### 4. Message Bubbles — Enhanced Timestamps
+**File: `MessageBubble.tsx`**
+
+- Make timestamp more visible: increase from `text-[10px]` to `text-xs`
+- Show full date + time format: "25 Mar, 14:32"
+- For outbound, move delivery status inline with timestamp
+
+### 5. Time Gap Separators Between Messages
+**File: `ConversationDetail.tsx`**
+
+- When there's a gap of 2+ hours between consecutive messages (same day), insert a subtle time separator: "— 3h depois —"
+- This complements the existing date separators
+
+### 6. Pinned Conversations
+**File: `ConversationList.tsx`**
+
+- Add a pin icon on hover (quick action) that pins a conversation to the top
+- Pinned state stored in localStorage (no DB change needed)
+- Pinned conversations appear in a separate section above the main list with a subtle divider
+
+---
+
+## Files Modified
+
+| File | Changes |
 |---|---|
-| `src/pages/fastmatch/FastMatchDiscoveryPage.tsx` | Rewrite major — hero, 4 tabs, sorting |
-| `src/components/fastmatch/MatchProfileCard.tsx` | Redesign visual |
-| `src/components/fastmatch/ConnectionCard.tsx` | Adicionar detalhe expandível |
-| `src/components/fastmatch/FastMatchAnalytics.tsx` | **Novo** — tab analytics |
-| `src/components/fastmatch/PendingInterestsTab.tsx` | **Novo** — gestão de interesses |
-| `src/components/fastmatch/QuotaIndicator.tsx` | Upgrade visual |
-| `src/hooks/useFastMatchInterests.ts` | Adicionar accept/reject mutations |
+| `src/components/inbox/ConversationList.tsx` | Smart timestamps, email subject, direction arrows, delivery status, pin support |
+| `src/components/inbox/MessageBubble.tsx` | Larger timestamps, improved layout |
+| `src/components/inbox/ConversationDetail.tsx` | Time gap separators between messages |
 
----
-
-## Questão para Decisão
-
-O discovery atual só mostra perfis do **mesmo workspace**. Para o matching fazer sentido, deveria ser **cross-workspace** (todos os perfis ativos da plataforma)? Isto requer ajustar a query e as RLS policies.
+## Technical Notes
+- Smart time formatting uses `isToday`/`isYesterday` from date-fns (already imported)
+- Pin state uses localStorage to avoid DB migration
+- All existing functionality preserved — changes are additive
 
