@@ -104,8 +104,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
   const generateCoverAI = async () => {
     if (!ebook) return;
+    if (!canAfford("ebook_generate_cover")) {
+      triggerNoCreditsDialog({ actionLabel: "Gerar Capa IA", creditsNeeded: getCost("ebook_generate_cover") });
+      return;
+    }
     setGeneratingCoverAI(true);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_cover", referenceType: "ebook", referenceId: ebookId });
       const prompt = `Create a professional, modern eBook cover image for a book titled "${ebook.title}"${ebook.subtitle ? ` with subtitle "${ebook.subtitle}"` : ""}. The image should be visually striking, suitable for a digital book cover, with abstract or thematic elements. Do NOT include any text in the image. High quality, editorial style.`;
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_image", imagePrompt: prompt, ebookId, target: "cover" },
