@@ -1,0 +1,1 @@
+ALTER TABLE public.widget_configurations ADD COLUMN default_agent_id UUID REFERENCES public.ai_agents(id) ON DELETE SET NULL;
