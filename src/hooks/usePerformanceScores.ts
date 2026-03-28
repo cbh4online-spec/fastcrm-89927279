@@ -139,22 +139,16 @@ export function useRecalculateScores() {
       for (const member of members) {
         const uid = member.user_id;
 
-        const leadsQuery = supabase.from("leads").select("id", { count: "exact", head: true })
+        const leadsRes = await supabase.from("leads").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO).lte("created_at", endISO);
-        const meetingsQuery = supabase.from("meetings").select("id", { count: "exact", head: true })
+        const meetingsRes = await supabase.from("meetings").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid).eq("created_by", uid).gte("created_at", startISO).lte("created_at", endISO);
-        const proposalsBase = supabase.from("proposals").select("id", { count: "exact", head: true })
-          .eq("workspace_id", wid).eq("created_by", uid);
-        const proposalsQuery = proposalsBase.eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
-        const oppsQuery = supabase.from("opportunities").select("id, value")
-          .eq("workspace_id", wid).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
-        const pipelineQuery = supabase.from("opportunities").select("id, value")
-          .eq("workspace_id", wid).eq("assigned_to", uid);
-        const pipelineFiltered = pipelineQuery.in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO);
-
-        const [leadsRes, meetingsRes, proposalsRes, oppsRes, pipelineRes] = await Promise.all([
-          leadsQuery, meetingsQuery, proposalsQuery, oppsQuery, pipelineFiltered,
-        ]);
+        const proposalsRes = await (supabase.from("proposals").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid).eq("created_by", uid) as any).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
+        const oppsRes = await (supabase.from("opportunities").select("id, value")
+          .eq("workspace_id", wid).eq("assigned_to", uid) as any).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
+        const pipelineRes = await (supabase.from("opportunities").select("id, value")
+          .eq("workspace_id", wid).eq("assigned_to", uid) as any).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO);
 
         const revenue = (oppsRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);
         const pipeline = (pipelineRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);
