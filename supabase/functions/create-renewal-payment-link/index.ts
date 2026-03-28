@@ -95,7 +95,7 @@ serve(async (req) => {
     const totalAmount = items.reduce((sum: number, item: any) => sum + (Number(item.qty) * Number(item.unit_price)), 0);
 
     // Create Stripe checkout session
-    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
