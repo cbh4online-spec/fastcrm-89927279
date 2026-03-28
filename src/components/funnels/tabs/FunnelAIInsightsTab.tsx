@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Brain, Loader2, TrendingUp, AlertTriangle, Lightbulb, DollarSign } from "lucide-react";
+import { Brain, Loader2, TrendingUp, AlertTriangle, Lightbulb, DollarSign, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { toast } from "sonner";
 
 interface FunnelAIInsightsTabProps {
@@ -20,8 +22,13 @@ interface AIInsight {
 export function FunnelAIInsightsTab({ funnelId }: FunnelAIInsightsTabProps) {
   const [insights, setInsights] = useState<AIInsight | null>(null);
   const [loading, setLoading] = useState(false);
+  const { canRun, showUpgrade, overageLabel } = useAIGate("medium");
 
   const generateInsights = async () => {
+    if (showUpgrade) {
+      triggerNoCreditsDialog({ actionLabel: "Analisar funil com IA" });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("funnel-ai-insights", {
@@ -53,6 +60,7 @@ export function FunnelAIInsightsTab({ funnelId }: FunnelAIInsightsTabProps) {
         <Button onClick={generateInsights} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Brain className="h-4 w-4 mr-2" />}
           {insights ? "Regenerar" : "Analisar Funil"}
+          {overageLabel && <Badge variant="outline" className="ml-2 text-[10px]"><Coins className="h-3 w-3 mr-1" />{overageLabel}</Badge>}
         </Button>
       </div>
 
