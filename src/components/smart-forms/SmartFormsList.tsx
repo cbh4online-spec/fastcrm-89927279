@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -38,16 +39,25 @@ import {
   Edit,
   MessageSquare,
   Sparkles,
-  Eye
+  Eye,
+  Code,
+  BarChart3,
+  UserX,
+  FlaskConical
 } from 'lucide-react';
 import { SmartForm, FormType } from '@/types/smartForm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { FormEmbedDialog } from './FormEmbedDialog';
+import { FormAdvisorBanner } from './FormAdvisorBanner';
 
 interface SmartFormsListProps {
   onCreateNew: () => void;
   onEdit: (form: SmartForm) => void;
   onViewSubmissions: (form: SmartForm) => void;
+  onViewAnalytics?: (form: SmartForm) => void;
+  onViewPartials?: (form: SmartForm) => void;
+  onViewABTest?: (form: SmartForm) => void;
 }
 
 const FORM_TYPE_ICONS: Record<FormType, React.ElementType> = {
@@ -70,12 +80,13 @@ const FORM_TYPE_LABELS: Record<FormType, string> = {
   internal: 'Interno',
 };
 
-export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: SmartFormsListProps) {
+export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions, onViewAnalytics, onViewPartials, onViewABTest }: SmartFormsListProps) {
   const { data: forms, isLoading } = useSmartForms();
   const deleteForm = useDeleteSmartForm();
   const [search, setSearch] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formToDelete, setFormToDelete] = useState<SmartForm | null>(null);
+  const [embedForm, setEmbedForm] = useState<SmartForm | null>(null);
 
   const filteredForms = forms?.filter(form => 
     form.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -134,6 +145,9 @@ export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: Smart
 
   return (
     <div className="space-y-6">
+      {/* AI Advisor Banner */}
+      <FormAdvisorBanner forms={forms} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-64">
@@ -195,8 +209,31 @@ export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: Smart
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Submissões
                       </DropdownMenuItem>
+                      {onViewAnalytics && (
+                        <DropdownMenuItem onClick={() => onViewAnalytics(form)}>
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Analytics
+                        </DropdownMenuItem>
+                      )}
+                      {onViewPartials && (
+                        <DropdownMenuItem onClick={() => onViewPartials(form)}>
+                          <UserX className="h-4 w-4 mr-2" />
+                          Submissões Parciais
+                        </DropdownMenuItem>
+                      )}
+                      {onViewABTest && (
+                        <DropdownMenuItem onClick={() => onViewABTest(form)}>
+                          <FlaskConical className="h-4 w-4 mr-2" />
+                          A/B Testing
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
                       {!form.is_internal && (
                         <>
+                          <DropdownMenuItem onClick={() => setEmbedForm(form)}>
+                            <Code className="h-4 w-4 mr-2" />
+                            Incorporar
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => window.open(`/f/${form.slug}`, '_blank')}>
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Abrir Formulário
@@ -207,6 +244,7 @@ export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: Smart
                           </DropdownMenuItem>
                         </>
                       )}
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         className="text-destructive"
                         onClick={() => {
@@ -265,6 +303,15 @@ export function SmartFormsList({ onCreateNew, onEdit, onViewSubmissions }: Smart
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Embed Dialog */}
+      {embedForm && (
+        <FormEmbedDialog
+          form={embedForm}
+          open={!!embedForm}
+          onOpenChange={(open) => !open && setEmbedForm(null)}
+        />
+      )}
     </div>
   );
 }

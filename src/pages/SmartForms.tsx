@@ -3,9 +3,12 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SmartFormsList } from '@/components/smart-forms/SmartFormsList';
 import { SmartFormBuilder } from '@/components/smart-forms/SmartFormBuilder';
 import { FormSubmissionsPanel } from '@/components/smart-forms/FormSubmissionsPanel';
+import { FormAnalyticsDashboard } from '@/components/smart-forms/FormAnalyticsDashboard';
+import { PartialSubmissionTracker } from '@/components/smart-forms/PartialSubmissionTracker';
+import { FormABTestPanel } from '@/components/smart-forms/FormABTestPanel';
 import { SmartForm } from '@/types/smartForm';
 
-type View = 'list' | 'create' | 'edit' | 'submissions';
+type View = 'list' | 'create' | 'edit' | 'submissions' | 'analytics' | 'partials' | 'abtest';
 
 export default function SmartForms() {
   const [view, setView] = useState<View>('list');
@@ -24,6 +27,21 @@ export default function SmartForms() {
   const handleViewSubmissions = (form: SmartForm) => {
     setSelectedForm(form);
     setView('submissions');
+  };
+
+  const handleViewAnalytics = (form: SmartForm) => {
+    setSelectedForm(form);
+    setView('analytics');
+  };
+
+  const handleViewPartials = (form: SmartForm) => {
+    setSelectedForm(form);
+    setView('partials');
+  };
+
+  const handleViewABTest = (form: SmartForm) => {
+    setSelectedForm(form);
+    setView('abtest');
   };
 
   const handleBack = () => {
@@ -46,6 +64,9 @@ export default function SmartForms() {
               onCreateNew={handleCreateNew}
               onEdit={handleEdit}
               onViewSubmissions={handleViewSubmissions}
+              onViewAnalytics={handleViewAnalytics}
+              onViewPartials={handleViewPartials}
+              onViewABTest={handleViewABTest}
             />
           </>
         )}
@@ -59,6 +80,27 @@ export default function SmartForms() {
 
         {view === 'submissions' && selectedForm && (
           <FormSubmissionsPanel
+            form={selectedForm}
+            onBack={handleBack}
+          />
+        )}
+
+        {view === 'analytics' && selectedForm && (
+          <FormAnalyticsDashboard
+            form={selectedForm}
+            onBack={handleBack}
+          />
+        )}
+
+        {view === 'partials' && selectedForm && (
+          <PartialSubmissionTracker
+            form={selectedForm}
+            onBack={handleBack}
+          />
+        )}
+
+        {view === 'abtest' && selectedForm && (
+          <FormABTestPanel
             form={selectedForm}
             onBack={handleBack}
           />
