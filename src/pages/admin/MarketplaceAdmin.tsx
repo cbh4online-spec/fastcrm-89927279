@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,10 +30,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
-import { SAMPLE_MODULES, CATEGORY_INFO, type MarketplaceModule } from "@/types/marketplace";
+import { CATEGORY_INFO, type MarketplaceModule } from "@/types/marketplace";
 import { ModuleTemplateForm } from "@/components/marketplace/admin/ModuleTemplateForm";
 import { type ModuleTemplate } from "@/types/module-template";
 import { getIconByName } from "@/lib/icons";
+import { useMarketplaceModules } from "@/hooks/useMarketplaceModules";
 
 export default function MarketplaceAdmin() {
   const navigate = useNavigate();
@@ -41,8 +43,10 @@ export default function MarketplaceAdmin() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingModule, setEditingModule] = useState<MarketplaceModule | null>(null);
 
+  const { data: allModules = [], isLoading } = useMarketplaceModules();
+
   // Filter modules
-  const filteredModules = SAMPLE_MODULES.filter(module =>
+  const filteredModules = allModules.filter(module =>
     module.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     module.tagline.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -95,7 +99,6 @@ export default function MarketplaceAdmin() {
   }
 
   if (editingModule) {
-    // Convert MarketplaceModule to ModuleTemplate format
     const templateData = {
       ...editingModule,
       capabilities: {
@@ -206,9 +209,9 @@ export default function MarketplaceAdmin() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{SAMPLE_MODULES.length}</div>
+            <div className="text-2xl font-bold">{isLoading ? "…" : allModules.length}</div>
             <p className="text-xs text-muted-foreground">
-              {SAMPLE_MODULES.filter(m => m.status === "active").length} ativos
+              {allModules.filter(m => m.status === "active").length} ativos
             </p>
           </CardContent>
         </Card>
@@ -219,7 +222,7 @@ export default function MarketplaceAdmin() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {SAMPLE_MODULES.reduce((acc, m) => acc + m.installs_count, 0).toLocaleString()}
+              {allModules.reduce((acc, m) => acc + m.installs_count, 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               Total de instalações
@@ -233,7 +236,7 @@ export default function MarketplaceAdmin() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(SAMPLE_MODULES.map(m => m.category)).size}
+              {new Set(allModules.map(m => m.category)).size}
             </div>
             <p className="text-xs text-muted-foreground">
               Categorias ativas
@@ -249,7 +252,7 @@ export default function MarketplaceAdmin() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(SAMPLE_MODULES.reduce((acc, m) => acc + (m.rating || 0), 0) / SAMPLE_MODULES.length).toFixed(1)}
+              {allModules.length > 0 ? (allModules.reduce((acc, m) => acc + (m.rating || 0), 0) / allModules.length).toFixed(1) : "—"}
             </div>
             <p className="text-xs text-muted-foreground">
               Média de avaliações
@@ -283,95 +286,101 @@ export default function MarketplaceAdmin() {
           {/* Modules Table */}
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="p-4 text-left font-medium">Módulo</th>
-                      <th className="p-4 text-left font-medium">Categoria</th>
-                      <th className="p-4 text-left font-medium">Tipo</th>
-                      <th className="p-4 text-left font-medium">Status</th>
-                      <th className="p-4 text-left font-medium">Instalações</th>
-                      <th className="p-4 text-left font-medium">Preço</th>
-                      <th className="p-4 text-right font-medium">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredModules.map((module) => {
-                      const categoryInfo = CATEGORY_INFO[module.category];
-                      const IconComponent = getIconByName(module.icon);
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="p-4 text-left font-medium">Módulo</th>
+                        <th className="p-4 text-left font-medium">Categoria</th>
+                        <th className="p-4 text-left font-medium">Tipo</th>
+                        <th className="p-4 text-left font-medium">Status</th>
+                        <th className="p-4 text-left font-medium">Instalações</th>
+                        <th className="p-4 text-left font-medium">Preço</th>
+                        <th className="p-4 text-right font-medium">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredModules.map((module) => {
+                        const categoryInfo = CATEGORY_INFO[module.category];
+                        const IconComponent = getIconByName(module.icon);
 
-                      return (
-                        <tr key={module.id} className="border-b last:border-0 hover:bg-muted/50">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${categoryInfo?.color} bg-current/10`}>
-                                <IconComponent className={`h-5 w-5 ${categoryInfo?.color}`} />
-                              </div>
-                              <div>
-                                <div className="font-medium">{module.name}</div>
-                                <div className="text-sm text-muted-foreground line-clamp-1">
-                                  {module.tagline}
+                        return (
+                          <tr key={module.id} className="border-b last:border-0 hover:bg-muted/50">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${categoryInfo?.color} bg-current/10`}>
+                                  <IconComponent className={`h-5 w-5 ${categoryInfo?.color}`} />
+                                </div>
+                                <div>
+                                  <div className="font-medium">{module.name}</div>
+                                  <div className="text-sm text-muted-foreground line-clamp-1">
+                                    {module.tagline}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge variant="outline">{categoryInfo?.name}</Badge>
-                          </td>
-                          <td className="p-4 text-sm text-muted-foreground">
-                            {module.internal_type === "connector" && "Conector"}
-                            {module.internal_type === "ai_service" && "Serviço IA"}
-                            {module.internal_type === "embedded_app" && "App Embebida"}
-                            {module.internal_type === "native_feature" && "Nativo"}
-                          </td>
-                          <td className="p-4">
-                            {getStatusBadge(module.status)}
-                          </td>
-                          <td className="p-4 text-sm">
-                            {module.installs_count.toLocaleString()}
-                          </td>
-                          <td className="p-4 text-sm">
-                            {module.pricing.base_price === 0 ? (
-                              <span className="text-green-600">Grátis</span>
-                            ) : (
-                              <span>{module.pricing.base_price}€/mês</span>
-                            )}
-                          </td>
-                          <td className="p-4 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setEditingModule(module)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Ver no Marketplace
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <BarChart3 className="mr-2 h-4 w-4" />
-                                  Ver Analytics
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Eliminar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            </td>
+                            <td className="p-4">
+                              <Badge variant="outline">{categoryInfo?.name}</Badge>
+                            </td>
+                            <td className="p-4 text-sm text-muted-foreground">
+                              {module.internal_type === "connector" && "Conector"}
+                              {module.internal_type === "ai_service" && "Serviço IA"}
+                              {module.internal_type === "embedded_app" && "App Embebida"}
+                              {module.internal_type === "native_feature" && "Nativo"}
+                            </td>
+                            <td className="p-4">
+                              {getStatusBadge(module.status)}
+                            </td>
+                            <td className="p-4 text-sm">
+                              {module.installs_count.toLocaleString()}
+                            </td>
+                            <td className="p-4 text-sm">
+                              {module.pricing.base_price === 0 ? (
+                                <span className="text-green-600">Grátis</span>
+                              ) : (
+                                <span>{module.pricing.base_price}€/mês</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setEditingModule(module)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver no Marketplace
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <BarChart3 className="mr-2 h-4 w-4" />
+                                    Ver Analytics
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

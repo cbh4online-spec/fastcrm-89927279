@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { WorkspaceModule, MarketplaceModule, SAMPLE_MODULES } from "@/types/marketplace";
+import { MarketplaceModule } from "@/types/marketplace";
+import { useMarketplaceModules } from "@/hooks/useMarketplaceModules";
 import { getIconByName } from "@/lib/icons";
 import { 
   ExternalLink, 
@@ -24,7 +24,8 @@ interface InstalledModuleCardProps {
 }
 
 export function InstalledModuleCard({ moduleId, onOpen, onSettings }: InstalledModuleCardProps) {
-  const module = SAMPLE_MODULES.find(m => m.id === moduleId);
+  const { data: allModules = [] } = useMarketplaceModules();
+  const module = allModules.find(m => m.id === moduleId);
   if (!module) return null;
 
   const Icon = getIconByName(module.icon);
@@ -55,7 +56,6 @@ export function InstalledModuleCard({ moduleId, onOpen, onSettings }: InstalledM
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Usage stats */}
         {module.pricing.type === "credits" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -79,7 +79,6 @@ export function InstalledModuleCard({ moduleId, onOpen, onSettings }: InstalledM
           </div>
         )}
 
-        {/* Quick stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-muted/50">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -99,7 +98,6 @@ export function InstalledModuleCard({ moduleId, onOpen, onSettings }: InstalledM
 
         <Separator />
 
-        {/* Actions */}
         <div className="flex gap-2">
           <Button 
             variant="default" 
@@ -128,8 +126,10 @@ interface ModuleUsageSummaryProps {
 }
 
 export function ModuleUsageSummary({ installedModuleIds }: ModuleUsageSummaryProps) {
+  const { data: allModules = [] } = useMarketplaceModules();
+  
   const totalSpend = installedModuleIds.reduce((acc, id) => {
-    const module = SAMPLE_MODULES.find(m => m.id === id);
+    const module = allModules.find(m => m.id === id);
     return acc + (module?.pricing.base_price || 0);
   }, 0);
 
@@ -169,7 +169,6 @@ interface ModuleAlertsProps {
 }
 
 export function ModuleAlerts({ installedModuleIds }: ModuleAlertsProps) {
-  // Simulated alerts
   const alerts = [
     { type: "warning", message: "Lead Enricher Pro: 85% dos créditos usados" },
     { type: "info", message: "IMO AI: Nova versão 2.2 disponível" },
