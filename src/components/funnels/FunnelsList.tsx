@@ -528,9 +528,22 @@ export function FunnelsList() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {fi.objective && (
-                        <Badge variant="outline" className="text-xs">{fi.objective}</Badge>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {fi.objective && (
+                          <Badge variant="outline" className="text-xs">{fi.objective}</Badge>
+                        )}
+                        {fi.capture_type_id && (() => {
+                          const ct = captureTypes.find(c => c.id === fi.capture_type_id);
+                          if (!ct) return null;
+                          const CtIcon = getIconComponent(ct.icon);
+                          return (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <CtIcon className="h-3 w-3" />
+                              {ct.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         Criado {formatDistanceToNow(new Date(fi.created_at), { addSuffix: true, locale: pt })}
                       </p>
