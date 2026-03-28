@@ -342,9 +342,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         />
                       </div>
                       <div className="flex gap-1.5">
-                        {/* Chapter image upload */}
+                        {/* Chapter image - AI generate */}
+                        <Button variant="outline" size="sm" onClick={generateChapterImageAI} disabled={generatingChapterImgAI} className="border-primary/20 hover:bg-primary/5 text-primary">
+                          {generatingChapterImgAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" />Imagem IA</>}
+                        </Button>
+                        {/* Chapter image - upload */}
                         <Button variant="outline" size="sm" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg} className="border-primary/20 hover:bg-primary/5">
-                          {uploadingChapterImg ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Image className="h-4 w-4 mr-1" />{activeChapter.cover_image ? "Imagem" : "Imagem"}</>}
+                          {uploadingChapterImg ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="h-4 w-4 mr-1" />Upload</>}
                         </Button>
                         {/* Edit/Preview tabs */}
                         <div className="flex bg-muted/50 rounded-md p-0.5 mr-1">
