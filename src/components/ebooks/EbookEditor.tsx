@@ -370,6 +370,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         {/* Chapter image - AI generate */}
                         <Button variant="outline" size="sm" onClick={generateChapterImageAI} disabled={generatingChapterImgAI} className="border-primary/20 hover:bg-primary/5 text-primary">
                           {generatingChapterImgAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Wand2 className="h-4 w-4 mr-1" />Imagem IA</>}
+                          <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter_image")}</span>
                         </Button>
                         {/* Chapter image - upload */}
                         <Button variant="outline" size="sm" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg} className="border-primary/20 hover:bg-primary/5">
@@ -386,10 +387,12 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                         </div>
                         <Button variant="outline" size="sm" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
                           {generating === activeChapter.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 mr-1" />Gerar</>}
+                          <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
                         </Button>
                         {activeChapter.content && (
                           <Button variant="outline" size="sm" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id} className="border-primary/20 hover:bg-primary/5 text-primary">
                             <Sparkles className="h-4 w-4 mr-1" />Melhorar
+                            <span className="ml-1 text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_improve_content")}</span>
                           </Button>
                         )}
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeChapter(activeChapter.id)}>
