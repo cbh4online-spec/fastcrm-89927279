@@ -1,64 +1,57 @@
 
 
-# Redesenhar Document Intelligence — Clareza e Usabilidade
+# Redesenhar Mapa de Impacto — Compreensível e Funcional
 
-## Problema Actual
+## Problema
 
-A página é uma lista plana de documentos com KPIs genéricos. Não explica **o que o módulo faz**, não mostra **o pipeline visual** (Upload → OCR → Classificação → Extracção → Indexação), e a gestão de templates de extracção não existe na UI. Para um utilizador novo, é difícil perceber o valor.
+O mapa actual é um grafo de nós coloridos sem qualquer explicação do que representam, como interagir, ou o que significam as cores/linhas. Um utilizador novo vê caixas com "Strategy", "Goals", "Offers" ligadas por setas sem legenda, sem instruções, e sem contexto. A funcionalidade de simulação (duplo clique) é completamente invisível.
 
 ## Solução
 
-### 1. Header explicativo com pipeline visual
-- Substituir o header simples por um **banner com os 4 passos do pipeline** ilustrados como uma barra horizontal de etapas (Upload → OCR → Classificação → Extracção → Indexação KB)
-- Cada etapa com ícone, nome e breve descrição (tooltip ou texto pequeno)
-- Mostra visualmente que o módulo é um pipeline automático, não apenas OCR
+### 1. Header explicativo com guia contextual
+- Substituir o header minimalista por um que explica **o que é o mapa**: "Visualize como alterações numa área do negócio propagam impacto para outras"
+- Adicionar **3 passos visuais** inline: `1. Clique num bloco para detalhes` → `2. Duplo clique para simular impacto` → `3. Veja propagação a vermelho`
+- Manter toggle Context/Kernel mas com tooltips explicativos
 
-### 2. Layout com tabs funcionais
-Organizar em **3 tabs**:
-- **Documentos** — a lista actual melhorada (default)
-- **Templates** — gestão de templates de extracção (criar/editar schemas por tipo de documento)
-- **Estatísticas** — KPIs detalhados, distribuição por tipo, confiança média, tempo médio
+### 2. Barra de resumo (stats)
+Antes do canvas, mostrar 4-5 métricas:
+- **Total de blocos** e quantos estão Completos / Envelhecendo / Desatualizados / Vazios
+- **Dependências activas** (total de arestas)
+- **Alerta de drift**: quantos blocos com drift severo
+- Barra visual de saúde geral (% de blocos healthy vs problematic)
 
-### 3. Empty state informativo
-Quando não há documentos, mostrar:
-- Diagrama visual do pipeline com setas
-- Lista de formatos suportados com ícones
-- Exemplos de uso: "Facturas → extrai NIF, total, data automaticamente"
-- CTA grande para carregar o primeiro documento
+### 3. Nós redesenhados (ImpactMapNode)
+- **Texto maior**: label com `text-sm` em vez de `text-xs`, nome do tipo em português
+- **Barra de preenchimento mais visível**: altura 2px → 4px
+- **Health badge proeminente**: estado escrito por extenso com cor, não apenas ícone de 3px
+- **Tooltip no hover**: mostra score, dias desde última actualização, nº dependências
+- **Min-width maior**: 180px → 220px para acomodar texto legível
+- Traduzir block types para PT: "strategy" → "Estratégia", "business_model" → "Modelo de Negócio", etc.
 
-### 4. Document cards com pipeline stages
-Cada card mostra uma **mini barra de progresso por etapa**:
-```text
-[✓ Upload] → [✓ OCR] → [⏳ Classificação] → [ Extracção] → [ Indexação]
-```
-- Etapas completas em verde, activa com spinner, pendentes em cinza
-- Substitui o badge de status genérico por algo visual e intuitivo
-- Confiança e tipo de documento mais proeminentes no card completo
+### 4. Legenda flutuante
+Painel fixo no canto inferior esquerdo (colapsável) com:
+- **Tipos de relação**: cor da linha + nome (Depende de, Influencia, Bloqueia, Alimenta)
+- **Estados de saúde**: ícone + cor + significado
+- **Interacções**: ícones de rato para click, double-click, drag
+- Colapsa para ícone para não ocupar espaço
 
-### 5. Templates de extracção (nova tab)
-- Lista de templates existentes (tabela `document_extraction_templates`)
-- Criar template: nome, tipo de documento alvo, schema JSON dos campos a extrair
-- Ao carregar documento, poder seleccionar template específico
-- Permite ao utilizador definir que campos quer extrair de cada tipo
+### 5. Edges melhorados
+- Labels de relação traduzidos para PT
+- Linhas mais grossas por defeito (strokeWidth mínimo 2)
+- Tooltips nas arestas com força da relação (%)
 
-### 6. KPIs movidos para tab dedicada
-- Métricas mais ricas: confiança média por etapa, tempo médio de processamento
-- Distribuição por tipo de documento como gráfico de barras
-- Timeline de volume diário
+### 6. Empty state guiado
+Quando não há blocos, mostrar diagrama esquemático de exemplo com:
+- Explicação do que são blocos de contexto
+- Link directo para Context OS
+- Exemplos visuais de como o mapa fica quando preenchido
 
 ## Ficheiros
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/pages/AIDocumentOCRPage.tsx` | Reescrever com tabs, pipeline header, empty state, cards melhorados |
-| `src/hooks/useDocumentProcessing.ts` | Adicionar query para templates de extracção |
-| `src/components/document-intelligence/PipelineStages.tsx` | **Novo** — componente visual das etapas |
-| `src/components/document-intelligence/ExtractionTemplates.tsx` | **Novo** — gestão de templates |
-
-## Ordem
-1. Pipeline header + tabs layout
-2. Empty state informativo
-3. Cards com indicador de etapas
-4. Tab de templates de extracção
-5. Tab de estatísticas expandida
+| `src/pages/ImpactMapPage.tsx` | Header explicativo, stats bar, legenda, empty state |
+| `src/components/impact-map/ImpactMapNode.tsx` | Cards maiores, labels PT, health badges, tooltips |
+| `src/components/impact-map/ImpactMapSidebar.tsx` | Traduções menores |
+| `src/components/impact-map/ImpactMapLegend.tsx` | **Novo** — legenda flutuante colapsável |
 
