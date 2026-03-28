@@ -1071,6 +1071,34 @@ export function FunnelsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Capture Type Form Dialog */}
+      <CaptureTypeFormDialog
+        open={captureFormOpen}
+        onOpenChange={setCaptureFormOpen}
+        editingType={editingCaptureType}
+      />
+
+      {/* Delete Capture Type Dialog */}
+      <AlertDialog open={!!deleteCaptureId} onOpenChange={() => setDeleteCaptureId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Tipo de Captura</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isto irá eliminar permanentemente este tipo de captura. Certifica-te de que não está em uso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteCaptureId) { deleteCaptureType.mutate(deleteCaptureId); setDeleteCaptureId(null); } }}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
