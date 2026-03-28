@@ -24,10 +24,6 @@ import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 interface EntityContextSidebarProps {
   entityType: EntityType;
   entity: Entity;
-  assignedUser?: {
-    name: string;
-    email: string;
-  };
   bestChannel?: string;
   bestTime?: string;
   lastActivityAt?: Date;
@@ -184,27 +180,24 @@ export function EntityContextSidebar({
           </CardContent>
         </Card>
 
-        {/* Assigned User */}
-        {assignedUser && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Responsável</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {assignedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{assignedUser.name}</p>
-                  <p className="text-xs text-muted-foreground">{assignedUser.email}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Gestor */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Gestor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EntityOwnerSelector
+              entityType={entityType}
+              entityId={entity.id}
+              currentAssignedTo={assignedTo}
+              currentAssignedProfile={assignedProfile ? {
+                full_name: assignedProfile.full_name,
+                email: assignedProfile.email,
+                avatar_url: assignedProfile.avatar_url,
+              } : null}
+            />
+          </CardContent>
+        </Card>
 
         {/* Last Activity */}
         <Card>
