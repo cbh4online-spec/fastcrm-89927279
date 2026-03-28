@@ -100,10 +100,10 @@ export function useLeaderboard(metric: string = "score_total", periodType: "week
       const userIds = (scores || []).map((s: any) => s.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
-        .in("id", userIds);
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", userIds);
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
 
       return (scores || []).map((s: any, idx: number) => ({
         ...s,
@@ -141,15 +141,15 @@ export function useRecalculateScores() {
 
         const [leadsRes, meetingsRes, proposalsRes, oppsRes, pipelineRes] = await Promise.all([
           supabase.from("leads").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).gte("created_at", startISO).lte("created_at", endISO),
+            .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO).lte("created_at", endISO),
           supabase.from("meetings").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).gte("created_at", startISO).lte("created_at", endISO),
+            .eq("workspace_id", wid).eq("created_by", uid).gte("created_at", startISO).lte("created_at", endISO),
           supabase.from("proposals").select("id", { count: "exact", head: true })
-            .eq("workspace_id", wid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO),
+            .eq("workspace_id", wid).eq("created_by", uid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO),
           supabase.from("opportunities").select("id, value")
-            .eq("workspace_id", wid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO),
+            .eq("workspace_id", wid).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO),
           supabase.from("opportunities").select("id, value")
-            .eq("workspace_id", wid).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO),
+            .eq("workspace_id", wid).eq("assigned_to", uid).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO),
         ]);
 
         const revenue = (oppsRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);
