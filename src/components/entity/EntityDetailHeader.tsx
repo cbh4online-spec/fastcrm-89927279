@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useWorkspaceTags as useWSTags } from '@/hooks/useWorkspaceTags';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,9 +107,13 @@ export function EntityDetailHeader({
   backPath,
   statusBadge,
   extraBadges,
+  tags,
+  onTagsChange,
 }: EntityDetailHeaderProps) {
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const { data: workspaceTags = [] } = useWSTags();
 
   const initials = entity.name
     .split(' ')
