@@ -140,6 +140,7 @@ export function B2BAdminRoutes() {
       <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
       <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
       <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
+      <Route path="/dashboard/b2b/approvals" element={<OrderApprovalsPage />} />
       <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b-clients" element={<ClientUsersPage />} />
       <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
