@@ -123,20 +123,8 @@ export function FunnelsList() {
     }
   };
 
-  const handleCreateVertical = async () => {
-    if (!verticalName || !verticalSlug) return;
-    await createVertical.mutateAsync({
-      name: verticalName,
-      slug: verticalSlug,
-      description: verticalDesc || undefined,
-      color_theme: verticalColor,
-    });
-    setCreateVerticalOpen(false);
-    setVerticalName("");
-    setVerticalSlug("");
-    setVerticalDesc("");
-    setVerticalColor("#6366f1");
-  };
+
+
 
   const handleDeleteTemplate = () => {
     if (deleteTemplateId) {
