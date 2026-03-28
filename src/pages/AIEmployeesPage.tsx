@@ -134,6 +134,8 @@ export default function AIEmployeesPage() {
                 bot={bot}
                 onToggleStatus={(id, status) => toggleStatus.mutate({ id, status })}
                 onDelete={id => setDeleteId(id)}
+                onDuplicate={handleDuplicate}
+                onExport={handleExport}
               />
             ))}
           </div>
