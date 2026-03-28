@@ -31,9 +31,13 @@ export function InlineHeaderTags({ tags, onTagsChange }: InlineHeaderTagsProps) 
     return wt?.color ? TAG_COLORS[wt.color] || DEFAULT_TAG : DEFAULT_TAG;
   };
 
+  const MAX_VISIBLE = 3;
+  const visibleTags = tags.slice(0, MAX_VISIBLE);
+  const hiddenCount = tags.length - MAX_VISIBLE;
+
   return (
     <>
-      {tags.map((tag, i) => (
+      {visibleTags.map((tag, i) => (
         <Badge key={i} variant="outline" className={cn("text-xs gap-1 pr-1", getColor(tag))}>
           {tag}
           <button
@@ -45,6 +49,11 @@ export function InlineHeaderTags({ tags, onTagsChange }: InlineHeaderTagsProps) 
           </button>
         </Badge>
       ))}
+      {hiddenCount > 0 && (
+        <Badge variant="outline" className="text-xs text-muted-foreground">
+          +{hiddenCount}
+        </Badge>
+      )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button

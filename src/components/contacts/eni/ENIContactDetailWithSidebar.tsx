@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
-import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail, UserPlus } from "lucide-react";
+import { ArrowLeft, Trash2, User, Clock, Building2, Shield, Sparkles, FileText, Mail, UserPlus, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InviteClientDialog } from "@/components/client-users/InviteClientDialog";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -207,16 +208,16 @@ export function ENIContactDetailWithSidebar() {
     switch (activeSection) {
       case 'overview':
         return (
-          <div className="space-y-6">
-            <LinkedCompanyCard 
+          <div className="space-y-4">
+            <LinkedCompanyCard
               companyId={(contact as any).company_id}
               contactId={contact.id}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />
               <ContactLifecycleSection contact={contact} onFieldChange={handleFieldChange} />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <CustomerJourneySection contactId={id} />
               <AIJourneySuggestionsPanel 
                 entityType="contact" 
@@ -237,8 +238,8 @@ export function ENIContactDetailWithSidebar() {
                 navigate(`/dashboard/proposals/new?contact=${id}&product=${productId}`);
               }}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <IdentificationSection 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <IdentificationSection
                 contact={contact} 
                 onFieldChange={handleFieldChange}
                 onNifDataReceived={handleNifDataReceived}
@@ -465,7 +466,7 @@ export function ENIContactDetailWithSidebar() {
 
   return (
     <div className="h-full flex flex-col -m-6">
-      <div className="bg-background px-6 pt-4">
+      <div className="bg-background px-6 pt-2">
         <PageBreadcrumbs items={[
           { label: "CRM", href: "/dashboard" },
           { label: t('crm:contacts'), href: "/dashboard/contacts" },
@@ -474,11 +475,11 @@ export function ENIContactDetailWithSidebar() {
       </div>
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-6 py-5">
+      <div className="bg-gradient-to-r from-background via-background to-muted/30 border-b px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0">
-              <ArrowLeft className="w-5 h-5" />
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/contacts")} className="shrink-0 h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
             </Button>
             <EntityAvatarUpload
               entityType="contact"
@@ -486,11 +487,11 @@ export function ENIContactDetailWithSidebar() {
               entityName={contact.name}
               currentAvatarUrl={(contact as any).avatar_url}
               onAvatarChange={(url) => handleFieldChange('avatar_url' as keyof ENIContact, url)}
-              size="md"
+              size="sm"
             />
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold tracking-tight">{contact.name}</h1>
                 <Badge variant="outline" className={cn(
                   "text-xs font-medium",
                   entityType === 'eni' && "bg-amber-500/10 text-amber-600 border-amber-500/30",
@@ -543,68 +544,80 @@ export function ENIContactDetailWithSidebar() {
             {contact.email && (
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={() => setShowEmailDialog(true)} 
-                className="gap-2"
+                className="gap-1.5"
               >
-                <Mail className="w-4 h-4" />
+                <Mail className="w-3.5 h-3.5" />
                 {t('common:sendEmail')}
               </Button>
             )}
-            {contact.email && (
-              <InviteClientDialog
-                trigger={
-                  <Button variant="outline" className="gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    {t('common:inviteB2B')}
-                  </Button>
-                }
-                prefillData={{
-                  contactId: id!,
-                  name: contact.name,
-                  email: contact.email,
-                  phone: contact.phone || undefined,
-                  taxId: contact.tax_id || undefined,
-                  address: contact.address || undefined,
-                  city: contact.city || undefined,
-                  postalCode: contact.postal_code || undefined,
-                  country: contact.country || undefined,
-                }}
-              />
-            )}
-            <Button variant="outline" onClick={() => setShowInvoiceDialog(true)} className="gap-2">
-              <FileText className="w-4 h-4" />
-              {t('common:newInvoice')}
-            </Button>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={handleGenerateInsights}
               disabled={analyzeContact.isPending}
-              className="gap-2"
+              className="gap-1.5"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-3.5 h-3.5" />
               {analyzeContact.isPending ? t('common:analyzing') : t('common:analyzeWithAI')}
             </Button>
-            {(role === 'owner' || role === 'admin') && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="text-destructive hover:text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('common:confirmDeleteTitle')}</AlertDialogTitle>
-                    <AlertDialogDescription>{t('common:confirmDeleteDescription')}</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                      {t('common:delete')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {contact.email && (
+                  <InviteClientDialog
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+                        <UserPlus className="w-4 h-4" />
+                        {t('common:inviteB2B')}
+                      </DropdownMenuItem>
+                    }
+                    prefillData={{
+                      contactId: id!,
+                      name: contact.name,
+                      email: contact.email,
+                      phone: contact.phone || undefined,
+                      taxId: contact.tax_id || undefined,
+                      address: contact.address || undefined,
+                      city: contact.city || undefined,
+                      postalCode: contact.postal_code || undefined,
+                      country: contact.country || undefined,
+                    }}
+                  />
+                )}
+                <DropdownMenuItem onClick={() => setShowInvoiceDialog(true)} className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  {t('common:newInvoice')}
+                </DropdownMenuItem>
+                {(role === 'owner' || role === 'admin') && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 text-destructive focus:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                        {t('common:delete')}
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('common:confirmDeleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('common:confirmDeleteDescription')}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                          {t('common:delete')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -623,9 +636,9 @@ export function ENIContactDetailWithSidebar() {
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
-            <div className="p-6 max-w-4xl">
+            <div className="p-6 pt-4 max-w-4xl">
               {activeSection === 'overview' && (
-                <div className="mb-6">
+                <div className="mb-4">
                   <EntityHighlightsGrid entityType="contact" entity={contact as any} />
                 </div>
               )}
