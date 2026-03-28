@@ -27,16 +27,17 @@ export interface ConversationSignals {
   created_at: string;
 }
 
-export function useConversationSignals(contactId?: string, leadId?: string) {
+export function useConversationSignals(contactId?: string, leadId?: string, groupId?: string) {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
 
-  const queryKey = ["conversation-signals", contactId || leadId];
+  const entityId = contactId || leadId || groupId;
+  const queryKey = ["conversation-signals", entityId];
 
   const { data: signals, isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      if (!contactId && !leadId) return null;
+      if (!entityId) return null;
 
       let query = supabase
         .from("conversation_signals")
@@ -44,15 +45,18 @@ export function useConversationSignals(contactId?: string, leadId?: string) {
 
       if (contactId) {
         query = query.eq("contact_id", contactId);
-      } else {
-        query = query.eq("lead_id", leadId!);
+      } else if (leadId) {
+        query = query.eq("lead_id", leadId);
+      } else if (groupId) {
+        // For groups, use lead_id field with group prefix convention
+        query = query.eq("lead_id", `group:${groupId}`);
       }
 
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       return data as ConversationSignals | null;
     },
-    enabled: Boolean(contactId || leadId),
+    enabled: Boolean(entityId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -61,12 +65,13 @@ export function useConversationSignals(contactId?: string, leadId?: string) {
       toast.error("Workspace não encontrado");
       return;
     }
-    if (!contactId && !leadId) return;
+    if (!entityId) return;
 
     try {
       const body: Record<string, string> = { workspace_id: currentWorkspace.id };
       if (contactId) body.contact_id = contactId;
       if (leadId) body.lead_id = leadId;
+      if (groupId) body.group_id = groupId;
 
       const { data, error } = await supabase.functions.invoke("compute-conversation-signals", {
         body,

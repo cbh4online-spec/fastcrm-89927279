@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2, Pencil, Trash2, Bot, Zap, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,9 @@ import { AddMemberDialog } from "./AddMemberDialog";
 import { ProductPickerButton } from "./ProductPickerButton";
 import { ProductMessageCard } from "./ProductMessageCard";
 import { TelegramChatPicker } from "./TelegramChatPicker";
+import { BotControlPanel } from "./BotControlPanel";
+import { GroupSignalsPanel } from "./GroupSignalsPanel";
+import { AutopilotMonitorPanel } from "@/components/settings/sections/AutopilotMonitorPanel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -184,51 +188,91 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
                 <Users className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-          <SheetContent>
+          <SheetContent className="w-[380px] sm:w-[420px]">
             <SheetHeader>
-              <SheetTitle className="flex items-center justify-between">
-                <span>Membros ({members?.length ?? 0})</span>
-                <Button variant="outline" size="sm" onClick={() => setAddMemberOpen(true)}>
-                  <UserPlus className="h-4 w-4 mr-1" /> Adicionar
-                </Button>
-              </SheetTitle>
+              <SheetTitle>{group.name}</SheetTitle>
             </SheetHeader>
-            <div className="mt-4 space-y-1">
-              {members?.map((m) => {
-                const name = m.profile?.full_name || m.contact?.name || m.telegram_username || "Membro";
-                return (
-                  <div key={m.id} className="flex items-center gap-3 py-2 px-1 group/member rounded-md hover:bg-muted/50">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">{name[0]?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{name}</p>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-xs py-0">{m.role || "member"}</Badge>
-                        {m.telegram_username && (
-                          <span className="text-xs text-muted-foreground">@{m.telegram_username}</span>
-                        )}
+            <Tabs defaultValue="members" className="mt-4">
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="members" className="text-xs gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Membros</span>
+                </TabsTrigger>
+                <TabsTrigger value="bot" className="text-xs gap-1">
+                  <Bot className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Bot</span>
+                </TabsTrigger>
+                <TabsTrigger value="signals" className="text-xs gap-1">
+                  <Zap className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Sinais</span>
+                </TabsTrigger>
+                <TabsTrigger value="activity" className="text-xs gap-1">
+                  <Activity className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">IA</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Members Tab */}
+              <TabsContent value="members" className="mt-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-muted-foreground">{members?.length ?? 0} membros</span>
+                  <Button variant="outline" size="sm" onClick={() => setAddMemberOpen(true)}>
+                    <UserPlus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                <div className="space-y-1">
+                  {members?.map((m) => {
+                    const name = m.profile?.full_name || m.contact?.name || m.telegram_username || "Membro";
+                    return (
+                      <div key={m.id} className="flex items-center gap-3 py-2 px-1 group/member rounded-md hover:bg-muted/50">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">{name[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-xs py-0">{m.role || "member"}</Badge>
+                            {m.telegram_username && (
+                              <span className="text-xs text-muted-foreground">@{m.telegram_username}</span>
+                            )}
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover/member:opacity-100">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => removeMember.mutate(m.id)}
+                              className="text-destructive"
+                            >
+                              <UserMinus className="h-4 w-4 mr-2" /> Remover
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover/member:opacity-100">
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => removeMember.mutate(m.id)}
-                          className="text-destructive"
-                        >
-                          <UserMinus className="h-4 w-4 mr-2" /> Remover
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+
+              {/* Bot Config Tab */}
+              <TabsContent value="bot" className="mt-3">
+                <BotControlPanel groupId={group.id} />
+              </TabsContent>
+
+              {/* Signals Tab */}
+              <TabsContent value="signals" className="mt-3">
+                <GroupSignalsPanel groupId={group.id} />
+              </TabsContent>
+
+              {/* AI Activity Tab */}
+              <TabsContent value="activity" className="mt-3">
+                <AutopilotMonitorPanel conversationId={group.id} compact />
+              </TabsContent>
+            </Tabs>
           </SheetContent>
         </Sheet>
         </div>
