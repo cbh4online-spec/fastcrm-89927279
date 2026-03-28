@@ -1,22 +1,44 @@
 
 
-## Corrigir visibilidade do texto no preview do compositor de email
+## Ações em Massa + Vista Kanban para Leads
 
-### Causa raiz
+### 1. Ações em massa (Bulk Actions)
 
-O HTML do email (texto do corpo, card de pagamento, assinatura) usa **cores inline hardcoded** para fundo claro (ex: `color: #374151`, `color: #1f2937`). No modo escuro, o container do preview muda para `bg-gray-950` mas as cores inline não podem ser sobrescritas pelo Tailwind `prose-invert` — CSS inline tem prioridade máxima.
+A tabela de leads (`SmartLeadsTable`) já tem seleção múltipla mas só oferece: Analisar AI, LinkedIn, Exportar e Eliminar. Vou substituir essa barra básica pelo componente `BulkActionsBar` já existente no sistema unificado, adicionando:
 
-### Solução
+**Novo hook `useBulkUpdateLeads`** em `src/hooks/useLeads.ts`:
+- Recebe array de IDs + campos a alterar (status, tags, assigned_to, lead_type, etc.)
+- Executa update em batch via Supabase `.in('id', ids)`
+- Invalida queries relevantes
 
-O preview de email deve **sempre usar fundo branco**, independentemente do tema da app. Emails são sempre renderizados em fundo branco pelos clientes de email — o preview deve refletir isso.
+**Integração na `SmartLeadsTable`** (linhas 438-446):
+- Substituir a barra inline atual pela `BulkActionsBar` que já suporta:
+  - **Adicionar tags** (popover com tags existentes + criar nova)
+  - **Edição em massa** (dialog `BulkEditDialog` com campos selecionáveis)
+  - **Exportar** e **Eliminar**
+- Definir `editableFields` para leads: status, assigned_to, tags, lead_type, source, city, company_name
+- Manter botões de Analisar AI e LinkedIn como ações extra na barra
 
-### Alteração
+### 2. Vista Kanban configurável
 
-| Ficheiro | Detalhe |
+**Novo componente `LeadsKanbanView`** em `src/components/leads/`:
+- Colunas agrupáveis por: **status** (default), **temperatura** ou **lead_type**
+- Cada coluna mostra contagem e cards com: nome, avatar, tags, score
+- **Drag-and-drop** nativo (HTML5) para mover leads entre colunas (atualiza o campo correspondente)
+- Configuração do agrupamento via dropdown no header
+
+**Nova tab na `SmartLeadsTable`**:
+- Adicionar tab "Kanban" ao array `pageTabs` (já existe Leads, Duplicates, Smart Lists, Automations, Import)
+- Renderizar `LeadsKanbanView` quando tab ativa = "kanban"
+- Partilha os mesmos filtros e pesquisa da vista tabela
+
+### Ficheiros a criar/alterar
+
+| Ficheiro | Ação |
 |---|---|
-| `ComposeEmailDialog.tsx` (linha 632-633) | Remover `dark:bg-gray-950`, `dark:text-gray-100`, `dark:prose-invert` e manter apenas `bg-white text-gray-900`. O preview passa a ser sempre claro, fiel à renderização real do email. |
+| `src/hooks/useLeads.ts` | Adicionar `useBulkUpdateLeads` |
+| `src/components/leads/SmartLeadsTable.tsx` | Integrar `BulkActionsBar`, tab Kanban |
+| `src/components/leads/LeadsKanbanView.tsx` | **Novo** — vista kanban com drag-and-drop |
 
-### Resultado
-
-O preview mostra o email exatamente como o destinatário o vai ver — fundo branco com texto escuro legível, em qualquer tema.
+Sem alterações de base de dados — usa os campos existentes (status, tags, assigned_to, ai_temperature, lead_type).
 
