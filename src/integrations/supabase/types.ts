@@ -37383,8 +37383,57 @@ export type Database = {
           },
         ]
       }
+      renewal_alert_log: {
+        Row: {
+          alert_type: string
+          contract_id: string
+          id: string
+          payload_json: Json | null
+          recipient_type: string
+          sent_at: string
+          sent_date: string
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          contract_id: string
+          id?: string
+          payload_json?: Json | null
+          recipient_type?: string
+          sent_at?: string
+          sent_date?: string
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          contract_id?: string
+          id?: string
+          payload_json?: Json | null
+          recipient_type?: string
+          sent_at?: string
+          sent_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_alert_log_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_alert_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       renewal_contracts: {
         Row: {
+          alert_settings: Json | null
           auto_renew: boolean
           billing_type: Database["public"]["Enums"]["renewal_billing_type"]
           company_id: string | null
@@ -37409,6 +37458,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          alert_settings?: Json | null
           auto_renew?: boolean
           billing_type?: Database["public"]["Enums"]["renewal_billing_type"]
           company_id?: string | null
@@ -37433,6 +37483,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          alert_settings?: Json | null
           auto_renew?: boolean
           billing_type?: Database["public"]["Enums"]["renewal_billing_type"]
           company_id?: string | null
@@ -37604,6 +37655,66 @@ export type Database = {
           },
           {
             foreignKeyName: "renewal_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_payment_links: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          expires_at: string | null
+          id: string
+          item_ids: Json | null
+          status: string
+          stripe_session_id: string | null
+          stripe_url: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expires_at?: string | null
+          id?: string
+          item_ids?: Json | null
+          status?: string
+          stripe_session_id?: string | null
+          stripe_url: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expires_at?: string | null
+          id?: string
+          item_ids?: Json | null
+          status?: string
+          stripe_session_id?: string | null
+          stripe_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_payment_links_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_payment_links_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

@@ -35,13 +35,55 @@ export const checkWorkspaceRenewals = task({
   maxDuration: 120,
   run: async (payload: { workspace_id: string }) => {
     logger.info('Checking renewals for workspace', { workspace_id: payload.workspace_id })
+    const supabase = getSupabaseClient()
+
     const [checkResult, healthResult] = await Promise.allSettled([
       invokeEdgeFunction('check-renewals', { workspace_id: payload.workspace_id }),
       invokeEdgeFunction('renewals-health-score', { workspace_id: payload.workspace_id }),
     ])
+
+    // Check for contracts that need automated alerts
+    const now = new Date()
+    const thresholds = [30, 15, 7, 1, 0]
+
+    const { data: contracts } = await supabase
+      .from('renewal_contracts')
+      .select('id, next_renewal_date, alert_settings, owner_user_id')
+      .eq('workspace_id', payload.workspace_id)
+      .eq('status', 'active')
+      .not('next_renewal_date', 'is', null)
+
+    const alertResults: any[] = []
+    for (const contract of (contracts || [])) {
+      if (!contract.next_renewal_date) continue
+      const settings = (contract.alert_settings as any) || { thresholds: [30, 15, 7, 1], notify_user: true, notify_client: false }
+      const daysUntil = Math.ceil((new Date(contract.next_renewal_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+      let alertType: string | null = null
+      if (daysUntil < 0) alertType = 'overdue'
+      else if (settings.thresholds?.includes(daysUntil)) alertType = `${daysUntil}d`
+
+      if (alertType) {
+        const recipients = settings.notify_user && settings.notify_client ? 'both'
+          : settings.notify_client ? 'client' : 'user'
+        try {
+          const result = await invokeEdgeFunction('renewal-alert-email', {
+            contract_id: contract.id,
+            workspace_id: payload.workspace_id,
+            alert_type: alertType,
+            recipients,
+          })
+          alertResults.push({ contract_id: contract.id, alert_type: alertType, result })
+        } catch (e: any) {
+          logger.warn('Alert send failed', { contract_id: contract.id, error: e.message })
+        }
+      }
+    }
+
     return {
       check: checkResult.status === 'fulfilled' ? checkResult.value : null,
       health: healthResult.status === 'fulfilled' ? healthResult.value : null,
+      alerts_sent: alertResults.length,
     }
   },
 })
