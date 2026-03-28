@@ -1,77 +1,86 @@
 
 
-# Enriquecer Módulo de Fornecedores
+# Reorganizar Navegação — Compras como Grupo Principal
 
-## Problema Atual
+## Problema
 
-O formulário de fornecedor tem apenas: Nome, NIF, IBAN, Email, Telefone, Morada, Categoria, Condições de Pagamento, Estado, Notas. Faltam dados operacionais importantes e não há forma de descobrir fornecedores automaticamente.
+O módulo de Compras (Procurement) está enterrado dentro do grupo "Operações" junto com itens não relacionados (Tarefas, Eventos, Student Journey, Segurança). Compras é um módulo principal de negócio com ~10 sub-páginas e merece o seu próprio grupo de navegação.
 
----
+## Estrutura Atual (Operações)
 
-## 1. Novos Campos na Base de Dados
+```text
+Operações
+├── Tarefas
+├── Eventos
+├── Compras (dashboard)
+├── Fornecedores
+├── Pedidos
+├── Ordens de Compra
+├── Receções
+├── RFQs
+├── Dashboard RFQs
+├── Quadro Necessidades
+├── Import. Preços (hidden)
+├── Import. Fornecedores (hidden)
+├── Jornada do Aluno
+├── Segurança (hidden)
+└── Crédito (hidden)
+```
 
-Adicionar à tabela `suppliers`:
+## Nova Estrutura
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `website` | text | Site do fornecedor |
-| `platforms` | jsonb | Plataformas onde operam (ex: Amazon, AliExpress, site próprio) com URLs e credenciais de acesso |
-| `product_categories` | text[] | Categorias de produtos que vendem |
-| `certifications` | text[] | Certificações (ISO, etc.) |
-| `rating` | integer | Avaliação interna 1-5 estrelas |
-| `contact_person` | text | Nome do contacto principal |
-| `contact_person_role` | text | Cargo do contacto |
-| `logo_url` | text | Logo do fornecedor |
-| `min_order_value` | numeric | Valor mínimo de encomenda |
-| `delivery_time_days` | integer | Prazo médio de entrega |
-| `country` | text | País de origem |
-| `tags` | text[] | Tags livres para classificação |
+### Novo grupo: **Compras** (order: 7, entre Vendas e Comércio actual)
 
-## 2. Formulário Expandido com Tabs
+```text
+Compras
+├── Dashboard (Compras)
+├── Fornecedores
+├── Quadro Necessidades
+├── Pedidos
+├── Ordens de Compra
+├── Receções
+├── RFQs
+├── Dashboard RFQs
+├── Import. Preços (search-only)
+└── Import. Fornecedores (search-only)
+```
 
-Reorganizar o `SupplierForm` em secções com Tabs:
+### Grupo Operações fica limpo:
 
-- **Dados Gerais**: Nome, NIF, IBAN, Email, Telefone, Morada, País, Estado, Categoria
-- **Comercial**: Condições de pagamento, Valor mínimo encomenda, Prazo entrega, Rating (estrelas), Certificações
-- **Produtos & Plataformas**: Categorias de produtos (tags), Plataformas com URLs de acesso
-- **Contacto & Notas**: Contacto principal, Cargo, Website, Tags, Notas
+```text
+Operações
+├── Tarefas
+├── Eventos
+├── Jornada do Aluno
+├── Segurança
+└── Crédito
+```
 
-Usar dialog mais largo (`max-w-2xl`) com `Tabs` internos.
+### Reordenação dos grupos:
 
-## 3. Tabela de Listagem Melhorada
+| Order | Grupo |
+|-------|-------|
+| 1 | Início |
+| 2 | Estratégia IA |
+| 3 | Comercial |
+| 4 | Comunicação |
+| 5 | Marketing |
+| 6 | Vendas |
+| 7 | **Compras** ← NOVO |
+| 8 | Comércio |
+| 9 | Operações |
+| 10 | Inteligência |
+| 11 | Administração |
 
-Adicionar colunas visíveis:
-- Rating (estrelas)
-- País
-- Website (link clicável)
-- Contacto principal
-- Manter as existentes
+## Implementação
 
-## 4. Pesquisa de Fornecedores com Conectores
+**Ficheiro único**: `src/config/routeManifest.ts`
 
-- **SupplierSearchDialog**: Modal com campo de pesquisa livre (ex: "fornecedor de parafusos em Portugal")
-- **Edge function `supplier-web-search`**: Usa Lovable AI (Gemini Flash) para interpretar resultados de pesquisa web e extrair dados estruturados de fornecedores
-- **Import direto**: Dos resultados da pesquisa, o utilizador pode importar diretamente para a tabela de fornecedores com os campos pré-preenchidos
-- Botão "Pesquisar Fornecedores" na page header ao lado do "Adicionar Fornecedor"
+1. Adicionar `"compras"` ao type `NavGroup`
+2. Adicionar entrada no array `NAV_GROUPS` com `{ key: "compras", label: "Compras", icon: ShoppingCart, order: 7, collapsible: true }`
+3. Ajustar `order` dos grupos seguintes (+1)
+4. Mover todas as rotas `procurement-*` de `group: "operacoes"` para `group: "compras"`
+5. Fornecedores fica como item principal visível na sidebar (já está)
 
----
-
-## Implementação Técnica
-
-### Ficheiros Modificados
-- `SupplierForm.tsx` — Expandir com tabs e novos campos
-- `SuppliersPage.tsx` — Adicionar colunas na tabela + botão pesquisa
-
-### Ficheiros Novos
-- `SupplierSearchDialog.tsx` — Modal de pesquisa com resultados e import
-- `supabase/functions/supplier-web-search/index.ts` — Edge function para descoberta
-
-### Migração SQL
-- ALTER TABLE suppliers ADD COLUMN para cada novo campo
-
-### Ordem
-1. Migração DB
-2. Formulário expandido
-3. Tabela melhorada
-4. Pesquisa de fornecedores
+Alteração puramente de configuração — nenhuma rota, página ou componente muda.
 
