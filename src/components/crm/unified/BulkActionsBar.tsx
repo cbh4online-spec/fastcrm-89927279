@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Trash2, Download, Tag, X, Plus, Pencil } from "lucide-react";
+import { Trash2, Download, Tag, X, Plus, Pencil, Search } from "lucide-react";
 import { CrmEntityType } from "@/hooks/useCrmViews";
 import { toast } from "sonner";
 import { BulkEditDialog, BulkEditField } from "./BulkEditDialog";
