@@ -117,6 +117,9 @@ const App = () => (
                 <Route path="/book/:slug" element={<PublicBookingPage />} />
                 <Route path="/:workspaceSlug/book/:slug" element={<PublicBookingPage />} />
 
+                {/* Public eBook Reader */}
+                <Route path="/ebook/:slug" element={<PublicEbookPage />} />
+
                 {/* Public Community */}
                 <Route path="/club/:slug" element={<AuthProvider><PublicCommunityPage /></AuthProvider>} />
                 <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />

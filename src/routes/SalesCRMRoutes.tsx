@@ -36,6 +36,7 @@ const EmailCampaignsPage = lazy(() => import("@/pages/EmailCampaignsPage"));
 const SuppressionsPage = lazy(() => import("@/pages/SuppressionsPage"));
 const Automations = lazy(() => import("@/pages/Automations"));
 const Funnels = lazy(() => import("@/pages/Funnels"));
+const EbooksPage = lazy(() => import("@/pages/EbooksPage"));
 const BioOS = lazy(() => import("@/pages/BioOS"));
 const FormStudioPage = lazy(() => import("@/pages/FormStudioPage"));
 const Imports = lazy(() => import("@/pages/Imports"));
@@ -104,6 +105,7 @@ export function SalesCRMRoutes() {
       {/* Marketing & Funnels */}
       <Route path="/dashboard/automations" element={<Automations />} />
       <Route path="/dashboard/funnels" element={<Funnels />} />
+      <Route path="/dashboard/ebooks" element={<EbooksPage />} />
       <Route path="/dashboard/bio" element={<BioOS />} />
       <Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
       <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
