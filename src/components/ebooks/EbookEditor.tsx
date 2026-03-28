@@ -40,6 +40,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingChapterImg, setUploadingChapterImg] = useState(false);
+  const [generatingCoverAI, setGeneratingCoverAI] = useState(false);
+  const [generatingChapterImgAI, setGeneratingChapterImgAI] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chapterImgRef = useRef<HTMLInputElement>(null);
 
