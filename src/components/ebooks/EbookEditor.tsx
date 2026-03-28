@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { FlipbookReader } from "./FlipbookReader";
 
 interface EbookEditorProps {
   ebookId: string;
