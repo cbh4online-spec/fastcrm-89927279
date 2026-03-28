@@ -1,18 +1,23 @@
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
+import { usePublicCompanyData } from '../hooks/usePublicCompanyData';
 
 export default function PrivacyPolicyPage() {
+  const { company, fullAddress } = usePublicCompanyData();
+
   return (
     <LegalPageLayout
       title="Política de Privacidade"
-      description="Conheça como o FastCRM recolhe, utiliza e protege os seus dados pessoais em conformidade com o RGPD."
+      description="Conheça como recolhemos, utilizamos e protegemos os seus dados pessoais em conformidade com o RGPD."
       lastUpdated="6 de fevereiro de 2026"
     >
       <section>
         <h2 className="text-xl font-semibold mb-3">1. Responsável pelo Tratamento</h2>
         <p className="text-muted-foreground leading-relaxed">
-          O responsável pelo tratamento dos dados pessoais é a FastCRM, Lda., com sede em Portugal. 
-          Para questões relacionadas com a proteção de dados, pode contactar-nos através do email: 
-          <a href="mailto:privacidade@fastcrm.pt" className="text-primary hover:underline"> privacidade@fastcrm.pt</a>.
+          O responsável pelo tratamento dos dados pessoais é a <strong>{company.company_name}</strong>
+          {company.nif && <>, NIF {company.nif}</>}
+          {fullAddress && <>, com sede em {fullAddress}</>}.
+          {' '}Para questões relacionadas com a proteção de dados, pode contactar-nos através do email:{' '}
+          <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>.
         </p>
       </section>
 
@@ -36,7 +41,7 @@ export default function PrivacyPolicyPage() {
           Os dados pessoais são tratados para as seguintes finalidades:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-          <li>Prestação e gestão do serviço FastCRM</li>
+          <li>Prestação e gestão do serviço</li>
           <li>Criação e gestão de contas de utilizador</li>
           <li>Processamento de pagamentos e faturação</li>
           <li>Comunicação de atualizações, novidades e suporte técnico</li>
@@ -110,7 +115,7 @@ export default function PrivacyPolicyPage() {
         </ul>
         <p className="text-muted-foreground leading-relaxed mt-3">
           Para exercer qualquer destes direitos, contacte-nos em{' '}
-          <a href="mailto:privacidade@fastcrm.pt" className="text-primary hover:underline">privacidade@fastcrm.pt</a>.
+          <a href={`mailto:${company.email_dpo}`} className="text-primary hover:underline">{company.email_dpo}</a>.
         </p>
       </section>
 

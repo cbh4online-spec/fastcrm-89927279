@@ -1,16 +1,19 @@
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
+import { usePublicCompanyData } from '../hooks/usePublicCompanyData';
 
 export default function TermsOfUsePage() {
+  const { company } = usePublicCompanyData();
+
   return (
     <LegalPageLayout
       title="Termos de Uso"
-      description="Termos e condições de utilização da plataforma FastCRM. Leia antes de utilizar os nossos serviços."
+      description="Termos e condições de utilização da plataforma. Leia antes de utilizar os nossos serviços."
       lastUpdated="6 de fevereiro de 2026"
     >
       <section>
         <h2 className="text-xl font-semibold mb-3">1. Aceitação dos Termos</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Ao aceder ou utilizar a plataforma FastCRM, concorda com estes Termos de Uso na sua totalidade. 
+          Ao aceder ou utilizar a plataforma, concorda com estes Termos de Uso na sua totalidade. 
           Se não concordar com qualquer parte destes termos, não deverá utilizar a plataforma. 
           A utilização continuada após alterações aos termos constitui aceitação das mesmas.
         </p>
@@ -19,7 +22,7 @@ export default function TermsOfUsePage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">2. Descrição do Serviço</h2>
         <p className="text-muted-foreground leading-relaxed">
-          O FastCRM é uma plataforma de gestão de relacionamento com clientes (CRM) que oferece 
+          A plataforma é um sistema de gestão de relacionamento com clientes (CRM) que oferece 
           ferramentas de gestão de leads, oportunidades, automação de processos, comunicação, faturação, 
           inteligência artificial e relatórios. O serviço é disponibilizado em modalidade SaaS 
           (Software as a Service) mediante subscrição.
@@ -40,7 +43,7 @@ export default function TermsOfUsePage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">4. Planos e Pagamentos</h2>
         <p className="text-muted-foreground leading-relaxed mb-3">
-          O FastCRM oferece diferentes planos de subscrição:
+          Oferecemos diferentes planos de subscrição:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>Os preços estão indicados na página de preços e podem ser alterados com aviso prévio de 30 dias</li>
@@ -54,7 +57,7 @@ export default function TermsOfUsePage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">5. Utilização Aceitável</h2>
         <p className="text-muted-foreground leading-relaxed mb-3">
-          Ao utilizar o FastCRM, compromete-se a não:
+          Ao utilizar a plataforma, compromete-se a não:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>Utilizar a plataforma para fins ilegais ou não autorizados</li>
@@ -70,8 +73,8 @@ export default function TermsOfUsePage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">6. Propriedade Intelectual</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Todos os direitos de propriedade intelectual sobre a plataforma FastCRM, incluindo o software, 
-          design, logótipos, textos e funcionalidades, pertencem à FastCRM, Lda. É concedida uma licença 
+          Todos os direitos de propriedade intelectual sobre a plataforma, incluindo o software, 
+          design, logótipos, textos e funcionalidades, pertencem à {company.company_name}. É concedida uma licença 
           limitada, não exclusiva e não transferível para utilizar a plataforma durante a vigência da subscrição.
         </p>
       </section>
@@ -80,7 +83,7 @@ export default function TermsOfUsePage() {
         <h2 className="text-xl font-semibold mb-3">7. Dados do Utilizador</h2>
         <p className="text-muted-foreground leading-relaxed">
           Os dados que insere na plataforma (leads, contactos, oportunidades, etc.) são da sua propriedade. 
-          O FastCRM atua como processador desses dados e não os utiliza para outros fins que não a prestação 
+          Atuamos como processador desses dados e não os utilizamos para outros fins que não a prestação 
           do serviço. Pode exportar os seus dados a qualquer momento através das funcionalidades de exportação 
           disponíveis na plataforma.
         </p>
@@ -98,7 +101,7 @@ export default function TermsOfUsePage() {
       <section>
         <h2 className="text-xl font-semibold mb-3">9. Limitação de Responsabilidade</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Na máxima extensão permitida por lei, o FastCRM não será responsável por danos indiretos, 
+          Na máxima extensão permitida por lei, a {company.company_name} não será responsável por danos indiretos, 
           incidentais, especiais ou consequenciais resultantes da utilização ou impossibilidade de 
           utilização do serviço. A nossa responsabilidade total está limitada ao valor pago pelo 
           utilizador nos 12 meses anteriores ao evento que deu origem à reclamação.
@@ -109,7 +112,7 @@ export default function TermsOfUsePage() {
         <h2 className="text-xl font-semibold mb-3">10. Rescisão</h2>
         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
           <li>O utilizador pode cancelar a sua conta a qualquer momento</li>
-          <li>O FastCRM pode suspender ou terminar contas que violem estes termos</li>
+          <li>Podemos suspender ou terminar contas que violem estes termos</li>
           <li>Após a rescisão, os dados serão eliminados no prazo de 30 dias, salvo obrigação legal de conservação</li>
           <li>O utilizador pode solicitar a exportação dos seus dados antes da eliminação</li>
         </ul>
@@ -137,7 +140,7 @@ export default function TermsOfUsePage() {
         <h2 className="text-xl font-semibold mb-3">13. Contacto</h2>
         <p className="text-muted-foreground leading-relaxed">
           Para questões relacionadas com estes Termos de Uso, contacte-nos em{' '}
-          <a href="mailto:legal@fastcrm.pt" className="text-primary hover:underline">legal@fastcrm.pt</a>.
+          <a href={`mailto:${company.email_general}`} className="text-primary hover:underline">{company.email_general}</a>.
         </p>
       </section>
     </LegalPageLayout>

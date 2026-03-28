@@ -95,3 +95,6 @@ export { default as PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 export { default as TermsOfUsePage } from './pages/TermsOfUsePage';
 export { default as GDPRPage } from './pages/GDPRPage';
 export { default as CookiePolicyPage } from './pages/CookiePolicyPage';
+export { default as GDPRBackofficePage } from './pages/GDPRBackofficePage';
+export { useCompanyLegalData } from './hooks/useCompanyLegalData';
+export { usePublicCompanyData } from './hooks/usePublicCompanyData';

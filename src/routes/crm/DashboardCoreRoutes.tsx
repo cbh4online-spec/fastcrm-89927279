@@ -31,6 +31,7 @@ const RevenueRadarPage = lazy(() => import("@/pages/RevenueRadarPage"));
 const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
+const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 
 export function DashboardCoreRoutes() {
   return (
@@ -76,6 +77,7 @@ export function DashboardCoreRoutes() {
       <Route path="/settings/tags" element={<WorkspaceTagsPage />} />
       <Route path="/platform/data" element={<VisualDataModelPage />} />
       <Route path="/settings/:section" element={<Settings />} />
+      <Route path="/settings/rgpd" element={<GDPRBackofficePage />} />
     </>
   );
 }
