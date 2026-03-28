@@ -566,11 +566,6 @@ export function SmartFormBuilder({ form, onBack, onPreview }: SmartFormBuilderPr
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Automations */}
-          {/* ... existing automations card ... */}
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Automations */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
