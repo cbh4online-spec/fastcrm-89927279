@@ -4,9 +4,10 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users, Upload, Rss } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Upload, Rss, Search, Star, Globe } from "lucide-react";
 import { useState } from "react";
 import { SupplierForm } from "@/components/procurement/SupplierForm";
+import { SupplierSearchDialog } from "@/components/procurement/SupplierSearchDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
 import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
@@ -27,6 +28,7 @@ export default function SuppliersPage() {
   const [showImport, setShowImport] = useState(false);
   const [showFeedDialog, setShowFeedDialog] = useState(false);
   const [editingFeed, setEditingFeed] = useState<any>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   return (
     <DashboardLayout>
@@ -35,6 +37,12 @@ export default function SuppliersPage() {
           title={t("suppliers")}
           count={suppliers.length}
           actions={[
+            {
+              label: "Pesquisar",
+              icon: <Search className="h-4 w-4" />,
+              onClick: () => setShowSearch(true),
+              variant: "outline" as const,
+            },
             {
               label: "Novo Feed",
               icon: <Rss className="h-4 w-4" />,
@@ -84,10 +92,12 @@ export default function SuppliersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("supplierName")}</TableHead>
-                    <TableHead>{t("vatNumber")}</TableHead>
+                    <TableHead>Avaliação</TableHead>
                     <TableHead>{t("category")}</TableHead>
+                    <TableHead>País</TableHead>
                     <TableHead>{t("status")}</TableHead>
-                    <TableHead>{t("email")}</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Website</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -95,12 +105,28 @@ export default function SuppliersPage() {
                   {suppliers.map((s: any) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.vat_number || "—"}</TableCell>
+                      <TableCell>
+                        {s.rating ? (
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} className={`h-3.5 w-3.5 ${star <= s.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                            ))}
+                          </div>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell>{s.category || "—"}</TableCell>
+                      <TableCell>{s.country || "—"}</TableCell>
                       <TableCell>
                         <ProcurementStatusBadge status={s.status} />
                       </TableCell>
-                      <TableCell>{s.email || "—"}</TableCell>
+                      <TableCell>{s.contact_person || s.email || "—"}</TableCell>
+                      <TableCell>
+                        {s.website ? (
+                          <a href={s.website.startsWith("http") ? s.website : `https://${s.website}`} target="_blank" rel="noopener noreferrer" className="text-primary flex items-center gap-1 text-sm">
+                            <Globe className="h-3 w-3" />Abrir
+                          </a>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button size="icon" variant="ghost" onClick={() => { setEditingSupplier(s); setShowForm(true); }}>
                           <Pencil className="h-4 w-4" />
@@ -167,6 +193,14 @@ export default function SuppliersPage() {
           open={showFeedDialog}
           onOpenChange={setShowFeedDialog}
           feed={editingFeed}
+        />
+
+        <SupplierSearchDialog
+          open={showSearch}
+          onOpenChange={setShowSearch}
+          onImport={async (values) => {
+            await create(values);
+          }}
         />
       </div>
     </DashboardLayout>

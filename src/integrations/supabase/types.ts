@@ -44323,55 +44323,91 @@ export type Database = {
         Row: {
           address: string | null
           category: string | null
+          certifications: string[] | null
+          contact_person: string | null
+          contact_person_role: string | null
+          country: string | null
           created_at: string
           default_payment_terms_days: number | null
+          delivery_time_days: number | null
           email: string | null
           iban: string | null
           id: string
+          logo_url: string | null
+          min_order_value: number | null
           name: string
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          platforms: Json | null
+          product_categories: string[] | null
+          rating: number | null
           rating_manual: number | null
           status: string
+          tags: string[] | null
           updated_at: string
           vat_number: string | null
+          website: string | null
           workspace_id: string
         }
         Insert: {
           address?: string | null
           category?: string | null
+          certifications?: string[] | null
+          contact_person?: string | null
+          contact_person_role?: string | null
+          country?: string | null
           created_at?: string
           default_payment_terms_days?: number | null
+          delivery_time_days?: number | null
           email?: string | null
           iban?: string | null
           id?: string
+          logo_url?: string | null
+          min_order_value?: number | null
           name: string
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          platforms?: Json | null
+          product_categories?: string[] | null
+          rating?: number | null
           rating_manual?: number | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
           vat_number?: string | null
+          website?: string | null
           workspace_id: string
         }
         Update: {
           address?: string | null
           category?: string | null
+          certifications?: string[] | null
+          contact_person?: string | null
+          contact_person_role?: string | null
+          country?: string | null
           created_at?: string
           default_payment_terms_days?: number | null
+          delivery_time_days?: number | null
           email?: string | null
           iban?: string | null
           id?: string
+          logo_url?: string | null
+          min_order_value?: number | null
           name?: string
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          platforms?: Json | null
+          product_categories?: string[] | null
+          rating?: number | null
           rating_manual?: number | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
           vat_number?: string | null
+          website?: string | null
           workspace_id?: string
         }
         Relationships: [

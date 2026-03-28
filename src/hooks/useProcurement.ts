@@ -24,20 +24,11 @@ export function useSuppliers(workspaceId: string | undefined) {
   });
 
   const create = useMutation({
-    mutationFn: async (values: { name: string; vat_number?: string; address?: string; payment_terms?: string; iban?: string; email?: string; phone?: string; category?: string; status?: string; notes?: string }) => {
+    mutationFn: async (values: Record<string, any>) => {
       const { error } = await supabase.from("suppliers").insert({
         workspace_id: workspaceId!,
-        name: values.name,
-        vat_number: values.vat_number,
-        address: values.address,
-        payment_terms: values.payment_terms,
-        iban: values.iban,
-        email: values.email,
-        phone: values.phone,
-        category: values.category,
-        status: values.status,
-        notes: values.notes,
-      });
+        ...values,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success(t("supplierCreated")); },
@@ -45,9 +36,9 @@ export function useSuppliers(workspaceId: string | undefined) {
   });
 
   const update = useMutation({
-    mutationFn: async (values: { id: string; name?: string; vat_number?: string; address?: string; payment_terms?: string; iban?: string; email?: string; phone?: string; category?: string; status?: string; notes?: string }) => {
+    mutationFn: async (values: Record<string, any>) => {
       const { id, ...rest } = values;
-      const { error } = await supabase.from("suppliers").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase.from("suppliers").update({ ...rest, updated_at: new Date().toISOString() } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success(t("supplierUpdated")); },
