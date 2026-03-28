@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useBots } from "@/hooks/useBots";
+import { useBots, type Bot as BotType } from "@/hooks/useBots";
 import { BotCard } from "@/components/ai-employees/BotCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +22,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AIEmployeesPage() {
   const navigate = useNavigate();
-  const { bots, isLoading, toggleStatus, deleteBot, activeBots } = useBots();
+  const { bots, isLoading, toggleStatus, deleteBot, createBot, activeBots } = useBots();
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleDuplicate = async (bot: BotType) => {
+    try {
+      await createBot.mutateAsync({
+        name: `${bot.name} (cópia)`,
+        description: bot.description || undefined,
+        type: bot.type,
+        channel: bot.channel || undefined,
+        ai_profile_id: bot.ai_profile_id || undefined,
+        knowledge_base_ids: bot.knowledge_base_ids || [],
+        system_prompt: bot.system_prompt || undefined,
+        guided_config: bot.guided_config || {},
+        settings: bot.settings,
+      });
+      toast.success("Bot duplicado com sucesso!");
+    } catch { toast.error("Erro ao duplicar"); }
+  };
+
+  const handleExport = (bot: BotType) => {
+    const config = { name: bot.name, description: bot.description, type: bot.type, channel: bot.channel, system_prompt: bot.system_prompt, guided_config: bot.guided_config, settings: bot.settings, knowledge_base_ids: bot.knowledge_base_ids };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `bot-${bot.name.toLowerCase().replace(/\s+/g, "-")}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Configuração exportada!");
+  };
 
   const filtered = bots.filter(b =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -107,6 +134,8 @@ export default function AIEmployeesPage() {
                 bot={bot}
                 onToggleStatus={(id, status) => toggleStatus.mutate({ id, status })}
                 onDelete={id => setDeleteId(id)}
+                onDuplicate={handleDuplicate}
+                onExport={handleExport}
               />
             ))}
           </div>

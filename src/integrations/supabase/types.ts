@@ -6593,6 +6593,7 @@ export type Database = {
           ai_profile_id: string | null
           calendar_id: string | null
           channel: string | null
+          channels: string[] | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -6600,17 +6601,23 @@ export type Database = {
           id: string
           knowledge_base_ids: string[] | null
           name: string
+          next_run_at: string | null
+          schedule_cron: string | null
+          schedule_enabled: boolean | null
           settings: Json | null
           status: Database["public"]["Enums"]["bot_status"]
           system_prompt: string | null
           type: Database["public"]["Enums"]["bot_type"]
           updated_at: string
+          webhook_events: string[] | null
+          webhook_url: string | null
           workspace_id: string
         }
         Insert: {
           ai_profile_id?: string | null
           calendar_id?: string | null
           channel?: string | null
+          channels?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -6618,17 +6625,23 @@ export type Database = {
           id?: string
           knowledge_base_ids?: string[] | null
           name: string
+          next_run_at?: string | null
+          schedule_cron?: string | null
+          schedule_enabled?: boolean | null
           settings?: Json | null
           status?: Database["public"]["Enums"]["bot_status"]
           system_prompt?: string | null
           type?: Database["public"]["Enums"]["bot_type"]
           updated_at?: string
+          webhook_events?: string[] | null
+          webhook_url?: string | null
           workspace_id: string
         }
         Update: {
           ai_profile_id?: string | null
           calendar_id?: string | null
           channel?: string | null
+          channels?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -6636,11 +6649,16 @@ export type Database = {
           id?: string
           knowledge_base_ids?: string[] | null
           name?: string
+          next_run_at?: string | null
+          schedule_cron?: string | null
+          schedule_enabled?: boolean | null
           settings?: Json | null
           status?: Database["public"]["Enums"]["bot_status"]
           system_prompt?: string | null
           type?: Database["public"]["Enums"]["bot_type"]
           updated_at?: string
+          webhook_events?: string[] | null
+          webhook_url?: string | null
           workspace_id?: string
         }
         Relationships: [
