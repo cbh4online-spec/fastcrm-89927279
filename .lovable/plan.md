@@ -1,74 +1,107 @@
 
 
-## Pagamentos de Renovação Recorrentes com Ligação SaaS
+## Dunning Automático + Ligação à Faturação nos Contratos de Renovação
 
-### Contexto atual
+### O que vai ser implementado
 
-- A Edge Function `create-renewal-payment-link` usa `mode: "payment"` (one-off)
-- Os contratos têm `renewal_interval` (monthly, quarterly, semi_annual, yearly, custom)
-- A tabela `renewal_payment_links` guarda links criados com status
-- A tabela `workspace_subscriptions` já guarda `stripe_subscription_id`, `stripe_customer_id`, `plan`, `status`, MRR
-- Não existe tracking de movimentos de pagamento individuais
+Quando um pagamento Stripe falha, o sistema escala automaticamente: envia emails de aviso ao cliente (1ª, 2ª, 3ª tentativa), aumenta o nível de risco do contrato e, após 3 falhas consecutivas, cancela automaticamente o contrato e a subscrição Stripe. Os pagamentos recebidos criam faturas automáticas no módulo de faturação.
 
 ---
 
-### Parte 1: Subscrição Stripe Recorrente
+### Parte 1: Lógica de Dunning no Webhook
 
-**Edge Function `create-renewal-payment-link`:**
+**Ficheiro: `supabase/functions/stripe-renewal-webhook/index.ts`**
 
-1. Mudar `mode: "payment"` → `mode: "subscription"` 
-2. Usar `price_data` com `recurring.interval` mapeado do `renewal_interval` do contrato:
-   - monthly → month
-   - quarterly → month + interval_count: 3
-   - semi_annual → month + interval_count: 6
-   - yearly → year
-3. Criar/reutilizar Stripe Customer pelo email do contacto
-4. Guardar `stripe_subscription_id` quando a sessão completar
+No handler `invoice.payment_failed`:
+- Contar tentativas falhadas consecutivas (query `renewal_payment_events` com `event_type = 'payment_failed'` para o contrato)
+- Escalar `risk_level`: 1ª falha → `medium`, 2ª → `high`, 3ª → `critical`
+- Na 3ª falha: cancelar subscrição Stripe via API (`stripe.subscriptions.cancel`) e marcar contrato como `churned`
+- Enviar email de alerta ao cliente em cada falha via `renewal-alert-email`
 
-**Schema (migração):**
+### Parte 2: Emails de Pagamento Falhado
 
-- Adicionar coluna `stripe_subscription_id` à tabela `renewal_contracts`
-- Adicionar coluna `stripe_customer_id` à tabela `renewal_contracts`
-- Criar tabela `renewal_payment_events` para registar movimentos:
-  - `id`, `workspace_id`, `contract_id`, `stripe_event_id`, `event_type` (payment_succeeded, payment_failed, subscription_created, subscription_cancelled), `amount`, `currency`, `stripe_invoice_id`, `metadata`, `created_at`
+**Ficheiro: `supabase/functions/renewal-alert-email/index.ts`**
 
-### Parte 2: Persistência e UI
+Adicionar tipos de alerta `payment_failed_1`, `payment_failed_2`, `payment_failed_3` e `service_cancelled`:
+- 1ª falha: "O seu pagamento falhou. Por favor atualize o método de pagamento."
+- 2ª falha: "Segunda tentativa falhada. O serviço será suspenso em breve."
+- 3ª falha: "Serviço cancelado por falta de pagamento."
 
-**Tab Faturação (`RenewalBillingTab.tsx`):**
+Cada email inclui: nome da empresa, valor, link para atualizar pagamento (Stripe Customer Portal).
 
-- Após criar link, mostrar URL copiável e estado
-- Adicionar secção "Movimentos" que lista `renewal_payment_events`
-- Mostrar badge com estado da subscrição Stripe (ativa/cancelada)
+### Parte 3: Cancelamento Automático
 
-### Parte 3: Webhook para Tracking de Movimentos
+No webhook, após 3 falhas:
+1. `stripe.subscriptions.cancel(subscriptionId)`
+2. `renewal_contracts.status = 'churned'`
+3. `workspace_subscriptions.status = 'cancelled'`
+4. Registar evento `subscription_cancelled` em `renewal_payment_events`
+5. Enviar email de cancelamento ao cliente e notificação ao owner
 
-**Nova Edge Function `stripe-renewal-webhook`:**
+### Parte 4: Ligação à Faturação
 
-- Escuta eventos: `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.deleted`
-- Em `checkout.session.completed`: extrai `contract_id` dos metadata, guarda `stripe_subscription_id` e `stripe_customer_id` no contrato
-- Em `invoice.payment_succeeded`: insere registo em `renewal_payment_events`, atualiza status do contrato
-- Em `invoice.payment_failed`: regista evento, altera risk_level do contrato
+**Ficheiro: `supabase/functions/stripe-renewal-webhook/index.ts`**
 
-### Parte 4: Ligação ao SaaS
+No handler `invoice.payment_succeeded`:
+- Criar fatura automática na tabela `invoices` com:
+  - `company_id` e `contact_id` do contrato
+  - `invoice_number` gerado (formato REN-YYYYMMDD-SEQ)
+  - `status: 'paid'`, `paid_at: now`
+  - `total` = valor do pagamento Stripe
+- Criar `invoice_items` com os itens do contrato de renovação
+- Guardar referência `stripe_invoice_id` nas `notes` da fatura
 
-**Quando o pagamento é recebido:**
+**Ficheiro: `src/components/renewals/RenewalBillingTab.tsx`**
 
-- A webhook actualiza `workspace_subscriptions` do workspace METODOPARE com o `stripe_customer_id` e dados de subscrição
-- O `total_mrr` do contrato alimenta as métricas SaaS existentes (OverviewSection, BillingSection)
-- A ligação é feita via `workspace_id` do contrato → `workspace_subscriptions.workspace_id`
+- Adicionar secção "Faturas" que lista faturas associadas ao contrato (query `invoices` por `company_id` ou nova coluna `renewal_contract_id`)
+- Cada fatura clicável navega para `/dashboard/invoices/:id`
+
+### Parte 5: UI de Dunning
+
+**Ficheiro: `src/components/renewals/RenewalBillingTab.tsx`**
+
+- Mostrar banner de aviso quando há pagamentos falhados recentes
+- Badge "Dunning" com contagem de falhas no cabeçalho da subscrição
+- Eventos de falha com ícone vermelho na lista de movimentos
+
+**Ficheiro: `src/hooks/useRenewalAlerts.ts`**
+
+- Adicionar tipo de alerta `payment_failed` aos alertas de renovação
+- Mostrar contratos com pagamentos falhados nos alertas do dashboard
+
+### Migração SQL
+
+- Adicionar coluna `dunning_attempts` (integer, default 0) a `renewal_contracts`
+- Adicionar coluna `renewal_contract_id` (uuid, nullable, FK) a `invoices` para ligação direta
 
 ### Resumo de ficheiros
 
 | Ficheiro | Ação |
 |---|---|
-| `supabase/functions/create-renewal-payment-link/index.ts` | Alterar para mode: subscription |
-| `supabase/functions/stripe-renewal-webhook/index.ts` | Criar (nova) |
-| Migração SQL | Adicionar colunas + tabela renewal_payment_events |
-| `src/components/renewals/RenewalBillingTab.tsx` | Mostrar movimentos e estado da subscrição |
+| `supabase/functions/stripe-renewal-webhook/index.ts` | Dunning + criação de faturas + cancelamento auto |
+| `supabase/functions/renewal-alert-email/index.ts` | Templates de email para falhas de pagamento |
+| `src/components/renewals/RenewalBillingTab.tsx` | UI dunning + secção faturas |
+| `src/hooks/useRenewalAlerts.ts` | Alerta payment_failed |
+| Migração SQL | `dunning_attempts` + `renewal_contract_id` |
 
-### Notas técnicas
+### Fluxo completo
 
-- O `price_data` com `recurring` é necessário porque os itens de renovação são dinâmicos (não têm Price ID fixo no Stripe)
-- A webhook precisa de `verify_jwt = false` no config.toml
-- O segredo `STRIPE_WEBHOOK_SECRET` será necessário para validar a assinatura da webhook
+```text
+Stripe: payment_failed
+  → webhook recebe evento
+  → conta tentativas falhadas (1, 2, 3)
+  → escala risk_level (medium → high → critical)
+  → envia email ao cliente (aviso 1/2/3)
+  → se 3ª falha:
+      → cancela subscrição Stripe
+      → marca contrato churned
+      → envia email de cancelamento
+      → notifica owner
+
+Stripe: payment_succeeded
+  → webhook recebe evento
+  → reset dunning_attempts = 0
+  → cria fatura no módulo invoices
+  → regista movimento
+```
 
