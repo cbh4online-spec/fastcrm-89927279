@@ -1,60 +1,47 @@
 
 
-# Formulário Funcional para Criação de Verticais
+# Reorganizar Comércio — Separar B2B, B2C e C2C
 
 ## Problema
 
-O formulário atual de criação de verticais tem apenas 4 campos básicos (Nome, Slug, Descrição, Cor). Uma vertical é um conceito estratégico de mercado que precisa de muito mais dados para ser operacional — público-alvo, keywords, ícone, configurações de funil default, etc.
+O grupo "Comércio" mistura 3 modelos de negócio distintos num único menu:
+- **Loja Online (B2C)**: Encomendas, Produtos, Categorias, Cupões, Analíticas
+- **Marketplace C2C**: Marketplace peer-to-peer
+- **Portal B2B**: Portal, Aprovações, Clientes, Utilizadores, Planos
 
-## Campos Atuais na BD
-`name`, `slug`, `description`, `color_theme`, `status`
+Isto cria confusão na navegação.
 
-## Nova Estrutura
+## Solução
 
-### 1. Migração DB — Novos Campos
+Eliminar o grupo genérico "Comércio" e criar **3 grupos independentes**, cada um com o seu ícone e posição na sidebar:
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `icon` | text | Nome do ícone Lucide |
-| `target_audience` | text | Descrição do público-alvo |
-| `keywords` | text[] | Keywords SEO / pesquisa |
-| `pain_points` | text[] | Dores do público |
-| `value_proposition` | text | Proposta de valor principal |
-| `avg_ticket` | numeric | Ticket médio estimado |
-| `market_size` | text | Tamanho do mercado (pequeno/médio/grande) |
-| `priority` | integer | Prioridade 1-5 |
-| `logo_url` | text | Logo/imagem da vertical |
-| `default_cta` | text | CTA padrão dos funis |
-| `notes` | text | Notas internas |
+```text
+Vendas (order 6)
+Compras (order 7)
+Loja Online (order 8)    ← B2C — ícone ShoppingBag
+Marketplace C2C (order 9) ← C2C — ícone Store
+Portal B2B (order 10)     ← B2B — ícone Building2
+Operações (order 11)
+Inteligência (order 12)
+Administração (order 13)
+```
 
-### 2. Formulário com Tabs (Dialog max-w-2xl)
+### Detalhes por grupo
 
-**Tab "Identidade"**:
-- Nome, Slug (auto-gerado), Descrição
-- Seletor de ícone (grid de ícones Lucide populares)
-- Color picker, Logo upload
+**Loja Online** (`loja-online`): Encomendas, Produtos, Categorias, Cupões, Analíticas, Definições — module-gated `online-store`
 
-**Tab "Mercado"**:
-- Público-alvo (textarea)
-- Dores do público (tag input)
-- Proposta de valor
-- Ticket médio, Tamanho do mercado (select)
-- Prioridade (estrelas 1-5)
+**Marketplace C2C** (`marketplace-c2c`): Marketplace C2C e sub-páginas — module-gated `marketplace-c2c`
 
-**Tab "SEO & Funis"**:
-- Keywords (tag input)
-- CTA padrão
-- Notas internas
-- Status (ativo/inativo)
+**Portal B2B** (`portal-b2b`): Portal, Aprovações, Clientes, Utilizadores, Planos — module-gated `b2b-portal`
 
-### 3. Componente Separado
+## Implementação
 
-Extrair o formulário para `src/components/funnels/CreateVerticalDialog.tsx` — componente reutilizável com suporte a criação e edição.
+**Ficheiro único**: `src/config/routeManifest.ts`
 
-### Ficheiros
-
-- **Migração SQL**: ALTER TABLE verticals ADD COLUMN para cada novo campo
-- **Novo**: `src/components/funnels/CreateVerticalDialog.tsx`
-- **Editado**: `src/components/funnels/FunnelsList.tsx` — substituir dialog inline pelo novo componente
-- **Editado**: `src/hooks/useVerticals.ts` — suportar novos campos no create/update
+1. Remover `"comercio"` do type `NavGroup`
+2. Adicionar `"loja-online"`, `"marketplace-c2c"`, `"portal-b2b"`
+3. Criar 3 entradas em `NAV_GROUPS` com ícones distintos
+4. Reassignar cada rota ao seu novo grupo
+5. Ajustar `order` dos grupos seguintes
+6. Atualizar teste `navigation.test.ts` (contagem de grupos: 10 → 12)
 
