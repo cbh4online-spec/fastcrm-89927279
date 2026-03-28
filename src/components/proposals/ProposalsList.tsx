@@ -863,6 +863,9 @@ export function ProposalsList() {
           onClearFilter={() => {
             setActiveFilterId(undefined);
             setStatusFilter(undefined);
+            setValueFilter(undefined);
+            setTimingFilter(undefined);
+            setPerfFilter(undefined);
           }}
           isOpen={showFilterSidebar}
           onClose={() => setShowFilterSidebar(false)}
