@@ -105,11 +105,11 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "suporte",          label: "Suporte",          icon: Headphones,      order: 8,  collapsible: true },
   { key: "rh",               label: "RH",               icon: Clock,           order: 9,  collapsible: true },
   { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 10, collapsible: true },
-  { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 10, collapsible: true },
-  { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 11, collapsible: true },
-  { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 12, collapsible: true },
-  { key: "inteligencia",     label: "Inteligência",     icon: Brain,           order: 13, collapsible: true },
-  { key: "administracao",    label: "Administração",    icon: Settings,        order: 14, collapsible: true },
+  { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 11, collapsible: true },
+  { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 12, collapsible: true },
+  { key: "operacoes",        label: "Operações",        icon: ClipboardList,   order: 13, collapsible: true },
+  { key: "inteligencia",     label: "Inteligência",     icon: Brain,           order: 14, collapsible: true },
+  { key: "administracao",    label: "Administração",    icon: Settings,        order: 15, collapsible: true },
 ];
 
 export const NAV_GROUP_ORDER: NavGroup[] = NAV_GROUPS.map((g) => g.key);
