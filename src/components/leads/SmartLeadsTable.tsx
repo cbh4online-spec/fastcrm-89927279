@@ -460,32 +460,36 @@ export function SmartLeadsTable() {
           </div>
         ) : (
           <>
-            {selectedIds.size > 0 && (
-              <div className="mt-4 space-y-2">
-                <BulkActionsBar
-                  entityType="leads"
-                  selectedCount={selectedIds.size}
-                  onClearSelection={() => setSelectedIds(new Set())}
-                  onDelete={handleBulkDelete}
-                  onExport={handleExport}
-                  onAddTags={async (tags) => {
-                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes: { tags } });
-                    toast.success(`Tags aplicadas a ${selectedIds.size} leads`);
-                    setSelectedIds(new Set());
-                  }}
-                  onBulkEdit={async (changes) => {
-                    await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes });
-                    toast.success(`${selectedIds.size} leads atualizados`);
-                    setSelectedIds(new Set());
-                  }}
-                  editableFields={leadBulkEditFields}
-                />
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
-                  <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
+            {selectedIds.size > 0 && (() => {
+              const allTags = [...new Set((leads || []).flatMap(l => (l as any).tags || []))].sort();
+              return (
+                <div className="mt-4 space-y-2">
+                  <BulkActionsBar
+                    entityType="leads"
+                    selectedCount={selectedIds.size}
+                    onClearSelection={() => setSelectedIds(new Set())}
+                    onDelete={handleBulkDelete}
+                    onExport={handleExport}
+                    onAddTags={async (tags) => {
+                      await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes: { tags } });
+                      toast.success(`Tags aplicadas a ${selectedIds.size} leads`);
+                      setSelectedIds(new Set());
+                    }}
+                    onBulkEdit={async (changes) => {
+                      await bulkUpdateLeads.mutateAsync({ ids: Array.from(selectedIds), changes });
+                      toast.success(`${selectedIds.size} leads atualizados`);
+                      setSelectedIds(new Set());
+                    }}
+                    editableFields={leadBulkEditFields}
+                    availableTags={allTags}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+                    <Button variant="outline" size="sm" onClick={handleBulkAnalyzeLinkedIn} disabled={bulkAnalyzeLinkedIn.isPending}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 min-h-0 overflow-y-auto">
               <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>

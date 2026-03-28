@@ -49,6 +49,7 @@ export function BulkActionsBar({
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isApplyingTags, setIsApplyingTags] = useState(false);
