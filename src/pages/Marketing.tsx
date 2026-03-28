@@ -40,6 +40,7 @@ import { WebhookEventsPanel } from '@/components/marketing/WebhookEventsPanel';
 import { CampaignLandingPages } from '@/components/marketing/CampaignLandingPages';
 import { CampaignReportExport } from '@/components/marketing/CampaignReportExport';
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
+import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { toast } from 'sonner';
 
 export default function Marketing() {

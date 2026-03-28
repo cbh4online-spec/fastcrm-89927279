@@ -197,6 +197,11 @@ export function CampaignMetadataForm({
               </div>
             </div>
 
+            {/* Audience Estimator */}
+            {formData.segmentId && (
+              <AudienceEstimator segmentId={formData.segmentId} />
+            )}
+
             <Separator />
 
             {/* Send Mode */}
