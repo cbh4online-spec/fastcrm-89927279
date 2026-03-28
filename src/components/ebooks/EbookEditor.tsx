@@ -98,6 +98,42 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     if (chapterImgRef.current) chapterImgRef.current.value = "";
   };
 
+  const generateCoverAI = async () => {
+    if (!ebook) return;
+    setGeneratingCoverAI(true);
+    try {
+      const prompt = `Create a professional, modern eBook cover image for a book titled "${ebook.title}"${ebook.subtitle ? ` with subtitle "${ebook.subtitle}"` : ""}. The image should be visually striking, suitable for a digital book cover, with abstract or thematic elements. Do NOT include any text in the image. High quality, editorial style.`;
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "generate_image", imagePrompt: prompt, ebookId, target: "cover" },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.url) {
+        updateEbook.mutate({ id: ebookId, cover_url: data.url });
+        toast.success("Capa gerada com IA!");
+      }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingCoverAI(false); }
+  };
+
+  const generateChapterImageAI = async () => {
+    if (!ebook || !activeChapterId) return;
+    const ch = ebook.chapters.find(c => c.id === activeChapterId);
+    if (!ch) return;
+    setGeneratingChapterImgAI(true);
+    try {
+      const prompt = `Create a professional, atmospheric illustration for an eBook chapter titled "${ch.title}" from the book "${ebook.title}". The image should be evocative, editorial quality, suitable as a chapter header. Abstract or thematic, no text in the image. Wide format, cinematic.`;
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "generate_image", imagePrompt: prompt, ebookId, target: `chapter-${activeChapterId}` },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      if (data?.url) {
+        saveChapters(ebook.chapters.map(c => c.id === activeChapterId ? { ...c, cover_image: data.url } : c));
+        toast.success("Imagem do capítulo gerada com IA!");
+      }
+    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingChapterImgAI(false); }
+  };
+
   const generateChapterContent = async (chapter: EbookChapter) => {
     if (!ebook) return;
     setGenerating(chapter.id);
