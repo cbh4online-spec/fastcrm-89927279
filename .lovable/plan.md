@@ -1,37 +1,83 @@
 
 
-# Fix: Texto invisível nas páginas de conteúdo do eBook
+# eBook Editor — Funcionalidades Gamma-style
 
-## Problema
-As páginas de conteúdo (tipo "content") mostram texto quase invisível/muito claro. O screenshot confirma que o texto está renderizado mas com cor demasiado clara.
+## Resumo
 
-## Causa provável
-As classes Tailwind `prose-p:text-slate-700` podem não estar a aplicar correctamente por especificidade CSS. Além disso, a cor `text-slate-700` em fundo `#fefcf9` pode ter contraste insuficiente dependendo do rendering.
+Transformar o editor atual (Textarea + Markdown) num editor visual WYSIWYG com sidebar de ferramentas, thumbnails de páginas, toolbar inline e modo apresentação — como o Gamma.
 
-## Solução
+---
 
-### `src/components/ebooks/FlipbookPage.tsx` — Content page (linhas 86-127)
+## Funcionalidades a construir
 
-Reforçar as cores do texto com classes mais explícitas e maior contraste:
+### 1. Editor Rich Text (WYSIWYG)
+Substituir o `<Textarea>` atual por um editor `contentEditable` baseado no `RichTextEditor` que já existe no projeto (em `email-builder/`). O conteúdo passa de Markdown para HTML internamente.
 
-- Mudar `prose-p:text-slate-700` para `prose-p:text-slate-800` (mais escuro)
-- Adicionar `text-slate-800` diretamente no container div para garantir herança de cor
-- Mudar `prose-strong:text-slate-800` para `prose-strong:text-slate-900`
-- Mudar `prose-ul:text-slate-700 prose-ol:text-slate-700` para `text-slate-800`
-- Mudar `prose-li:text-[13.5px]` para incluir cor `prose-li:text-slate-800`
-- Adicionar `[&_*]:!text-slate-800` como fallback para garantir que nenhum elemento fica transparente (exceto headings e first-letter que têm cores próprias)
+- Reutilizar padrão `contentEditable` + `document.execCommand` já existente
+- Suporte para: headings (H1-H3), bold, italic, underline, listas, links, imagens inline
+- Converter conteúdo Markdown existente para HTML na migração
 
-### Alteração concreta
-No div do conteúdo (linha 97), adicionar `text-slate-800` e reforçar cores:
-```
-<div className="flex-1 overflow-y-auto prose prose-sm max-w-none font-serif text-slate-800
-  prose-p:leading-[1.85] prose-p:text-slate-800 prose-p:mb-4 prose-p:text-[13.5px]
-  prose-headings:text-slate-900 ...
-  prose-strong:text-slate-900
-  prose-ul:text-slate-800 prose-ol:text-slate-800 prose-li:text-[13.5px] prose-li:text-slate-800
-  ...
-```
+### 2. Sidebar direita — Toolbar de blocos de conteúdo
+Painel lateral direito com ícones para inserir elementos (como no Gamma):
 
-### Ficheiro editado
-- `src/components/ebooks/FlipbookPage.tsx` (linhas 97-106)
+| Ícone | Bloco |
+|-------|-------|
+| Aa | Texto / Heading |
+| 🖼 | Imagem (upload ou IA) |
+| ── | Divisor |
+| ❝ | Citação/Quote |
+| 📊 | Tabela simples |
+| 🔲 | Layout 2 colunas |
+
+Cada botão insere o bloco na posição do cursor no editor.
+
+### 3. Thumbnails de páginas no sidebar esquerdo
+Substituir a lista de texto dos capítulos por mini-previews visuais (como o Gamma mostra slides numerados). Cada thumbnail mostra uma miniatura renderizada do conteúdo do capítulo com número.
+
+### 4. Drag & Drop de capítulos
+Adicionar reordenação por arrastar no sidebar esquerdo usando a biblioteca `@dnd-kit` ou HTML5 drag events.
+
+### 5. Botão "Tema" na barra superior
+Adicionar botão "Tema" no header do editor que abre o `EbookThemeSelector` existente num popover. O tema selecionado persiste no eBook (coluna `theme` já existe na DB).
+
+### 6. Modo Apresentação / Fullscreen
+Botão "Apresentar" que abre o `FlipbookReader` em modo fullscreen (como o botão "Apresentar" do Gamma).
+
+### 7. Floating toolbar inline
+Ao selecionar texto, mostrar toolbar flutuante com: Bold, Italic, Underline, Link, AI (reescrever/melhorar seleção). Reutilizar o `InlineToolbar` já existente no `email-builder/`.
+
+### 8. Menu de ações por bloco
+Ao hover sobre um bloco, mostrar ícone `⋮` com menu: Duplicar, Eliminar, Mover ↑↓, Reescrever com IA.
+
+---
+
+## Alterações técnicas
+
+### Ficheiros novos
+- `src/components/ebooks/EbookRichEditor.tsx` — editor contentEditable para capítulos
+- `src/components/ebooks/EbookBlockToolbar.tsx` — sidebar direita com ferramentas de blocos
+- `src/components/ebooks/ChapterThumbnail.tsx` — mini-preview visual de capítulo
+- `src/components/ebooks/BlockActionMenu.tsx` — menu contextual por bloco
+
+### Ficheiros editados
+- `src/components/ebooks/EbookEditor.tsx` — layout 3 colunas (thumbnails | editor | toolbar), integrar WYSIWYG, tema no header, botão apresentar
+- `src/components/ebooks/FlipbookReader.tsx` — adicionar prop para modo fullscreen
+
+### Dependências
+- Nenhuma nova — reutilizar `contentEditable` + `document.execCommand` (padrão já usado no email-builder)
+- Drag & drop via HTML5 nativo (sem lib extra)
+
+### Migração de dados
+- Função utilitária para converter Markdown → HTML (para capítulos existentes), executada on-read no editor
+
+---
+
+## Ordem de implementação
+
+1. Editor WYSIWYG + floating toolbar (core)
+2. Sidebar direita com blocos de conteúdo
+3. Thumbnails visuais no sidebar esquerdo
+4. Drag & drop de capítulos
+5. Botão Tema + Apresentar no header
+6. Menu de ações por bloco
 
