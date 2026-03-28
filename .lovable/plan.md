@@ -1,44 +1,39 @@
 
 
-## Ações em Massa + Vista Kanban para Leads
+## Ações em massa com tags para Contatos e Empresas
 
-### 1. Ações em massa (Bulk Actions)
+### Situação atual
 
-A tabela de leads (`SmartLeadsTable`) já tem seleção múltipla mas só oferece: Analisar AI, LinkedIn, Exportar e Eliminar. Vou substituir essa barra básica pelo componente `BulkActionsBar` já existente no sistema unificado, adicionando:
+| Componente | BulkActionsBar | Tags no popover | Bulk Edit | bulkUpdate hook |
+|---|---|---|---|---|
+| **Leads** | ✅ | ✅ (tags dos leads + workspace_tags) | ✅ | ✅ `useBulkUpdateLeads` |
+| **Contatos** | ✅ | ❌ (não passa `availableTags`) | ✅ | ✅ `bulkUpdateContacts` (já no hook) |
+| **Empresas** | ❌ (barra inline básica) | ❌ | ❌ | ❌ |
 
-**Novo hook `useBulkUpdateLeads`** em `src/hooks/useLeads.ts`:
-- Recebe array de IDs + campos a alterar (status, tags, assigned_to, lead_type, etc.)
-- Executa update em batch via Supabase `.in('id', ids)`
-- Invalida queries relevantes
+### Alterações
 
-**Integração na `SmartLeadsTable`** (linhas 438-446):
-- Substituir a barra inline atual pela `BulkActionsBar` que já suporta:
-  - **Adicionar tags** (popover com tags existentes + criar nova)
-  - **Edição em massa** (dialog `BulkEditDialog` com campos selecionáveis)
-  - **Exportar** e **Eliminar**
-- Definir `editableFields` para leads: status, assigned_to, tags, lead_type, source, city, company_name
-- Manter botões de Analisar AI e LinkedIn como ações extra na barra
+#### 1. Contatos — `AttioContactsTable.tsx`
+- Extrair todas as tags dos contatos + `useWorkspaceTags` e passar como `availableTags` ao `BulkActionsBar` já existente
+- Sincronizar tags adicionadas ao `workspace_tags` via `useSyncLeadTagsToWorkspace`
 
-### 2. Vista Kanban configurável
+#### 2. Empresas — `SmartCompaniesTable.tsx` + `useCompanies.ts`
 
-**Novo componente `LeadsKanbanView`** em `src/components/leads/`:
-- Colunas agrupáveis por: **status** (default), **temperatura** ou **lead_type**
-- Cada coluna mostra contagem e cards com: nome, avatar, tags, score
-- **Drag-and-drop** nativo (HTML5) para mover leads entre colunas (atualiza o campo correspondente)
-- Configuração do agrupamento via dropdown no header
+**Hook** (`useCompanies.ts`):
+- Adicionar `addTagsToCompanies` e `bulkUpdateCompanies` mutations (padrão idêntico ao de contatos)
 
-**Nova tab na `SmartLeadsTable`**:
-- Adicionar tab "Kanban" ao array `pageTabs` (já existe Leads, Duplicates, Smart Lists, Automations, Import)
-- Renderizar `LeadsKanbanView` quando tab ativa = "kanban"
-- Partilha os mesmos filtros e pesquisa da vista tabela
+**Tabela** (`SmartCompaniesTable.tsx`):
+- Substituir a barra inline (linhas 273-281) pelo `BulkActionsBar`
+- Definir `companyBulkEditFields`: industry, source, size, tags
+- Calcular `availableTags` a partir dos dados + `useWorkspaceTags`
+- Manter botões extra de AI, Revenue Intelligence e LinkedIn como estão
 
-### Ficheiros a criar/alterar
+### Ficheiros
 
 | Ficheiro | Ação |
 |---|---|
-| `src/hooks/useLeads.ts` | Adicionar `useBulkUpdateLeads` |
-| `src/components/leads/SmartLeadsTable.tsx` | Integrar `BulkActionsBar`, tab Kanban |
-| `src/components/leads/LeadsKanbanView.tsx` | **Novo** — vista kanban com drag-and-drop |
+| `src/components/contacts/AttioContactsTable.tsx` | Adicionar `availableTags` e sync ao `BulkActionsBar` |
+| `src/components/companies/SmartCompaniesTable.tsx` | Substituir barra básica por `BulkActionsBar` com tags e bulk edit |
+| `src/hooks/useCompanies.ts` | Adicionar `addTagsToCompanies` e `bulkUpdateCompanies` |
 
-Sem alterações de base de dados — usa os campos existentes (status, tags, assigned_to, ai_temperature, lead_type).
+Sem alterações de base de dados.
 
