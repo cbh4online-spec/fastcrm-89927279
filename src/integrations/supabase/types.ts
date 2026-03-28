@@ -21541,6 +21541,58 @@ export type Database = {
           },
         ]
       }
+      funnel_ebooks: {
+        Row: {
+          created_at: string
+          ebook_id: string
+          funnel_id: string
+          id: string
+          order_index: number
+          position: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          ebook_id: string
+          funnel_id: string
+          id?: string
+          order_index?: number
+          position?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          ebook_id?: string
+          funnel_id?: string
+          id?: string
+          order_index?: number
+          position?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_ebooks_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_ebooks_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_ebooks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_products: {
         Row: {
           created_at: string

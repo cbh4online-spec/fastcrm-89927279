@@ -15,6 +15,7 @@ import { FunnelRoutingTab } from "./tabs/FunnelRoutingTab";
 import { FunnelAutomationsTab } from "./tabs/FunnelAutomationsTab";
 import { FunnelAnalyticsTab } from "./tabs/FunnelAnalyticsTab";
 import { FunnelRevenueTab } from "./tabs/FunnelRevenueTab";
+import { FunnelEbooksTab } from "./tabs/FunnelEbooksTab";
 
 interface FunnelBuilderProps {
   funnelId: string;
@@ -80,6 +81,7 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
             <TabsTrigger value="stats">Stats</TabsTrigger>
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="ebooks">eBooks</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="ai-insights">AI</TabsTrigger>
           </TabsList>
@@ -111,6 +113,9 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
         </TabsContent>
         <TabsContent value="products">
           <FunnelProductsTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="ebooks">
+          <FunnelEbooksTab funnelId={funnelId} />
         </TabsContent>
         <TabsContent value="settings">
           <FunnelSettingsTab funnelId={funnelId} />
