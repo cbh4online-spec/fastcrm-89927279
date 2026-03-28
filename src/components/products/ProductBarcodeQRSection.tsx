@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import QRCode from "react-qr-code";
 import { useUpdateProduct } from "@/hooks/useProducts";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { AlertTriangle } from "lucide-react";
 
 interface ProductBarcodeQRSectionProps {
   productId: string;
@@ -24,10 +26,6 @@ interface ProductBarcodeQRSectionProps {
   sku?: string | null;
   sheetSlug?: string | null;
   sheetPublished?: boolean;
-}
-
-function getPublicBaseUrl() {
-  return window.location.origin;
 }
 
 export function ProductBarcodeQRSection({
@@ -195,11 +193,16 @@ export function ProductBarcodeQRSection({
               <QRCode value={qrValue} size={96} level="M" />
             </div>
 
-            <div className="space-y-2 flex-1 min-w-0">
+          <div className="space-y-2 flex-1 min-w-0">
               {publicUrl && sheetPublished ? (
                 <p className="text-xs text-muted-foreground break-all">
                   {publicUrl}
                 </p>
+              ) : !sheetPublished ? (
+                <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>Ficha não publicada — publique primeiro nas definições da ficha para o QR funcionar publicamente.</span>
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
                   QR aponta para a ficha interna do produto

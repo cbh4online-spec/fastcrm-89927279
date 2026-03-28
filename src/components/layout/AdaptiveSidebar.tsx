@@ -279,7 +279,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             </div>
           )}
           {isCollapsed && idx > 0 && <div className="my-2 mx-2 border-t border-sidebar-border" />}
-          <div className="space-y-0.5">{section.items.map((item) => renderLink(item))}</div>
+          <div className="space-y-1">{section.items.map((item) => renderLink(item))}</div>
         </div>
       );
     }
@@ -300,7 +300,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                 <ChevronRight className={cn("w-3.5 h-3.5 text-sidebar-foreground/30 transition-transform duration-200", groupOpen && "rotate-90")} />
               </div>
             </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-0.5 mt-0.5">
+            <CollapsibleContent className="space-y-1 mt-0.5">
               {section.items.map((item) => renderLink(item, true))}
             </CollapsibleContent>
           </div>
