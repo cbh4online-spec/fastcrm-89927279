@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Globe, Search, Users, ArrowRight, Coins, TrendingUp,
   BarChart3, Zap, Lock, Crown, Target, Activity, History,
-  Clock, Download, Sparkles
+  Clock, Download, Sparkles, CheckCircle2, XCircle, Shield,
+  Rocket, Star, Info
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
@@ -290,90 +292,209 @@ export default function ProspectingHub() {
             <ProspectingAnalytics />
           </TabsContent>
 
-          <TabsContent value="pricing" className="space-y-4">
+          <TabsContent value="pricing" className="space-y-6">
+            {/* Current balance hero */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500/10 via-background to-primary/5 border p-6">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                    <Coins className="h-7 w-7 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Saldo atual</p>
+                    <p className="text-3xl font-bold text-foreground">{balance} <span className="text-base font-normal text-muted-foreground">créditos</span></p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="gap-1.5 px-3 py-1.5 bg-background self-start">
+                  <Crown className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-xs capitalize">Plano {plan}</span>
+                </Badge>
+              </div>
+            </div>
+
+            {/* Cost table */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Coins className="h-5 w-5 text-primary" />
                   Tabela de Custos — Prospeção
                 </CardTitle>
+                <p className="text-xs text-muted-foreground">Cada ação consome créditos do seu saldo. Veja abaixo o custo de cada operação.</p>
               </CardHeader>
-              <CardContent>
-                <div className="divide-y divide-border">
-                  {prospectingRules.map((rule) => (
-                    <div key={rule.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{rule.label}</p>
-                        {rule.description && (
-                          <p className="text-xs text-muted-foreground">{rule.description}</p>
-                        )}
+              <CardContent className="p-0">
+                {/* Category headers */}
+                {["search", "ai", "action"].map((cat) => {
+                  const catRules = prospectingRules.filter(r => r.category === cat);
+                  if (catRules.length === 0) return null;
+                  const catLabel = cat === "search" ? "Pesquisa" : cat === "ai" ? "Inteligência Artificial" : "Ações";
+                  const CatIcon = cat === "search" ? Search : cat === "ai" ? Zap : Activity;
+                  const catColor = cat === "search" ? "text-blue-500" : cat === "ai" ? "text-purple-500" : "text-emerald-500";
+                  const catBg = cat === "search" ? "bg-blue-500/10" : cat === "ai" ? "bg-purple-500/10" : "bg-emerald-500/10";
+
+                  return (
+                    <div key={cat}>
+                      <div className="flex items-center gap-2 px-6 py-3 bg-muted/30 border-y border-border/50">
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-md ${catBg}`}>
+                          <CatIcon className={`h-3.5 w-3.5 ${catColor}`} />
+                        </div>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{catLabel}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={`gap-1 ${
-                            rule.category === "ai"
-                              ? "border-purple-500/30 text-purple-500"
-                              : rule.category === "search"
-                              ? "border-blue-500/30 text-blue-500"
-                              : "border-muted-foreground/30"
-                          }`}
-                        >
-                          {rule.category === "ai" && <Zap className="h-3 w-3" />}
-                          {rule.category === "search" && <Search className="h-3 w-3" />}
-                          {rule.category === "action" && <Activity className="h-3 w-3" />}
-                          {rule.credits_cost} créditos
-                        </Badge>
+                      <div className="divide-y divide-border/50">
+                        {catRules.map((rule) => (
+                          <div key={rule.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/20 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${catBg}`}>
+                                <CatIcon className={`h-4 w-4 ${catColor}`} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{rule.label}</p>
+                                {rule.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{rule.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-foreground">{rule.credits_cost}</p>
+                                <p className="text-[10px] text-muted-foreground">créditos</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                  {prospectingRules.length === 0 && (
-                    <p className="text-sm text-muted-foreground py-4 text-center">
-                      Nenhuma regra de precificação configurada.
-                    </p>
-                  )}
-                </div>
+                  );
+                })}
+                {prospectingRules.length === 0 && (
+                  <div className="px-6 py-8 text-center">
+                    <Info className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Nenhuma regra de precificação configurada.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Plan comparison */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {(["starter", "growth", "scale"] as const).map((p) => {
-                const limits = PROSPECTING_LIMITS[p];
-                const isCurrent = plan === p;
-                return (
-                  <Card
-                    key={p}
-                    className={`${isCurrent ? "border-primary ring-1 ring-primary/20" : "border-border/50"}`}
-                  >
-                    <CardContent className="p-5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold capitalize text-foreground">{p}</h4>
-                        {isCurrent && (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                            Atual
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-2xl font-bold text-foreground">
-                        {limits.searches === -1 ? "∞" : limits.searches}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{limits.label}</p>
-                      {!isCurrent && p !== "starter" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2"
-                          onClick={() => createCheckout(p)}
-                        >
-                          Upgrade para {p}
-                        </Button>
+            <div>
+              <h3 className="text-base font-semibold text-foreground mb-1">Comparar Planos</h3>
+              <p className="text-xs text-muted-foreground mb-4">Escolha o plano ideal para as suas necessidades de prospeção.</p>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {([
+                  {
+                    key: "starter" as const,
+                    icon: Shield,
+                    color: "text-muted-foreground",
+                    features: ["Acesso limitado ao CRM", "Sem prospeção", "Sem IA"],
+                    highlighted: false,
+                  },
+                  {
+                    key: "growth" as const,
+                    icon: Rocket,
+                    color: "text-primary",
+                    features: ["100 pesquisas/mês", "Google Local + Web", "Enriquecimento IA", "Importação de leads", "Histórico de pesquisas"],
+                    highlighted: true,
+                  },
+                  {
+                    key: "scale" as const,
+                    icon: Star,
+                    color: "text-amber-500",
+                    features: ["Pesquisas ilimitadas", "Todas as fontes", "IA avançada", "Outreach automático", "API de prospeção", "Suporte prioritário"],
+                    highlighted: false,
+                  },
+                ]).map(({ key: p, icon: PlanIcon, color, features, highlighted }) => {
+                  const limits = PROSPECTING_LIMITS[p];
+                  const isCurrent = plan === p;
+                  return (
+                    <Card
+                      key={p}
+                      className={`relative overflow-hidden transition-all ${
+                        highlighted
+                          ? "border-primary ring-1 ring-primary/20 shadow-lg shadow-primary/5"
+                          : isCurrent
+                          ? "border-primary/50"
+                          : "border-border/50"
+                      }`}
+                    >
+                      {highlighted && !isCurrent && (
+                        <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-[10px] font-semibold text-center py-1 uppercase tracking-wider">
+                          Recomendado
+                        </div>
                       )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      <CardContent className={`p-6 space-y-4 ${highlighted && !isCurrent ? "pt-8" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <PlanIcon className={`h-5 w-5 ${color}`} />
+                            <h4 className="font-bold text-lg capitalize text-foreground">{p}</h4>
+                          </div>
+                          {isCurrent && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                              Atual
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            {limits.searches === -1 ? "∞" : limits.searches}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{limits.label}</p>
+                        </div>
+
+                        <Separator />
+
+                        <ul className="space-y-2.5">
+                          {features.map((f) => (
+                            <li key={f} className="flex items-center gap-2 text-sm">
+                              {p === "starter" && f.startsWith("Sem") ? (
+                                <XCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                              )}
+                              <span className={`${p === "starter" && f.startsWith("Sem") ? "text-muted-foreground" : "text-foreground"}`}>
+                                {f}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {!isCurrent && p !== "starter" && (
+                          <Button
+                            className={`w-full mt-2 gap-1.5 ${highlighted ? "" : "variant-outline"}`}
+                            variant={highlighted ? "default" : "outline"}
+                            onClick={() => createCheckout(p)}
+                          >
+                            <Crown className="h-4 w-4" />
+                            Upgrade para {p}
+                          </Button>
+                        )}
+                        {isCurrent && (
+                          <div className="text-center text-xs text-muted-foreground py-2">
+                            O seu plano atual
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* FAQ-like info */}
+            <Card className="bg-muted/20">
+              <CardContent className="p-5">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Como funcionam os créditos?</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Cada ação de prospeção consome créditos do seu saldo. O custo varia consoante o tipo de operação — pesquisas simples custam menos, enquanto ações de IA (como enriquecimento e qualificação) consomem mais. Os créditos são deduzidos automaticamente e pode consultar o histórico de consumo na aba Analytics.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
