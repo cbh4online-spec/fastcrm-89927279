@@ -193,14 +193,35 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
           {/* Page */}
           <div
-            className={`${pageWidth} ${pageHeight} relative overflow-hidden cursor-pointer select-none`}
+            className={`${pageWidth} ${pageHeight} relative overflow-hidden`}
             style={{ perspective: "1200px" }}
-            onClick={onPageClick}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
             {/* Book shadow */}
             <div className="absolute inset-0 rounded-lg shadow-[0_0_60px_rgba(0,0,0,0.4)] pointer-events-none z-10" />
+
+            {/* Left edge navigation */}
+            {currentPage > 0 && (
+              <button
+                onClick={prev}
+                className="absolute left-0 top-0 bottom-0 w-10 z-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-gradient-to-r from-black/10 to-transparent cursor-pointer"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-5 w-5 text-slate-500" />
+              </button>
+            )}
+
+            {/* Right edge navigation */}
+            {currentPage < pages.length - 1 && (
+              <button
+                onClick={next}
+                className="absolute right-0 top-0 bottom-0 w-10 z-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-gradient-to-l from-black/10 to-transparent cursor-pointer"
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="h-5 w-5 text-slate-500" />
+              </button>
+            )}
 
             <AnimatePresence initial={false} custom={direction} mode="wait">
               <motion.div
