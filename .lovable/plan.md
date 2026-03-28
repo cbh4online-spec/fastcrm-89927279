@@ -1,28 +1,26 @@
 
+# Fix Supplier Web Search (Firecrawl)
 
-# Associar Tarefa a Contacto, Lead ou Empresa
+## Problem
 
-## O que muda
+The `supplier-web-search` edge function is failing. The Firecrawl connector is linked and active, but the function produces no logs — suggesting it crashes on startup or during auth validation. The likely cause is `supabase.auth.getClaims()` which may not be available in the Deno Supabase client version.
 
-Adicionar ao diálogo "Nova Tarefa" (`CreateTaskDialog.tsx`) um campo de associação que permite escolher o tipo de entidade (Contacto, Lead, Empresa) e pesquisar/selecionar o registo específico.
+## Fix
 
-## Como funciona
+### 1. Edge Function: `supabase/functions/supplier-web-search/index.ts`
 
-1. **Novo campo "Associar a"** — aparece depois da Prioridade, antes da Data Limite:
-   - Dropdown para selecionar tipo: Contacto, Lead, Empresa (ou "Geral" = sem associação)
-   - Ao selecionar um tipo, aparece um campo de pesquisa com autocomplete que busca registos da tabela respectiva (`contacts`, `leads`, `companies`)
-   - O registo selecionado mostra nome + badge do tipo
+- Replace `getClaims()` auth with `supabase.auth.getUser(token)` — the standard and reliable method
+- Improve error handling to return 200 with structured error payloads (resilient pattern) so the frontend gets useful error messages instead of generic catch-all
+- Keep the Firecrawl search + AI extraction logic unchanged
 
-2. **Alteração na interface `onCreateTask`** — passar `related_type` e `related_id` no objecto de criação (o hook `useCreateTask` já suporta estes campos)
+### 2. Frontend: `src/components/procurement/SupplierSearchDialog.tsx`
 
-3. **Pesquisa de entidades** — query simples com `.ilike('name', '%term%')` limitada a 10 resultados, executada com debounce de 300ms
+- Improve error handling to show specific error messages from the edge function response (e.g., "AI credits exhausted", "Rate limit") instead of the generic Firecrawl message
+- Check `data.error` in addition to the `error` parameter from `invoke`
 
-## Ficheiros
+## Changes Summary
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/tasks/CreateTaskDialog.tsx` | Adicionar selector de tipo + campo de pesquisa de entidade com autocomplete |
-| `src/pages/TasksPage.tsx` | Passar `related_type` e `related_id` do dialog para o `createTask.mutateAsync` |
-
-Não são necessárias alterações na base de dados — a tabela `tasks` já tem as colunas `related_type` e `related_id`.
-
+| File | Change |
+|------|--------|
+| `supabase/functions/supplier-web-search/index.ts` | Replace `getClaims` with `getUser`, return 200 with error payload for non-fatal errors |
+| `src/components/procurement/SupplierSearchDialog.tsx` | Show specific error messages from response |
