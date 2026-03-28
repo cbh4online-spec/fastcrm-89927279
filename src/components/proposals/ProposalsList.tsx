@@ -68,8 +68,10 @@ import {
   CheckCircle2,
   XCircle,
   ShoppingCart,
+  BarChart3,
+  Percent,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday, isThisWeek, isThisMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
@@ -193,6 +195,11 @@ export function ProposalsList() {
   const quickStatusChange = useQuickStatusChange();
   const convertToOrderNote = useConvertProposalToOrderNote();
 
+  // Additional filter state
+  const [valueFilter, setValueFilter] = useState<string | undefined>();
+  const [timingFilter, setTimingFilter] = useState<string | undefined>();
+  const [perfFilter, setPerfFilter] = useState<string | undefined>();
+
   // Filter and search
   const filteredProposals = useMemo(() => {
     if (!proposals) return [];
@@ -201,6 +208,38 @@ export function ProposalsList() {
     // Status filter
     if (statusFilter) {
       result = result.filter((p) => p.status === statusFilter);
+    }
+
+    // Value filter
+    if (valueFilter) {
+      result = result.filter((p) => {
+        const price = p.price || 0;
+        if (valueFilter === "high") return price > 10000;
+        if (valueFilter === "medium") return price >= 1000 && price <= 10000;
+        if (valueFilter === "low") return price < 1000;
+        return true;
+      });
+    }
+
+    // Timing filter
+    if (timingFilter) {
+      result = result.filter((p) => {
+        const date = new Date(p.created_at);
+        if (timingFilter === "today") return isToday(date);
+        if (timingFilter === "week") return isThisWeek(date);
+        if (timingFilter === "month") return isThisMonth(date);
+        return true;
+      });
+    }
+
+    // Performance filter
+    if (perfFilter) {
+      result = result.filter((p) => {
+        if (perfFilter === "viewed") return p.views_count > 0;
+        if (perfFilter === "not_viewed") return p.views_count === 0;
+        if (perfFilter === "high_views") return p.views_count > 10;
+        return true;
+      });
     }
 
     // Search filter
@@ -215,7 +254,7 @@ export function ProposalsList() {
     }
 
     return result;
-  }, [proposals, searchValue, statusFilter]);
+  }, [proposals, searchValue, statusFilter, valueFilter, timingFilter, perfFilter]);
 
   // Pagination
   const totalProposals = filteredProposals.length;
@@ -230,7 +269,7 @@ export function ProposalsList() {
     return filteredProposals.reduce((sum, p) => sum + (p.price || 0), 0);
   }, [filteredProposals]);
 
-  const filtersActive = !!statusFilter || !!activeFilterId;
+  const filtersActive = !!statusFilter || !!activeFilterId || !!valueFilter || !!timingFilter || !!perfFilter;
 
   const getPublicUrl = (slug: string) => {
     return `${getPublicBaseUrl()}/p/${slug}`;
@@ -288,6 +327,24 @@ export function ProposalsList() {
     setActiveFilterId(filterId);
     if (filterId.startsWith("status_")) {
       setStatusFilter(filterId.replace("status_", ""));
+      setValueFilter(undefined);
+      setTimingFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("value_")) {
+      setValueFilter(filterId.replace("value_", ""));
+      setStatusFilter(undefined);
+      setTimingFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("timing_")) {
+      setTimingFilter(filterId.replace("timing_", ""));
+      setStatusFilter(undefined);
+      setValueFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("perf_")) {
+      setPerfFilter(filterId.replace("perf_", ""));
+      setStatusFilter(undefined);
+      setValueFilter(undefined);
+      setTimingFilter(undefined);
     }
   };
 
