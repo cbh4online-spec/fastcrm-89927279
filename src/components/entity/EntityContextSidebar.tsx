@@ -17,14 +17,13 @@ import {
 } from 'lucide-react';
 import { EntityType, Entity } from '@/types/entity';
 import { cn } from '@/lib/utils';
+import { EntityOwnerSelector } from './EntityOwnerSelector';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 
 interface EntityContextSidebarProps {
   entityType: EntityType;
   entity: Entity;
-  assignedUser?: {
-    name: string;
-    email: string;
-  };
   bestChannel?: string;
   bestTime?: string;
   lastActivityAt?: Date;
@@ -69,11 +68,26 @@ function StatRow({ icon: Icon, label, value }: StatRowProps) {
 export function EntityContextSidebar({
   entityType,
   entity,
-  assignedUser,
   bestChannel = 'Email',
   bestTime = '10h - 12h',
   lastActivityAt,
 }: EntityContextSidebarProps) {
+  const { workspaceClient } = useWorkspaceInstance();
+  const assignedTo = (entity as any).assigned_to as string | null | undefined;
+
+  const { data: assignedProfile } = useQuery({
+    queryKey: ['profile', assignedTo],
+    queryFn: async () => {
+      if (!assignedTo) return null;
+      const { data } = await workspaceClient
+        .from('profiles')
+        .select('full_name, email, avatar_url')
+        .eq('user_id', assignedTo)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!assignedTo,
+  });
   const temperature = entity.ai_temperature as keyof typeof TEMPERATURE_CONFIG | undefined;
   const tempConfig = temperature ? TEMPERATURE_CONFIG[temperature] : null;
   const TempIcon = tempConfig?.icon;
@@ -166,27 +180,24 @@ export function EntityContextSidebar({
           </CardContent>
         </Card>
 
-        {/* Assigned User */}
-        {assignedUser && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Responsável</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    {assignedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{assignedUser.name}</p>
-                  <p className="text-xs text-muted-foreground">{assignedUser.email}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Gestor */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Gestor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EntityOwnerSelector
+              entityType={entityType}
+              entityId={entity.id}
+              currentAssignedTo={assignedTo}
+              currentAssignedProfile={assignedProfile ? {
+                full_name: assignedProfile.full_name,
+                email: assignedProfile.email,
+                avatar_url: assignedProfile.avatar_url,
+              } : null}
+            />
+          </CardContent>
+        </Card>
 
         {/* Last Activity */}
         <Card>

@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
-import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3, Users, Zap } from 'lucide-react';
+import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3, Users, Zap, UserCheck } from 'lucide-react';
 import { Entity, EntityType } from '@/types/entity';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
 
 interface HighlightCard {
   label: string;
@@ -32,6 +34,23 @@ function getTimeAgo(date: Date): string {
 
 export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGridProps) {
   const e = entity as any;
+  const { workspaceClient } = useWorkspaceInstance();
+  const assignedTo = e.assigned_to as string | null | undefined;
+
+  const { data: assignedProfile } = useQuery({
+    queryKey: ['profile', assignedTo],
+    queryFn: async () => {
+      if (!assignedTo) return null;
+      const { data } = await workspaceClient
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', assignedTo)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!assignedTo,
+  });
+
   const score = entity.lead_score || entity.contact_score || entity.company_score || 0;
   const temp = entity.ai_temperature as string | undefined;
   const tempConfig = temp ? TEMPERATURE_LABELS[temp] : null;
@@ -44,6 +63,14 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     value: `${score}/100`,
     icon: BarChart3,
     color: score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-blue-600',
+  });
+
+  // Gestor
+  cards.push({
+    label: 'Gestor',
+    value: assignedProfile?.full_name || 'Sem gestor',
+    icon: UserCheck,
+    color: assignedTo ? 'text-primary' : 'text-muted-foreground',
   });
 
   // Temperature
