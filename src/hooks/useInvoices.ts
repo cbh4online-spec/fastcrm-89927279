@@ -21,6 +21,7 @@ export interface Invoice {
   client_email: string | null;
   client_address: string | null;
   client_tax_id: string | null;
+  renewal_contract_id: string | null;
   issue_date: string;
   due_date: string;
   paid_at: string | null;
@@ -121,7 +122,7 @@ export function useInvoices(filters?: {
       let query = workspaceClient
         .from("invoices")
         .select(`
-          *,
+          *, renewal_contract_id,
           company:companies(id, name),
           contact:contacts(id, name),
           lead:leads(id, name)

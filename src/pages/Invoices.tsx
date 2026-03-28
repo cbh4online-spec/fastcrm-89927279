@@ -71,6 +71,7 @@ import {
   CircleDollarSign,
   TrendingUp,
   FileX,
+  RefreshCcw,
 } from "lucide-react";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -165,6 +166,16 @@ export default function Invoices() {
         { id: "smart_recurring", label: t("recurringClients") },
       ],
     },
+    {
+      id: "source",
+      label: "Origem",
+      icon: <RefreshCcw className="h-4 w-4" />,
+      defaultOpen: false,
+      items: [
+        { id: "source_renewal", label: "Renovação", icon: <RefreshCcw className="h-4 w-4 text-purple-500" /> },
+        { id: "source_manual", label: "Manual", icon: <FileText className="h-4 w-4" /> },
+      ],
+    },
   ], [t]);
 
   const { data: invoices, isLoading, refetch } = useInvoices(
@@ -177,14 +188,25 @@ export default function Invoices() {
 
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
-    if (!searchValue) return invoices;
-    const lower = searchValue.toLowerCase();
-    return invoices.filter(
-      (inv) =>
-        inv.client_name.toLowerCase().includes(lower) ||
-        inv.invoice_number.toLowerCase().includes(lower)
-    );
-  }, [invoices, searchValue]);
+    let result = invoices;
+
+    // Source filter
+    if (activeFilterId === "source_renewal") {
+      result = result.filter((inv) => !!(inv as any).renewal_contract_id);
+    } else if (activeFilterId === "source_manual") {
+      result = result.filter((inv) => !(inv as any).renewal_contract_id);
+    }
+
+    if (searchValue) {
+      const lower = searchValue.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          inv.client_name.toLowerCase().includes(lower) ||
+          inv.invoice_number.toLowerCase().includes(lower)
+      );
+    }
+    return result;
+  }, [invoices, searchValue, activeFilterId]);
 
   const totalInvoices = filteredInvoices.length;
   const totalPages = Math.ceil(totalInvoices / pageSize);
@@ -478,7 +500,15 @@ export default function Invoices() {
                           />
                         </TableCell>
                         <TableCell className="font-mono font-medium">
-                          {invoice.invoice_number}
+                          <span className="flex items-center gap-1.5">
+                            {invoice.invoice_number}
+                            {(invoice as any).renewal_contract_id && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-300 text-purple-700 bg-purple-50">
+                                <RefreshCcw className="h-2.5 w-2.5 mr-0.5" />
+                                Renovação
+                              </Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div>

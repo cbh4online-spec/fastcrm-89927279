@@ -150,15 +150,32 @@ serve(async (req) => {
             if (contact) clientEmail = contact.email || "";
           }
 
-          const { data: newInvoice } = await db.from("invoices").insert({
+          // Resolve a valid UUID for created_by
+          let createdBy = contract.owner_user_id;
+          if (!createdBy) {
+            const { data: member } = await db.from("workspace_members")
+              .select("user_id")
+              .eq("workspace_id", contract.workspace_id)
+              .limit(1)
+              .maybeSingle();
+            createdBy = member?.user_id || null;
+          }
+
+          if (!createdBy) {
+            console.error("[RENEWAL-WEBHOOK] No valid user_id for created_by, skipping invoice creation");
+            break;
+          }
+
+          const { data: newInvoice, error: invoiceInsertError } = await db.from("invoices").insert({
             workspace_id: contract.workspace_id,
             invoice_number: invoiceNumber,
+            document_type: "invoice",
             client_name: clientName,
             client_email: clientEmail || null,
             company_id: contract.company_id,
             contact_id: contract.contact_id,
             renewal_contract_id: contract.id,
-            created_by: contract.owner_user_id || "system",
+            created_by: createdBy,
             status: "paid",
             paid_at: now,
             issue_date: now.split("T")[0],
@@ -170,6 +187,10 @@ serve(async (req) => {
             currency: contract.currency || "EUR",
             notes: `Pagamento automático Stripe. Invoice: ${invoice.id}`,
           }).select("id").maybeSingle();
+
+          if (invoiceInsertError) {
+            console.error("[RENEWAL-WEBHOOK] Invoice insert failed:", JSON.stringify(invoiceInsertError));
+          }
 
           // Create invoice items from contract items
           if (newInvoice) {
