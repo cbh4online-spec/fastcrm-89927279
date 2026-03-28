@@ -465,23 +465,9 @@ export function ConversationList({
                             </span>
                             <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
                             {isPinned && <Pin className="w-3 h-3 text-primary/60 flex-shrink-0" />}
-                            {conv.last_message_at && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                   <span className={cn(
-                                    "text-xs flex-shrink-0 whitespace-nowrap ml-auto",
-                                    hasUnread ? "text-primary font-medium" : "text-muted-foreground"
-                                  )}>
-                                    {formatSmartTime(conv.last_message_at)}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" className="text-xs">
-                                  {formatRelativeTime(conv.last_message_at)}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {/* Hover Quick Actions */}
-                            <div className="hidden group-hover:flex items-center gap-0.5">
+                            <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+                              {/* Hover Quick Actions */}
+                              <div className="hidden group-hover:flex items-center gap-0.5">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <button
