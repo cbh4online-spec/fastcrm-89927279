@@ -14,6 +14,7 @@ import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
 import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
 import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
+import { useSessionTracker } from "@/hooks/useSessionTracker";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -30,6 +31,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const useAdaptive = adaptiveSidebar || !shellV2;
   const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
+  useSessionTracker();
 
   if (authLoading || workspaceLoading) {
     return (

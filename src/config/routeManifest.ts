@@ -242,6 +242,14 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("helpdesk-canned",        "Respostas Rápidas",    "/dashboard/helpdesk/canned-responses",   Zap,         "suporte", { moduleSlug: "helpdesk" }),
 
   // ══════════════════════════════════════════════════════════════
+  // RH (Recursos Humanos)
+  // ══════════════════════════════════════════════════════════════
+  e("hr-time-clock",    "Controlo de Ponto",   "/dashboard/hr/time-clock",    Clock,        "rh", { moduleSlug: "hr-time-tracking" }),
+  e("hr-session-time",  "Tempo no Sistema",    "/dashboard/hr/session-time",  Timer,        "rh", { moduleSlug: "hr-time-tracking" }),
+  e("hr-leave",         "Férias & Ausências",  "/dashboard/hr/leave",         CalendarDays, "rh", { moduleSlug: "hr-time-tracking" }),
+  e("hr-my-time",       "Meu Registo",         "/dashboard/hr/my-time",       Activity,     "rh", { moduleSlug: "hr-time-tracking" }),
+
+  // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES
   // ══════════════════════════════════════════════════════════════
   e("tasks",                   "Tarefas",                "/dashboard/tasks",                        CheckSquare,   "operacoes"),
