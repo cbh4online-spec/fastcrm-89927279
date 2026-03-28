@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRenewalContract, useRenewalItems, useUpdateRenewalContract } from "@/hooks/useRenewals";
 import { useRenewalEvents } from "@/hooks/useRenewalEvents";
@@ -213,6 +214,16 @@ export default function RenewalDetailPage() {
                 riskLevel={(contract as any).risk_level}
                 reasonsJson={(contract as any).reasons_json}
                 healthScore={contract.health_score}
+                onAction={(action) => {
+                  const actionMessages: Record<string, string> = {
+                    schedule_meeting: "Funcionalidade de agendar reunião em breve",
+                    send_proposal: "Funcionalidade de envio de proposta em breve",
+                    create_task: "Funcionalidade de criar tarefa em breve",
+                    adjust_pricing: "Funcionalidade de ajuste de preço em breve",
+                    contact_client: "Funcionalidade de contacto em breve",
+                  };
+                  toast.info(actionMessages[action] || `Ação: ${action}`);
+                }}
               />
             </div>
           </TabsContent>

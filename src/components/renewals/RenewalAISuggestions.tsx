@@ -35,9 +35,10 @@ interface RenewalAISuggestionsProps {
   riskLevel?: string | null;
   reasonsJson?: { reasons?: string[]; suggested_action?: string } | null;
   healthScore: number;
+  onAction?: (action: string) => void;
 }
 
-export function RenewalAISuggestions({ contractId, riskLevel, reasonsJson, healthScore }: RenewalAISuggestionsProps) {
+export function RenewalAISuggestions({ contractId, riskLevel, reasonsJson, healthScore, onAction }: RenewalAISuggestionsProps) {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
 
   const generateSuggestions = useMutation({
@@ -148,7 +149,25 @@ export function RenewalAISuggestions({ contractId, riskLevel, reasonsJson, healt
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{s.description}</p>
-                    <Button size="sm" variant="outline" className="text-xs h-7">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7"
+                      onClick={() => {
+                        if (onAction) {
+                          onAction(s.cta_action);
+                        } else {
+                          const actionMessages: Record<string, string> = {
+                            schedule_meeting: "Agendar reunião com o cliente",
+                            send_proposal: "Enviar proposta ao cliente",
+                            create_task: "Criar tarefa de seguimento",
+                            adjust_pricing: "Rever condições de preço",
+                            contact_client: "Contactar cliente",
+                          };
+                          toast.info(actionMessages[s.cta_action] || s.cta_label);
+                        }
+                      }}
+                    >
                       {s.cta_label}
                     </Button>
                   </div>
