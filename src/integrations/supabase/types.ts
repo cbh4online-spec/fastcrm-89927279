@@ -24156,6 +24156,7 @@ export type Database = {
           paid_at: string | null
           proposal_id: string | null
           related_invoice_id: string | null
+          renewal_contract_id: string | null
           sent_at: string | null
           series_id: string | null
           status: string
@@ -24199,6 +24200,7 @@ export type Database = {
           paid_at?: string | null
           proposal_id?: string | null
           related_invoice_id?: string | null
+          renewal_contract_id?: string | null
           sent_at?: string | null
           series_id?: string | null
           status?: string
@@ -24242,6 +24244,7 @@ export type Database = {
           paid_at?: string | null
           proposal_id?: string | null
           related_invoice_id?: string | null
+          renewal_contract_id?: string | null
           sent_at?: string | null
           series_id?: string | null
           status?: string
@@ -24295,6 +24298,13 @@ export type Database = {
             columns: ["related_invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_renewal_contract_id_fkey"
+            columns: ["renewal_contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
             referencedColumns: ["id"]
           },
           {
@@ -37440,6 +37450,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           currency: string
+          dunning_attempts: number
           health_score: number
           id: string
           next_renewal_date: string | null
@@ -37467,6 +37478,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           currency?: string
+          dunning_attempts?: number
           health_score?: number
           id?: string
           next_renewal_date?: string | null
@@ -37494,6 +37506,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           currency?: string
+          dunning_attempts?: number
           health_score?: number
           id?: string
           next_renewal_date?: string | null

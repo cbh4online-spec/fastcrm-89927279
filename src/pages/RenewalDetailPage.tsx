@@ -334,6 +334,8 @@ export default function RenewalDetailPage() {
               workspaceId={currentWorkspace?.id || ""}
               onGeneratePaymentLink={() => setShowPaymentDialog(true)}
               stripeSubscriptionId={contract.stripe_subscription_id}
+              dunningAttempts={(contract as any).dunning_attempts || 0}
+              contractStatus={contract.status}
             />
           </TabsContent>
 

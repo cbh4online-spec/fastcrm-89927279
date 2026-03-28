@@ -5,7 +5,7 @@ import type { RenewalItem, RenewalContract } from "@/types/renewal";
 
 export interface RenewalAlert {
   id: string;
-  type: "overdue" | "upcoming_7" | "low_pack" | "expiring";
+  type: "overdue" | "upcoming_7" | "low_pack" | "expiring" | "payment_failed";
   title: string;
   message: string;
   contractId: string;
@@ -27,7 +27,7 @@ export function useRenewalAlerts() {
       // Get active contracts with items
       const { data: contracts, error } = await workspaceClient
         .from("renewal_contracts")
-        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, company:companies(id, name)")
+        .select("id, workspace_id, company_id, status, next_renewal_date, total_mrr, dunning_attempts, company:companies(id, name)")
         .eq("workspace_id", currentWorkspace.id)
         .in("status", ["active", "paused"] as any);
 
@@ -126,9 +126,26 @@ export function useRenewalAlerts() {
         }
       }
 
-      // Sort: overdue first, then upcoming, then low packs, then expiring
-      const priority = { overdue: 0, upcoming_7: 1, low_pack: 2, expiring: 3 };
-      alerts.sort((a, b) => priority[a.type] - priority[b.type]);
+      // Check for contracts with dunning (payment failures)
+      for (const contract of (contracts || []) as any[]) {
+        const companyName = contract.company?.name || "—";
+        const dunning = contract.dunning_attempts || 0;
+        if (dunning > 0 && contract.status !== "churned") {
+          alerts.push({
+            id: `dunning-${contract.id}`,
+            type: "payment_failed",
+            title: `Pagamento falhado: ${companyName}`,
+            message: `${dunning} tentativa(s) falhada(s)`,
+            contractId: contract.id,
+            companyName,
+            percentage: dunning,
+          });
+        }
+      }
+
+      // Sort: payment_failed first, then overdue, then upcoming, then low packs, then expiring
+      const priority: Record<string, number> = { payment_failed: -1, overdue: 0, upcoming_7: 1, low_pack: 2, expiring: 3 };
+      alerts.sort((a, b) => (priority[a.type] ?? 4) - (priority[b.type] ?? 4));
 
       return alerts;
     },
