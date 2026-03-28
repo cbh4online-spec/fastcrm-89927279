@@ -42,6 +42,7 @@ export const moduleNavRegistry: ModuleNavEntry[] = [
   { slug: "online-store", label: "Loja Online", icon: ShoppingBag, href: "/dashboard/store", order: 31 },
   { slug: "marketplace-c2c", label: "Marketplace C2C", icon: Store, href: "/dashboard/marketplace-c2c", order: 32 },
   { slug: "b2b-portal", label: "Portal B2B", icon: Building2, href: "/dashboard/b2b", order: 33 },
+  { slug: "helpdesk", label: "Helpdesk", icon: Phone, href: "/dashboard/helpdesk", order: 34 },
 
   // Marketing
   { slug: "bio-os", label: "Bio OS", icon: Link2, href: "/dashboard/bio", order: 40 },

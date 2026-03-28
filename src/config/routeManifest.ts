@@ -233,6 +233,13 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("client-users",     "Utilizadores Cliente","/dashboard/client-users",     Users,        "portal-b2b", { visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
+  // SUPORTE (Helpdesk)
+  // ══════════════════════════════════════════════════════════════
+  e("helpdesk",               "Dashboard Suporte",    "/dashboard/helpdesk",                   Headphones,  "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-tickets",       "Tickets",              "/dashboard/helpdesk/tickets",            Headphones,  "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-canned",        "Respostas Rápidas",    "/dashboard/helpdesk/canned-responses",   Zap,         "suporte", { moduleSlug: "helpdesk" }),
+
+  // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES
   // ══════════════════════════════════════════════════════════════
   e("tasks",                   "Tarefas",                "/dashboard/tasks",                        CheckSquare,   "operacoes"),

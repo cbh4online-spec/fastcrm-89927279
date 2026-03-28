@@ -12,6 +12,7 @@ import { EnrichmentFloatingIndicator } from "@/components/enrichment/EnrichmentF
 // Route modules
 import { SecurityRoutes } from "@/routes/SecurityRoutes";
 import { ProcurementRoutes } from "@/routes/ProcurementRoutes";
+import { HelpdeskRoutes } from "@/routes/HelpdeskRoutes";
 import { C2CDashboardRoutes } from "@/routes/C2CRoutes";
 import { AccountBriefRoutes } from "@/routes/AccountBriefRoutes";
 import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
@@ -63,6 +64,7 @@ export default function CRMRoutesV2() {
                     {C2CDashboardRoutes()}
                     {StoreAdminRoutes()}
                     {B2BAdminRoutes()}
+                    {HelpdeskRoutes()}
                     {RevenueCommerceRoutes()}
                     {VerticalOpsRoutes()}
                   </Routes>
