@@ -1,74 +1,37 @@
 
 
-# Transformar eBook num Flipbook estilo Calaméo
+# Fix: Flipbook cover page appearing blank
 
-## Conceito
-Substituir o reader atual (scroll vertical simples) por um **flipbook interativo** com navegação por páginas, animação de virar página, e layout editorial rico — como o Calaméo.
+## Problem
+The screenshot shows the flipbook cover page (page 1/16) is completely dark with no visible title, subtitle, or author text. The toolbar at the bottom works, but the page content area is empty.
 
-## O que muda
+## Root cause analysis
 
-### 1. Leitor público (`PublicEbookPage.tsx`) — Redesign total
+The issue is in **FlipbookReader.tsx** — the page container uses `relative` positioning with the `motion.div` child set to `absolute inset-0`. However, the parent container doesn't explicitly set a sized context that guarantees the absolute child fills it properly across all render cycles. Additionally, the `AnimatePresence mode="wait"` combined with `absolute inset-0` can cause the page to collapse to zero height during animation transitions, since the absolute element doesn't contribute to parent height.
 
-**Layout flipbook:**
-- Viewport centrado com aspecto de livro aberto (two-page spread em desktop, single page em mobile)
-- Fundo escuro/cinza atrás do "livro" para destacar as páginas brancas
-- Páginas com sombra realista e bordas subtis simulando papel
-- Animação CSS de page-flip ao navegar (transform rotateY com perspective)
+Key problems:
+1. **`absolute inset-0` on motion.div** — page content has no intrinsic height contribution; if the parent's height isn't resolved (e.g. `h-[85vh]` on an element inside a flex container that hasn't laid out yet), content is invisible
+2. **Cover page text colors** — white text on slate-900 gradient works in theory, but if the container has zero computed height, nothing is visible
+3. **`overflow-hidden`** on the page container clips everything if sizing is off
 
-**Páginas do eBook:**
-- **Capa**: full-bleed com imagem de capa ocupando a página inteira, título sobreposto com tipografia grande
-- **Página de índice**: layout editorial com números de página e linhas pontilhadas
-- **Páginas de capítulo**: conteúdo dividido automaticamente em "páginas" de altura fixa (~700px), com:
-  - Imagem hero no topo quando o capítulo tem `cover_image`
-  - Tipografia serif editorial (drop caps, pull quotes)
-  - Número de página no rodapé
-  - Cabeçalho com nome do capítulo em cada página
+## Fix plan
 
-**Barra de controlo (toolbar inferior):**
-- Setas esquerda/direita para navegar
-- Número da página atual / total
-- Botão fullscreen
-- Thumbnails em miniatura (strip horizontal clicável)
-- Botão de zoom
+### 1. FlipbookReader.tsx — Fix page container layout
+- Change the page viewport from `relative` + `absolute inset-0` children to a proper flex layout
+- Use `relative w-full h-full` on the motion.div instead of `absolute inset-0`
+- Set explicit `min-h` on the page container as fallback
+- Add `flex flex-col` to ensure the page fills its container
 
-### 2. Paginação automática do conteúdo
-- Dividir o conteúdo Markdown de cada capítulo em blocos que cabem numa "página" de altura fixa
-- Cada bloco renderizado como uma página independente no flipbook
-- Imagens inline ocupam página inteira ou meia página conforme tamanho
+### 2. FlipbookReader.tsx — Fix animation container
+- Replace `absolute inset-0` on `motion.div` with `w-full h-full` 
+- Wrap in a container that uses `relative overflow-hidden` with explicit dimensions
+- This ensures the page always has computed dimensions even during animation transitions
 
-### 3. Componente `FlipbookReader`
-Novo componente dedicado com:
-- Estado de página atual (`currentPage`)
-- Array de páginas gerado a partir dos capítulos (capa + índice + páginas de conteúdo)
-- Navegação por teclado (← →), swipe touch, e clique nas margens
-- Transição animada entre páginas (slide ou flip 3D)
+### 3. FlipbookPage.tsx — Add fallback visibility
+- Add `min-h-[400px]` to cover page as safety net
+- Ensure the cover gradient is always visible regardless of parent sizing
 
-### 4. Preview no editor
-- O preview mode no `EbookEditor` também usa o novo componente flipbook (versão compacta)
-- Mostra como o eBook ficará visualmente antes de publicar
-
-## Detalhes técnicos
-
-**Ficheiros alterados:**
-- `PublicEbookPage.tsx` — rewrite completo com flipbook
-- Novo: `src/components/ebooks/FlipbookReader.tsx` — componente core do flipbook
-- Novo: `src/components/ebooks/FlipbookPage.tsx` — renderização de cada página
-- Novo: `src/components/ebooks/FlipbookToolbar.tsx` — controles de navegação
-- `EbookEditor.tsx` — integrar preview flipbook
-
-**Paginação:**
-- Usa `useRef` + DOM measurement para calcular quantos parágrafos cabem por página
-- Fallback: divisão por contagem de caracteres (~2000 chars por página)
-- Imagens de capítulo = página dedicada full-bleed
-
-**Animação:**
-- CSS `transform: rotateY()` com `perspective(1200px)` para efeito de virar página
-- `transition-duration: 0.6s` com `ease-in-out`
-- Fallback simples (slide horizontal) para dispositivos com pouca performance
-
-**Navegação:**
-- Keyboard: ArrowLeft/ArrowRight
-- Touch: swipe horizontal (threshold 50px)
-- Click: margem esquerda/direita da página
-- Thumbnails: click direto para qualquer página
+### Files changed
+- `src/components/ebooks/FlipbookReader.tsx` — fix layout/animation container
+- `src/components/ebooks/FlipbookPage.tsx` — add min-height safety
 
