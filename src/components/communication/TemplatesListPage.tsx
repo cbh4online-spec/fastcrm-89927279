@@ -66,8 +66,10 @@ import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
 import { TemplateLibraryDialog } from './TemplateLibraryDialog';
 import { ImportTemplateDialog } from './ImportTemplateDialog';
 import type { LibraryTemplate } from './templateLibraryData';
-import { BookOpen, Upload } from 'lucide-react';
+import { BookOpen, Upload, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
+import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
