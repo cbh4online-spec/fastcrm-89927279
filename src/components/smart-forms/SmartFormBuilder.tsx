@@ -549,7 +549,24 @@ export function SmartFormBuilder({ form, onBack, onPreview }: SmartFormBuilderPr
               )}
             </CardContent>
           </Card>
+
+          {/* Conditional Logic */}
+          <ConditionalLogicPanel
+            rules={conditions}
+            fields={fields}
+            onChange={setConditions}
+          />
+
+          {/* AI Optimizer */}
+          {form && (
+            <AIFormOptimizer form={form} />
+          )}
         </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Automations */}
+          {/* ... existing automations card ... */}
 
         {/* Sidebar */}
         <div className="space-y-6">
