@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,14 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, ArrowLeft, Check, Lightbulb, Zap } from 'lucide-react';
 import { useGenerateTemplate, GeneratedEmailTemplate, GeneratedWhatsAppTemplate } from '@/hooks/useGenerateTemplate';
 import { CommunicationTemplate, TemplateChannel, TemplateTone, TemplateStructure } from '@/types/communicationTemplate';
+import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerated: (template: Partial<CommunicationTemplate>) => void;
+  initialRecommendation?: TemplateRecommendation | null;
 }
 
 const GOAL_OPTIONS = [
