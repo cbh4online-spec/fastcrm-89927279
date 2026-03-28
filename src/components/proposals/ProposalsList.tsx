@@ -68,8 +68,10 @@ import {
   CheckCircle2,
   XCircle,
   ShoppingCart,
+  BarChart3,
+  Percent,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday, isThisWeek, isThisMonth } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
@@ -193,6 +195,11 @@ export function ProposalsList() {
   const quickStatusChange = useQuickStatusChange();
   const convertToOrderNote = useConvertProposalToOrderNote();
 
+  // Additional filter state
+  const [valueFilter, setValueFilter] = useState<string | undefined>();
+  const [timingFilter, setTimingFilter] = useState<string | undefined>();
+  const [perfFilter, setPerfFilter] = useState<string | undefined>();
+
   // Filter and search
   const filteredProposals = useMemo(() => {
     if (!proposals) return [];
@@ -201,6 +208,38 @@ export function ProposalsList() {
     // Status filter
     if (statusFilter) {
       result = result.filter((p) => p.status === statusFilter);
+    }
+
+    // Value filter
+    if (valueFilter) {
+      result = result.filter((p) => {
+        const price = p.price || 0;
+        if (valueFilter === "high") return price > 10000;
+        if (valueFilter === "medium") return price >= 1000 && price <= 10000;
+        if (valueFilter === "low") return price < 1000;
+        return true;
+      });
+    }
+
+    // Timing filter
+    if (timingFilter) {
+      result = result.filter((p) => {
+        const date = new Date(p.created_at);
+        if (timingFilter === "today") return isToday(date);
+        if (timingFilter === "week") return isThisWeek(date);
+        if (timingFilter === "month") return isThisMonth(date);
+        return true;
+      });
+    }
+
+    // Performance filter
+    if (perfFilter) {
+      result = result.filter((p) => {
+        if (perfFilter === "viewed") return p.views_count > 0;
+        if (perfFilter === "not_viewed") return p.views_count === 0;
+        if (perfFilter === "high_views") return p.views_count > 10;
+        return true;
+      });
     }
 
     // Search filter
@@ -215,7 +254,7 @@ export function ProposalsList() {
     }
 
     return result;
-  }, [proposals, searchValue, statusFilter]);
+  }, [proposals, searchValue, statusFilter, valueFilter, timingFilter, perfFilter]);
 
   // Pagination
   const totalProposals = filteredProposals.length;
@@ -230,7 +269,7 @@ export function ProposalsList() {
     return filteredProposals.reduce((sum, p) => sum + (p.price || 0), 0);
   }, [filteredProposals]);
 
-  const filtersActive = !!statusFilter || !!activeFilterId;
+  const filtersActive = !!statusFilter || !!activeFilterId || !!valueFilter || !!timingFilter || !!perfFilter;
 
   const getPublicUrl = (slug: string) => {
     return `${getPublicBaseUrl()}/p/${slug}`;
@@ -288,6 +327,24 @@ export function ProposalsList() {
     setActiveFilterId(filterId);
     if (filterId.startsWith("status_")) {
       setStatusFilter(filterId.replace("status_", ""));
+      setValueFilter(undefined);
+      setTimingFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("value_")) {
+      setValueFilter(filterId.replace("value_", ""));
+      setStatusFilter(undefined);
+      setTimingFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("timing_")) {
+      setTimingFilter(filterId.replace("timing_", ""));
+      setStatusFilter(undefined);
+      setValueFilter(undefined);
+      setPerfFilter(undefined);
+    } else if (filterId.startsWith("perf_")) {
+      setPerfFilter(filterId.replace("perf_", ""));
+      setStatusFilter(undefined);
+      setValueFilter(undefined);
+      setTimingFilter(undefined);
     }
   };
 
@@ -369,8 +426,59 @@ export function ProposalsList() {
     }
   };
 
-  const renderProposalsContent = () => (
+  const renderProposalsContent = () => {
+    const acceptedCount = (proposals || []).filter(p => p.status === "accepted").length;
+    const allTotal = (proposals || []).length;
+    const conversionRate = allTotal > 0 ? Math.round((acceptedCount / allTotal) * 100) : 0;
+    const avgValue = allTotal > 0 ? Math.round(totalValue / allTotal) : 0;
+
+    return (
     <>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+        <Card
+          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
+          onClick={() => { setActiveFilterId(undefined); setStatusFilter(undefined); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Total</span>
+          </div>
+          <p className="text-xl font-bold">{totalProposals}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Total</span>
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalValue)}</p>
+        </Card>
+        <Card
+          className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
+          onClick={() => { setActiveFilterId("status_accepted"); setStatusFilter("accepted"); setValueFilter(undefined); setTimingFilter(undefined); setPerfFilter(undefined); }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <span className="text-xs text-muted-foreground">Aceitas</span>
+          </div>
+          <p className="text-xl font-bold">{acceptedCount}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Percent className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Conversão</span>
+          </div>
+          <p className="text-xl font-bold">{conversionRate}%</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Médio</span>
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(avgValue)}</p>
+        </Card>
+      </div>
+
       {/* Toolbar */}
       <Toolbar
         searchValue={searchValue}
@@ -382,6 +490,9 @@ export function ProposalsList() {
         onClearFilters={() => {
           setActiveFilterId(undefined);
           setStatusFilter(undefined);
+          setValueFilter(undefined);
+          setTimingFilter(undefined);
+          setPerfFilter(undefined);
         }}
         sortOptions={sortOptions}
         sortValue={sortValue}
@@ -449,7 +560,8 @@ export function ProposalsList() {
             </Button>
           </div>
         ) : (
-          <Table>
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[1000px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]">
@@ -461,9 +573,9 @@ export function ProposalsList() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Oportunidade</TableHead>
-                <TableHead>Cliente</TableHead>
+                <TableHead className="max-w-[200px]">Título</TableHead>
+                <TableHead className="max-w-[180px]">Oportunidade</TableHead>
+                <TableHead className="max-w-[150px]">Cliente</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Estado</TableHead>
@@ -487,9 +599,9 @@ export function ProposalsList() {
                       }
                     />
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium max-w-[200px]">
                     <button 
-                      className="text-left hover:text-primary hover:underline transition-colors"
+                      className="text-left hover:text-primary hover:underline transition-colors truncate block w-full"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailId(proposal.id);
@@ -498,8 +610,8 @@ export function ProposalsList() {
                       {proposal.title}
                     </button>
                   </TableCell>
-                  <TableCell>{proposal.opportunity?.title || "-"}</TableCell>
-                  <TableCell>{proposal.opportunity?.lead?.name || "-"}</TableCell>
+                  <TableCell className="max-w-[180px] truncate">{proposal.opportunity?.title || "-"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{proposal.opportunity?.lead?.name || "-"}</TableCell>
                   <TableCell>
                     {formatCurrency(proposal.price, proposal.currency || "EUR")}
                   </TableCell>
@@ -680,7 +792,8 @@ export function ProposalsList() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+           </Table>
+          </div>
         )}
       </Card>
 
@@ -736,7 +849,8 @@ export function ProposalsList() {
         </div>
       )}
     </>
-  );
+    );
+  };
 
   return (
     <div className="flex h-full -m-6">
@@ -749,6 +863,9 @@ export function ProposalsList() {
           onClearFilter={() => {
             setActiveFilterId(undefined);
             setStatusFilter(undefined);
+            setValueFilter(undefined);
+            setTimingFilter(undefined);
+            setPerfFilter(undefined);
           }}
           isOpen={showFilterSidebar}
           onClose={() => setShowFilterSidebar(false)}
