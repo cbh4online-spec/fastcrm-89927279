@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { EntityTagEditor } from './EntityTagEditor';
 import { useWorkspaceTags as useWSTags } from '@/hooks/useWorkspaceTags';
 import {
   DropdownMenu,
