@@ -60,6 +60,7 @@ const modules = [
 ];
 
 function SearchHistorySection() {
+  const navigate = useNavigate();
   const { searches: googleSearches, isLoading: gl } = useProspectingSearchHistory("google_local");
   const { searches: webSearches, isLoading: wl } = useProspectingSearchHistory("web_search");
 
@@ -94,7 +95,7 @@ function SearchHistorySection() {
   return (
     <div className="space-y-2">
       {allSearches.map(s => (
-        <Card key={s.id} className="hover:shadow-sm transition-shadow">
+        <Card key={s.id} className="hover:shadow-sm transition-shadow group">
           <CardContent className="p-4 flex items-center gap-4">
             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
               s.search_type === 'google_local' ? 'bg-blue-500/10' : 'bg-amber-500/10'
@@ -120,7 +121,7 @@ function SearchHistorySection() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <Badge variant="secondary" className="text-xs gap-1">
                 <Target className="h-3 w-3" />
                 {s.results_count} resultados
@@ -130,6 +131,30 @@ function SearchHistorySection() {
                   <Download className="h-3 w-3" />
                   {s.imported_count} importados
                 </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => navigate(
+                  s.search_type === "google_local"
+                    ? "/dashboard/prospecting/google-local"
+                    : "/dashboard/prospecting/web-search"
+                )}
+              >
+                <ArrowRight className="h-3.5 w-3.5" />
+                Repetir
+              </Button>
+              {s.imported_count > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => navigate(`/dashboard/leads?source=${s.search_type}`)}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Ver leads
+                </Button>
               )}
             </div>
           </CardContent>
