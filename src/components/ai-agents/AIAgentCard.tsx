@@ -14,7 +14,12 @@ import {
   Trash2,
   Users,
   BookOpen,
-  Workflow
+  Workflow,
+  Send,
+  Video,
+  Twitter,
+  MapPin,
+  Linkedin
 } from 'lucide-react';
 import type { AIChannelAgent, AgentChannel } from '@/types/aiChannelAgents';
 import { getChannelConfig } from '@/types/aiChannelAgents';
@@ -34,6 +39,11 @@ const channelIcons: Record<AgentChannel, React.ReactNode> = {
   email: <Mail className="h-5 w-5" />,
   sms: <MessageSquare className="h-5 w-5" />,
   live_chat: <Headphones className="h-5 w-5" />,
+  telegram: <Send className="h-5 w-5" />,
+  tiktok: <Video className="h-5 w-5" />,
+  twitter: <Twitter className="h-5 w-5" />,
+  google_business: <MapPin className="h-5 w-5" />,
+  linkedin: <Linkedin className="h-5 w-5" />,
 };
 
 export function AIAgentCard({ agent, onEdit, onDelete, onToggleStatus }: AIAgentCardProps) {
