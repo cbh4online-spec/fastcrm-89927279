@@ -20,8 +20,8 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -49,7 +49,10 @@ Deno.serve(async (req) => {
     if (!searchResponse.ok) {
       const errText = await searchResponse.text();
       console.error("Firecrawl error:", searchResponse.status, errText);
-      return new Response(JSON.stringify({ error: "Search failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (searchResponse.status === 402) {
+        return new Response(JSON.stringify({ suppliers: [], error: "Créditos Firecrawl esgotados. Atualize o plano." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ suppliers: [], error: "Falha na pesquisa web. Tente novamente." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const searchData = await searchResponse.json();
@@ -115,15 +118,15 @@ Deno.serve(async (req) => {
     });
 
     if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, try again later" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
       const errText = await aiResponse.text();
       console.error("AI error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: "AI processing failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({ suppliers: [], error: "Limite de pedidos excedido. Tente novamente em alguns minutos." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ suppliers: [], error: "Créditos de IA esgotados." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ suppliers: [], error: "Falha no processamento de IA. Tente novamente." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
