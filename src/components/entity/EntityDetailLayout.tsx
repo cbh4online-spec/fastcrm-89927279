@@ -92,6 +92,8 @@ export function EntityDetailLayout({
         backPath={backPath}
         statusBadge={statusBadge}
         extraBadges={extraBadges}
+        tags={tags}
+        onTagsChange={onTagsChange}
       />
 
       {/* Main Content - Responsive Layout */}
