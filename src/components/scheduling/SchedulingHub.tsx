@@ -11,6 +11,9 @@ import {
   PanelLeftClose,
   RefreshCw,
   Settings,
+  BarChart3,
+  LayoutGrid,
+  Code,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,6 +39,11 @@ import { AvailabilityDashboard } from '@/components/availability/AvailabilityDas
 // Booking pages
 import { BookingPagesTab } from '@/components/scheduling/BookingPagesTab';
 
+// New premium components
+import { SchedulingAnalytics } from '@/components/scheduling/SchedulingAnalytics';
+import { EmbedWidgetGenerator } from '@/components/scheduling/EmbedWidgetGenerator';
+import { OccupancyMapView } from '@/components/scheduling/OccupancyMapView';
+
 // Common components
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
@@ -43,7 +51,7 @@ import { FilterSidebar, FilterGroup } from '@/components/common/FilterSidebar';
 
 import { Loader2 } from 'lucide-react';
 
-type TabValue = 'calendar' | 'meetings' | 'services' | 'availability' | 'booking-links';
+type TabValue = 'calendar' | 'meetings' | 'services' | 'availability' | 'booking-links' | 'analytics' | 'embed' | 'occupancy';
 
 const pageTabs = [
   { id: 'calendar', label: 'Agenda', icon: <CalendarDays className="h-4 w-4" /> },
@@ -51,6 +59,9 @@ const pageTabs = [
   { id: 'services', label: 'Serviços', icon: <Briefcase className="h-4 w-4" /> },
   { id: 'availability', label: 'Disponibilidade', icon: <CalendarClock className="h-4 w-4" /> },
   { id: 'booking-links', label: 'Links', icon: <ExternalLink className="h-4 w-4" /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+  { id: 'embed', label: 'Embed', icon: <Code className="h-4 w-4" /> },
+  { id: 'occupancy', label: 'Ocupação', icon: <LayoutGrid className="h-4 w-4" /> },
 ];
 
 const sortOptions = [
@@ -404,6 +415,28 @@ export function SchedulingHub() {
           {activeTab === 'booking-links' && (
             <div className="h-full overflow-auto">
               <BookingPagesTab calendars={calendars} />
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="h-full overflow-auto">
+              <SchedulingAnalytics />
+            </div>
+          )}
+
+          {activeTab === 'embed' && (
+            <div className="h-full overflow-auto">
+              <EmbedWidgetGenerator />
+            </div>
+          )}
+
+          {activeTab === 'occupancy' && (
+            <div className="h-full overflow-auto">
+              <OccupancyMapView
+                calendars={calendars}
+                events={events}
+                isLoading={eventsLoading}
+              />
             </div>
           )}
         </div>
