@@ -1,39 +1,41 @@
 
 
-## Ações em massa com tags para Contatos e Empresas
+## Corrigir sidebar + Enriquecer módulo de Renovações
 
-### Situação atual
+### Problema 1: Falta o menu lateral
 
-| Componente | BulkActionsBar | Tags no popover | Bulk Edit | bulkUpdate hook |
-|---|---|---|---|---|
-| **Leads** | ✅ | ✅ (tags dos leads + workspace_tags) | ✅ | ✅ `useBulkUpdateLeads` |
-| **Contatos** | ✅ | ❌ (não passa `availableTags`) | ✅ | ✅ `bulkUpdateContacts` (já no hook) |
-| **Empresas** | ❌ (barra inline básica) | ❌ | ❌ | ❌ |
+As páginas `RenewalsPage.tsx` e `RenewalDetailPage.tsx` não estão envolvidas em `DashboardLayout`, ao contrário de outras páginas (ex: Leads, Contacts). Basta adicionar o wrapper.
 
-### Alterações
+### Problema 2: Módulo básico demais
 
-#### 1. Contatos — `AttioContactsTable.tsx`
-- Extrair todas as tags dos contatos + `useWorkspaceTags` e passar como `availableTags` ao `BulkActionsBar` já existente
-- Sincronizar tags adicionadas ao `workspace_tags` via `useSyncLeadTagsToWorkspace`
+O módulo atual é uma lista simples com stats e filtro por status. Vou enriquecer com:
 
-#### 2. Empresas — `SmartCompaniesTable.tsx` + `useCompanies.ts`
+#### A. Tabs de navegação na página principal
+- **Contratos** (lista atual, default)
+- **Kanban** — colunas por status (active/paused/expired/cancelled) com drag-and-drop para mover contratos
+- **Alertas** — painel expandido dos alertas (já existe `RenewalAlerts` mas está comprimido)
+- **Calendário** — vista temporal das renovações próximas (próximos 90 dias, agrupados por semana/mês)
 
-**Hook** (`useCompanies.ts`):
-- Adicionar `addTagsToCompanies` e `bulkUpdateCompanies` mutations (padrão idêntico ao de contatos)
+#### B. Filtros avançados
+- Filtro por **tipo de item** (domain, software_license, hours_pack, retainer, subscription)
+- Filtro por **risco** (low, medium, high via health_score)
+- Filtro por **empresa** (dropdown com empresas únicas)
+- Ordenação por MRR, data renovação, health score
 
-**Tabela** (`SmartCompaniesTable.tsx`):
-- Substituir a barra inline (linhas 273-281) pelo `BulkActionsBar`
-- Definir `companyBulkEditFields`: industry, source, size, tags
-- Calcular `availableTags` a partir dos dados + `useWorkspaceTags`
-- Manter botões extra de AI, Revenue Intelligence e LinkedIn como estão
+#### C. Seleção múltipla + ações em massa
+- Reutilizar `BulkActionsBar` para: pausar/retomar contratos em massa, exportar
 
-### Ficheiros
+#### D. KPIs melhorados
+- Adicionar: ARR total, MRR médio por contrato, taxa de churn (cancelled/total), distribuição por tipo
+
+### Ficheiros a alterar
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/contacts/AttioContactsTable.tsx` | Adicionar `availableTags` e sync ao `BulkActionsBar` |
-| `src/components/companies/SmartCompaniesTable.tsx` | Substituir barra básica por `BulkActionsBar` com tags e bulk edit |
-| `src/hooks/useCompanies.ts` | Adicionar `addTagsToCompanies` e `bulkUpdateCompanies` |
+| `src/pages/RenewalsPage.tsx` | Envolver em `DashboardLayout`, adicionar tabs, filtros, Kanban, KPIs |
+| `src/pages/RenewalDetailPage.tsx` | Envolver em `DashboardLayout` |
+| `src/components/renewals/RenewalsKanbanView.tsx` | **Novo** — vista kanban por status com drag-and-drop |
+| `src/components/renewals/RenewalsCalendarView.tsx` | **Novo** — vista calendário de renovações próximas |
 
 Sem alterações de base de dados.
 
