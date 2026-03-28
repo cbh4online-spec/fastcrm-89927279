@@ -27,7 +27,6 @@ serve(async (req) => {
     const body = await req.text();
     let event: Stripe.Event;
 
-    // Verify webhook signature if secret is configured
     if (webhookSecret) {
       const sig = req.headers.get("stripe-signature");
       if (!sig) {
@@ -54,18 +53,16 @@ serve(async (req) => {
         const subscriptionId = session.subscription as string;
         const customerId = session.customer as string;
 
-        // Update contract with Stripe IDs
         await db.from("renewal_contracts").update({
           stripe_subscription_id: subscriptionId,
           stripe_customer_id: customerId,
+          dunning_attempts: 0,
         }).eq("id", contractId);
 
-        // Update payment link status
         await db.from("renewal_payment_links")
           .update({ status: "paid" })
           .eq("stripe_session_id", session.id);
 
-        // Record event
         await db.from("renewal_payment_events").insert({
           workspace_id: workspaceId,
           contract_id: contractId,
@@ -77,7 +74,6 @@ serve(async (req) => {
           metadata: { session_id: session.id, customer_id: customerId },
         });
 
-        // Link to SaaS — upsert workspace_subscriptions
         await db.from("workspace_subscriptions").upsert({
           workspace_id: workspaceId,
           stripe_subscription_id: subscriptionId,
@@ -97,9 +93,8 @@ serve(async (req) => {
 
         if (!subscriptionId) break;
 
-        // Find contract by stripe_subscription_id
         const { data: contract } = await db.from("renewal_contracts")
-          .select("id, workspace_id")
+          .select("id, workspace_id, company_id, contact_id, total_mrr, currency, owner_user_id")
           .eq("stripe_subscription_id", subscriptionId)
           .maybeSingle();
 
@@ -121,10 +116,86 @@ serve(async (req) => {
           metadata: { invoice_number: invoice.number, period_start: invoice.period_start, period_end: invoice.period_end },
         });
 
-        // Update contract status
+        // Reset dunning + activate contract
         await db.from("renewal_contracts")
-          .update({ status: "active", risk_level: "low" })
+          .update({ status: "active", risk_level: "low", dunning_attempts: 0 })
           .eq("id", contract.id);
+
+        // --- Create invoice in billing module ---
+        try {
+          const amountPaid = (invoice.amount_paid || 0) / 100;
+          const now = new Date().toISOString();
+          const dateStr = now.split("T")[0].replace(/-/g, "");
+          
+          // Generate invoice number
+          const { count } = await db.from("invoices")
+            .select("id", { count: "exact", head: true })
+            .eq("workspace_id", contract.workspace_id)
+            .like("invoice_number", `REN-${dateStr}%`);
+          
+          const seq = (count || 0) + 1;
+          const invoiceNumber = `REN-${dateStr}-${String(seq).padStart(3, "0")}`;
+
+          // Get company name for client_name
+          let clientName = "—";
+          let clientEmail = "";
+          if (contract.company_id) {
+            const { data: company } = await db.from("companies")
+              .select("name").eq("id", contract.company_id).maybeSingle();
+            if (company) clientName = company.name;
+          }
+          if (contract.contact_id) {
+            const { data: contact } = await db.from("contacts")
+              .select("email").eq("id", contract.contact_id).maybeSingle();
+            if (contact) clientEmail = contact.email || "";
+          }
+
+          const { data: newInvoice } = await db.from("invoices").insert({
+            workspace_id: contract.workspace_id,
+            invoice_number: invoiceNumber,
+            client_name: clientName,
+            client_email: clientEmail || null,
+            company_id: contract.company_id,
+            contact_id: contract.contact_id,
+            renewal_contract_id: contract.id,
+            created_by: contract.owner_user_id || "system",
+            status: "paid",
+            paid_at: now,
+            issue_date: now.split("T")[0],
+            due_date: now.split("T")[0],
+            subtotal: amountPaid,
+            tax_amount: 0,
+            total: amountPaid,
+            amount_paid: amountPaid,
+            currency: contract.currency || "EUR",
+            notes: `Pagamento automático Stripe. Invoice: ${invoice.id}`,
+          }).select("id").maybeSingle();
+
+          // Create invoice items from contract items
+          if (newInvoice) {
+            const { data: items } = await db.from("renewal_items")
+              .select("name, qty, unit_price, product_id")
+              .eq("contract_id", contract.id)
+              .in("status", ["active", "pending_renewal"]);
+
+            if (items && items.length > 0) {
+              const invoiceItems = items.map((item: any, idx: number) => ({
+                invoice_id: newInvoice.id,
+                description: item.name,
+                quantity: item.qty || 1,
+                unit_price: Number(item.unit_price) || 0,
+                total: (item.qty || 1) * (Number(item.unit_price) || 0),
+                product_id: item.product_id,
+                position: idx + 1,
+              }));
+              await db.from("invoice_items").insert(invoiceItems);
+            }
+          }
+
+          console.log(`[RENEWAL-WEBHOOK] Invoice ${invoiceNumber} created for contract ${contract.id}`);
+        } catch (invoiceErr) {
+          console.error("[RENEWAL-WEBHOOK] Failed to create invoice:", invoiceErr);
+        }
 
         console.log(`[RENEWAL-WEBHOOK] Payment recorded for contract ${contract.id}`);
         break;
@@ -137,11 +208,16 @@ serve(async (req) => {
         if (!subscriptionId) break;
 
         const { data: contract } = await db.from("renewal_contracts")
-          .select("id, workspace_id")
+          .select("id, workspace_id, dunning_attempts, stripe_subscription_id, company_id, contact_id, total_mrr, owner_user_id")
           .eq("stripe_subscription_id", subscriptionId)
           .maybeSingle();
 
         if (!contract) break;
+
+        const currentAttempts = (contract.dunning_attempts || 0) + 1;
+
+        // Escalate risk level based on attempts
+        const riskLevel = currentAttempts === 1 ? "medium" : currentAttempts === 2 ? "high" : "critical";
 
         await db.from("renewal_payment_events").insert({
           workspace_id: contract.workspace_id,
@@ -152,15 +228,82 @@ serve(async (req) => {
           currency: invoice.currency?.toUpperCase() || "EUR",
           stripe_invoice_id: invoice.id,
           stripe_subscription_id: subscriptionId,
-          metadata: { attempt_count: invoice.attempt_count },
+          metadata: { attempt_count: currentAttempts, dunning_step: currentAttempts },
         });
 
-        // Increase risk level
+        // Update contract dunning state
         await db.from("renewal_contracts")
-          .update({ risk_level: "high" })
+          .update({ risk_level: riskLevel, dunning_attempts: currentAttempts })
           .eq("id", contract.id);
 
-        console.log(`[RENEWAL-WEBHOOK] Payment FAILED for contract ${contract.id}`);
+        // Send dunning email
+        const alertType = currentAttempts >= 3 ? "payment_failed_3" : `payment_failed_${currentAttempts}`;
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/renewal-alert-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              contract_id: contract.id,
+              workspace_id: contract.workspace_id,
+              alert_type: alertType,
+              recipients: "both",
+            }),
+          });
+        } catch (emailErr) {
+          console.error("[RENEWAL-WEBHOOK] Dunning email error:", emailErr);
+        }
+
+        // Auto-cancel after 3 failed attempts
+        if (currentAttempts >= 3 && contract.stripe_subscription_id) {
+          console.log(`[RENEWAL-WEBHOOK] Cancelling subscription after ${currentAttempts} failures`);
+
+          try {
+            await stripe.subscriptions.cancel(contract.stripe_subscription_id);
+          } catch (cancelErr) {
+            console.error("[RENEWAL-WEBHOOK] Stripe cancel error:", cancelErr);
+          }
+
+          await db.from("renewal_contracts")
+            .update({ status: "churned", risk_level: "critical" })
+            .eq("id", contract.id);
+
+          await db.from("renewal_payment_events").insert({
+            workspace_id: contract.workspace_id,
+            contract_id: contract.id,
+            stripe_event_id: `auto-cancel-${event.id}`,
+            event_type: "subscription_cancelled",
+            stripe_subscription_id: subscriptionId,
+            metadata: { reason: "dunning_max_attempts", attempts: currentAttempts },
+          });
+
+          await db.from("workspace_subscriptions")
+            .update({ status: "cancelled", updated_at: new Date().toISOString() })
+            .eq("stripe_subscription_id", subscriptionId);
+
+          // Send cancellation email
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/renewal-alert-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
+                contract_id: contract.id,
+                workspace_id: contract.workspace_id,
+                alert_type: "service_cancelled",
+                recipients: "both",
+              }),
+            });
+          } catch (emailErr) {
+            console.error("[RENEWAL-WEBHOOK] Cancellation email error:", emailErr);
+          }
+        }
+
+        console.log(`[RENEWAL-WEBHOOK] Payment FAILED (attempt ${currentAttempts}) for contract ${contract.id}`);
         break;
       }
 
@@ -188,7 +331,6 @@ serve(async (req) => {
           .update({ status: "churned" })
           .eq("id", contract.id);
 
-        // Update SaaS subscription status
         await db.from("workspace_subscriptions")
           .update({ status: "cancelled", updated_at: new Date().toISOString() })
           .eq("stripe_subscription_id", subscriptionId);
