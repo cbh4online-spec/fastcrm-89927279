@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Plus, Store, ArrowLeft, MessageCircle, User, Heart, ChevronRight, ChevronLeft,
-  ShieldCheck, Truck, Award, Search, Sparkles, TrendingUp, Clock, Bell,
+  ShieldCheck, Truck, Award, Search, Sparkles, TrendingUp, Clock, Bell, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -328,7 +328,7 @@ export default function C2CMarketplace() {
                 onNavigate={(id) => navigate(`/dashboard/c2c/${id}`)}
                 seeMoreLabel={t('seeMore')}
               />
-            )
+            )}
 
             {recentListings.length > 0 && (
               <SectionCarousel
