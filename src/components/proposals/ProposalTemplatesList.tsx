@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -38,10 +39,9 @@ const sortOptions = [
 ];
 
 export function ProposalTemplatesList() {
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<ProposalTemplate | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: templates, isLoading } = useProposalTemplates();
@@ -93,13 +93,11 @@ export function ProposalTemplatesList() {
   }, [templates]);
 
   const handleCreate = () => {
-    setEditingTemplate(null);
-    setFormOpen(true);
+    navigate("/dashboard/proposals/templates/new");
   };
 
   const handleEdit = (template: ProposalTemplate) => {
-    setEditingTemplate(template);
-    setFormOpen(true);
+    navigate(`/dashboard/proposals/templates/${template.id}`);
   };
 
   const handleDuplicate = async (template: ProposalTemplate) => {
