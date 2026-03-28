@@ -110,6 +110,8 @@ export function TemplatesListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<TemplateRecommendation | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   const { data: templates, isLoading } = useCommunicationTemplates(
     channelFilter !== 'all' ? { channel: channelFilter } : undefined
@@ -122,6 +124,7 @@ export function TemplatesListPage() {
   const [lengthChannelFilter, setLengthChannelFilter] = useState<string>('all');
   const { data: favoriteIds } = useTemplateFavorites();
   const toggleFavorite = useToggleFavorite();
+  const { recommendations } = useTemplateRecommendations();
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
