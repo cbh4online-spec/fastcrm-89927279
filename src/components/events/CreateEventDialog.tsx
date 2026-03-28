@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useCreateEvent } from "@/hooks/useEvents";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { EventCoverUpload } from "./EventCoverUpload";
 
 const CATEGORIES = [
   { value: "networking", label: "Networking" },
@@ -44,6 +46,8 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
     link: "",
     tags: "",
     status: "draft" as string,
+    cover_image_url: "" as string,
+    registration_url: "",
   });
 
   const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -69,6 +73,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         link: form.link || null,
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : null,
         status: form.status,
+        cover_image_url: form.cover_image_url || null,
       },
       {
         onSuccess: () => {
@@ -77,6 +82,7 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
             title: "", description: "", event_category: "", starts_at: "", ends_at: "",
             location: "", location_url: "", capacity: "", price: "0", currency: "EUR",
             host_name: "", host_email: "", host_phone: "", link: "", tags: "", status: "draft",
+            cover_image_url: "", registration_url: "",
           });
         },
       }
@@ -91,6 +97,16 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-2">
           <div className="space-y-4 py-2">
+            {/* Cover Image Upload */}
+            <div className="space-y-1.5">
+              <Label>Imagem de capa</Label>
+              <EventCoverUpload
+                coverUrl={form.cover_image_url || null}
+                onUpload={(url) => set("cover_image_url", url)}
+                onRemove={() => set("cover_image_url", "")}
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label>Título *</Label>
               <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Nome do evento" />
@@ -156,6 +172,9 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
                 <Input value={form.currency} onChange={(e) => set("currency", e.target.value)} />
               </div>
             </div>
+
+            <Separator />
+
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Anfitrião</Label>
               <div className="grid grid-cols-3 gap-3">
@@ -164,15 +183,22 @@ export function CreateEventDialog({ open, onOpenChange }: CreateEventDialogProps
                 <Input value={form.host_phone} onChange={(e) => set("host_phone", e.target.value)} placeholder="Telefone" />
               </div>
             </div>
+
+            <Separator />
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Link externo</Label>
                 <Input value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://..." />
               </div>
               <div className="space-y-1.5">
-                <Label>Tags (separadas por vírgula)</Label>
-                <Input value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="vip, presencial" />
+                <Label>URL de registo</Label>
+                <Input value={form.registration_url} onChange={(e) => set("registration_url", e.target.value)} placeholder="https://..." />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tags (separadas por vírgula)</Label>
+              <Input value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="vip, presencial, exclusivo" />
             </div>
           </div>
         </ScrollArea>

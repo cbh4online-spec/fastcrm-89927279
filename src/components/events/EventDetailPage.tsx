@@ -3,23 +3,27 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEvent, useEventRSVPs, useInviteToEvent, useUpdateRSVP, useUpdateEvent } from "@/hooks/useEvents";
+import { useEvent, useEventRSVPs, useInviteToEvent, useUpdateRSVP, useUpdateEvent, useCreateEvent } from "@/hooks/useEvents";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useCoreObjectFields, useCreateObjectField } from "@/hooks/useCoreObjectFields";
 import { AttioAttributePicker, type AttributeField } from "./AttioAttributePicker";
+import { EventHero } from "./EventHero";
+import { RSVPDonutChart } from "./RSVPDonutChart";
+import { EventCheckInTab } from "./EventCheckInTab";
+import { BulkInviteDialog } from "./BulkInviteDialog";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import {
-  ArrowLeft, CalendarDays, MapPin, Users, UserPlus, ExternalLink,
-  DollarSign, Mail, Phone, User
+  UserPlus, ExternalLink, Mail, Phone, User, Users, Copy, Download
 } from "lucide-react";
+import { toast } from "sonner";
 
 const RSVP_STATUS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   invited: { label: "Convidado", variant: "secondary" },
@@ -37,12 +41,13 @@ export default function EventDetailPage() {
   const inviteMut = useInviteToEvent();
   const updateRsvp = useUpdateRSVP();
   const updateEvent = useUpdateEvent();
+  const createEvent = useCreateEvent(currentWorkspace?.id);
 
-  // Custom fields via core_object_fields for "community_events"
   const { data: customFields } = useCoreObjectFields("community_events");
   const createField = useCreateObjectField();
 
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({ name: "", email: "", phone: "" });
 
   const handleInvite = () => {
@@ -66,6 +71,47 @@ export default function EventDetailPage() {
     );
   };
 
+  const handleDuplicate = () => {
+    if (!event || !currentWorkspace) return;
+    createEvent.mutate({
+      title: `${event.title} (cópia)`,
+      description: event.description,
+      event_type: event.event_type,
+      event_category: event.event_category,
+      starts_at: event.starts_at,
+      ends_at: event.ends_at,
+      location: event.location,
+      location_url: event.location_url,
+      capacity: event.capacity,
+      price: event.price,
+      currency: event.currency,
+      host_name: event.host_name,
+      host_email: event.host_email,
+      host_phone: event.host_phone,
+      link: event.link,
+      tags: event.tags,
+      status: "draft",
+      cover_image_url: event.cover_image_url,
+    }, {
+      onSuccess: () => toast.success("Evento duplicado!"),
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!rsvps?.length) return;
+    const headers = ["Nome", "Email", "Telefone", "Status"];
+    const rows = rsvps.map((r) => [r.name || "", r.email || "", r.phone || "", RSVP_STATUS[r.status]?.label || r.status]);
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rsvps-${event?.title || "evento"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Lista exportada!");
+  };
+
   const handleCreateAttribute = (name: string, fieldType: string) => {
     createField.mutate({
       object_id: "community_events",
@@ -85,8 +131,10 @@ export default function EventDetailPage() {
     return (
       <DashboardLayout>
         <div className="space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <div className="grid grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -109,20 +157,17 @@ export default function EventDetailPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/events")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{event.title}</h1>
-              <Badge variant={event.status === "published" ? "default" : "secondary"}>
-                {event.status === "published" ? "Publicado" : event.status === "cancelled" ? "Cancelado" : "Rascunho"}
-              </Badge>
-            </div>
-            {event.description && <p className="text-sm text-muted-foreground mt-1">{event.description}</p>}
-          </div>
+        {/* Hero */}
+        <EventHero
+          event={event}
+          rsvpCount={(rsvps || []).length}
+          onBack={() => navigate("/dashboard/events")}
+          onDuplicate={handleDuplicate}
+          onExport={handleExportCSV}
+        />
+
+        {/* Action bar */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex gap-2">
             <AttioAttributePicker
               existingFields={attrFields}
@@ -134,72 +179,47 @@ export default function EventDetailPage() {
               </Button>
             )}
           </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkInviteOpen(true)} className="gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Convite em massa
+            </Button>
+            <Button size="sm" onClick={() => setInviteOpen(true)} className="gap-1.5">
+              <UserPlus className="h-3.5 w-3.5" />
+              Convidar
+            </Button>
+          </div>
         </div>
 
-        {/* Info cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <CalendarDays className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Data</p>
-                <p className="text-sm font-medium">{format(new Date(event.starts_at), "d MMM yyyy, HH:mm", { locale: pt })}</p>
-              </div>
-            </CardContent>
-          </Card>
-          {event.location && (
-            <Card>
-              <CardContent className="p-4 flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Local</p>
-                  <p className="text-sm font-medium truncate">{event.location}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Convidados</p>
-                <p className="text-sm font-medium">{(rsvps || []).length}{event.capacity ? ` / ${event.capacity}` : ""}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <DollarSign className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Preço</p>
-                <p className="text-sm font-medium">{event.price && event.price > 0 ? `${event.price} ${event.currency}` : "Grátis"}</p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Analytics row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RSVPDonutChart counts={counts} />
+
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(counts).map(([k, v]) => {
+              const st = RSVP_STATUS[k];
+              return (
+                <Card key={k}>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-3xl font-bold text-foreground">{v}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{st?.label}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="rsvps">
           <TabsList>
             <TabsTrigger value="rsvps">RSVPs ({(rsvps || []).length})</TabsTrigger>
+            <TabsTrigger value="checkin">Check-in</TabsTrigger>
             <TabsTrigger value="details">Detalhes</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="rsvps" className="mt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                {Object.entries(counts).map(([k, v]) => (
-                  <Badge key={k} variant="outline" className="text-xs gap-1">
-                    {RSVP_STATUS[k]?.label}: {v}
-                  </Badge>
-                ))}
-              </div>
-              <Button size="sm" onClick={() => setInviteOpen(true)} className="gap-1.5">
-                <UserPlus className="h-3.5 w-3.5" />
-                Convidar
-              </Button>
-            </div>
-
+          <TabsContent value="rsvps" className="mt-4 space-y-2">
             {!(rsvps || []).length ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
@@ -208,43 +228,45 @@ export default function EventDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
-                {rsvps!.map((r) => {
-                  const st = RSVP_STATUS[r.status] || RSVP_STATUS.invited;
-                  return (
-                    <Card key={r.id}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{r.name || "Sem nome"}</p>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              {r.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{r.email}</span>}
-                              {r.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{r.phone}</span>}
-                            </div>
+              rsvps!.map((r) => {
+                const st = RSVP_STATUS[r.status] || RSVP_STATUS.invited;
+                return (
+                  <Card key={r.id} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{r.name || "Sem nome"}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {r.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{r.email}</span>}
+                            {r.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{r.phone}</span>}
                           </div>
                         </div>
-                        <Select
-                          value={r.status}
-                          onValueChange={(v) => updateRsvp.mutate({ id: r.id, status: v, responded_at: new Date().toISOString() })}
-                        >
-                          <SelectTrigger className="w-[130px] h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(RSVP_STATUS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                      </div>
+                      <Select
+                        value={r.status}
+                        onValueChange={(v) => updateRsvp.mutate({ id: r.id, status: v, responded_at: new Date().toISOString() })}
+                      >
+                        <SelectTrigger className="w-[130px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(RSVP_STATUS).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
+          </TabsContent>
+
+          <TabsContent value="checkin" className="mt-4">
+            <EventCheckInTab rsvps={rsvps || []} eventId={eventId!} />
           </TabsContent>
 
           <TabsContent value="details" className="mt-4">
@@ -271,7 +293,6 @@ export default function EventDetailPage() {
                   )}
                 </div>
 
-                {/* Custom fields from metadata */}
                 {event.metadata && Object.keys(event.metadata).length > 0 && (
                   <div className="border-t border-border pt-4 mt-4">
                     <h4 className="text-sm font-medium text-foreground mb-3">Atributos personalizados</h4>
@@ -313,6 +334,17 @@ export default function EventDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Invite Dialog */}
+      <BulkInviteDialog
+        open={bulkInviteOpen}
+        onOpenChange={setBulkInviteOpen}
+        eventId={eventId!}
+        eventTitle={event?.title}
+        eventDate={event?.starts_at}
+        eventLocation={event?.location}
+        eventLink={event?.link}
+      />
     </DashboardLayout>
   );
 }
