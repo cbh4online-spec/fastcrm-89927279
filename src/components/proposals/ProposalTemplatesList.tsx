@@ -108,12 +108,7 @@ export function ProposalTemplatesList() {
   };
 
   const handleToggleActive = async (template: ProposalTemplate, active: boolean) => {
-    // Since the hook doesn't support is_active toggle, we'll need to extend it
-    // For now, we'll just call update with the current values
-    await updateTemplate.mutateAsync({
-      id: template.id,
-      name: template.name,
-    });
+    // TODO: extend hook to support is_active toggle
   };
 
   const handleDelete = async () => {
