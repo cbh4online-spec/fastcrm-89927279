@@ -594,5 +594,6 @@ export default function PipelineMetricsPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
