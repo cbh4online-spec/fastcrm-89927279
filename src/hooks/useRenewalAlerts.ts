@@ -5,7 +5,7 @@ import type { RenewalItem, RenewalContract } from "@/types/renewal";
 
 export interface RenewalAlert {
   id: string;
-  type: "overdue" | "upcoming_7" | "low_pack" | "expiring";
+  type: "overdue" | "upcoming_7" | "low_pack" | "expiring" | "payment_failed";
   title: string;
   message: string;
   contractId: string;
