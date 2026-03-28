@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
-export function useKernelEvents(limit = 20) {
+export function useKernelEvents(limit = 50) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const queryClient = useQueryClient();
@@ -14,7 +14,7 @@ export function useKernelEvents(limit = 20) {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from('kernel_events')
-        .select('id, type, entity_kind, entity_id, actor_type, source_module, created_at, payload')
+        .select('id, type, entity_kind, entity_id, actor_type, source_module, created_at, payload, status, processed_at, event_name')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(limit);
