@@ -1,26 +1,22 @@
 
-# Fix Supplier Web Search (Firecrawl)
 
-## Problem
+# Corrigir Edge Function `ebook-ai-assist` — Falha no Deploy
 
-The `supplier-web-search` edge function is failing. The Firecrawl connector is linked and active, but the function produces no logs — suggesting it crashes on startup or during auth validation. The likely cause is `supabase.auth.getClaims()` which may not be available in the Deno Supabase client version.
+## Problema
 
-## Fix
+O erro **"Failed to send a request to the Edge Function"** indica que a edge function `ebook-ai-assist` não está deployada. O ficheiro existe em `supabase/functions/ebook-ai-assist/index.ts` mas nunca foi deployado com sucesso (sem logs no servidor).
 
-### 1. Edge Function: `supabase/functions/supplier-web-search/index.ts`
+## Solução
 
-- Replace `getClaims()` auth with `supabase.auth.getUser(token)` — the standard and reliable method
-- Improve error handling to return 200 with structured error payloads (resilient pattern) so the frontend gets useful error messages instead of generic catch-all
-- Keep the Firecrawl search + AI extraction logic unchanged
+Forçar o re-deploy da edge function. O código da função está correcto — usa CORS headers, LOVABLE_API_KEY, e o gateway `ai.gateway.lovable.dev`. Apenas precisa de ser deployado.
 
-### 2. Frontend: `src/components/procurement/SupplierSearchDialog.tsx`
+### Passo único
 
-- Improve error handling to show specific error messages from the edge function response (e.g., "AI credits exhausted", "Rate limit") instead of the generic Firecrawl message
-- Check `data.error` in addition to the `error` parameter from `invoke`
+Fazer deploy da função `ebook-ai-assist` usando a ferramenta de deploy de edge functions.
 
-## Changes Summary
+Caso o deploy falhe, verificar:
+1. Se o `LOVABLE_API_KEY` está configurado como secret
+2. Se há erros de sintaxe no `index.ts` (improvável — o código está limpo)
 
-| File | Change |
-|------|--------|
-| `supabase/functions/supplier-web-search/index.ts` | Replace `getClaims` with `getUser`, return 200 with error payload for non-fatal errors |
-| `src/components/procurement/SupplierSearchDialog.tsx` | Show specific error messages from response |
+Nenhuma alteração de código é necessária.
+
