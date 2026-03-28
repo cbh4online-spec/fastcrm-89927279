@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRenewalContract, useRenewalItems, useUpdateRenewalContract } from "@/hooks/useRenewals";
 import { useRenewalEvents } from "@/hooks/useRenewalEvents";
 import { useRenewalUsage } from "@/hooks/useRenewalUsage";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   RENEWAL_STATUS_CONFIG, RENEWAL_INTERVAL_LABELS, RENEWAL_BILLING_LABELS,
   RENEWAL_ITEM_TYPE_LABELS, RENEWAL_ITEM_STATUS_CONFIG, PRICING_MODEL_LABELS,
@@ -15,17 +16,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, Calendar, CreditCard, Activity, Loader2 } from "lucide-react";
+import { ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, CreditCard, Activity, Mail } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useState } from "react";
 import { LogUsageDialog } from "@/components/renewals/LogUsageDialog";
 import { CreateRenewalItemDialog } from "@/components/renewals/CreateRenewalItemDialog";
 import { RenewalAISuggestions } from "@/components/renewals/RenewalAISuggestions";
+import { RenewalPaymentDialog } from "@/components/renewals/RenewalPaymentDialog";
+import { RenewalAlertSettings } from "@/components/renewals/RenewalAlertSettings";
+import { RenewalBillingTab } from "@/components/renewals/RenewalBillingTab";
+import { ComposeEmailDialog } from "@/components/email";
 
 export default function RenewalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
   const { data: contract, isLoading } = useRenewalContract(id);
   const { data: items = [] } = useRenewalItems(id);
   const { data: events = [] } = useRenewalEvents(id);
@@ -33,6 +39,9 @@ export default function RenewalDetailPage() {
   const updateContract = useUpdateRenewalContract();
   const [showLogUsage, setShowLogUsage] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(val);
@@ -65,6 +74,22 @@ export default function RenewalDetailPage() {
     updateContract.mutate({ id: contract.id, status: newStatus } as any);
   };
 
+  const contactEmail = (contract as any).contact?.email || "";
+  const contactName = (contract as any).contact?.name || "";
+  const companyName = contract.company?.name || "";
+  const renewalDateStr = contract.next_renewal_date
+    ? format(new Date(contract.next_renewal_date), "dd/MM/yyyy")
+    : "";
+
+  const openEmailWithPaymentLink = (url: string) => {
+    setPendingPaymentUrl(url);
+    setShowEmailDialog(true);
+  };
+
+  const defaultEmailBody = pendingPaymentUrl
+    ? `Caro(a) ${contactName || "Cliente"},\n\nSegue o link para proceder ao pagamento da renovação dos seus serviços:\n\n${pendingPaymentUrl}\n\nPara qualquer questão, não hesite em contactar-nos.\n\nCom os melhores cumprimentos.`
+    : "";
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -75,7 +100,7 @@ export default function RenewalDetailPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">{contract.company?.name || "Contrato"}</h1>
+              <h1 className="text-xl font-bold">{companyName || "Contrato"}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Badge className={`${statusConfig.bgColor} ${statusConfig.color} border-0`}>
                   {statusConfig.label}
@@ -90,6 +115,14 @@ export default function RenewalDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
+              <CreditCard className="mr-1 h-3.5 w-3.5" /> Link Pagamento
+            </Button>
+            {contactEmail && (
+              <Button variant="outline" size="sm" onClick={() => { setPendingPaymentUrl(null); setShowEmailDialog(true); }}>
+                <Mail className="mr-1 h-3.5 w-3.5" /> Email
+              </Button>
+            )}
             {contract.status === "active" && (
               <>
                 <Button variant="outline" size="sm" onClick={() => handleStatusChange("paused")}>
@@ -154,8 +187,8 @@ export default function RenewalDetailPage() {
                 <Card>
                   <CardHeader className="pb-2"><CardTitle className="text-sm">Detalhes</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{contract.company?.name || "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contract.contact?.name || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{companyName || "—"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contactName || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Billing</span><span>{RENEWAL_BILLING_LABELS[contract.billing_type]}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span>{format(new Date(contract.start_date), "dd/MM/yyyy")}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Moeda</span><span>{contract.currency}</span></div>
@@ -170,6 +203,10 @@ export default function RenewalDetailPage() {
                     <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{contract.notes}</p></CardContent>
                   </Card>
                 )}
+                <RenewalAlertSettings
+                  contractId={contract.id}
+                  alertSettings={(contract as any).alert_settings || null}
+                />
               </div>
               <RenewalAISuggestions
                 contractId={contract.id}
@@ -281,12 +318,11 @@ export default function RenewalDetailPage() {
 
           {/* Billing */}
           <TabsContent value="billing">
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Módulo de faturação integrada em desenvolvimento</p>
-              </CardContent>
-            </Card>
+            <RenewalBillingTab
+              contractId={contract.id}
+              workspaceId={currentWorkspace?.id || ""}
+              onGeneratePaymentLink={() => setShowPaymentDialog(true)}
+            />
           </TabsContent>
 
           {/* Timeline */}
@@ -329,20 +365,35 @@ export default function RenewalDetailPage() {
           </TabsContent>
         </Tabs>
 
+        {/* Dialogs */}
         {showLogUsage && id && (
-          <LogUsageDialog
-            contractId={id}
+          <LogUsageDialog contractId={id} items={items} open={showLogUsage} onOpenChange={setShowLogUsage} />
+        )}
+        {showAddItem && id && (
+          <CreateRenewalItemDialog contractId={id} open={showAddItem} onOpenChange={setShowAddItem} />
+        )}
+        {showPaymentDialog && (
+          <RenewalPaymentDialog
+            open={showPaymentDialog}
+            onOpenChange={setShowPaymentDialog}
+            contract={contract}
             items={items}
-            open={showLogUsage}
-            onOpenChange={setShowLogUsage}
+            onPaymentCreated={(url) => openEmailWithPaymentLink(url)}
           />
         )}
-
-        {showAddItem && id && (
-          <CreateRenewalItemDialog
-            contractId={id}
-            open={showAddItem}
-            onOpenChange={setShowAddItem}
+        {showEmailDialog && contactEmail && (
+          <ComposeEmailDialog
+            open={showEmailDialog}
+            onOpenChange={setShowEmailDialog}
+            recipient={{
+              email: contactEmail,
+              name: contactName,
+              entityType: "contact",
+              entityId: contract.contact_id || "",
+            }}
+            defaultSubject={`Renovação — ${companyName} — ${renewalDateStr}`}
+            defaultBody={defaultEmailBody}
+            onSent={() => setPendingPaymentUrl(null)}
           />
         )}
       </div>
