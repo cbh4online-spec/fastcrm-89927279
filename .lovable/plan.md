@@ -1,60 +1,45 @@
 
 
-# Metas de Performance — Ligação aos Módulos Reais
+# Fix: Métricas de Performance e Nomes no Leaderboard
 
-## Problema
+## Problemas Identificados
 
-As metas estão completamente desligadas dos dados reais do CRM. O progresso é sempre "0" porque não há cálculo automático a partir de leads, oportunidades, propostas ou receita. O formulário é genérico — pede apenas um nome e valor alvo sem indicar a que módulo se refere.
+### 1. Leaderboard mostra "Utilizador" em vez de nomes reais
+No `usePerformanceScores.ts`, o leaderboard faz lookup de profiles por `p.id` mas procura por `s.user_id`. A tabela `profiles` tem `id` (PK do profile) e `user_id` (referência ao auth user). Como `performance_scores.user_id` guarda o auth user ID, o lookup falha e cai para o fallback "Utilizador".
 
-## Solução
+**Fix**: Alterar a query de profiles para `select("user_id, full_name, avatar_url")` e mapear por `user_id`.
 
-Transformar as metas num sistema que se liga automaticamente aos dados reais do sistema.
+### 2. Métricas atribuem os mesmos valores a todos os membros
+O `useRecalculateScores` itera por cada membro do workspace, mas as queries a `leads`, `meetings`, `proposals` e `opportunities` filtram apenas por `workspace_id` — nunca por `assigned_to`. Todos os membros recebem exactamente os mesmos números.
 
-### 1. Presets de Tipo de Meta (em vez de formulário genérico)
-
-Ao criar uma meta, o utilizador escolhe de um grid visual:
-
-| Preset | Ícone | Fonte de Dados | Unidade |
-|---|---|---|---|
-| Faturação | TrendingUp | `opportunities` (won, amount) | € |
-| Leads Captados | Users | `leads` (count, created_at) | nº |
-| Propostas Enviadas | FileText | `proposals` (count, created_at) | nº |
-| Negócios Fechados | Handshake | `opportunities` (won, count) | nº |
-| Reuniões | Calendar | `meetings` (count) | nº |
-| Pipeline | BarChart3 | `opportunities` (open, amount) | € |
-
-Ao selecionar o preset, os campos "fonte" e "unidade" preenchem automaticamente — o utilizador só define o valor alvo e o período.
-
-### 2. Cálculo de Progresso Real
-
-Criar hook `useGoalProgress(goal)` que, com base no `goal_type`/`entity_source`:
-- Consulta a tabela real (leads, opportunities, proposals, meetings)
-- Filtra por `workspace_id`, `period_start` ≤ `created_at` ≤ `period_end`
-- Para revenue: soma `amount` das opportunities com `status = 'won'`
-- Para leads: conta registos criados no período
-- Para propostas: conta propostas criadas
-- Retorna `{ current_value, percentage, status }` onde status = on_track/at_risk/behind/exceeded
-
-### 3. Cards Redesenhados
-
-Cada card de meta mostrará:
-- Ícone e label do tipo (ex: "📊 Faturação")
-- Badge colorido do estado (verde = on_track, amarelo = at_risk, vermelho = behind, azul = exceeded)
-- Barra de progresso real com `current / target` e percentagem
-- Progresso temporal (dias passados vs total)
-- Projeção: "A este ritmo, atingirá X no final do período"
-
-### 4. KPI Selector no Formulário
-
-Ligar o campo `kpi_id` existente na BD à tabela `performance_kpis`:
-- Mostrar KPIs disponíveis como opção avançada
-- Permitir criar metas custom ligadas a KPIs específicos
+**Fix**: Adicionar `.eq("assigned_to", uid)` em cada query de recalculação para leads, proposals e opportunities. Para meetings, filtrar por `created_by` ou `assigned_to` conforme disponível.
 
 ## Ficheiros
 
-| Ficheiro | Ação |
+| Ficheiro | Mudança |
 |---|---|
-| `src/hooks/usePerformanceGoals.ts` | Adicionar `useGoalProgress` hook com queries reais |
-| `src/pages/performance/PerformanceGoalsPage.tsx` | Reescrever com presets, cards ricos, progresso real |
-| `src/hooks/usePerformanceGoals.ts` | Adicionar lógica de projeção e estado automático |
+| `src/hooks/usePerformanceScores.ts` | **useLeaderboard**: mudar select de profiles para `user_id, full_name, avatar_url` e mapear por `user_id` em vez de `id` |
+| `src/hooks/usePerformanceScores.ts` | **useRecalculateScores**: adicionar filtro `.eq("assigned_to", uid)` nas queries de leads, proposals, opportunities; adicionar filtro equivalente em meetings |
+
+## Detalhe Técnico
+
+```text
+Antes (leaderboard):
+  select("id, full_name, avatar_url").in("id", userIds)
+  Map: p.id → p
+  Lookup: profileMap.get(s.user_id) → ❌ miss → "Utilizador"
+
+Depois:
+  select("user_id, full_name, avatar_url").in("user_id", userIds)
+  Map: p.user_id → p
+  Lookup: profileMap.get(s.user_id) → ✅ nome real
+
+Antes (recalculate - leads):
+  .eq("workspace_id", wid).gte("created_at", startISO)...
+  → Todos os membros recebem o total do workspace
+
+Depois:
+  .eq("workspace_id", wid).eq("assigned_to", uid).gte("created_at", startISO)...
+  → Cada membro recebe só os seus leads/deals/propostas
+```
 
