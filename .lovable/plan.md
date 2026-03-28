@@ -1,62 +1,59 @@
 
 
-# Funis — Módulo Acima da Concorrência
+# Form Studio — Módulo Acima da Concorrência
 
-## Diagnóstico
+## Diagnóstico Atual
 
-Após análise detalhada de 36+ ficheiros do módulo, identifiquei 4 problemas críticos:
+O módulo tem: builder visual, modo linguagem natural com IA, preview, formulários inteligentes com scoring/enrichment, modo conversacional, e página pública (`/f/:slug`). Mas faltam capacidades críticas:
 
-1. **KPIs da homepage mostram "0"** — Os cards (Total Funis, Publicados, Verticais) usam contagens básicas mas não incluem métricas de performance real (views, conversões, receita). Os KPIs de performance só aparecem dentro de cada funil individualmente.
-
-2. **Sem dashboard proativo** — A homepage é uma lista estática sem recomendações, sem alertas de performance, sem sugestões de otimização. O utilizador não sabe o que fazer a seguir.
-
-3. **Consumo de créditos inconsistente** — O `AIFunnelChat` consome créditos via `useCreditWallet` (sistema legado de créditos de funis), mas TAMBÉM passa pelo `ai-gate` na edge function. Dupla cobrança potencial. O `FunnelAIInsightsTab` e `FunnelAnalyticsTab` chamam IA sem qualquer controlo de créditos no frontend.
-
-4. **Analytics com dados parciais** — `StatsOverviewTab` funciona bem com dados reais de `vertical_landing_events`, mas os cards da homepage não agregam esses dados. Não há visão consolidada cross-funnel.
+1. **Sem embed/incorporação** — Não há forma de incorporar o formulário num site externo (iframe, script, popup). Só funciona via link direto.
+2. **Sem analytics de formulário** — Não há dashboard com views, taxa de conversão, abandono parcial, ou performance por campo.
+3. **Sem IA proativa** — A IA gera campos mas não analisa performance nem sugere otimizações.
+4. **Sem features avançadas** — Sem A/B testing, sem webhooks, sem thank-you page customizável, sem tracking de abandono parcial.
 
 ---
 
-## Plano de Implementação (4 blocos)
+## Plano (4 blocos)
 
-### Bloco 1: Fix KPIs + Dashboard Consolidado
+### Bloco 1: Embed & Incorporação
 
-Substituir os 4 KPI cards estáticos da homepage por métricas reais agregadas.
-
-| Componente | Descrição |
-|---|---|
-| `FunnelsHomeDashboard.tsx` | **Novo** — Dashboard consolidado com KPIs reais: Total Views (sum de todos os funis), Total Leads (sum de form_submits), Taxa de Conversão Média, Receita Total. Busca dados de `vertical_landing_events` + `funnel_step_stats` |
-| `FunnelPerformanceRanking.tsx` | **Novo** — Ranking dos funis por performance (views, conversão). Top 3 e worst 3 com indicadores visuais |
-| `FunnelAdvisorBanner.tsx` | **Novo** — Banner IA no topo: "O funil /empresas tem bounce rate de 78% — otimize o headline" ou "Nenhum funil publicado — publique o primeiro" |
-
-**Integração**: Substituir a secção de KPI cards na `FunnelsList.tsx` pelo novo `FunnelsHomeDashboard`.
-
-### Bloco 2: Garantir Consumo de Créditos
-
-Corrigir a dupla cobrança e garantir que TODA IA consome via `ai-gate`:
-
-| Ficheiro | Mudança |
-|---|---|
-| `AIFunnelChat.tsx` | **Modificar** — Remover consumo via `useCreditWallet` (legado). O `ai-gate` na edge function `ai-funnel-builder` já cobra. Manter apenas verificação de quota no frontend para UX (mostrar erro antes de chamar) |
-| `FunnelAIInsightsTab.tsx` | **Modificar** — Adicionar verificação de quota no frontend antes de chamar `funnel-ai-insights` (a edge function já tem ai-gate) |
-| `FunnelAnalyticsTab.tsx` | **Modificar** — Idem para o botão "Analisar com IA" |
-| `StatsOverviewTab.tsx` | **Modificar** — O botão "Analisar com IA" precisa de indicação de custo (Badge "1 crédito") |
-
-### Bloco 3: Funnel Health Score + Proatividade
+Gerar snippets para incorporar formulários em qualquer site externo.
 
 | Componente | Descrição |
 |---|---|
-| `FunnelHealthScore.tsx` | **Novo** — Score 0-100 por funil baseado em: conversion rate vs benchmark, bounce rate, volume de tráfego, recência de updates. Semáforo visual |
-| `FunnelQuickOptimize.tsx` | **Novo** — Cards de ação rápida: "Adicionar opt-in ao step 2", "A/B test do headline", "Ativar tracking UTM". Baseado em análise automática da configuração |
-| `FunnelComparisonView.tsx` | **Novo** — Comparação side-by-side de 2 funis (conversão, tráfego, receita) para identificar o que funciona |
+| `FormEmbedDialog.tsx` | **Novo** — Dialog com 4 opções de incorporação: **iframe** (código copiável com dimensões ajustáveis), **Script JS** (widget que injeta o formulário inline), **Popup/Modal** (botão flutuante que abre formulário em overlay), **Link direto** (URL pública já existente). Cada opção gera o snippet pronto a copiar |
+| `FormEmbedPreview.tsx` | **Novo** — Preview visual de como o formulário aparece em cada modo (iframe mockup, popup mockup) |
 
-### Bloco 4: Analytics Consolidados Cross-Funnel
+**Integração**: Adicionar botão "Incorporar" no `SmartFormsList.tsx` e no `SmartFormBuilder.tsx` após guardar.
+
+### Bloco 2: Analytics de Formulário
+
+Dashboard com métricas reais por formulário.
 
 | Componente | Descrição |
 |---|---|
-| `CrossFunnelAnalytics.tsx` | **Novo** — Tab "Analytics" na homepage com gráfico de tendência cross-funnel (últimos 30 dias), distribuição de tráfego por funil, top sources UTM agregadas |
-| `FunnelROICard.tsx` | **Novo** — ROI por funil: custo (créditos IA gastos) vs receita gerada |
+| `FormAnalyticsDashboard.tsx` | **Novo** — KPIs: Total views, submissões, taxa de conversão, tempo médio de preenchimento. Gráfico de tendência (últimos 30 dias). Ranking de campos com maior abandono. Mapa de calor por campo (quais campos as pessoas preenchem vs saltam) |
+| `FormFieldAnalytics.tsx` | **Novo** — Analytics por campo individual: taxa de preenchimento, valores mais comuns, tempo gasto. Identifica campos "killer" (alta taxa de abandono) |
+| Nova tab "Analytics" | Adicionar ao `SmartForms.tsx` como nova view |
 
-**Nova tab**: Adicionar "Analytics" entre "Captura" e "Domínios" na `FunnelsList.tsx`.
+**Dados**: Consultar `form_submissions` existente + adicionar tracking de `form_views` na `PublicFormPage.tsx`.
+
+### Bloco 3: IA Proativa & Otimização
+
+| Componente | Descrição |
+|---|---|
+| `FormAdvisorBanner.tsx` | **Novo** — Banner no topo da lista: "O formulário 'Contacto' tem 200 views mas só 12 submissões (6%) — a IA sugere: remover campo 'Empresa' (opcional mas causa abandono), reduzir de 8 para 5 campos" |
+| `FormABTestPanel.tsx` | **Novo** — Criar variante B de um formulário (alterar texto de botão, ordem de campos, número de campos). Distribuir tráfego 50/50. Dashboard de comparação com winner automático |
+| `AIFormOptimizer.tsx` | **Novo** — Botão "Otimizar com IA" que analisa submissões existentes e sugere: reordenar campos, marcar opcionais como obrigatórios (ou vice-versa), alterar labels, adicionar/remover campos. Consome créditos via ai-gate |
+
+### Bloco 4: Features Premium
+
+| Componente | Descrição |
+|---|---|
+| `FormWebhooksConfig.tsx` | **Novo** — Configurar webhooks por formulário: URL destino, eventos (nova submissão, lead qualificado), headers custom, retry policy. Permite integrar com Zapier/Make/n8n |
+| `FormThankYouEditor.tsx` | **Novo** — Editor da página de sucesso: mensagem custom, redirect URL, botão CTA secundário, embed de calendário (link para booking page), oferta/desconto |
+| `PartialSubmissionTracker.tsx` | **Novo** — Tracking de preenchimentos parciais: quem começou mas não terminou. Lista de "quase-leads" com dados parciais captados. Possibilidade de enviar email de recuperação |
+| `ConditionalLogicPanel.tsx` | **Novo** — UI visual para criar regras condicionais: "Se campo X = Y, mostrar campo Z". Já existe o tipo `ConditionalRule` mas sem UI dedicada para configurar |
 
 ---
 
@@ -64,31 +61,40 @@ Corrigir a dupla cobrança e garantir que TODA IA consome via `ai-gate`:
 
 | Ficheiro | Ação |
 |---|---|
-| `src/components/funnels/FunnelsHomeDashboard.tsx` | **Novo** — KPIs reais + ranking |
-| `src/components/funnels/FunnelAdvisorBanner.tsx` | **Novo** — Banner proativo |
-| `src/components/funnels/FunnelHealthScore.tsx` | **Novo** — Score composto |
-| `src/components/funnels/FunnelQuickOptimize.tsx` | **Novo** — Ações rápidas |
-| `src/components/funnels/FunnelComparisonView.tsx` | **Novo** — Comparação |
-| `src/components/funnels/CrossFunnelAnalytics.tsx` | **Novo** — Analytics globais |
-| `src/components/funnels/FunnelROICard.tsx` | **Novo** — ROI tracking |
-| `src/components/funnels/FunnelsList.tsx` | **Modificar** — Integrar dashboard, banner, nova tab Analytics |
-| `src/components/funnels/ai-builder/AIFunnelChat.tsx` | **Modificar** — Remover dupla cobrança de créditos |
-| `src/components/funnels/tabs/FunnelAIInsightsTab.tsx` | **Modificar** — Indicação de custo |
-| `src/components/funnels/tabs/FunnelAnalyticsTab.tsx` | **Modificar** — Indicação de custo |
-| `src/components/funnels/stats/StatsOverviewTab.tsx` | **Modificar** — Badge de custo no botão IA |
+| `src/components/smart-forms/FormEmbedDialog.tsx` | **Novo** — Snippets de incorporação |
+| `src/components/smart-forms/FormEmbedPreview.tsx` | **Novo** — Preview dos modos embed |
+| `src/components/smart-forms/FormAnalyticsDashboard.tsx` | **Novo** — Dashboard analytics |
+| `src/components/smart-forms/FormFieldAnalytics.tsx` | **Novo** — Analytics por campo |
+| `src/components/smart-forms/FormAdvisorBanner.tsx` | **Novo** — Banner proativo IA |
+| `src/components/smart-forms/FormABTestPanel.tsx` | **Novo** — A/B testing |
+| `src/components/smart-forms/AIFormOptimizer.tsx` | **Novo** — Otimizador IA |
+| `src/components/smart-forms/FormWebhooksConfig.tsx` | **Novo** — Webhooks |
+| `src/components/smart-forms/FormThankYouEditor.tsx` | **Novo** — Thank-you page |
+| `src/components/smart-forms/PartialSubmissionTracker.tsx` | **Novo** — Abandono parcial |
+| `src/components/smart-forms/ConditionalLogicPanel.tsx` | **Novo** — UI lógica condicional |
+| `src/components/smart-forms/SmartFormsList.tsx` | **Modificar** — Botão incorporar + banner IA |
+| `src/pages/SmartForms.tsx` | **Modificar** — Nova view analytics |
+| `src/pages/PublicFormPage.tsx` | **Modificar** — Tracking de views + partial submissions |
+| `src/components/smart-forms/SmartFormBuilder.tsx` | **Modificar** — Integrar webhooks, thank-you, conditional logic |
 
 ## Diferenciadores vs Concorrência
 
 ```text
-Feature                  ClickFunnels  Leadpages  FastCRM
-────────────────────────────────────────────────────────
-Cross-funnel dashboard       ✗           ✗         ✓
-AI Advisor proativo          ✗           ✗         ✓
-Health Score automático      ✗           ~         ✓
-Funnel comparison            ~           ✗         ✓
-ROI tracking (custo IA)      ✗           ✗         ✓
-CRM-native (pipeline)        ✗           ✗         ✓
-Quick optimize actions       ✗           ✗         ✓
-Credit enforcement           n/a         n/a       ✓
+Feature                    Typeform  JotForm  HubSpot  FastCRM
+────────────────────────────────────────────────────────────────
+Embed (iframe+script+popup)   ✓        ✓       ✓        ✓
+A/B Testing nativo            ✗        ✗       ~        ✓
+AI Form Optimizer              ✗        ✗       ✗        ✓
+AI Advisor proativo            ✗        ✗       ✗        ✓
+Partial submission tracking    ~        ✗       ✓        ✓
+Field-level analytics          ✗        ~       ✗        ✓
+Webhooks configuráveis         ✓        ✓       ✓        ✓
+Thank-you page editor          ✓        ✓       ✓        ✓
+Lead scoring automático        ✗        ✗       ✓        ✓
+CRM-native (pipeline)          ✗        ✗       ✓        ✓
+Modo conversacional            ✓        ✗       ✗        ✓
+Conditional logic visual       ✓        ✓       ✓        ✓
 ```
+
+O diferenciador principal: **IA que analisa e otimiza** — nenhum concorrente sugere proativamente "remova este campo para aumentar conversão em 15%".
 
