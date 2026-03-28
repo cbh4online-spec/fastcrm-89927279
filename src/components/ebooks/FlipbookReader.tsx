@@ -185,7 +185,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
           {/* Page */}
           <div
-            className={`${pageWidth} ${pageHeight} relative overflow-hidden`}
+            className={`${pageWidth} ${pageHeight} relative flex flex-col`}
             style={{ perspective: "1200px" }}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
