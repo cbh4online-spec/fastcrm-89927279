@@ -128,8 +128,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     if (!ebook || !activeChapterId) return;
     const ch = ebook.chapters.find(c => c.id === activeChapterId);
     if (!ch) return;
+    if (!canAfford("ebook_generate_chapter_image")) {
+      triggerNoCreditsDialog({ actionLabel: "Imagem Capítulo IA", creditsNeeded: getCost("ebook_generate_chapter_image") });
+      return;
+    }
     setGeneratingChapterImgAI(true);
     try {
+      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_chapter_image", referenceType: "ebook", referenceId: ebookId });
       const prompt = `Create a professional, atmospheric illustration for an eBook chapter titled "${ch.title}" from the book "${ebook.title}". The image should be evocative, editorial quality, suitable as a chapter header. Abstract or thematic, no text in the image. Wide format, cinematic.`;
       const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
         body: { action: "generate_image", imagePrompt: prompt, ebookId, target: `chapter-${activeChapterId}` },
