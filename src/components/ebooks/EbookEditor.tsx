@@ -450,7 +450,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
         </div>
 
         {/* Center: Editor */}
-        <div className="flex-1 overflow-y-auto bg-background" ref={editorRef}>
+        <div className="flex-1 min-w-0 overflow-y-auto bg-background" ref={editorRef}>
           <AnimatePresence mode="wait">
             {activeChapter ? (
               <motion.div
@@ -529,7 +529,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 </div>
 
                 {/* WYSIWYG Editor */}
-                <div className="px-6 py-6">
+                <div className="px-6 py-6 bg-white rounded-lg shadow mx-4 mb-6">
                   <EbookRichEditor
                     ref={richEditorRef}
                     value={activeChapter.content || ""}
@@ -558,8 +558,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
         </div>
 
         {/* Right sidebar: Block toolbar + Branding */}
-        <div className="w-48 shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
-          <div className="shrink-0">
+        <div className="w-48 shrink-0 flex flex-col border-l border-border/40 bg-muted/20 overflow-y-auto">
+          <div>
             <EbookBlockToolbar
               onInsertBlock={insertBlock}
               onUndo={() => richEditorRef.current?.undo()}
