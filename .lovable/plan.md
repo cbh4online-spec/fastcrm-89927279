@@ -1,55 +1,74 @@
 
 
-# Criar templates de email para funis: Agradecimento + Convite Reunião/Trial
+# Fluxo automatizado de nurture para leads de funil
 
 ## Contexto
 
-O `PublicFunnelPage.tsx` já tem um fluxo de submissão de formulário (linha 156-203) que insere dados em `funnel_submissions` mas não envia nenhum email ao lead. A infraestrutura de email transacional já está configurada (edge function `send-transactional-email`, registry, queue).
+Atualmente, quando um lead submete o formulário do funil, recebe 2 emails imediatos (agradecimento + convite reunião). O pedido é criar uma sequência automatizada que, ao longo de vários dias, envie emails inteligentes para converter a lead em reunião/trial.
+
+## Arquitetura
+
+Uma fila de nurture dedicada (`funnel_nurture_queue`) com um processador cron que envia emails escalonados no tempo. Cada email é 1:1, despoletado pela ação original de registo do lead.
+
+```text
+Registo no Funil
+  ├─ Email 0 (imediato): Agradecimento ✅ (já existe)
+  ├─ Email 1 (imediato): Convite Reunião ✅ (já existe)  
+  ├─ Email 2 (Dia 2): Valor + caso de uso
+  ├─ Email 3 (Dia 4): Prova social + testemunho
+  ├─ Email 4 (Dia 7): Última oportunidade trial
+  └─ [para se lead agendar reunião → sai da fila]
+```
 
 ## Alterações
 
-### 1. Criar template `funnel-registration-thanks.tsx`
+### 1. Tabela `funnel_nurture_queue`
 
-Novo ficheiro em `supabase/functions/_shared/transactional-email-templates/`:
-- Email de agradecimento pelo registo no funil
-- Props: `name`, `funnelName`
-- Subject: "Obrigado pelo seu registo!"
-- Estilo consistente com os templates existentes (gold/dark brand do fastcrm)
-- CTA para visitar o site
+Nova tabela para rastrear em que passo cada lead está:
+- `submission_id`, `funnel_id`, `workspace_id`, `recipient_email`, `recipient_name`
+- `current_step` (0-2), `status` (pending/completed/cancelled)
+- `next_send_at`, `funnel_name`
+- RLS: anon pode inserir (via formulário público), workspace members podem ler/atualizar
 
-### 2. Criar template `funnel-meeting-trial-invite.tsx`
+### 2. Três novos templates de email
 
-Novo ficheiro em `supabase/functions/_shared/transactional-email-templates/`:
-- Convite para agendar uma breve reunião e experimentar a solução (trial)
-- Props: `name`, `funnelName`, `meetingUrl` (opcional, link para agendamento)
-- Subject: "Convidamo-lo para uma reunião e trial gratuito"
-- Secção com benefícios do trial
-- Botão CTA "Agendar Reunião"
-- Estilo consistente com os templates existentes
+| Template | Dia | Objetivo |
+|---|---|---|
+| `funnel-nurture-value` | 2 | Mostrar valor concreto da solução, caso de uso |
+| `funnel-nurture-social-proof` | 4 | Prova social, testemunhos, resultados reais |
+| `funnel-nurture-last-chance` | 7 | Urgência, última oportunidade de trial gratuito |
 
-### 3. Registar os templates em `registry.ts`
+Todos com estilo gold/dark consistente com os templates existentes.
 
-Adicionar os dois novos imports e entradas no `TEMPLATES` map.
+### 3. Edge function `funnel-nurture-processor`
 
-### 4. Integrar no `PublicFunnelPage.tsx`
+- Busca items da `funnel_nurture_queue` com `status=pending` e `next_send_at <= now()`
+- Para cada item, envia o template correspondente ao `current_step` via `send-transactional-email`
+- Avança `current_step` e calcula próximo `next_send_at` (delays: 2d, 2d, 3d)
+- Quando chega ao último passo, marca `status=completed`
 
-No `handleFormSubmit`, após inserir com sucesso em `funnel_submissions`:
-- Extrair o email do `formData` (procurar campo com type `email`)
-- Extrair o nome (procurar campo com type `text` ou label "Nome")
-- Chamar `supabase.functions.invoke('send-transactional-email')` duas vezes:
-  - Template `funnel-registration-thanks` com `idempotencyKey: funnel-thanks-${submissionId}`
-  - Template `funnel-meeting-trial-invite` com `idempotencyKey: funnel-meeting-${submissionId}` e delay (o segundo email pode ser enviado imediatamente ou com nota de que será enviado em breve)
+### 4. Agendar via pg_cron
 
-### 5. Deploy das edge functions
+Executar `funnel-nurture-processor` a cada 30 minutos.
 
-Redeployar `send-transactional-email` para incluir os novos templates.
+### 5. Integrar no `PublicFunnelPage.tsx`
 
-## Ficheiros alterados
+Após submissão bem-sucedida, inserir registo na `funnel_nurture_queue` com `next_send_at = now() + 2 dias` e `current_step = 0`.
+
+### 6. Registar templates e deploy
+
+Adicionar os 3 novos templates ao `registry.ts` e fazer deploy das edge functions.
+
+## Ficheiros
 
 | Ficheiro | Alteração |
 |---|---|
-| `supabase/functions/_shared/transactional-email-templates/funnel-registration-thanks.tsx` | Novo template |
-| `supabase/functions/_shared/transactional-email-templates/funnel-meeting-trial-invite.tsx` | Novo template |
-| `supabase/functions/_shared/transactional-email-templates/registry.ts` | Registar 2 novos templates |
-| `src/pages/PublicFunnelPage.tsx` | Enviar emails após submissão do formulário |
+| Migration SQL | Criar `funnel_nurture_queue` |
+| `funnel-nurture-value.tsx` | Novo template (Dia 2) |
+| `funnel-nurture-social-proof.tsx` | Novo template (Dia 4) |
+| `funnel-nurture-last-chance.tsx` | Novo template (Dia 7) |
+| `registry.ts` | Registar 3 novos templates |
+| `funnel-nurture-processor/index.ts` | Nova edge function processadora |
+| `PublicFunnelPage.tsx` | Inserir lead na fila de nurture |
+| pg_cron | Agendar processamento a cada 30min |
 
