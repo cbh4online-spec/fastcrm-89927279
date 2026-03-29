@@ -43,6 +43,8 @@ export function EbookEditorNotesPanel({
 
   const filteredNotes = typeFilter === "all"
     ? locationFiltered
+    : typeFilter === "note"
+    ? locationFiltered.filter((n) => n.note_type === "note" || !n.note_type)
     : locationFiltered.filter((n) => n.note_type === typeFilter);
 
   const noteCount = locationFiltered.filter((n) => n.note_type === "note" || !n.note_type).length;
