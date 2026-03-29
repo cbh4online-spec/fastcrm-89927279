@@ -291,40 +291,59 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       style={buildStyleVars(styleTokens)}
     >
       {/* Main viewer */}
-      <div className={`flex-1 flex items-center justify-center overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
-        <div className="relative flex gap-1">
-          {/* Thumbnails sidebar */}
-          {showThumbnails && (
-            <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
-              {pages.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => goToPage(i)}
-                  className={`w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
-                    i === currentPage || i === rightPage
-                      ? "shadow-lg bg-white"
-                      : "border-white/10 bg-white/5 hover:border-white/30"
-                  }`}
-                  style={i === currentPage || i === rightPage ? { borderColor: 'var(--ebook-accent, #d4a574)', boxShadow: `0 10px 15px -3px color-mix(in srgb, var(--ebook-accent, #d4a574) 20%, transparent)` } : undefined}
-                >
-                  <span className={`font-mono ${i === currentPage || i === rightPage ? "text-slate-800" : "text-white/40"}`}>
-                    {i + 1}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+      <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative flex gap-1">
+            {/* Thumbnails sidebar */}
+            {showThumbnails && (
+              <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
+                {pages.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goToPage(i)}
+                    className={`relative w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
+                      i === currentPage || i === rightPage
+                        ? "shadow-lg bg-white"
+                        : "border-white/10 bg-white/5 hover:border-white/30"
+                    }`}
+                    style={i === currentPage || i === rightPage ? { borderColor: 'var(--ebook-accent, #d4a574)', boxShadow: `0 10px 15px -3px color-mix(in srgb, var(--ebook-accent, #d4a574) 20%, transparent)` } : undefined}
+                  >
+                    <span className={`font-mono ${i === currentPage || i === rightPage ? "text-slate-800" : "text-white/40"}`}>
+                      {i + 1}
+                    </span>
+                    {pagesWithNotes.has(i) && (
+                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {/* Page Flip Book */}
-          <PageFlipBook
-            ref={flipBookRef}
-            pages={pages}
-            onFlip={handleFlip}
-            pageHeight={pageHeight}
-            isFullscreen={isFullscreen}
-            onGoToPage={goToPage}
-          />
+            {/* Page Flip Book */}
+            <PageFlipBook
+              ref={flipBookRef}
+              pages={pages}
+              onFlip={handleFlip}
+              pageHeight={pageHeight}
+              isFullscreen={isFullscreen}
+              onGoToPage={goToPage}
+            />
+          </div>
         </div>
+
+        {/* Notes Panel */}
+        {hasNotesFeature && showNotes && (
+          <EbookNotesPanel
+            notes={notes}
+            currentPage={currentPage}
+            totalPages={pages.length}
+            onAddNote={(params) => addNote.mutate(params)}
+            onDeleteNote={(id) => deleteNote.mutate(id)}
+            onGoToPage={goToPage}
+            onClose={() => setShowNotes(false)}
+            isAdding={addNote.isPending}
+          />
+        )}
       </div>
 
       {/* Toolbar */}
@@ -341,6 +360,9 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         spreadMode
         rightPage={rightPage}
         onPrint={() => window.print()}
+        onToggleNotes={hasNotesFeature ? () => setShowNotes(s => !s) : undefined}
+        showNotes={showNotes}
+        notesCount={notes.length}
       />
     </div>
   );

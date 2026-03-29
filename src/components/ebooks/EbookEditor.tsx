@@ -846,6 +846,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             footerText={localFooterText || undefined}
             contactPage={Object.keys(localContactPage).length > 0 ? localContactPage : undefined}
             styleTokens={(ebook as any).global_styles || undefined}
+            ebookId={ebookId}
+            workspaceId={ebook.workspace_id}
           />
         </DialogContent>
       </Dialog>
