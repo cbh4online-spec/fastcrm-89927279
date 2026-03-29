@@ -1,42 +1,25 @@
 
 
-# Adicionar Meta Module ao Marketplace
+# Adicionar Meta Module à Sidebar e corrigir navegação
 
 ## Problema
-O módulo Meta não aparece no Marketplace porque não existe registo na tabela `marketplace_modules`.
+O módulo Meta não aparece na sidebar porque falta a entrada no `routeManifest.ts` (secção Marketing). As rotas existem em `MetaModuleRoutes.tsx` mas não estão registadas no manifesto de navegação.
 
-## Solução
-Inserir o registo do módulo Meta na tabela `marketplace_modules` via migração SQL, seguindo o padrão dos módulos de marketing existentes.
+## Alterações
 
-## Alteração
+### 1. `src/config/routeManifest.ts` — Adicionar entrada Meta na secção Marketing
 
-**Migração SQL** — INSERT do módulo Meta:
+Após a linha 191 (instagram-looter), adicionar:
 
-```sql
-INSERT INTO marketplace_modules (
-  slug, name, tagline, description, category, icon,
-  target_audience, internal_type, status, version,
-  pricing_model, price_eur, min_plan,
-  is_featured, is_new, publisher
-) VALUES (
-  'meta-module',
-  'Meta',
-  'Integração nativa com Facebook e Instagram',
-  'Conecte as suas Pages, receba leads do Lead Ads, unifique Messenger e Instagram DM no CRM e monitorize a saúde da integração em tempo real.',
-  'marketing',
-  'facebook',
-  'Equipas de marketing e vendas que usam Facebook/Instagram para captação de leads',
-  'core',
-  'active',
-  '1.0.0',
-  'free',
-  0.00,
-  'growth',
-  true,
-  true,
-  'FastCRM'
-);
+```typescript
+e("meta-module",     "Meta",            "/dashboard/meta",             Facebook,  "marketing", { moduleSlug: "meta-module" }),
 ```
 
-Nenhuma alteração de código é necessária — o Marketplace já carrega módulos dinamicamente da base de dados.
+Também garantir que `Facebook` é importado do lucide-react no topo do ficheiro (verificar imports existentes).
+
+### 2. Verificar o botão "Abrir" no Marketplace
+
+O botão "Abrir" no detalhe do módulo Meta deve navegar para `/dashboard/meta`. Verificar se o componente do Marketplace usa o `moduleNavRegistry` ou o `routeManifest` para resolver o href — e garantir que ambos apontam para `/dashboard/meta`.
+
+Resultado: O Meta aparecerá na sidebar em **Marketing** quando o módulo estiver instalado, e o botão "Abrir" navegará correctamente para a página do módulo.
 
