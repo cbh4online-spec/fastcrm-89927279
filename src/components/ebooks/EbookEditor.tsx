@@ -660,6 +660,56 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             />
           </div>
 
+          {/* Font selector */}
+          <div className="border-t border-border/40 p-3 space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <Palette className="h-3 w-3" /> Tipografia
+            </span>
+            <div className="space-y-1.5">
+              <div>
+                <label className="text-[10px] text-muted-foreground">Títulos</label>
+                <Select
+                  value={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
+                  onValueChange={(val) => {
+                    const gs = { ...((ebook as any).global_styles || {}), headingFont: val };
+                    updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                    <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                    <SelectItem value="'Lora', serif">Lora</SelectItem>
+                    <SelectItem value="'Playfair Display', serif">Playfair Display</SelectItem>
+                    <SelectItem value="Inter, sans-serif">Inter</SelectItem>
+                    <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                    <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground">Corpo</label>
+                <Select
+                  value={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
+                  onValueChange={(val) => {
+                    const gs = { ...((ebook as any).global_styles || {}), bodyFont: val };
+                    updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                    <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                    <SelectItem value="'Lora', serif">Lora</SelectItem>
+                    <SelectItem value="Inter, sans-serif">Inter</SelectItem>
+                    <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                    <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           {/* Branding section */}
           <div className="border-t border-border/40 p-3 space-y-3 overflow-y-auto flex-1">
             <div>
