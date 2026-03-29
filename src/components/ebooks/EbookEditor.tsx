@@ -23,6 +23,12 @@ import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
   Popover,
   PopoverContent,
   PopoverTrigger,
