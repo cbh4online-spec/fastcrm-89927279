@@ -224,4 +224,14 @@
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Override react-pageflip's user-select:none when highlight mode is active */
+  .highlight-mode-active .stf__wrapper,
+  .highlight-mode-active .stf__parent,
+  .highlight-mode-active .stf__block,
+  .highlight-mode-active .stf__item,
+  .highlight-mode-active [class^="stf__"] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+  }
 }
