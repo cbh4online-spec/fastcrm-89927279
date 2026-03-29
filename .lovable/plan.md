@@ -1,39 +1,45 @@
 
 
-# Enriquecer os 9 Templates de eBooks
+# Adicionar seleção de template ao criar eBook (Wizard IA e Do Zero)
 
-## Contexto
-Os 9 templates já existem na BD com metadata, style_tokens e page_layouts básicos. No entanto, o `default_content` é mínimo — faltam conteúdos ricos para cada bloco (chapters no índice, textos de quote, stats, timeline, testimonials, etc.) e alguns layouts precisam de ajuste para corresponder à descrição detalhada de cada template.
+## Problema
+Atualmente, ao escolher "Assistente IA" ou "Do Zero", o utilizador não pode escolher um template visual. A seleção de template só está disponível como opção separada na galeria.
 
-## O que será feito
+## Solução
 
-### 1. Atualizar `default_content` de cada template (via SQL UPDATE)
-Cada template receberá conteúdo completo para **todos os blocos** do seu layout:
+### 1. Criar componente `TemplatePickerStep`
+`src/components/ebooks/templates/TemplatePickerStep.tsx`
 
-| Template | Conteúdo a adicionar |
+Componente reutilizável que mostra uma mini-galeria inline de templates com:
+- Grid compacto de TemplateCards (os 9 templates)
+- Filtro rápido por família (Minimal / Editorial / Corporate)
+- Opção "Sem template" para continuar sem template
+- Template selecionado highlighted
+- Usado tanto no Wizard como no fluxo "Do Zero"
+
+### 2. Modificar `EbookWizard.tsx`
+- Adicionar **Step 0** (novo primeiro passo): "Template" — usando `TemplatePickerStep`
+- Steps passam de 3 para 4: **Template → Conteúdo → Tema → Imagens**
+- Guardar `selectedTemplateId` no estado
+- Ao criar o eBook (`handleGenerate`), se um template foi escolhido:
+  - Buscar `style_tokens` e `page_layouts` do template
+  - Passar `template_id` e `global_styles` ao criar o eBook via `useCreateEbook`
+  - Criar `ebook_pages` com base nos layouts do template
+
+### 3. Modificar fluxo "Do Zero" no `EbooksPage.tsx`
+- Ao clicar "Do Zero", em vez de não fazer nada (bug atual), abrir um modal/step com `TemplatePickerStep`
+- Após escolher (ou skip), criar eBook em branco com ou sem template
+- Redirecionar para o editor
+
+### 4. Atualizar `useCreateEbook` no `useEbooks.ts`
+- Aceitar `template_id` e `global_styles` opcionais no input
+- Incluir esses campos no INSERT
+
+### Ficheiros a modificar/criar:
+| Ficheiro | Ação |
 |---|---|
-| **Minimal Clean 01** | chapters (6 itens no TOC), welcomeText editorial, quoteText/quoteAuthor, 4 stats, ctaHeading/Description, authorBio, thankYouText, disclaimerText |
-| **Minimal Clean 02** | chapters (5 itens), chapterTitle/Description, quoteText, testimonial, ctaHeading |
-| **Minimal Soft Editorial** | chapters (6 itens), welcomeText lifestyle, timeline (4 etapas), 3 column highlights, quoteText poético |
-| **Editorial Red Black** | chapters (5 itens), stats impactantes, quoteText bold, testimonial forte, heading textos |
-| **Modern Magazine** | chapters (6 itens), timeline editorial, stats marketing, 3 column highlights, heading storytelling |
-| **Impact Story Layout** | chapters (5 itens), stats narrativa, quoteText marca, testimonial autoridade, disclaimerText |
-| **Brand Strategy Black Gold** | chapters (7 itens estratégia), timeline brand, stats posicionamento, 3 col highlights, welcomeText corporate |
-| **Premium Report White Gold** | chapters (6 itens relatório), stats KPIs, timeline projeto, testimonial cliente, quoteText dados |
-| **Corporate Playbook Clean Dark** | chapters (7 itens playbook), timeline implementação, stats operacionais, quoteText liderança |
-
-### 2. Ajustar `page_layouts` específicos
-Alguns templates precisam de layouts mais diferenciados conforme a descrição:
-- **Minimal Clean 01**: adicionar `disclaimer_clean` (pedido na spec)
-- **Editorial Red Black**: manter sem welcome_letter (estilo direto/impactante)
-- **Brand Strategy Black Gold**: layout mais longo (15 páginas) com mais blocos de conteúdo
-
-### 3. Execução
-- 9 queries UPDATE via insert tool (uma por template, usando o `id` UUID já conhecido)
-- Não há alteração de schema — apenas dados
-- O `BlockRenderer` já renderiza todos os campos (`quoteText`, `chapters`, `stat0-3`, `label0-3`, `date0-3`, `event0-3`, etc.)
-- A galeria e o preview modal já funcionam com estes dados
-
-### Resultado esperado
-Ao abrir `/dashboard/ebooks/templates`, cada template mostrará um preview navegável rico com conteúdos reais em todas as páginas, sem campos vazios.
+| `src/components/ebooks/templates/TemplatePickerStep.tsx` | **Criar** — mini-galeria de seleção |
+| `src/components/ebooks/EbookWizard.tsx` | **Modificar** — adicionar step de template |
+| `src/pages/EbooksPage.tsx` | **Modificar** — fluxo "Do Zero" com picker |
+| `src/hooks/useEbooks.ts` | **Modificar** — suportar template_id/global_styles |
 
