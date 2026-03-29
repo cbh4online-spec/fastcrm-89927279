@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote, Highlighter } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote, Highlighter, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FlipbookToolbarProps {
@@ -20,6 +20,10 @@ interface FlipbookToolbarProps {
   notesCount?: number;
   highlightMode?: boolean;
   onToggleHighlightMode?: () => void;
+  zoomLevel?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomReset?: () => void;
 }
 
 export function FlipbookToolbar({
@@ -27,6 +31,7 @@ export function FlipbookToolbar({
   isFullscreen, onToggleFullscreen, onToggleThumbnails, showThumbnails,
   spreadMode, rightPage, onPrint, onToggleNotes, showNotes, notesCount,
   highlightMode, onToggleHighlightMode,
+  zoomLevel = 1, onZoomIn, onZoomOut, onZoomReset,
 }: FlipbookToolbarProps) {
   const [editingPage, setEditingPage] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -139,6 +144,40 @@ export function FlipbookToolbar({
 
       {/* Right group */}
       <div className="flex items-center gap-1">
+        {/* Zoom controls */}
+        {onZoomOut && (
+          <Button
+            variant="ghost" size="icon"
+            onClick={onZoomOut}
+            disabled={zoomLevel <= 0.5}
+            title="Reduzir zoom"
+            className={btnClass}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+        )}
+        {onZoomReset && zoomLevel !== 1 && (
+          <button
+            onClick={onZoomReset}
+            title="Repor zoom a 100%"
+            className="text-[11px] font-mono text-white/60 hover:text-white hover:bg-white/10 rounded px-1.5 py-1 transition-colors cursor-pointer tabular-nums"
+          >
+            {Math.round(zoomLevel * 100)}%
+          </button>
+        )}
+        {onZoomIn && (
+          <Button
+            variant="ghost" size="icon"
+            onClick={onZoomIn}
+            disabled={zoomLevel >= 2.5}
+            title="Aumentar zoom"
+            className={btnClass}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        )}
+        {/* Separator */}
+        {onZoomIn && <div className="w-px h-5 bg-white/10 mx-0.5" />}
         {onToggleHighlightMode && (
           <Button
             variant="ghost" size="icon"
