@@ -1,6 +1,10 @@
 import ReactMarkdown from "react-markdown";
 import { Mail, Phone, Globe, ExternalLink } from "lucide-react";
 
+function isHtmlContent(content: string): boolean {
+  return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
+}
+
 export interface ContactPageData {
   email?: string;
   phone?: string;
