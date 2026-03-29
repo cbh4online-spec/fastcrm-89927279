@@ -1,28 +1,27 @@
 
 
-# Fix: Texto invisível no Editor de eBooks
+# Fix: Slug duplicado ao criar eBook
 
 ## Diagnóstico
 
-O `EbookRichEditor.tsx` usa cores hardcoded `text-slate-900` em todos os elementos de texto (headings, parágrafos, listas, strong). No dark mode, isto resulta em texto quase preto sobre fundo escuro — invisível.
+O `useCreateEbook` gera o slug deterministicamente a partir do título (`input.title.toLowerCase().replace(...)`) sem verificar se já existe. Ao criar dois eBooks com o mesmo título no mesmo workspace, o slug é idêntico e viola a constraint `ebooks_slug_workspace_idx`.
 
-O editor content area (`bg-background`) herda o tema dark, mas o texto está fixo em slate-900.
+O mesmo problema existe em `useEbookTemplates.ts`.
 
 ## Correção
 
-**Ficheiro:** `src/components/ebooks/EbookRichEditor.tsx` (linhas 241-254)
+**Ficheiros:** `src/hooks/useEbooks.ts`, `src/hooks/useEbookTemplates.ts`
 
-Substituir todas as referências `text-slate-900` e `text-slate-500` por tokens do tema:
+Após gerar o slug base, adicionar um sufixo único (timestamp curto em base36) para garantir unicidade:
 
-| De | Para |
-|---|---|
-| `text-slate-900` (div, headings, p, strong, li) | `text-foreground` |
-| `text-slate-500` (blockquote) | `text-muted-foreground` |
+```typescript
+const baseSlug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+const slug = `${baseSlug}-${Date.now().toString(36).slice(-5)}`;
+```
 
-A classe `prose` do Tailwind também injeta cores — precisamos de `prose-invert` no dark mode OU usar `dark:prose-invert` para compatibilidade automática. Mas como estamos a usar classes explícitas por elemento (`prose-p:`, `prose-headings:`), basta trocar os tokens.
-
-### Resultado
-- Texto visível em ambos os temas (light e dark)
-- Zero alteração funcional — apenas tokens CSS
-- Mantém hierarquia visual existente
+Isto garante:
+- Slugs legíveis (`meu-ebook-k8f2x`)
+- Sempre únicos (timestamp base36)
+- Sem query extra ao DB para verificar duplicados
+- Mesmo padrão aplicado a ebook_templates
 
