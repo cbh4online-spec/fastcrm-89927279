@@ -189,6 +189,41 @@ export default function PublicFunnelPage() {
         }).then(() => {});
       }
 
+      // Send transactional emails to the lead
+      const fields = content.form_fields || [];
+      const emailField = fields.find((f: any) => f.type === 'email');
+      const nameField = fields.find((f: any) => f.type === 'text' || f.label?.toLowerCase().includes('nome'));
+      const recipientEmail = emailField ? formData[emailField.id]?.trim() : null;
+      const recipientName = nameField ? formData[nameField.id]?.trim() : undefined;
+
+      if (recipientEmail) {
+        const submissionId = crypto.randomUUID();
+        const templateData = {
+          name: recipientName,
+          funnelName: funnel.name,
+        };
+
+        // Thank you email
+        supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'funnel-registration-thanks',
+            recipientEmail,
+            idempotencyKey: `funnel-thanks-${submissionId}`,
+            templateData,
+          },
+        }).catch(console.error);
+
+        // Meeting & trial invite email
+        supabase.functions.invoke('send-transactional-email', {
+          body: {
+            templateName: 'funnel-meeting-trial-invite',
+            recipientEmail,
+            idempotencyKey: `funnel-meeting-${submissionId}`,
+            templateData,
+          },
+        }).catch(console.error);
+      }
+
       setFormSubmitted(true);
 
       const isLast = currentStepIndex >= steps.length - 1;

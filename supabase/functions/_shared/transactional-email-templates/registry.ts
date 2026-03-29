@@ -12,9 +12,13 @@ export interface TemplateEntry {
 import { template as eventInvitation } from './event-invitation.tsx'
 import { template as eventConfirmation } from './event-confirmation.tsx'
 import { template as eventReminder } from './event-reminder.tsx'
+import { template as funnelRegistrationThanks } from './funnel-registration-thanks.tsx'
+import { template as funnelMeetingTrialInvite } from './funnel-meeting-trial-invite.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-invitation': eventInvitation,
   'event-confirmation': eventConfirmation,
   'event-reminder': eventReminder,
+  'funnel-registration-thanks': funnelRegistrationThanks,
+  'funnel-meeting-trial-invite': funnelMeetingTrialInvite,
 }
