@@ -29593,6 +29593,353 @@ export type Database = {
           },
         ]
       }
+      meta_assets: {
+        Row: {
+          asset_id_external: string
+          asset_name: string | null
+          asset_status: string | null
+          asset_type: string
+          connection_id: string
+          created_at: string
+          id: string
+          metadata_json: Json | null
+          page_access_token: string | null
+          permissions_json: Json | null
+          selected_for_use: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          asset_id_external: string
+          asset_name?: string | null
+          asset_status?: string | null
+          asset_type: string
+          connection_id: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          page_access_token?: string | null
+          permissions_json?: Json | null
+          selected_for_use?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          asset_id_external?: string
+          asset_name?: string | null
+          asset_status?: string | null
+          asset_type?: string
+          connection_id?: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          page_access_token?: string | null
+          permissions_json?: Json | null
+          selected_for_use?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_assets_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "meta_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_connections: {
+        Row: {
+          connection_name: string | null
+          created_at: string
+          created_by: string | null
+          encrypted_access_token: string | null
+          encrypted_refresh_token: string | null
+          expires_at: string | null
+          health_details_json: Json | null
+          health_status: string | null
+          id: string
+          last_healthcheck_at: string | null
+          last_sync_at: string | null
+          meta_business_id: string | null
+          meta_user_id: string | null
+          provider: string
+          scopes_json: Json | null
+          status: string
+          token_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          connection_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          expires_at?: string | null
+          health_details_json?: Json | null
+          health_status?: string | null
+          id?: string
+          last_healthcheck_at?: string | null
+          last_sync_at?: string | null
+          meta_business_id?: string | null
+          meta_user_id?: string | null
+          provider?: string
+          scopes_json?: Json | null
+          status?: string
+          token_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          connection_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          expires_at?: string | null
+          health_details_json?: Json | null
+          health_status?: string | null
+          id?: string
+          last_healthcheck_at?: string | null
+          last_sync_at?: string | null
+          meta_business_id?: string | null
+          meta_user_id?: string | null
+          provider?: string
+          scopes_json?: Json | null
+          status?: string
+          token_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_lead_field_mappings: {
+        Row: {
+          created_at: string
+          crm_entity: string
+          crm_field_name: string
+          form_id: string | null
+          id: string
+          is_active: boolean | null
+          meta_field_name: string
+          transform_rule: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          crm_entity?: string
+          crm_field_name: string
+          form_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          meta_field_name: string
+          transform_rule?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          crm_entity?: string
+          crm_field_name?: string
+          form_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          meta_field_name?: string
+          transform_rule?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_lead_field_mappings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_leads: {
+        Row: {
+          ad_id: string | null
+          adset_id: string | null
+          campaign_id: string | null
+          contact_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          error_message: string | null
+          form_id: string | null
+          id: string
+          lead_id_external: string | null
+          normalized_payload_json: Json | null
+          opportunity_id: string | null
+          page_id: string | null
+          platform: string | null
+          processed_at: string | null
+          processing_status: string
+          raw_payload_json: Json | null
+          received_at: string
+          workflow_run_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          error_message?: string | null
+          form_id?: string | null
+          id?: string
+          lead_id_external?: string | null
+          normalized_payload_json?: Json | null
+          opportunity_id?: string | null
+          page_id?: string | null
+          platform?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          raw_payload_json?: Json | null
+          received_at?: string
+          workflow_run_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ad_id?: string | null
+          adset_id?: string | null
+          campaign_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          error_message?: string | null
+          form_id?: string | null
+          id?: string
+          lead_id_external?: string | null
+          normalized_payload_json?: Json | null
+          opportunity_id?: string | null
+          page_id?: string | null
+          platform?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          raw_payload_json?: Json | null
+          received_at?: string
+          workflow_run_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_module_config: {
+        Row: {
+          auto_create_opportunity: boolean | null
+          created_at: string
+          default_lead_owner_id: string | null
+          default_pipeline_id: string | null
+          feature_flags_json: Json | null
+          id: string
+          limits_json: Json | null
+          preferences_json: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_create_opportunity?: boolean | null
+          created_at?: string
+          default_lead_owner_id?: string | null
+          default_pipeline_id?: string | null
+          feature_flags_json?: Json | null
+          id?: string
+          limits_json?: Json | null
+          preferences_json?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_create_opportunity?: boolean | null
+          created_at?: string
+          default_lead_owner_id?: string | null
+          default_pipeline_id?: string | null
+          feature_flags_json?: Json | null
+          id?: string
+          limits_json?: Json | null
+          preferences_json?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_module_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string | null
+          id: string
+          object_type: string | null
+          payload_json: Json
+          processed_at: string | null
+          processing_status: string
+          signature_valid: boolean | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          object_type?: string | null
+          payload_json: Json
+          processed_at?: string | null
+          processing_status?: string
+          signature_valid?: boolean | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          object_type?: string | null
+          payload_json?: Json
+          processed_at?: string | null
+          processing_status?: string
+          signature_valid?: boolean | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       metrics_snapshots: {
         Row: {
           active_subscriptions: number | null
