@@ -1,29 +1,55 @@
 
 
-# Corrigir página de contactos e slogan no eBook
+# Criar templates de email para funis: Agradecimento + Convite Reunião/Trial
 
-## Problema
+## Contexto
 
-A página de contactos existe no código mas tem dois problemas:
+O `PublicFunnelPage.tsx` já tem um fluxo de submissão de formulário (linha 156-203) que insere dados em `funnel_submissions` mas não envia nenhum email ao lead. A infraestrutura de email transacional já está configurada (edge function `send-transactional-email`, registry, queue).
 
-1. **Dados não guardam correctamente**: Cada tecla no campo dispara um `updateEbook.mutate()` separado, criando race conditions — as mutações sobrepõem-se e o valor final pode ser parcial ou vazio. O `contact_page` é reconstruído a cada tecla com spread do valor actual (que pode já estar desactualizado).
+## Alterações
 
-2. **Estado local inexistente**: Os campos de contacto lêem directamente de `(ebook as any).contact_page` (dados do servidor) em vez de estado local, causando lag e perda de dados durante edição.
+### 1. Criar template `funnel-registration-thanks.tsx`
 
-## Solução
+Novo ficheiro em `supabase/functions/_shared/transactional-email-templates/`:
+- Email de agradecimento pelo registo no funil
+- Props: `name`, `funnelName`
+- Subject: "Obrigado pelo seu registo!"
+- Estilo consistente com os templates existentes (gold/dark brand do fastcrm)
+- CTA para visitar o site
 
-### `EbookEditor.tsx`
+### 2. Criar template `funnel-meeting-trial-invite.tsx`
 
-1. **Adicionar estado local** para `headerText`, `footerText` e `contactPage` (inicializados a partir do ebook carregado)
-2. **Debounce o save**: Usar `useEffect` com timeout de 800ms para guardar automaticamente após o utilizador parar de escrever — em vez de mutação por tecla
-3. **Inputs controlados**: Os campos lêem do estado local, não do servidor
-4. **Sincronizar ao carregar**: Quando `ebook` muda (query refresh), actualizar estado local se não houver edição em curso
+Novo ficheiro em `supabase/functions/_shared/transactional-email-templates/`:
+- Convite para agendar uma breve reunião e experimentar a solução (trial)
+- Props: `name`, `funnelName`, `meetingUrl` (opcional, link para agendamento)
+- Subject: "Convidamo-lo para uma reunião e trial gratuito"
+- Secção com benefícios do trial
+- Botão CTA "Agendar Reunião"
+- Estilo consistente com os templates existentes
 
-### Garantir visibilidade
+### 3. Registar os templates em `registry.ts`
 
-5. Mover a secção "Página de Contactos" para uma posição mais visível — colocá-la num separador/accordion expandido por defeito na sidebar direita, com um label mais descritivo
+Adicionar os dois novos imports e entradas no `TEMPLATES` map.
+
+### 4. Integrar no `PublicFunnelPage.tsx`
+
+No `handleFormSubmit`, após inserir com sucesso em `funnel_submissions`:
+- Extrair o email do `formData` (procurar campo com type `email`)
+- Extrair o nome (procurar campo com type `text` ou label "Nome")
+- Chamar `supabase.functions.invoke('send-transactional-email')` duas vezes:
+  - Template `funnel-registration-thanks` com `idempotencyKey: funnel-thanks-${submissionId}`
+  - Template `funnel-meeting-trial-invite` com `idempotencyKey: funnel-meeting-${submissionId}` e delay (o segundo email pode ser enviado imediatamente ou com nota de que será enviado em breve)
+
+### 5. Deploy das edge functions
+
+Redeployar `send-transactional-email` para incluir os novos templates.
+
+## Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `EbookEditor.tsx` | Estado local + debounce para campos de branding e contacto, UI mais visível |
+| `supabase/functions/_shared/transactional-email-templates/funnel-registration-thanks.tsx` | Novo template |
+| `supabase/functions/_shared/transactional-email-templates/funnel-meeting-trial-invite.tsx` | Novo template |
+| `supabase/functions/_shared/transactional-email-templates/registry.ts` | Registar 2 novos templates |
+| `src/pages/PublicFunnelPage.tsx` | Enviar emails após submissão do formulário |
 
