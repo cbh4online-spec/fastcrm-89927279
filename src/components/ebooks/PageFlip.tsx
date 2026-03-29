@@ -58,12 +58,12 @@ function calcDimensions(isFullscreen: boolean) {
   }
 
   // Desktop — maximize height, derive width from A4 ratio
-  const toolbarH = 80;
+  const toolbarH = 64;
   const availH = vh - toolbarH;
-  const h = Math.floor(availH * 0.92);
+  const h = Math.floor(availH * 0.88);
   const w = Math.floor(h / A4_RATIO);
-  // Ensure spread fits: each page ≤ 48% of vw
-  const maxW = Math.floor(vw * 0.48);
+  // Each page ≤ 49% of vw so the 2-page spread fits
+  const maxW = Math.floor(vw * 0.49);
   const finalW = Math.min(w, maxW);
   const finalH = Math.floor(finalW * A4_RATIO);
   return { width: finalW, height: finalH, portrait: false };
