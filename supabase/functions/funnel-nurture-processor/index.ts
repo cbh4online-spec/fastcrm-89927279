@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1bW5ma2NjeXZseW95amNoaXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjM2ODksImV4cCI6MjA4Mzg5OTY4OX0.l5wSvF6cyPUfA2oSIgwr0mvC8gxzMj3fWbhqbrdXOd8'
     const supabase = createClient(supabaseUrl, serviceKey)
 
     // Fetch pending items ready to send
@@ -51,6 +52,23 @@ Deno.serve(async (req) => {
 
     for (const item of items) {
       try {
+        // Check if email is suppressed (unsubscribed, bounced, complained)
+        const { data: suppressed } = await supabase
+          .from('suppressed_emails')
+          .select('id')
+          .eq('email', item.recipient_email)
+          .limit(1)
+
+        if (suppressed && suppressed.length > 0) {
+          await supabase
+            .from('funnel_nurture_queue')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', item.id)
+          console.log(`Cancelled nurture for suppressed email: ${item.recipient_email}`)
+          processed++
+          continue
+        }
+
         const templateName = STEP_TEMPLATES[item.current_step]
         if (!templateName) {
           // All steps done
@@ -62,18 +80,29 @@ Deno.serve(async (req) => {
           continue
         }
 
-        // Send the email
-        const { error: sendError } = await supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName,
-            recipientEmail: item.recipient_email,
-            idempotencyKey: `nurture-${item.id}-step-${item.current_step}`,
-            templateData: {
-              name: item.recipient_name,
-              funnelName: item.funnel_name,
-            },
+        // Send the email via direct fetch with service role key
+        const sendBody = {
+          templateName,
+          recipientEmail: item.recipient_email,
+          idempotencyKey: `nurture-${item.id}-step-${item.current_step}`,
+          templateData: {
+            name: item.recipient_name,
+            funnelName: item.funnel_name,
           },
-        })
+        }
+        const sendRes = await fetch(
+          `${supabaseUrl}/functions/v1/send-transactional-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey,
+            },
+            body: JSON.stringify(sendBody),
+          }
+        )
+        const sendError = !sendRes.ok ? await sendRes.text() : null
 
         if (sendError) {
           console.error(`Error sending nurture email for ${item.id}:`, sendError)
