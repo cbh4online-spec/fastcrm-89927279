@@ -19,7 +19,7 @@ interface FlipbookReaderProps {
   compact?: boolean;
 }
 
-const CHARS_PER_PAGE = 700;
+const CHARS_PER_PAGE = 450;
 
 function splitContentIntoPages(content: string): string[] {
   if (!content || content.trim().length === 0) return ["*Conteúdo em preparação*"];
