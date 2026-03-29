@@ -523,6 +523,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 {/* WYSIWYG Editor */}
                 <div className="px-6 py-6">
                   <EbookRichEditor
+                    ref={richEditorRef}
                     value={activeChapter.content || ""}
                     onChange={(val) => updateChapter(activeChapter.id, "content", val)}
                     placeholder="Comece a escrever o conteúdo do capítulo...&#10;&#10;Use a toolbar de blocos à direita para inserir elementos.&#10;Selecione texto para formatar com a toolbar flutuante."
