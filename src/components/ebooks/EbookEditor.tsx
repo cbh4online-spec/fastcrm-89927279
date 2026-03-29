@@ -23,6 +23,8 @@ import { EbookBlockToolbar } from "./EbookBlockToolbar";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
+import { EbookEditorNotesPanel } from "./EbookEditorNotesPanel";
+import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
