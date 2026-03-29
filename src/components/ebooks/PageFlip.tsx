@@ -30,28 +30,25 @@ function calcDimensions(isFullscreen: boolean) {
   const vh = window.innerHeight;
 
   if (isFullscreen) {
-    // Maximize within viewport, leave room for toolbar
     const availH = vh - 64;
-    const w = Math.min(Math.floor(availH / 1.4), Math.floor(vw * 0.42));
+    const w = Math.min(Math.floor((availH * 0.9) / 1.4), Math.floor(vw * 0.46));
     return { width: Math.max(w, 280), height: Math.floor(Math.max(w, 280) * 1.4), portrait: vw < 640 };
   }
 
   if (vw < 640) {
-    // Mobile — portrait single page
     const w = Math.floor(vw * 0.88);
     return { width: Math.min(w, 420), height: Math.floor(Math.min(w, 420) * 1.4), portrait: true };
   }
 
   if (vw < 1024) {
-    // Tablet
-    const w = Math.min(Math.floor(vw * 0.38), 340);
+    const w = Math.min(Math.floor(vw * 0.42), 400);
     return { width: w, height: Math.floor(w * 1.4), portrait: false };
   }
 
   // Desktop
-  const maxH = Math.min(vh - 120, 780);
+  const maxH = Math.min(vh - 100, 860);
   const w = Math.floor(maxH / 1.4);
-  return { width: Math.min(w, 520), height: maxH, portrait: false };
+  return { width: Math.min(w, 600), height: maxH, portrait: false };
 }
 
 export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
@@ -85,10 +82,10 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           width={dims.width}
           height={dims.height}
           size="stretch"
-          minWidth={240}
-          maxWidth={600}
-          minHeight={340}
-          maxHeight={900}
+          minWidth={280}
+          maxWidth={800}
+          minHeight={400}
+          maxHeight={1100}
           showCover={true}
           drawShadow={true}
           flippingTime={800}
