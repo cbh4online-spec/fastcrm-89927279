@@ -7,6 +7,7 @@ import { FlipbookWatermark } from "./FlipbookWatermark";
 import { FlipbookHighlightPopover } from "./FlipbookHighlightPopover";
 import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
+import { EbookReadTracker } from "./EbookReadTracker";
 
 interface EbookChapter {
   id: string;
@@ -30,6 +31,7 @@ interface FlipbookReaderProps {
   workspaceId?: string;
   protectionEnabled?: boolean;
   watermarkText?: string;
+  trackingViewId?: string;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
@@ -226,7 +228,7 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText, trackingViewId }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
