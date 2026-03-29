@@ -75,8 +75,8 @@ function SidebarBadge({ count, animate }: { count: number; animate?: boolean }) 
 
 // ── Pro / Beta tag ──
 function ItemTag({ isPro, isBeta }: { isPro?: boolean; isBeta?: boolean }) {
-  if (isPro) return <Badge variant="outline" className="ml-auto h-4 px-1 text-[9px] font-semibold border-amber-500/40 text-amber-500">Pro</Badge>;
-  if (isBeta) return <Badge variant="outline" className="ml-auto h-4 px-1 text-[9px] font-semibold border-blue-400/40 text-blue-400">Beta</Badge>;
+  if (isPro) return <Badge variant="outline" className="ml-auto h-4 px-1.5 text-[10px] font-semibold border-amber-500/40 text-amber-500">Pro</Badge>;
+  if (isBeta) return <Badge variant="outline" className="ml-auto h-4 px-1.5 text-[10px] font-semibold border-blue-400/40 text-blue-400">Beta</Badge>;
   return null;
 }
 
@@ -225,7 +225,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
             >
               <Icon className={cn(style.iconSize, active && "text-sidebar-primary")} />
               {badgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar-primary px-1 text-[9px] font-bold text-sidebar-primary-foreground">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sidebar-primary px-1 text-[10px] font-bold text-sidebar-primary-foreground">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               )}
@@ -233,8 +233,8 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
           </TooltipTrigger>
           <TooltipContent side="right">
             {item.label}
-            {item.isPro && <span className="ml-1 text-amber-400 text-[9px]">Pro</span>}
-            {item.isBeta && <span className="ml-1 text-blue-400 text-[9px]">Beta</span>}
+            {item.isPro && <span className="ml-1 text-amber-400 text-[10px]">Pro</span>}
+            {item.isBeta && <span className="ml-1 text-blue-400 text-[10px]">Beta</span>}
           </TooltipContent>
         </Tooltip>
       );
@@ -273,7 +273,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
         <div key={section.key} className={cn(idx > 0 && "mt-3")} role="group" aria-label={section.label}>
           {!isCollapsed && (
             <div className="px-3 pb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+              <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/30">
                 {section.label}
               </span>
             </div>

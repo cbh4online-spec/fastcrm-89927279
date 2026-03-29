@@ -9,6 +9,10 @@ import { useNavigate } from "react-router-dom";
 import { CATEGORY_LABELS } from "@/types/ebook-templates";
 import type { EbookTemplate } from "@/types/ebook-templates";
 import { TemplatePreviewModal } from "@/components/ebooks/templates/TemplatePreviewModal";
+import { PageHeader } from "@/components/common/PageHeader";
+import {
+  Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
+} from "@/components/ui/table";
 
 export default function EbookTemplatesAdminPage() {
   const navigate = useNavigate();
@@ -25,20 +29,19 @@ export default function EbookTemplatesAdminPage() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/ebooks")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <LayoutGrid className="h-5 w-5 text-primary" />
-                Gestão de Templates
-              </h1>
-              <p className="text-sm text-muted-foreground">{templates.length} templates disponíveis</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Gestão de Templates"
+          description="Administre os templates de eBooks disponíveis"
+          count={templates.length}
+          actions={[
+            {
+              label: "Voltar",
+              icon: <ArrowLeft className="h-4 w-4" />,
+              onClick: () => navigate("/dashboard/ebooks"),
+              variant: "ghost",
+            },
+          ]}
+        />
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -56,73 +59,71 @@ export default function EbookTemplatesAdminPage() {
           </div>
         ) : (
           <div className="border border-border/50 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/30 border-b border-border/40">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Template</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Categoria</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Páginas</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Tipo</th>
-                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Estado</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(t => (
-                    <tr key={t.id} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex gap-1">
-                            {[t.style_tokens.primaryColor, t.style_tokens.secondaryColor, t.style_tokens.accentColor, t.style_tokens.backgroundColor].map((c, i) => (
-                              <div key={i} className="w-4 h-4 rounded-full border border-border/30" style={{ backgroundColor: c }} />
-                            ))}
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium">{t.name}</span>
-                            {t.description && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{t.description}</p>}
-                          </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead>Template</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Páginas</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(t => (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          {[t.style_tokens.primaryColor, t.style_tokens.secondaryColor, t.style_tokens.accentColor, t.style_tokens.backgroundColor].map((c, i) => (
+                            <div key={i} className="w-4 h-4 rounded-full border border-border/30" style={{ backgroundColor: c }} />
+                          ))}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[t.category] || t.category}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{t.page_layouts.length}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={t.is_system_template ? "secondary" : "outline"} className="text-xs">
-                          {t.is_system_template ? "Sistema" : "Workspace"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={t.is_active ? "default" : "secondary"} className="text-xs">
-                          {t.is_active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewTemplate(t)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateTemplate.mutate(t.id)}>
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          {!t.is_system_template && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateTemplate.mutate({ id: t.id, is_active: !t.is_active })}
-                            >
-                              {t.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          )}
+                        <div>
+                          <span className="text-sm font-medium">{t.name}</span>
+                          {t.description && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{t.description}</p>}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[t.category] || t.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{t.page_layouts.length}</TableCell>
+                    <TableCell>
+                      <Badge variant={t.is_system_template ? "secondary" : "outline"} className="text-xs">
+                        {t.is_system_template ? "Sistema" : "Workspace"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={t.is_active ? "default" : "secondary"} className="text-xs">
+                        {t.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewTemplate(t)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicateTemplate.mutate(t.id)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        {!t.is_system_template && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateTemplate.mutate({ id: t.id, is_active: !t.is_active })}
+                          >
+                            {t.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
 

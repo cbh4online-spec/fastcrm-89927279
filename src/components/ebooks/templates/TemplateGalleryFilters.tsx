@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS, USE_CASE_LABELS } from "@/types/ebook-templates";
 
 interface Props {
@@ -17,25 +17,31 @@ export function TemplateGalleryFilters({ selectedCategory, onCategoryChange, sel
       {/* Category */}
       <div>
         <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Estilo</h4>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant={!selectedCategory ? "default" : "outline"}
-            className="text-xs h-7"
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 w-fit overflow-x-auto max-w-full flex-nowrap scrollbar-none">
+          <button
             onClick={() => onCategoryChange(null)}
+            className={cn(
+              "flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap shrink-0",
+              !selectedCategory
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
           >
             Todos
-          </Button>
+          </button>
           {categories.map(([key, label]) => (
-            <Button
+            <button
               key={key}
-              size="sm"
-              variant={selectedCategory === key ? "default" : "outline"}
-              className="text-xs h-7"
               onClick={() => onCategoryChange(key)}
+              className={cn(
+                "flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap shrink-0",
+                selectedCategory === key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
             >
               {label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
@@ -43,25 +49,31 @@ export function TemplateGalleryFilters({ selectedCategory, onCategoryChange, sel
       {/* Use Cases */}
       <div>
         <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Uso</h4>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant={!selectedUseCase ? "default" : "outline"}
-            className="text-xs h-7"
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 w-fit overflow-x-auto max-w-full flex-nowrap scrollbar-none">
+          <button
             onClick={() => onUseCaseChange(null)}
+            className={cn(
+              "flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap shrink-0",
+              !selectedUseCase
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
           >
             Todos
-          </Button>
+          </button>
           {useCases.map(uc => (
-            <Button
+            <button
               key={uc}
-              size="sm"
-              variant={selectedUseCase === uc ? "default" : "outline"}
-              className="text-xs h-7"
               onClick={() => onUseCaseChange(uc)}
+              className={cn(
+                "flex items-center px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap shrink-0",
+                selectedUseCase === uc
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              )}
             >
               {USE_CASE_LABELS[uc] || uc}
-            </Button>
+            </button>
           ))}
         </div>
       </div>

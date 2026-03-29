@@ -7,9 +7,10 @@ import { TemplateCard } from "@/components/ebooks/templates/TemplateCard";
 import { TemplateGalleryFilters } from "@/components/ebooks/templates/TemplateGalleryFilters";
 import { TemplatePreviewModal } from "@/components/ebooks/templates/TemplatePreviewModal";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/common/PageHeader";
 import type { EbookTemplate, LayoutKey } from "@/types/ebook-templates";
 
 export default function EbookTemplateGalleryPage() {
@@ -40,7 +41,6 @@ export default function EbookTemplateGalleryPage() {
         author_name: template.default_content.authorName,
       });
 
-      // Create pages from template layouts
       const pages = template.page_layouts.map((layoutKey, i) => ({
         ebook_id: ebook.id,
         page_order: i,
@@ -52,7 +52,6 @@ export default function EbookTemplateGalleryPage() {
 
       await bulkCreatePages.mutateAsync(pages);
 
-      // Update ebook with template_id and global_styles
       const { supabase } = await import("@/integrations/supabase/client");
       await (supabase as any).from("ebooks").update({
         template_id: template.id,
@@ -71,21 +70,19 @@ export default function EbookTemplateGalleryPage() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/ebooks")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <LayoutGrid className="h-5 w-5 text-primary" />
-                Galeria de Templates
-              </h1>
-              <p className="text-sm text-muted-foreground">Escolha um template para começar o seu eBook</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Galeria de Templates"
+          description="Escolha um template para começar o seu eBook"
+          count={filtered.length}
+          actions={[
+            {
+              label: "Voltar",
+              icon: <ArrowLeft className="h-4 w-4" />,
+              onClick: () => navigate("/dashboard/ebooks"),
+              variant: "ghost",
+            },
+          ]}
+        />
 
         {/* Filters */}
         <TemplateGalleryFilters

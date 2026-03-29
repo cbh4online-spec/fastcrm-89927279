@@ -529,37 +529,38 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                       placeholder="Título do capítulo"
                     />
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
+                  <div className="flex gap-1 shrink-0 flex-wrap items-center">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
                       <Undo2 className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
                       <Redo2 className="h-3.5 w-3.5" />
                     </Button>
                     <div className="w-px h-5 bg-border my-auto mx-0.5" />
-                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
                       {generatingChapterImgAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                       Img IA
                       <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter_image")}</span>
                     </Button>
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg}>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg}>
                       {uploadingChapterImg ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                     </Button>
-                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id}>
+                    <div className="w-px h-5 bg-border my-auto mx-0.5" />
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1 text-primary" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id}>
                       {generating === activeChapter.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       Gerar
                       <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
                     </Button>
                     {activeChapter.content && (
                       <>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id}>
                           <Sparkles className="h-3 w-3" /> Melhorar
                           <span className="text-[10px] opacity-70"><Coins className="h-2.5 w-2.5 inline" />{getCost("ebook_improve_content")}</span>
                         </Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => condenseContent(activeChapter)} disabled={generating === activeChapter.id}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => condenseContent(activeChapter)} disabled={generating === activeChapter.id}>
                           <Minimize2 className="h-3 w-3" />
                         </Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => expandContent(activeChapter)} disabled={generating === activeChapter.id}>
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => expandContent(activeChapter)} disabled={generating === activeChapter.id}>
                           <Maximize2 className="h-3 w-3" />
                         </Button>
                       </>
@@ -608,7 +609,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
         </div>
 
         {/* Right sidebar: Block toolbar + Branding */}
-        <div className="w-48 shrink-0 flex flex-col border-l border-border/40 bg-muted/20 overflow-y-auto">
+        <div className="w-56 shrink-0 flex flex-col border-l border-border/40 bg-muted/20 overflow-y-auto">
           <div>
             <EbookBlockToolbar
               onInsertBlock={insertBlock}
@@ -622,7 +623,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           {/* Branding section */}
           <div className="border-t border-border/40 p-3 space-y-3 overflow-y-auto flex-1">
             <div>
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Type className="h-3 w-3" /> Cabeçalho / Rodapé
               </span>
               <div className="mt-2 space-y-2">
@@ -630,19 +631,19 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   placeholder="Texto do cabeçalho"
                   value={localHeaderText}
                   onChange={(e) => setLocalHeaderText(e.target.value)}
-                  className="h-7 text-xs"
+                  className="h-8 text-xs"
                 />
                 <Input
                   placeholder="Texto do rodapé"
                   value={localFooterText}
                   onChange={(e) => setLocalFooterText(e.target.value)}
-                  className="h-7 text-xs"
+                  className="h-8 text-xs"
                 />
               </div>
             </div>
 
             <div className="border-t border-border/30 pt-3">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" /> Página de Contactos
               </span>
               <div className="mt-2 space-y-2">
@@ -650,33 +651,33 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   placeholder="Slogan"
                   value={localContactPage.slogan || ""}
                   onChange={(e) => setLocalContactPage(prev => ({ ...prev, slogan: e.target.value }))}
-                  className="h-7 text-xs"
+                  className="h-8 text-xs"
                 />
                 <div className="flex gap-1">
-                  <Mail className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Mail className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
                   <Input
                     placeholder="Email"
                     value={localContactPage.email || ""}
                     onChange={(e) => setLocalContactPage(prev => ({ ...prev, email: e.target.value }))}
-                    className="h-7 text-xs"
+                    className="h-8 text-xs"
                   />
                 </div>
                 <div className="flex gap-1">
-                  <Phone className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Phone className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
                   <Input
                     placeholder="Telefone"
                     value={localContactPage.phone || ""}
                     onChange={(e) => setLocalContactPage(prev => ({ ...prev, phone: e.target.value }))}
-                    className="h-7 text-xs"
+                    className="h-8 text-xs"
                   />
                 </div>
                 <div className="flex gap-1">
-                  <Link className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Link className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
                   <Input
                     placeholder="Website"
                     value={localContactPage.website || ""}
                     onChange={(e) => setLocalContactPage(prev => ({ ...prev, website: e.target.value }))}
-                    className="h-7 text-xs"
+                    className="h-8 text-xs"
                   />
                 </div>
               </div>

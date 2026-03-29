@@ -128,10 +128,10 @@ export function TemplatePickerStep({ selectedTemplateId, onSelect }: Props) {
                 <div className="p-2 space-y-1">
                   <p className="text-xs font-medium text-foreground truncate">{tpl.name}</p>
                   <div className="flex items-center gap-1">
-                    <Badge variant="outline" className="text-[9px] px-1 py-0">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                       {CATEGORY_LABELS[tpl.category] || tpl.category}
                     </Badge>
-                    <span className="text-[9px] text-muted-foreground">{tpl.page_layouts.length}p</span>
+                    <span className="text-[10px] text-muted-foreground">{tpl.page_layouts.length}p</span>
                   </div>
                   {/* Color swatches */}
                   <div className="flex gap-0.5">

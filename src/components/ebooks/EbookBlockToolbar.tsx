@@ -80,7 +80,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
       <div className="p-1.5 rounded-md bg-muted/50 group-hover:bg-primary/10 transition-colors">
         <item.icon className="h-4 w-4" />
       </div>
-      <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
+      <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
     </button>
   );
 
@@ -99,7 +99,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
             title="Desfazer (Ctrl+Z)"
           >
             <Undo2 className="h-3.5 w-3.5" />
-            <span className="text-[10px]">Desfazer</span>
+            <span className="text-xs">Desfazer</span>
           </button>
           <button
             onClick={onRedo}
@@ -110,21 +110,21 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
             title="Refazer (Ctrl+Y)"
           >
             <Redo2 className="h-3.5 w-3.5" />
-            <span className="text-[10px]">Refazer</span>
+            <span className="text-xs">Refazer</span>
           </button>
         </div>
       )}
 
       <div className="p-3 border-b border-border/40">
         <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Blocos</h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Clique para inserir</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Clique para inserir</p>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-4">
           {/* Texto */}
           <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Texto</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Texto</p>
             <div className="grid grid-cols-2 gap-1">
               {TEXT_BLOCKS.map(renderBlockButton)}
             </div>
@@ -132,7 +132,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
 
           {/* Média */}
           <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Média</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Média</p>
             <div className="grid grid-cols-2 gap-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -148,7 +148,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
                 <div className="p-1.5 rounded-md bg-muted/50 group-hover:bg-primary/10 transition-colors">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 </div>
-                <span className="text-[10px] font-medium leading-tight text-center">Imagem</span>
+                <span className="text-xs font-medium leading-tight text-center">Imagem</span>
               </button>
 
               {onGenerateImageAI && (
@@ -166,7 +166,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
                   <div className="p-1.5 rounded-md bg-muted/50 group-hover:bg-primary/10 transition-colors">
                     {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                   </div>
-                  <span className="text-[10px] font-medium leading-tight text-center">Img IA</span>
+                  <span className="text-xs font-medium leading-tight text-center">Img IA</span>
                 </button>
               )}
             </div>
@@ -174,7 +174,7 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
 
           {/* Blocos */}
           <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Blocos</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Blocos</p>
             <div className="grid grid-cols-2 gap-1">
               {LAYOUT_BLOCKS.map(renderBlockButton)}
             </div>
