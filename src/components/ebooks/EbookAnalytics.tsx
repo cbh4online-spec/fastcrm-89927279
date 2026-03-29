@@ -231,13 +231,14 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border/50 text-xs text-muted-foreground uppercase tracking-wider">
-                    <th className="text-left py-2 pr-3">Leitor</th>
-                    <th className="text-center py-2 px-2">Páginas</th>
-                    <th className="text-center py-2 px-2">Conclusão</th>
-                    <th className="text-center py-2 px-2">Tempo</th>
-                    <th className="text-right py-2 pl-3">Data</th>
-                  </tr>
+                   <tr className="border-b border-border/50 text-xs text-muted-foreground uppercase tracking-wider">
+                     <th className="text-left py-2 pr-3">Leitor</th>
+                     <th className="text-center py-2 px-2">CRM</th>
+                     <th className="text-center py-2 px-2">Páginas</th>
+                     <th className="text-center py-2 px-2">Conclusão</th>
+                     <th className="text-center py-2 px-2">Tempo</th>
+                     <th className="text-right py-2 pl-3">Data</th>
+                   </tr>
                 </thead>
                 <tbody>
                   {kpis.identifiedReaders.map((r, i) => (
@@ -246,7 +247,20 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
                         <div className="font-medium text-foreground">{r.name || "—"}</div>
                         <div className="text-xs text-muted-foreground">{r.email}</div>
                       </td>
-                      <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
+                       <td className="text-center py-2 px-2">
+                         {r.isInCrm ? (
+                           <Badge
+                             variant="default"
+                             className="bg-emerald-500/90 text-white border-0 text-xs cursor-pointer hover:bg-emerald-600"
+                             onClick={() => navigate(`/dashboard/contacts/${r.contactId}`)}
+                           >
+                             No CRM
+                           </Badge>
+                         ) : (
+                           <Badge variant="outline" className="text-xs text-muted-foreground">Novo</Badge>
+                         )}
+                       </td>
+                       <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
                       <td className="text-center py-2 px-2">
                         <Badge
                           variant={r.completed ? "default" : "secondary"}
