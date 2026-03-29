@@ -35,8 +35,8 @@ function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
   return vars as React.CSSProperties;
 }
 
-const CHARS_PER_PAGE = 1200;
-const IMAGE_CHAR_EQUIVALENT = 400;
+const CHARS_PER_PAGE = 800;
+const IMAGE_CHAR_EQUIVALENT = 600;
 
 function isHtmlContent(content: string): boolean {
   return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
@@ -74,7 +74,7 @@ function splitHtmlIntoPages(html: string): string[] {
     const combinedWeight = currentWeight + blockWeight;
 
     if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
-      if (combinedWeight <= CHARS_PER_PAGE * 1.2) {
+      if (combinedWeight <= CHARS_PER_PAGE * 1.1) {
         current += block;
         currentWeight = combinedWeight;
       } else {
