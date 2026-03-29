@@ -3,6 +3,7 @@ import { FlipbookPage, FlipbookPageData, ContactPageData } from "./FlipbookPage"
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
 import { EbookNotesPanel } from "./EbookNotesPanel";
+import { FlipbookWatermark } from "./FlipbookWatermark";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 
 interface EbookChapter {
@@ -25,6 +26,8 @@ interface FlipbookReaderProps {
   styleTokens?: Record<string, unknown>;
   ebookId?: string;
   workspaceId?: string;
+  protectionEnabled?: boolean;
+  watermarkText?: string;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
@@ -221,7 +224,7 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
@@ -275,6 +278,27 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
+  // Anti-print CSS injection for protected public ebooks
+  useEffect(() => {
+    if (!protectionEnabled) return;
+    const style = document.createElement("style");
+    style.id = "ebook-print-protection";
+    style.textContent = `@media print { .ebook-protected-container, .ebook-protected-container * { display: none !important; visibility: hidden !important; } }`;
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, [protectionEnabled]);
+
+  // Anti-keyboard shortcuts (PrintScreen, Ctrl+P) for protected ebooks
+  useEffect(() => {
+    if (!protectionEnabled) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "PrintScreen") { e.preventDefault(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "p") { e.preventDefault(); }
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [protectionEnabled]);
+
   if (compact) {
     return <CompactReader pages={pages} />;
   }
@@ -284,17 +308,31 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   const pageHeight = isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
 
+  // Protection event handlers
+  const protectionHandlers = protectionEnabled ? {
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+  } : {};
+
+
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col group ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
-      style={buildStyleVars(styleTokens)}
+      className={`flex flex-col group ${protectionEnabled ? "ebook-protected-container" : ""} ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
+      style={{
+        ...buildStyleVars(styleTokens),
+        ...(protectionEnabled ? { userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties : {}),
+      }}
+      {...protectionHandlers}
     >
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="relative flex gap-1">
-            {/* Thumbnails sidebar */}
+            {/* Watermark overlay */}
+            {protectionEnabled && (
+              <FlipbookWatermark text={watermarkText} />
+            )}
             {showThumbnails && (
               <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
                 {pages.map((p, i) => (
@@ -359,7 +397,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         showThumbnails={showThumbnails}
         spreadMode
         rightPage={rightPage}
-        onPrint={() => window.print()}
+        onPrint={protectionEnabled ? undefined : () => window.print()}
         onToggleNotes={hasNotesFeature ? () => setShowNotes(s => !s) : undefined}
         showNotes={showNotes}
         notesCount={notes.length}
