@@ -674,6 +674,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             <TabsTrigger value="marca" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
               Marca
             </TabsTrigger>
+            <TabsTrigger value="notas" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full relative">
+              Notas
+              {notes.length > 0 && (
+                <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[10px] leading-none">
+                  {notes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab: Inserir (blocks) */}
