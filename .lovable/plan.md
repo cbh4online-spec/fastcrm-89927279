@@ -1,33 +1,45 @@
 
 
-# Fix: Texto cortado nas páginas do flipbook
+# Fix: Flipbook reader demasiado pequeno
 
 ## Problema
 
-O conteúdo está a ser cortado porque `CHARS_PER_PAGE = 700` ainda é demasiado para as dimensões reais das páginas. No painel de preview (~800px de largura), o `calcDimensions` calcula páginas com ~342×480px, onde 700 caracteres com formatação markdown facilmente transborda o espaço visível. O `overflow-hidden` esconde o excesso.
+No viewport actual (1201×860), o `calcDimensions` calcula cada página com ~520×740px mas o livro renderiza muito mais pequeno. Causas:
+
+1. **`maxWidth={600}` e `maxHeight={900}`** no HTMLFlipBook limitam o crescimento
+2. **Desktop calculation** é conservadora — `Math.min(w, 520)` cap desnecessário
+3. **Fullscreen** usa `vw * 0.42` que é demasiado restritivo
+4. **`size="stretch"`** combina mal com os min/max constraints baixos
 
 ## Solução
 
-### 1. `FlipbookReader.tsx` — Reduzir `CHARS_PER_PAGE` de 700 para **450**
+### `PageFlip.tsx` — Recalcular dimensões
 
-Com páginas de ~340px de largura e ~480px de altura, descontando header, footer e padding, cabem ~18-20 linhas de ~35 caracteres = ~630 chars teóricos. Mas com parágrafos, markdown headings e espaçamento, o limite seguro é ~450.
+**Desktop** (≥1024px):
+- Usar ~75% da altura disponível em vez de `vh - 120`
+- Remover o cap de `520` na largura — permitir até `600`
+- `maxH = Math.min(vh - 100, 860)` em vez de `780`
 
-### 2. `FlipbookPage.tsx` — Reduzir font-size e espaçamento
+**Fullscreen**:
+- Usar `vw * 0.46` em vez de `0.42`
+- Calcular com base na altura real: `availH * 0.9 / 1.4`
 
-- Font-size do conteúdo: `12.5px` → `11.5px`
-- Line-height: `1.75` → `1.65`
-- Padding: `px-6 py-6` → `px-4 py-4`
-- Reduzir margins entre parágrafos: `mb-3` → `mb-2`
-- Reduzir header/footer spacing
+**Tablet** (640–1024px):
+- Aumentar de `vw * 0.38` para `vw * 0.42`, max 400
 
-### 3. `FlipbookPage.tsx` — Adicionar scroll como fallback
+**HTMLFlipBook props**:
+- `maxWidth`: 600 → **800**
+- `maxHeight`: 900 → **1100**
+- `minWidth`: 240 → **280**
+- `minHeight`: 340 → **400**
 
-Mudar `overflow-hidden` para `overflow-y-auto` com scrollbar thin/invisible para que, em caso de overflow residual, o texto seja acessível (em vez de cortado).
+### Resultado esperado
+
+O livro ocupará ~80% da área disponível em vez dos ~40% actuais, mantendo a proporção 1:1.4.
 
 ## Ficheiros
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `FlipbookReader.tsx` | `CHARS_PER_PAGE = 450` |
-| `FlipbookPage.tsx` | Font 11.5px, line-height 1.65, padding reduzido, overflow-y-auto fallback |
+| `src/components/ebooks/PageFlip.tsx` | Aumentar dimensões em `calcDimensions`, aumentar min/max props |
 
