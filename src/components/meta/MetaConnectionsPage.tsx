@@ -96,6 +96,21 @@ export function MetaConnectionsPage() {
     }
   };
 
+  const handleConnectInstagram = async () => {
+    if (!currentWorkspace?.id || !user?.id) return;
+    try {
+      const data = await igOauthStart.mutateAsync({
+        workspaceId: currentWorkspace.id,
+        userId: user.id,
+      });
+      if (data?.auth_url) {
+        window.location.href = data.auth_url;
+      }
+    } catch (err) {
+      toast.error("Falha ao iniciar autenticação Instagram");
+    }
+  };
+
   const handleSync = (connectionId: string) => {
     if (!currentWorkspace?.id) return;
     syncAssets.mutate({ connectionId, workspaceId: currentWorkspace.id });
@@ -154,10 +169,16 @@ export function MetaConnectionsPage() {
           <h2 className="text-lg font-semibold">Ligações Meta</h2>
           <p className="text-sm text-muted-foreground">Gerir contas Facebook e Instagram ligadas</p>
         </div>
-        <Button onClick={handleConnect} disabled={oauthStart.isPending}>
-          {oauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link2 className="w-4 h-4 mr-2" />}
-          Ligar Conta Meta
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleConnect} disabled={oauthStart.isPending}>
+            {oauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Facebook className="w-4 h-4 mr-2" />}
+            Ligar Conta Meta
+          </Button>
+          <Button variant="outline" onClick={handleConnectInstagram} disabled={igOauthStart.isPending}>
+            {igOauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Instagram className="w-4 h-4 mr-2" />}
+            Ligar Conta Instagram
+          </Button>
+        </div>
       </div>
 
       {isLoading && (
