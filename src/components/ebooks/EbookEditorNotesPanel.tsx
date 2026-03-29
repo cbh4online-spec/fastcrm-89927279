@@ -33,12 +33,20 @@ export function EbookEditorNotesPanel({
 }: EbookEditorNotesPanelProps) {
   const [newNote, setNewNote] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "note" | "highlight">("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
-  const filteredNotes = showAll
+  const locationFiltered = showAll
     ? notes
     : notes.filter((n) => n.page_number === activeChapterIndex);
+
+  const filteredNotes = typeFilter === "all"
+    ? locationFiltered
+    : locationFiltered.filter((n) => n.note_type === typeFilter);
+
+  const noteCount = locationFiltered.filter((n) => n.note_type === "note" || !n.note_type).length;
+  const highlightCount = locationFiltered.filter((n) => n.note_type === "highlight").length;
 
   const handleAdd = () => {
     const text = newNote.trim();
