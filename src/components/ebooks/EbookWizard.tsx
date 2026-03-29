@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -18,7 +19,8 @@ import { cn } from "@/lib/utils";
 import type { EbookTemplate } from "@/types/ebook-templates";
 import {
   Sparkles, ArrowLeft, ArrowRight, Loader2, Minus, Plus,
-  BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid
+  BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid,
+  Target, ListChecks, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -34,6 +36,38 @@ const MODES = [
   { id: "structure", label: "Estruturar", desc: "Só títulos e tópicos" },
 ];
 
+const AUDIENCES = [
+  { id: "entrepreneurs", label: "Empreendedores" },
+  { id: "managers", label: "Gestores" },
+  { id: "students", label: "Estudantes" },
+  { id: "marketers", label: "Profissionais de Marketing" },
+  { id: "developers", label: "Desenvolvedores" },
+  { id: "general", label: "Público Geral" },
+];
+
+const OBJECTIVES = [
+  { id: "educate", label: "Educar", icon: "📚" },
+  { id: "lead_gen", label: "Gerar leads", icon: "🧲" },
+  { id: "authority", label: "Posicionar autoridade", icon: "👑" },
+  { id: "sell", label: "Vender produto/serviço", icon: "💰" },
+  { id: "onboarding", label: "Onboarding", icon: "🚀" },
+];
+
+const DEPTHS = [
+  { id: "introductory", label: "Introdutório", desc: "Conceitos básicos, acessível a todos" },
+  { id: "intermediate", label: "Intermédio", desc: "Algum conhecimento prévio necessário" },
+  { id: "advanced", label: "Avançado", desc: "Conteúdo técnico e aprofundado" },
+];
+
+const SPECIAL_ELEMENTS = [
+  { id: "case_studies", label: "Estudos de caso", icon: "📋" },
+  { id: "statistics", label: "Estatísticas", icon: "📊" },
+  { id: "checklists", label: "Checklists", icon: "✅" },
+  { id: "templates", label: "Templates práticos", icon: "📝" },
+  { id: "quotes", label: "Citações", icon: "💬" },
+  { id: "exercises", label: "Exercícios", icon: "🏋️" },
+];
+
 interface Props {
   onComplete: (ebookId: string) => void;
   onCancel: () => void;
@@ -43,14 +77,28 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const [step, setStep] = useState(0);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<EbookTemplate | null>(null);
+
+  // Step 1 — Tema & Objectivo
   const [prompt, setPrompt] = useState("");
+  const [audience, setAudience] = useState<string | null>(null);
+  const [objective, setObjective] = useState<string | null>(null);
+  const [depth, setDepth] = useState("intermediate");
+
+  // Step 2 — Estrutura & Estilo
   const [chapterCount, setChapterCount] = useState(7);
   const [tone, setTone] = useState("professional");
   const [mode, setMode] = useState("generate");
+  const [specialElements, setSpecialElements] = useState<string[]>([]);
+  const [contentKeywords, setContentKeywords] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
+
+  // Step 3 & 4
   const [theme, setTheme] = useState("modern-dark");
   const [imageStyle, setImageStyle] = useState("illustration");
   const [imageKeywords, setImageKeywords] = useState<string[]>([]);
   const [generateImages, setGenerateImages] = useState(true);
+
+  // Generation state
   const [generating, setGenerating] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [genStatus, setGenStatus] = useState("");
@@ -58,7 +106,6 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const { canAfford, getCost, consumeCredits, balance } = useCreditWallet();
   const createEbook = useCreateEbook();
 
-  // Calculate estimated credits
   const outlineCost = getCost("ebook_generate_full") || 15;
   const chapterCost = getCost("ebook_generate_chapter") || 3;
   const imageCost = getCost("ebook_generate_chapter_image") || 4;
@@ -70,7 +117,25 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const totalImageCredits = generateImages ? coverCost + (chapterCount * imageCost) : coverCost;
   const totalCredits = totalContentCredits + totalImageCredits;
 
-  const canProceed = prompt.trim().length > 10;
+  const canProceedStep1 = prompt.trim().length > 10;
+
+  const toggleSpecialElement = (id: string) => {
+    setSpecialElements(prev =>
+      prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
+    );
+  };
+
+  const addKeyword = () => {
+    const kw = keywordInput.trim();
+    if (kw && !contentKeywords.includes(kw)) {
+      setContentKeywords(prev => [...prev, kw]);
+    }
+    setKeywordInput("");
+  };
+
+  const removeKeyword = (kw: string) => {
+    setContentKeywords(prev => prev.filter(k => k !== kw));
+  };
 
   const handleGenerate = async () => {
     if (balance < totalCredits) {
@@ -83,11 +148,20 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
     setGenStatus("A gerar estrutura...");
 
     try {
-      // Step 1: Generate outline
       await consumeCredits.mutateAsync({ actionKey: "ebook_generate_full", idempotencyKey: `wizard-${Date.now()}` });
 
       const { data: outlineData, error: outlineErr } = await supabase.functions.invoke("ebook-ai-assist", {
-        body: { action: "generate_outline", title: prompt.trim(), chapterCount, tone },
+        body: {
+          action: "generate_outline",
+          title: prompt.trim(),
+          chapterCount,
+          tone,
+          audience: AUDIENCES.find(a => a.id === audience)?.label || undefined,
+          objective: OBJECTIVES.find(o => o.id === objective)?.label || undefined,
+          depth: DEPTHS.find(d => d.id === depth)?.label || undefined,
+          specialElements: specialElements.map(id => SPECIAL_ELEMENTS.find(e => e.id === id)?.label).filter(Boolean),
+          contentKeywords,
+        },
       });
       if (outlineErr) throw outlineErr;
       if (outlineData?.error) throw new Error(outlineData.error);
@@ -105,7 +179,6 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
 
       setGenProgress(15);
 
-      // Step 2: Create the ebook
       const createPayload: any = {
         title: result.title || prompt.trim(),
         subtitle: result.subtitle,
@@ -117,14 +190,12 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }
       const ebook = await createEbook.mutateAsync(createPayload);
 
-      // Save theme/style via direct update
       await (supabase as any).from("ebooks").update({
         theme, image_style: imageStyle, image_keywords: imageKeywords
       }).eq("id", ebook.id);
 
       setGenProgress(20);
 
-      // Step 3: Generate chapter content (if mode === "generate")
       if (mode === "generate") {
         for (let i = 0; i < chapters.length; i++) {
           const ch = chapters[i];
@@ -153,14 +224,12 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           setGenProgress(Math.round(contentProgress));
         }
 
-        // Save updated chapters with content
         await (supabase as any).from("ebooks").update({
           chapters,
           updated_at: new Date().toISOString(),
         }).eq("id", ebook.id);
       }
 
-      // Step 4: Generate cover
       setGenStatus("A gerar capa...");
       if (canAfford("ebook_generate_cover")) {
         await consumeCredits.mutateAsync({
@@ -180,7 +249,6 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }
       setGenProgress(generateImages ? 80 : 95);
 
-      // Step 5: Generate chapter images (optional)
       if (generateImages) {
         for (let i = 0; i < chapters.length; i++) {
           setGenStatus(`A gerar imagem ${i + 1}/${chapters.length}...`);
@@ -226,8 +294,9 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
 
   const steps = [
     { icon: LayoutGrid, label: "Template" },
-    { icon: BookOpen, label: "Conteúdo" },
-    { icon: Palette, label: "Tema" },
+    { icon: Target, label: "Tema" },
+    { icon: ListChecks, label: "Estrutura" },
+    { icon: Palette, label: "Visual" },
     { icon: ImageIcon, label: "Imagens" },
   ];
 
@@ -240,27 +309,27 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           Wizard de Criação IA
         </div>
         <h2 className="text-2xl font-bold text-foreground">Crie o seu eBook com IA</h2>
-        <p className="text-sm text-muted-foreground">4 passos simples para gerar um eBook completo automaticamente</p>
+        <p className="text-sm text-muted-foreground">5 passos simples para gerar um eBook completo automaticamente</p>
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-1.5 flex-wrap">
         {steps.map((s, i) => {
           const Icon = s.icon;
           return (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-1.5">
               <button
                 onClick={() => !generating && i <= step && setStep(i)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all",
                   i === step ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" :
                   i < step ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 {s.label}
               </button>
-              {i < steps.length - 1 && <div className={cn("w-8 h-0.5 rounded", i < step ? "bg-primary" : "bg-border")} />}
+              {i < steps.length - 1 && <div className={cn("w-6 h-0.5 rounded", i < step ? "bg-primary" : "bg-border")} />}
             </div>
           );
         })}
@@ -289,6 +358,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
             <Card>
               <CardContent className="p-6 space-y-5">
+                {/* Step 0: Template */}
                 {step === 0 && (
                   <TemplatePickerStep
                     selectedTemplateId={selectedTemplateId}
@@ -299,6 +369,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                   />
                 )}
 
+                {/* Step 1: Tema & Objectivo */}
                 {step === 1 && (
                   <>
                     <div className="space-y-2">
@@ -307,7 +378,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder="Ex: Um guia completo sobre produtividade para equipas remotas, abordando ferramentas, comunicação assíncrona e gestão de tempo"
-                        rows={4}
+                        rows={3}
                         className="resize-none"
                       />
                       {prompt.length > 0 && prompt.length <= 10 && (
@@ -315,6 +386,73 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                       )}
                     </div>
 
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Para quem é este eBook?</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {AUDIENCES.map((a) => (
+                          <button
+                            key={a.id}
+                            onClick={() => setAudience(audience === a.id ? null : a.id)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                              audience === a.id
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted/50 text-muted-foreground border-border/60 hover:border-primary/30 hover:bg-muted"
+                            )}
+                          >
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Qual o objectivo principal?</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {OBJECTIVES.map((o) => (
+                          <button
+                            key={o.id}
+                            onClick={() => setObjective(objective === o.id ? null : o.id)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border flex items-center gap-1.5",
+                              objective === o.id
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted/50 text-muted-foreground border-border/60 hover:border-primary/30 hover:bg-muted"
+                            )}
+                          >
+                            <span>{o.icon}</span>
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Nível de profundidade</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {DEPTHS.map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => setDepth(d.id)}
+                            className={cn(
+                              "p-3 rounded-xl border-2 text-left transition-all",
+                              depth === d.id
+                                ? "border-primary bg-primary/5"
+                                : "border-border/60 hover:border-primary/30"
+                            )}
+                          >
+                            <p className="text-sm font-medium text-foreground">{d.label}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{d.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Step 2: Estrutura & Estilo */}
+                {step === 2 && (
+                  <>
                     <div className="grid grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Número de capítulos</Label>
@@ -370,17 +508,70 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                         ))}
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Elementos especiais a incluir</Label>
+                      <p className="text-xs text-muted-foreground">Selecione os tipos de conteúdo que pretende no eBook</p>
+                      <div className="flex flex-wrap gap-2">
+                        {SPECIAL_ELEMENTS.map((el) => (
+                          <button
+                            key={el.id}
+                            onClick={() => toggleSpecialElement(el.id)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border flex items-center gap-1.5",
+                              specialElements.includes(el.id)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted/50 text-muted-foreground border-border/60 hover:border-primary/30 hover:bg-muted"
+                            )}
+                          >
+                            <span>{el.icon}</span>
+                            {el.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Palavras-chave do conteúdo</Label>
+                      <p className="text-xs text-muted-foreground">Adicione termos que devem aparecer no eBook</p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={keywordInput}
+                          onChange={(e) => setKeywordInput(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addKeyword())}
+                          placeholder="Ex: ROI, conversão, funil..."
+                          className="flex-1"
+                        />
+                        <Button variant="outline" size="sm" onClick={addKeyword} disabled={!keywordInput.trim()}>
+                          Adicionar
+                        </Button>
+                      </div>
+                      {contentKeywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {contentKeywords.map((kw) => (
+                            <Badge key={kw} variant="secondary" className="gap-1 text-xs">
+                              {kw}
+                              <button onClick={() => removeKeyword(kw)} className="hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
 
-                {step === 2 && (
+                {/* Step 3: Visual */}
+                {step === 3 && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Escolha um tema visual</Label>
                     <EbookThemeSelector value={theme} onChange={setTheme} />
                   </div>
                 )}
 
-                {step === 3 && (
+                {/* Step 4: Imagens */}
+                {step === 4 && (
                   <div className="space-y-5">
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Estilo artístico das imagens</Label>
@@ -444,8 +635,8 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
             {step === 0 ? "Cancelar" : "Voltar"}
           </Button>
 
-          {step < 3 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !canProceed}>
+          {step < 4 ? (
+            <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !canProceedStep1}>
               Seguinte
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>

@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, title, description, audience, tone, chapterCount, chapterTitle, chapterContext, imagePrompt, ebookId, target } = await req.json();
+    const { action, title, description, audience, tone, chapterCount, chapterTitle, chapterContext, imagePrompt, ebookId, target, objective, depth, specialElements, contentKeywords } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -69,13 +69,18 @@ serve(async (req) => {
     let toolDef: any = null;
 
     if (action === "generate_outline") {
-      systemPrompt = `You are an expert eBook content strategist. Generate a structured eBook outline in Portuguese (PT-PT). Create compelling chapter titles and brief descriptions.`;
+      const specialElementsStr = specialElements?.length ? `\nSpecial elements to include: ${specialElements.join(", ")}` : "";
+      const keywordsStr = contentKeywords?.length ? `\nKey terms/concepts to incorporate: ${contentKeywords.join(", ")}` : "";
+
+      systemPrompt = `You are an expert eBook content strategist. Generate a structured eBook outline in Portuguese (PT-PT). Create compelling chapter titles and brief descriptions that are tailored to the specified audience, objective, and depth level. ${specialElementsStr ? "Incorporate the requested special elements naturally across chapters." : ""} ${keywordsStr ? "Weave the provided keywords/concepts throughout the chapter structure." : ""}`;
       userPrompt = `Create an eBook outline:
-Title: ${title}
+Title/Theme: ${title}
 Description: ${description || "Not specified"}
 Target audience: ${audience || "General"}
+Main objective: ${objective || "Educate"}
+Depth level: ${depth || "Intermediate"}
 Tone: ${tone || "Professional"}
-Number of chapters: ${chapterCount || 5}`;
+Number of chapters: ${chapterCount || 5}${specialElementsStr}${keywordsStr}`;
       toolDef = {
         name: "create_outline",
         description: "Create an eBook outline with chapters",
