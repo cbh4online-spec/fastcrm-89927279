@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote, Highlighter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FlipbookToolbarProps {
@@ -18,12 +18,15 @@ interface FlipbookToolbarProps {
   onToggleNotes?: () => void;
   showNotes?: boolean;
   notesCount?: number;
+  highlightMode?: boolean;
+  onToggleHighlightMode?: () => void;
 }
 
 export function FlipbookToolbar({
   currentPage, totalPages, onPrev, onNext, onGoTo,
   isFullscreen, onToggleFullscreen, onToggleThumbnails, showThumbnails,
   spreadMode, rightPage, onPrint, onToggleNotes, showNotes, notesCount,
+  highlightMode, onToggleHighlightMode,
 }: FlipbookToolbarProps) {
   const [editingPage, setEditingPage] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -136,6 +139,16 @@ export function FlipbookToolbar({
 
       {/* Right group */}
       <div className="flex items-center gap-1">
+        {onToggleHighlightMode && (
+          <Button
+            variant="ghost" size="icon"
+            onClick={onToggleHighlightMode}
+            title={highlightMode ? "Sair do modo sublinhar" : "Sublinhar texto"}
+            className={`${btnClass} ${highlightMode ? "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/40" : ""}`}
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+        )}
         {onToggleNotes && (
           <Button
             variant="ghost" size="icon"
