@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.meta-asset-sync]
 verify_jwt = false
+
+[functions.instagram-oauth-start]
+verify_jwt = false
+
+[functions.instagram-oauth-callback]
+verify_jwt = false

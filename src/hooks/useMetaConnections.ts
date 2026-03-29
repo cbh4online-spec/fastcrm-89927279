@@ -96,6 +96,18 @@ export function useSyncAssets() {
   });
 }
 
+export function useInstagramOAuthStart() {
+  return useMutation({
+    mutationFn: async ({ workspaceId, userId }: { workspaceId: string; userId: string }) => {
+      const { data, error } = await supabase.functions.invoke("instagram-oauth-start", {
+        body: { workspace_id: workspaceId, user_id: userId },
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useDeleteConnection() {
   const queryClient = useQueryClient();
 
