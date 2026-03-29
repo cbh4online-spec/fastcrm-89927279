@@ -1,23 +1,55 @@
 
 
-# Página de erro amigável para OAuth do Meta
+# Configurar Instagram Business Login
 
-## Problema
-Quando o OAuth falha, o callback redireciona para `/dashboard/meta/connections?error=<code>` mas a página ignora esse parâmetro — o utilizador não recebe feedback.
+## Contexto
+O utilizador tem uma app Instagram API separada (FastCRM-IG, ID: 2652446668464417) no Meta Developers Portal. O Instagram Business Login usa um fluxo OAuth distinto do Facebook Login, com endpoints e scopes diferentes.
 
-## Alterações
+## Alterações necessárias
 
-### 1. `src/components/meta/MetaConnectionsPage.tsx` — Mostrar banner de erro contextual
+### 1. Adicionar secrets para a app Instagram
+- `INSTAGRAM_APP_ID` → 2652446668464417
+- `INSTAGRAM_APP_SECRET` → (o valor visível no portal)
 
-- Ler `error` dos query params (`useSearchParams`)
-- Mapear códigos de erro para mensagens em português com instruções:
-  - `token_exchange_failed` → "Falha na troca de token. Tente ligar novamente."
-  - `db_error` → "Erro ao guardar a ligação. Tente novamente."
-  - `unexpected` → "Ocorreu um erro inesperado."
-  - Erro genérico do Facebook (ex: `OAuthException`) → "O Facebook recusou o acesso. Verifique as permissões da app."
-- Mostrar um `Alert` com ícone, mensagem descritiva, e botão "Tentar novamente" + botão "Dispensar" (que limpa o query param)
-- Incluir bloco colapsável "Detalhes técnicos" com o código de erro e instruções para admins (verificar redirect URI, permissões da app Meta, etc.)
+Nota: já existe `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` configurado.
 
-### 2. Nenhuma alteração no edge function
-Os redirects com `?error=` já estão implementados correctamente no callback.
+### 2. Nova Edge Function: `instagram-oauth-start`
+- Gera URL de autorização para `https://www.instagram.com/oauth/authorize`
+- Scopes: `instagram_business_basic`, `instagram_business_manage_messages`, `instagram_business_manage_comments`
+- Redirect URI: `{SUPABASE_URL}/functions/v1/instagram-oauth-callback`
+- State: workspace_id, user_id (mesmo padrão do meta-oauth-start)
+
+### 3. Nova Edge Function: `instagram-oauth-callback`
+- Recebe `code` do Instagram
+- Troca por short-lived token via `https://api.instagram.com/oauth/access_token`
+- Troca por long-lived token via `https://graph.instagram.com/access_token?grant_type=ig_exchange_token`
+- Obtém info do utilizador via `https://graph.instagram.com/v22.0/me?fields=user_id,username,account_type,profile_picture_url`
+- Cria registo em `meta_connections` com provider=`instagram`
+- Insere asset do tipo `instagram_account` em `meta_assets`
+- Redirect para `/dashboard/meta/connections?connected=true`
+
+### 4. Atualizar UI: `MetaConnectionsPage.tsx`
+- Adicionar segundo botão "Ligar Conta Instagram" com ícone Instagram
+- Novo hook `useInstagramOAuthStart` que invoca `instagram-oauth-start`
+- Ambos os botões coexistem no header da página
+
+### 5. Novo hook: `useInstagramOAuthStart` em `useMetaConnections.ts`
+- Mutation que invoca a edge function `instagram-oauth-start`
+
+## Configuração no Meta Developers Portal (manual)
+O utilizador precisa adicionar o Redirect URI nas definições da Instagram API:
+`https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/instagram-oauth-callback`
+
+## Fluxo resumido
+
+```text
+[Botão "Ligar Instagram"]
+  → instagram-oauth-start (gera URL)
+  → Redirect para instagram.com/oauth/authorize
+  → Utilizador autoriza
+  → Callback → instagram-oauth-callback
+  → Troca code → short-lived → long-lived token
+  → Guarda em meta_connections + meta_assets
+  → Redirect para /dashboard/meta/connections?connected=true
+```
 
