@@ -1,6 +1,10 @@
 import ReactMarkdown from "react-markdown";
 import { Mail, Phone, Globe, ExternalLink } from "lucide-react";
 
+function isHtmlContent(content: string): boolean {
+  return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
+}
+
 export interface ContactPageData {
   email?: string;
   phone?: string;
@@ -220,50 +224,54 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
       "
         style={{ fontSize: '1em' }}
       >
-        <ReactMarkdown
-          components={{
-            p: ({ children }) => <p style={{ fontSize: '1em' }}>{children}</p>,
-            h1: ({ children }) => <h1 style={{ fontSize: '1.4em' }}>{children}</h1>,
-            h2: ({ children }) => (
-              <h2 className="!border-0 !pl-0 bg-gradient-to-r from-amber-100/60 to-transparent px-[0.5em] py-[0.25em] rounded-md" style={{ fontSize: '1.2em' }}>
-                <span className="text-amber-600/40 mr-[0.3em]" style={{ fontSize: '0.8em' }}>❧</span>
-                {children}
-              </h2>
-            ),
-            h3: ({ children }) => (
-              <h3 style={{ fontSize: '1.1em' }}>
-                <span className="block w-[2em] h-[0.12em] bg-amber-500/30 rounded-full mb-[0.3em]" />
-                {children}
-              </h3>
-            ),
-            li: ({ children }) => <li style={{ fontSize: '1em' }}>{children}</li>,
-            blockquote: ({ children }) => (
-              <div className="relative my-[0.8em] px-[1.2em] py-[0.6em] bg-gradient-to-br from-amber-50/80 to-orange-50/40 rounded-lg">
-                <span className="absolute top-[-0.1em] left-[0.2em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
-                <div className="relative text-slate-700 italic font-serif" style={{ fontSize: '0.9em' }}>
+        {isHtmlContent(page.content) ? (
+          <div dangerouslySetInnerHTML={{ __html: page.content }} />
+        ) : (
+          <ReactMarkdown
+            components={{
+              p: ({ children }) => <p style={{ fontSize: '1em' }}>{children}</p>,
+              h1: ({ children }) => <h1 style={{ fontSize: '1.4em' }}>{children}</h1>,
+              h2: ({ children }) => (
+                <h2 className="!border-0 !pl-0 bg-gradient-to-r from-amber-100/60 to-transparent px-[0.5em] py-[0.25em] rounded-md" style={{ fontSize: '1.2em' }}>
+                  <span className="text-amber-600/40 mr-[0.3em]" style={{ fontSize: '0.8em' }}>❧</span>
                   {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 style={{ fontSize: '1.1em' }}>
+                  <span className="block w-[2em] h-[0.12em] bg-amber-500/30 rounded-full mb-[0.3em]" />
+                  {children}
+                </h3>
+              ),
+              li: ({ children }) => <li style={{ fontSize: '1em' }}>{children}</li>,
+              blockquote: ({ children }) => (
+                <div className="relative my-[0.8em] px-[1.2em] py-[0.6em] bg-gradient-to-br from-amber-50/80 to-orange-50/40 rounded-lg">
+                  <span className="absolute top-[-0.1em] left-[0.2em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
+                  <div className="relative text-slate-700 italic font-serif" style={{ fontSize: '0.9em' }}>
+                    {children}
+                  </div>
+                  <span className="absolute bottom-[-0.4em] right-[0.4em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
                 </div>
-                <span className="absolute bottom-[-0.4em] right-[0.4em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
-              </div>
-            ),
-            hr: () => (
-              <div className="flex items-center justify-center gap-[0.5em] my-[1.2em] text-amber-700/25" style={{ fontSize: '0.9em' }}>
-                <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
-                <span>✦</span>
-                <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
-              </div>
-            ),
-            code: ({ children }) => <code style={{ fontSize: '0.85em' }}>{children}</code>,
-            img: ({ node, ...props }) => (
-              <figure className="my-[0.8em]">
-                <img {...props} className="rounded-lg shadow-md mx-auto max-w-full max-h-[12em]" />
-                {props.alt && <figcaption className="text-center text-slate-500 mt-[0.4em] italic" style={{ fontSize: '0.75em' }}>{props.alt}</figcaption>}
-              </figure>
-            ),
-          }}
-        >
-          {page.content}
-        </ReactMarkdown>
+              ),
+              hr: () => (
+                <div className="flex items-center justify-center gap-[0.5em] my-[1.2em] text-amber-700/25" style={{ fontSize: '0.9em' }}>
+                  <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
+                  <span>✦</span>
+                  <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
+                </div>
+              ),
+              code: ({ children }) => <code style={{ fontSize: '0.85em' }}>{children}</code>,
+              img: ({ node, ...props }) => (
+                <figure className="my-[0.8em]">
+                  <img {...props} className="rounded-lg shadow-md mx-auto max-w-full max-h-[12em]" />
+                  {props.alt && <figcaption className="text-center text-slate-500 mt-[0.4em] italic" style={{ fontSize: '0.75em' }}>{props.alt}</figcaption>}
+                </figure>
+              ),
+            }}
+          >
+            {page.content}
+          </ReactMarkdown>
+        )}
       </div>
 
       {/* Footer */}
