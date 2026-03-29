@@ -1,38 +1,25 @@
 
 
-# Inserir imagens reais no conteúdo dos capítulos
+# Corrigir layout do editor de eBooks
 
 ## Problema
 
-O botão "Imagem" na toolbar lateral insere apenas um placeholder com texto "Clique duas vezes para adicionar URL da imagem" — nunca insere uma imagem real. Não há mecanismo para fazer upload de uma imagem inline no conteúdo.
+O editor tem 3 colunas em flex, mas a coluna central não tem `min-w-0`, causando overflow do conteúdo para cima da barra lateral direita. Além disso, o texto do editor pode estar invisível por conflito de cores do tema escuro com as classes `prose`.
 
-## Solução
+## Alterações
 
-### 1. `EbookBlockToolbar.tsx` — Botão de imagem com upload
+### `EbookEditor.tsx`
 
-Substituir o bloco placeholder por um botão que abre um `<input type="file">` oculto. Ao seleccionar ficheiro:
-- Faz upload via `uploadEbookImage` (já existe)
-- Insere `<img src="URL" alt="imagem" style="max-width:100%;border-radius:8px;margin:12px 0" />` no editor via `onInsertBlock`
+1. **Coluna central (linha 453)**: Adicionar `min-w-0` ao `flex-1` para impedir overflow flex
+2. **Editor wrapper (linha 532)**: Adicionar `bg-white text-slate-900 rounded-lg shadow` ao container do editor para garantir fundo branco e texto visível independentemente do tema
+3. **Right sidebar**: Mover o `EbookBlockToolbar` para dentro de um `overflow-y-auto` para evitar que tome altura infinita — remover o wrapper `shrink-0` redundante
 
-O componente precisa receber uma nova prop `onInsertImage` (callback que recebe `File` e devolve `Promise<string|null>` com a URL).
+### `EbookRichEditor.tsx`
 
-### 2. `EbookEditor.tsx` — Passar handler de upload
-
-Criar uma função `handleInlineImageUpload` que:
-- Recebe o `File`
-- Faz upload com `uploadEbookImage(file, \`inline/${ebookId}\`)`
-- Devolve a URL pública
-
-Passar esta função ao `EbookBlockToolbar` como prop `onUploadImage`.
-
-### 3. `EbookBlockToolbar.tsx` — Adicionar botão "Gerar Imagem IA"
-
-Adicionar um segundo item no grupo "Média" para gerar imagem via IA (usando o edge function `ebook-ai-assist` com action `generate_image`). Insere a imagem gerada directamente no conteúdo.
-
-### Ficheiros alterados
+4. Adicionar classes explícitas de cor ao `contentEditable` div: `text-slate-900` e `prose-p:text-slate-900 prose-headings:text-slate-900` para garantir visibilidade em qualquer tema
 
 | Ficheiro | Alteração |
 |---|---|
-| `EbookBlockToolbar.tsx` | Novo prop `onUploadImage`, botão imagem abre file picker, insere `<img>` real |
-| `EbookEditor.tsx` | Criar `handleInlineImageUpload`, passar ao toolbar |
+| `EbookEditor.tsx` | `min-w-0` na coluna central, fundo branco no editor, fix sidebar overflow |
+| `EbookRichEditor.tsx` | Cores explícitas no texto editável |
 
