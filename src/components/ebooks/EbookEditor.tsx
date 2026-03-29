@@ -96,6 +96,28 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     }
   }, [ebook]);
 
+  // Load Google Fonts dynamically
+  useEffect(() => {
+    const gs = (ebook as any)?.global_styles;
+    if (!gs) return;
+    const fonts = new Set<string>();
+    [gs.headingFont, gs.bodyFont].forEach((f: string) => {
+      if (f) {
+        const match = f.match(/'([^']+)'/);
+        if (match) fonts.add(match[1]);
+      }
+    });
+    if (fonts.size === 0) return;
+    const id = 'ebook-google-fonts';
+    let link = document.getElementById(id) as HTMLLinkElement;
+    const href = `https://fonts.googleapis.com/css2?${[...fonts].map(f => `family=${f.replace(/\s/g, '+')}:wght@400;600;700`).join('&')}&display=swap`;
+    if (link) { link.href = href; } else {
+      link = document.createElement('link');
+      link.id = id; link.rel = 'stylesheet'; link.href = href;
+      document.head.appendChild(link);
+    }
+  }, [(ebook as any)?.global_styles?.headingFont, (ebook as any)?.global_styles?.bodyFont]);
+
   // Debounced save for branding fields
   useEffect(() => {
     if (!brandingInitRef.current) return;
