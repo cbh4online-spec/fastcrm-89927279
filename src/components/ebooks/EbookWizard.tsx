@@ -106,11 +106,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       setGenProgress(15);
 
       // Step 2: Create the ebook
-      const ebook = await createEbook.mutateAsync({
+      const createPayload: any = {
         title: result.title || prompt.trim(),
         subtitle: result.subtitle,
         chapters,
-      });
+      };
+      if (selectedTemplateId && selectedTemplate) {
+        createPayload.template_id = selectedTemplateId;
+        createPayload.global_styles = selectedTemplate.style_tokens;
+      }
+      const ebook = await createEbook.mutateAsync(createPayload);
 
       // Save theme/style via direct update
       await (supabase as any).from("ebooks").update({
@@ -220,6 +225,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   };
 
   const steps = [
+    { icon: LayoutGrid, label: "Template" },
     { icon: BookOpen, label: "Conteúdo" },
     { icon: Palette, label: "Tema" },
     { icon: ImageIcon, label: "Imagens" },
