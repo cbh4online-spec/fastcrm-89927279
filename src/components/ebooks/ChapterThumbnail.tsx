@@ -8,8 +8,10 @@ interface ChapterThumbnailProps {
   isActive: boolean;
   onClick: () => void;
   onDragStart: (e: React.DragEvent, index: number) => void;
-  onDragOver: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
   onDrop: (e: React.DragEvent, index: number) => void;
+  onDragLeave?: () => void;
+  onDragEnd?: () => void;
   isDragOver?: boolean;
 }
 
@@ -21,6 +23,8 @@ export function ChapterThumbnail({
   onDragStart,
   onDragOver,
   onDrop,
+  onDragLeave,
+  onDragEnd,
   isDragOver,
 }: ChapterThumbnailProps) {
   const hasContent = !!(chapter.content && chapter.content.trim().length > 0);
@@ -35,8 +39,10 @@ export function ChapterThumbnail({
     <div
       draggable
       onDragStart={(e) => onDragStart(e, index)}
-      onDragOver={onDragOver}
+      onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
+      onDragLeave={onDragLeave}
+      onDragEnd={onDragEnd}
       onClick={onClick}
       className={cn(
         "group relative cursor-pointer transition-all duration-200",
