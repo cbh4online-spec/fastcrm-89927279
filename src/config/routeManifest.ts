@@ -193,6 +193,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("bio-os",          "Bio OS",           "/dashboard/bio",              Link2,     "marketing", { moduleSlug: "bio-os" }),
   e("instagram-looter","Instagram Looter","/dashboard/instagram-looter", Instagram, "marketing", { moduleSlug: "instagram-looter" }),
   e("meta-module",     "Meta",            "/dashboard/meta",             Facebook,  "marketing", { moduleSlug: "meta-module" }),
+  e("sponsors",        "Sponsors / Parceiros", "/dashboard/sponsors",    Award,     "marketing"),
 
   // ══════════════════════════════════════════════════════════════
   // VENDAS

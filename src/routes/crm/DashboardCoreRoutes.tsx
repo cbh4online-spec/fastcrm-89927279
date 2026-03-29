@@ -28,6 +28,7 @@ const EventMapPage = lazy(() => import("@/pages/EventMapPage"));
 const EventMatrixPage = lazy(() => import("@/pages/EventMatrixPage"));
 const EventTestsPage = lazy(() => import("@/pages/EventTestsPage"));
 const RevenueRadarPage = lazy(() => import("@/pages/RevenueRadarPage"));
+const SponsorsManagement = lazy(() => import("@/pages/SponsorsManagement"));
 const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
@@ -68,6 +69,7 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/system/dependencies" element={<DependenciesPage />} />
       <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
       <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
+      <Route path="/dashboard/sponsors" element={<SponsorsManagement />} />
 
       {/* Settings */}
       <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
