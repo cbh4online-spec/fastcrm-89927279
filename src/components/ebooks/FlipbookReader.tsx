@@ -178,10 +178,10 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col group ${isFullscreen ? "bg-slate-950" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl"}`}
+      className={`flex flex-col group ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
     >
       {/* Main viewer */}
-      <div className={`flex-1 flex items-center justify-center ${isFullscreen ? "p-4" : "p-6 md:p-10"}`}>
+      <div className={`flex-1 flex items-center justify-center overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="relative flex gap-1">
           {/* Thumbnails sidebar */}
           {showThumbnails && (

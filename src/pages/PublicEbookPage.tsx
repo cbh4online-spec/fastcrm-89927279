@@ -60,7 +60,7 @@ export default function PublicEbookPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl">
+      <div className="w-full max-w-[96vw]">
         <FlipbookReader
           title={ebook.title}
           subtitle={ebook.subtitle}
