@@ -1,53 +1,41 @@
 
 
-# Fix: Editor Gamma-style — Problemas de funcionalidade
+# Fix: Blocos do editor eBook + Botão Undo
 
 ## Problemas identificados
 
-1. **Inserção de blocos não funciona bem** — `document.execCommand('insertHTML')` é unreliável e pode inserir no sítio errado ou não inserir de todo quando o editor não tem foco/cursor
-2. **Drag & Drop incompleto** — `dragOverIndex` nunca é atualizado (o handler `onDragOver` só faz `e.preventDefault()` sem chamar `setDragOverIndex`), por isso o feedback visual não aparece
-3. **Sincronização contentEditable ↔ React** — a cada mudança externa do `value`, o `useEffect` reescreve `innerHTML`, causando saltos de cursor durante edição
-4. **Toolbar inline pode aparecer fora de posição** — o cálculo de `top` pode ficar negativo e a toolbar fica cortada
-
----
+1. **Inserção de blocos falha** — quando o editor não tem foco/cursor ativo, o `insertBlock` tenta `editor.focus()` mas o cursor não fica posicionado, resultando em inserção inconsistente. A imagem inserida mostra `src=""` (broken image).
+2. **Sem botão Undo** — não existe forma de desfazer ações no editor.
+3. **Erro de consola** — `EbookInlineToolbar` usa `Popover` que tenta passar ref a um function component sem `forwardRef`.
 
 ## Correções
 
-### 1. `EbookRichEditor.tsx` — Inserção de blocos fiável
+### 1. `EbookRichEditor.tsx` — Corrigir `insertBlock` + adicionar Undo/Redo
 
-Adicionar método `insertBlock(html)` exposto via `ref` (ou callback):
-- Se existe cursor/seleção dentro do editor → inserir nessa posição via `Range.insertNode`
-- Se não → append ao final do editor
-- Atualizar estado React após inserção
+- No `insertBlock`, quando não há cursor: fazer `editor.focus()` e depois usar `Range` para posicionar no final antes de inserir (garantir que funciona sempre).
+- Adicionar suporte a **Ctrl+Z / Ctrl+Y** (já nativo do `contentEditable`, mas expor botões).
+- Expor `undo()` e `redo()` via `useImperativeHandle`.
+- Para o bloco "Imagem" com `src=""`: ao detetar inserção de `<img src="">`, abrir automaticamente um prompt para URL ou file picker (ou simplesmente inserir placeholder visível em vez de imagem quebrada).
 
-Corrigir sync do `useEffect`:
-- Só atualizar `innerHTML` quando o editor **não tem foco** (evita saltos de cursor)
-- Usar `useRef` para guardar o último valor enviado e comparar
+### 2. `EbookBlockToolbar.tsx` — Melhorar blocos
 
-### 2. `EbookEditor.tsx` — Corrigir `insertBlock`
+- Mudar o bloco "Imagem" para inserir um placeholder visual editável (div com ícone de imagem e texto "Clique para adicionar imagem") em vez de `<img src="">`.
+- Adicionar botão **Undo** e **Redo** no topo da toolbar.
 
-Mudar de `document.execCommand('insertHTML')` para chamar o novo método do `EbookRichEditor`:
-- Passar `editorRef` ao `EbookRichEditor` via `forwardRef`
-- Ou passar um callback `onInsertBlock` que o editor expõe
+### 3. `EbookEditor.tsx` — Adicionar botão Undo no header do capítulo
 
-### 3. `ChapterThumbnail.tsx` / `EbookEditor.tsx` — Drag & Drop completo
+- Adicionar botões Undo/Redo na barra de ferramentas do capítulo (junto ao título), chamando `document.execCommand('undo')` e `document.execCommand('redo')`.
 
-- No `handleDragOver`, chamar `setDragOverIndex(targetIndex)` para mostrar feedback visual
-- Adicionar `onDragLeave` para limpar `dragOverIndex`
-- Adicionar `onDragEnd` para reset do estado
+### 4. `EbookInlineToolbar.tsx` — Fix ref warning
 
-### 4. `EbookInlineToolbar.tsx` — Posicionamento seguro
-
-- Clamp `top` para nunca ser negativo (mínimo 8px)
-- Clamp `left` para ficar dentro dos limites do editor
-
----
+- O `Popover` tenta dar ref ao `Button` que já é um component. Não é um bug funcional mas gera warnings. Corrigir usando `forwardRef` pattern correto nos sub-componentes.
 
 ## Ficheiros editados
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `EbookRichEditor.tsx` | Expor `insertBlock` via callback, corrigir sync `innerHTML` para não reescrever durante edição |
-| `EbookEditor.tsx` | Usar novo callback de inserção, corrigir drag handlers (`setDragOverIndex`, `onDragLeave`, `onDragEnd`) |
-| `EbookInlineToolbar.tsx` | Clamp posição para ficar dentro do viewport do editor |
+| `EbookRichEditor.tsx` | Fix insertBlock fallback (posicionar cursor no final), expor undo/redo via ref, Ctrl+Z/Y já funciona nativamente |
+| `EbookBlockToolbar.tsx` | Mudar bloco Imagem para placeholder visual, adicionar secção Undo/Redo no topo |
+| `EbookEditor.tsx` | Botões Undo/Redo na toolbar do capítulo |
+| `EbookInlineToolbar.tsx` | Silenciar warning de ref |
 
