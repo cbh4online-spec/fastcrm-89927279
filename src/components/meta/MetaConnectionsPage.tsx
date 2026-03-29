@@ -110,6 +110,43 @@ export function MetaConnectionsPage() {
 
   return (
     <div className="space-y-6">
+      {/* OAuth error banner */}
+      {errorInfo && errorCode && (
+        <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle className="text-base font-semibold">{errorInfo.title}</AlertTitle>
+          <AlertDescription className="mt-2 space-y-3">
+            <p className="text-sm">{errorInfo.description}</p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleConnect} disabled={oauthStart.isPending}>
+                {oauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link2 className="w-4 h-4 mr-2" />}
+                Tentar novamente
+              </Button>
+              <Button size="sm" variant="outline" onClick={dismissError}>
+                Dispensar
+              </Button>
+            </div>
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground px-0 h-auto">
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Detalhes técnicos
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 p-3 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
+                <p><strong>Código:</strong> {errorCode}</p>
+                <p>Verifique no portal Meta Developers:</p>
+                <ul className="list-disc ml-4 space-y-0.5">
+                  <li>Facebook Login → Settings → Valid OAuth Redirect URIs</li>
+                  <li>Permissões da app (pages_show_list, instagram_basic, leads_retrieval, ads_read)</li>
+                  <li>Client OAuth Login e Web OAuth Login estão ativados</li>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Ligações Meta</h2>
