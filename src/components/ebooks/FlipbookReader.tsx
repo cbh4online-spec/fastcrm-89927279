@@ -250,6 +250,19 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const { notes, addNote, deleteNote, pagesWithNotes } = useEbookNotes(ebookId, workspaceId);
   const hasNotesFeature = !!ebookId && !!workspaceId;
 
+  // Build highlights map by page number
+  const highlightsMap = useMemo(() => {
+    const map = new Map<number, { text: string; color: string }[]>();
+    for (const note of notes) {
+      if (note.note_type === "highlight" && note.highlight_text && note.highlight_color) {
+        const arr = map.get(note.page_number) || [];
+        arr.push({ text: note.highlight_text, color: note.highlight_color });
+        map.set(note.page_number, arr);
+      }
+    }
+    return map;
+  }, [notes]);
+
   // Text selection handler for highlights
   const handleMouseUp = useCallback(() => {
     if (!hasNotesFeature) return;
