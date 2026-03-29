@@ -25,15 +25,66 @@ interface FlipbookReaderProps {
 const CHARS_PER_PAGE = 1200;
 const IMAGE_CHAR_EQUIVALENT = 400;
 
-function splitContentIntoPages(content: string): string[] {
-  if (!content || content.trim().length === 0) return ["*Conteúdo em preparação*"];
+function isHtmlContent(content: string): boolean {
+  return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
+}
+
+function splitHtmlIntoPages(html: string): string[] {
+  // Split HTML by block-level tags, keeping tags intact
+  const blockRegex = /(<(?:p|h[1-6]|div|ul|ol|li|blockquote|table|figure|hr|br|img)[^>]*>[\s\S]*?<\/(?:p|h[1-6]|div|ul|ol|li|blockquote|table|figure)>|<(?:hr|br|img)[^>]*\/?>)/gi;
+  const blocks: string[] = [];
+  let match: RegExpExecArray | null;
+  
+  while ((match = blockRegex.exec(html)) !== null) {
+    blocks.push(match[0]);
+  }
+  
+  // If regex didn't find blocks, the HTML might be simple text with tags
+  if (blocks.length === 0) {
+    // Try splitting by common separators
+    const fallbackBlocks = html.split(/<br\s*\/?>\s*<br\s*\/?>/gi).filter(b => b.trim());
+    if (fallbackBlocks.length > 0) {
+      blocks.push(...fallbackBlocks.map(b => `<p>${b}</p>`));
+    } else {
+      return [html];
+    }
+  }
+
+  const pages: string[] = [];
+  let current = "";
+  let currentWeight = 0;
+
+  for (const block of blocks) {
+    const isImage = /<img\b/i.test(block);
+    const textContent = block.replace(/<[^>]+>/g, "");
+    const blockWeight = isImage ? IMAGE_CHAR_EQUIVALENT : textContent.length;
+    const combinedWeight = currentWeight + blockWeight;
+
+    if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
+      if (combinedWeight <= CHARS_PER_PAGE * 1.2) {
+        current += block;
+        currentWeight = combinedWeight;
+      } else {
+        pages.push(current);
+        current = block;
+        currentWeight = blockWeight;
+      }
+    } else {
+      current += block;
+      currentWeight = combinedWeight;
+    }
+  }
+  if (current.trim()) pages.push(current);
+  return pages.length ? pages : ["<p><em>Conteúdo em preparação</em></p>"];
+}
+
+function splitMarkdownIntoPages(content: string): string[] {
   const paragraphs = content.split(/\n\n+/);
   const pages: string[] = [];
   let current = "";
   let currentWeight = 0;
 
   for (const para of paragraphs) {
-    // Check if paragraph contains an image
     const isImage = /!\[.*?\]\(.*?\)/.test(para);
     const paraWeight = isImage ? IMAGE_CHAR_EQUIVALENT : para.length;
     const combinedWeight = currentWeight + (current ? 2 : 0) + paraWeight;
@@ -54,6 +105,11 @@ function splitContentIntoPages(content: string): string[] {
   }
   if (current.trim()) pages.push(current.trim());
   return pages.length ? pages : ["*Conteúdo em preparação*"];
+}
+
+function splitContentIntoPages(content: string): string[] {
+  if (!content || content.trim().length === 0) return ["<p><em>Conteúdo em preparação</em></p>"];
+  return isHtmlContent(content) ? splitHtmlIntoPages(content) : splitMarkdownIntoPages(content);
 }
 
 function buildPages(
