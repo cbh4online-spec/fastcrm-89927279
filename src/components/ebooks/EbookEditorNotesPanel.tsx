@@ -80,6 +80,36 @@ export function EbookEditorNotesPanel({
         </Button>
       </div>
 
+      {/* Type filter */}
+      <div className="px-3 pb-2 flex items-center gap-1">
+        <Button
+          variant={typeFilter === "all" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("all")}
+        >
+          Todas ({locationFiltered.length})
+        </Button>
+        <Button
+          variant={typeFilter === "note" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("note")}
+        >
+          <StickyNote className="h-3 w-3 mr-0.5" />
+          Notas ({noteCount})
+        </Button>
+        <Button
+          variant={typeFilter === "highlight" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("highlight")}
+        >
+          <Highlighter className="h-3 w-3 mr-0.5" />
+          Destaques ({highlightCount})
+        </Button>
+      </div>
+
       {/* Add note form */}
       <div className="px-3 pb-2 space-y-1.5">
         <Textarea
