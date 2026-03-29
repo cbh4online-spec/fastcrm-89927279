@@ -278,21 +278,6 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  if (compact) {
-    return <CompactReader pages={pages} />;
-  }
-
-  // Determine spread display for toolbar
-  const rightPage = Math.min(currentPage + 1, pages.length - 1);
-
-  const pageHeight = isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
-
-  // Protection event handlers
-  const protectionHandlers = protectionEnabled ? {
-    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
-    onDragStart: (e: React.DragEvent) => e.preventDefault(),
-  } : {};
-
   // Anti-print CSS injection for protected public ebooks
   useEffect(() => {
     if (!protectionEnabled) return;
@@ -314,6 +299,22 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     return () => window.removeEventListener("keydown", handler, true);
   }, [protectionEnabled]);
 
+  if (compact) {
+    return <CompactReader pages={pages} />;
+  }
+
+  // Determine spread display for toolbar
+  const rightPage = Math.min(currentPage + 1, pages.length - 1);
+
+  const pageHeight = isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
+
+  // Protection event handlers
+  const protectionHandlers = protectionEnabled ? {
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+  } : {};
+
+
   return (
     <div
       ref={containerRef}
@@ -328,7 +329,10 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="relative flex gap-1">
-            {/* Thumbnails sidebar */}
+            {/* Watermark overlay */}
+            {protectionEnabled && (
+              <FlipbookWatermark text={watermarkText} />
+            )}
             {showThumbnails && (
               <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
                 {pages.map((p, i) => (
