@@ -66,11 +66,11 @@ export function ChapterThumbnail({
             </div>
           ) : null}
           <div className="flex-1 overflow-hidden">
-            <p className="text-[9px] font-bold text-foreground/80 leading-tight truncate">
+            <p className="text-[10px] font-bold text-foreground/80 leading-tight truncate">
               {chapter.title}
             </p>
             {preview && (
-              <p className="text-[8px] text-muted-foreground leading-tight mt-0.5 line-clamp-3">
+              <p className="text-[9px] text-muted-foreground leading-tight mt-0.5 line-clamp-3">
                 {preview}
               </p>
             )}

@@ -384,7 +384,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
                       <p className="text-xs font-medium text-sidebar-foreground/80 truncate">{userName}</p>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 text-[11px] text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors group">
+                          <button className="flex items-center gap-1 text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors group">
                             {isOverridden && <Eye className="w-2.5 h-2.5 text-amber-400 shrink-0" />}
                             <span className="truncate">{roleLabelMap[salesFunction]}</span>
                             <ChevronDown className="w-2.5 h-2.5 shrink-0 opacity-50 group-hover:opacity-100" />

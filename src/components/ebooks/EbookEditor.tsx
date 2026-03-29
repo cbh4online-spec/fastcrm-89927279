@@ -416,7 +416,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           {/* Theme button */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40">
                 <Palette className="h-3 w-3" /> Tema
               </Button>
             </PopoverTrigger>
@@ -430,27 +430,27 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           </Popover>
 
           {/* Presentation button */}
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={() => setShowPresentation(true)}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => setShowPresentation(true)}>
             <Play className="h-3 w-3" /> Apresentar
           </Button>
 
           {/* Cover buttons */}
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={generateCoverAI} disabled={generatingCoverAI}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={generateCoverAI} disabled={generatingCoverAI}>
             {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
             Capa IA
             <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
             {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
           </Button>
 
           {ebook.slug && (
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={() => window.open(`/ebook/${ebook.slug}`, "_blank")}>
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => window.open(`/ebook/${ebook.slug}`, "_blank")}>
               <Globe className="h-3 w-3" /> Ver
             </Button>
           )}
           {ebook.status !== "published" && (
-            <Button size="sm" className="h-7 text-xs gap-1 bg-gradient-to-r from-primary to-primary/80" onClick={publishEbook}>
+            <Button size="sm" className="h-8 text-xs gap-1 bg-gradient-to-r from-primary to-primary/80" onClick={publishEbook}>
               <BookOpen className="h-3 w-3" /> Publicar
             </Button>
           )}
@@ -546,25 +546,36 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                       {uploadingChapterImg ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                     </Button>
                     <div className="w-px h-5 bg-border my-auto mx-0.5" />
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1 text-primary" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id}>
-                      {generating === activeChapter.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      Gerar
-                      <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
-                    </Button>
-                    {activeChapter.content && (
-                      <>
-                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id}>
-                          <Sparkles className="h-3 w-3" /> Melhorar
-                          <span className="text-[10px] opacity-70"><Coins className="h-2.5 w-2.5 inline" />{getCost("ebook_improve_content")}</span>
+                    {/* AI Actions Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 text-primary" disabled={generating === activeChapter.id}>
+                          {generating === activeChapter.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                          IA
+                          <ChevronDown className="h-3 w-3 opacity-50" />
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => condenseContent(activeChapter)} disabled={generating === activeChapter.id}>
-                          <Minimize2 className="h-3 w-3" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => expandContent(activeChapter)} disabled={generating === activeChapter.id}>
-                          <Maximize2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-52">
+                        <DropdownMenuItem onClick={() => generateChapterContent(activeChapter)}>
+                          <Sparkles className="h-3.5 w-3.5 mr-2" /> Gerar conteúdo
+                          <span className="ml-auto text-[10px] opacity-60 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
+                        </DropdownMenuItem>
+                        {activeChapter.content && (
+                          <>
+                            <DropdownMenuItem onClick={() => improveContent(activeChapter)}>
+                              <Wand2 className="h-3.5 w-3.5 mr-2" /> Melhorar
+                              <span className="ml-auto text-[10px] opacity-60 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_improve_content")}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => condenseContent(activeChapter)}>
+                              <Minimize2 className="h-3.5 w-3.5 mr-2" /> Condensar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => expandContent(activeChapter)}>
+                              <Maximize2 className="h-3.5 w-3.5 mr-2" /> Expandir
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     {/* Block action menu for this chapter */}
                     <div className="group">
