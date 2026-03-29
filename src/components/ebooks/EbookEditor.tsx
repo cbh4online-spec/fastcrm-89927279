@@ -177,6 +177,26 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     richEditorRef.current?.insertBlock(html);
   };
 
+  // Inline image upload handler for toolbar
+  const handleInlineImageUpload = async (file: File): Promise<string | null> => {
+    return uploadEbookImage(file, `inline/${ebookId}`);
+  };
+
+  // AI image generation handler for toolbar
+  const handleGenerateInlineImageAI = async (prompt: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("ebook-ai-assist", {
+        body: { action: "generate_image", imagePrompt: prompt, ebookId, target: `inline-${Date.now()}` },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return null; }
+      return data?.url || null;
+    } catch (e: any) {
+      toast.error("Erro ao gerar imagem: " + e.message);
+      return null;
+    }
+  };
+
   // Cover & Image handlers
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -594,6 +614,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               onInsertBlock={insertBlock}
               onUndo={() => richEditorRef.current?.undo()}
               onRedo={() => richEditorRef.current?.redo()}
+              onUploadImage={handleInlineImageUpload}
+              onGenerateImageAI={handleGenerateInlineImageAI}
             />
           </div>
 
