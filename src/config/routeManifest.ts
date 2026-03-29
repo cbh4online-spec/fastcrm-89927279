@@ -186,6 +186,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
   e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing"),
   e("ebooks",          "eBooks",           "/dashboard/ebooks",           BookOpen,  "marketing"),
+  e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing", { visibleInSidebar: false }),
+  e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing", { visibleInSidebar: false }),
   e("form-studio",     "Formulários",      "/dashboard/form-studio",      PenTool,   "marketing"),
   e("seo",             "SEO",              "/dashboard/seo",              Globe,     "marketing", { moduleSlug: "seo-growth" }),
   e("bio-os",          "Bio OS",           "/dashboard/bio",              Link2,     "marketing", { moduleSlug: "bio-os" }),
