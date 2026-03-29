@@ -33,12 +33,22 @@ export function EbookEditorNotesPanel({
 }: EbookEditorNotesPanelProps) {
   const [newNote, setNewNote] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "note" | "highlight">("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
-  const filteredNotes = showAll
+  const locationFiltered = showAll
     ? notes
     : notes.filter((n) => n.page_number === activeChapterIndex);
+
+  const filteredNotes = typeFilter === "all"
+    ? locationFiltered
+    : typeFilter === "note"
+    ? locationFiltered.filter((n) => n.note_type === "note" || !n.note_type)
+    : locationFiltered.filter((n) => n.note_type === typeFilter);
+
+  const noteCount = locationFiltered.filter((n) => n.note_type === "note" || !n.note_type).length;
+  const highlightCount = locationFiltered.filter((n) => n.note_type === "highlight").length;
 
   const handleAdd = () => {
     const text = newNote.trim();
@@ -69,6 +79,36 @@ export function EbookEditorNotesPanel({
         >
           <Filter className="h-3 w-3 mr-1" />
           Todas
+        </Button>
+      </div>
+
+      {/* Type filter */}
+      <div className="px-3 pb-2 flex items-center gap-1">
+        <Button
+          variant={typeFilter === "all" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("all")}
+        >
+          Todas ({locationFiltered.length})
+        </Button>
+        <Button
+          variant={typeFilter === "note" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("note")}
+        >
+          <StickyNote className="h-3 w-3 mr-0.5" />
+          Notas ({noteCount})
+        </Button>
+        <Button
+          variant={typeFilter === "highlight" ? "default" : "outline"}
+          size="sm"
+          className="text-[10px] h-6 flex-1 px-1"
+          onClick={() => setTypeFilter("highlight")}
+        >
+          <Highlighter className="h-3 w-3 mr-0.5" />
+          Destaques ({highlightCount})
         </Button>
       </div>
 
@@ -104,7 +144,14 @@ export function EbookEditorNotesPanel({
             <div className="text-center py-6">
               <StickyNote className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
               <p className="text-xs text-muted-foreground">
-                {showAll ? "Sem notas neste eBook" : "Sem notas neste capítulo"}
+                {typeFilter === "note"
+                  ? "Sem notas" 
+                  : typeFilter === "highlight"
+                  ? "Sem destaques"
+                  : showAll
+                  ? "Sem notas neste eBook"
+                  : "Sem notas neste capítulo"}
+                {!showAll && typeFilter !== "all" ? " neste capítulo" : ""}
               </p>
             </div>
           )}
