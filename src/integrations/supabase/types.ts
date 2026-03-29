@@ -18641,6 +18641,61 @@ export type Database = {
           },
         ]
       }
+      ebook_page_events: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          ebook_id: string
+          ebook_view_id: string
+          event_type: string
+          id: string
+          page_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          ebook_id: string
+          ebook_view_id: string
+          event_type?: string
+          id?: string
+          page_number: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          ebook_id?: string
+          ebook_view_id?: string
+          event_type?: string
+          id?: string
+          page_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_page_events_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_page_events_ebook_view_id_fkey"
+            columns: ["ebook_view_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_views"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_page_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebook_pages: {
         Row: {
           content: Json | null
@@ -18762,6 +18817,90 @@ export type Database = {
           },
         ]
       }
+      ebook_views: {
+        Row: {
+          completed: boolean
+          contact_id: string | null
+          country: string | null
+          device_type: string | null
+          ebook_id: string
+          id: string
+          last_activity_at: string
+          max_page_reached: number
+          pages_viewed: number
+          reader_email: string | null
+          reader_name: string | null
+          referrer: string | null
+          session_id: string
+          started_at: string
+          time_on_book_seconds: number
+          total_pages: number
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed?: boolean
+          contact_id?: string | null
+          country?: string | null
+          device_type?: string | null
+          ebook_id: string
+          id?: string
+          last_activity_at?: string
+          max_page_reached?: number
+          pages_viewed?: number
+          reader_email?: string | null
+          reader_name?: string | null
+          referrer?: string | null
+          session_id: string
+          started_at?: string
+          time_on_book_seconds?: number
+          total_pages?: number
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed?: boolean
+          contact_id?: string | null
+          country?: string | null
+          device_type?: string | null
+          ebook_id?: string
+          id?: string
+          last_activity_at?: string
+          max_page_reached?: number
+          pages_viewed?: number
+          reader_email?: string | null
+          reader_name?: string | null
+          referrer?: string | null
+          session_id?: string
+          started_at?: string
+          time_on_book_seconds?: number
+          total_pages?: number
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_views_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebooks: {
         Row: {
           author_name: string | null
@@ -18777,6 +18916,7 @@ export type Database = {
           id: string
           image_keywords: string[] | null
           image_style: string | null
+          lead_gate_enabled: boolean
           metadata: Json | null
           pdf_storage_path: string | null
           protection_enabled: boolean
@@ -18803,6 +18943,7 @@ export type Database = {
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
+          lead_gate_enabled?: boolean
           metadata?: Json | null
           pdf_storage_path?: string | null
           protection_enabled?: boolean
@@ -18829,6 +18970,7 @@ export type Database = {
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
+          lead_gate_enabled?: boolean
           metadata?: Json | null
           pdf_storage_path?: string | null
           protection_enabled?: boolean
