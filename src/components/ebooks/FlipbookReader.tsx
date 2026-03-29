@@ -4,6 +4,7 @@ import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
 import { EbookNotesPanel } from "./EbookNotesPanel";
 import { FlipbookWatermark } from "./FlipbookWatermark";
+import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 
 interface EbookChapter {
@@ -231,6 +232,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [showNotes, setShowNotes] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
+  const bookContainerRef = useRef<HTMLDivElement>(null);
 
   const pages = buildPages(title, subtitle, author, coverUrl, chapters, headerText, footerText, contactPage);
 
@@ -328,7 +330,9 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
-          <div className="relative flex gap-1">
+          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }}>
+            {/* Animated hand cursor */}
+            <AnimatedHandCursor containerRef={bookContainerRef} />
             {/* Watermark overlay */}
             {protectionEnabled && (
               <FlipbookWatermark text={watermarkText} />
