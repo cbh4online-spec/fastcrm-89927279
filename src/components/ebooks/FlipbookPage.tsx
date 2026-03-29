@@ -105,7 +105,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage }: Flipbo
               style={{ borderColor: `color-mix(in srgb, ${v.primary} 8%, transparent)`, cursor: onGoToPage ? "pointer" : "default" }}
               onClick={(e) => {
                 e.stopPropagation();
-                onGoToPage?.(ch.pageStart - 1);
+                onGoToPage?.(ch.pageStart);
               }}
             >
               <span className="font-bold w-[1.5em] text-right tabular-nums shrink-0 opacity-40" style={{ fontSize: "0.8em", color: v.accent }}>
