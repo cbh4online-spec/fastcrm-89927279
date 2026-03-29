@@ -428,6 +428,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
+                  onDragLeave={handleDragLeave}
+                  onDragEnd={handleDragEnd}
                   isDragOver={dragOverIndex === i}
                 />
               ))}
