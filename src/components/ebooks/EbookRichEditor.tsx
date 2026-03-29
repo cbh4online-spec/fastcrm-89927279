@@ -226,7 +226,7 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
   const isEmpty = !value || value === '<p><br></p>' || value === '<br>' || value.trim() === '';
 
   return (
-    <div className="relative">
+    <div className="relative group/editor">
       {showToolbar && isFocused && hasSelection && (
         <EbookInlineToolbar
           position={toolbarPosition}
@@ -235,6 +235,20 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
         />
       )}
 
+      {/* Hint bar — shows editing tip based on focus state */}
+      <div className={cn(
+        "flex items-center gap-2 px-3 py-1.5 mb-2 rounded-md text-xs transition-all duration-200",
+        isFocused
+          ? "bg-primary/5 text-primary/70 border border-primary/15"
+          : "bg-muted/30 text-muted-foreground/50 border border-transparent group-hover/editor:bg-muted/50 group-hover/editor:text-muted-foreground/70"
+      )}>
+        {isFocused ? (
+          <span>Selecione texto para formatar · <kbd className="px-1 py-0.5 rounded bg-primary/10 text-[10px] font-mono">Ctrl+B</kbd> negrito · <kbd className="px-1 py-0.5 rounded bg-primary/10 text-[10px] font-mono">Ctrl+I</kbd> itálico</span>
+        ) : (
+          <span>Clique para editar o conteúdo</span>
+        )}
+      </div>
+
       <div
         ref={editorRef}
         contentEditable
@@ -242,7 +256,7 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
           fontFamily: 'var(--ebook-body-font, inherit)',
         }}
         className={cn(
-          "min-h-[50vh] outline-none text-foreground",
+          "min-h-[50vh] outline-none text-foreground cursor-text",
           "prose prose-sm max-w-none dark:prose-invert",
           "prose-headings:text-foreground prose-headings:font-bold",
           "[&_h1]:[font-family:var(--ebook-heading-font,inherit)] [&_h2]:[font-family:var(--ebook-heading-font,inherit)] [&_h3]:[font-family:var(--ebook-heading-font,inherit)]",
@@ -255,7 +269,9 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
           "prose-ul:list-disc prose-ol:list-decimal prose-li:text-foreground",
           "prose-img:rounded-lg prose-img:shadow-md prose-img:my-4",
           "prose-hr:border-border",
-          "focus:ring-0 rounded-md transition-all",
+          "rounded-md transition-all border border-transparent p-3",
+          isFocused && "ring-1 ring-primary/20 border-primary/30 bg-background",
+          !isFocused && "hover:border-border/50 hover:bg-accent/5",
           isEmpty && !isFocused && "text-muted-foreground",
           className
         )}
@@ -269,7 +285,7 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
 
       {isEmpty && !isFocused && (
         <div
-          className="absolute top-0 left-0 text-muted-foreground/60 pointer-events-none select-none font-serif"
+          className="absolute top-10 left-3 text-muted-foreground/60 pointer-events-none select-none font-serif"
           aria-hidden
         >
           {placeholder}
