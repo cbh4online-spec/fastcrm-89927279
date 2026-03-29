@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Copy, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Copy, ExternalLink, Pencil, Plus, QrCode, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useBookingPages, useUpdateBookingPage, useDeleteBookingPage, type BookingPage } from '@/hooks/useBookingPages';
 import { BookingPageModal } from './BookingPageModal';
+import { BookingQRCodeDialog } from './BookingQRCodeDialog';
 import type { Calendar } from '@/hooks/useCalendars';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getPublicBaseUrl } from '@/utils/getPublicDomain';
@@ -21,6 +22,7 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
   const deletePage = useDeleteBookingPage();
   const [showModal, setShowModal] = useState(false);
   const [editingPage, setEditingPage] = useState<BookingPage | null>(null);
+  const [qrPage, setQrPage] = useState<BookingPage | null>(null);
 
   const getPublicUrl = (slug: string) => {
     const base = getPublicBaseUrl();
@@ -96,6 +98,9 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
                   <Button variant="ghost" size="icon" onClick={() => copyLink(page.slug)} title="Copiar link">
                     <Copy className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setQrPage(page)} title="QR Code">
+                    <QrCode className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => window.open(getPublicUrl(page.slug), '_blank')} title="Abrir">
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -121,6 +126,16 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
         calendars={calendars}
         editingPage={editingPage}
       />
+
+      {qrPage && (
+        <BookingQRCodeDialog
+          open={!!qrPage}
+          onOpenChange={(v) => { if (!v) setQrPage(null); }}
+          url={getPublicUrl(qrPage.slug)}
+          title={qrPage.title}
+          brandColor={qrPage.brand_color}
+        />
+      )}
     </div>
   );
 }
