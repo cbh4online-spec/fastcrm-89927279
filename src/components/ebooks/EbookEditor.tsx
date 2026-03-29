@@ -597,7 +597,23 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 </div>
 
                 {/* WYSIWYG Editor */}
-                <div className="px-6 py-6 bg-white rounded-lg shadow mx-4 mb-6" style={{ fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined }}>
+                <div
+                  className="px-6 py-6 bg-card rounded-lg shadow mx-4 mb-6"
+                  style={{
+                    fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined,
+                    ...(() => {
+                      const gs = (ebook as any).global_styles;
+                      if (!gs) return {};
+                      const vars: Record<string, string> = {};
+                      if (gs.primaryColor) vars['--ebook-primary'] = gs.primaryColor;
+                      if (gs.accentColor) vars['--ebook-accent'] = gs.accentColor;
+                      if (gs.backgroundColor) vars['--ebook-bg'] = gs.backgroundColor;
+                      if (gs.headingFont) vars['--ebook-heading-font'] = gs.headingFont;
+                      if (gs.bodyFont) vars['--ebook-body-font'] = gs.bodyFont;
+                      return vars;
+                    })(),
+                  } as React.CSSProperties}
+                >
                   <EbookRichEditor
                     ref={richEditorRef}
                     value={activeChapter.content || ""}

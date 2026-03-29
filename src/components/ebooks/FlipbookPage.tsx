@@ -247,10 +247,13 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         }}
       >
         {isHtmlContent(page.content) ? (
-          <div
-            dangerouslySetInnerHTML={{ __html: page.content }}
-            style={contentInlineStyles}
-          />
+          <>
+            <style>{htmlContentScopedCSS}</style>
+            <div
+              className="ebook-html-content"
+              dangerouslySetInnerHTML={{ __html: page.content }}
+            />
+          </>
         ) : (
           <ReactMarkdown
             components={{
@@ -334,7 +337,50 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
   );
 }
 
-/* Inline styles for HTML content pages — mirrors the markdown components */
-const contentInlineStyles: React.CSSProperties = {
-  lineHeight: 1.75,
-};
+/* Scoped CSS for HTML content pages — mirrors the markdown components */
+const htmlContentScopedCSS = `
+  .ebook-html-content { line-height: 1.75; }
+  .ebook-html-content h1 {
+    font-size: 1.5em; font-family: var(--ebook-heading-font, Georgia, serif);
+    color: var(--ebook-primary, #0f172a); font-weight: 700;
+    margin: 0.8em 0 0.5em;
+  }
+  .ebook-html-content h2 {
+    font-size: 1.3em; font-family: var(--ebook-heading-font, Georgia, serif);
+    color: var(--ebook-primary, #0f172a); font-weight: 700;
+    margin: 0.8em 0 0.5em; padding: 0.25em 0.5em; border-radius: 0.25em;
+    background: linear-gradient(to right, color-mix(in srgb, var(--ebook-accent, #b4884e) 12%, transparent), transparent);
+  }
+  .ebook-html-content h3 {
+    font-size: 1.15em; font-family: var(--ebook-heading-font, Georgia, serif);
+    color: var(--ebook-primary, #0f172a); font-weight: 600;
+    margin: 0.7em 0 0.4em;
+    border-top: 2px solid color-mix(in srgb, var(--ebook-accent, #b4884e) 30%, transparent);
+    padding-top: 0.3em;
+  }
+  .ebook-html-content p { font-size: 1em; margin-bottom: 0.7em; line-height: 1.75; }
+  .ebook-html-content strong { color: var(--ebook-primary, #0f172a); font-weight: 700; }
+  .ebook-html-content blockquote {
+    position: relative; margin: 0.8em 0; padding: 0.8em 1.4em; border-radius: 0.5em;
+    font-style: italic; font-size: 0.95em; color: #475569;
+    background: linear-gradient(to bottom right, color-mix(in srgb, var(--ebook-accent, #b4884e) 10%, transparent), color-mix(in srgb, var(--ebook-accent, #b4884e) 5%, transparent));
+    border-left: 3px solid var(--ebook-accent, #b4884e);
+  }
+  .ebook-html-content hr {
+    border: none; height: 1px; margin: 1.2em 0;
+    background: linear-gradient(to right, transparent, var(--ebook-accent, #b4884e), transparent);
+    opacity: 0.25;
+  }
+  .ebook-html-content code {
+    font-size: 0.85em; padding: 0.1em 0.3em; border-radius: 0.2em;
+    background: color-mix(in srgb, var(--ebook-accent, #b4884e) 8%, transparent);
+  }
+  .ebook-html-content ul, .ebook-html-content ol { padding-left: 1.5em; margin-bottom: 0.7em; }
+  .ebook-html-content li { margin-bottom: 0.3em; }
+  .ebook-html-content img {
+    max-width: 100%; border-radius: 0.5em; margin: 0.6em auto; display: block;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    max-height: 12em;
+  }
+  .ebook-html-content a { color: var(--ebook-primary, #0f172a); text-decoration: underline; }
+`;
