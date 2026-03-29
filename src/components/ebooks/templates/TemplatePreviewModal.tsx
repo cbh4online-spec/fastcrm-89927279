@@ -33,7 +33,7 @@ export function TemplatePreviewModal({ template, open, onClose, onUse, onDuplica
           <div>
             <h2 className="text-lg font-semibold">{template.name}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[template.category]}</Badge>
+              <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[template.category]}</Badge>
               <span className="text-xs text-muted-foreground">{total} páginas</span>
             </div>
           </div>
@@ -52,19 +52,19 @@ export function TemplatePreviewModal({ template, open, onClose, onUse, onDuplica
         {/* Preview area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Page list sidebar */}
-          <ScrollArea className="w-48 border-r border-border/40 bg-muted/20">
-            <div className="p-3 space-y-2">
+          <ScrollArea className="w-56 border-r border-border/40 bg-muted/20">
+            <div className="p-3 space-y-1.5">
               {layouts.map((lk, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrentPage(i)}
-                  className={`w-full text-left p-2 rounded-lg text-xs transition-colors ${
+                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
                     i === currentPage
-                      ? "bg-primary/10 text-primary border border-primary/30"
+                      ? "bg-primary/10 text-primary border border-primary/30 font-medium"
                       : "hover:bg-muted text-muted-foreground"
                   }`}
                 >
-                  <span className="font-medium">{i + 1}.</span> {LAYOUT_LABELS[lk] || lk}
+                  <span className="font-medium text-muted-foreground mr-1.5">{i + 1}.</span> {LAYOUT_LABELS[lk] || lk}
                 </button>
               ))}
             </div>

@@ -87,7 +87,7 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">Biblioteca de eBooks</h1>
-                <Badge variant="outline" className="border-primary/30 text-primary text-[10px] font-medium">PREMIUM</Badge>
+                <Badge variant="outline" className="border-primary/30 text-primary text-xs font-medium">PREMIUM</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">Crie eBooks com IA para captura de leads nos seus funis</p>
             </div>
@@ -97,24 +97,20 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
             <div className="hidden md:flex items-center gap-4 mr-4">
               <div className="text-center px-4 py-1.5 rounded-lg bg-background/60 border border-border/50">
                 <p className="text-lg font-bold text-foreground">{ebooks?.length || 0}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">eBooks</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">eBooks</p>
               </div>
               <div className="text-center px-4 py-1.5 rounded-lg bg-background/60 border border-border/50">
                 <p className="text-lg font-bold text-foreground">{publishedCount}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Publicados</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Publicados</p>
               </div>
               <div className="text-center px-4 py-1.5 rounded-lg bg-background/60 border border-border/50">
                 <p className="text-lg font-bold text-foreground">{totalWords.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Palavras</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Palavras</p>
               </div>
             </div>
             <Button onClick={() => onOpenWizard ? onOpenWizard() : setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Criar com IA
-            </Button>
-            <Button variant="outline" onClick={() => setShowCreate(true)} className="border-primary/20 hover:bg-primary/5">
               <Plus className="h-4 w-4 mr-2" />
-              Criar Manual
+              Criar eBook
             </Button>
           </div>
         </div>
@@ -137,13 +133,9 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
             <h3 className="text-xl font-semibold mb-2 text-foreground">Comece a sua biblioteca</h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-md">Crie eBooks profissionais para captura de leads. Use a IA para gerar conteúdo ou escreva manualmente.</p>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => { setAiMode(false); setShowCreate(true); }} className="border-primary/20 hover:bg-primary/5">
-                <PenLine className="h-4 w-4 mr-2" />
-                Criar Manual
-              </Button>
-              <Button onClick={() => onOpenWizard ? onOpenWizard() : (() => { setAiMode(true); setShowCreate(true); })()} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Criar com IA
+              <Button onClick={() => onOpenWizard ? onOpenWizard() : setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar eBook
               </Button>
             </div>
           </CardContent>
@@ -164,7 +156,7 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
                 <Card
-                  className="cursor-pointer group overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                  className="cursor-pointer group overflow-hidden border border-border/50 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
                   onClick={() => onSelectEbook(ebook.id)}
                 >
                   {/* Cover gradient */}
@@ -185,10 +177,10 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                       <Badge
                         className={
                           ebook.status === "published"
-                            ? "bg-emerald-500/90 text-white border-0 text-[10px]"
+                            ? "bg-emerald-500/90 text-white border-0 text-xs"
                             : ebook.status === "archived"
-                            ? "bg-muted text-muted-foreground border-0 text-[10px]"
-                            : "bg-amber-500/90 text-white border-0 text-[10px]"
+                            ? "bg-muted text-muted-foreground border-0 text-xs"
+                            : "bg-amber-500/90 text-white border-0 text-xs"
                         }
                       >
                         {ebook.status === "published" ? "Publicado" : ebook.status === "archived" ? "Arquivado" : "Rascunho"}
@@ -199,7 +191,7 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                   <CardContent className="p-4 space-y-3">
                     {/* Progress bar */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{filledChapters}/{ebook.chapters.length} capítulos escritos</span>
                         <span>{Math.round(progress)}%</span>
                       </div>
