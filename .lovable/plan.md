@@ -1,63 +1,55 @@
 
 
-# Configuração de Imagens por Tipo de Página no Wizard de eBook
+# Diagnóstico: Sublinhado não funciona
 
-## Contexto
+## Problema identificado
 
-Actualmente, o wizard gera 1 imagem por capítulo em formato "wide", sem controlo sobre quantidade, tamanho ou posicionamento. O utilizador quer definir estas configurações no passo "Imagens" do wizard.
+Existem **3 bloqueios** que impedem a selecção de texto no flipbook:
+
+1. **`react-pageflip` captura todos os eventos de rato** — o `mousedown`/`mousemove`/`mouseup` são interceptados pela biblioteca para virar páginas, impedindo que o browser crie uma selecção de texto nativa.
+
+2. **`userSelect: "none"`** — quando `protectionEnabled` está activo (linha 369), a selecção é explicitamente desactivada no CSS.
+
+3. **`disableFlipByClick={false}`** — cliques dentro das páginas são interpretados como "virar página", não como interacção com o conteúdo.
 
 ## Solução
 
-Adicionar um painel de configuração de imagens no Step 4 do wizard, abaixo do style picker, com presets por tipo de página e opções de tamanho/posição.
+### 1. Adicionar modo "Sublinhar" (toggle na toolbar)
 
-### 1. Novo componente `EbookImageLayoutConfig.tsx`
+Criar um botão na `FlipbookToolbar` que activa/desactiva o modo de sublinhado. Quando activo:
+- `disableFlipByClick` passa a `true` no `HTMLFlipBook`
+- `useMouseEvents` passa a `false` (desactiva drag-to-flip)
+- `userSelect` passa a `"text"` no container (mesmo com protecção)
+- O cursor animado esconde-se e aparece um cursor de texto normal
+- A cor de fundo do botão muda para indicar que o modo está activo
 
-Configuração visual com presets por tipo de página:
+Quando desactivado, tudo volta ao normal (flip por clique e drag).
 
-| Tipo de Página | Imagens | Tamanho Default | Posição Default |
-|---|---|---|---|
-| Capa | 1 | Full (100%) | Centro |
-| Capítulo (intro) | 1 | Grande (75%) | Topo |
-| Conteúdo | 0-2 | Médio (50%) | Lateral / Inline |
-| CTA / Autor | 1 | Pequeno (30%) | Lateral |
+### 2. Alterações por ficheiro
 
-Opções configuráveis:
-- **Quantidade por página**: 0, 1 ou 2 imagens
-- **Tamanho**: Pequeno (30%), Médio (50%), Grande (75%), Full (100%)
-- **Posição**: Topo, Centro, Lateral esquerda, Lateral direita, Fundo
-
-UI: Cards colapsáveis por tipo de página com selectors visuais (botões icon-based para posição, slider ou botões para tamanho).
-
-### 2. Actualizar `EbookWizard.tsx`
-
-- Adicionar estado `imageLayoutConfig` com defaults por tipo de página
-- Passar config ao prompt de geração de imagem (aspect ratio, formato)
-- Mapear tamanho para aspect ratio no prompt: Small→square, Medium→4:3, Large→16:9, Full→panoramic
-- Incluir posição nos metadados do capítulo para o renderer usar
-
-### 3. Actualizar `EbookImageStylePicker.tsx`
-
-- Integrar o novo componente como secção adicional abaixo das keywords
-
-### 4. Actualizar geração de imagens no wizard
-
-- Ajustar prompt com base no tamanho/posição escolhido
-- Respeitar `count: 0` para não gerar imagem em tipos configurados sem imagem
-- Guardar metadados de layout (`imageSize`, `imagePosition`) nos dados do capítulo
-
-## Ficheiros
-
-| Ficheiro | Acção |
+| Ficheiro | Alteração |
 |---|---|
-| `src/components/ebooks/EbookImageLayoutConfig.tsx` | Novo — painel de configuração de imagens por tipo de página |
-| `src/components/ebooks/EbookWizard.tsx` | Integrar config, passar ao gerador |
-| `src/components/ebooks/EbookImageStylePicker.tsx` | Compor com o novo componente |
+| `FlipbookReader.tsx` | Adicionar estado `highlightMode`, passar ao `PageFlipBook` e condicionar `userSelect`, cursor e `AnimatedHandCursor` |
+| `PageFlip.tsx` | Aceitar prop `highlightMode` → condicionar `disableFlipByClick` e `useMouseEvents` |
+| `FlipbookToolbar.tsx` | Adicionar botão "Sublinhar" (ícone `Highlighter`) com toggle visual |
 
-## Critérios de Aceitação
+### 3. Lógica
 
-- Utilizador pode configurar quantidade (0-2), tamanho e posição por tipo de página
-- Defaults sensatos aplicados automaticamente
-- Prompt de geração reflecte o tamanho/posição escolhido
-- Custo de créditos actualiza conforme o total de imagens configurado
-- UI limpa e intuitiva com presets visuais
+```
+highlightMode = false (default)
+  → flip por clique ✓, drag ✓, selecção ✗, cursor mão ✓
+
+highlightMode = true (toggle)
+  → flip por clique ✗, drag ✗, selecção ✓, cursor texto ✓
+  → ao seleccionar texto → popover de highlight aparece
+  → ao criar highlight → highlightMode volta a false
+```
+
+### Critérios de aceitação
+
+- Botão "Sublinhar" visível na toolbar (com ícone Highlighter)
+- Toggle visual claro (cor activa vs inactiva)
+- Em modo sublinhado: texto seleccionável, popover aparece, flip desactivado
+- Ao sair do modo ou criar highlight: flip volta ao normal
+- Funciona mesmo com protecção activa
 
