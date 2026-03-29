@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, ExternalLink, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Copy, ExternalLink, Pencil, Plus, QrCode, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
