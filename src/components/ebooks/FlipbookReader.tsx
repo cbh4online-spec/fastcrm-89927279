@@ -483,6 +483,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
               isFullscreen={isFullscreen}
               onGoToPage={goToPage}
               highlightMode={highlightMode}
+              highlightsMap={highlightsMap}
             />
           </div>
         </div>
