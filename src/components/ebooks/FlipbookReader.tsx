@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { FlipbookPage, FlipbookPageData, ContactPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
