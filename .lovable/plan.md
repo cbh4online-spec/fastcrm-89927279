@@ -1,25 +1,29 @@
 
 
-# Corrigir layout do editor de eBooks
+# Corrigir página de contactos e slogan no eBook
 
 ## Problema
 
-O editor tem 3 colunas em flex, mas a coluna central não tem `min-w-0`, causando overflow do conteúdo para cima da barra lateral direita. Além disso, o texto do editor pode estar invisível por conflito de cores do tema escuro com as classes `prose`.
+A página de contactos existe no código mas tem dois problemas:
 
-## Alterações
+1. **Dados não guardam correctamente**: Cada tecla no campo dispara um `updateEbook.mutate()` separado, criando race conditions — as mutações sobrepõem-se e o valor final pode ser parcial ou vazio. O `contact_page` é reconstruído a cada tecla com spread do valor actual (que pode já estar desactualizado).
+
+2. **Estado local inexistente**: Os campos de contacto lêem directamente de `(ebook as any).contact_page` (dados do servidor) em vez de estado local, causando lag e perda de dados durante edição.
+
+## Solução
 
 ### `EbookEditor.tsx`
 
-1. **Coluna central (linha 453)**: Adicionar `min-w-0` ao `flex-1` para impedir overflow flex
-2. **Editor wrapper (linha 532)**: Adicionar `bg-white text-slate-900 rounded-lg shadow` ao container do editor para garantir fundo branco e texto visível independentemente do tema
-3. **Right sidebar**: Mover o `EbookBlockToolbar` para dentro de um `overflow-y-auto` para evitar que tome altura infinita — remover o wrapper `shrink-0` redundante
+1. **Adicionar estado local** para `headerText`, `footerText` e `contactPage` (inicializados a partir do ebook carregado)
+2. **Debounce o save**: Usar `useEffect` com timeout de 800ms para guardar automaticamente após o utilizador parar de escrever — em vez de mutação por tecla
+3. **Inputs controlados**: Os campos lêem do estado local, não do servidor
+4. **Sincronizar ao carregar**: Quando `ebook` muda (query refresh), actualizar estado local se não houver edição em curso
 
-### `EbookRichEditor.tsx`
+### Garantir visibilidade
 
-4. Adicionar classes explícitas de cor ao `contentEditable` div: `text-slate-900` e `prose-p:text-slate-900 prose-headings:text-slate-900` para garantir visibilidade em qualquer tema
+5. Mover a secção "Página de Contactos" para uma posição mais visível — colocá-la num separador/accordion expandido por defeito na sidebar direita, com um label mais descritivo
 
 | Ficheiro | Alteração |
 |---|---|
-| `EbookEditor.tsx` | `min-w-0` na coluna central, fundo branco no editor, fix sidebar overflow |
-| `EbookRichEditor.tsx` | Cores explícitas no texto editável |
+| `EbookEditor.tsx` | Estado local + debounce para campos de branding e contacto, UI mais visível |
 
