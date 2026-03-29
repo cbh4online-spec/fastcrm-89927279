@@ -122,7 +122,7 @@ export function FlipbookPage({ page }: FlipbookPageProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-center mt-4 pt-3 border-t border-amber-900/8">
+      <div className="flex items-center justify-center mt-2 pt-2 border-t border-amber-900/8">
         <span className="text-[10px] tabular-nums text-amber-700/30">{page.pageNumber} / {page.totalPages}</span>
       </div>
     </div>
