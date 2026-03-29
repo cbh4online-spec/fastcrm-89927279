@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FlipbookReader } from "./FlipbookReader";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
-import { EbookRichEditor } from "./EbookRichEditor";
+import { EbookRichEditor, type EbookRichEditorHandle } from "./EbookRichEditor";
 import { EbookBlockToolbar } from "./EbookBlockToolbar";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
@@ -64,6 +64,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chapterImgRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const richEditorRef = useRef<EbookRichEditorHandle>(null);
 
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
     updateEbook.mutate({ id: ebookId, chapters });
@@ -115,13 +116,21 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   };
 
   // Drag & Drop
-  const handleDragStart = (_e: React.DragEvent, index: number) => {
+  const handleDragStart = (_e: DragEvent, index: number) => {
     setDragSourceIndex(index);
   };
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: DragEvent, index: number) => {
     e.preventDefault();
+    setDragOverIndex(index);
   };
-  const handleDrop = (_e: React.DragEvent, targetIndex: number) => {
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragSourceIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDrop = (_e: DragEvent, targetIndex: number) => {
     if (dragSourceIndex === null || !ebook) return;
     if (dragSourceIndex === targetIndex) return;
     const updated = [...ebook.chapters];
@@ -132,15 +141,9 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     setDragOverIndex(null);
   };
 
-  // Insert block from toolbar
+  // Insert block via rich editor ref
   const insertBlock = (html: string) => {
-    if (editorRef.current) {
-      const editor = editorRef.current.querySelector('[contenteditable]') as HTMLDivElement;
-      if (editor) {
-        editor.focus();
-        document.execCommand('insertHTML', false, html);
-      }
-    }
+    richEditorRef.current?.insertBlock(html);
   };
 
   // Cover & Image handlers
