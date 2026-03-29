@@ -18540,6 +18540,175 @@ export type Database = {
           },
         ]
       }
+      ebook_assets: {
+        Row: {
+          asset_type: string
+          created_at: string
+          ebook_id: string | null
+          file_name: string | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_type?: string
+          created_at?: string
+          ebook_id?: string | null
+          file_name?: string | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          ebook_id?: string | null
+          file_name?: string | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_assets_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ebook_pages: {
+        Row: {
+          content: Json | null
+          created_at: string
+          ebook_id: string
+          id: string
+          is_locked: boolean
+          layout_key: string
+          page_order: number
+          page_type: string
+          style_overrides: Json | null
+          updated_at: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          ebook_id: string
+          id?: string
+          is_locked?: boolean
+          layout_key?: string
+          page_order?: number
+          page_type?: string
+          style_overrides?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          ebook_id?: string
+          id?: string
+          is_locked?: boolean
+          layout_key?: string
+          page_order?: number
+          page_type?: string
+          style_overrides?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_pages_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ebook_templates: {
+        Row: {
+          category: string
+          content_slots: Json | null
+          created_at: string
+          created_by: string | null
+          default_content: Json | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system_template: boolean
+          name: string
+          page_layouts: Json | null
+          preview_images: Json | null
+          slug: string
+          style_family: string
+          style_tokens: Json | null
+          thumbnail_url: string | null
+          updated_at: string
+          use_cases: Json | null
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string
+          content_slots?: Json | null
+          created_at?: string
+          created_by?: string | null
+          default_content?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_template?: boolean
+          name: string
+          page_layouts?: Json | null
+          preview_images?: Json | null
+          slug: string
+          style_family?: string
+          style_tokens?: Json | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_cases?: Json | null
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string
+          content_slots?: Json | null
+          created_at?: string
+          created_by?: string | null
+          default_content?: Json | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_template?: boolean
+          name?: string
+          page_layouts?: Json | null
+          preview_images?: Json | null
+          slug?: string
+          style_family?: string
+          style_tokens?: Json | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          use_cases?: Json | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebooks: {
         Row: {
           author_name: string | null
@@ -18550,6 +18719,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           footer_text: string | null
+          global_styles: Json | null
           header_text: string | null
           id: string
           image_keywords: string[] | null
@@ -18559,6 +18729,7 @@ export type Database = {
           slug: string | null
           status: string
           subtitle: string | null
+          template_id: string | null
           theme: string | null
           title: string
           updated_at: string
@@ -18573,6 +18744,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           footer_text?: string | null
+          global_styles?: Json | null
           header_text?: string | null
           id?: string
           image_keywords?: string[] | null
@@ -18582,6 +18754,7 @@ export type Database = {
           slug?: string | null
           status?: string
           subtitle?: string | null
+          template_id?: string | null
           theme?: string | null
           title: string
           updated_at?: string
@@ -18596,6 +18769,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           footer_text?: string | null
+          global_styles?: Json | null
           header_text?: string | null
           id?: string
           image_keywords?: string[] | null
@@ -18605,12 +18779,20 @@ export type Database = {
           slug?: string | null
           status?: string
           subtitle?: string | null
+          template_id?: string | null
           theme?: string | null
           title?: string
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ebooks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ebooks_workspace_id_fkey"
             columns: ["workspace_id"]
