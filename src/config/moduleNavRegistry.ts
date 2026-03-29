@@ -10,6 +10,7 @@ import {
   TrendingUp, Link2, Search, MapPin, Instagram, UserPlus,
   Home, Mail, MessageSquare, Users, Zap, BookOpen, Brain,
   ScanText, Package, Store, ShoppingBag, Building2, Landmark, Phone, Bot,
+  Facebook,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export const moduleNavRegistry: ModuleNavEntry[] = [
   { slug: "bio-os", label: "Bio OS", icon: Link2, href: "/dashboard/bio", order: 40 },
   { slug: "email-campaigns", label: "Email Marketing", icon: Mail, href: "/dashboard/email-campaigns", order: 41 },
   { slug: "seo-growth", label: "SEO & Growth", icon: TrendingUp, href: "/dashboard/seo", order: 42 },
+  { slug: "meta-module", label: "Meta", icon: Facebook, href: "/dashboard/meta", order: 43 },
 
   // Finance
   { slug: "invoices", label: "Faturas", icon: Receipt, href: "/dashboard/invoices", order: 50 },
