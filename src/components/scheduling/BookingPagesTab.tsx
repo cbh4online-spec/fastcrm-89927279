@@ -98,6 +98,9 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
                   <Button variant="ghost" size="icon" onClick={() => copyLink(page.slug)} title="Copiar link">
                     <Copy className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setQrPage(page)} title="QR Code">
+                    <QrCode className="h-4 w-4" />
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => window.open(getPublicUrl(page.slug), '_blank')} title="Abrir">
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -123,6 +126,16 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
         calendars={calendars}
         editingPage={editingPage}
       />
+
+      {qrPage && (
+        <BookingQRCodeDialog
+          open={!!qrPage}
+          onOpenChange={(v) => { if (!v) setQrPage(null); }}
+          url={getPublicUrl(qrPage.slug)}
+          title={qrPage.title}
+          brandColor={qrPage.brand_color}
+        />
+      )}
     </div>
   );
 }
