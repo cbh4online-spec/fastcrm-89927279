@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, StickyNote, Filter, Highlighter } from "lucide-react";
+import { Trash2, Plus, StickyNote, Filter, Highlighter, Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EbookNote } from "@/hooks/useEbookNotes";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ interface EbookEditorNotesPanelProps {
   notes: EbookNote[];
   isLoading: boolean;
   addNote: UseMutationResult<void, Error, { pageNumber: number; noteText: string; noteType?: string }>;
+  updateNote: UseMutationResult<void, Error, { noteId: string; noteText: string }>;
   deleteNote: UseMutationResult<void, Error, string>;
   activeChapterIndex: number;
   chapterNames: string[];
@@ -24,6 +25,7 @@ export function EbookEditorNotesPanel({
   notes,
   isLoading,
   addNote,
+  updateNote,
   deleteNote,
   activeChapterIndex,
   chapterNames,
@@ -31,6 +33,8 @@ export function EbookEditorNotesPanel({
 }: EbookEditorNotesPanelProps) {
   const [newNote, setNewNote] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   const filteredNotes = showAll
     ? notes
@@ -125,17 +129,33 @@ export function EbookEditorNotesPanel({
                       {chapterNames[note.page_number] || `Cap. ${note.page_number + 1}`}
                     </Badge>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 text-muted-foreground hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNote.mutate(note.id);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-0.5">
+                    {editingId !== note.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground hover:text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingId(note.id);
+                          setEditingText(note.note_text);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNote.mutate(note.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 {isHighlight && (
                   <div
@@ -145,7 +165,43 @@ export function EbookEditorNotesPanel({
                     "{note.highlight_text}"
                   </div>
                 )}
-                <p className="text-foreground/90 leading-relaxed">{note.note_text}</p>
+                {editingId === note.id ? (
+                  <div className="space-y-1">
+                    <Textarea
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      className="text-xs min-h-[50px] resize-none bg-background"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault();
+                          const t = editingText.trim();
+                          if (t) updateNote.mutate({ noteId: note.id, noteText: t }, { onSuccess: () => setEditingId(null) });
+                        }
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setEditingId(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-primary"
+                        disabled={!editingText.trim() || updateNote.isPending}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateNote.mutate({ noteId: note.id, noteText: editingText.trim() }, { onSuccess: () => setEditingId(null) });
+                        }}
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-foreground/90 leading-relaxed">{note.note_text}</p>
+                )}
                 <p className="text-[10px] text-muted-foreground">
                   {format(new Date(note.created_at), "d MMM, HH:mm", { locale: pt })}
                 </p>

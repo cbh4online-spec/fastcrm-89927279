@@ -855,6 +855,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               notes={notes}
               isLoading={notesLoading}
               addNote={addNote}
+              updateNote={updateNote}
               deleteNote={deleteNote}
               activeChapterIndex={ebook ? ebook.chapters.findIndex(c => c.id === activeChapterId) : 0}
               chapterNames={ebook ? ebook.chapters.map(c => c.title) : []}
