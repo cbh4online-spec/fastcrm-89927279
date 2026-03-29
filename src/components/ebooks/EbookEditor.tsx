@@ -554,7 +554,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                       <>
                         <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => improveContent(activeChapter)} disabled={generating === activeChapter.id}>
                           <Sparkles className="h-3 w-3" /> Melhorar
-                          <span className="text-[9px] opacity-70"><Coins className="h-2 w-2 inline" />{getCost("ebook_improve_content")}</span>
+                          <span className="text-[10px] opacity-70"><Coins className="h-2.5 w-2.5 inline" />{getCost("ebook_improve_content")}</span>
                         </Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => condenseContent(activeChapter)} disabled={generating === activeChapter.id}>
                           <Minimize2 className="h-3 w-3" />

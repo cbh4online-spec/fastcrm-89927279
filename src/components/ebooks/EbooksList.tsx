@@ -185,10 +185,10 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                       <Badge
                         className={
                           ebook.status === "published"
-                            ? "bg-emerald-500/90 text-white border-0 text-[10px]"
+                            ? "bg-emerald-500/90 text-white border-0 text-xs"
                             : ebook.status === "archived"
-                            ? "bg-muted text-muted-foreground border-0 text-[10px]"
-                            : "bg-amber-500/90 text-white border-0 text-[10px]"
+                            ? "bg-muted text-muted-foreground border-0 text-xs"
+                            : "bg-amber-500/90 text-white border-0 text-xs"
                         }
                       >
                         {ebook.status === "published" ? "Publicado" : ebook.status === "archived" ? "Arquivado" : "Rascunho"}
