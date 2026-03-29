@@ -848,6 +848,23 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               </div>
             </ScrollArea>
           </TabsContent>
+
+          {/* Tab: Notas */}
+          <TabsContent value="notas" className="flex-1 overflow-hidden mt-0">
+            <EbookEditorNotesPanel
+              notes={notes}
+              isLoading={notesLoading}
+              addNote={addNote}
+              deleteNote={deleteNote}
+              activeChapterIndex={ebook ? ebook.chapters.findIndex(c => c.id === activeChapterId) : 0}
+              chapterNames={ebook ? ebook.chapters.map(c => c.title) : []}
+              onNavigateToChapter={(idx) => {
+                if (ebook && ebook.chapters[idx]) {
+                  setActiveChapterId(ebook.chapters[idx].id);
+                }
+              }}
+            />
+          </TabsContent>
         </Tabs>
       </div>
 
