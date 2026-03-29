@@ -18588,6 +18588,50 @@ export type Database = {
           },
         ]
       }
+      ebook_notes: {
+        Row: {
+          created_at: string | null
+          ebook_id: string
+          id: string
+          note_text: string
+          note_type: string
+          page_number: number
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          ebook_id: string
+          id?: string
+          note_text: string
+          note_type?: string
+          page_number: number
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          ebook_id?: string
+          id?: string
+          note_text?: string
+          note_type?: string
+          page_number?: number
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebook_pages: {
         Row: {
           content: Json | null
