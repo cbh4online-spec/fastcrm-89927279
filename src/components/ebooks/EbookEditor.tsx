@@ -9,9 +9,8 @@ import {
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
   Mail, Phone, Link, Type, MessageSquare, ChevronDown,
-  Settings, CheckCircle2, Shield,
+  Settings, CheckCircle2, Shield, Users,
 } from "lucide-react";
-import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
