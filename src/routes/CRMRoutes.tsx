@@ -23,6 +23,7 @@ import { StudentJourneyRoutes } from "@/routes/StudentJourneyRoutes";
 import { RevenueFlightControlRoutes } from "@/routes/RevenueFlightControlRoutes";
 import { AIRoutes } from "@/routes/AIRoutes";
 import { SalesCRMRoutes } from "@/routes/SalesCRMRoutes";
+import { MetaModuleRoutes } from "@/routes/MetaModuleRoutes";
 import { StoreAdminRoutes, B2BAdminRoutes } from "@/routes/StoreClientRoutes";
 
 // CRM sub-modules
@@ -52,6 +53,7 @@ export default function CRMRoutesV2() {
                     {PublicSeoRoutes()}
                     {DashboardCoreRoutes()}
                     {SalesCRMRoutes()}
+                    {MetaModuleRoutes()}
                     {AIRoutes()}
                     <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                     {ReportsRoutes()}
