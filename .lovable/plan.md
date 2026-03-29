@@ -1,45 +1,48 @@
 
 
-# Fix: Flipbook reader demasiado pequeno
+# Escalar texto do flipbook com o tamanho da página
 
 ## Problema
 
-No viewport actual (1201×860), o `calcDimensions` calcula cada página com ~520×740px mas o livro renderiza muito mais pequeno. Causas:
-
-1. **`maxWidth={600}` e `maxHeight={900}`** no HTMLFlipBook limitam o crescimento
-2. **Desktop calculation** é conservadora — `Math.min(w, 520)` cap desnecessário
-3. **Fullscreen** usa `vw * 0.42` que é demasiado restritivo
-4. **`size="stretch"`** combina mal com os min/max constraints baixos
+O texto usa tamanhos fixos em pixels (11.5px para parágrafos, 9px para headers, 10px para rodapé, etc.). Como as páginas agora têm tamanho A4 real, o texto fica desproporcionalmente pequeno — parece texto de A5 numa página A4.
 
 ## Solução
 
-### `PageFlip.tsx` — Recalcular dimensões
+Usar **CSS `container queries`** ou, mais simplesmente, passar as dimensões calculadas para o `FlipbookPage` e aplicar um **font-size base via style inline** que escala proporcionalmente.
 
-**Desktop** (≥1024px):
-- Usar ~75% da altura disponível em vez de `vh - 120`
-- Remover o cap de `520` na largura — permitir até `600`
-- `maxH = Math.min(vh - 100, 860)` em vez de `780`
+### Abordagem: Scale factor baseado na altura da página
 
-**Fullscreen**:
-- Usar `vw * 0.46` em vez de `0.42`
-- Calcular com base na altura real: `availH * 0.9 / 1.4`
+1. **`PageFlip.tsx`** — passar `dims` (width/height) ao `PageWrapper` e ao `FlipbookPage`
+2. **`FlipbookPage.tsx`** — receber `pageWidth`/`pageHeight` como props e calcular um `scaleFactor`:
 
-**Tablet** (640–1024px):
-- Aumentar de `vw * 0.38` para `vw * 0.42`, max 400
+```text
+Base de referência: altura 600px = font-size 14px (tamanho legível)
+scaleFactor = pageHeight / 600
+fontSize base = 14 * scaleFactor (clamped entre 12px e 22px)
+```
 
-**HTMLFlipBook props**:
-- `maxWidth`: 600 → **800**
-- `maxHeight`: 900 → **1100**
-- `minWidth`: 240 → **280**
-- `minHeight`: 340 → **400**
+3. Aplicar o `fontSize` como style inline no container raiz de cada tipo de página, e converter todos os tamanhos fixos para `em` units:
 
-### Resultado esperado
+| Elemento actual | Fixo (px) | Novo (em) |
+|---|---|---|
+| Parágrafo body | 11.5px | 1em |
+| Heading h2 | 14px (text-sm) | 1.2em |
+| Chapter header | 9px | 0.65em |
+| Rodapé | 10px | 0.7em |
+| Cover title | text-3xl | 2.2em |
+| TOC items | text-sm | 1em |
+| First-letter | text-3xl | 2.5em |
 
-O livro ocupará ~80% da área disponível em vez dos ~40% actuais, mantendo a proporção 1:1.4.
+4. Padding e margins também escalam com `em`, mantendo proporção visual.
 
-## Ficheiros
+### Ficheiros alterados
 
 | Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/ebooks/PageFlip.tsx` | Aumentar dimensões em `calcDimensions`, aumentar min/max props |
+|---|---|
+| `PageFlip.tsx` | Passar `pageWidth`/`pageHeight` como props ao `PageWrapper` |
+| `FlipbookPage.tsx` | Adicionar props de dimensão, calcular `scaleFactor`, converter tamanhos fixos para `em` com font-size base dinâmico |
+
+### Resultado
+
+O texto escala automaticamente com o tamanho da página — páginas maiores = texto maior, mantendo a mesma proporção visual de um livro real.
 
