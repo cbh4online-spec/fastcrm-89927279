@@ -2,8 +2,9 @@ import { useEbookAnalyticsKPIs } from "@/hooks/useEbookAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet, BarChart3, TrendingUp, UserCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet, BarChart3, TrendingUp, UserCheck, ContactRound } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 interface EbookAnalyticsProps {
   ebookId: string;
