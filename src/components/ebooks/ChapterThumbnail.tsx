@@ -44,8 +44,6 @@ export function ChapterThumbnail({
   onMoveDown,
 }: ChapterThumbnailProps) {
   const hasContent = !!(chapter.content && chapter.content.trim().length > 0);
-  const wordCount = chapter.content?.split(/\s+/).filter(Boolean).length || 0;
-
   const preview = chapter.content
     ? chapter.content.replace(/<[^>]*>/g, '').replace(/[#*_\[\]()]/g, '').slice(0, 60)
     : '';
@@ -67,33 +65,49 @@ export function ChapterThumbnail({
       {/* Thumbnail card */}
       <div
         className={cn(
-          "relative rounded-lg border-2 overflow-hidden aspect-[4/3] transition-all duration-200",
+          "relative rounded-lg overflow-hidden transition-all duration-200",
+          "border-2",
           isActive
             ? "border-primary shadow-lg shadow-primary/20 ring-2 ring-primary/10"
-            : "border-border/40 hover:border-primary/40 hover:shadow-md"
+            : hasContent
+              ? "border-emerald-500/30 hover:border-primary/40 hover:shadow-md"
+              : "border-amber-400/30 hover:border-primary/40 hover:shadow-md"
         )}
       >
-        {/* Background with content preview */}
-        <div className="absolute inset-0 bg-card p-2 flex flex-col">
-          {chapter.cover_image ? (
-            <div className="h-1/2 rounded overflow-hidden mb-1">
-              <img src={chapter.cover_image} alt="" className="w-full h-full object-cover" />
-            </div>
-          ) : null}
-          <div className="flex-1 overflow-hidden">
-            <p className="text-[10px] font-bold text-foreground/80 leading-tight truncate">
+        {/* Content area */}
+        <div className="bg-card p-2.5 min-h-[56px] flex gap-2.5 items-start">
+          {/* Large chapter number */}
+          <div className={cn(
+            "w-8 h-8 rounded-md flex items-center justify-center shrink-0 text-sm font-bold",
+            isActive
+              ? "bg-primary text-primary-foreground"
+              : hasContent
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-amber-400/10 text-amber-600 dark:text-amber-400"
+          )}>
+            {index + 1}
+          </div>
+
+          {/* Title + preview */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className={cn(
+              "text-xs font-semibold leading-tight truncate",
+              isActive ? "text-primary" : "text-foreground/80"
+            )}>
               {chapter.title}
             </p>
-            {preview && (
-              <p className="text-[9px] text-muted-foreground leading-tight mt-0.5 line-clamp-3">
+            {preview ? (
+              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 line-clamp-2">
                 {preview}
               </p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground/60 italic mt-0.5">Vazio</p>
             )}
           </div>
         </div>
 
-        {/* Status icon */}
-        <div className="absolute top-1 right-1">
+        {/* Status dot */}
+        <div className="absolute top-1.5 right-1.5">
           {hasContent
             ? <CheckCircle2 className="h-3 w-3 text-emerald-500" />
             : <Circle className="h-3 w-3 text-amber-400" />
@@ -101,7 +115,7 @@ export function ChapterThumbnail({
         </div>
 
         {/* Drag handle */}
-        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+        <div className="absolute top-1.5 left-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
           <GripVertical className="h-3 w-3 text-muted-foreground" />
         </div>
 
@@ -147,19 +161,6 @@ export function ChapterThumbnail({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        )}
-      </div>
-
-      {/* Label */}
-      <div className="mt-1 px-0.5">
-        <p className={cn(
-          "text-xs font-medium truncate",
-          isActive ? "text-primary" : "text-muted-foreground"
-        )}>
-          {index + 1}. {chapter.title}
-        </p>
-        {hasContent && (
-          <p className="text-[10px] text-muted-foreground tabular-nums">{wordCount}w</p>
         )}
       </div>
     </div>
