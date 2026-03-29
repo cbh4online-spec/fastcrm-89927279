@@ -25,30 +25,48 @@ interface PageFlipProps {
   isFullscreen?: boolean;
 }
 
+// A4 ratio ≈ 1:1.414
+const A4_RATIO = 1.414;
+
 function calcDimensions(isFullscreen: boolean) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
   if (isFullscreen) {
-    const availH = vh - 64;
-    const w = Math.min(Math.floor((availH * 0.9) / 1.4), Math.floor(vw * 0.46));
-    return { width: Math.max(w, 280), height: Math.floor(Math.max(w, 280) * 1.4), portrait: vw < 640 };
+    const availH = vh - 56;
+    // Each page = half the spread; height-driven
+    const h = Math.floor(availH * 0.94);
+    const w = Math.floor(h / A4_RATIO);
+    // Ensure the spread (2 pages) fits width
+    const maxW = Math.floor(vw * 0.48);
+    const finalW = Math.min(w, maxW);
+    const finalH = Math.floor(finalW * A4_RATIO);
+    return { width: Math.max(finalW, 280), height: Math.max(finalH, 400), portrait: vw < 640 };
   }
 
   if (vw < 640) {
-    const w = Math.floor(vw * 0.88);
-    return { width: Math.min(w, 420), height: Math.floor(Math.min(w, 420) * 1.4), portrait: true };
+    // Mobile — single page portrait
+    const w = Math.floor(vw * 0.92);
+    const finalW = Math.min(w, 440);
+    return { width: finalW, height: Math.floor(finalW * A4_RATIO), portrait: true };
   }
 
   if (vw < 1024) {
-    const w = Math.min(Math.floor(vw * 0.42), 400);
-    return { width: w, height: Math.floor(w * 1.4), portrait: false };
+    // Tablet — each page takes ~45% of viewport width
+    const w = Math.min(Math.floor(vw * 0.45), 440);
+    return { width: w, height: Math.floor(w * A4_RATIO), portrait: false };
   }
 
-  // Desktop
-  const maxH = Math.min(vh - 100, 860);
-  const w = Math.floor(maxH / 1.4);
-  return { width: Math.min(w, 600), height: maxH, portrait: false };
+  // Desktop — maximize height, derive width from A4 ratio
+  const toolbarH = 80;
+  const availH = vh - toolbarH;
+  const h = Math.floor(availH * 0.92);
+  const w = Math.floor(h / A4_RATIO);
+  // Ensure spread fits: each page ≤ 48% of vw
+  const maxW = Math.floor(vw * 0.48);
+  const finalW = Math.min(w, maxW);
+  const finalH = Math.floor(finalW * A4_RATIO);
+  return { width: finalW, height: finalH, portrait: false };
 }
 
 export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
@@ -81,18 +99,18 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           ref={flipBookRef}
           width={dims.width}
           height={dims.height}
-          size="stretch"
+          size="fixed"
           minWidth={280}
-          maxWidth={800}
+          maxWidth={1000}
           minHeight={400}
-          maxHeight={1100}
+          maxHeight={1420}
           showCover={true}
           drawShadow={true}
           flippingTime={800}
           usePortrait={dims.portrait}
           startPage={0}
           startZIndex={0}
-          autoSize={true}
+          autoSize={false}
           maxShadowOpacity={0.5}
           mobileScrollSupport={true}
           clickEventForward={true}
