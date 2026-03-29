@@ -1,25 +1,23 @@
 
 
-# Adicionar Meta Module à Sidebar e corrigir navegação
+# Página de erro amigável para OAuth do Meta
 
 ## Problema
-O módulo Meta não aparece na sidebar porque falta a entrada no `routeManifest.ts` (secção Marketing). As rotas existem em `MetaModuleRoutes.tsx` mas não estão registadas no manifesto de navegação.
+Quando o OAuth falha, o callback redireciona para `/dashboard/meta/connections?error=<code>` mas a página ignora esse parâmetro — o utilizador não recebe feedback.
 
 ## Alterações
 
-### 1. `src/config/routeManifest.ts` — Adicionar entrada Meta na secção Marketing
+### 1. `src/components/meta/MetaConnectionsPage.tsx` — Mostrar banner de erro contextual
 
-Após a linha 191 (instagram-looter), adicionar:
+- Ler `error` dos query params (`useSearchParams`)
+- Mapear códigos de erro para mensagens em português com instruções:
+  - `token_exchange_failed` → "Falha na troca de token. Tente ligar novamente."
+  - `db_error` → "Erro ao guardar a ligação. Tente novamente."
+  - `unexpected` → "Ocorreu um erro inesperado."
+  - Erro genérico do Facebook (ex: `OAuthException`) → "O Facebook recusou o acesso. Verifique as permissões da app."
+- Mostrar um `Alert` com ícone, mensagem descritiva, e botão "Tentar novamente" + botão "Dispensar" (que limpa o query param)
+- Incluir bloco colapsável "Detalhes técnicos" com o código de erro e instruções para admins (verificar redirect URI, permissões da app Meta, etc.)
 
-```typescript
-e("meta-module",     "Meta",            "/dashboard/meta",             Facebook,  "marketing", { moduleSlug: "meta-module" }),
-```
-
-Também garantir que `Facebook` é importado do lucide-react no topo do ficheiro (verificar imports existentes).
-
-### 2. Verificar o botão "Abrir" no Marketplace
-
-O botão "Abrir" no detalhe do módulo Meta deve navegar para `/dashboard/meta`. Verificar se o componente do Marketplace usa o `moduleNavRegistry` ou o `routeManifest` para resolver o href — e garantir que ambos apontam para `/dashboard/meta`.
-
-Resultado: O Meta aparecerá na sidebar em **Marketing** quando o módulo estiver instalado, e o botão "Abrir" navegará correctamente para a página do módulo.
+### 2. Nenhuma alteração no edge function
+Os redirects com `?error=` já estão implementados correctamente no callback.
 
