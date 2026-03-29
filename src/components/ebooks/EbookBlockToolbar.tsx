@@ -1,12 +1,14 @@
 import {
   Type, ImageIcon, Minus, Quote, Table2, Columns2,
-  Heading1, Heading2, List, ListOrdered,
+  Heading1, Heading2, List, ListOrdered, Undo2, Redo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface EbookBlockToolbarProps {
   onInsertBlock: (html: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 const BLOCKS = [
@@ -23,7 +25,7 @@ const BLOCKS = [
   {
     group: 'Média',
     items: [
-      { icon: ImageIcon, label: 'Imagem', html: '<p><img src="" alt="Imagem" style="max-width:100%;border-radius:8px;margin:8px 0" /></p>' },
+      { icon: ImageIcon, label: 'Imagem', html: '<div style="border:2px dashed #888;border-radius:8px;padding:24px;text-align:center;margin:8px 0;color:#888;background:#f5f5f5"><span style="font-size:24px">🖼️</span><br/><span style="font-size:12px">Clique duas vezes para adicionar URL da imagem</span></div>' },
     ],
   },
   {
@@ -37,9 +39,37 @@ const BLOCKS = [
   },
 ];
 
-export function EbookBlockToolbar({ onInsertBlock }: EbookBlockToolbarProps) {
+export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo }: EbookBlockToolbarProps) {
   return (
     <div className="h-full flex flex-col border-l border-border/40 bg-card/50">
+      {/* Undo/Redo buttons */}
+      {(onUndo || onRedo) && (
+        <div className="p-2 border-b border-border/40 flex items-center gap-1">
+          <button
+            onClick={onUndo}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1 p-1.5 rounded-md text-xs font-medium",
+              "hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            )}
+            title="Desfazer (Ctrl+Z)"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+            <span className="text-[10px]">Desfazer</span>
+          </button>
+          <button
+            onClick={onRedo}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1 p-1.5 rounded-md text-xs font-medium",
+              "hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            )}
+            title="Refazer (Ctrl+Y)"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+            <span className="text-[10px]">Refazer</span>
+          </button>
+        </div>
+      )}
+
       <div className="p-3 border-b border-border/40">
         <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Blocos</h3>
         <p className="text-[10px] text-muted-foreground mt-0.5">Clique para inserir</p>

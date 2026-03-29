@@ -12,6 +12,8 @@ interface EbookRichEditorProps {
 
 export interface EbookRichEditorHandle {
   insertBlock: (html: string) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 /** Convert simple markdown to HTML for migration */
@@ -44,6 +46,18 @@ function markdownToHtml(md: string): string {
 
 export { markdownToHtml };
 
+function placeCursorAtEnd(editor: HTMLElement) {
+  editor.focus();
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const sel = window.getSelection();
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
 export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditorProps>(function EbookRichEditor({
   value,
   onChange,
@@ -59,15 +73,15 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
   const [hasSelection, setHasSelection] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Expose insertBlock via ref
   useImperativeHandle(ref, () => ({
     insertBlock(html: string) {
       const editor = editorRef.current;
       if (!editor) return;
 
       const sel = window.getSelection();
-      // If selection is inside editor, insert at cursor
-      if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+      const cursorInEditor = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode);
+
+      if (cursorInEditor && sel) {
         const range = sel.getRangeAt(0);
         range.deleteContents();
         const temp = document.createElement('div');
@@ -78,7 +92,6 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
           lastNode = frag.appendChild(temp.firstChild);
         }
         range.insertNode(frag);
-        // Move cursor after inserted content
         if (lastNode) {
           const newRange = document.createRange();
           newRange.setStartAfter(lastNode);
@@ -87,21 +100,45 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
           sel.addRange(newRange);
         }
       } else {
-        // No cursor — append to end
-        editor.focus();
+        // No cursor in editor — focus, place cursor at end, then append
+        placeCursorAtEnd(editor);
         const temp = document.createElement('div');
         temp.innerHTML = html;
         while (temp.firstChild) {
           editor.appendChild(temp.firstChild);
         }
+        // Move cursor after appended content
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const s = window.getSelection();
+        if (s) {
+          s.removeAllRanges();
+          s.addRange(range);
+        }
       }
-      // Sync state
+      onChange(editor.innerHTML);
+      lastValueRef.current = editor.innerHTML;
+    },
+    undo() {
+      const editor = editorRef.current;
+      if (!editor) return;
+      editor.focus();
+      document.execCommand('undo');
+      onChange(editor.innerHTML);
+      lastValueRef.current = editor.innerHTML;
+    },
+    redo() {
+      const editor = editorRef.current;
+      if (!editor) return;
+      editor.focus();
+      document.execCommand('redo');
       onChange(editor.innerHTML);
       lastValueRef.current = editor.innerHTML;
     },
   }), [onChange]);
 
-  // Sync content only when editor is NOT focused (prevents cursor jumps)
+  // Sync content only when editor is NOT focused
   useEffect(() => {
     if (editorRef.current && !isFocusedRef.current) {
       const htmlValue = markdownToHtml(value);

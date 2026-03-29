@@ -551,7 +551,11 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
         {/* Right sidebar: Block toolbar */}
         <div className="w-40 shrink-0">
-          <EbookBlockToolbar onInsertBlock={insertBlock} />
+          <EbookBlockToolbar
+            onInsertBlock={insertBlock}
+            onUndo={() => richEditorRef.current?.undo()}
+            onRedo={() => richEditorRef.current?.redo()}
+          />
         </div>
       </div>
 
