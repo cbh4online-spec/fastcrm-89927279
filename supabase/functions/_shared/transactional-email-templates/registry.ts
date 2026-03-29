@@ -14,6 +14,9 @@ import { template as eventConfirmation } from './event-confirmation.tsx'
 import { template as eventReminder } from './event-reminder.tsx'
 import { template as funnelRegistrationThanks } from './funnel-registration-thanks.tsx'
 import { template as funnelMeetingTrialInvite } from './funnel-meeting-trial-invite.tsx'
+import { template as funnelNurtureValue } from './funnel-nurture-value.tsx'
+import { template as funnelNurtureSocialProof } from './funnel-nurture-social-proof.tsx'
+import { template as funnelNurtureLastChance } from './funnel-nurture-last-chance.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-invitation': eventInvitation,
@@ -21,4 +24,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-reminder': eventReminder,
   'funnel-registration-thanks': funnelRegistrationThanks,
   'funnel-meeting-trial-invite': funnelMeetingTrialInvite,
+  'funnel-nurture-value': funnelNurtureValue,
+  'funnel-nurture-social-proof': funnelNurtureSocialProof,
+  'funnel-nurture-last-chance': funnelNurtureLastChance,
 }

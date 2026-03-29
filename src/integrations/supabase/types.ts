@@ -21611,6 +21611,66 @@ export type Database = {
           },
         ]
       }
+      funnel_nurture_queue: {
+        Row: {
+          created_at: string
+          current_step: number
+          funnel_id: string | null
+          funnel_name: string | null
+          id: string
+          next_send_at: string
+          recipient_email: string
+          recipient_name: string | null
+          status: string
+          submission_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          funnel_id?: string | null
+          funnel_name?: string | null
+          id?: string
+          next_send_at?: string
+          recipient_email: string
+          recipient_name?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          funnel_id?: string | null
+          funnel_name?: string | null
+          id?: string
+          next_send_at?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_nurture_queue_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_nurture_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_products: {
         Row: {
           created_at: string
