@@ -1,74 +1,40 @@
 
 
-# Fluxo automatizado de nurture para leads de funil
+# Corrigir texto invisível no FlipBook e garantir edição funcional
 
-## Contexto
+## Problema identificado
 
-Atualmente, quando um lead submete o formulário do funil, recebe 2 emails imediatos (agradecimento + convite reunião). O pedido é criar uma sequência automatizada que, ao longo de vários dias, envie emails inteligentes para converter a lead em reunião/trial.
+Existe uma **incompatibilidade de formato** entre o editor e o leitor:
 
-## Arquitetura
+1. **Editor** (`EbookRichEditor`): usa `contentEditable` e guarda o conteúdo como **HTML** (ex: `<p>Texto...</p><h2>Título</h2>`)
+2. **Leitor** (`FlipbookPage`): renderiza o conteúdo com `ReactMarkdown`, que espera **Markdown**, não HTML
+3. **Paginação** (`splitContentIntoPages`): divide o texto por `\n\n` — funciona para Markdown, mas HTML é normalmente uma string contínua sem quebras duplas
 
-Uma fila de nurture dedicada (`funnel_nurture_queue`) com um processador cron que envia emails escalonados no tempo. Cada email é 1:1, despoletado pela ação original de registo do lead.
+**Resultado**: O texto existe na base de dados mas não aparece no FlipBook porque o ReactMarkdown não sabe interpretar tags HTML, e a paginação falha porque não encontra `\n\n` no HTML.
 
-```text
-Registo no Funil
-  ├─ Email 0 (imediato): Agradecimento ✅ (já existe)
-  ├─ Email 1 (imediato): Convite Reunião ✅ (já existe)  
-  ├─ Email 2 (Dia 2): Valor + caso de uso
-  ├─ Email 3 (Dia 4): Prova social + testemunho
-  ├─ Email 4 (Dia 7): Última oportunidade trial
-  └─ [para se lead agendar reunião → sai da fila]
-```
+## Solução
 
-## Alterações
+### 1. `FlipbookPage.tsx` — Renderizar HTML quando o conteúdo for HTML
 
-### 1. Tabela `funnel_nurture_queue`
+- Detectar se o conteúdo é HTML (contém `<p>`, `<h1>`, `<div>`, etc.)
+- Se for HTML: usar `dangerouslySetInnerHTML` com as mesmas classes de estilo
+- Se for Markdown: manter o `ReactMarkdown` actual (retrocompatibilidade com conteúdos antigos)
 
-Nova tabela para rastrear em que passo cada lead está:
-- `submission_id`, `funnel_id`, `workspace_id`, `recipient_email`, `recipient_name`
-- `current_step` (0-2), `status` (pending/completed/cancelled)
-- `next_send_at`, `funnel_name`
-- RLS: anon pode inserir (via formulário público), workspace members podem ler/atualizar
+### 2. `FlipbookReader.tsx` — Paginar HTML correctamente
 
-### 2. Três novos templates de email
+Reescrever `splitContentIntoPages` para suportar HTML:
+- Usar um parser simples que divide por tags de bloco (`<p>`, `<h1>`–`<h6>`, `<blockquote>`, `<hr>`, `<img>`, `<div>`, `<ul>`, `<ol>`, `<table>`, `<figure>`)
+- Agrupar blocos até atingir o limite de caracteres por página
+- Manter a lógica existente como fallback para Markdown
 
-| Template | Dia | Objetivo |
-|---|---|---|
-| `funnel-nurture-value` | 2 | Mostrar valor concreto da solução, caso de uso |
-| `funnel-nurture-social-proof` | 4 | Prova social, testemunhos, resultados reais |
-| `funnel-nurture-last-chance` | 7 | Urgência, última oportunidade de trial gratuito |
+### 3. `EbookRichEditor.tsx` — Sem alteração
 
-Todos com estilo gold/dark consistente com os templates existentes.
+O editor já funciona correctamente — o problema está apenas na renderização do FlipBook.
 
-### 3. Edge function `funnel-nurture-processor`
-
-- Busca items da `funnel_nurture_queue` com `status=pending` e `next_send_at <= now()`
-- Para cada item, envia o template correspondente ao `current_step` via `send-transactional-email`
-- Avança `current_step` e calcula próximo `next_send_at` (delays: 2d, 2d, 3d)
-- Quando chega ao último passo, marca `status=completed`
-
-### 4. Agendar via pg_cron
-
-Executar `funnel-nurture-processor` a cada 30 minutos.
-
-### 5. Integrar no `PublicFunnelPage.tsx`
-
-Após submissão bem-sucedida, inserir registo na `funnel_nurture_queue` com `next_send_at = now() + 2 dias` e `current_step = 0`.
-
-### 6. Registar templates e deploy
-
-Adicionar os 3 novos templates ao `registry.ts` e fazer deploy das edge functions.
-
-## Ficheiros
+## Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| Migration SQL | Criar `funnel_nurture_queue` |
-| `funnel-nurture-value.tsx` | Novo template (Dia 2) |
-| `funnel-nurture-social-proof.tsx` | Novo template (Dia 4) |
-| `funnel-nurture-last-chance.tsx` | Novo template (Dia 7) |
-| `registry.ts` | Registar 3 novos templates |
-| `funnel-nurture-processor/index.ts` | Nova edge function processadora |
-| `PublicFunnelPage.tsx` | Inserir lead na fila de nurture |
-| pg_cron | Agendar processamento a cada 30min |
+| `FlipbookReader.tsx` | `splitContentIntoPages` com suporte a HTML |
+| `FlipbookPage.tsx` | Renderização condicional: HTML ou Markdown |
 
