@@ -20,6 +20,19 @@ interface FlipbookReaderProps {
   headerText?: string;
   footerText?: string;
   contactPage?: ContactPageData;
+  styleTokens?: Record<string, unknown>;
+}
+
+function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
+  if (!tokens) return {};
+  const vars: Record<string, string> = {};
+  if (tokens.primaryColor) vars["--ebook-primary"] = String(tokens.primaryColor);
+  if (tokens.secondaryColor) vars["--ebook-secondary"] = String(tokens.secondaryColor);
+  if (tokens.accentColor) vars["--ebook-accent"] = String(tokens.accentColor);
+  if (tokens.backgroundColor) vars["--ebook-bg"] = String(tokens.backgroundColor);
+  if (tokens.headingFont) vars["--ebook-heading-font"] = String(tokens.headingFont);
+  if (tokens.bodyFont) vars["--ebook-body-font"] = String(tokens.bodyFont);
+  return vars as React.CSSProperties;
 }
 
 const CHARS_PER_PAGE = 1200;
@@ -204,7 +217,7 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
@@ -267,6 +280,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     <div
       ref={containerRef}
       className={`flex flex-col group ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
+      style={buildStyleVars(styleTokens)}
     >
       {/* Main viewer */}
       <div className={`flex-1 flex items-center justify-center overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
