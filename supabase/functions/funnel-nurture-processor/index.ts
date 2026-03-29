@@ -62,18 +62,28 @@ Deno.serve(async (req) => {
           continue
         }
 
-        // Send the email
-        const { error: sendError } = await supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName,
-            recipientEmail: item.recipient_email,
-            idempotencyKey: `nurture-${item.id}-step-${item.current_step}`,
-            templateData: {
-              name: item.recipient_name,
-              funnelName: item.funnel_name,
-            },
+        // Send the email via direct fetch with service role key
+        const sendBody = {
+          templateName,
+          recipientEmail: item.recipient_email,
+          idempotencyKey: `nurture-${item.id}-step-${item.current_step}`,
+          templateData: {
+            name: item.recipient_name,
+            funnelName: item.funnel_name,
           },
-        })
+        }
+        const sendRes = await fetch(
+          `${supabaseUrl}/functions/v1/send-transactional-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify(sendBody),
+          }
+        )
+        const sendError = !sendRes.ok ? await sendRes.text() : null
 
         if (sendError) {
           console.error(`Error sending nurture email for ${item.id}:`, sendError)
