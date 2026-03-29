@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, StickyNote, Filter } from "lucide-react";
+import { Trash2, Plus, StickyNote, Filter, Highlighter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EbookNote } from "@/hooks/useEbookNotes";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -106,6 +106,7 @@ export function EbookEditorNotesPanel({
           )}
           {filteredNotes.map((note) => {
             const isOtherChapter = note.page_number !== activeChapterIndex;
+            const isHighlight = note.note_type === "highlight" && note.highlight_text;
             return (
               <div
                 key={note.id}
@@ -118,9 +119,12 @@ export function EbookEditorNotesPanel({
                 }}
               >
                 <div className="flex items-center justify-between gap-1">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal">
-                    {chapterNames[note.page_number] || `Cap. ${note.page_number + 1}`}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    {isHighlight && <Highlighter className="h-3 w-3 text-amber-500" />}
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                      {chapterNames[note.page_number] || `Cap. ${note.page_number + 1}`}
+                    </Badge>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -133,6 +137,14 @@ export function EbookEditorNotesPanel({
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
+                {isHighlight && (
+                  <div
+                    className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded italic line-clamp-2"
+                    style={{ backgroundColor: `${note.highlight_color || "#fde68a"}33` }}
+                  >
+                    "{note.highlight_text}"
+                  </div>
+                )}
                 <p className="text-foreground/90 leading-relaxed">{note.note_text}</p>
                 <p className="text-[10px] text-muted-foreground">
                   {format(new Date(note.created_at), "d MMM, HH:mm", { locale: pt })}

@@ -18592,6 +18592,9 @@ export type Database = {
         Row: {
           created_at: string | null
           ebook_id: string
+          highlight_color: string | null
+          highlight_range: Json | null
+          highlight_text: string | null
           id: string
           note_text: string
           note_type: string
@@ -18603,6 +18606,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           ebook_id: string
+          highlight_color?: string | null
+          highlight_range?: Json | null
+          highlight_text?: string | null
           id?: string
           note_text: string
           note_type?: string
@@ -18614,6 +18620,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           ebook_id?: string
+          highlight_color?: string | null
+          highlight_range?: Json | null
+          highlight_text?: string | null
           id?: string
           note_text?: string
           note_type?: string

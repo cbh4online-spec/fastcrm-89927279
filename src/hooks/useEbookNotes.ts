@@ -9,6 +9,9 @@ export interface EbookNote {
   page_number: number;
   note_text: string;
   note_type: string;
+  highlight_text: string | null;
+  highlight_color: string | null;
+  highlight_range: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +37,14 @@ export function useEbookNotes(ebookId: string | undefined, workspaceId: string |
   });
 
   const addNote = useMutation({
-    mutationFn: async (params: { pageNumber: number; noteText: string; noteType?: string }) => {
+    mutationFn: async (params: {
+      pageNumber: number;
+      noteText: string;
+      noteType?: string;
+      highlightText?: string;
+      highlightColor?: string;
+      highlightRange?: Record<string, unknown>;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
       const { error } = await supabase.from("ebook_notes").insert({
@@ -44,7 +54,10 @@ export function useEbookNotes(ebookId: string | undefined, workspaceId: string |
         page_number: params.pageNumber,
         note_text: params.noteText,
         note_type: params.noteType || "note",
-      });
+        highlight_text: params.highlightText || null,
+        highlight_color: params.highlightColor || null,
+        highlight_range: params.highlightRange || null,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),

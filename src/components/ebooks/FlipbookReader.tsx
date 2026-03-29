@@ -4,6 +4,7 @@ import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
 import { EbookNotesPanel } from "./EbookNotesPanel";
 import { FlipbookWatermark } from "./FlipbookWatermark";
+import { FlipbookHighlightPopover } from "./FlipbookHighlightPopover";
 import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 
@@ -230,6 +231,10 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [highlightPopover, setHighlightPopover] = useState<{
+    text: string;
+    position: { x: number; y: number };
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
   const bookContainerRef = useRef<HTMLDivElement>(null);
@@ -238,6 +243,44 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   const { notes, addNote, deleteNote, pagesWithNotes } = useEbookNotes(ebookId, workspaceId);
   const hasNotesFeature = !!ebookId && !!workspaceId;
+
+  // Text selection handler for highlights
+  const handleMouseUp = useCallback(() => {
+    if (!hasNotesFeature) return;
+    const selection = window.getSelection();
+    const text = selection?.toString().trim();
+    if (!text || text.length < 3) return;
+
+    const range = selection?.getRangeAt(0);
+    if (!range) return;
+    const rect = range.getBoundingClientRect();
+    const containerRect = bookContainerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    setHighlightPopover({
+      text,
+      position: {
+        x: rect.left + rect.width / 2 - containerRect.left,
+        y: rect.bottom - containerRect.top,
+      },
+    });
+  }, [hasNotesFeature]);
+
+  const handleCreateHighlight = useCallback(
+    (params: { highlightText: string; highlightColor: string; noteText: string }) => {
+      addNote.mutate({
+        pageNumber: currentPage,
+        noteText: params.noteText || `Sublinhado: "${params.highlightText.substring(0, 80)}${params.highlightText.length > 80 ? "…" : ""}"`,
+        noteType: "highlight",
+        highlightText: params.highlightText,
+        highlightColor: params.highlightColor,
+      });
+      window.getSelection()?.removeAllRanges();
+      setHighlightPopover(null);
+      setShowNotes(true);
+    },
+    [addNote, currentPage]
+  );
 
   const handleFlip = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);
@@ -330,13 +373,27 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
-          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }}>
+          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }} onMouseUp={handleMouseUp}>
             {/* Animated hand cursor */}
             <AnimatedHandCursor containerRef={bookContainerRef} />
             {/* Watermark overlay */}
             {protectionEnabled && (
               <FlipbookWatermark text={watermarkText} />
             )}
+
+            {/* Highlight popover */}
+            {highlightPopover && (
+              <FlipbookHighlightPopover
+                selectedText={highlightPopover.text}
+                position={highlightPopover.position}
+                onHighlight={handleCreateHighlight}
+                onClose={() => {
+                  setHighlightPopover(null);
+                  window.getSelection()?.removeAllRanges();
+                }}
+              />
+            )}
+
             {showThumbnails && (
               <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
                 {pages.map((p, i) => (
