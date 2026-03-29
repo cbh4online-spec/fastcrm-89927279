@@ -1,66 +1,42 @@
 
 
-# Configuração Meta App + Correção de Bug
+# Adicionar Meta Module ao Marketplace
 
-## Bug a corrigir
+## Problema
+O módulo Meta não aparece no Marketplace porque não existe registo na tabela `marketplace_modules`.
 
-O `meta-webhook-hub` usa `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` em vez de `META_VERIFY_TOKEN` (linha 42). Precisa ser corrigido para usar o secret correto.
+## Solução
+Inserir o registo do módulo Meta na tabela `marketplace_modules` via migração SQL, seguindo o padrão dos módulos de marketing existentes.
 
-## Passo a passo de configuração no Meta Developers
+## Alteração
 
-### 1. Configurar o produto "Webhooks"
+**Migração SQL** — INSERT do módulo Meta:
 
-No painel do Meta Developers (que mostraste no screenshot):
+```sql
+INSERT INTO marketplace_modules (
+  slug, name, tagline, description, category, icon,
+  target_audience, internal_type, status, version,
+  pricing_model, price_eur, min_plan,
+  is_featured, is_new, publisher
+) VALUES (
+  'meta-module',
+  'Meta',
+  'Integração nativa com Facebook e Instagram',
+  'Conecte as suas Pages, receba leads do Lead Ads, unifique Messenger e Instagram DM no CRM e monitorize a saúde da integração em tempo real.',
+  'marketing',
+  'facebook',
+  'Equipas de marketing e vendas que usam Facebook/Instagram para captação de leads',
+  'core',
+  'active',
+  '1.0.0',
+  'free',
+  0.00,
+  'growth',
+  true,
+  true,
+  'FastCRM'
+);
+```
 
-1. Ir a **Webhooks** no menu lateral
-2. Selecionar objeto **Page**
-3. Clicar **Subscribe to this topic**
-4. Preencher:
-   - **Callback URL**: `https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/meta-webhook-hub`
-   - **Verify Token**: o valor que definiste no secret `META_VERIFY_TOKEN`
-5. Subscrever os campos:
-   - `leadgen` (para Lead Ads)
-   - `messages` (para Messenger)
-   - `feed` (para comentários — Fase 2)
-
-6. Repetir para objeto **Instagram** se quiseres Instagram DM:
-   - Mesmo Callback URL e Verify Token
-   - Subscrever: `messages`
-
-### 2. Configurar o produto "Facebook Login for Business"
-
-1. Ir a **Facebook Login for Business** no menu lateral
-2. Em **Settings**, configurar:
-   - **Valid OAuth Redirect URIs**: `https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/meta-oauth-callback`
-   - **Client OAuth Login**: ON
-   - **Web OAuth Login**: ON
-
-### 3. Produtos a ativar na App
-
-Na secção **Add Products**, garantir que estão ativos:
-- Facebook Login for Business
-- Webhooks
-- Messenger (API Setup)
-- Instagram Graph API (se quiser IG DM/publishing)
-
-### 4. Permissões a pedir (App Review)
-
-Para modo de desenvolvimento/teste, podes usar sem review. Para produção, precisarás de aprovação para:
-- `pages_show_list`, `pages_manage_metadata`
-- `pages_read_engagement`, `pages_manage_posts`
-- `pages_messaging`
-- `instagram_basic`, `instagram_manage_messages`
-- `leads_retrieval`
-- `business_management`
-
-### 5. Modo da App
-
-- Para testar: manter em **Development** e adicionar test users
-- Para produção: mudar para **Live** (requer App Review aprovado e Privacy Policy URL)
-
-## Alteração técnica
-
-| Ficheiro | Alteração |
-|---|---|
-| `supabase/functions/meta-webhook-hub/index.ts` | Linha 42: trocar `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` por `META_VERIFY_TOKEN` |
+Nenhuma alteração de código é necessária — o Marketplace já carrega módulos dinamicamente da base de dados.
 
