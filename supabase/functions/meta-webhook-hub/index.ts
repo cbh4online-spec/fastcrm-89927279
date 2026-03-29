@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
 
-    const VERIFY_TOKEN = Deno.env.get("INSTAGRAM_WEBHOOK_VERIFY_TOKEN") || "fastcrm_meta_verify";
+    const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") || "fastcrm_meta_verify";
 
     if (mode === "subscribe" && token === VERIFY_TOKEN) {
       console.log("[meta-webhook-hub] Webhook verified");
