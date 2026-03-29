@@ -18770,6 +18770,7 @@ export type Database = {
           image_style: string | null
           metadata: Json | null
           pdf_storage_path: string | null
+          protection_enabled: boolean
           slug: string | null
           status: string
           subtitle: string | null
@@ -18795,6 +18796,7 @@ export type Database = {
           image_style?: string | null
           metadata?: Json | null
           pdf_storage_path?: string | null
+          protection_enabled?: boolean
           slug?: string | null
           status?: string
           subtitle?: string | null
@@ -18820,6 +18822,7 @@ export type Database = {
           image_style?: string | null
           metadata?: Json | null
           pdf_storage_path?: string | null
+          protection_enabled?: boolean
           slug?: string | null
           status?: string
           subtitle?: string | null

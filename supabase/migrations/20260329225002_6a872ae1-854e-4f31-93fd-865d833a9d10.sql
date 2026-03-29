@@ -1,0 +1,1 @@
+ALTER TABLE public.ebooks ADD COLUMN IF NOT EXISTS protection_enabled boolean NOT NULL DEFAULT true;
