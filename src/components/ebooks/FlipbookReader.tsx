@@ -287,11 +287,42 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   const pageHeight = isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
 
+  // Protection event handlers
+  const protectionHandlers = protectionEnabled ? {
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+  } : {};
+
+  // Anti-print CSS injection for protected public ebooks
+  useEffect(() => {
+    if (!protectionEnabled) return;
+    const style = document.createElement("style");
+    style.id = "ebook-print-protection";
+    style.textContent = `@media print { .ebook-protected-container, .ebook-protected-container * { display: none !important; visibility: hidden !important; } }`;
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, [protectionEnabled]);
+
+  // Anti-keyboard shortcuts (PrintScreen, Ctrl+P) for protected ebooks
+  useEffect(() => {
+    if (!protectionEnabled) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "PrintScreen") { e.preventDefault(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "p") { e.preventDefault(); }
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [protectionEnabled]);
+
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col group ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
-      style={buildStyleVars(styleTokens)}
+      className={`flex flex-col group ${protectionEnabled ? "ebook-protected-container" : ""} ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
+      style={{
+        ...buildStyleVars(styleTokens),
+        ...(protectionEnabled ? { userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties : {}),
+      }}
+      {...protectionHandlers}
     >
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
