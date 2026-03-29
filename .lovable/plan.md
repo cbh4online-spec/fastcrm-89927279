@@ -1,53 +1,48 @@
 
 
-# Fix: Efeito de folhear páginas com react-pageflip (estilo Calameo)
+# Fix: Layout responsivo e texto cortado no flipbook
 
-## Problemas atuais
+## Problema
 
-1. **Conteúdo cortado** — `CHARS_PER_PAGE = 1800` foi calibrado para páginas de largura total, mas no modo spread cada página tem metade da largura, causando overflow
-2. **Efeito 3D artesanal limitado** — a implementação CSS custom não reproduz o efeito realista do Calameo (curva da página, sombra dinâmica, drag suave)
-3. **`overflow-y-auto`** nas páginas de conteúdo permite scroll interno em vez de paginar corretamente
+O texto está a ser cortado porque as dimensões do `HTMLFlipBook` são fixas (460×640px) e não se adaptam ao ecrã. Em mobile o livro fica demasiado grande e em desktop não aproveita o espaço. O `CHARS_PER_PAGE = 900` pode ser excessivo para ecrãs pequenos.
 
-## Solução: Usar biblioteca `react-pageflip`
+## Solução
 
-O Calameo usa internamente uma engine semelhante ao **StPageFlip** — uma biblioteca especializada que desenha a curva da página em canvas com sombras dinâmicas e suporte a drag do canto. Existe um wrapper React oficial: `react-pageflip`.
+### 1. `PageFlip.tsx` — Dimensões dinâmicas baseadas no viewport
 
-### Alterações
+Substituir largura/altura fixas por cálculo dinâmico usando `window.innerWidth` e `window.innerHeight`:
 
-#### 1. Instalar `react-pageflip`
-- `npm install react-pageflip` (wrapper para StPageFlip, MIT, zero deps)
+- **Mobile** (< 640px): `usePortrait={true}` (página única), largura ~90vw, altura proporcional
+- **Tablet** (640–1024px): spread mode, ~280×400px por página
+- **Desktop** (> 1024px): spread mode, ~460×640px por página  
+- **Fullscreen**: maximizar com base no viewport real
 
-#### 2. Reescrever `PageFlip.tsx` → usar `HTMLFlipBook`
-- Substituir toda a lógica CSS custom pelo componente `HTMLFlipBook`
-- Cada página é um `React.forwardRef` div com conteúdo `FlipbookPage`
-- Configuração: `width: 480, height: 680, size: "stretch"`, `showCover: true`, `drawShadow: true`, `flippingTime: 800`
-- Expor ref para `flipNext()` / `flipPrev()` / `turnToPage()` para integração com toolbar e teclado
+Usar `useEffect` + `resize` listener para recalcular ao redimensionar.
 
-#### 3. Atualizar `FlipbookReader.tsx`
-- Remover lógica de spread manual (o `HTMLFlipBook` gere internamente páginas duplas)
-- Usar `onFlip` callback para atualizar o número da página no toolbar
-- Passar ref do flipbook para toolbar/teclado chamarem `flipNext`/`flipPrev`
+Aumentar `maxWidth` e `maxHeight` para permitir que o livro cresça em ecrãs grandes.
 
-#### 4. Atualizar `FlipbookPage.tsx`
-- Cada página deve usar `React.forwardRef` (requisito do react-pageflip)
-- Remover `overflow-y-auto` do conteúdo — usar `overflow: hidden` com `line-clamp`
-- Reduzir padding para caber melhor no formato mais estreito
+### 2. `FlipbookReader.tsx` — CHARS_PER_PAGE dinâmico
 
-#### 5. Reduzir `CHARS_PER_PAGE` para ~900
-- Cada página agora tem ~480px de largura × 680px de altura
-- Com padding e header/footer, ~900 chars é o limite para não cortar
+Reduzir `CHARS_PER_PAGE` de 900 para **700** — o texto actual está demasiado denso e transborda. Valor fixo mais conservador resolve o corte sem necessitar de cálculo dinâmico.
 
-#### 6. `FlipbookToolbar.tsx`
-- Receber ref do flipbook para chamar `flipNext()`/`flipPrev()` diretamente
-- Atualizar página via `onFlip` event em vez de tracking manual de spread
+Remover `max-w-[680px]` constraint da `PublicEbookPage.tsx` para permitir que o container cresça.
+
+### 3. `FlipbookPage.tsx` — Tipografia adaptativa
+
+- Reduzir font-size do conteúdo de `13.5px` para `12.5px`
+- Reduzir padding: `px-6 py-6` → `px-5 py-5`
+- Garantir `overflow-hidden` em todo o conteúdo
+
+### 4. `PublicEbookPage.tsx` — Container responsivo
+
+Substituir `max-w-[680px]` por `max-w-5xl` para dar mais espaço ao spread em desktop.
 
 ## Ficheiros
 
-| Ficheiro | Ação |
+| Ficheiro | Alteração |
 |----------|-----------|
-| `package.json` | Adicionar `react-pageflip` |
-| `PageFlip.tsx` | Reescrever com `HTMLFlipBook` |
-| `FlipbookReader.tsx` | Simplificar — delegar flip ao HTMLFlipBook |
-| `FlipbookPage.tsx` | `forwardRef` + `overflow: hidden` + menos padding |
-| `FlipbookToolbar.tsx` | Integrar via ref do flipbook |
+| `PageFlip.tsx` | Dimensões dinâmicas com resize listener, portrait mode em mobile |
+| `FlipbookReader.tsx` | CHARS_PER_PAGE = 700 |
+| `FlipbookPage.tsx` | Reduzir font-size e padding |
+| `PublicEbookPage.tsx` | Aumentar max-width do container |
 
