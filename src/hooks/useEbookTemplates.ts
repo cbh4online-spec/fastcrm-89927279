@@ -68,7 +68,8 @@ export function useCreateEbookTemplate() {
       default_content?: Record<string, string>;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const slug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+      const baseSlug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+      const slug = `${baseSlug}-${Date.now().toString(36).slice(-5)}`;
       const { data, error } = await (supabase as any).from("ebook_templates").insert({
         workspace_id: currentWorkspace!.id,
         name: input.name,

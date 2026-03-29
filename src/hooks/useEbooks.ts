@@ -87,7 +87,8 @@ export function useCreateEbook() {
   return useMutation({
     mutationFn: async (input: { title: string; subtitle?: string; description?: string; author_name?: string; chapters?: EbookChapter[]; template_id?: string; global_styles?: Record<string, unknown> }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+      const baseSlug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+      const slug = `${baseSlug}-${Date.now().toString(36).slice(-5)}`;
       const insertPayload: Record<string, unknown> = {
         workspace_id: currentWorkspace!.id,
         title: input.title,
