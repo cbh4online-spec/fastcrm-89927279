@@ -240,7 +240,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           Wizard de Criação IA
         </div>
         <h2 className="text-2xl font-bold text-foreground">Crie o seu eBook com IA</h2>
-        <p className="text-sm text-muted-foreground">3 passos simples para gerar um eBook completo automaticamente</p>
+        <p className="text-sm text-muted-foreground">4 passos simples para gerar um eBook completo automaticamente</p>
       </div>
 
       {/* Step indicator */}
