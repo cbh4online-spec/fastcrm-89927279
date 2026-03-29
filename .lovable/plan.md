@@ -1,81 +1,49 @@
 
 
-# Sponsors como Funcionalidade Global
+# Indicador visual de highlights nas páginas do flipbook
 
 ## Diagnóstico
 
-O sistema já tem uma infraestrutura completa de sponsors, mas confinada ao módulo C2C:
-- **Tabela `store_sponsors`**: nome, logo, website, tier, is_active, sort_order (já por workspace)
-- **Admin (`C2CSponsorAdmin.tsx`)**: CRUD completo com candidaturas, tiers e estatísticas
-- **Portal público (`C2CSponsorPortal.tsx`)**: formulário de candidatura para visitantes
-- **Display (`StoreSponsorsBar.tsx`)**: barra de logos na loja
-- **Hooks (`useStoreAds.ts`)**: todos os CRUD mutations
+Os highlights são guardados como notas (`note_type: "highlight"`) com `highlight_text` e `highlight_color`, mas actualmente só aparecem no painel lateral. O texto sublinhado não é visualmente marcado na própria página do flipbook.
 
-A tabela e hooks já funcionam por workspace — não é necessário alterar a BD. O trabalho é **elevar a visibilidade e acessibilidade** do sistema.
+## Abordagem
 
-## Plano de Implementação
+Injectar marcações visuais no conteúdo das páginas `type: "content"`, fazendo match do `highlight_text` guardado contra o texto renderizado e aplicando um `<mark>` com a cor correspondente.
 
-### 1. Rota dedicada no sidebar — Secção "Marketing"
+## Alterações
 
-Adicionar entrada no `routeManifest.ts` no grupo `marketing`:
-- **Label**: "Sponsors / Parceiros"
-- **Href**: `/dashboard/sponsors`
-- **Ícone**: `Award`
+### 1. `FlipbookReader.tsx`
+- Agrupar highlights por página: `Map<number, { text: string; color: string }[]>`
+- Passar array de highlights da página actual para cada `PageWrapper` via nova prop `highlights`
 
-### 2. Nova página global `SponsorsManagement.tsx`
+### 2. `PageFlip.tsx` (PageWrapper)
+- Aceitar e propagar nova prop `highlights` para `FlipbookPage`
 
-Reutilizar a lógica do `C2CSponsorAdmin.tsx` numa página standalone em `src/pages/SponsorsManagement.tsx`:
-- **Tab Parceiros**: lista, criar, editar, eliminar, toggle activo (reusa hooks de `useStoreAds.ts`)
-- **Tab Candidaturas**: gerir candidaturas pendentes (reusa hooks de `useSponsorApplications.ts`)
-- **Tab Estatísticas**: KPIs de sponsors activos, por tier, receita estimada
-- Melhorias face ao existente:
-  - Upload de logo via file input (em vez de URL manual)
-  - Textarea para descrição (em vez de Input)
-  - Preview do card do sponsor antes de guardar
-  - Filtro por tier na listagem
+### 3. `FlipbookPage.tsx`
+- Nova prop opcional `highlights?: { text: string; color: string }[]`
+- Função utilitária `applyHighlights(content: string, highlights)` que:
+  - Para **HTML**: faz `replace` no texto (fora de tags) wrapping matches em `<mark style="background:color;...">text</mark>`
+  - Para **Markdown**: aplica o mesmo replace no texto antes de passar ao ReactMarkdown (ou pós-render via wrapper)
+- Aplicar apenas em páginas `type: "content"`
+- Estilo do mark: cor de fundo com 40% opacidade, border-bottom sólido, border-radius subtil
 
-### 3. Componente reutilizável `SponsorsShowcase.tsx`
-
-Componente genérico para exibir sponsors em qualquer contexto:
-- Props: `workspaceId`, `variant` (`bar` | `grid` | `footer`), `maxItems?`, `tierFilter?`
-- `bar`: layout horizontal (como o actual `StoreSponsorsBar`)
-- `grid`: grelha de cards com logo, nome, descrição e tier badge
-- `footer`: versão compacta para rodapés de página
-
-### 4. Integração no eBook Editor
-
-Na sidebar do editor (tab "Marca" ou nova sub-secção):
-- Picker para seleccionar sponsors do workspace a incluir no eBook
-- Novo layout block `sponsors_page` que renderiza os sponsors seleccionados como página do eBook
-- Guardar sponsors seleccionados no `metadata` do eBook
-
-### 5. Integração na Storefront/Loja
-
-Substituir `StoreSponsorsBar` por `SponsorsShowcase` com variant `bar` — mantém compatibilidade.
-
-### 6. Rota na routing principal
-
-Adicionar `<Route path="/dashboard/sponsors" element={<SponsorsManagement />} />` nas rotas.
-
-## Ficheiros
+### 4. Estilo visual do highlight
+- `background-color` com opacidade (ex: `${color}66`)
+- `border-bottom: 2px solid ${color}`
+- `border-radius: 2px`
+- `padding: 0 2px`
+- Tooltip on hover mostrando "Sublinhado" (opcional, via `title`)
 
 | Ficheiro | Acção |
 |---|---|
-| `src/config/routeManifest.ts` | Adicionar entrada "sponsors" no grupo marketing |
-| `src/pages/SponsorsManagement.tsx` | **Novo** — página global de gestão de sponsors |
-| `src/components/sponsors/SponsorsShowcase.tsx` | **Novo** — componente reutilizável multi-variante |
-| `src/components/store/StoreSponsorsBar.tsx` | Refactorizar para usar `SponsorsShowcase` |
-| `src/routes/MarketingRoutes.tsx` (ou equivalente) | Adicionar rota `/dashboard/sponsors` |
-| `src/components/ebooks/EbookEditorSidebar.tsx` | Adicionar secção de sponsors na tab "Marca" |
+| `FlipbookPage.tsx` | Adicionar prop `highlights`, função `applyHighlights`, renderizar marks no conteúdo |
+| `PageFlip.tsx` | Propagar prop `highlights` |
+| `FlipbookReader.tsx` | Construir mapa de highlights por página e passá-lo aos componentes |
 
 ## Critérios de aceitação
-
-- Menu "Sponsors / Parceiros" visível no sidebar sob Marketing
-- CRUD completo funcional na nova página (criar, editar, eliminar, toggle)
-- Upload de logo funcional
-- Componente `SponsorsShowcase` renderiza em 3 variantes
-- Sponsors visíveis no eBook quando seleccionados
-- Storefront continua a mostrar sponsors correctamente
-- Mobile responsivo
-- Estados vazios, loading e erro tratados
+- Highlights existentes visíveis directamente no texto das páginas
+- Cor do highlight corresponde à cor guardada na nota
+- Funciona tanto com conteúdo HTML como Markdown
+- Não interfere com a navegação do flipbook nem com links
+- Performance aceitável (replace é O(n) por página, sem impacto visível)
 
