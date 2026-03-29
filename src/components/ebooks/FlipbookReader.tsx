@@ -19,7 +19,7 @@ interface FlipbookReaderProps {
   compact?: boolean;
 }
 
-const CHARS_PER_PAGE = 450;
+const CHARS_PER_PAGE = 1200;
 
 function splitContentIntoPages(content: string): string[] {
   if (!content || content.trim().length === 0) return ["*Conteúdo em preparação*"];
@@ -28,9 +28,15 @@ function splitContentIntoPages(content: string): string[] {
   let current = "";
 
   for (const para of paragraphs) {
-    if (current.length + para.length > CHARS_PER_PAGE && current.length > 0) {
-      pages.push(current.trim());
-      current = para;
+    const combined = current.length + (current ? 2 : 0) + para.length;
+    // Allow 20% overflow to avoid nearly-empty next pages
+    if (combined > CHARS_PER_PAGE && current.length > 0) {
+      if (combined <= CHARS_PER_PAGE * 1.2) {
+        current += (current ? "\n\n" : "") + para;
+      } else {
+        pages.push(current.trim());
+        current = para;
+      }
     } else {
       current += (current ? "\n\n" : "") + para;
     }
