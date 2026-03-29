@@ -390,7 +390,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col group ${protectionEnabled ? "ebook-protected-container" : ""} ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
+      className={`flex flex-col group ${highlightMode ? "highlight-mode-active" : ""} ${protectionEnabled ? "ebook-protected-container" : ""} ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
       style={{
         ...buildStyleVars(styleTokens),
         ...(protectionEnabled && !highlightMode ? { userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties : {}),
