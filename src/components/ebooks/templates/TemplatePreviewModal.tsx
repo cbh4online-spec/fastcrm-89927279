@@ -33,7 +33,7 @@ export function TemplatePreviewModal({ template, open, onClose, onUse, onDuplica
           <div>
             <h2 className="text-lg font-semibold">{template.name}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[template.category]}</Badge>
+              <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[template.category]}</Badge>
               <span className="text-xs text-muted-foreground">{total} páginas</span>
             </div>
           </div>
@@ -52,7 +52,7 @@ export function TemplatePreviewModal({ template, open, onClose, onUse, onDuplica
         {/* Preview area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Page list sidebar */}
-          <ScrollArea className="w-48 border-r border-border/40 bg-muted/20">
+          <ScrollArea className="w-56 border-r border-border/40 bg-muted/20">
             <div className="p-3 space-y-2">
               {layouts.map((lk, i) => (
                 <button

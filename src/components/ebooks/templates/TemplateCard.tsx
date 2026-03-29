@@ -51,12 +51,12 @@ export function TemplateCard({ template, onPreview, onUse, onDuplicate }: Props)
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className="text-xs">
             {CATEGORY_LABELS[template.category] || template.category}
           </Badge>
-          <span className="text-[10px] text-muted-foreground">{template.page_layouts.length} páginas</span>
+          <span className="text-xs text-muted-foreground">{template.page_layouts.length} páginas</span>
           {template.is_system_template && (
-            <Badge variant="secondary" className="text-[10px]">Sistema</Badge>
+            <Badge variant="secondary" className="text-xs">Sistema</Badge>
           )}
         </div>
 
@@ -65,7 +65,7 @@ export function TemplateCard({ template, onPreview, onUse, onDuplicate }: Props)
           {[t.primaryColor, t.secondaryColor, t.accentColor, t.backgroundColor].map((c, i) => (
             <div key={i} className="w-5 h-5 rounded-full border border-border/40" style={{ backgroundColor: c }} />
           ))}
-          <span className="text-[10px] text-muted-foreground ml-auto self-center">{t.headingFont}</span>
+          <span className="text-xs text-muted-foreground ml-auto self-center">{t.headingFont}</span>
         </div>
 
         {/* Actions */}

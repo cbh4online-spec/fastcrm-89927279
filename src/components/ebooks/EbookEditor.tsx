@@ -400,7 +400,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               {ebook.title}
             </h1>
           )}
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{ebook.chapters.length} capítulos</span>
             <span>{totalWords.toLocaleString()} palavras</span>
             <span>{Math.round(progress)}%</span>
@@ -409,7 +409,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
 
         {/* Header actions */}
         <div className="flex items-center gap-1.5">
-          <Badge className={cn("text-[10px]", ebook.status === "published" ? "bg-emerald-500/90 text-white border-0" : "bg-amber-500/90 text-white border-0")}>
+          <Badge className={cn("text-xs", ebook.status === "published" ? "bg-emerald-500/90 text-white border-0" : "bg-amber-500/90 text-white border-0")}>
             {ebook.status === "published" ? "Publicado" : "Rascunho"}
           </Badge>
 
@@ -438,7 +438,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={generateCoverAI} disabled={generatingCoverAI}>
             {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
             Capa IA
-            <span className="text-[9px] opacity-70 flex items-center gap-0.5"><Coins className="h-2 w-2" />{getCost("ebook_generate_cover")}</span>
+            <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/40" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
             {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
@@ -462,7 +462,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
         {/* Left sidebar: Chapter thumbnails */}
         <div className="w-44 shrink-0 border-r border-border/40 bg-muted/30 flex flex-col">
           <div className="p-2 border-b border-border/40 flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Páginas</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Páginas</span>
             <button onClick={addChapter} className="p-1 rounded hover:bg-accent transition-colors" title="Adicionar capítulo">
               <Plus className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -486,7 +486,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               ))}
               {!ebook.chapters.length && (
                 <div className="text-center py-8">
-                  <p className="text-[10px] text-muted-foreground">Sem capítulos</p>
+                  <p className="text-xs text-muted-foreground">Sem capítulos</p>
                 </div>
               )}
               <button
@@ -520,7 +520,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 )}
 
                 {/* Chapter toolbar */}
-                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/30 px-6 py-2 flex items-center gap-2">
+                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/30 px-6 py-2 flex items-center gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <Input
                       value={activeChapter.title}
@@ -540,7 +540,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
                       {generatingChapterImgAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                       Img IA
-                      <span className="text-[9px] opacity-70 flex items-center gap-0.5"><Coins className="h-2 w-2" />{getCost("ebook_generate_chapter_image")}</span>
+                      <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter_image")}</span>
                     </Button>
                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => chapterImgRef.current?.click()} disabled={uploadingChapterImg}>
                       {uploadingChapterImg ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
@@ -548,7 +548,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={() => generateChapterContent(activeChapter)} disabled={generating === activeChapter.id}>
                       {generating === activeChapter.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                       Gerar
-                      <span className="text-[9px] opacity-70 flex items-center gap-0.5"><Coins className="h-2 w-2" />{getCost("ebook_generate_chapter")}</span>
+                      <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_chapter")}</span>
                     </Button>
                     {activeChapter.content && (
                       <>
