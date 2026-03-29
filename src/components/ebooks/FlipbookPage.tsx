@@ -96,12 +96,26 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
   // content page
   return (
     <div className="w-full h-full flex flex-col px-[1.2em] py-[1em] bg-[#fefcf9] relative overflow-hidden" style={baseStyle}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-[0.6em] pb-[0.4em] border-b border-amber-900/8">
+      {/* Corner ornament */}
+      <div className="absolute top-0 right-0 w-[4em] h-[4em] pointer-events-none opacity-[0.06]">
+        <svg viewBox="0 0 100 100" className="w-full h-full text-amber-800">
+          <path d="M100,0 C100,55 55,100 0,100 L0,85 C47,85 85,47 85,0 Z" fill="currentColor" />
+          <path d="M100,0 C100,40 40,80 0,80 L0,70 C35,70 70,35 70,0 Z" fill="currentColor" opacity="0.5" />
+        </svg>
+      </div>
+      <div className="absolute bottom-0 left-0 w-[4em] h-[4em] pointer-events-none opacity-[0.06] rotate-180">
+        <svg viewBox="0 0 100 100" className="w-full h-full text-amber-800">
+          <path d="M100,0 C100,55 55,100 0,100 L0,85 C47,85 85,47 85,0 Z" fill="currentColor" />
+          <path d="M100,0 C100,40 40,80 0,80 L0,70 C35,70 70,35 70,0 Z" fill="currentColor" opacity="0.5" />
+        </svg>
+      </div>
+
+      {/* Header — no border, ornament instead */}
+      <div className="flex items-center justify-between mb-[0.6em] pb-[0.3em]">
         <span className="font-semibold uppercase tracking-[0.2em] text-amber-700/40 truncate max-w-[70%]" style={{ fontSize: '0.65em' }}>
           {page.chapterTitle}
         </span>
-        <span className="tabular-nums text-amber-700/30 font-mono" style={{ fontSize: '0.65em' }}>{page.pageNumber}</span>
+        <span className="text-amber-600/20" style={{ fontSize: '0.7em' }}>✦</span>
       </div>
 
       {/* Content */}
@@ -109,8 +123,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-900/10 [&::-webkit-scrollbar-track]:bg-transparent
         prose-p:leading-[1.65] prose-p:!text-slate-800 prose-p:mb-[0.5em]
         prose-headings:!text-slate-900 prose-headings:font-bold prose-headings:font-serif prose-headings:mb-[0.5em] prose-headings:mt-[0.7em]
-        prose-h2:border-l-2 prose-h2:border-amber-600/30 prose-h2:pl-[0.6em]
-        prose-blockquote:border-amber-600/30 prose-blockquote:bg-amber-50/50 prose-blockquote:py-[0.3em] prose-blockquote:px-[0.6em] prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:!text-slate-700
+        prose-blockquote:border-0 prose-blockquote:bg-transparent prose-blockquote:py-0 prose-blockquote:px-0
         prose-img:rounded-lg prose-img:shadow-md prose-img:mx-auto prose-img:my-[0.6em] prose-img:max-h-[10em]
         prose-strong:!text-slate-900
         prose-ul:!text-slate-800 prose-ol:!text-slate-800
@@ -124,10 +137,35 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
           components={{
             p: ({ children }) => <p style={{ fontSize: '1em' }}>{children}</p>,
             h1: ({ children }) => <h1 style={{ fontSize: '1.4em' }}>{children}</h1>,
-            h2: ({ children }) => <h2 style={{ fontSize: '1.2em' }}>{children}</h2>,
-            h3: ({ children }) => <h3 style={{ fontSize: '1.1em' }}>{children}</h3>,
+            h2: ({ children }) => (
+              <h2 className="!border-0 !pl-0 bg-gradient-to-r from-amber-100/60 to-transparent px-[0.5em] py-[0.25em] rounded-md" style={{ fontSize: '1.2em' }}>
+                <span className="text-amber-600/40 mr-[0.3em]" style={{ fontSize: '0.8em' }}>❧</span>
+                {children}
+              </h2>
+            ),
+            h3: ({ children }) => (
+              <h3 style={{ fontSize: '1.1em' }}>
+                <span className="block w-[2em] h-[0.12em] bg-amber-500/30 rounded-full mb-[0.3em]" />
+                {children}
+              </h3>
+            ),
             li: ({ children }) => <li style={{ fontSize: '1em' }}>{children}</li>,
-            blockquote: ({ children }) => <blockquote style={{ fontSize: '0.9em' }}>{children}</blockquote>,
+            blockquote: ({ children }) => (
+              <div className="relative my-[0.8em] px-[1.2em] py-[0.6em] bg-gradient-to-br from-amber-50/80 to-orange-50/40 rounded-lg">
+                <span className="absolute top-[-0.1em] left-[0.2em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
+                <div className="relative text-slate-700 italic font-serif" style={{ fontSize: '0.9em' }}>
+                  {children}
+                </div>
+                <span className="absolute bottom-[-0.4em] right-[0.4em] text-amber-400/25 font-serif leading-none select-none" style={{ fontSize: '3em' }}>"</span>
+              </div>
+            ),
+            hr: () => (
+              <div className="flex items-center justify-center gap-[0.5em] my-[1.2em] text-amber-700/25" style={{ fontSize: '0.9em' }}>
+                <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
+                <span>✦</span>
+                <span className="block w-[1.5em] h-[1px] bg-amber-700/15" />
+              </div>
+            ),
             code: ({ children }) => <code style={{ fontSize: '0.85em' }}>{children}</code>,
             img: ({ node, ...props }) => (
               <figure className="my-[0.8em]">
@@ -141,9 +179,11 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         </ReactMarkdown>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-center mt-[0.4em] pt-[0.4em] border-t border-amber-900/8">
-        <span className="tabular-nums text-amber-700/30" style={{ fontSize: '0.7em' }}>{page.pageNumber} / {page.totalPages}</span>
+      {/* Footer — no border, ornamental */}
+      <div className="flex items-center justify-center mt-[0.4em] pt-[0.3em] gap-[0.4em]">
+        <span className="block w-[1em] h-[1px] bg-amber-700/15" />
+        <span className="tabular-nums text-amber-700/30" style={{ fontSize: '0.7em' }}>{page.pageNumber}</span>
+        <span className="block w-[1em] h-[1px] bg-amber-700/15" />
       </div>
     </div>
   );
