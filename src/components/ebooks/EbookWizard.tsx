@@ -256,7 +256,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }
       setGenProgress(generateImages ? 80 : 95);
 
-      if (generateImages) {
+      if (generateImages && imageLayout.chapter.count > 0) {
         for (let i = 0; i < chapters.length; i++) {
           setGenStatus(`A gerar imagem ${i + 1}/${chapters.length}...`);
           if (!canAfford("ebook_generate_chapter_image")) {
@@ -271,12 +271,14 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           });
 
           const styleInfo = IMAGE_STYLES.find(s => s.id === imageStyle);
-          const imgPrompt = `Create an atmospheric illustration for chapter "${chapters[i].title}" from book "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. No text. Wide format.`;
+          const sizeHint = SIZE_TO_ASPECT[imageLayout.chapter.size];
+          const posHint = imageLayout.chapter.position;
+          const imgPrompt = `Create an atmospheric illustration for chapter "${chapters[i].title}" from book "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. Format: ${sizeHint}. Position context: ${posHint}. No text.`;
           const { data: imgData } = await supabase.functions.invoke("ebook-ai-assist", {
             body: { action: "generate_image", imagePrompt: imgPrompt, ebookId: ebook.id, target: `chapter-${chapters[i].id}` },
           });
           if (imgData?.url) {
-            chapters[i] = { ...chapters[i], cover_image: imgData.url };
+            chapters[i] = { ...chapters[i], cover_image: imgData.url, imageSize: imageLayout.chapter.size, imagePosition: imageLayout.chapter.position };
           }
 
           setGenProgress(80 + ((i + 1) / chapters.length) * 18);
