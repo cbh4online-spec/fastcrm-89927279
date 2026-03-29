@@ -21,11 +21,17 @@ export type FlipbookPageData =
   | { type: "content"; chapterIndex: number; chapterTitle: string; content: string; pageNumber: number; totalPages: number; headerText?: string; footerText?: string }
   | { type: "contact"; contactData: ContactPageData; title: string };
 
+export interface HighlightMark {
+  text: string;
+  color: string;
+}
+
 interface FlipbookPageProps {
   page: FlipbookPageData;
   pageWidth?: number;
   pageHeight?: number;
   onGoToPage?: (page: number) => void;
+  highlights?: HighlightMark[];
 }
 
 function useScaleFactor(pageHeight?: number) {
@@ -44,7 +50,35 @@ const v = {
   bodyFont: "var(--ebook-body-font, Georgia, serif)",
 };
 
-export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage }: FlipbookPageProps) {
+/** Apply highlight marks to HTML content string */
+function applyHighlightsToHtml(html: string, highlights?: HighlightMark[]): string {
+  if (!highlights || highlights.length === 0) return html;
+  let result = html;
+  for (const hl of highlights) {
+    if (!hl.text || hl.text.length < 2) continue;
+    const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(?![^<]*>)(${escaped})`, "gi");
+    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
+    result = result.replace(regex, `<mark style="${markStyle}" title="Sublinhado">$1</mark>`);
+  }
+  return result;
+}
+
+/** Apply highlight marks to plain/markdown text by wrapping in spans (rendered via dangerouslySetInnerHTML) */
+function applyHighlightsToText(text: string, highlights?: HighlightMark[]): string | null {
+  if (!highlights || highlights.length === 0) return null;
+  let result = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  for (const hl of highlights) {
+    if (!hl.text || hl.text.length < 2) continue;
+    const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
+    result = result.replace(regex, `<mark style="${markStyle}" title="Sublinhado">$1</mark>`);
+  }
+  return result !== text ? result : null;
+}
+
+export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highlights }: FlipbookPageProps) {
   const { baseFontSize } = useScaleFactor(pageHeight);
   const baseStyle = { fontSize: `${baseFontSize}px` };
 
@@ -260,7 +294,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage }: Flipbo
             <style>{htmlContentScopedCSS}</style>
             <div
               className="ebook-html-content"
-              dangerouslySetInnerHTML={{ __html: page.content }}
+              dangerouslySetInnerHTML={{ __html: applyHighlightsToHtml(page.content, highlights) }}
               onClick={(e) => {
                 const target = e.target as HTMLElement;
                 const anchor = target.closest('a');
