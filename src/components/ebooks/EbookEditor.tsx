@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type DragEvent } from "react";
+import { useState, useCallback, useRef, useEffect, type DragEvent } from "react";
 import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,36 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const chapterImgRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const richEditorRef = useRef<EbookRichEditorHandle>(null);
+
+  // Local state for branding/contact fields (debounced save)
+  const [localHeaderText, setLocalHeaderText] = useState("");
+  const [localFooterText, setLocalFooterText] = useState("");
+  const [localContactPage, setLocalContactPage] = useState<EbookContactPage>({});
+  const brandingInitRef = useRef(false);
+
+  // Sync local state from server when ebook loads
+  useEffect(() => {
+    if (ebook && !brandingInitRef.current) {
+      setLocalHeaderText((ebook as any).header_text || "");
+      setLocalFooterText((ebook as any).footer_text || "");
+      setLocalContactPage((ebook as any).contact_page || {});
+      brandingInitRef.current = true;
+    }
+  }, [ebook]);
+
+  // Debounced save for branding fields
+  useEffect(() => {
+    if (!brandingInitRef.current) return;
+    const timer = setTimeout(() => {
+      updateEbook.mutate({
+        id: ebookId,
+        header_text: localHeaderText,
+        footer_text: localFooterText,
+        contact_page: localContactPage,
+      } as any);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [localHeaderText, localFooterText, localContactPage, ebookId]);
 
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
     updateEbook.mutate({ id: ebookId, chapters });
