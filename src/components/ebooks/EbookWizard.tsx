@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { EbookThemeSelector } from "./EbookThemeSelector";
 import { EbookImageStylePicker, IMAGE_STYLES } from "./EbookImageStylePicker";
+import { DEFAULT_IMAGE_LAYOUT, SIZE_TO_ASPECT, type ImageLayoutConfig } from "./EbookImageLayoutConfig";
 import { TemplatePickerStep } from "./templates/TemplatePickerStep";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
@@ -97,6 +98,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const [imageStyle, setImageStyle] = useState("illustration");
   const [imageKeywords, setImageKeywords] = useState<string[]>([]);
   const [generateImages, setGenerateImages] = useState(true);
+  const [imageLayout, setImageLayout] = useState<ImageLayoutConfig>(DEFAULT_IMAGE_LAYOUT);
 
   // Generation state
   const [generating, setGenerating] = useState(false);
@@ -114,8 +116,12 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const totalContentCredits = mode === "generate"
     ? outlineCost + (chapterCount * chapterCost)
     : outlineCost;
-  const totalImageCredits = generateImages ? coverCost + (chapterCount * imageCost) : coverCost;
-  const totalCredits = totalContentCredits + totalImageCredits;
+  const chapterImageCount = generateImages
+    ? imageLayout.chapter.count + imageLayout.content.count
+    : 0;
+  const totalImageCredits = generateImages
+    ? coverCost + (chapterCount * imageCost * (chapterImageCount > 0 ? 1 : 0))
+    : coverCost;
 
   const canProceedStep1 = prompt.trim().length > 10;
 
