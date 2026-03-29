@@ -7,7 +7,7 @@ import {
   ArrowLeft, Plus, Sparkles, Loader2,
   BookOpen, Globe, FileText, BarChart3,
   Upload, Wand2, Coins, Minimize2, Maximize2,
-  Palette, Play, Trash2,
+  Palette, Play, Trash2, Undo2, Redo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -479,6 +479,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     />
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
+                      <Redo2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <div className="w-px h-5 bg-border my-auto mx-0.5" />
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
                       {generatingChapterImgAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                       Img IA
