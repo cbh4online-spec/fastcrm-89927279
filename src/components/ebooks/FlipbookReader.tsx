@@ -93,6 +93,29 @@ function buildPages(
   return pages;
 }
 
+function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
+  const [compactPage, setCompactPage] = useState(0);
+  const next = () => { if (compactPage < pages.length - 1) setCompactPage(compactPage + 1); };
+  const prev = () => { if (compactPage > 0) setCompactPage(compactPage - 1); };
+
+  return (
+    <div className="flex flex-col">
+      <div className="w-[360px] h-[480px] relative">
+        <FlipbookPage page={pages[compactPage]} />
+      </div>
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-b-lg">
+        <button onClick={prev} disabled={compactPage <= 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+          ← Anterior
+        </button>
+        <span className="text-[10px] tabular-nums text-muted-foreground">{compactPage + 1}/{pages.length}</span>
+        <button onClick={next} disabled={compactPage >= pages.length - 1} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+          Seguinte →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -143,28 +166,8 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  // Compact mode: single page, no flipbook
   if (compact) {
-    const [compactPage, setCompactPage] = useState(0);
-    const next = () => { if (compactPage < pages.length - 1) setCompactPage(compactPage + 1); };
-    const prev = () => { if (compactPage > 0) setCompactPage(compactPage - 1); };
-
-    return (
-      <div className="flex flex-col">
-        <div className="w-[360px] h-[480px] relative">
-          <FlipbookPage page={pages[compactPage]} />
-        </div>
-        <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-b-lg">
-          <button onClick={prev} disabled={compactPage <= 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
-            ← Anterior
-          </button>
-          <span className="text-[10px] tabular-nums text-muted-foreground">{compactPage + 1}/{pages.length}</span>
-          <button onClick={next} disabled={compactPage >= pages.length - 1} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
-            Seguinte →
-          </button>
-        </div>
-      </div>
-    );
+    return <CompactReader pages={pages} />;
   }
 
   // Determine spread display for toolbar

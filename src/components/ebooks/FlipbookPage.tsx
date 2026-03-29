@@ -84,7 +84,7 @@ export function FlipbookPage({ page }: FlipbookPageProps) {
 
   // content page
   return (
-    <div className="w-full h-full flex flex-col px-10 md:px-14 py-10 bg-[#fefcf9] relative">
+    <div className="w-full h-full flex flex-col px-6 md:px-8 py-6 bg-[#fefcf9] relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-3 border-b border-amber-900/8">
         <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-700/40 truncate max-w-[70%]">
