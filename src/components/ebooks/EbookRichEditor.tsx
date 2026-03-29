@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
 import { EbookInlineToolbar } from './EbookInlineToolbar';
 
@@ -10,37 +10,32 @@ interface EbookRichEditorProps {
   onAIRewrite?: (selectedText: string) => void;
 }
 
+export interface EbookRichEditorHandle {
+  insertBlock: (html: string) => void;
+}
+
 /** Convert simple markdown to HTML for migration */
 function markdownToHtml(md: string): string {
   if (!md) return '';
-  // If it already looks like HTML, return as-is
   if (md.includes('<p>') || md.includes('<h1>') || md.includes('<div>')) return md;
 
   let html = md
-    // Headings
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold and italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Images
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0" />')
-    // Links
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    // Horizontal rule
     .replace(/^---$/gm, '<hr />')
-    // Blockquote
     .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
 
-  // Paragraphs: split by double newlines
   const blocks = html.split(/\n\n+/);
   html = blocks.map(block => {
     const trimmed = block.trim();
     if (!trimmed) return '';
     if (/^<(h[1-6]|blockquote|hr|ul|ol|li|img|div|table)/.test(trimmed)) return trimmed;
-    // Wrap in <p>, converting single newlines to <br>
     return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
   }).join('\n');
 
@@ -49,45 +44,91 @@ function markdownToHtml(md: string): string {
 
 export { markdownToHtml };
 
-export function EbookRichEditor({
+export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditorProps>(function EbookRichEditor({
   value,
   onChange,
   placeholder = 'Comece a escrever aqui...',
   className,
   onAIRewrite,
-}: EbookRichEditorProps) {
+}, ref) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const isFocusedRef = useRef(false);
+  const lastValueRef = useRef(value);
   const [showToolbar, setShowToolbar] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
   const [hasSelection, setHasSelection] = useState(false);
-  const isInternalUpdate = useRef(false);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Set initial content (only when value changes externally)
+  // Expose insertBlock via ref
+  useImperativeHandle(ref, () => ({
+    insertBlock(html: string) {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      const sel = window.getSelection();
+      // If selection is inside editor, insert at cursor
+      if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const frag = document.createDocumentFragment();
+        let lastNode: Node | null = null;
+        while (temp.firstChild) {
+          lastNode = frag.appendChild(temp.firstChild);
+        }
+        range.insertNode(frag);
+        // Move cursor after inserted content
+        if (lastNode) {
+          const newRange = document.createRange();
+          newRange.setStartAfter(lastNode);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        }
+      } else {
+        // No cursor — append to end
+        editor.focus();
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        while (temp.firstChild) {
+          editor.appendChild(temp.firstChild);
+        }
+      }
+      // Sync state
+      onChange(editor.innerHTML);
+      lastValueRef.current = editor.innerHTML;
+    },
+  }), [onChange]);
+
+  // Sync content only when editor is NOT focused (prevents cursor jumps)
   useEffect(() => {
-    if (editorRef.current && !isInternalUpdate.current) {
+    if (editorRef.current && !isFocusedRef.current) {
       const htmlValue = markdownToHtml(value);
-      if (editorRef.current.innerHTML !== htmlValue) {
+      if (lastValueRef.current !== value && editorRef.current.innerHTML !== htmlValue) {
         editorRef.current.innerHTML = htmlValue || '';
+        lastValueRef.current = value;
       }
     }
-    isInternalUpdate.current = false;
   }, [value]);
 
   const handleInput = useCallback(() => {
     if (editorRef.current) {
-      isInternalUpdate.current = true;
-      onChange(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      lastValueRef.current = html;
+      onChange(html);
     }
   }, [onChange]);
 
   const handleFocus = useCallback(() => {
-    setIsEditing(true);
+    isFocusedRef.current = true;
+    setIsFocused(true);
   }, []);
 
   const handleBlur = useCallback(() => {
     setTimeout(() => {
-      setIsEditing(false);
+      isFocusedRef.current = false;
+      setIsFocused(false);
       setShowToolbar(false);
     }, 200);
   }, []);
@@ -107,8 +148,8 @@ export function EbookRichEditor({
       const editorRect = editorRef.current.getBoundingClientRect();
 
       setToolbarPosition({
-        top: rect.top - editorRect.top - 48,
-        left: rect.left - editorRect.left + (rect.width / 2),
+        top: Math.max(8, rect.top - editorRect.top - 48),
+        left: Math.max(100, Math.min(rect.left - editorRect.left + (rect.width / 2), editorRect.width - 100)),
       });
       setShowToolbar(true);
       setHasSelection(true);
@@ -149,7 +190,7 @@ export function EbookRichEditor({
 
   return (
     <div className="relative">
-      {showToolbar && isEditing && hasSelection && (
+      {showToolbar && isFocused && hasSelection && (
         <EbookInlineToolbar
           position={toolbarPosition}
           onCommand={execCommand}
@@ -174,7 +215,7 @@ export function EbookRichEditor({
           "prose-img:rounded-lg prose-img:shadow-md prose-img:my-4",
           "prose-hr:border-border",
           "focus:ring-0 rounded-md transition-all",
-          isEmpty && !isEditing && "text-muted-foreground",
+          isEmpty && !isFocused && "text-muted-foreground",
           className
         )}
         onInput={handleInput}
@@ -185,7 +226,7 @@ export function EbookRichEditor({
         suppressContentEditableWarning
       />
 
-      {isEmpty && !isEditing && (
+      {isEmpty && !isFocused && (
         <div
           className="absolute top-0 left-0 text-muted-foreground/60 pointer-events-none select-none font-serif"
           aria-hidden
@@ -195,4 +236,4 @@ export function EbookRichEditor({
       )}
     </div>
   );
-}
+});
