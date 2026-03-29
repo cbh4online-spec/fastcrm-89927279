@@ -1,45 +1,49 @@
 
 
-# Notas/Comentários no Editor de eBooks
+# Cursor de Mão Animada no Flipbook Reader
 
 ## Contexto
 
-Actualmente as notas só aparecem no FlipbookReader (pré-visualização). O utilizador quer poder tirar notas e fazer comentários directamente na vista de edição, associadas ao capítulo activo, para facilitar correcções.
-
-## Abordagem
-
-Adicionar uma 4ª tab **"Notas"** na sidebar direita do editor, reutilizando o hook `useEbookNotes` existente e o componente `EbookNotesPanel` (adaptado para o tema claro do editor). As notas serão associadas ao índice do capítulo (`page_number` = índice do capítulo), permitindo correspondência entre editor e flipbook.
+O utilizador pretende substituir o cursor padrão do rato por um cursor de mão animada sobre as páginas do flipbook, criando uma experiência mais interactiva e intuitiva de "folhear".
 
 ## Implementação
 
-### 1. `EbookEditorNotesPanel.tsx` (novo)
+### 1. Cursores SVG customizados
 
-- Versão adaptada do `EbookNotesPanel` com tema claro (bg-background em vez de slate-900)
-- Mostra notas filtradas pelo capítulo activo (usando índice do capítulo como `page_number`)
-- Form inline para adicionar nota ao capítulo actual
-- Botão eliminar por nota
-- Sem o botão "navegar para página" (estamos no editor, o clique selecciona o capítulo)
+Criar dois cursores SVG inline (via CSS `url("data:image/svg+xml,...")`) no `FlipbookReader.tsx`:
+- **Mão aberta** (cursor padrão sobre as páginas) — estilo "grab"
+- **Mão a agarrar** (quando clica/arrasta) — estilo "grabbing"
 
-### 2. `EbookEditor.tsx`
+Usar a propriedade CSS `cursor` com SVG inline para evitar ficheiros externos.
 
-- Adicionar tab "Notas" (ícone `StickyNote`) à sidebar direita, ao lado de Inserir/Estilo/Marca
-- Importar `useEbookNotes` e passar dados ao novo painel
-- Ao clicar numa nota de outro capítulo, mudar o `activeChapterId` para o capítulo correspondente
-- Badge com contagem de notas no tab trigger
+### 2. Aplicação no container das páginas
+
+No wrapper do `PageFlipBook` (div `.relative.flex.gap-1` na linha ~331), adicionar:
+- `cursor: grab` no estado normal
+- `cursor: grabbing` no estado `:active` (quando o utilizador clica/arrasta para virar página)
+
+Opcionalmente, adicionar uma transição CSS suave para simular a animação da mão.
+
+### 3. Classe CSS com animação
+
+Adicionar ao `index.css` ou inline:
+- Animação subtil de "pulso" ou "aceno" da mão no hover (usando keyframes CSS que alternam entre dois SVGs via `cursor` property — limitado) **ou** um overlay de mão animado via `pointer-events: none` que segue o cursor.
+
+**Abordagem mais robusta**: Criar um componente `AnimatedHandCursor` que renderiza uma mão SVG animada que segue a posição do rato via `onMouseMove`, com `pointer-events: none` e `position: fixed`. Isto permite animação real (rotação, escala, bounce) impossível com `cursor` CSS puro.
 
 ### Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/EbookEditorNotesPanel.tsx` | Novo — painel de notas para editor |
-| `src/components/ebooks/EbookEditor.tsx` | Adicionar tab "Notas" na sidebar + integrar hook |
+| `src/components/ebooks/AnimatedHandCursor.tsx` | Novo — componente de mão animada que segue o cursor |
+| `src/components/ebooks/FlipbookReader.tsx` | Integrar cursor animado no container do flipbook, esconder cursor padrão |
 
 ### Critérios de Aceitação
 
-- Tab "Notas" visível na sidebar direita do editor
-- Notas filtradas pelo capítulo activo com opção de ver todas
-- Adicionar/eliminar notas persiste na base de dados
-- Clicar numa nota de outro capítulo navega para esse capítulo
-- Badge com contagem total de notas no tab
-- As mesmas notas aparecem no FlipbookReader (sincronização via DB)
+- Cursor padrão escondido sobre as páginas do flipbook
+- Mão animada visível e segue o rato suavemente
+- Ao clicar: mão muda para estado "agarrar" (grabbing)
+- Não interfere com a navegação, botões da toolbar ou outros elementos interactivos
+- Funciona em fullscreen
+- Mobile não é afectado (touch não tem cursor)
 
