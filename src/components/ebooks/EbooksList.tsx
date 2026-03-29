@@ -21,12 +21,7 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
   const { data: ebooks, isLoading } = useEbooks();
   const createEbook = useCreateEbook();
   const deleteEbook = useDeleteEbook();
-  const [showCreate, setShowCreate] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [aiMode, setAiMode] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [generating, setGenerating] = useState(false);
+  // Dead dialog state removed — creation flow uses centralized modal via onOpenWizard
 
   const handleCreate = async () => {
     if (!title.trim()) return;

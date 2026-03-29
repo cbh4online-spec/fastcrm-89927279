@@ -66,11 +66,11 @@ export function ChapterThumbnail({
             </div>
           ) : null}
           <div className="flex-1 overflow-hidden">
-            <p className="text-[7px] font-bold text-foreground/80 leading-tight truncate">
+            <p className="text-[9px] font-bold text-foreground/80 leading-tight truncate">
               {chapter.title}
             </p>
             {preview && (
-              <p className="text-[6px] text-muted-foreground leading-tight mt-0.5 line-clamp-3">
+              <p className="text-[8px] text-muted-foreground leading-tight mt-0.5 line-clamp-3">
                 {preview}
               </p>
             )}
@@ -94,13 +94,13 @@ export function ChapterThumbnail({
       {/* Label */}
       <div className="mt-1 px-0.5">
         <p className={cn(
-          "text-[10px] font-medium truncate",
+          "text-xs font-medium truncate",
           isActive ? "text-primary" : "text-muted-foreground"
         )}>
           {index + 1}. {chapter.title}
         </p>
         {hasContent && (
-          <p className="text-[9px] text-muted-foreground tabular-nums">{wordCount}w</p>
+          <p className="text-[10px] text-muted-foreground tabular-nums">{wordCount}w</p>
         )}
       </div>
     </div>
