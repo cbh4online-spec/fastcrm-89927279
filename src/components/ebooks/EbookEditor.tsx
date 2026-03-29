@@ -517,6 +517,10 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   onDragLeave={handleDragLeave}
                   onDragEnd={handleDragEnd}
                   isDragOver={dragOverIndex === i}
+                  onDuplicate={() => duplicateChapter(ch.id)}
+                  onDelete={() => removeChapter(ch.id)}
+                  onMoveUp={() => moveChapter(ch.id, 'up')}
+                  onMoveDown={() => moveChapter(ch.id, 'down')}
                 />
               ))}
               {!ebook.chapters.length && (

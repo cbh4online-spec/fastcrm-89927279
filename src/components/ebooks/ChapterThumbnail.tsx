@@ -1,6 +1,14 @@
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, GripVertical } from 'lucide-react';
+import { CheckCircle2, Circle, GripVertical, MoreVertical, Copy, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { EbookChapter } from '@/hooks/useEbooks';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface ChapterThumbnailProps {
   chapter: EbookChapter;
@@ -13,6 +21,10 @@ interface ChapterThumbnailProps {
   onDragLeave?: () => void;
   onDragEnd?: () => void;
   isDragOver?: boolean;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 export function ChapterThumbnail({
@@ -26,11 +38,14 @@ export function ChapterThumbnail({
   onDragLeave,
   onDragEnd,
   isDragOver,
+  onDuplicate,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
 }: ChapterThumbnailProps) {
   const hasContent = !!(chapter.content && chapter.content.trim().length > 0);
   const wordCount = chapter.content?.split(/\s+/).filter(Boolean).length || 0;
 
-  // Get a mini preview of the content (first ~60 chars)
   const preview = chapter.content
     ? chapter.content.replace(/<[^>]*>/g, '').replace(/[#*_\[\]()]/g, '').slice(0, 60)
     : '';
@@ -89,6 +104,50 @@ export function ChapterThumbnail({
         <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
           <GripVertical className="h-3 w-3 text-muted-foreground" />
         </div>
+
+        {/* Action menu */}
+        {(onDuplicate || onDelete || onMoveUp || onMoveDown) && (
+          <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 bg-background/80 hover:bg-background shadow-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40" collisionPadding={8}>
+                {onMoveUp && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMoveUp(); }}>
+                    <ArrowUp className="h-3.5 w-3.5 mr-2" /> Mover acima
+                  </DropdownMenuItem>
+                )}
+                {onMoveDown && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMoveDown(); }}>
+                    <ArrowDown className="h-3.5 w-3.5 mr-2" /> Mover abaixo
+                  </DropdownMenuItem>
+                )}
+                {onDuplicate && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+                    <Copy className="h-3.5 w-3.5 mr-2" /> Duplicar
+                  </DropdownMenuItem>
+                )}
+                {(onDelete && (onDuplicate || onMoveUp || onMoveDown)) && <DropdownMenuSeparator />}
+                {onDelete && (
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Eliminar
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {/* Label */}
