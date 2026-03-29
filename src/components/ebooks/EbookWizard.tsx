@@ -122,6 +122,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const totalImageCredits = generateImages
     ? coverCost + (chapterCount * imageCost * (chapterImageCount > 0 ? 1 : 0))
     : coverCost;
+  const totalCredits = totalContentCredits + totalImageCredits;
 
   const canProceedStep1 = prompt.trim().length > 10;
 
