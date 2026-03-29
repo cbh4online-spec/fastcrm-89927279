@@ -1,55 +1,36 @@
 
 
-# Diagnóstico: Sublinhado não funciona
-
-## Problema identificado
-
-Existem **3 bloqueios** que impedem a selecção de texto no flipbook:
-
-1. **`react-pageflip` captura todos os eventos de rato** — o `mousedown`/`mousemove`/`mouseup` são interceptados pela biblioteca para virar páginas, impedindo que o browser crie uma selecção de texto nativa.
-
-2. **`userSelect: "none"`** — quando `protectionEnabled` está activo (linha 369), a selecção é explicitamente desactivada no CSS.
-
-3. **`disableFlipByClick={false}`** — cliques dentro das páginas são interpretados como "virar página", não como interacção com o conteúdo.
+# Zoom no Flipbook Reader
 
 ## Solução
 
-### 1. Adicionar modo "Sublinhar" (toggle na toolbar)
+Adicionar um botão de lupa na toolbar com zoom in/out (e reset). Quando o zoom está activo, o container do flipbook aplica `transform: scale(zoomLevel)` com overflow scroll para permitir pan.
 
-Criar um botão na `FlipbookToolbar` que activa/desactiva o modo de sublinhado. Quando activo:
-- `disableFlipByClick` passa a `true` no `HTMLFlipBook`
-- `useMouseEvents` passa a `false` (desactiva drag-to-flip)
-- `userSelect` passa a `"text"` no container (mesmo com protecção)
-- O cursor animado esconde-se e aparece um cursor de texto normal
-- A cor de fundo do botão muda para indicar que o modo está activo
+## Alterações
 
-Quando desactivado, tudo volta ao normal (flip por clique e drag).
+### 1. `FlipbookToolbar.tsx`
+- Importar `ZoomIn`, `ZoomOut` do lucide-react
+- Adicionar props: `zoomLevel`, `onZoomIn`, `onZoomOut`, `onZoomReset`
+- Renderizar 2 botões (ZoomIn / ZoomOut) no grupo direito, antes do highlighter
+- Mostrar o nível de zoom (ex: "125%") clicável para reset ao 100%
 
-### 2. Alterações por ficheiro
+### 2. `FlipbookReader.tsx`
+- Adicionar estado `zoomLevel` (default 1, min 0.5, max 2.5, step 0.25)
+- Funções `handleZoomIn`, `handleZoomOut`, `handleZoomReset`
+- No container do flipbook (`bookContainerRef`), aplicar:
+  - `transform: scale(zoomLevel)` + `transformOrigin: center center`
+  - Quando zoom > 1: overflow scroll no wrapper, cursor grab/grabbing para pan
+- Passar props de zoom à toolbar
+- Suporte a Ctrl+scroll (wheel) para zoom rápido
 
-| Ficheiro | Alteração |
+| Ficheiro | Acção |
 |---|---|
-| `FlipbookReader.tsx` | Adicionar estado `highlightMode`, passar ao `PageFlipBook` e condicionar `userSelect`, cursor e `AnimatedHandCursor` |
-| `PageFlip.tsx` | Aceitar prop `highlightMode` → condicionar `disableFlipByClick` e `useMouseEvents` |
-| `FlipbookToolbar.tsx` | Adicionar botão "Sublinhar" (ícone `Highlighter`) com toggle visual |
+| `FlipbookToolbar.tsx` | Adicionar botões ZoomIn/ZoomOut e indicador de nível |
+| `FlipbookReader.tsx` | Estado de zoom, transform scale, scroll overflow, Ctrl+wheel |
 
-### 3. Lógica
-
-```
-highlightMode = false (default)
-  → flip por clique ✓, drag ✓, selecção ✗, cursor mão ✓
-
-highlightMode = true (toggle)
-  → flip por clique ✗, drag ✗, selecção ✓, cursor texto ✓
-  → ao seleccionar texto → popover de highlight aparece
-  → ao criar highlight → highlightMode volta a false
-```
-
-### Critérios de aceitação
-
-- Botão "Sublinhar" visível na toolbar (com ícone Highlighter)
-- Toggle visual claro (cor activa vs inactiva)
-- Em modo sublinhado: texto seleccionável, popover aparece, flip desactivado
-- Ao sair do modo ou criar highlight: flip volta ao normal
-- Funciona mesmo com protecção activa
+## Critérios de aceitação
+- Zoom in/out funcional com botões e Ctrl+scroll
+- Indicador visual do nível de zoom com reset ao clicar
+- Pan (scroll) quando zoom > 100%
+- Zoom não interfere com flip de páginas nem com highlight mode
 
