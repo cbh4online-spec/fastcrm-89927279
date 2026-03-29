@@ -40,7 +40,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
 
   if (page.type === "cover") {
     return (
-      <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={baseStyle}>
+      <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden" style={{ ...baseStyle, background: 'var(--ebook-primary, linear-gradient(to bottom right, #0f172a, #1e293b, #0f172a))' }}>
         {page.coverUrl ? (
           <>
             <img src={page.coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
@@ -51,7 +51,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         )}
         <div className="relative z-10 text-center px-[1.5em] max-w-full overflow-hidden">
           <div className="w-[4em] h-[0.15em] bg-amber-400/60 mx-auto mb-[1.2em]" />
-          <h1 className="font-bold text-white font-serif leading-tight mb-[0.6em] drop-shadow-lg break-words" style={{ fontSize: '2.2em' }}>
+          <h1 className="font-bold text-white leading-tight mb-[0.6em] drop-shadow-lg break-words" style={{ fontSize: '2.2em', fontFamily: 'var(--ebook-heading-font, serif)' }}>
             {page.title}
           </h1>
           {page.subtitle && (
@@ -100,7 +100,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
             Capítulo {page.chapterIndex + 1}
           </span>
           <div className="w-[3em] h-[0.15em] bg-amber-700/30 mx-auto mt-[0.6em] mb-[1em]" />
-          <h2 className="font-bold text-slate-900 font-serif leading-tight" style={{ fontSize: '2em' }}>
+          <h2 className="font-bold text-slate-900 leading-tight" style={{ fontSize: '2em', fontFamily: 'var(--ebook-heading-font, serif)' }}>
             {page.title}
           </h2>
         </div>
@@ -210,7 +210,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto prose max-w-none font-serif text-slate-800
+      <div className="flex-1 overflow-y-auto prose max-w-none text-slate-800
         [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-amber-900/10 [&::-webkit-scrollbar-track]:bg-transparent
         prose-p:leading-[1.65] prose-p:!text-slate-800 prose-p:mb-[0.5em]
         prose-headings:!text-slate-900 prose-headings:font-bold prose-headings:font-serif prose-headings:mb-[0.5em] prose-headings:mt-[0.7em]
@@ -222,7 +222,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         [&>p:first-of-type]:first-letter:text-[2.5em] [&>p:first-of-type]:first-letter:font-bold [&>p:first-of-type]:first-letter:text-amber-800 [&>p:first-of-type]:first-letter:float-left [&>p:first-of-type]:first-letter:mr-[0.2em] [&>p:first-of-type]:first-letter:mt-[0.05em] [&>p:first-of-type]:first-letter:leading-none [&>p:first-of-type]:first-letter:font-serif
         [&_*]:!text-slate-800 [&_h1]:!text-slate-900 [&_h2]:!text-slate-900 [&_h3]:!text-slate-900 [&_strong]:!text-slate-900
       "
-        style={{ fontSize: '1em' }}
+        style={{ fontSize: '1em', fontFamily: 'var(--ebook-body-font, serif)' }}
       >
         {isHtmlContent(page.content) ? (
           <div dangerouslySetInnerHTML={{ __html: page.content }} />

@@ -715,6 +715,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             headerText={localHeaderText || undefined}
             footerText={localFooterText || undefined}
             contactPage={Object.keys(localContactPage).length > 0 ? localContactPage : undefined}
+            styleTokens={(ebook as any).global_styles || undefined}
           />
         </DialogContent>
       </Dialog>
