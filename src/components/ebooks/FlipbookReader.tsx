@@ -294,9 +294,10 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
                   onClick={() => goToPage(i)}
                   className={`w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
                     i === currentPage || i === rightPage
-                      ? "border-amber-400 shadow-lg shadow-amber-400/20 bg-white"
+                      ? "shadow-lg bg-white"
                       : "border-white/10 bg-white/5 hover:border-white/30"
                   }`}
+                  style={i === currentPage || i === rightPage ? { borderColor: 'var(--ebook-accent, #d4a574)', boxShadow: `0 10px 15px -3px color-mix(in srgb, var(--ebook-accent, #d4a574) 20%, transparent)` } : undefined}
                 >
                   <span className={`font-mono ${i === currentPage || i === rightPage ? "text-slate-800" : "text-white/40"}`}>
                     {i + 1}

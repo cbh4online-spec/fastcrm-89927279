@@ -238,10 +238,14 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
       <div
         ref={editorRef}
         contentEditable
+        style={{
+          fontFamily: 'var(--ebook-body-font, inherit)',
+        }}
         className={cn(
           "min-h-[50vh] outline-none text-foreground",
           "prose prose-sm max-w-none dark:prose-invert",
           "prose-headings:text-foreground prose-headings:font-bold",
+          "[&_h1]:[font-family:var(--ebook-heading-font,inherit)] [&_h2]:[font-family:var(--ebook-heading-font,inherit)] [&_h3]:[font-family:var(--ebook-heading-font,inherit)]",
           "prose-h1:text-2xl prose-h1:mt-6 prose-h1:mb-3",
           "prose-h2:text-xl prose-h2:mt-5 prose-h2:mb-2",
           "prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2",
