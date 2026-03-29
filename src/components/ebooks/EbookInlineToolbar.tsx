@@ -44,8 +44,8 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
         "bg-popover border shadow-xl animate-fade-in"
       )}
       style={{
-        top: position.top,
-        left: position.left,
+        top: Math.max(8, position.top),
+        left: Math.max(60, position.left),
         transform: 'translateX(-50%)',
       }}
       onMouseDown={(e) => e.preventDefault()}
