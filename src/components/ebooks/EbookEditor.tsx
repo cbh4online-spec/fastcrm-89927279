@@ -23,6 +23,8 @@ import { EbookBlockToolbar } from "./EbookBlockToolbar";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
+import { EbookEditorNotesPanel } from "./EbookEditorNotesPanel";
+import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
@@ -62,6 +64,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { data: ebook, isLoading } = useEbook(ebookId);
   const updateEbook = useUpdateEbook();
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
+  const { notes, isLoading: notesLoading, addNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
@@ -671,6 +674,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             <TabsTrigger value="marca" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
               Marca
             </TabsTrigger>
+            <TabsTrigger value="notas" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full relative">
+              Notas
+              {notes.length > 0 && (
+                <Badge variant="secondary" className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[10px] leading-none">
+                  {notes.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab: Inserir (blocks) */}
@@ -836,6 +847,23 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 </div>
               </div>
             </ScrollArea>
+          </TabsContent>
+
+          {/* Tab: Notas */}
+          <TabsContent value="notas" className="flex-1 overflow-hidden mt-0">
+            <EbookEditorNotesPanel
+              notes={notes}
+              isLoading={notesLoading}
+              addNote={addNote}
+              deleteNote={deleteNote}
+              activeChapterIndex={ebook ? ebook.chapters.findIndex(c => c.id === activeChapterId) : 0}
+              chapterNames={ebook ? ebook.chapters.map(c => c.title) : []}
+              onNavigateToChapter={(idx) => {
+                if (ebook && ebook.chapters[idx]) {
+                  setActiveChapterId(ebook.chapters[idx].id);
+                }
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
