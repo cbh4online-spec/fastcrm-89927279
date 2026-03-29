@@ -23,18 +23,18 @@ export function FlipbookPage({ page }: FlipbookPageProps) {
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-slate-900 to-primary/10" />
         )}
-        <div className="relative z-10 text-center px-10 max-w-full">
-          <div className="w-16 h-0.5 bg-amber-400/60 mx-auto mb-8" />
-          <h1 className="text-3xl md:text-4xl font-bold text-white font-serif leading-tight mb-4 drop-shadow-lg">
+        <div className="relative z-10 text-center px-4 max-w-full overflow-hidden">
+          <div className="w-12 h-0.5 bg-amber-400/60 mx-auto mb-5" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-serif leading-tight mb-3 drop-shadow-lg break-words">
             {page.title}
           </h1>
           {page.subtitle && (
-            <p className="text-base text-white/70 font-serif italic mb-6">{page.subtitle}</p>
+            <p className="text-xs sm:text-sm text-white/70 font-serif italic mb-4 break-words">{page.subtitle}</p>
           )}
           {page.author && (
-            <p className="text-sm text-amber-300/80 tracking-widest uppercase mt-8">{page.author}</p>
+            <p className="text-[10px] sm:text-xs text-amber-300/80 tracking-widest uppercase mt-5">{page.author}</p>
           )}
-          <div className="w-16 h-0.5 bg-amber-400/60 mx-auto mt-8" />
+          <div className="w-12 h-0.5 bg-amber-400/60 mx-auto mt-5" />
         </div>
       </div>
     );
