@@ -2,8 +2,9 @@ import { useEbookAnalyticsKPIs } from "@/hooks/useEbookAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet, BarChart3, TrendingUp, UserCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet, BarChart3, TrendingUp, UserCheck, ContactRound } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 interface EbookAnalyticsProps {
   ebookId: string;
@@ -21,6 +22,7 @@ function formatDuration(seconds: number): string {
 }
 
 export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsProps) {
+  const navigate = useNavigate();
   const kpis = useEbookAnalyticsKPIs(ebookId);
 
   if (kpis.isLoading) {
@@ -65,7 +67,7 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3 px-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -83,6 +85,18 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
             </div>
             <p className="text-2xl font-bold text-foreground">{kpis.uniqueReaders}</p>
             <p className="text-xs text-muted-foreground">{kpis.anonymousViews} anónimos</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <ContactRound className="h-4 w-4" />
+              <span className="text-xs font-medium uppercase tracking-wider">No CRM</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{kpis.readersInCrm}</p>
+            <p className="text-xs text-muted-foreground">
+              {kpis.uniqueReaders > 0 ? Math.round((kpis.readersInCrm / kpis.uniqueReaders) * 100) : 0}% dos identificados
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -217,13 +231,14 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border/50 text-xs text-muted-foreground uppercase tracking-wider">
-                    <th className="text-left py-2 pr-3">Leitor</th>
-                    <th className="text-center py-2 px-2">Páginas</th>
-                    <th className="text-center py-2 px-2">Conclusão</th>
-                    <th className="text-center py-2 px-2">Tempo</th>
-                    <th className="text-right py-2 pl-3">Data</th>
-                  </tr>
+                   <tr className="border-b border-border/50 text-xs text-muted-foreground uppercase tracking-wider">
+                     <th className="text-left py-2 pr-3">Leitor</th>
+                     <th className="text-center py-2 px-2">CRM</th>
+                     <th className="text-center py-2 px-2">Páginas</th>
+                     <th className="text-center py-2 px-2">Conclusão</th>
+                     <th className="text-center py-2 px-2">Tempo</th>
+                     <th className="text-right py-2 pl-3">Data</th>
+                   </tr>
                 </thead>
                 <tbody>
                   {kpis.identifiedReaders.map((r, i) => (
@@ -232,7 +247,20 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
                         <div className="font-medium text-foreground">{r.name || "—"}</div>
                         <div className="text-xs text-muted-foreground">{r.email}</div>
                       </td>
-                      <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
+                       <td className="text-center py-2 px-2">
+                         {r.isInCrm ? (
+                           <Badge
+                             variant="default"
+                             className="bg-emerald-500/90 text-white border-0 text-xs cursor-pointer hover:bg-emerald-600"
+                             onClick={() => navigate(`/dashboard/contacts/${r.contactId}`)}
+                           >
+                             No CRM
+                           </Badge>
+                         ) : (
+                           <Badge variant="outline" className="text-xs text-muted-foreground">Novo</Badge>
+                         )}
+                       </td>
+                       <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
                       <td className="text-center py-2 px-2">
                         <Badge
                           variant={r.completed ? "default" : "secondary"}
