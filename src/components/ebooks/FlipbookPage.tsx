@@ -237,7 +237,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
       <div
         className="flex-1 overflow-y-auto prose max-w-none
           [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-current/10 [&::-webkit-scrollbar-track]:bg-transparent
-          prose-img:rounded-lg prose-img:shadow-md prose-img:mx-auto prose-img:my-[0.6em] prose-img:max-h-[10em]
+          prose-img:rounded-lg prose-img:shadow-md prose-img:mx-auto prose-img:my-[0.6em] prose-img:max-h-[45%]
         "
         style={{
           fontSize: "1em",
@@ -252,6 +252,16 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
             <div
               className="ebook-html-content"
               dangerouslySetInnerHTML={{ __html: page.content }}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                const anchor = target.closest('a');
+                if (anchor) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const href = anchor.getAttribute('href');
+                  if (href) window.open(href, '_blank', 'noopener,noreferrer');
+                }
+              }}
             />
           </>
         ) : (
@@ -308,9 +318,20 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
                   {children}
                 </code>
               ),
+              a: ({ children, href }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => { e.stopPropagation(); }}
+                  style={{ color: v.accent, textDecoration: "underline", cursor: "pointer", fontWeight: 500 }}
+                >
+                  {children}
+                </a>
+              ),
               img: ({ node, ...props }) => (
                 <figure style={{ margin: "0.8em 0" }}>
-                  <img {...props} className="rounded-lg shadow-md mx-auto max-w-full" style={{ maxHeight: "12em" }} />
+                  <img {...props} className="rounded-lg shadow-md mx-auto max-w-full" style={{ maxHeight: "45%" }} />
                   {props.alt && (
                     <figcaption style={{ textAlign: "center", color: "#94a3b8", marginTop: "0.4em", fontStyle: "italic", fontSize: "0.75em" }}>
                       {props.alt}
@@ -378,9 +399,31 @@ const htmlContentScopedCSS = `
   .ebook-html-content ul, .ebook-html-content ol { padding-left: 1.5em; margin-bottom: 0.7em; }
   .ebook-html-content li { margin-bottom: 0.3em; }
   .ebook-html-content img {
-    max-width: 100%; border-radius: 0.5em; margin: 0.6em auto; display: block;
+    max-width: 100%; border-radius: 0.5em; margin: 0.8em auto; display: block;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    max-height: 12em;
+    max-height: 45%;
   }
-  .ebook-html-content a { color: var(--ebook-primary, #0f172a); text-decoration: underline; }
+  .ebook-html-content figure {
+    margin: 0.8em 0; text-align: center;
+  }
+  .ebook-html-content figure img {
+    margin: 0 auto 0.4em;
+  }
+  .ebook-html-content figcaption {
+    font-size: 0.75em; font-style: italic; color: #94a3b8; text-align: center;
+  }
+  .ebook-html-content a {
+    color: var(--ebook-accent, #b4884e); text-decoration: underline;
+    cursor: pointer; font-weight: 500;
+    transition: opacity 0.15s;
+  }
+  .ebook-html-content a:hover { opacity: 0.7; }
+  .ebook-html-content .ebook-cta-link {
+    display: inline-block; padding: 0.5em 1.2em; border-radius: 0.4em;
+    background: var(--ebook-accent, #b4884e); color: #fff !important;
+    text-decoration: none; font-weight: 600; font-size: 0.9em;
+    text-align: center; margin: 0.8em 0;
+    transition: opacity 0.15s;
+  }
+  .ebook-html-content .ebook-cta-link:hover { opacity: 0.85; }
 `;

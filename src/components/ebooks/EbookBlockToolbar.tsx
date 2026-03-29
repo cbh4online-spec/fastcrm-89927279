@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import {
   Type, ImageIcon, Minus, Quote, Table2, Columns2,
   Heading1, Heading2, List, ListOrdered, Undo2, Redo2,
-  Upload, Wand2, Loader2,
+  Upload, Wand2, Loader2, Link,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +27,7 @@ const TEXT_BLOCKS = [
 const LAYOUT_BLOCKS = [
   { icon: Quote, label: 'Citação', html: '<blockquote>Insira a sua citação aqui...</blockquote>' },
   { icon: Minus, label: 'Divisor', html: '<hr />' },
+  { icon: Link, label: 'Link/CTA', html: '<p><a href="https://exemplo.com" class="ebook-cta-link">Clique aqui</a></p>' },
   { icon: Table2, label: 'Tabela', html: '<table style="width:100%;border-collapse:collapse"><tr><th style="border:1px solid #ddd;padding:8px;text-align:left">Coluna 1</th><th style="border:1px solid #ddd;padding:8px;text-align:left">Coluna 2</th></tr><tr><td style="border:1px solid #ddd;padding:8px">Dados</td><td style="border:1px solid #ddd;padding:8px">Dados</td></tr></table>' },
   { icon: Columns2, label: '2 Colunas', html: '<div style="display:flex;gap:16px"><div style="flex:1"><p>Coluna esquerda</p></div><div style="flex:1"><p>Coluna direita</p></div></div>' },
 ];
