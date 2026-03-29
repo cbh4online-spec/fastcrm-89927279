@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
+import { FlipbookPage, FlipbookPageData, ContactPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
 
@@ -17,28 +17,39 @@ interface FlipbookReaderProps {
   coverUrl?: string;
   chapters: EbookChapter[];
   compact?: boolean;
+  headerText?: string;
+  footerText?: string;
+  contactPage?: ContactPageData;
 }
 
 const CHARS_PER_PAGE = 1200;
+const IMAGE_CHAR_EQUIVALENT = 400;
 
 function splitContentIntoPages(content: string): string[] {
   if (!content || content.trim().length === 0) return ["*Conteúdo em preparação*"];
   const paragraphs = content.split(/\n\n+/);
   const pages: string[] = [];
   let current = "";
+  let currentWeight = 0;
 
   for (const para of paragraphs) {
-    const combined = current.length + (current ? 2 : 0) + para.length;
-    // Allow 20% overflow to avoid nearly-empty next pages
-    if (combined > CHARS_PER_PAGE && current.length > 0) {
-      if (combined <= CHARS_PER_PAGE * 1.2) {
+    // Check if paragraph contains an image
+    const isImage = /!\[.*?\]\(.*?\)/.test(para);
+    const paraWeight = isImage ? IMAGE_CHAR_EQUIVALENT : para.length;
+    const combinedWeight = currentWeight + (current ? 2 : 0) + paraWeight;
+
+    if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
+      if (combinedWeight <= CHARS_PER_PAGE * 1.2) {
         current += (current ? "\n\n" : "") + para;
+        currentWeight = combinedWeight;
       } else {
         pages.push(current.trim());
         current = para;
+        currentWeight = paraWeight;
       }
     } else {
       current += (current ? "\n\n" : "") + para;
+      currentWeight = combinedWeight;
     }
   }
   if (current.trim()) pages.push(current.trim());
@@ -46,7 +57,14 @@ function splitContentIntoPages(content: string): string[] {
 }
 
 function buildPages(
-  title: string, subtitle?: string, author?: string, coverUrl?: string, chapters: EbookChapter[] = []
+  title: string,
+  subtitle?: string,
+  author?: string,
+  coverUrl?: string,
+  chapters: EbookChapter[] = [],
+  headerText?: string,
+  footerText?: string,
+  contactPage?: ContactPageData
 ): FlipbookPageData[] {
   const pages: FlipbookPageData[] = [];
 
@@ -76,6 +94,8 @@ function buildPages(
         content,
         pageNumber: 0,
         totalPages: 0,
+        headerText,
+        footerText,
       });
       pageOffset++;
     }
@@ -87,13 +107,19 @@ function buildPages(
   }
 
   // Add chapter pages and set page numbers
-  const totalPages = pages.length + chapterPages.length;
+  const hasContact = contactPage && (contactPage.email || contactPage.phone || contactPage.website || contactPage.slogan);
+  const totalPages = pages.length + chapterPages.length + (hasContact ? 1 : 0);
   for (const p of chapterPages) {
     if (p.type === "content") {
       p.pageNumber = pages.length + 1;
       p.totalPages = totalPages;
     }
     pages.push(p);
+  }
+
+  // Contact page at the end
+  if (hasContact) {
+    pages.push({ type: "contact", contactData: contactPage!, title });
   }
 
   return pages;
@@ -122,14 +148,14 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
 
-  const pages = buildPages(title, subtitle, author, coverUrl, chapters);
+  const pages = buildPages(title, subtitle, author, coverUrl, chapters, headerText, footerText, contactPage);
 
   const handleFlip = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);

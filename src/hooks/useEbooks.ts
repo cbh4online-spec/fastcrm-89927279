@@ -12,6 +12,15 @@ export interface EbookChapter {
   cover_image?: string;
 }
 
+export interface EbookContactPage {
+  email?: string;
+  phone?: string;
+  website?: string;
+  slogan?: string;
+  logo_url?: string;
+  social_links?: { label: string; url: string }[];
+}
+
 export interface Ebook {
   id: string;
   workspace_id: string;
@@ -25,6 +34,9 @@ export interface Ebook {
   pdf_storage_path?: string | null;
   slug?: string | null;
   status: "draft" | "published" | "archived";
+  header_text?: string | null;
+  footer_text?: string | null;
+  contact_page?: EbookContactPage | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -97,7 +109,7 @@ export function useCreateEbook() {
 export function useUpdateEbook() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Pick<Ebook, "title" | "subtitle" | "description" | "author_name" | "cover_url" | "chapters" | "status" | "slug" | "pdf_storage_path">>) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Pick<Ebook, "title" | "subtitle" | "description" | "author_name" | "cover_url" | "chapters" | "status" | "slug" | "pdf_storage_path" | "header_text" | "footer_text" | "contact_page">>) => {
       const { data, error } = await (supabase as any).from("ebooks").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
       if (error) throw error;
       return data as Ebook;

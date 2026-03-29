@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, type DragEvent } from "react";
-import { useEbook, useUpdateEbook, EbookChapter } from "@/hooks/useEbooks";
+import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import {
   BookOpen, Globe, FileText, BarChart3,
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
+  Mail, Phone, Link, Type, MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -556,13 +557,91 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           </AnimatePresence>
         </div>
 
-        {/* Right sidebar: Block toolbar */}
-        <div className="w-40 shrink-0">
-          <EbookBlockToolbar
-            onInsertBlock={insertBlock}
-            onUndo={() => richEditorRef.current?.undo()}
-            onRedo={() => richEditorRef.current?.redo()}
-          />
+        {/* Right sidebar: Block toolbar + Branding */}
+        <div className="w-48 shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
+          <div className="shrink-0">
+            <EbookBlockToolbar
+              onInsertBlock={insertBlock}
+              onUndo={() => richEditorRef.current?.undo()}
+              onRedo={() => richEditorRef.current?.redo()}
+            />
+          </div>
+
+          {/* Branding section */}
+          <div className="border-t border-border/40 p-3 space-y-3 overflow-y-auto flex-1">
+            <div>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <Type className="h-3 w-3" /> Cabeçalho / Rodapé
+              </span>
+              <div className="mt-2 space-y-2">
+                <Input
+                  placeholder="Texto do cabeçalho"
+                  value={(ebook as any).header_text || ""}
+                  onChange={(e) => updateEbook.mutate({ id: ebookId, header_text: e.target.value } as any)}
+                  className="h-7 text-xs"
+                />
+                <Input
+                  placeholder="Texto do rodapé"
+                  value={(ebook as any).footer_text || ""}
+                  onChange={(e) => updateEbook.mutate({ id: ebookId, footer_text: e.target.value } as any)}
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-border/30 pt-3">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" /> Página de Contactos
+              </span>
+              <div className="mt-2 space-y-2">
+                <Input
+                  placeholder="Slogan"
+                  value={((ebook as any).contact_page as EbookContactPage)?.slogan || ""}
+                  onChange={(e) => {
+                    const cp = { ...((ebook as any).contact_page || {}), slogan: e.target.value };
+                    updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
+                  }}
+                  className="h-7 text-xs"
+                />
+                <div className="flex gap-1">
+                  <Mail className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Input
+                    placeholder="Email"
+                    value={((ebook as any).contact_page as EbookContactPage)?.email || ""}
+                    onChange={(e) => {
+                      const cp = { ...((ebook as any).contact_page || {}), email: e.target.value };
+                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
+                    }}
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Phone className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Input
+                    placeholder="Telefone"
+                    value={((ebook as any).contact_page as EbookContactPage)?.phone || ""}
+                    onChange={(e) => {
+                      const cp = { ...((ebook as any).contact_page || {}), phone: e.target.value };
+                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
+                    }}
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Link className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
+                  <Input
+                    placeholder="Website"
+                    value={((ebook as any).contact_page as EbookContactPage)?.website || ""}
+                    onChange={(e) => {
+                      const cp = { ...((ebook as any).contact_page || {}), website: e.target.value };
+                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
+                    }}
+                    className="h-7 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -575,6 +654,9 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             author={ebook.author_name || undefined}
             coverUrl={ebook.cover_url || undefined}
             chapters={ebook.chapters}
+            headerText={(ebook as any).header_text || undefined}
+            footerText={(ebook as any).footer_text || undefined}
+            contactPage={(ebook as any).contact_page || undefined}
           />
         </DialogContent>
       </Dialog>
