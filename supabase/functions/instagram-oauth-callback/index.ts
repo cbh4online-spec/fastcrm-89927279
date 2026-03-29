@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const INSTAGRAM_APP_ID = Deno.env.get("INSTAGRAM_APP_ID")!;
   const INSTAGRAM_APP_SECRET = Deno.env.get("INSTAGRAM_APP_SECRET")!;
-  const APP_URL = Deno.env.get("APP_URL") || "https://fastcrm.lovable.app";
+  const APP_URL = Deno.env.get("APP_URL") || "https://fastcrm.metodopare.ai";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
