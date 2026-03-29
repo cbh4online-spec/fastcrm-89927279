@@ -8,15 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { EbookThemeSelector } from "./EbookThemeSelector";
 import { EbookImageStylePicker, IMAGE_STYLES } from "./EbookImageStylePicker";
+import { TemplatePickerStep } from "./templates/TemplatePickerStep";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { EbookTemplate } from "@/types/ebook-templates";
 import {
   Sparkles, ArrowLeft, ArrowRight, Loader2, Minus, Plus,
-  BookOpen, Palette, ImageIcon, Coins, Wand2
+  BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,6 +41,8 @@ interface Props {
 
 export function EbookWizard({ onComplete, onCancel }: Props) {
   const [step, setStep] = useState(0);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<EbookTemplate | null>(null);
   const [prompt, setPrompt] = useState("");
   const [chapterCount, setChapterCount] = useState(7);
   const [tone, setTone] = useState("professional");
