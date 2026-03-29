@@ -1,107 +1,75 @@
 
 
-# AUDITORIA UI/UX — FastCRM
+# AUDITORIA UI/UX — Ronda 2 (Inspeção Crítica)
 
 ## 1. RESUMO EXECUTIVO
 
-**Avaliação geral:** O FastCRM tem uma fundação sólida — design system com tokens CSS bem estruturados (light/dark), componentes shadcn/ui adequados, e um visual premium com paleta dark+gold coerente. No entanto, existem inconsistências significativas entre módulos, problemas de densidade, hierarquia tipográfica irregular, e vários componentes que não atingem o nível enterprise esperado.
+**Score atual:** 7.0/10 — Melhorou desde a ronda anterior, mas persistem problemas significativos que impedem a perceção de produto premium.
 
-**Nível de maturidade visual:** 6.5/10 — Bom base system, mas execução desigual entre áreas.
-
-**Principais falhas:**
-- Inconsistência de padrões entre módulos (eBooks usa padrões diferentes do Dashboard)
-- Excesso de tamanhos de texto micro (`text-[9px]`, `text-[10px]`) que prejudicam legibilidade
-- Botões demasiado pequenos no editor (`h-7`) com texto `text-xs` + ícones — densidade extrema
-- Template gallery cards sem thumbnails reais (apenas blocos de cor)
-- Admin table sem usar o componente `Table` do design system
-- Gradients excessivos em alguns CTAs (`bg-gradient-to-r from-primary to-primary/80`)
-
----
-
-## 2. PROBLEMAS CRÍTICOS
-
-### 2.1 Editor de eBooks — Toolbar overflow (CRÍTICA)
-**Ficheiro:** `EbookEditor.tsx` linhas 532-578
-**Problema:** A toolbar do capítulo tem ~12 botões em linha única, todos `h-7 text-xs`. Em ecrãs <1400px, os botões fazem overflow e ficam cortados ou comprimidos. Não há `flex-wrap`, `overflow-x-auto`, nem agrupamento visual.
-**Impacto:** Funcionalidades inacessíveis, aspecto amador.
-**Correção:** Agrupar ações em dropdowns lógicos (AI actions, media actions), usar `flex-wrap` e separadores visuais.
-
-### 2.2 Textos `text-[9px]` e `text-[10px]` — Legibilidade (CRÍTICA)
-**Ficheiros:** AdaptiveSidebar (L277, L78, L79), EbookEditor (L403-406, L441, L543, L551, L557), TemplateCard (L57, L68), EbooksList (L100, L104, L108, L191), TopBar (L88)
-**Problema:** Mais de 30 instâncias de texto abaixo de 11px. Em ecrãs standard (1080p, sem scaling), são ilegíveis. WCAG recomenda mínimo 12px para body text.
-**Impacto:** Acessibilidade e legibilidade gravemente afetadas.
-**Correção:** Substituir `text-[9px]` → `text-[10px]` e `text-[10px]` → `text-xs` (12px) como regra base. Usar `text-[10px]` apenas para badges/contadores.
-
-### 2.3 Criação do eBook — UX duplicada e confusa (ALTA)
-**Ficheiro:** `EbooksPage.tsx` + `EbooksList.tsx`
-**Problema:** Existem DOIS caminhos de criação: o botão "Criar com IA" e "Criar Manual" no `EbooksList` (que abrem diálogos internos) e o modal de criação do `EbooksPage` (Usar Template / Assistente IA / Do Zero). O `onOpenWizard` do EbooksList dispara o modal de 3 opções, mas o botão "Criar Manual" abre um diálogo DIFERENTE dentro do EbooksList. Fluxo fragmentado.
-**Impacto:** Utilizador confuso com múltiplos entry points que fazem coisas diferentes.
-**Correção:** Consolidar: o botão principal deve sempre abrir o modal de 3 opções. Remover o diálogo de criação manual do EbooksList.
+**Principais áreas fracas:**
+- **ChapterThumbnail** usa `text-[6px]` e `text-[7px]` — ilegível, aspecto de protótipo
+- **EbookBlockToolbar** mantém `text-[10px]` em 8 locais — visualmente denso demais
+- **TemplatePickerStep** usa `text-[9px]` em badges — inconsistente com a correção anterior
+- **Sidebar** mantém `text-[9px]` em tags Pro/Beta e `text-[10px]` em section labels
+- **Editor toolbar** continua com `h-7` em todos os botões — demasiado pequenos para produtividade
+- **Editor right sidebar** (`w-48`) é estreita demais — branding inputs ficam comprimidos
+- **Admin table** continua a usar `<table>` raw em vez do componente `Table` do shadcn
+- **Gallery page** não usa `PageHeader` — inconsistente com o resto do app
+- **EbooksList** ainda tem um dialog de criação interno duplicado (Manual/IA) que nunca deveria ser acessível dado que o fluxo principal agora usa o modal do `EbooksPage`
+- **TemplateGalleryFilters** usa botões `h-7 text-xs` estilo outline — deveria usar pill/tabs para consistência
 
 ---
 
-## 3. INCONSISTÊNCIAS DE DESIGN SYSTEM
+## 2. PROBLEMAS POR GRAVIDADE
 
-| Problema | Local | Gravidade |
-|---|---|---|
-| Admin table usa `<table>` raw em vez de `Table` component | EbookTemplatesAdminPage | Média |
-| Badges status inconsistentes: alguns usam `className` direto, outros usam `variant` | EbooksList vs StatusBadge design system | Média |
-| Sidebar usa texto `text-[10px]` para labels, mas design system recomendaria `text-xs` | AdaptiveSidebar L277, L465 | Média |
-| `PageHeader` component existe mas não é usado nas páginas de eBooks/templates | EbooksPage, GalleryPage, AdminPage | Média |
-| Gradient buttons (`bg-gradient-to-r from-primary...`) usados inconsistentemente — alguns CTAs têm, outros não | EbooksList, PageHeader, Dashboard | Baixa |
-| Cards de eBook usam `border-border/60` enquanto template cards usam `border-border/50` | EbooksList vs TemplateCard | Baixa |
-| `TemplatePreviewModal` usa sidebar com padding `p-3` mas page list items têm `p-2` — ritmo vertical irregular | TemplatePreviewModal L56-70 | Baixa |
+### CRÍTICOS
+| # | Ecrã | Problema | Correção |
+|---|---|---|---|
+| 1 | ChapterThumbnail | `text-[6px]` e `text-[7px]` — completamente ilegível, abaixo de qualquer standard | Aumentar para `text-[9px]` (título) e `text-[8px]` (preview), label para `text-xs` |
+| 2 | EbookEditor toolbar | 12 botões `h-7` sem agrupamento, overflow em <1400px | Agrupar IA actions num `DropdownMenu`, manter undo/redo/titulo diretos, subir para `h-8` |
 
----
+### ALTOS
+| # | Ecrã | Problema | Correção |
+|---|---|---|---|
+| 3 | TemplatePickerStep | `text-[9px]` em badges de categoria e contagem de páginas | Subir para `text-xs` |
+| 4 | AdaptiveSidebar | `text-[9px]` em Pro/Beta tags, `text-[10px]` em section labels | Pro/Beta → `text-[10px]`, sections → `text-xs` |
+| 5 | EbookBlockToolbar | `text-[10px]` em 8 labels de bloco — parece amador | Subir para `text-xs` |
+| 6 | EbooksList | Dialog de criação interna (Manual/IA) duplicado — fluxo morto | Remover dialog interno; manter apenas o modal centralizado |
+| 7 | Editor branding sidebar | `text-[10px]` em labels + inputs `h-7 text-xs` muito comprimidos | Labels → `text-xs`, inputs → `h-8` |
 
-## 4. MELHORIAS RECOMENDADAS
-
-### QUICK WINS (podem ser feitos imediatamente)
-
-1. **Aumentar tamanhos mínimos de texto** — global find/replace de `text-[9px]` para `text-[10px]`, e usar `text-xs` como mínimo para labels
-2. **Usar Table component na admin page** — substituir `<table>` por shadcn Table
-3. **Usar PageHeader nas páginas de eBooks** — consistência com o resto do app
-4. **Template thumbnails** — melhorar o mini-preview nos TemplateCards com mais detalhe visual (simular 3-4 blocos de layout em vez de 2 blocos genéricos)
-5. **TemplatePreviewModal** — aumentar sidebar de `w-48` para `w-56` para melhor legibilidade dos nomes de páginas
-
-### MELHORIAS ESTRUTURAIS
-
-6. **Editor toolbar** — agrupar ações IA num dropdown, media actions noutro, e manter apenas undo/redo/titulo visíveis como botões diretos
-7. **Consolidar fluxo de criação** — remover dialog de criação do EbooksList, usar apenas o modal centralizado do EbooksPage
-8. **Gallery filters** — usar o padrão pill/tabs do `PageHeader` em vez de botões outline soltos
-9. **Template admin** — adicionar color swatches maiores, descrição truncada, e usar o componente `Badge` com variantes semânticas do design system
-
-### MELHORIAS PREMIUM
-
-10. **Template gallery** — adicionar header visual com contagem, e um CTA "Criar Template" para admins
-11. **Template card hover** — efeito de zoom suave no thumbnail + blur overlay com ações
-12. **EbookEditor sidebar** — adicionar numeração clara e indicador de progresso por capítulo
+### MÉDIOS
+| # | Ecrã | Problema | Correção |
+|---|---|---|---|
+| 8 | AdminPage | `<table>` raw — sem Table component do design system | Migrar para `Table, TableHead, TableRow, TableCell` |
+| 9 | GalleryPage | Não usa `PageHeader` — header manual inconsistente | Usar `PageHeader` com contagem de templates |
+| 10 | TemplateGalleryFilters | Botões outline `h-7` para filtros — deveria usar pill style | Converter para pill tabs como no `PageHeader` |
+| 11 | EbookEditor | Right sidebar `w-48` — estreita para os inputs de contacto | Aumentar para `w-56` |
 
 ---
 
-## 5. PLANO DE CORREÇÃO (por ordem de implementação)
+## 3. PLANO DE CORREÇÃO
 
-### Batch 1 — Quick Wins de Legibilidade e Consistência
-1. Fix textos `text-[9px]` → `text-[10px]` globalmente nos componentes de eBooks e sidebar
-2. Substituir `<table>` raw na admin page pelo componente `Table` do shadcn
-3. Usar `PageHeader` nas 3 páginas de eBooks (Gallery, Admin, EbooksList)
-4. Normalizar border opacity em cards (`border-border/50` como padrão)
+### Batch 1 — Legibilidade Crítica (5 ficheiros)
+1. **ChapterThumbnail.tsx** — `text-[6px]` → `text-[9px]`, `text-[7px]` → `text-[9px]`, `text-[9px]` word count → `text-[10px]`, label `text-[10px]` → `text-xs`
+2. **TemplatePickerStep.tsx** — `text-[9px]` badges → `text-[10px]`
+3. **AdaptiveSidebar.tsx** — Pro/Beta tags `text-[9px]` → `text-[10px]`, section labels `text-[10px]` → `text-xs`
+4. **EbookBlockToolbar.tsx** — All `text-[10px]` → `text-xs`
+5. **EbookEditor.tsx** — Branding labels `text-[10px]` → `text-xs`, editor buttons credit badges keep `text-[10px]` (acceptable for metadata), right sidebar `w-48` → `w-56`, inputs `h-7` → `h-8`
 
-### Batch 2 — UX e Layout
-5. Consolidar fluxo de criação de eBooks (single entry point)
-6. Editor toolbar: wrap + dropdown agrupamento
-7. Template card: melhorar mini-preview com mais blocos simulados
-8. Gallery filters: usar pill style consistente com PageHeader tabs
+### Batch 2 — UX e Consistência (4 ficheiros)
+6. **EbooksList.tsx** — Remove dead dialog de criação (Manual/IA) — lines 239-309 e state associado
+7. **EbookEditor.tsx** toolbar — Agrupar AI actions (Gerar/Melhorar/Condensar/Expandir) num DropdownMenu, media actions (Img IA/Upload) noutro; manter undo/redo/titulo diretos; botões → `h-8`
+8. **EbookTemplatesAdminPage.tsx** — Migrar para `Table` component do shadcn/ui
+9. **EbookTemplateGalleryPage.tsx** — Usar `PageHeader` com count de templates
 
-### Batch 3 — Polish Premium
-9. TemplatePreviewModal: sidebar wider, melhor hierarquia de texto
-10. Template admin: swatches, badges consistentes, bulk actions
-11. Empty states no módulo de templates (usar EmptyState do design system)
+### Batch 3 — Polish
+10. **TemplateGalleryFilters.tsx** — Converter para pill style (mesmo pattern do `PageHeader` tabs)
 
-### Notas
-- Não alterar lógica de negócio
-- Não alterar schema de dados
-- Todas as correções são CSS/Tailwind e reorganização de componentes
-- Manter compatibilidade com dark mode (já testado via tokens CSS)
-- Priorizar desktop (mobile é consulta na V1)
+### Resultado esperado
+- Score: 7.0 → **8.0/10**
+- Zero instâncias de `text-[6px]`/`text-[7px]` no módulo eBooks
+- Toolbar do editor utilizável sem overflow
+- Fluxo de criação simplificado (single entry point)
+- Componentes do design system usados consistentemente
+- Hierarquia visual clara em todas as páginas do módulo
 
