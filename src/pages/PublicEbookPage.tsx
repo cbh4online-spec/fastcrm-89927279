@@ -103,12 +103,28 @@ export default function PublicEbookPage() {
 
   async function createView(eb: EbookData, sessionId: string, name?: string, email?: string) {
     const totalPages = eb.chapters.reduce((s, ch) => s + Math.max(1, Math.ceil((ch.content?.length || 0) / 800)), 0) + 2;
+
+    // Match CRM: procurar contacto pelo email no workspace
+    let contactId: string | null = null;
+    if (email?.trim()) {
+      const { data: contactMatch } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("workspace_id", eb.workspace_id)
+        .eq("email", email.trim())
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
+      if (contactMatch) contactId = contactMatch.id;
+    }
+
     const { data } = await (supabase as any).from("ebook_views").insert({
       ebook_id: eb.id,
       workspace_id: eb.workspace_id,
       session_id: sessionId,
       reader_name: name || null,
       reader_email: email || null,
+      contact_id: contactId,
       referrer: document.referrer || null,
       utm_source: searchParams.get("utm_source") || null,
       utm_medium: searchParams.get("utm_medium") || null,

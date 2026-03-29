@@ -119,6 +119,7 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
       email: v.reader_email!,
       name: v.reader_name,
       contactId: v.contact_id,
+      isInCrm: !!v.contact_id,
       pagesViewed: v.pages_viewed,
       maxPage: v.max_page_reached,
       totalPages: v.total_pages,
@@ -126,11 +127,15 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
       timeSeconds: v.time_on_book_seconds,
       date: v.started_at,
       completed: v.completed,
-    })) || [];
+    }))
+    .sort((a, b) => (a.isInCrm === b.isInCrm ? 0 : a.isInCrm ? -1 : 1)) || [];
+
+  const readersInCrm = identifiedReaders.filter(r => r.isInCrm).length;
 
   return {
     isLoading: viewsLoading || eventsLoading,
     totalViews,
+    readersInCrm,
     uniqueReaders,
     anonymousViews,
     completedViews,
