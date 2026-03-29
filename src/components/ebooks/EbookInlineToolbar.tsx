@@ -143,7 +143,7 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
             <Link className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2" side="top">
+        <PopoverContent className="w-72 p-2" side="top" collisionPadding={8}>
           <div className="flex gap-2">
             <Input
               placeholder="https://..."
