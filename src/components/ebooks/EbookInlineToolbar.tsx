@@ -123,7 +123,7 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
             <Palette className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2" side="top">
+        <PopoverContent className="w-auto p-2" side="top" collisionPadding={8}>
           <div className="grid grid-cols-4 gap-1">
             {COLORS.map((color) => (
               <button
