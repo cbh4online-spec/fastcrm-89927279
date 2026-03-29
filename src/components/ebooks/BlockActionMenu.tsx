@@ -36,7 +36,7 @@ export function BlockActionMenu({
           <MoreVertical className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-44">
+      <DropdownMenuContent align="start" className="w-44" collisionPadding={8}>
         <DropdownMenuItem onClick={onMoveUp}>
           <ArrowUp className="h-3.5 w-3.5 mr-2" /> Mover acima
         </DropdownMenuItem>
