@@ -332,6 +332,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         showThumbnails={showThumbnails}
         spreadMode
         rightPage={rightPage}
+        onPrint={() => window.print()}
       />
     </div>
   );
