@@ -64,7 +64,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { data: ebook, isLoading } = useEbook(ebookId);
   const updateEbook = useUpdateEbook();
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
-  const { notes, isLoading: notesLoading, addNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
+  const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
