@@ -1,83 +1,53 @@
 
 
-# eBook Editor — Funcionalidades Gamma-style
+# Fix: Editor Gamma-style — Problemas de funcionalidade
 
-## Resumo
+## Problemas identificados
 
-Transformar o editor atual (Textarea + Markdown) num editor visual WYSIWYG com sidebar de ferramentas, thumbnails de páginas, toolbar inline e modo apresentação — como o Gamma.
-
----
-
-## Funcionalidades a construir
-
-### 1. Editor Rich Text (WYSIWYG)
-Substituir o `<Textarea>` atual por um editor `contentEditable` baseado no `RichTextEditor` que já existe no projeto (em `email-builder/`). O conteúdo passa de Markdown para HTML internamente.
-
-- Reutilizar padrão `contentEditable` + `document.execCommand` já existente
-- Suporte para: headings (H1-H3), bold, italic, underline, listas, links, imagens inline
-- Converter conteúdo Markdown existente para HTML na migração
-
-### 2. Sidebar direita — Toolbar de blocos de conteúdo
-Painel lateral direito com ícones para inserir elementos (como no Gamma):
-
-| Ícone | Bloco |
-|-------|-------|
-| Aa | Texto / Heading |
-| 🖼 | Imagem (upload ou IA) |
-| ── | Divisor |
-| ❝ | Citação/Quote |
-| 📊 | Tabela simples |
-| 🔲 | Layout 2 colunas |
-
-Cada botão insere o bloco na posição do cursor no editor.
-
-### 3. Thumbnails de páginas no sidebar esquerdo
-Substituir a lista de texto dos capítulos por mini-previews visuais (como o Gamma mostra slides numerados). Cada thumbnail mostra uma miniatura renderizada do conteúdo do capítulo com número.
-
-### 4. Drag & Drop de capítulos
-Adicionar reordenação por arrastar no sidebar esquerdo usando a biblioteca `@dnd-kit` ou HTML5 drag events.
-
-### 5. Botão "Tema" na barra superior
-Adicionar botão "Tema" no header do editor que abre o `EbookThemeSelector` existente num popover. O tema selecionado persiste no eBook (coluna `theme` já existe na DB).
-
-### 6. Modo Apresentação / Fullscreen
-Botão "Apresentar" que abre o `FlipbookReader` em modo fullscreen (como o botão "Apresentar" do Gamma).
-
-### 7. Floating toolbar inline
-Ao selecionar texto, mostrar toolbar flutuante com: Bold, Italic, Underline, Link, AI (reescrever/melhorar seleção). Reutilizar o `InlineToolbar` já existente no `email-builder/`.
-
-### 8. Menu de ações por bloco
-Ao hover sobre um bloco, mostrar ícone `⋮` com menu: Duplicar, Eliminar, Mover ↑↓, Reescrever com IA.
+1. **Inserção de blocos não funciona bem** — `document.execCommand('insertHTML')` é unreliável e pode inserir no sítio errado ou não inserir de todo quando o editor não tem foco/cursor
+2. **Drag & Drop incompleto** — `dragOverIndex` nunca é atualizado (o handler `onDragOver` só faz `e.preventDefault()` sem chamar `setDragOverIndex`), por isso o feedback visual não aparece
+3. **Sincronização contentEditable ↔ React** — a cada mudança externa do `value`, o `useEffect` reescreve `innerHTML`, causando saltos de cursor durante edição
+4. **Toolbar inline pode aparecer fora de posição** — o cálculo de `top` pode ficar negativo e a toolbar fica cortada
 
 ---
 
-## Alterações técnicas
+## Correções
 
-### Ficheiros novos
-- `src/components/ebooks/EbookRichEditor.tsx` — editor contentEditable para capítulos
-- `src/components/ebooks/EbookBlockToolbar.tsx` — sidebar direita com ferramentas de blocos
-- `src/components/ebooks/ChapterThumbnail.tsx` — mini-preview visual de capítulo
-- `src/components/ebooks/BlockActionMenu.tsx` — menu contextual por bloco
+### 1. `EbookRichEditor.tsx` — Inserção de blocos fiável
 
-### Ficheiros editados
-- `src/components/ebooks/EbookEditor.tsx` — layout 3 colunas (thumbnails | editor | toolbar), integrar WYSIWYG, tema no header, botão apresentar
-- `src/components/ebooks/FlipbookReader.tsx` — adicionar prop para modo fullscreen
+Adicionar método `insertBlock(html)` exposto via `ref` (ou callback):
+- Se existe cursor/seleção dentro do editor → inserir nessa posição via `Range.insertNode`
+- Se não → append ao final do editor
+- Atualizar estado React após inserção
 
-### Dependências
-- Nenhuma nova — reutilizar `contentEditable` + `document.execCommand` (padrão já usado no email-builder)
-- Drag & drop via HTML5 nativo (sem lib extra)
+Corrigir sync do `useEffect`:
+- Só atualizar `innerHTML` quando o editor **não tem foco** (evita saltos de cursor)
+- Usar `useRef` para guardar o último valor enviado e comparar
 
-### Migração de dados
-- Função utilitária para converter Markdown → HTML (para capítulos existentes), executada on-read no editor
+### 2. `EbookEditor.tsx` — Corrigir `insertBlock`
+
+Mudar de `document.execCommand('insertHTML')` para chamar o novo método do `EbookRichEditor`:
+- Passar `editorRef` ao `EbookRichEditor` via `forwardRef`
+- Ou passar um callback `onInsertBlock` que o editor expõe
+
+### 3. `ChapterThumbnail.tsx` / `EbookEditor.tsx` — Drag & Drop completo
+
+- No `handleDragOver`, chamar `setDragOverIndex(targetIndex)` para mostrar feedback visual
+- Adicionar `onDragLeave` para limpar `dragOverIndex`
+- Adicionar `onDragEnd` para reset do estado
+
+### 4. `EbookInlineToolbar.tsx` — Posicionamento seguro
+
+- Clamp `top` para nunca ser negativo (mínimo 8px)
+- Clamp `left` para ficar dentro dos limites do editor
 
 ---
 
-## Ordem de implementação
+## Ficheiros editados
 
-1. Editor WYSIWYG + floating toolbar (core)
-2. Sidebar direita com blocos de conteúdo
-3. Thumbnails visuais no sidebar esquerdo
-4. Drag & drop de capítulos
-5. Botão Tema + Apresentar no header
-6. Menu de ações por bloco
+| Ficheiro | Alteração |
+|----------|-----------|
+| `EbookRichEditor.tsx` | Expor `insertBlock` via callback, corrigir sync `innerHTML` para não reescrever durante edição |
+| `EbookEditor.tsx` | Usar novo callback de inserção, corrigir drag handlers (`setDragOverIndex`, `onDragLeave`, `onDragEnd`) |
+| `EbookInlineToolbar.tsx` | Clamp posição para ficar dentro do viewport do editor |
 
