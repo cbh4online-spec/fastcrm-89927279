@@ -18544,10 +18544,13 @@ export type Database = {
         Row: {
           author_name: string | null
           chapters: Json
+          contact_page: Json | null
           cover_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          footer_text: string | null
+          header_text: string | null
           id: string
           image_keywords: string[] | null
           image_style: string | null
@@ -18564,10 +18567,13 @@ export type Database = {
         Insert: {
           author_name?: string | null
           chapters?: Json
+          contact_page?: Json | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          footer_text?: string | null
+          header_text?: string | null
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
@@ -18584,10 +18590,13 @@ export type Database = {
         Update: {
           author_name?: string | null
           chapters?: Json
+          contact_page?: Json | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          footer_text?: string | null
+          header_text?: string | null
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
