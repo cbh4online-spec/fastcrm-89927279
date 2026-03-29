@@ -9,7 +9,7 @@ import {
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
   Mail, Phone, Link, Type, MessageSquare, ChevronDown,
-  Settings, CheckCircle2, Shield,
+  Settings, CheckCircle2, Shield, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -844,6 +844,29 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                       Ativar proteção anti-cópia e marca d'água na página pública
                     </span>
                   </label>
+                </div>
+
+                {/* Lead Gate toggle */}
+                <div className="border-t border-border/30 pt-3">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" /> Captura de Leads
+                  </span>
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(ebook as any).lead_gate_enabled === true}
+                      onChange={(e) => {
+                        updateEbook.mutate({ id: ebookId, lead_gate_enabled: e.target.checked } as any);
+                      }}
+                      className="rounded border-border"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Pedir nome e email antes de permitir leitura
+                    </span>
+                  </label>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1 ml-5">
+                    Os leitores identificados aparecem nas estatísticas do eBook
+                  </p>
                 </div>
               </div>
             </ScrollArea>
