@@ -1,66 +1,38 @@
 
 
-# Imagens no texto, cabeçalho/rodapé personalizáveis e página final de contactos
+# Inserir imagens reais no conteúdo dos capítulos
 
-## O que muda
+## Problema
 
-### 1. Base de dados — novos campos na tabela `ebooks`
+O botão "Imagem" na toolbar lateral insere apenas um placeholder com texto "Clique duas vezes para adicionar URL da imagem" — nunca insere uma imagem real. Não há mecanismo para fazer upload de uma imagem inline no conteúdo.
 
-Adicionar colunas ao JSON `metadata` (ou como colunas directas) para guardar configuração de cabeçalho, rodapé e página de contactos:
+## Solução
 
-```sql
-ALTER TABLE public.ebooks
-  ADD COLUMN IF NOT EXISTS header_text text DEFAULT '',
-  ADD COLUMN IF NOT EXISTS footer_text text DEFAULT '',
-  ADD COLUMN IF NOT EXISTS contact_page jsonb DEFAULT '{}';
-```
+### 1. `EbookBlockToolbar.tsx` — Botão de imagem com upload
 
-O `contact_page` guarda: `email`, `phone`, `website`, `slogan`, `social_links` (array), `logo_url`.
+Substituir o bloco placeholder por um botão que abre um `<input type="file">` oculto. Ao seleccionar ficheiro:
+- Faz upload via `uploadEbookImage` (já existe)
+- Insere `<img src="URL" alt="imagem" style="max-width:100%;border-radius:8px;margin:12px 0" />` no editor via `onInsertBlock`
 
-### 2. Imagens ao longo do texto
+O componente precisa receber uma nova prop `onInsertImage` (callback que recebe `File` e devolve `Promise<string|null>` com a URL).
 
-O conteúdo em Markdown já suporta `![alt](url)` e o `FlipbookPage` já renderiza imagens com `figure`/`figcaption`. O que falta:
+### 2. `EbookEditor.tsx` — Passar handler de upload
 
-- **`FlipbookReader.tsx`** — ajustar `splitContentIntoPages` para detectar linhas de imagem (`![...](...)`), contar como ~400 chars (espaço visual que uma imagem ocupa), evitando que uma página com imagem tenha excesso de texto.
-- **`EbookEditor.tsx`** — já tem botão de upload de imagem; garantir que insere `![legenda](url)` no conteúdo do capítulo via o `EbookRichEditor`.
+Criar uma função `handleInlineImageUpload` que:
+- Recebe o `File`
+- Faz upload com `uploadEbookImage(file, \`inline/${ebookId}\`)`
+- Devolve a URL pública
 
-### 3. Cabeçalho e rodapé personalizáveis
+Passar esta função ao `EbookBlockToolbar` como prop `onUploadImage`.
 
-**`FlipbookPage.tsx`**:
-- Receber props `headerText` e `footerText` (passados desde o `FlipbookReader`)
-- No header das páginas de conteúdo: mostrar `headerText` se definido, senão manter o título do capítulo actual
-- No footer: mostrar `footerText` se definido (ex: nome da empresa, website), com o número de página
+### 3. `EbookBlockToolbar.tsx` — Adicionar botão "Gerar Imagem IA"
 
-**`FlipbookReader.tsx`**:
-- Receber novas props `headerText`, `footerText`, `contactPage`
-- Passar ao `FlipbookPage` via `FlipbookPageData`
-
-**`EbookEditor.tsx`**:
-- Adicionar secção nas ferramentas laterais para editar header/footer text e dados da página de contactos
-- Guardar no ebook via `updateEbook`
-
-**`PublicEbookPage.tsx`**:
-- Carregar e passar os novos campos ao `FlipbookReader`
-
-### 4. Página final de contactos e slogan
-
-**`FlipbookPage.tsx`** — novo tipo de página `"contact"`:
-- Layout gráfico com gradiente escuro (semelhante à capa)
-- Logo (se fornecido)
-- Slogan em destaque (font grande, itálico)
-- Dados de contacto: email, telefone, website
-- Links de redes sociais com ícones
-- Ornamento decorativo de encerramento
-
-**`FlipbookReader.tsx`** — no `buildPages`, adicionar a página de contactos como última página se `contactPage` tiver dados.
+Adicionar um segundo item no grupo "Média" para gerar imagem via IA (usando o edge function `ebook-ai-assist` com action `generate_image`). Insere a imagem gerada directamente no conteúdo.
 
 ### Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| Migração SQL | 3 novas colunas: `header_text`, `footer_text`, `contact_page` |
-| `FlipbookReader.tsx` | Novas props, passar header/footer, página de contactos no fim, ajustar split para imagens |
-| `FlipbookPage.tsx` | Novo tipo `contact`, props de header/footer customizáveis |
-| `EbookEditor.tsx` | UI para editar header, footer e dados de contacto |
-| `PublicEbookPage.tsx` | Carregar e passar novos campos |
+| `EbookBlockToolbar.tsx` | Novo prop `onUploadImage`, botão imagem abre file picker, insere `<img>` real |
+| `EbookEditor.tsx` | Criar `handleInlineImageUpload`, passar ao toolbar |
 
