@@ -1,48 +1,53 @@
 
 
-# Efeito de virar página 3D (estilo Calameo)
+# Fix: Efeito de folhear páginas com react-pageflip (estilo Calameo)
 
-## O que muda
+## Problemas atuais
 
-Substituir a animação atual (slide simples com ligeiro rotateY) por um **efeito de virar página realista em 3D**, onde a página roda sobre o eixo central do livro como se estivéssemos a folhear um livro real. O utilizador poderá **arrastar o canto da página** com o rato ou simplesmente clicar para virar.
+1. **Conteúdo cortado** — `CHARS_PER_PAGE = 1800` foi calibrado para páginas de largura total, mas no modo spread cada página tem metade da largura, causando overflow
+2. **Efeito 3D artesanal limitado** — a implementação CSS custom não reproduz o efeito realista do Calameo (curva da página, sombra dinâmica, drag suave)
+3. **`overflow-y-auto`** nas páginas de conteúdo permite scroll interno em vez de paginar corretamente
 
-## Como funciona
+## Solução: Usar biblioteca `react-pageflip`
 
-O livro mostra **duas páginas lado a lado** (spread), como um livro aberto. Ao virar:
-1. A página da direita levanta-se e roda 180° sobre o eixo Y (lombada)
-2. O verso da página fica visível durante a rotação (mostra a página seguinte)
-3. A página assenta do lado esquerdo
+O Calameo usa internamente uma engine semelhante ao **StPageFlip** — uma biblioteca especializada que desenha a curva da página em canvas com sombras dinâmicas e suporte a drag do canto. Existe um wrapper React oficial: `react-pageflip`.
 
-O utilizador pode arrastar o canto inferior-direito da página para controlar a velocidade do flip, ou clicar para flip automático.
+### Alterações
 
-## Implementação técnica
+#### 1. Instalar `react-pageflip`
+- `npm install react-pageflip` (wrapper para StPageFlip, MIT, zero deps)
 
-### Novo componente: `PageFlip.tsx`
-- Container com `perspective: 1200px` e layout de duas páginas lado a lado
-- Cada "folha" é um `div` com `transform-style: preserve-3d` e duas faces (`front` / `back`) usando `backface-visibility: hidden`
-- Animação via CSS `rotateY(0deg)` → `rotateY(-180deg)` com `transform-origin: left center`
-- Suporte a **drag** no canto: `onMouseDown`/`onMouseMove`/`onMouseUp` mapeiam posição X do rato para ângulo de rotação (0° a -180°)
-- Ao soltar: snap para frente (< 90°) ou completa o flip (≥ 90°)
+#### 2. Reescrever `PageFlip.tsx` → usar `HTMLFlipBook`
+- Substituir toda a lógica CSS custom pelo componente `HTMLFlipBook`
+- Cada página é um `React.forwardRef` div com conteúdo `FlipbookPage`
+- Configuração: `width: 480, height: 680, size: "stretch"`, `showCover: true`, `drawShadow: true`, `flippingTime: 800`
+- Expor ref para `flipNext()` / `flipPrev()` / `turnToPage()` para integração com toolbar e teclado
 
-### Alteração: `FlipbookReader.tsx`
-- Substituir o bloco `AnimatePresence` + `motion.div` pelo novo `PageFlip`
-- Manter toda a lógica de páginas, toolbar, thumbnails, teclado
-- Adaptar o estado para tracking de par de páginas (esquerda/direita) em vez de página única
-- Touch swipe continua a funcionar mas agora dispara o flip 3D
+#### 3. Atualizar `FlipbookReader.tsx`
+- Remover lógica de spread manual (o `HTMLFlipBook` gere internamente páginas duplas)
+- Usar `onFlip` callback para atualizar o número da página no toolbar
+- Passar ref do flipbook para toolbar/teclado chamarem `flipNext`/`flipPrev`
 
-### Alteração: `FlipbookPage.tsx`
-- Sem grandes mudanças — cada página continua a renderizar o mesmo conteúdo
-- Ajustar tamanho para metade da largura (cada página ocupa metade do spread)
+#### 4. Atualizar `FlipbookPage.tsx`
+- Cada página deve usar `React.forwardRef` (requisito do react-pageflip)
+- Remover `overflow-y-auto` do conteúdo — usar `overflow: hidden` com `line-clamp`
+- Reduzir padding para caber melhor no formato mais estreito
 
-### Alteração: `FlipbookToolbar.tsx`
-- Atualizar display de página para mostrar par (ex: "3-4 / 20")
+#### 5. Reduzir `CHARS_PER_PAGE` para ~900
+- Cada página agora tem ~480px de largura × 680px de altura
+- Com padding e header/footer, ~900 chars é o limite para não cortar
+
+#### 6. `FlipbookToolbar.tsx`
+- Receber ref do flipbook para chamar `flipNext()`/`flipPrev()` diretamente
+- Atualizar página via `onFlip` event em vez de tracking manual de spread
 
 ## Ficheiros
 
 | Ficheiro | Ação |
-|----------|------|
-| `PageFlip.tsx` | **Novo** — componente de flip 3D com drag support |
-| `FlipbookReader.tsx` | Integrar PageFlip, layout spread duas páginas |
-| `FlipbookPage.tsx` | Ajustar dimensões para half-spread |
-| `FlipbookToolbar.tsx` | Display de par de páginas |
+|----------|-----------|
+| `package.json` | Adicionar `react-pageflip` |
+| `PageFlip.tsx` | Reescrever com `HTMLFlipBook` |
+| `FlipbookReader.tsx` | Simplificar — delegar flip ao HTMLFlipBook |
+| `FlipbookPage.tsx` | `forwardRef` + `overflow: hidden` + menos padding |
+| `FlipbookToolbar.tsx` | Integrar via ref do flipbook |
 
