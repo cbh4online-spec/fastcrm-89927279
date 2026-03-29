@@ -8,7 +8,7 @@ import {
   BookOpen, Globe, FileText, BarChart3,
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
-  Mail, Phone, Link, Type, MessageSquare,
+  Mail, Phone, Link, Type, MessageSquare, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,12 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface EbookEditorProps {
   ebookId: string;
