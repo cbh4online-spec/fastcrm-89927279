@@ -1,38 +1,32 @@
 
 
-# QR Code para Links de Agendamento
-
-## Solução
-
-Adicionar um botão de QR Code na lista de booking pages que abre um dialog/modal com o QR code do link público, pronto para download ou partilha.
+# Edição inline de notas no painel do editor
 
 ## Alterações
 
-### 1. Instalar dependência
-- Adicionar `qrcode.react` para gerar QR codes em SVG/Canvas directamente no React.
+### 1. `EbookEditorNotesPanel.tsx`
+- Adicionar estado `editingId` e `editingText` para controlar qual nota está em modo de edição
+- Adicionar botão `Pencil` ao lado do `Trash2` no cabeçalho de cada nota
+- Quando em edição: substituir o `<p>` do texto por um `<Textarea>` pré-preenchido com o conteúdo actual
+- Botões "Guardar" (Check) e "Cancelar" (X) abaixo do textarea
+- Guardar com Ctrl/Cmd+Enter
+- Aceitar nova prop `updateNote` (já existe no hook `useEbookNotes`)
 
-### 2. Novo componente `BookingQRCodeDialog.tsx`
-- Dialog com:
-  - QR code grande e nítido (SVG via `qrcode.react`)
-  - URL do link visível abaixo
-  - Botão "Copiar link"
-  - Botão "Descarregar PNG" (converte o SVG/canvas para imagem descarregável)
-  - Cor da marca da booking page aplicada ao QR code
+### 2. `EbookEditorNotesPanel.tsx` (interface)
+- Adicionar `updateNote` à interface de props (tipo `UseMutationResult<void, Error, { noteId: string; noteText: string }>`)
 
-### 3. Actualizar `BookingPagesTab.tsx`
-- Importar ícone `QrCode` do `lucide-react`
-- Adicionar botão QR Code na row de acções de cada booking page (ao lado do Copy)
-- Estado para controlar qual página tem o dialog aberto
+### 3. Componente pai que passa as props
+- Localizar onde `EbookEditorNotesPanel` é usado e passar `updateNote` do hook
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/scheduling/BookingQRCodeDialog.tsx` | Novo — dialog com QR code, download e copy |
-| `src/components/scheduling/BookingPagesTab.tsx` | Adicionar botão QR e estado do dialog |
-| `package.json` | Adicionar `qrcode.react` |
+| `EbookEditorNotesPanel.tsx` | Adicionar estado de edição, textarea inline, botões guardar/cancelar, prop updateNote |
+| Componente pai (onde o painel é montado) | Passar `updateNote` do hook |
 
 ## Critérios de aceitação
-- Botão QR visível por booking page
-- Dialog mostra QR code legível com a URL correcta
-- Download PNG funcional
-- Cor da marca reflectida no QR code
+- Clicar no ícone de lápis activa edição inline com textarea
+- Texto original pré-preenchido no textarea
+- Guardar com botão ou Ctrl+Enter, cancelar com botão ou Escape
+- Após guardar, nota actualizada imediatamente na lista
+- Não é possível editar duas notas ao mesmo tempo
 
