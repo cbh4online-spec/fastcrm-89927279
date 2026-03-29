@@ -240,7 +240,7 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
         contentEditable
         className={cn(
           "min-h-[50vh] outline-none text-foreground",
-          "prose prose-sm max-w-none font-serif dark:prose-invert",
+          "prose prose-sm max-w-none dark:prose-invert",
           "prose-headings:text-foreground prose-headings:font-bold",
           "prose-h1:text-2xl prose-h1:mt-6 prose-h1:mb-3",
           "prose-h2:text-xl prose-h2:mt-5 prose-h2:mb-2",

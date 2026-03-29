@@ -30,6 +30,7 @@ interface EbookData {
   header_text?: string;
   footer_text?: string;
   contact_page?: EbookContactPage;
+  global_styles?: Record<string, unknown>;
 }
 
 export default function PublicEbookPage() {
@@ -43,7 +44,7 @@ export default function PublicEbookPage() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
@@ -82,6 +83,7 @@ export default function PublicEbookPage() {
           headerText={ebook.header_text}
           footerText={ebook.footer_text}
           contactPage={ebook.contact_page}
+          styleTokens={ebook.global_styles}
         />
       </div>
     </div>

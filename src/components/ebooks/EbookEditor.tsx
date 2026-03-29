@@ -597,7 +597,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 </div>
 
                 {/* WYSIWYG Editor */}
-                <div className="px-6 py-6 bg-white rounded-lg shadow mx-4 mb-6">
+                <div className="px-6 py-6 bg-white rounded-lg shadow mx-4 mb-6" style={{ fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined }}>
                   <EbookRichEditor
                     ref={richEditorRef}
                     value={activeChapter.content || ""}
@@ -715,6 +715,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             headerText={localHeaderText || undefined}
             footerText={localFooterText || undefined}
             contactPage={Object.keys(localContactPage).length > 0 ? localContactPage : undefined}
+            styleTokens={(ebook as any).global_styles || undefined}
           />
         </DialogContent>
       </Dialog>
