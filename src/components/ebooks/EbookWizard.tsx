@@ -587,6 +587,8 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                         onChange={setImageStyle}
                         keywords={imageKeywords}
                         onKeywordsChange={setImageKeywords}
+                        imageLayout={imageLayout}
+                        onImageLayoutChange={setImageLayout}
                       />
                     </div>
 
