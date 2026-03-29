@@ -123,7 +123,7 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           style={{}}
         >
           {pages.map((page, i) => (
-            <PageWrapper key={i} page={page} />
+            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} />
           ))}
         </HTMLFlipBook>
       </div>
