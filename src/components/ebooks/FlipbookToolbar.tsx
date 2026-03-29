@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote, Highlighter, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote, Highlighter, ZoomIn, ZoomOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FlipbookToolbarProps {
@@ -24,6 +24,8 @@ interface FlipbookToolbarProps {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onZoomReset?: () => void;
+  magnifyMode?: boolean;
+  onToggleMagnify?: () => void;
 }
 
 export function FlipbookToolbar({
@@ -32,6 +34,7 @@ export function FlipbookToolbar({
   spreadMode, rightPage, onPrint, onToggleNotes, showNotes, notesCount,
   highlightMode, onToggleHighlightMode,
   zoomLevel = 1, onZoomIn, onZoomOut, onZoomReset,
+  magnifyMode, onToggleMagnify,
 }: FlipbookToolbarProps) {
   const [editingPage, setEditingPage] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -174,6 +177,17 @@ export function FlipbookToolbar({
             className={btnClass}
           >
             <ZoomIn className="h-4 w-4" />
+          </Button>
+        )}
+        {/* Magnify lens button */}
+        {onToggleMagnify && (
+          <Button
+            variant="ghost" size="icon"
+            onClick={onToggleMagnify}
+            title={magnifyMode ? "Sair do modo lupa" : "Lupa de zoom"}
+            className={`${btnClass} ${magnifyMode ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/40" : ""}`}
+          >
+            <Search className="h-4 w-4" />
           </Button>
         )}
         {/* Separator */}
