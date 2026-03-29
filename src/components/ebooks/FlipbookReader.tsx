@@ -373,13 +373,27 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
-          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }}>
+          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }} onMouseUp={handleMouseUp}>
             {/* Animated hand cursor */}
             <AnimatedHandCursor containerRef={bookContainerRef} />
             {/* Watermark overlay */}
             {protectionEnabled && (
               <FlipbookWatermark text={watermarkText} />
             )}
+
+            {/* Highlight popover */}
+            {highlightPopover && (
+              <FlipbookHighlightPopover
+                selectedText={highlightPopover.text}
+                position={highlightPopover.position}
+                onHighlight={handleCreateHighlight}
+                onClose={() => {
+                  setHighlightPopover(null);
+                  window.getSelection()?.removeAllRanges();
+                }}
+              />
+            )}
+
             {showThumbnails && (
               <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
                 {pages.map((p, i) => (

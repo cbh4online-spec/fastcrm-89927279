@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Plus, Trash2, StickyNote, MessageSquare } from "lucide-react";
+import { X, Plus, Trash2, StickyNote, MessageSquare, Highlighter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -104,7 +104,7 @@ export function EbookNotesPanel({
             <div className="flex flex-col items-center justify-center py-12 text-white/30">
               <MessageSquare className="h-8 w-8 mb-2 opacity-40" />
               <p className="text-xs">Sem notas ainda</p>
-              <p className="text-[10px] mt-1">Clique em "+" para adicionar</p>
+              <p className="text-[10px] mt-1">Seleccione texto para sublinhar ou clique "+" para nota</p>
             </div>
           )}
           {sortedPages.map((pageNum) => (
@@ -116,32 +116,47 @@ export function EbookNotesPanel({
                 Página {pageNum + 1}
               </button>
               <div className="space-y-1">
-                {grouped[pageNum].map((note) => (
-                  <div
-                    key={note.id}
-                    className={`group rounded-lg p-2.5 text-sm transition-colors cursor-pointer ${
-                      note.page_number === currentPage
-                        ? "bg-amber-500/10 border border-amber-500/20"
-                        : "bg-white/5 border border-transparent hover:bg-white/8 hover:border-white/10"
-                    }`}
-                    onClick={() => onGoToPage(note.page_number)}
-                  >
-                    <p className="text-white/80 text-xs leading-relaxed whitespace-pre-wrap">{note.note_text}</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-[10px] text-white/25">
-                        {format(new Date(note.created_at), "d MMM, HH:mm", { locale: pt })}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-                        className="h-5 w-5 opacity-0 group-hover:opacity-100 text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                {grouped[pageNum].map((note) => {
+                  const isHighlight = note.note_type === "highlight" && note.highlight_text;
+                  return (
+                    <div
+                      key={note.id}
+                      className={`group rounded-lg p-2.5 text-sm transition-colors cursor-pointer ${
+                        note.page_number === currentPage
+                          ? "bg-amber-500/10 border border-amber-500/20"
+                          : "bg-white/5 border border-transparent hover:bg-white/8 hover:border-white/10"
+                      }`}
+                      onClick={() => onGoToPage(note.page_number)}
+                    >
+                      {/* Highlight indicator */}
+                      {isHighlight && (
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Highlighter className="h-3 w-3 text-amber-400/70" />
+                          <div
+                            className="text-[11px] text-white/50 px-1.5 py-0.5 rounded line-clamp-2 italic"
+                            style={{ backgroundColor: `${note.highlight_color || "#fde68a"}33` }}
+                          >
+                            "{note.highlight_text}"
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-white/80 text-xs leading-relaxed whitespace-pre-wrap">{note.note_text}</p>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-[10px] text-white/25">
+                          {format(new Date(note.created_at), "d MMM, HH:mm", { locale: pt })}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
+                          className="h-5 w-5 opacity-0 group-hover:opacity-100 text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
