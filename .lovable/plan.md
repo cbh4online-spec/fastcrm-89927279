@@ -1,72 +1,48 @@
 
 
-# Quiz Detalhado com IA para Criação de eBook
+# Enriquecer Toolbar do Flipbook Reader
 
-## Diagnóstico
+## Novos Botões
 
-O passo 1 actual ("Conteúdo") pede apenas um prompt livre + tom + nº capítulos + modo. Isto resulta em eBooks genéricos porque a IA não tem contexto suficiente sobre público-alvo, objectivo, nível de profundidade, formato preferido, etc.
+| Botão | Ícone | Acção |
+|---|---|---|
+| Ir para o início | `ChevronsLeft` | `goToPage(0)` |
+| Ir para o final | `ChevronsRight` | `goToPage(totalPages - 1)` |
+| Escolher página | Click no indicador de página | Transforma o texto "34-35 / 74" num input numérico editável (inline) |
+| Imprimir | `Printer` | `window.print()` com CSS `@media print` que mostra apenas o conteúdo do flipbook |
 
-## Proposta
-
-Substituir o passo 1 por um quiz estruturado de 2 sub-passos, mantendo os 4 steps do wizard mas expandindo o step "Conteúdo" com perguntas guiadas:
-
-**Step 1A — Tema & Objectivo** (substitui o textarea actual)
-- **Tema do eBook** (textarea, mantém-se)
-- **Público-alvo**: chips seleccionáveis (Empreendedores, Gestores, Estudantes, Profissionais de Marketing, Desenvolvedores, Outro)
-- **Objectivo principal**: chips (Educar, Gerar leads, Posicionar autoridade, Vender produto/serviço, Onboarding)
-- **Nível de profundidade**: 3 opções (Introdutório, Intermédio, Avançado)
-
-**Step 1B — Estrutura & Estilo** (mantém chapCount, tone, mode + adiciona)
-- **Capítulos** e **Tom** (já existentes)
-- **Modo** (já existente)
-- **Elementos especiais**: multi-select chips (Estudos de caso, Estatísticas, Checklists, Templates práticos, Citações, Exercícios)
-- **Palavras-chave**: input de tags para termos que devem aparecer no conteúdo
-
-Todos estes dados são passados à edge function `ebook-ai-assist` no payload do `generate_outline` para contexto enriquecido.
-
-## Estrutura do Wizard Atualizado
+## Layout da Toolbar Actualizado
 
 ```text
-Steps: [Template] → [Tema] → [Estrutura] → [Visual] → [Imagens]
-         0            1          2            3          4
+[Thumbnails] [Início]  [◀] [34-35 / 74 (clicável)] [▶] [Final]    [Imprimir] [Fullscreen]
 ```
-
-O wizard passa de 4 para 5 steps, dividindo "Conteúdo" em "Tema" e "Estrutura".
 
 ## Implementação
 
-### Ficheiro: `EbookWizard.tsx`
+### 1. `FlipbookToolbar.tsx`
 
-1. **Novos estados**: `audience`, `objective`, `depth`, `specialElements`, `contentKeywords`
-2. **Steps array**: Adicionar step extra — `[Template, Tema, Estrutura, Visual, Imagens]`
-3. **Step 1 (Tema)**: Textarea do tema + chips para público-alvo, objectivo, profundidade
-4. **Step 2 (Estrutura)**: Capítulos, tom, modo, elementos especiais, palavras-chave
-5. **Step 3**: Tema visual (antigo step 2)
-6. **Step 4**: Imagens + custo (antigo step 3)
-7. **Payload do generate_outline**: Enviar `audience`, `objective`, `depth`, `specialElements`, `contentKeywords` para a edge function
+- Importar `ChevronsLeft`, `ChevronsRight`, `Printer` do lucide-react
+- Adicionar botão **Ir para início** (`onGoTo(0)`) — disabled quando `currentPage === 0`
+- Adicionar botão **Ir para final** (`onGoTo(totalPages - 1)`) — disabled quando já na última página
+- Tornar o display de página **clicável**: ao clicar, substituir o `<span>` por um `<input type="number">` inline (min=1, max=totalPages), que ao submit (Enter ou blur) chama `onGoTo(value - 1)`
+- Adicionar botão **Imprimir** com prop `onPrint`
+- Tooltips nativos via `title` attribute em cada botão
 
-### Ficheiro: `supabase/functions/ebook-ai-assist/index.ts`
+### 2. `FlipbookReader.tsx`
 
-Atualizar o prompt do `generate_outline` para incorporar os novos campos no system prompt, gerando estruturas mais precisas e contextualizadas.
+- Criar handler `handlePrint` que usa `window.print()`
+- Passar `onPrint` como nova prop à toolbar
+- Adicionar `onGoToFirst` e `onGoToLast` (ou reutilizar `onGoTo` com 0 e pages.length-1)
 
-## Microcopy
+### 3. CSS de Impressão (inline ou global)
 
-| Campo | Label | Placeholder/Hint |
-|---|---|---|
-| Tema | "Sobre o que é o seu eBook?" | "Ex: Guia completo sobre produtividade..." |
-| Público | "Para quem é este eBook?" | Chips seleccionáveis |
-| Objectivo | "Qual o objectivo principal?" | Chips seleccionáveis |
-| Profundidade | "Nível de profundidade" | Introdutório / Intermédio / Avançado |
-| Elementos | "Elementos especiais a incluir" | Multi-select chips |
-| Keywords | "Palavras-chave do conteúdo" | "Adicione termos relevantes..." |
+- Adicionar `@media print` que esconde tudo excepto o conteúdo das páginas do flipbook, renderizando cada página sequencialmente em formato A4
 
 ## Critérios de Aceitação
 
-- Quiz tem 2 sub-passos claros (Tema + Estrutura) em vez de 1 passo denso
-- Todos os novos campos são opcionais excepto o tema (já obrigatório)
-- Os dados do quiz são enviados à edge function e influenciam o outline gerado
-- Step indicator actualizado para 5 steps
-- Navegação entre steps mantém-se fluida com animações
-- Validação: step Tema requer prompt > 10 chars (já existe); step Estrutura não bloqueia
-- Mobile responsivo: chips fazem wrap correctamente
+- Botões início/final navegam correctamente e ficam disabled nos extremos
+- Input de página aceita Enter e blur, valida range 1–totalPages
+- Botão de impressão abre diálogo de impressão do browser
+- Responsivo: em mobile os botões mantêm proporção adequada
+- Tooltips descritivos em todos os botões
 
