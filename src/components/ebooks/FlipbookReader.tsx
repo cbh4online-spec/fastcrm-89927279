@@ -232,6 +232,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [showNotes, setShowNotes] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
+  const bookContainerRef = useRef<HTMLDivElement>(null);
 
   const pages = buildPages(title, subtitle, author, coverUrl, chapters, headerText, footerText, contactPage);
 
