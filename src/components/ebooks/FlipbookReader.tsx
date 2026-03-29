@@ -8,6 +8,7 @@ import { FlipbookHighlightPopover } from "./FlipbookHighlightPopover";
 import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { EbookReadTracker } from "./EbookReadTracker";
+import { FlipbookZoomLens } from "./FlipbookZoomLens";
 
 interface EbookChapter {
   id: string;
@@ -234,6 +235,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
+  const [magnifyMode, setMagnifyMode] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [highlightPopover, setHighlightPopover] = useState<{
     text: string;
@@ -405,15 +407,18 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
             className="relative flex gap-1"
             ref={bookContainerRef}
             style={{
-              cursor: highlightMode ? 'text' : 'none',
+              cursor: magnifyMode ? 'crosshair' : highlightMode ? 'text' : 'none',
               transform: zoomLevel !== 1 ? `scale(${zoomLevel})` : undefined,
               transformOrigin: 'center center',
               transition: 'transform 0.2s ease',
             }}
             onMouseUp={handleMouseUp}
           >
-            {/* Animated hand cursor — hidden in highlight mode */}
-            {!highlightMode && <AnimatedHandCursor containerRef={bookContainerRef} />}
+            {/* Animated hand cursor — hidden in highlight/magnify mode */}
+            {!highlightMode && !magnifyMode && <AnimatedHandCursor containerRef={bookContainerRef} />}
+
+            {/* Zoom lens */}
+            <FlipbookZoomLens containerRef={bookContainerRef} active={magnifyMode} />
             {/* Watermark overlay */}
             {protectionEnabled && (
               <FlipbookWatermark text={watermarkText} />
@@ -514,7 +519,9 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         showNotes={showNotes}
         notesCount={notes.length}
         highlightMode={highlightMode}
-        onToggleHighlightMode={hasNotesFeature ? () => setHighlightMode(m => !m) : undefined}
+        onToggleHighlightMode={hasNotesFeature ? () => { setHighlightMode(m => !m); setMagnifyMode(false); } : undefined}
+        magnifyMode={magnifyMode}
+        onToggleMagnify={() => { setMagnifyMode(m => !m); setHighlightMode(false); }}
         zoomLevel={zoomLevel}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
