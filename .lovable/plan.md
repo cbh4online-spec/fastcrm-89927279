@@ -1,40 +1,54 @@
 
 
-# Corrigir texto invisível no FlipBook e garantir edição funcional
+# Validar sequência de emails + melhorias para módulo de sucesso
 
-## Problema identificado
+## Problemas identificados
 
-Existe uma **incompatibilidade de formato** entre o editor e o leitor:
+### 1. pg_cron NÃO foi configurado para o `funnel-nurture-processor`
+O processador de nurture existe como Edge Function, mas **nunca é executado** porque não há nenhum job pg_cron agendado para o invocar. Os leads são inseridos na `funnel_nurture_queue` mas os emails de Dia 2, 4 e 7 nunca são enviados.
 
-1. **Editor** (`EbookRichEditor`): usa `contentEditable` e guarda o conteúdo como **HTML** (ex: `<p>Texto...</p><h2>Título</h2>`)
-2. **Leitor** (`FlipbookPage`): renderiza o conteúdo com `ReactMarkdown`, que espera **Markdown**, não HTML
-3. **Paginação** (`splitContentIntoPages`): divide o texto por `\n\n` — funciona para Markdown, mas HTML é normalmente uma string contínua sem quebras duplas
+### 2. Edge Function `funnel-nurture-processor` não foi deployed
+A função precisa de ser deployed para estar acessível.
 
-**Resultado**: O texto existe na base de dados mas não aparece no FlipBook porque o ReactMarkdown não sabe interpretar tags HTML, e a paginação falha porque não encontra `\n\n` no HTML.
+### 3. Sem dashboard de gestão da sequência de nurture
+Não existe nenhuma UI para visualizar leads na fila, cancelar nurtures, ou ver o estado da sequência.
 
-## Solução
+### 4. Sem possibilidade de cancelamento (unsubscribe do nurture)
+Se um lead agenda reunião ou pede para sair, não há mecanismo para o remover da fila.
 
-### 1. `FlipbookPage.tsx` — Renderizar HTML quando o conteúdo for HTML
+## Plano de implementação
 
-- Detectar se o conteúdo é HTML (contém `<p>`, `<h1>`, `<div>`, etc.)
-- Se for HTML: usar `dangerouslySetInnerHTML` com as mesmas classes de estilo
-- Se for Markdown: manter o `ReactMarkdown` actual (retrocompatibilidade com conteúdos antigos)
+### Passo 1 — Deploy + pg_cron do nurture processor
+- Deploy da Edge Function `funnel-nurture-processor`
+- Criar job pg_cron para invocar a função a cada 30 minutos
 
-### 2. `FlipbookReader.tsx` — Paginar HTML correctamente
+### Passo 2 — Teste com jorge.cardoso@digital4ads.pt
+- Inserir manualmente um registo na `funnel_nurture_queue` com `next_send_at = now()` para disparar os 5 templates de imediato (agradecimento, convite reunião, e os 3 de nurture) para o email indicado
+- Verificar logs de envio na `email_send_log`
 
-Reescrever `splitContentIntoPages` para suportar HTML:
-- Usar um parser simples que divide por tags de bloco (`<p>`, `<h1>`–`<h6>`, `<blockquote>`, `<hr>`, `<img>`, `<div>`, `<ul>`, `<ol>`, `<table>`, `<figure>`)
-- Agrupar blocos até atingir o limite de caracteres por página
-- Manter a lógica existente como fallback para Markdown
+### Passo 3 — Dashboard de gestão do nurture
+Criar uma secção no dashboard de marketing (ou funis) para:
+- Ver leads na fila de nurture (email, step atual, próximo envio, estado)
+- Cancelar/pausar nurture de um lead específico
+- Ver histórico de emails enviados por lead
+- Estatísticas: total pendentes, completados, cancelados
 
-### 3. `EbookRichEditor.tsx` — Sem alteração
+### Passo 4 — Cancelamento automático
+- Quando um lead agenda reunião ou converte, marcar `status = 'cancelled'` na fila
+- Respeitar unsubscribes: se o lead faz unsubscribe dos emails transacionais, cancelar o nurture
 
-O editor já funciona correctamente — o problema está apenas na renderização do FlipBook.
+### Passo 5 — Melhorias de experiência
+- Personalizar os CTAs dos templates com links dinâmicos do workspace (ex: link de agendamento real via Calendly/Cal)
+- Adicionar campo `meeting_url` configurável por funil nas definições do funil
+- Log de atividade no timeline do lead/contacto no CRM
 
-## Ficheiros alterados
+## Ficheiros alterados/criados
 
 | Ficheiro | Alteração |
 |---|---|
-| `FlipbookReader.tsx` | `splitContentIntoPages` com suporte a HTML |
-| `FlipbookPage.tsx` | Renderização condicional: HTML ou Markdown |
+| pg_cron (SQL insert) | Agendar `funnel-nurture-processor` a cada 30min |
+| `funnel-nurture-processor` | Deploy |
+| `send-transactional-email` | Redeploy (já tem os templates) |
+| Nova página/componente nurture dashboard | Dashboard de gestão |
+| `PublicFunnelPage.tsx` | Melhorias opcionais (meeting_url dinâmico) |
 
