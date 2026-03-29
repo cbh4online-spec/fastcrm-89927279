@@ -1,40 +1,28 @@
 
 
-# Correções Prioritárias — Design System Normalization
+# Fix: Texto invisível no Editor de eBooks
 
-## Estado Atual
-Muitas correções da auditoria anterior já foram aplicadas (Admin usa Table + PageHeader, EbooksList consolidado, right sidebar w-56). Restam problemas concretos de legibilidade, densidade e agrupamento.
+## Diagnóstico
 
-## Correções a Implementar
+O `EbookRichEditor.tsx` usa cores hardcoded `text-slate-900` em todos os elementos de texto (headings, parágrafos, listas, strong). No dark mode, isto resulta em texto quase preto sobre fundo escuro — invisível.
 
-### 1. ChapterThumbnail.tsx — Legibilidade
-- `text-[9px]` título → `text-[10px]`
-- `text-[8px]` preview → `text-[9px]`
-- `text-[10px]` word count label (já aceitável, manter)
+O editor content area (`bg-background`) herda o tema dark, mas o texto está fixo em slate-900.
 
-### 2. AdaptiveSidebar.tsx — Tags e labels
-- Avatar fallback `text-[10px]` → manter (é 2 letras num avatar pequeno, aceitável)
-- Role dropdown `text-[11px]` → `text-xs`
-- Collapsed badge `text-[10px]` → manter (contadores em badges colapsados)
-- Tooltip Pro/Beta `text-[10px]` → manter (tooltips são contextuais)
+## Correção
 
-### 3. EbookEditor.tsx — Header buttons + toolbar
-- Header action buttons: `h-7` → `h-8` para melhor hit target
-- Chapter toolbar: agrupar ações IA (Gerar, Melhorar, Condensar, Expandir) num `DropdownMenu` para reduzir overflow
-- Manter Undo/Redo e Img IA/Upload como botões diretos
+**Ficheiro:** `src/components/ebooks/EbookRichEditor.tsx` (linhas 241-254)
 
-### 4. TemplatePickerStep.tsx — Badge sizing
-- Badge `text-[10px]` → `text-xs` para consistência
-- Page count `text-[10px]` → `text-xs`
+Substituir todas as referências `text-slate-900` e `text-slate-500` por tokens do tema:
 
-### 5. EbookBlockToolbar.tsx — Verificar
-- Já usa `text-xs` nos labels (corrigido na ronda anterior) — confirmar e ajustar se necessário
-
-## Ficheiros a modificar
-| Ficheiro | Tipo |
+| De | Para |
 |---|---|
-| `ChapterThumbnail.tsx` | Micro-text fix |
-| `AdaptiveSidebar.tsx` | Role label fix |
-| `EbookEditor.tsx` | Button sizes + AI dropdown grouping |
-| `TemplatePickerStep.tsx` | Badge text normalization |
+| `text-slate-900` (div, headings, p, strong, li) | `text-foreground` |
+| `text-slate-500` (blockquote) | `text-muted-foreground` |
+
+A classe `prose` do Tailwind também injeta cores — precisamos de `prose-invert` no dark mode OU usar `dark:prose-invert` para compatibilidade automática. Mas como estamos a usar classes explícitas por elemento (`prose-p:`, `prose-headings:`), basta trocar os tokens.
+
+### Resultado
+- Texto visível em ambos os temas (light e dark)
+- Zero alteração funcional — apenas tokens CSS
+- Mantém hierarquia visual existente
 
