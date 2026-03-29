@@ -142,7 +142,14 @@ export function EbookEditorNotesPanel({
             <div className="text-center py-6">
               <StickyNote className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
               <p className="text-xs text-muted-foreground">
-                {showAll ? "Sem notas neste eBook" : "Sem notas neste capítulo"}
+                {typeFilter === "note"
+                  ? "Sem notas" 
+                  : typeFilter === "highlight"
+                  ? "Sem destaques"
+                  : showAll
+                  ? "Sem notas neste eBook"
+                  : "Sem notas neste capítulo"}
+                {!showAll && typeFilter !== "all" ? " neste capítulo" : ""}
               </p>
             </div>
           )}
