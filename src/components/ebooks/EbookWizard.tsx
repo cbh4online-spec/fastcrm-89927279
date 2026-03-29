@@ -380,7 +380,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                   </div>
                 )}
 
-                {step === 2 && (
+                {step === 3 && (
                   <div className="space-y-5">
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Estilo artístico das imagens</Label>
@@ -444,8 +444,8 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
             {step === 0 ? "Cancelar" : "Voltar"}
           </Button>
 
-          {step < 2 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={step === 0 && !canProceed}>
+          {step < 3 ? (
+            <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !canProceed}>
               Seguinte
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
