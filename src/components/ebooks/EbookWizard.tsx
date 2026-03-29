@@ -290,6 +290,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
             <Card>
               <CardContent className="p-6 space-y-5">
                 {step === 0 && (
+                  <TemplatePickerStep
+                    selectedTemplateId={selectedTemplateId}
+                    onSelect={(id, tpl) => {
+                      setSelectedTemplateId(id);
+                      setSelectedTemplate(tpl);
+                    }}
+                  />
+                )}
+
+                {step === 1 && (
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Sobre o que é o seu eBook?</Label>
@@ -363,7 +373,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                   </>
                 )}
 
-                {step === 1 && (
+                {step === 2 && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Escolha um tema visual</Label>
                     <EbookThemeSelector value={theme} onChange={setTheme} />
