@@ -22,6 +22,7 @@ export function BookingPagesTab({ calendars }: BookingPagesTabProps) {
   const deletePage = useDeleteBookingPage();
   const [showModal, setShowModal] = useState(false);
   const [editingPage, setEditingPage] = useState<BookingPage | null>(null);
+  const [qrPage, setQrPage] = useState<BookingPage | null>(null);
 
   const getPublicUrl = (slug: string) => {
     const base = getPublicBaseUrl();
