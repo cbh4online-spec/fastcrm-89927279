@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Paintbrush, Camera, Shapes, Box, Layers } from "lucide-react";
+import { EbookImageLayoutConfig, type ImageLayoutConfig } from "./EbookImageLayoutConfig";
 
 export const IMAGE_STYLES = [
   { id: "illustration", label: "Ilustração", icon: Paintbrush, desc: "Estilo editorial ilustrativo", prompt: "editorial illustration, clean lines, vibrant colors" },
@@ -18,9 +19,11 @@ interface Props {
   onChange: (id: string) => void;
   keywords: string[];
   onKeywordsChange: (keywords: string[]) => void;
+  imageLayout?: ImageLayoutConfig;
+  onImageLayoutChange?: (config: ImageLayoutConfig) => void;
 }
 
-export function EbookImageStylePicker({ value, onChange, keywords, onKeywordsChange }: Props) {
+export function EbookImageStylePicker({ value, onChange, keywords, onKeywordsChange, imageLayout, onImageLayoutChange }: Props) {
   const toggleKeyword = (kw: string) => {
     onKeywordsChange(
       keywords.includes(kw) ? keywords.filter(k => k !== kw) : [...keywords, kw]
@@ -76,6 +79,11 @@ export function EbookImageStylePicker({ value, onChange, keywords, onKeywordsCha
           ))}
         </div>
       </div>
+
+      {/* Image layout config */}
+      {imageLayout && onImageLayoutChange && (
+        <EbookImageLayoutConfig value={imageLayout} onChange={onImageLayoutChange} />
+      )}
     </div>
   );
 }
