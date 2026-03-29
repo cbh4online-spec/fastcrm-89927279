@@ -11,6 +11,7 @@ import {
   useMetaAssets,
   useToggleAsset,
   useMetaOAuthStart,
+  useInstagramOAuthStart,
   useSyncAssets,
   useDeleteConnection,
 } from "@/hooks/useMetaConnections";
@@ -39,6 +40,18 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     title: "Erro inesperado",
     description: "Ocorreu um erro inesperado durante a autenticação. Se o problema persistir, contacte o suporte.",
   },
+  ig_token_exchange_failed: {
+    title: "Falha na troca de token Instagram",
+    description: "Não foi possível completar a autenticação com o Instagram. Verifique se a app Instagram está corretamente configurada no Meta Developers Portal.",
+  },
+  ig_db_error: {
+    title: "Erro ao guardar a ligação Instagram",
+    description: "A autenticação com o Instagram foi bem-sucedida, mas ocorreu um erro ao guardar os dados. Tente ligar novamente.",
+  },
+  ig_unexpected: {
+    title: "Erro inesperado (Instagram)",
+    description: "Ocorreu um erro inesperado durante a autenticação Instagram. Se o problema persistir, contacte o suporte.",
+  },
 };
 
 const assetIcons: Record<string, React.ElementType> = {
@@ -64,6 +77,7 @@ export function MetaConnectionsPage() {
   const { data: connections = [], isLoading } = useMetaConnections();
   const { data: assets = [] } = useMetaAssets();
   const oauthStart = useMetaOAuthStart();
+  const igOauthStart = useInstagramOAuthStart();
   const syncAssets = useSyncAssets();
   const deleteConnection = useDeleteConnection();
   const toggleAsset = useToggleAsset();
@@ -91,6 +105,21 @@ export function MetaConnectionsPage() {
       }
     } catch (err) {
       toast.error("Falha ao iniciar autenticação Meta");
+    }
+  };
+
+  const handleConnectInstagram = async () => {
+    if (!currentWorkspace?.id || !user?.id) return;
+    try {
+      const data = await igOauthStart.mutateAsync({
+        workspaceId: currentWorkspace.id,
+        userId: user.id,
+      });
+      if (data?.auth_url) {
+        window.location.href = data.auth_url;
+      }
+    } catch (err) {
+      toast.error("Falha ao iniciar autenticação Instagram");
     }
   };
 
@@ -152,10 +181,16 @@ export function MetaConnectionsPage() {
           <h2 className="text-lg font-semibold">Ligações Meta</h2>
           <p className="text-sm text-muted-foreground">Gerir contas Facebook e Instagram ligadas</p>
         </div>
-        <Button onClick={handleConnect} disabled={oauthStart.isPending}>
-          {oauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link2 className="w-4 h-4 mr-2" />}
-          Ligar Conta Meta
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleConnect} disabled={oauthStart.isPending}>
+            {oauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Facebook className="w-4 h-4 mr-2" />}
+            Ligar Conta Meta
+          </Button>
+          <Button variant="outline" onClick={handleConnectInstagram} disabled={igOauthStart.isPending}>
+            {igOauthStart.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Instagram className="w-4 h-4 mr-2" />}
+            Ligar Conta Instagram
+          </Button>
+        </div>
       </div>
 
       {isLoading && (
