@@ -606,14 +606,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               <div className="mt-2 space-y-2">
                 <Input
                   placeholder="Texto do cabeçalho"
-                  value={(ebook as any).header_text || ""}
-                  onChange={(e) => updateEbook.mutate({ id: ebookId, header_text: e.target.value } as any)}
+                  value={localHeaderText}
+                  onChange={(e) => setLocalHeaderText(e.target.value)}
                   className="h-7 text-xs"
                 />
                 <Input
                   placeholder="Texto do rodapé"
-                  value={(ebook as any).footer_text || ""}
-                  onChange={(e) => updateEbook.mutate({ id: ebookId, footer_text: e.target.value } as any)}
+                  value={localFooterText}
+                  onChange={(e) => setLocalFooterText(e.target.value)}
                   className="h-7 text-xs"
                 />
               </div>
@@ -626,22 +626,16 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               <div className="mt-2 space-y-2">
                 <Input
                   placeholder="Slogan"
-                  value={((ebook as any).contact_page as EbookContactPage)?.slogan || ""}
-                  onChange={(e) => {
-                    const cp = { ...((ebook as any).contact_page || {}), slogan: e.target.value };
-                    updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
-                  }}
+                  value={localContactPage.slogan || ""}
+                  onChange={(e) => setLocalContactPage(prev => ({ ...prev, slogan: e.target.value }))}
                   className="h-7 text-xs"
                 />
                 <div className="flex gap-1">
                   <Mail className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
                   <Input
                     placeholder="Email"
-                    value={((ebook as any).contact_page as EbookContactPage)?.email || ""}
-                    onChange={(e) => {
-                      const cp = { ...((ebook as any).contact_page || {}), email: e.target.value };
-                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
-                    }}
+                    value={localContactPage.email || ""}
+                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, email: e.target.value }))}
                     className="h-7 text-xs"
                   />
                 </div>
@@ -649,11 +643,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   <Phone className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
                   <Input
                     placeholder="Telefone"
-                    value={((ebook as any).contact_page as EbookContactPage)?.phone || ""}
-                    onChange={(e) => {
-                      const cp = { ...((ebook as any).contact_page || {}), phone: e.target.value };
-                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
-                    }}
+                    value={localContactPage.phone || ""}
+                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, phone: e.target.value }))}
                     className="h-7 text-xs"
                   />
                 </div>
@@ -661,11 +652,8 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   <Link className="h-3 w-3 text-muted-foreground mt-2 shrink-0" />
                   <Input
                     placeholder="Website"
-                    value={((ebook as any).contact_page as EbookContactPage)?.website || ""}
-                    onChange={(e) => {
-                      const cp = { ...((ebook as any).contact_page || {}), website: e.target.value };
-                      updateEbook.mutate({ id: ebookId, contact_page: cp } as any);
-                    }}
+                    value={localContactPage.website || ""}
+                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, website: e.target.value }))}
                     className="h-7 text-xs"
                   />
                 </div>
@@ -684,9 +672,9 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
             author={ebook.author_name || undefined}
             coverUrl={ebook.cover_url || undefined}
             chapters={ebook.chapters}
-            headerText={(ebook as any).header_text || undefined}
-            footerText={(ebook as any).footer_text || undefined}
-            contactPage={(ebook as any).contact_page || undefined}
+            headerText={localHeaderText || undefined}
+            footerText={localFooterText || undefined}
+            contactPage={Object.keys(localContactPage).length > 0 ? localContactPage : undefined}
           />
         </DialogContent>
       </Dialog>
