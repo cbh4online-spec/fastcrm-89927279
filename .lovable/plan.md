@@ -1,59 +1,45 @@
 
 
-# Proteção de Documento no eBook Reader
+# Notas/Comentários no Editor de eBooks
 
-## Ferramentas de Proteção Disponíveis (browser-side)
+## Contexto
 
-Num leitor web, a proteção é sempre "best-effort" — não é possível impedir a 100% um utilizador determinado, mas pode-se dificultar significativamente a cópia casual. Eis as camadas aplicáveis:
+Actualmente as notas só aparecem no FlipbookReader (pré-visualização). O utilizador quer poder tirar notas e fazer comentários directamente na vista de edição, associadas ao capítulo activo, para facilitar correcções.
 
-| Camada | Técnica | Eficácia |
-|---|---|---|
-| **Anti-selecção de texto** | CSS `user-select: none` no conteúdo das páginas | Alta para cópia casual |
-| **Anti-clique-direito** | `onContextMenu` preventDefault no container do flipbook | Média — impede "Guardar imagem como" |
-| **Anti-arrastar** | `onDragStart` preventDefault em imagens e texto | Alta para drag-and-drop |
-| **Anti-print-screen** | CSS `@media print { display: none }` + listener de `keydown` para PrintScreen (limitado) | Baixa-Média |
-| **Anti-impressão** | Remover/esconder botão de impressão na página pública; `@media print` esconde conteúdo | Média |
-| **Marca d'água visual** | Overlay semi-transparente com nome do workspace/utilizador sobre cada página | Alta — desincentiva partilha |
-| **Anti-DevTools** | Desabilitar atalhos comuns (F12, Ctrl+Shift+I) — puramente dissuasivo | Baixa |
+## Abordagem
 
-## Proposta de Implementação
+Adicionar uma 4ª tab **"Notas"** na sidebar direita do editor, reutilizando o hook `useEbookNotes` existente e o componente `EbookNotesPanel` (adaptado para o tema claro do editor). As notas serão associadas ao índice do capítulo (`page_number` = índice do capítulo), permitindo correspondência entre editor e flipbook.
 
-### 1. CSS de Proteção (`FlipbookReader.tsx`)
-- Aplicar `user-select: none`, `-webkit-user-drag: none` e `pointer-events` controlado no container das páginas
-- `onContextMenu={e => e.preventDefault()}` no wrapper do flipbook
-- `onDragStart={e => e.preventDefault()}` em imagens
+## Implementação
 
-### 2. Marca d'Água Dinâmica (`FlipbookWatermark.tsx`)
-- Novo componente overlay com texto diagonal semi-transparente (nome do workspace ou "Documento Protegido")
-- Posicionado via `position: absolute` sobre cada página com `pointer-events: none`
-- Configurável: o autor pode activar/desactivar e definir o texto na edição do eBook
+### 1. `EbookEditorNotesPanel.tsx` (novo)
 
-### 3. Proteção de Impressão
-- Na página pública: remover o botão de impressão e adicionar `@media print` que esconde todo o conteúdo do flipbook
-- Na página do editor: manter impressão funcional (é o dono)
+- Versão adaptada do `EbookNotesPanel` com tema claro (bg-background em vez de slate-900)
+- Mostra notas filtradas pelo capítulo activo (usando índice do capítulo como `page_number`)
+- Form inline para adicionar nota ao capítulo actual
+- Botão eliminar por nota
+- Sem o botão "navegar para página" (estamos no editor, o clique selecciona o capítulo)
 
-### 4. Configuração por eBook
-- Novo campo `protection_enabled` (boolean, default true) na tabela `ebooks`
-- Toggle no editor para o autor activar/desactivar proteções
-- Quando activo, aplica todas as camadas na página pública
+### 2. `EbookEditor.tsx`
 
-## Ficheiros a Alterar
+- Adicionar tab "Notas" (ícone `StickyNote`) à sidebar direita, ao lado de Inserir/Estilo/Marca
+- Importar `useEbookNotes` e passar dados ao novo painel
+- Ao clicar numa nota de outro capítulo, mudar o `activeChapterId` para o capítulo correspondente
+- Badge com contagem de notas no tab trigger
+
+### Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Adicionar `protection_enabled boolean default true` à tabela `ebooks` |
-| `src/components/ebooks/FlipbookWatermark.tsx` | Novo — overlay de marca d'água |
-| `src/components/ebooks/FlipbookReader.tsx` | Aplicar CSS anti-cópia + integrar watermark + condicionar impressão |
-| `src/pages/PublicEbookPage.tsx` | Passar flag de proteção ao reader |
-| `src/components/ebooks/EbookEditor.tsx` | Toggle de protecção no painel de settings |
+| `src/components/ebooks/EbookEditorNotesPanel.tsx` | Novo — painel de notas para editor |
+| `src/components/ebooks/EbookEditor.tsx` | Adicionar tab "Notas" na sidebar + integrar hook |
 
-## Critérios de Aceitação
+### Critérios de Aceitação
 
-- Texto não seleccionável na página pública quando proteção activa
-- Clique-direito bloqueado no flipbook público
-- Marca d'água visível mas não obstrutiva sobre cada página
-- `Ctrl+P` / `@media print` não revela conteúdo na página pública
-- Editor mantém todas as funcionalidades (impressão, selecção) independentemente da flag
-- Toggle funcional no editor para activar/desactivar proteção
-- Mobile: proteção funciona em touch (long-press não abre menu de cópia)
+- Tab "Notas" visível na sidebar direita do editor
+- Notas filtradas pelo capítulo activo com opção de ver todas
+- Adicionar/eliminar notas persiste na base de dados
+- Clicar numa nota de outro capítulo navega para esse capítulo
+- Badge com contagem total de notas no tab
+- As mesmas notas aparecem no FlipbookReader (sincronização via DB)
 
