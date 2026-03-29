@@ -172,31 +172,31 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage }: Flipbo
           </p>
           <div className="space-y-[0.5em] mb-[1.5em]">
             {d.email && (
-              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+              <a href={`mailto:${d.email}`} className="flex items-center justify-center gap-[0.5em] text-white/70 hover:text-white transition-colors" style={{ pointerEvents: "auto", cursor: "pointer", textDecoration: "none" }}>
                 <Mail className="shrink-0" style={{ width: "0.9em", height: "0.9em" }} />
-                <span style={{ fontSize: "0.8em" }}>{d.email}</span>
-              </div>
+                <span className="hover:underline" style={{ fontSize: "0.8em" }}>{d.email}</span>
+              </a>
             )}
             {d.phone && (
-              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+              <a href={`tel:${d.phone}`} className="flex items-center justify-center gap-[0.5em] text-white/70 hover:text-white transition-colors" style={{ pointerEvents: "auto", cursor: "pointer", textDecoration: "none" }}>
                 <Phone className="shrink-0" style={{ width: "0.9em", height: "0.9em" }} />
-                <span style={{ fontSize: "0.8em" }}>{d.phone}</span>
-              </div>
+                <span className="hover:underline" style={{ fontSize: "0.8em" }}>{d.phone}</span>
+              </a>
             )}
             {d.website && (
-              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+              <a href={d.website.startsWith("http") ? d.website : `https://${d.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-[0.5em] text-white/70 hover:text-white transition-colors" style={{ pointerEvents: "auto", cursor: "pointer", textDecoration: "none" }}>
                 <Globe className="shrink-0" style={{ width: "0.9em", height: "0.9em" }} />
-                <span style={{ fontSize: "0.8em" }}>{d.website}</span>
-              </div>
+                <span className="hover:underline" style={{ fontSize: "0.8em" }}>{d.website}</span>
+              </a>
             )}
           </div>
           {d.social_links && d.social_links.length > 0 && (
             <div className="flex items-center justify-center gap-[1em] flex-wrap">
               {d.social_links.map((link, i) => (
-                <div key={i} className="flex items-center gap-[0.3em]" style={{ color: v.accent }}>
+                <a key={i} href={link.url.startsWith("http") ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-[0.3em] hover:opacity-80 transition-opacity" style={{ color: v.accent, pointerEvents: "auto", cursor: "pointer", textDecoration: "none" }}>
                   <ExternalLink style={{ width: "0.7em", height: "0.7em" }} />
-                  <span style={{ fontSize: "0.7em" }}>{link.label}</span>
-                </div>
+                  <span className="hover:underline" style={{ fontSize: "0.7em" }}>{link.label}</span>
+                </a>
               ))}
             </div>
           )}
