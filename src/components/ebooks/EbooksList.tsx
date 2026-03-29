@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useEbooks, useDeleteEbook } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, BookOpen, Trash2, ExternalLink, Loader2, Sparkles, FileText, PenLine, BookMarked } from "lucide-react";
+import { Plus, BookOpen, Trash2, ExternalLink, Loader2, Sparkles, FileText, PenLine, BookMarked, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { EbookAnalytics } from "./EbookAnalytics";
 
 interface EbooksListProps {
   onSelectEbook: (id: string) => void;
@@ -13,9 +15,14 @@ interface EbooksListProps {
 export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
   const { data: ebooks, isLoading } = useEbooks();
   const deleteEbook = useDeleteEbook();
+  const [analyticsEbook, setAnalyticsEbook] = useState<{ id: string; title: string } | null>(null);
 
   const totalWords = ebooks?.reduce((sum, eb) => sum + eb.chapters.reduce((s, ch) => s + (ch.content?.split(/\s+/).filter(Boolean).length || 0), 0), 0) || 0;
   const publishedCount = ebooks?.filter(e => e.status === "published").length || 0;
+
+  if (analyticsEbook) {
+    return <EbookAnalytics ebookId={analyticsEbook.id} ebookTitle={analyticsEbook.title} onBack={() => setAnalyticsEbook(null)} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -161,6 +168,9 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                         </span>
                       </div>
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setAnalyticsEbook({ id: ebook.id, title: ebook.title }); }} title="Estatísticas">
+                          <BarChart3 className="h-3.5 w-3.5" />
+                        </Button>
                         {ebook.slug && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); window.open(`/ebook/${ebook.slug}`, "_blank"); }}>
                             <ExternalLink className="h-3.5 w-3.5" />

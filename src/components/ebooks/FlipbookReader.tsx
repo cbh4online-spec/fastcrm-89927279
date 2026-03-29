@@ -482,6 +482,18 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
             isAdding={addNote.isPending}
           />
         )}
+
+
+        {/* Read tracking */}
+        {trackingViewId && ebookId && workspaceId && (
+          <EbookReadTracker
+            ebookId={ebookId}
+            workspaceId={workspaceId}
+            viewId={trackingViewId}
+            currentPage={currentPage}
+            totalPages={pages.length}
+          />
+        )}
       </div>
 
       {/* Toolbar */}
