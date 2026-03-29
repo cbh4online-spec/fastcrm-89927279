@@ -397,7 +397,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         showThumbnails={showThumbnails}
         spreadMode
         rightPage={rightPage}
-        onPrint={() => window.print()}
+        onPrint={protectionEnabled ? undefined : () => window.print()}
         onToggleNotes={hasNotesFeature ? () => setShowNotes(s => !s) : undefined}
         showNotes={showNotes}
         notesCount={notes.length}

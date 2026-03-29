@@ -31,6 +31,7 @@ interface EbookData {
   footer_text?: string;
   contact_page?: EbookContactPage;
   global_styles?: Record<string, unknown>;
+  protection_enabled?: boolean;
 }
 
 export default function PublicEbookPage() {
@@ -44,7 +45,7 @@ export default function PublicEbookPage() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
@@ -84,6 +85,8 @@ export default function PublicEbookPage() {
           footerText={ebook.footer_text}
           contactPage={ebook.contact_page}
           styleTokens={ebook.global_styles}
+          protectionEnabled={ebook.protection_enabled !== false}
+          watermarkText="Documento Protegido"
         />
       </div>
     </div>
