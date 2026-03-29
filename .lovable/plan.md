@@ -1,55 +1,48 @@
 
 
-# Lupa de Zoom para o Flipbook
+# Integração CRM nos Leitores de eBooks
 
 ## Diagnóstico
 
-O flipbook já tem zoom global (escala o livro inteiro via `transform: scale()`), mas não tem uma lupa localizada que amplie apenas a zona onde o cursor está — semelhante ao `StoreImageZoom` da loja. O pedido é adicionar um modo "lupa" que, quando activado, mostra uma janela de zoom flutuante seguindo o cursor sobre a página do eBook.
+Actualmente, quando um leitor preenche o lead gate (nome + email), os dados são guardados em `ebook_views` mas **não é feito match com a tabela `contacts`**. O campo `contact_id` existe na tabela mas nunca é preenchido. O dashboard de analytics mostra os leitores identificados mas sem indicação de pertença ao CRM.
 
-## Abordagem
+## Plano
 
-Reutilizar o padrão do `StoreImageZoom`: quando o modo lupa está activo, capturar a posição do rato sobre o container do livro e renderizar um "lens overlay" que mostra uma cópia ampliada dessa zona.
+### 1. Match CRM na criação da view (`PublicEbookPage.tsx`)
 
-## Alterações
+Na função `createView`, após receber o email do leitor:
+- Fazer query a `contacts` pelo email no workspace: `contacts.email = reader_email AND workspace_id`
+- Se encontrado: preencher `contact_id` no insert de `ebook_views`
+- Se não encontrado: `contact_id` fica null
 
-### 1. Novo componente `FlipbookZoomLens.tsx`
+### 2. Enriquecer dados no hook de analytics (`useEbookAnalytics.ts`)
 
-- Props: `containerRef`, `active`, `zoomFactor` (default 2.5)
-- Lógica:
-  - `onMouseMove` no container: calcular posição relativa (%)
-  - Renderizar um círculo/quadrado flutuante (200×200px) que segue o cursor
-  - Dentro da lupa: clonar o conteúdo visível do container via CSS `background` + `background-position` calculado, ou usar `transform: scale()` + `clip-path` numa cópia do container
-  - Técnica escolhida: capturar o `bookContainerRef` e renderizar um overlay com `overflow: hidden`, contendo uma cópia escalada do container posicionada inversamente ao cursor
-- Esconder quando o cursor sai do container
+- Na lista `identifiedReaders`, incluir flag `isInCrm: boolean` (baseado em `contact_id !== null`)
+- Expor `contactId` já existente na interface
 
-### 2. Toolbar — Botão Lupa (`FlipbookToolbar.tsx`)
+### 3. Coluna CRM na tabela de leitores (`EbookAnalytics.tsx`)
 
-- Adicionar novo botão com ícone `Search` (lupa) ao lado dos botões de zoom existentes
-- Props novas: `magnifyMode`, `onToggleMagnify`
-- Visual: botão activo com destaque (como o highlightMode)
+- Adicionar coluna "CRM" na tabela de leitores identificados
+- Se `contactId` existe: badge verde "No CRM" com link para `/contacts/{contactId}`
+- Se não existe: badge cinza "Novo" — indicando que não consta no CRM
+- Ordenar leitores: primeiro os do CRM, depois os novos
 
-### 3. `FlipbookReader.tsx`
+### 4. KPI adicional
 
-- Novo state `magnifyMode` (boolean)
-- Toggle via toolbar
-- Montar `FlipbookZoomLens` sobre o `bookContainerRef` quando `magnifyMode === true`
-- Desactivar cursor personalizado (AnimatedHandCursor) quando magnifyMode activo
-- Mutuamente exclusivo com `highlightMode` (activar um desactiva o outro)
+- Novo KPI card: "Leitores no CRM" — contagem de views com `contact_id` preenchido vs total identificados
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/FlipbookZoomLens.tsx` | **Novo** — componente da lupa flutuante |
-| `src/components/ebooks/FlipbookReader.tsx` | State + integração da lupa |
-| `src/components/ebooks/FlipbookToolbar.tsx` | Botão toggle da lupa |
+| `src/pages/PublicEbookPage.tsx` | Match email com `contacts` ao criar view |
+| `src/hooks/useEbookAnalytics.ts` | Flag `isInCrm` nos leitores |
+| `src/components/ebooks/EbookAnalytics.tsx` | Coluna CRM + badge + KPI |
 
 ## Critérios de aceitação
 
-- Botão "Lupa" visível na toolbar do flipbook
-- Ao activar, mover o cursor sobre a página mostra um zoom local ~2.5x
-- A lupa segue o cursor em tempo real sem lag perceptível
-- Ao sair da área do livro, a lupa desaparece
-- Mutuamente exclusivo com modo sublinhado
-- Funciona em desktop (esconder em mobile, onde não há hover)
+- Lead gate com email existente no CRM preenche `contact_id` automaticamente
+- Dashboard mostra claramente quais leitores estão no CRM
+- Badge com link directo para o perfil do contacto
+- KPI de conversão CRM visível
 
