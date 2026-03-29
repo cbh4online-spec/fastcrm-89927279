@@ -52,6 +52,23 @@ Deno.serve(async (req) => {
 
     for (const item of items) {
       try {
+        // Check if email is suppressed (unsubscribed, bounced, complained)
+        const { data: suppressed } = await supabase
+          .from('suppressed_emails')
+          .select('id')
+          .eq('email', item.recipient_email)
+          .limit(1)
+
+        if (suppressed && suppressed.length > 0) {
+          await supabase
+            .from('funnel_nurture_queue')
+            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', item.id)
+          console.log(`Cancelled nurture for suppressed email: ${item.recipient_email}`)
+          processed++
+          continue
+        }
+
         const templateName = STEP_TEMPLATES[item.current_step]
         if (!templateName) {
           // All steps done
