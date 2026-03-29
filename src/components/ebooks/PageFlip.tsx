@@ -3,10 +3,10 @@ import HTMLFlipBook from "react-pageflip";
 import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
 
 // react-pageflip requires forwardRef pages
-const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData }>(
-  ({ page }, ref) => (
+const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData; pageWidth: number; pageHeight: number }>(
+  ({ page, pageWidth, pageHeight }, ref) => (
     <div ref={ref} className="w-full h-full">
-      <FlipbookPage page={page} />
+      <FlipbookPage page={page} pageWidth={pageWidth} pageHeight={pageHeight} />
     </div>
   )
 );
@@ -123,7 +123,7 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           style={{}}
         >
           {pages.map((page, i) => (
-            <PageWrapper key={i} page={page} />
+            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} />
           ))}
         </HTMLFlipBook>
       </div>
