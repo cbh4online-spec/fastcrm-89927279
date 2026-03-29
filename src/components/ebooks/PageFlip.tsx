@@ -24,6 +24,7 @@ interface PageFlipProps {
   pageHeight: string;
   isFullscreen?: boolean;
   onGoToPage?: (page: number) => void;
+  highlightMode?: boolean;
 }
 
 // A4 ratio ≈ 1:1.414
@@ -71,7 +72,7 @@ function calcDimensions(isFullscreen: boolean) {
 }
 
 export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
-  ({ pages, onFlip, isFullscreen = false, onGoToPage }, ref) => {
+  ({ pages, onFlip, isFullscreen = false, onGoToPage, highlightMode = false }, ref) => {
     const flipBookRef = useRef<any>(null);
     const [dims, setDims] = useState(() => calcDimensions(isFullscreen));
 
@@ -115,10 +116,10 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           maxShadowOpacity={0.5}
           mobileScrollSupport={true}
           clickEventForward={true}
-          useMouseEvents={true}
+          useMouseEvents={!highlightMode}
           swipeDistance={30}
-          showPageCorners={true}
-          disableFlipByClick={false}
+          showPageCorners={!highlightMode}
+          disableFlipByClick={highlightMode}
           onFlip={handleFlip}
           className="flipbook-container"
           style={{}}

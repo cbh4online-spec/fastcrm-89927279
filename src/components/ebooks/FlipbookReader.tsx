@@ -231,6 +231,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [highlightMode, setHighlightMode] = useState(false);
   const [highlightPopover, setHighlightPopover] = useState<{
     text: string;
     position: { x: number; y: number };
@@ -277,6 +278,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       });
       window.getSelection()?.removeAllRanges();
       setHighlightPopover(null);
+      setHighlightMode(false);
       setShowNotes(true);
     },
     [addNote, currentPage]
@@ -366,16 +368,17 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
       className={`flex flex-col group ${protectionEnabled ? "ebook-protected-container" : ""} ${isFullscreen ? "bg-slate-950 h-screen" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl h-[92vh]"}`}
       style={{
         ...buildStyleVars(styleTokens),
-        ...(protectionEnabled ? { userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties : {}),
+        ...(protectionEnabled && !highlightMode ? { userSelect: "none", WebkitUserSelect: "none" } as React.CSSProperties : {}),
+        ...(highlightMode ? { userSelect: "text", WebkitUserSelect: "text" } as React.CSSProperties : {}),
       }}
       {...protectionHandlers}
     >
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
         <div className="flex-1 flex items-center justify-center">
-          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: 'none' }} onMouseUp={handleMouseUp}>
-            {/* Animated hand cursor */}
-            <AnimatedHandCursor containerRef={bookContainerRef} />
+          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: highlightMode ? 'text' : 'none' }} onMouseUp={handleMouseUp}>
+            {/* Animated hand cursor — hidden in highlight mode */}
+            {!highlightMode && <AnimatedHandCursor containerRef={bookContainerRef} />}
             {/* Watermark overlay */}
             {protectionEnabled && (
               <FlipbookWatermark text={watermarkText} />
@@ -426,6 +429,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
               pageHeight={pageHeight}
               isFullscreen={isFullscreen}
               onGoToPage={goToPage}
+              highlightMode={highlightMode}
             />
           </div>
         </div>
@@ -462,6 +466,8 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         onToggleNotes={hasNotesFeature ? () => setShowNotes(s => !s) : undefined}
         showNotes={showNotes}
         notesCount={notes.length}
+        highlightMode={highlightMode}
+        onToggleHighlightMode={hasNotesFeature ? () => setHighlightMode(m => !m) : undefined}
       />
     </div>
   );
