@@ -22,6 +22,7 @@ function formatDuration(seconds: number): string {
 }
 
 export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsProps) {
+  const navigate = useNavigate();
   const kpis = useEbookAnalyticsKPIs(ebookId);
 
   if (kpis.isLoading) {
@@ -66,7 +67,7 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3 px-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -84,6 +85,18 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
             </div>
             <p className="text-2xl font-bold text-foreground">{kpis.uniqueReaders}</p>
             <p className="text-xs text-muted-foreground">{kpis.anonymousViews} anónimos</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <ContactRound className="h-4 w-4" />
+              <span className="text-xs font-medium uppercase tracking-wider">No CRM</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{kpis.readersInCrm}</p>
+            <p className="text-xs text-muted-foreground">
+              {kpis.uniqueReaders > 0 ? Math.round((kpis.readersInCrm / kpis.uniqueReaders) * 100) : 0}% dos identificados
+            </p>
           </CardContent>
         </Card>
         <Card>
