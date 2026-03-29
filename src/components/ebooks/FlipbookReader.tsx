@@ -103,7 +103,7 @@ function splitMarkdownIntoPages(content: string): string[] {
     const combinedWeight = currentWeight + (current ? 2 : 0) + paraWeight;
 
     if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
-      if (combinedWeight <= CHARS_PER_PAGE * 1.2) {
+      if (combinedWeight <= CHARS_PER_PAGE * 1.1) {
         current += (current ? "\n\n" : "") + para;
         currentWeight = combinedWeight;
       } else {
