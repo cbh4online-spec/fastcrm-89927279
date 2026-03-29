@@ -11,6 +11,15 @@ interface EbookChapter {
   cover_image?: string;
 }
 
+interface EbookContactPage {
+  email?: string;
+  phone?: string;
+  website?: string;
+  slogan?: string;
+  logo_url?: string;
+  social_links?: { label: string; url: string }[];
+}
+
 interface EbookData {
   id: string;
   title: string;
@@ -18,6 +27,9 @@ interface EbookData {
   author_name?: string;
   cover_url?: string;
   chapters: EbookChapter[];
+  header_text?: string;
+  footer_text?: string;
+  contact_page?: EbookContactPage;
 }
 
 export default function PublicEbookPage() {
@@ -31,13 +43,13 @@ export default function PublicEbookPage() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
       if (err) { setError("Erro ao carregar eBook"); setLoading(false); return; }
       if (!data) { setError("eBook não encontrado"); setLoading(false); return; }
-      setEbook({ ...data, chapters: Array.isArray(data.chapters) ? data.chapters : [] });
+      setEbook({ ...data, chapters: Array.isArray(data.chapters) ? data.chapters : [], contact_page: data.contact_page || {} });
       setLoading(false);
     }
     load();
@@ -67,6 +79,9 @@ export default function PublicEbookPage() {
           author={ebook.author_name}
           coverUrl={ebook.cover_url}
           chapters={ebook.chapters}
+          headerText={ebook.header_text}
+          footerText={ebook.footer_text}
+          contactPage={ebook.contact_page}
         />
       </div>
     </div>
