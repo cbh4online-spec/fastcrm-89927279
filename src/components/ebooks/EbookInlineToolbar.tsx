@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Bold, Italic, Underline, Strikethrough, Link,
   AlignLeft, AlignCenter, AlignRight, List, ListOrdered,
@@ -28,6 +28,26 @@ const COLORS = [
 export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookInlineToolbarProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [clampedPos, setClampedPos] = useState(position);
+
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) {
+      setClampedPos({ top: Math.max(8, position.top), left: position.left });
+      return;
+    }
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const parent = el.offsetParent as HTMLElement | null;
+    const parentW = parent?.clientWidth ?? window.innerWidth;
+
+    const halfW = w / 2;
+    const clampedLeft = Math.max(halfW + 8, Math.min(position.left, parentW - halfW - 8));
+    const clampedTop = Math.max(8, position.top);
+
+    setClampedPos({ top: clampedTop, left: clampedLeft });
+  }, [position]);
 
   const handleLink = () => {
     if (linkUrl) {
@@ -39,13 +59,14 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
 
   return (
     <div
+      ref={toolbarRef}
       className={cn(
         "absolute z-50 flex items-center gap-0.5 p-1 rounded-lg",
         "bg-popover border shadow-xl animate-fade-in"
       )}
       style={{
-        top: Math.max(8, position.top),
-        left: Math.max(60, position.left),
+        top: clampedPos.top,
+        left: clampedPos.left,
         transform: 'translateX(-50%)',
       }}
       onMouseDown={(e) => e.preventDefault()}
@@ -102,7 +123,7 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
             <Palette className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2" side="top">
+        <PopoverContent className="w-auto p-2" side="top" collisionPadding={8}>
           <div className="grid grid-cols-4 gap-1">
             {COLORS.map((color) => (
               <button
@@ -122,7 +143,7 @@ export function EbookInlineToolbar({ position, onCommand, onAIRewrite }: EbookIn
             <Link className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2" side="top">
+        <PopoverContent className="w-72 p-2" side="top" collisionPadding={8}>
           <div className="flex gap-2">
             <Input
               placeholder="https://..."
