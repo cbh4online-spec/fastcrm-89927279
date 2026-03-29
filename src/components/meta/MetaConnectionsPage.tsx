@@ -40,6 +40,18 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     title: "Erro inesperado",
     description: "Ocorreu um erro inesperado durante a autenticação. Se o problema persistir, contacte o suporte.",
   },
+  ig_token_exchange_failed: {
+    title: "Falha na troca de token Instagram",
+    description: "Não foi possível completar a autenticação com o Instagram. Verifique se a app Instagram está corretamente configurada no Meta Developers Portal.",
+  },
+  ig_db_error: {
+    title: "Erro ao guardar a ligação Instagram",
+    description: "A autenticação com o Instagram foi bem-sucedida, mas ocorreu um erro ao guardar os dados. Tente ligar novamente.",
+  },
+  ig_unexpected: {
+    title: "Erro inesperado (Instagram)",
+    description: "Ocorreu um erro inesperado durante a autenticação Instagram. Se o problema persistir, contacte o suporte.",
+  },
 };
 
 const assetIcons: Record<string, React.ElementType> = {
