@@ -3,16 +3,40 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { EbooksList } from "@/components/ebooks/EbooksList";
 import { EbookEditor } from "@/components/ebooks/EbookEditor";
 import { EbookWizard } from "@/components/ebooks/EbookWizard";
+import { TemplatePickerStep } from "@/components/ebooks/templates/TemplatePickerStep";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { BookOpen, Sparkles, LayoutGrid, FileText } from "lucide-react";
+import { BookOpen, Sparkles, LayoutGrid, FileText, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCreateEbook } from "@/hooks/useEbooks";
+import type { EbookTemplate } from "@/types/ebook-templates";
+import { toast } from "sonner";
 
 export default function EbooksPage() {
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showBlankPicker, setShowBlankPicker] = useState(false);
+  const [blankTemplateId, setBlankTemplateId] = useState<string | null>(null);
+  const [blankTemplate, setBlankTemplate] = useState<EbookTemplate | null>(null);
+  const createEbook = useCreateEbook();
+
+  const handleCreateBlank = async () => {
+    try {
+      const payload: any = { title: "eBook sem título" };
+      if (blankTemplateId && blankTemplate) {
+        payload.template_id = blankTemplateId;
+        payload.global_styles = blankTemplate.style_tokens;
+      }
+      const ebook = await createEbook.mutateAsync(payload);
+      setShowBlankPicker(false);
+      setSelectedId(ebook.id);
+      toast.success("eBook criado!");
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -69,12 +93,9 @@ export default function EbooksPage() {
                   className="h-auto py-4 px-4 justify-start gap-4 text-left"
                   onClick={() => {
                     setShowCreateModal(false);
-                    // Quick create blank
-                    import("@/hooks/useEbooks").then(({ useCreateEbook }) => {
-                      // handled by EbooksList which already has blank create
-                    });
-                    setShowWizard(false);
-                    setSelectedId(null);
+                    setBlankTemplateId(null);
+                    setBlankTemplate(null);
+                    setShowBlankPicker(true);
                   }}
                 >
                   <FileText className="h-8 w-8 text-muted-foreground shrink-0" />
@@ -82,6 +103,32 @@ export default function EbooksPage() {
                     <span className="font-medium text-sm">Do Zero</span>
                     <p className="text-xs text-muted-foreground mt-0.5">Comece com um eBook em branco</p>
                   </div>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Blank creation — template picker modal */}
+          <Dialog open={showBlankPicker} onOpenChange={setShowBlankPicker}>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+              <h2 className="text-lg font-semibold text-foreground">Escolher visual do eBook</h2>
+              <p className="text-sm text-muted-foreground">Selecione um template ou continue sem template</p>
+              <div className="mt-4">
+                <TemplatePickerStep
+                  selectedTemplateId={blankTemplateId}
+                  onSelect={(id, tpl) => {
+                    setBlankTemplateId(id);
+                    setBlankTemplate(tpl);
+                  }}
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/50">
+                <Button variant="ghost" onClick={() => setShowBlankPicker(false)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+                <Button onClick={handleCreateBlank} disabled={createEbook.isPending}>
+                  Criar eBook
                 </Button>
               </div>
             </DialogContent>

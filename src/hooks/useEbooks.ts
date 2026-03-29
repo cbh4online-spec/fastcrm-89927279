@@ -85,10 +85,10 @@ export function useCreateEbook() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   return useMutation({
-    mutationFn: async (input: { title: string; subtitle?: string; description?: string; author_name?: string; chapters?: EbookChapter[] }) => {
+    mutationFn: async (input: { title: string; subtitle?: string; description?: string; author_name?: string; chapters?: EbookChapter[]; template_id?: string; global_styles?: Record<string, unknown> }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
-      const { data, error } = await (supabase as any).from("ebooks").insert({
+      const insertPayload: Record<string, unknown> = {
         workspace_id: currentWorkspace!.id,
         title: input.title,
         subtitle: input.subtitle || null,
@@ -97,7 +97,10 @@ export function useCreateEbook() {
         chapters: input.chapters || [],
         slug,
         created_by: user?.id,
-      }).select().single();
+      };
+      if (input.template_id) insertPayload.template_id = input.template_id;
+      if (input.global_styles) insertPayload.global_styles = input.global_styles;
+      const { data, error } = await (supabase as any).from("ebooks").insert(insertPayload).select().single();
       if (error) throw error;
       return data as Ebook;
     },

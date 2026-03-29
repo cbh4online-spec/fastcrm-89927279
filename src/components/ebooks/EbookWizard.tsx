@@ -8,15 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { EbookThemeSelector } from "./EbookThemeSelector";
 import { EbookImageStylePicker, IMAGE_STYLES } from "./EbookImageStylePicker";
+import { TemplatePickerStep } from "./templates/TemplatePickerStep";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { EbookTemplate } from "@/types/ebook-templates";
 import {
   Sparkles, ArrowLeft, ArrowRight, Loader2, Minus, Plus,
-  BookOpen, Palette, ImageIcon, Coins, Wand2
+  BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,6 +41,8 @@ interface Props {
 
 export function EbookWizard({ onComplete, onCancel }: Props) {
   const [step, setStep] = useState(0);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<EbookTemplate | null>(null);
   const [prompt, setPrompt] = useState("");
   const [chapterCount, setChapterCount] = useState(7);
   const [tone, setTone] = useState("professional");
@@ -102,11 +106,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       setGenProgress(15);
 
       // Step 2: Create the ebook
-      const ebook = await createEbook.mutateAsync({
+      const createPayload: any = {
         title: result.title || prompt.trim(),
         subtitle: result.subtitle,
         chapters,
-      });
+      };
+      if (selectedTemplateId && selectedTemplate) {
+        createPayload.template_id = selectedTemplateId;
+        createPayload.global_styles = selectedTemplate.style_tokens;
+      }
+      const ebook = await createEbook.mutateAsync(createPayload);
 
       // Save theme/style via direct update
       await (supabase as any).from("ebooks").update({
@@ -216,6 +225,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   };
 
   const steps = [
+    { icon: LayoutGrid, label: "Template" },
     { icon: BookOpen, label: "Conteúdo" },
     { icon: Palette, label: "Tema" },
     { icon: ImageIcon, label: "Imagens" },
@@ -230,7 +240,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           Wizard de Criação IA
         </div>
         <h2 className="text-2xl font-bold text-foreground">Crie o seu eBook com IA</h2>
-        <p className="text-sm text-muted-foreground">3 passos simples para gerar um eBook completo automaticamente</p>
+        <p className="text-sm text-muted-foreground">4 passos simples para gerar um eBook completo automaticamente</p>
       </div>
 
       {/* Step indicator */}
@@ -280,6 +290,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
             <Card>
               <CardContent className="p-6 space-y-5">
                 {step === 0 && (
+                  <TemplatePickerStep
+                    selectedTemplateId={selectedTemplateId}
+                    onSelect={(id, tpl) => {
+                      setSelectedTemplateId(id);
+                      setSelectedTemplate(tpl);
+                    }}
+                  />
+                )}
+
+                {step === 1 && (
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Sobre o que é o seu eBook?</Label>
@@ -353,14 +373,14 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                   </>
                 )}
 
-                {step === 1 && (
+                {step === 2 && (
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Escolha um tema visual</Label>
                     <EbookThemeSelector value={theme} onChange={setTheme} />
                   </div>
                 )}
 
-                {step === 2 && (
+                {step === 3 && (
                   <div className="space-y-5">
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Estilo artístico das imagens</Label>
@@ -424,8 +444,8 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
             {step === 0 ? "Cancelar" : "Voltar"}
           </Button>
 
-          {step < 2 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={step === 0 && !canProceed}>
+          {step < 3 ? (
+            <Button onClick={() => setStep(step + 1)} disabled={step === 1 && !canProceed}>
               Seguinte
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
