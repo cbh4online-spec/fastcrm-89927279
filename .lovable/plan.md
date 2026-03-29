@@ -1,42 +1,66 @@
 
 
-# Remover linhas e criar páginas mais gráficas
+# Imagens no texto, cabeçalho/rodapé personalizáveis e página final de contactos
 
-## Problema
+## O que muda
 
-As páginas de conteúdo têm linhas/bordas visíveis (header border-bottom, footer border-top, h2 border-left) que criam um aspecto muito "documento". O layout é demasiado textual sem elementos visuais de quebra.
+### 1. Base de dados — novos campos na tabela `ebooks`
 
-## Alterações
+Adicionar colunas ao JSON `metadata` (ou como colunas directas) para guardar configuração de cabeçalho, rodapé e página de contactos:
 
-### 1. `FlipbookPage.tsx` — Remover linhas e adicionar elementos gráficos
+```sql
+ALTER TABLE public.ebooks
+  ADD COLUMN IF NOT EXISTS header_text text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS footer_text text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS contact_page jsonb DEFAULT '{}';
+```
 
-**Remover:**
-- `border-b border-amber-900/8` do header
-- `border-t border-amber-900/8` do footer
-- `prose-h2:border-l-2 prose-h2:border-amber-600/30 prose-h2:pl-[0.6em]` dos headings
+O `contact_page` guarda: `email`, `phone`, `website`, `slogan`, `social_links` (array), `logo_url`.
 
-**Adicionar elementos visuais:**
-- Decoração subtil no header (pequeno ornamento em vez de linha)
-- Headings (h2/h3) com fundo decorativo suave (gradient ou accent background) em vez de border-left
-- Pull-quote styling melhorado para blockquotes (aspas decorativas grandes, fundo com gradiente)
-- Capitular (drop cap) do primeiro parágrafo já existe — manter
-- Separadores decorativos entre secções (ornamento tipográfico `✦` ou `❧`) em vez de linhas
-- Fundo subtil com pattern decorativo (canto da página com detalhe ornamental via CSS)
+### 2. Imagens ao longo do texto
 
-**Componentes customizados do ReactMarkdown:**
-- `h2`: fundo amber/warm com cantos arredondados, ícone decorativo
-- `h3`: estilo accent com linha superior curta decorativa
-- `blockquote`: aspas grandes decorativas, fundo gradient
-- `hr`: ornamento tipográfico central em vez de linha
+O conteúdo em Markdown já suporta `![alt](url)` e o `FlipbookPage` já renderiza imagens com `figure`/`figcaption`. O que falta:
 
-### 2. `FlipbookPage.tsx` — Decoração de página
+- **`FlipbookReader.tsx`** — ajustar `splitContentIntoPages` para detectar linhas de imagem (`![...](...)`), contar como ~400 chars (espaço visual que uma imagem ocupa), evitando que uma página com imagem tenha excesso de texto.
+- **`EbookEditor.tsx`** — já tem botão de upload de imagem; garantir que insere `![legenda](url)` no conteúdo do capítulo via o `EbookRichEditor`.
 
-- Adicionar um elemento decorativo no canto superior direito (ornamento sutil em CSS/SVG)
-- Footer sem borda, apenas número com ornamento fino
+### 3. Cabeçalho e rodapé personalizáveis
+
+**`FlipbookPage.tsx`**:
+- Receber props `headerText` e `footerText` (passados desde o `FlipbookReader`)
+- No header das páginas de conteúdo: mostrar `headerText` se definido, senão manter o título do capítulo actual
+- No footer: mostrar `footerText` se definido (ex: nome da empresa, website), com o número de página
+
+**`FlipbookReader.tsx`**:
+- Receber novas props `headerText`, `footerText`, `contactPage`
+- Passar ao `FlipbookPage` via `FlipbookPageData`
+
+**`EbookEditor.tsx`**:
+- Adicionar secção nas ferramentas laterais para editar header/footer text e dados da página de contactos
+- Guardar no ebook via `updateEbook`
+
+**`PublicEbookPage.tsx`**:
+- Carregar e passar os novos campos ao `FlipbookReader`
+
+### 4. Página final de contactos e slogan
+
+**`FlipbookPage.tsx`** — novo tipo de página `"contact"`:
+- Layout gráfico com gradiente escuro (semelhante à capa)
+- Logo (se fornecido)
+- Slogan em destaque (font grande, itálico)
+- Dados de contacto: email, telefone, website
+- Links de redes sociais com ícones
+- Ornamento decorativo de encerramento
+
+**`FlipbookReader.tsx`** — no `buildPages`, adicionar a página de contactos como última página se `contactPage` tiver dados.
 
 ### Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `FlipbookPage.tsx` | Remover bordas, adicionar decorações gráficas nos headings, blockquotes, separadores e cantos da página |
+| Migração SQL | 3 novas colunas: `header_text`, `footer_text`, `contact_page` |
+| `FlipbookReader.tsx` | Novas props, passar header/footer, página de contactos no fim, ajustar split para imagens |
+| `FlipbookPage.tsx` | Novo tipo `contact`, props de header/footer customizáveis |
+| `EbookEditor.tsx` | UI para editar header, footer e dados de contacto |
+| `PublicEbookPage.tsx` | Carregar e passar novos campos |
 
