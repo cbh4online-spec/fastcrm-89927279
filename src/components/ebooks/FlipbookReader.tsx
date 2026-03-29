@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
-import { PageFlip } from "./PageFlip";
+import { PageFlipBook, PageFlipHandle } from "./PageFlip";
 
 interface EbookChapter {
   id: string;
@@ -19,7 +19,7 @@ interface FlipbookReaderProps {
   compact?: boolean;
 }
 
-const CHARS_PER_PAGE = 1800;
+const CHARS_PER_PAGE = 900;
 
 function splitContentIntoPages(content: string): string[] {
   if (!content || content.trim().length === 0) return ["*Conteúdo em preparação*"];
@@ -93,50 +93,63 @@ function buildPages(
   return pages;
 }
 
+function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
+  const [compactPage, setCompactPage] = useState(0);
+  const next = () => { if (compactPage < pages.length - 1) setCompactPage(compactPage + 1); };
+  const prev = () => { if (compactPage > 0) setCompactPage(compactPage - 1); };
+
+  return (
+    <div className="flex flex-col">
+      <div className="w-[360px] h-[480px] relative">
+        <FlipbookPage page={pages[compactPage]} />
+      </div>
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-b-lg">
+        <button onClick={prev} disabled={compactPage <= 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+          ← Anterior
+        </button>
+        <span className="text-[10px] tabular-nums text-muted-foreground">{compactPage + 1}/{pages.length}</span>
+        <button onClick={next} disabled={compactPage >= pages.length - 1} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
+          Seguinte →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact }: FlipbookReaderProps) {
-  // currentSpread = index of left page (always even: 0, 2, 4, ...)
-  const [currentSpread, setCurrentSpread] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const flipBookRef = useRef<PageFlipHandle>(null);
 
   const pages = buildPages(title, subtitle, author, coverUrl, chapters);
 
-  const goToSpread = useCallback((spread: number) => {
-    // Ensure even
-    const s = Math.max(0, Math.min(Math.floor(spread / 2) * 2, pages.length - 1));
-    setCurrentSpread(s);
-  }, [pages.length]);
+  const handleFlip = useCallback((pageIndex: number) => {
+    setCurrentPage(pageIndex);
+  }, []);
 
   const goToPage = useCallback((page: number) => {
-    // Convert page index to spread (even number)
-    const spread = Math.floor(page / 2) * 2;
-    goToSpread(spread);
-  }, [goToSpread]);
+    flipBookRef.current?.turnToPage(page);
+  }, []);
 
-  const flipForward = useCallback(() => {
-    const nextSpread = currentSpread + 2;
-    if (nextSpread < pages.length) {
-      setCurrentSpread(nextSpread);
-    }
-  }, [currentSpread, pages.length]);
+  const flipNext = useCallback(() => {
+    flipBookRef.current?.flipNext();
+  }, []);
 
-  const flipBackward = useCallback(() => {
-    const prevSpread = currentSpread - 2;
-    if (prevSpread >= 0) {
-      setCurrentSpread(prevSpread);
-    }
-  }, [currentSpread]);
+  const flipPrev = useCallback(() => {
+    flipBookRef.current?.flipPrev();
+  }, []);
 
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipForward(); }
-      if (e.key === "ArrowLeft") { e.preventDefault(); flipBackward(); }
+      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipNext(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); flipPrev(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [flipForward, flipBackward]);
+  }, [flipNext, flipPrev]);
 
   // Fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -153,35 +166,14 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  const pageHeight = compact ? "h-[480px]" : isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
-
-  // Compact mode: keep old single-page behavior
   if (compact) {
-    const currentPage = currentSpread;
-    const next = () => { if (currentPage < pages.length - 1) setCurrentSpread(currentPage + 1); };
-    const prev = () => { if (currentPage > 0) setCurrentSpread(currentPage - 1); };
-
-    return (
-      <div className="flex flex-col">
-        <div className="w-[360px] h-[480px] relative">
-          <FlipbookPage page={pages[currentPage]} />
-        </div>
-        <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-b-lg">
-          <button onClick={prev} disabled={currentPage <= 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
-            ← Anterior
-          </button>
-          <span className="text-[10px] tabular-nums text-muted-foreground">{currentPage + 1}/{pages.length}</span>
-          <button onClick={next} disabled={currentPage >= pages.length - 1} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
-            Seguinte →
-          </button>
-        </div>
-      </div>
-    );
+    return <CompactReader pages={pages} />;
   }
 
-  // Current display pages for toolbar
-  const leftPage = currentSpread;
-  const rightPage = Math.min(currentSpread + 1, pages.length - 1);
+  // Determine spread display for toolbar
+  const rightPage = Math.min(currentPage + 1, pages.length - 1);
+
+  const pageHeight = isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
 
   return (
     <div
@@ -199,12 +191,12 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
                   key={i}
                   onClick={() => goToPage(i)}
                   className={`w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
-                    (i === leftPage || i === rightPage)
+                    i === currentPage || i === rightPage
                       ? "border-amber-400 shadow-lg shadow-amber-400/20 bg-white"
                       : "border-white/10 bg-white/5 hover:border-white/30"
                   }`}
                 >
-                  <span className={`font-mono ${(i === leftPage || i === rightPage) ? "text-slate-800" : "text-white/40"}`}>
+                  <span className={`font-mono ${i === currentPage || i === rightPage ? "text-slate-800" : "text-white/40"}`}>
                     {i + 1}
                   </span>
                 </button>
@@ -213,23 +205,22 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
           )}
 
           {/* Page Flip Book */}
-          <PageFlip
+          <PageFlipBook
+            ref={flipBookRef}
             pages={pages}
-            currentSpread={currentSpread}
-            onFlipForward={flipForward}
-            onFlipBackward={flipBackward}
+            onFlip={handleFlip}
             pageHeight={pageHeight}
-            pageWidth="w-full max-w-[580px]"
+            isFullscreen={isFullscreen}
           />
         </div>
       </div>
 
       {/* Toolbar */}
       <FlipbookToolbar
-        currentPage={currentSpread}
+        currentPage={currentPage}
         totalPages={pages.length}
-        onPrev={flipBackward}
-        onNext={flipForward}
+        onPrev={flipPrev}
+        onNext={flipNext}
         onGoTo={goToPage}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
