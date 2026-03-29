@@ -1,80 +1,52 @@
 
 
-# Fix: Formatação e Estilo Visual do eBook Reader
+# Fix: Formatação do Editor e Páginas do eBook
 
 ## Diagnóstico
 
-Analisando o eBook publicado e as imagens de referência, identifico os seguintes problemas:
+Analisei os ficheiros `EbookEditor.tsx`, `EbookRichEditor.tsx`, `FlipbookPage.tsx` e `FlipbookReader.tsx`. Identifico 4 problemas concretos:
 
-### Problemas Actuais
-1. **FlipbookPage ignora style tokens do template** — Cores hardcoded (`text-slate-800`, `bg-[#fefcf9]`, `text-amber-*`) em vez de usar as CSS variables (`--ebook-primary`, `--ebook-heading-font`, `--ebook-body-font`)
-2. **Padding insuficiente** — `px-[1.2em] py-[1em]` é demasiado apertado para um layout editorial; as referências mostram margens generosas (40-60px)
-3. **Tipografia pobre** — Tamanhos de fonte e line-height não escalam bem; headings (h2) sem hierarquia visual clara
-4. **Header/Footer fraco** — O header usa cor fixa `text-amber-700/40` em vez da cor primária do template
-5. **Ornamentos hardcoded** — Curvas SVG e símbolos (`✦`, `❧`) fixos em amber, sem variação por template
-6. **Cover page não usa tokens** — Background fixo em slate-900, decoradores em amber-400
-7. **TOC page** — Cores fixas em amber-700, não respeita template
-8. **Chapter title page** — Mesmas cores fixas
+### 1. Editor com `bg-white` hardcoded (EbookEditor.tsx:600)
+O container do editor WYSIWYG tem `bg-white` fixo — quebra dark mode e não reflecte o template.
 
-### Referências Visuais
-As imagens de referência mostram: margens amplas, tipografia serif elegante, hierarquia visual clara com cores do tema, separadores subtis, e formatação editorial profissional.
+### 2. HTML content sem estilos no FlipbookPage
+O ramo HTML (`dangerouslySetInnerHTML`) usa `contentInlineStyles` que apenas define `lineHeight: 1.75`. Os `h1`, `h2`, `blockquote`, `strong`, `hr`, `code` ficam sem qualquer formatação — ao contrário do ramo Markdown que tem componentes estilizados. Como o editor grava HTML, o conteúdo gerado perde todo o estilo visual no flipbook.
+
+### 3. Editor não mostra estilos do template
+O `EbookRichEditor` não recebe CSS variables do template — o utilizador edita sem ver fontes, cores ou espaçamentos do tema escolhido.
+
+### 4. Thumbnails com cor hardcoded amber
+No `FlipbookReader.tsx:297`, os thumbnails usam `border-amber-400` fixo em vez do accent do template.
 
 ## Plano de Correção
 
-### 1. `FlipbookPage.tsx` — Consumir CSS Variables em Todos os Tipos de Página
+### Ficheiro 1: `FlipbookPage.tsx` — CSS para conteúdo HTML
+Expandir `contentInlineStyles` com regras CSS que espelhem os componentes Markdown: headings com `--ebook-primary` e `--ebook-heading-font`, blockquotes com accent gradient, hr estilizado, strong com cor primária, code com background accent. Usar uma `<style>` scoped ou inline styles abrangentes no container HTML.
 
-**Cover page:**
-- Background: `var(--ebook-primary, #0f172a)` em vez de hardcoded
-- Decoradores: `var(--ebook-accent, #d4a574)` em vez de `amber-400`
-- Font: `var(--ebook-heading-font, serif)`
+### Ficheiro 2: `EbookEditor.tsx` — Remover bg-white, injetar CSS vars
+- Linha 600: substituir `bg-white` por `bg-card` (dark-mode safe)
+- Injetar CSS variables do `ebook.global_styles` no container do editor para que o rich editor as herde
 
-**TOC page:**
-- Background: `var(--ebook-bg, #fefcf9)`
-- Números e linhas: `var(--ebook-accent)` em vez de amber
-- Títulos: `var(--ebook-primary)` ou foreground do template
+### Ficheiro 3: `EbookRichEditor.tsx` — Herdar estilos do template
+- Aplicar `fontFamily: var(--ebook-body-font)` ao contentEditable
+- Headings no prose herdam `--ebook-heading-font`
+- Manter fallbacks para eBooks sem template
 
-**Chapter title page:**
-- Labels e separadores: `var(--ebook-accent)` em vez de amber-700
-- Título: `var(--ebook-primary)` com heading font do template
-
-**Content pages (foco principal):**
-- Background: `var(--ebook-bg, #fefcf9)`
-- Texto body: cor derivada do template (contraste adequado)
-- Headings: `var(--ebook-primary)` com heading font
-- Header label: `var(--ebook-accent)` em vez de amber-700/40
-- Footer: `var(--ebook-accent)` em vez de amber-700/30
-- Ornamentos SVG: `var(--ebook-accent)` em vez de amber-800
-- First-letter: `var(--ebook-accent)` em vez de amber-800
-- Blockquotes: background derivado de `var(--ebook-accent)` com opacidade
-- h2 decorador: usar accent color
-- Separadores (hr): usar accent color
-
-**Contact page:**
-- Mesma lógica: primary, accent, heading font
-
-### 2. Melhorar Padding e Espaçamento
-
-- Content pages: `px-[2.5em] py-[2em]` (de `px-[1.2em] py-[1em]`)
-- TOC: manter `px-[3em] py-[3em]` (adequado)
-- Melhorar `line-height` do body para `1.75` (de `1.65`)
-- Espaçamento entre paragrafos: `mb-[0.7em]` (de `0.5em`)
-
-### 3. Melhorar Hierarquia Tipográfica
-
-- h2 no conteúdo: separador visual mais forte, tamanho `1.3em`
-- h3: `1.15em` com borda accent subtil
-- Blockquotes: aspas maiores, padding mais generoso
-- First-letter: manter mas usar accent color do template
+### Ficheiro 4: `FlipbookReader.tsx` — Thumbnail accent
+- Substituir `border-amber-400` por estilo inline com `var(--ebook-accent)`
 
 ## Ficheiros a Modificar
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/ebooks/FlipbookPage.tsx` | Substituir todas as cores hardcoded por CSS variables; melhorar padding/spacing/tipografia |
+| `src/components/ebooks/FlipbookPage.tsx` | Estilos CSS completos para conteúdo HTML |
+| `src/components/ebooks/EbookEditor.tsx` | Dark-mode safe + CSS vars do template |
+| `src/components/ebooks/EbookRichEditor.tsx` | Herdar fontes/cores do template |
+| `src/components/ebooks/FlipbookReader.tsx` | Thumbnail accent dinâmico |
 
 ## Resultado Esperado
-- Páginas respeitam o template escolhido (cores, fontes)
-- Layout editorial profissional comparável às referências
-- Fallback seguro para eBooks sem template (comportamento actual como default)
+- Editor mostra visualmente as fontes e cores do template escolhido
+- Conteúdo HTML renderizado no flipbook fica identico ao Markdown (headings, quotes, dividers estilizados)
+- Dark mode funcional no editor
 - Zero breaking changes
 
