@@ -222,6 +222,20 @@ export default function PublicFunnelPage() {
             templateData,
           },
         }).catch(console.error);
+
+        // Enroll lead in nurture sequence (first nurture email in 2 days)
+        supabase.from('funnel_nurture_queue').insert({
+          submission_id: submissionId,
+          funnel_id: funnel.id,
+          workspace_id: funnel.workspace_id,
+          recipient_email: recipientEmail,
+          recipient_name: recipientName || null,
+          funnel_name: funnel.name,
+          current_step: 0,
+          status: 'pending',
+        }).then(({ error: nurtureError }) => {
+          if (nurtureError) console.error('Nurture queue insert error:', nurtureError);
+        });
       }
 
       setFormSubmitted(true);
