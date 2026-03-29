@@ -314,6 +314,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
             onFlip={handleFlip}
             pageHeight={pageHeight}
             isFullscreen={isFullscreen}
+            onGoToPage={goToPage}
           />
         </div>
       </div>

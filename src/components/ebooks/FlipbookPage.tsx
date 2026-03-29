@@ -25,6 +25,7 @@ interface FlipbookPageProps {
   page: FlipbookPageData;
   pageWidth?: number;
   pageHeight?: number;
+  onGoToPage?: (page: number) => void;
 }
 
 function useScaleFactor(pageHeight?: number) {
@@ -43,7 +44,7 @@ const v = {
   bodyFont: "var(--ebook-body-font, Georgia, serif)",
 };
 
-export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps) {
+export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage }: FlipbookPageProps) {
   const { baseFontSize } = useScaleFactor(pageHeight);
   const baseStyle = { fontSize: `${baseFontSize}px` };
 
@@ -98,17 +99,25 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         </div>
         <div className="flex-1 space-y-0">
           {page.chapters.map((ch, i) => (
-            <div key={i} className="flex items-baseline gap-[0.6em] py-[0.5em] border-b border-current/5 last:border-0" style={{ borderColor: `color-mix(in srgb, ${v.primary} 8%, transparent)` }}>
+            <button
+              key={i}
+              className="flex items-baseline gap-[0.6em] py-[0.5em] border-b border-current/5 last:border-0 w-full text-left transition-opacity hover:opacity-70 group/toc-item"
+              style={{ borderColor: `color-mix(in srgb, ${v.primary} 8%, transparent)`, cursor: onGoToPage ? "pointer" : "default" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onGoToPage?.(ch.pageStart - 1);
+              }}
+            >
               <span className="font-bold w-[1.5em] text-right tabular-nums shrink-0 opacity-40" style={{ fontSize: "0.8em", color: v.accent }}>
                 {i + 1}
               </span>
-              <span className="flex-1" style={{ fontSize: "1em", fontFamily: v.bodyFont, color: v.primary }}>
+              <span className="flex-1 group-hover/toc-item:underline" style={{ fontSize: "1em", fontFamily: v.bodyFont, color: v.primary }}>
                 {ch.title}
               </span>
               <span className="flex-shrink-0 tabular-nums font-mono opacity-40" style={{ fontSize: "0.8em", color: v.accent }}>
                 {ch.pageStart}
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </div>

@@ -3,10 +3,10 @@ import HTMLFlipBook from "react-pageflip";
 import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
 
 // react-pageflip requires forwardRef pages
-const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData; pageWidth: number; pageHeight: number }>(
-  ({ page, pageWidth, pageHeight }, ref) => (
+const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData; pageWidth: number; pageHeight: number; onGoToPage?: (page: number) => void }>(
+  ({ page, pageWidth, pageHeight, onGoToPage }, ref) => (
     <div ref={ref} className="w-full h-full">
-      <FlipbookPage page={page} pageWidth={pageWidth} pageHeight={pageHeight} />
+      <FlipbookPage page={page} pageWidth={pageWidth} pageHeight={pageHeight} onGoToPage={onGoToPage} />
     </div>
   )
 );
@@ -23,6 +23,7 @@ interface PageFlipProps {
   onFlip?: (pageIndex: number) => void;
   pageHeight: string;
   isFullscreen?: boolean;
+  onGoToPage?: (page: number) => void;
 }
 
 // A4 ratio ≈ 1:1.414
@@ -70,7 +71,7 @@ function calcDimensions(isFullscreen: boolean) {
 }
 
 export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
-  ({ pages, onFlip, isFullscreen = false }, ref) => {
+  ({ pages, onFlip, isFullscreen = false, onGoToPage }, ref) => {
     const flipBookRef = useRef<any>(null);
     const [dims, setDims] = useState(() => calcDimensions(isFullscreen));
 
@@ -123,7 +124,7 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           style={{}}
         >
           {pages.map((page, i) => (
-            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} />
+            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} onGoToPage={onGoToPage} />
           ))}
         </HTMLFlipBook>
       </div>
