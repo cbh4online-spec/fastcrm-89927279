@@ -16,22 +16,35 @@ export function TemplateCard({ template, onPreview, onUse, onDuplicate }: Props)
 
   return (
     <div className="group border border-border/50 rounded-xl overflow-hidden bg-card hover:shadow-lg transition-all duration-300 hover:border-primary/30">
-      {/* Color preview thumbnail */}
+      {/* Color preview thumbnail — simulated page layout */}
       <div
         className="relative h-48 overflow-hidden cursor-pointer"
         onClick={() => onPreview(template)}
         style={{ backgroundColor: t.backgroundColor }}
       >
-        {/* Mini layout preview */}
-        <div className="absolute inset-4 flex flex-col gap-2">
-          <div className="flex-1 rounded-md flex flex-col justify-end p-4" style={{ backgroundColor: t.primaryColor }}>
-            <div className="h-3 w-3/4 rounded-sm mb-1" style={{ backgroundColor: t.backgroundColor, opacity: 0.9 }} />
+        {/* Simulated multi-block layout */}
+        <div className="absolute inset-4 flex flex-col gap-1.5">
+          {/* Title bar */}
+          <div className="rounded-md p-3 flex flex-col justify-end" style={{ backgroundColor: t.primaryColor, flex: '2' }}>
+            <div className="h-2.5 w-3/4 rounded-sm mb-1" style={{ backgroundColor: t.backgroundColor, opacity: 0.9 }} />
             <div className="h-2 w-1/2 rounded-sm" style={{ backgroundColor: t.accentColor, opacity: 0.8 }} />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 h-12 rounded-md" style={{ backgroundColor: `${t.accentColor}22` }} />
-            <div className="flex-1 h-12 rounded-md" style={{ backgroundColor: `${t.accentColor}22` }} />
-            <div className="flex-1 h-12 rounded-md" style={{ backgroundColor: `${t.accentColor}22` }} />
+          {/* Content rows */}
+          <div className="flex gap-1.5" style={{ flex: '1' }}>
+            <div className="flex-1 rounded-md p-2 flex flex-col gap-1" style={{ backgroundColor: `${t.secondaryColor}20` }}>
+              <div className="h-1.5 w-full rounded-sm" style={{ backgroundColor: `${t.primaryColor}40` }} />
+              <div className="h-1.5 w-3/4 rounded-sm" style={{ backgroundColor: `${t.primaryColor}25` }} />
+            </div>
+            <div className="flex-1 rounded-md p-2 flex flex-col gap-1" style={{ backgroundColor: `${t.accentColor}15` }}>
+              <div className="h-1.5 w-full rounded-sm" style={{ backgroundColor: `${t.accentColor}40` }} />
+              <div className="h-1.5 w-2/3 rounded-sm" style={{ backgroundColor: `${t.accentColor}25` }} />
+            </div>
+          </div>
+          {/* Footer bar */}
+          <div className="flex gap-1.5" style={{ flex: '0.6' }}>
+            <div className="flex-1 rounded-md" style={{ backgroundColor: `${t.accentColor}12` }} />
+            <div className="flex-1 rounded-md" style={{ backgroundColor: `${t.accentColor}12` }} />
+            <div className="flex-1 rounded-md" style={{ backgroundColor: `${t.accentColor}12` }} />
           </div>
         </div>
 

@@ -109,12 +109,8 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
               </div>
             </div>
             <Button onClick={() => onOpenWizard ? onOpenWizard() : setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Criar com IA
-            </Button>
-            <Button variant="outline" onClick={() => setShowCreate(true)} className="border-primary/20 hover:bg-primary/5">
               <Plus className="h-4 w-4 mr-2" />
-              Criar Manual
+              Criar eBook
             </Button>
           </div>
         </div>
@@ -137,13 +133,9 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
             <h3 className="text-xl font-semibold mb-2 text-foreground">Comece a sua biblioteca</h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-md">Crie eBooks profissionais para captura de leads. Use a IA para gerar conteúdo ou escreva manualmente.</p>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => { setAiMode(false); setShowCreate(true); }} className="border-primary/20 hover:bg-primary/5">
-                <PenLine className="h-4 w-4 mr-2" />
-                Criar Manual
-              </Button>
-              <Button onClick={() => onOpenWizard ? onOpenWizard() : (() => { setAiMode(true); setShowCreate(true); })()} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Criar com IA
+              <Button onClick={() => onOpenWizard ? onOpenWizard() : setShowCreate(true)} className="bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar eBook
               </Button>
             </div>
           </CardContent>
