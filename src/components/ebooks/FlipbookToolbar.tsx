@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize, Minimize, List, Printer, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FlipbookToolbarProps {
@@ -15,12 +15,15 @@ interface FlipbookToolbarProps {
   spreadMode?: boolean;
   rightPage?: number;
   onPrint?: () => void;
+  onToggleNotes?: () => void;
+  showNotes?: boolean;
+  notesCount?: number;
 }
 
 export function FlipbookToolbar({
   currentPage, totalPages, onPrev, onNext, onGoTo,
   isFullscreen, onToggleFullscreen, onToggleThumbnails, showThumbnails,
-  spreadMode, rightPage, onPrint,
+  spreadMode, rightPage, onPrint, onToggleNotes, showNotes, notesCount,
 }: FlipbookToolbarProps) {
   const [editingPage, setEditingPage] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -133,6 +136,21 @@ export function FlipbookToolbar({
 
       {/* Right group */}
       <div className="flex items-center gap-1">
+        {onToggleNotes && (
+          <Button
+            variant="ghost" size="icon"
+            onClick={onToggleNotes}
+            title="Notas"
+            className={`${btnClass} relative ${showNotes ? "bg-white/10 text-amber-400" : ""}`}
+          >
+            <StickyNote className="h-4 w-4" />
+            {(notesCount ?? 0) > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-amber-500 text-[9px] font-bold text-slate-900 flex items-center justify-center px-0.5">
+                {notesCount}
+              </span>
+            )}
+          </Button>
+        )}
         {onPrint && (
           <Button
             variant="ghost" size="icon"
