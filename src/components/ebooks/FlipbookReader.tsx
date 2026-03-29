@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { FlipbookPage, FlipbookPageData, ContactPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
+import { EbookNotesPanel } from "./EbookNotesPanel";
+import { useEbookNotes } from "@/hooks/useEbookNotes";
 
 interface EbookChapter {
   id: string;
@@ -21,6 +23,8 @@ interface FlipbookReaderProps {
   footerText?: string;
   contactPage?: ContactPageData;
   styleTokens?: Record<string, unknown>;
+  ebookId?: string;
+  workspaceId?: string;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
@@ -217,14 +221,18 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
 
   const pages = buildPages(title, subtitle, author, coverUrl, chapters, headerText, footerText, contactPage);
+
+  const { notes, addNote, deleteNote, pagesWithNotes } = useEbookNotes(ebookId, workspaceId);
+  const hasNotesFeature = !!ebookId && !!workspaceId;
 
   const handleFlip = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);
