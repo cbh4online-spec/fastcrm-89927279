@@ -232,6 +232,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [highlightPopover, setHighlightPopover] = useState<{
     text: string;
     position: { x: number; y: number };
@@ -300,6 +301,14 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     flipBookRef.current?.flipPrev();
   }, []);
 
+  // Zoom handlers
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 2.5;
+  const ZOOM_STEP = 0.25;
+  const handleZoomIn = useCallback(() => setZoomLevel(z => Math.min(z + ZOOM_STEP, ZOOM_MAX)), []);
+  const handleZoomOut = useCallback(() => setZoomLevel(z => Math.max(z - ZOOM_STEP, ZOOM_MIN)), []);
+  const handleZoomReset = useCallback(() => setZoomLevel(1), []);
+
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -309,6 +318,20 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [flipNext, flipPrev]);
+
+  // Ctrl+wheel zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      if (e.deltaY < 0) handleZoomIn();
+      else handleZoomOut();
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [handleZoomIn, handleZoomOut]);
 
   // Fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -375,8 +398,18 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     >
       {/* Main viewer */}
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? "p-2" : "p-4"}`}>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="relative flex gap-1" ref={bookContainerRef} style={{ cursor: highlightMode ? 'text' : 'none' }} onMouseUp={handleMouseUp}>
+        <div className={`flex-1 flex items-center justify-center ${zoomLevel > 1 ? "overflow-auto" : "overflow-hidden"}`}>
+          <div
+            className="relative flex gap-1"
+            ref={bookContainerRef}
+            style={{
+              cursor: highlightMode ? 'text' : 'none',
+              transform: zoomLevel !== 1 ? `scale(${zoomLevel})` : undefined,
+              transformOrigin: 'center center',
+              transition: 'transform 0.2s ease',
+            }}
+            onMouseUp={handleMouseUp}
+          >
             {/* Animated hand cursor — hidden in highlight mode */}
             {!highlightMode && <AnimatedHandCursor containerRef={bookContainerRef} />}
             {/* Watermark overlay */}
@@ -468,6 +501,10 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         notesCount={notes.length}
         highlightMode={highlightMode}
         onToggleHighlightMode={hasNotesFeature ? () => setHighlightMode(m => !m) : undefined}
+        zoomLevel={zoomLevel}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
       />
     </div>
   );
