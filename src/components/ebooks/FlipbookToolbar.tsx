@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Maximize, Minimize, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface FlipbookToolbarProps {
   currentPage: number;
@@ -12,12 +11,21 @@ interface FlipbookToolbarProps {
   onToggleFullscreen: () => void;
   onToggleThumbnails: () => void;
   showThumbnails: boolean;
+  spreadMode?: boolean;
+  rightPage?: number;
 }
 
 export function FlipbookToolbar({
   currentPage, totalPages, onPrev, onNext, onGoTo,
   isFullscreen, onToggleFullscreen, onToggleThumbnails, showThumbnails,
+  spreadMode, rightPage,
 }: FlipbookToolbarProps) {
+  const displayLeft = currentPage + 1;
+  const displayRight = spreadMode && rightPage !== undefined ? rightPage + 1 : displayLeft;
+  const pageDisplay = spreadMode && displayLeft !== displayRight
+    ? `${displayLeft}-${displayRight} / ${totalPages}`
+    : `${displayLeft} / ${totalPages}`;
+
   return (
     <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-t border-white/5">
       <div className="flex items-center gap-2">
@@ -39,12 +47,12 @@ export function FlipbookToolbar({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="text-sm text-white/80 tabular-nums min-w-[80px] text-center font-mono">
-          {currentPage + 1} / {totalPages}
+          {pageDisplay}
         </span>
         <Button
           variant="ghost" size="icon"
           onClick={onNext}
-          disabled={currentPage >= totalPages - 1}
+          disabled={spreadMode ? (currentPage + 2 >= totalPages) : (currentPage >= totalPages - 1)}
           className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30"
         >
           <ChevronRight className="h-5 w-5" />

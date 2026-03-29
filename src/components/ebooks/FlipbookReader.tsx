@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FlipbookPage, FlipbookPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PageFlip } from "./PageFlip";
 
 interface EbookChapter {
   id: string;
@@ -69,7 +68,7 @@ function buildPages(
         chapterIndex: i,
         chapterTitle: ch.title,
         content,
-        pageNumber: 0, // will be set below
+        pageNumber: 0,
         totalPages: 0,
       });
       pageOffset++;
@@ -95,40 +94,49 @@ function buildPages(
 }
 
 export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact }: FlipbookReaderProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [direction, setDirection] = useState(0);
+  // currentSpread = index of left page (always even: 0, 2, 4, ...)
+  const [currentSpread, setCurrentSpread] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
 
   const pages = buildPages(title, subtitle, author, coverUrl, chapters);
 
-  const goTo = useCallback((page: number) => {
-    if (page < 0 || page >= pages.length) return;
-    setDirection(page > currentPage ? 1 : -1);
-    setCurrentPage(page);
-  }, [currentPage, pages.length]);
+  const goToSpread = useCallback((spread: number) => {
+    // Ensure even
+    const s = Math.max(0, Math.min(Math.floor(spread / 2) * 2, pages.length - 1));
+    setCurrentSpread(s);
+  }, [pages.length]);
 
-  const next = useCallback(() => goTo(currentPage + 1), [currentPage, goTo]);
-  const prev = useCallback(() => goTo(currentPage - 1), [currentPage, goTo]);
+  const goToPage = useCallback((page: number) => {
+    // Convert page index to spread (even number)
+    const spread = Math.floor(page / 2) * 2;
+    goToSpread(spread);
+  }, [goToSpread]);
+
+  const flipForward = useCallback(() => {
+    const nextSpread = currentSpread + 2;
+    if (nextSpread < pages.length) {
+      setCurrentSpread(nextSpread);
+    }
+  }, [currentSpread, pages.length]);
+
+  const flipBackward = useCallback(() => {
+    const prevSpread = currentSpread - 2;
+    if (prevSpread >= 0) {
+      setCurrentSpread(prevSpread);
+    }
+  }, [currentSpread]);
 
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); next(); }
-      if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipForward(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); flipBackward(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [next, prev]);
-
-  // Touch swipe
-  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
-  };
+  }, [flipForward, flipBackward]);
 
   // Fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -146,110 +154,18 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   }, []);
 
   const pageHeight = compact ? "h-[480px]" : isFullscreen ? "h-[calc(100vh-48px)]" : "h-[85vh] max-h-[780px]";
-  const pageWidth = compact ? "w-[360px]" : "w-full max-w-[580px]";
 
-  const variants = {
-    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0, rotateY: d > 0 ? -15 : 15 }),
-    center: { x: 0, opacity: 1, rotateY: 0 },
-    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0, rotateY: d > 0 ? 15 : -15 }),
-  };
+  // Compact mode: keep old single-page behavior
+  if (compact) {
+    const currentPage = currentSpread;
+    const next = () => { if (currentPage < pages.length - 1) setCurrentSpread(currentPage + 1); };
+    const prev = () => { if (currentPage > 0) setCurrentSpread(currentPage - 1); };
 
-  return (
-    <div
-      ref={containerRef}
-      className={`flex flex-col ${isFullscreen ? "bg-slate-950" : compact ? "" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl"}`}
-    >
-      {/* Main viewer */}
-      <div className={`flex-1 flex items-center justify-center ${isFullscreen ? "p-4" : compact ? "p-0" : "p-6 md:p-10"}`}>
-        <div className="relative flex gap-1">
-          {/* Thumbnails sidebar */}
-          {showThumbnails && !compact && (
-            <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
-              {pages.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  className={`w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
-                    i === currentPage
-                      ? "border-amber-400 shadow-lg shadow-amber-400/20 bg-white"
-                      : "border-white/10 bg-white/5 hover:border-white/30"
-                  }`}
-                >
-                  <span className={`font-mono ${i === currentPage ? "text-slate-800" : "text-white/40"}`}>
-                    {i + 1}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Page */}
-          <div
-            className={`${pageWidth} ${pageHeight} relative flex flex-col`}
-            style={{ perspective: "1200px" }}
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-          >
-            {/* Book shadow */}
-            <div className="absolute inset-0 rounded-lg shadow-[0_0_60px_rgba(0,0,0,0.4)] pointer-events-none z-10" />
-
-            {/* Left edge navigation */}
-            {currentPage > 0 && (
-              <button
-                onClick={prev}
-                className="absolute left-0 top-0 bottom-0 w-10 z-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-gradient-to-r from-black/10 to-transparent cursor-pointer"
-                aria-label="Página anterior"
-              >
-                <ChevronLeft className="h-5 w-5 text-slate-500" />
-              </button>
-            )}
-
-            {/* Right edge navigation */}
-            {currentPage < pages.length - 1 && (
-              <button
-                onClick={next}
-                className="absolute right-0 top-0 bottom-0 w-10 z-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-gradient-to-l from-black/10 to-transparent cursor-pointer"
-                aria-label="Próxima página"
-              >
-                <ChevronRight className="h-5 w-5 text-slate-500" />
-              </button>
-            )}
-
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
-                key={currentPage}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-                className="w-full h-full rounded-lg overflow-hidden"
-              >
-                <FlipbookPage page={pages[currentPage]} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+    return (
+      <div className="flex flex-col">
+        <div className="w-[360px] h-[480px] relative">
+          <FlipbookPage page={pages[currentPage]} />
         </div>
-      </div>
-
-      {/* Toolbar */}
-      {!compact && (
-        <FlipbookToolbar
-          currentPage={currentPage}
-          totalPages={pages.length}
-          onPrev={prev}
-          onNext={next}
-          onGoTo={goTo}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleFullscreen}
-          onToggleThumbnails={() => setShowThumbnails(s => !s)}
-          showThumbnails={showThumbnails}
-        />
-      )}
-
-      {/* Compact nav */}
-      {compact && (
         <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-b-lg">
           <button onClick={prev} disabled={currentPage <= 0} className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30">
             ← Anterior
@@ -259,7 +175,69 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
             Seguinte →
           </button>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // Current display pages for toolbar
+  const leftPage = currentSpread;
+  const rightPage = Math.min(currentSpread + 1, pages.length - 1);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`flex flex-col group ${isFullscreen ? "bg-slate-950" : "bg-slate-900/95 rounded-xl overflow-hidden shadow-2xl"}`}
+    >
+      {/* Main viewer */}
+      <div className={`flex-1 flex items-center justify-center ${isFullscreen ? "p-4" : "p-6 md:p-10"}`}>
+        <div className="relative flex gap-1">
+          {/* Thumbnails sidebar */}
+          {showThumbnails && (
+            <div className="w-24 mr-4 overflow-y-auto max-h-[780px] space-y-2 scrollbar-thin pr-1">
+              {pages.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => goToPage(i)}
+                  className={`w-full aspect-[3/4] rounded border-2 transition-all text-[6px] flex items-center justify-center overflow-hidden ${
+                    (i === leftPage || i === rightPage)
+                      ? "border-amber-400 shadow-lg shadow-amber-400/20 bg-white"
+                      : "border-white/10 bg-white/5 hover:border-white/30"
+                  }`}
+                >
+                  <span className={`font-mono ${(i === leftPage || i === rightPage) ? "text-slate-800" : "text-white/40"}`}>
+                    {i + 1}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Page Flip Book */}
+          <PageFlip
+            pages={pages}
+            currentSpread={currentSpread}
+            onFlipForward={flipForward}
+            onFlipBackward={flipBackward}
+            pageHeight={pageHeight}
+            pageWidth="w-full max-w-[580px]"
+          />
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <FlipbookToolbar
+        currentPage={currentSpread}
+        totalPages={pages.length}
+        onPrev={flipBackward}
+        onNext={flipForward}
+        onGoTo={goToPage}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={toggleFullscreen}
+        onToggleThumbnails={() => setShowThumbnails(s => !s)}
+        showThumbnails={showThumbnails}
+        spreadMode
+        rightPage={rightPage}
+      />
     </div>
   );
 }
