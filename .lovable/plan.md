@@ -1,49 +1,36 @@
 
 
-# Cursor de Mão Animada no Flipbook Reader
+# Tornar Links Clicáveis na Página de Contactos do eBook
 
-## Contexto
+## Diagnóstico
 
-O utilizador pretende substituir o cursor padrão do rato por um cursor de mão animada sobre as páginas do flipbook, criando uma experiência mais interactiva e intuitiva de "folhear".
+A página de contacto no final do eBook exibe email, telefone, website e links sociais como texto simples (`<span>`) — sem tags `<a>`. Mesmo que fossem links, a camada de protecção (`user-select: none`, `onContextMenu` bloqueado) dificultaria a interacção.
 
-## Implementação
+## Solução
 
-### 1. Cursores SVG customizados
+### `FlipbookPage.tsx` — Converter texto em links clicáveis
 
-Criar dois cursores SVG inline (via CSS `url("data:image/svg+xml,...")`) no `FlipbookReader.tsx`:
-- **Mão aberta** (cursor padrão sobre as páginas) — estilo "grab"
-- **Mão a agarrar** (quando clica/arrasta) — estilo "grabbing"
+Substituir os `<span>` por tags `<a>` com os atributos correctos:
 
-Usar a propriedade CSS `cursor` com SVG inline para evitar ficheiros externos.
+- **Email**: `<a href="mailto:{email}">` 
+- **Telefone**: `<a href="tel:{phone}">`
+- **Website**: `<a href="{website}" target="_blank" rel="noopener noreferrer">`
+- **Social links**: `<a href="{link.url}" target="_blank" rel="noopener noreferrer">`
 
-### 2. Aplicação no container das páginas
+Adicionar estilo visual (underline on hover, `pointer-events: auto`) para garantir que os links funcionam mesmo com a protecção activa.
 
-No wrapper do `PageFlipBook` (div `.relative.flex.gap-1` na linha ~331), adicionar:
-- `cursor: grab` no estado normal
-- `cursor: grabbing` no estado `:active` (quando o utilizador clica/arrasta para virar página)
-
-Opcionalmente, adicionar uma transição CSS suave para simular a animação da mão.
-
-### 3. Classe CSS com animação
-
-Adicionar ao `index.css` ou inline:
-- Animação subtil de "pulso" ou "aceno" da mão no hover (usando keyframes CSS que alternam entre dois SVGs via `cursor` property — limitado) **ou** um overlay de mão animado via `pointer-events: none` que segue o cursor.
-
-**Abordagem mais robusta**: Criar um componente `AnimatedHandCursor` que renderiza uma mão SVG animada que segue a posição do rato via `onMouseMove`, com `pointer-events: none` e `position: fixed`. Isto permite animação real (rotação, escala, bounce) impossível com `cursor` CSS puro.
-
-### Ficheiros
+### Ficheiro a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/AnimatedHandCursor.tsx` | Novo — componente de mão animada que segue o cursor |
-| `src/components/ebooks/FlipbookReader.tsx` | Integrar cursor animado no container do flipbook, esconder cursor padrão |
+| `src/components/ebooks/FlipbookPage.tsx` | Converter contactos de `<span>`/`<div>` para `<a>` clicáveis com `pointer-events: auto` |
 
 ### Critérios de Aceitação
 
-- Cursor padrão escondido sobre as páginas do flipbook
-- Mão animada visível e segue o rato suavemente
-- Ao clicar: mão muda para estado "agarrar" (grabbing)
-- Não interfere com a navegação, botões da toolbar ou outros elementos interactivos
-- Funciona em fullscreen
-- Mobile não é afectado (touch não tem cursor)
+- Email abre cliente de email ao clicar
+- Telefone inicia chamada (mobile) ou copia número
+- Website abre em nova tab
+- Links sociais abrem em nova tab
+- Links funcionam mesmo com protecção de documento activa
+- Estilo visual indica que são clicáveis (hover underline, cursor pointer)
 
