@@ -1,10 +1,21 @@
 import ReactMarkdown from "react-markdown";
+import { Mail, Phone, Globe, ExternalLink } from "lucide-react";
+
+export interface ContactPageData {
+  email?: string;
+  phone?: string;
+  website?: string;
+  slogan?: string;
+  logo_url?: string;
+  social_links?: { label: string; url: string }[];
+}
 
 export type FlipbookPageData =
   | { type: "cover"; title: string; subtitle?: string; author?: string; coverUrl?: string }
   | { type: "toc"; chapters: { title: string; pageStart: number }[] }
   | { type: "chapter-title"; chapterIndex: number; title: string; coverImage?: string }
-  | { type: "content"; chapterIndex: number; chapterTitle: string; content: string; pageNumber: number; totalPages: number };
+  | { type: "content"; chapterIndex: number; chapterTitle: string; content: string; pageNumber: number; totalPages: number; headerText?: string; footerText?: string }
+  | { type: "contact"; contactData: ContactPageData; title: string };
 
 interface FlipbookPageProps {
   page: FlipbookPageData;
@@ -93,7 +104,83 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
     );
   }
 
+  if (page.type === "contact") {
+    const d = page.contactData;
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={baseStyle}>
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/10 via-transparent to-amber-800/10" />
+        <div className="relative z-10 text-center px-[2em] max-w-full">
+          {/* Logo */}
+          {d.logo_url && (
+            <img src={d.logo_url} alt="" className="w-[5em] h-[5em] object-contain mx-auto mb-[1.2em] rounded-xl" />
+          )}
+
+          {/* Ornament */}
+          <div className="flex items-center justify-center gap-[0.5em] mb-[1em]">
+            <span className="block w-[2em] h-[1px] bg-amber-400/40" />
+            <span className="text-amber-400/50" style={{ fontSize: '0.8em' }}>✦</span>
+            <span className="block w-[2em] h-[1px] bg-amber-400/40" />
+          </div>
+
+          {/* Slogan */}
+          {d.slogan && (
+            <p className="font-serif italic text-white/80 mb-[1.5em] leading-relaxed" style={{ fontSize: '1.4em' }}>
+              "{d.slogan}"
+            </p>
+          )}
+
+          {/* Book title */}
+          <p className="text-amber-300/60 uppercase tracking-[0.25em] mb-[1.5em]" style={{ fontSize: '0.6em' }}>{page.title}</p>
+
+          {/* Contact info */}
+          <div className="space-y-[0.5em] mb-[1.5em]">
+            {d.email && (
+              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+                <Mail className="shrink-0" style={{ width: '0.9em', height: '0.9em' }} />
+                <span style={{ fontSize: '0.8em' }}>{d.email}</span>
+              </div>
+            )}
+            {d.phone && (
+              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+                <Phone className="shrink-0" style={{ width: '0.9em', height: '0.9em' }} />
+                <span style={{ fontSize: '0.8em' }}>{d.phone}</span>
+              </div>
+            )}
+            {d.website && (
+              <div className="flex items-center justify-center gap-[0.5em] text-white/70">
+                <Globe className="shrink-0" style={{ width: '0.9em', height: '0.9em' }} />
+                <span style={{ fontSize: '0.8em' }}>{d.website}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Social links */}
+          {d.social_links && d.social_links.length > 0 && (
+            <div className="flex items-center justify-center gap-[1em] flex-wrap">
+              {d.social_links.map((link, i) => (
+                <div key={i} className="flex items-center gap-[0.3em] text-amber-300/70">
+                  <ExternalLink style={{ width: '0.7em', height: '0.7em' }} />
+                  <span style={{ fontSize: '0.7em' }}>{link.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Closing ornament */}
+          <div className="flex items-center justify-center gap-[0.5em] mt-[2em]">
+            <span className="block w-[1.5em] h-[1px] bg-amber-400/30" />
+            <span className="text-amber-400/40" style={{ fontSize: '0.7em' }}>❧</span>
+            <span className="block w-[1.5em] h-[1px] bg-amber-400/30" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // content page
+  const headerLabel = page.headerText || page.chapterTitle;
+  const footerLabel = page.footerText;
+
   return (
     <div className="w-full h-full flex flex-col px-[1.2em] py-[1em] bg-[#fefcf9] relative overflow-hidden" style={baseStyle}>
       {/* Corner ornament */}
@@ -110,10 +197,10 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         </svg>
       </div>
 
-      {/* Header — no border, ornament instead */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-[0.6em] pb-[0.3em]">
         <span className="font-semibold uppercase tracking-[0.2em] text-amber-700/40 truncate max-w-[70%]" style={{ fontSize: '0.65em' }}>
-          {page.chapterTitle}
+          {headerLabel}
         </span>
         <span className="text-amber-600/20" style={{ fontSize: '0.7em' }}>✦</span>
       </div>
@@ -179,10 +266,12 @@ export function FlipbookPage({ page, pageWidth, pageHeight }: FlipbookPageProps)
         </ReactMarkdown>
       </div>
 
-      {/* Footer — no border, ornamental */}
+      {/* Footer */}
       <div className="flex items-center justify-center mt-[0.4em] pt-[0.3em] gap-[0.4em]">
         <span className="block w-[1em] h-[1px] bg-amber-700/15" />
-        <span className="tabular-nums text-amber-700/30" style={{ fontSize: '0.7em' }}>{page.pageNumber}</span>
+        <span className="tabular-nums text-amber-700/30" style={{ fontSize: '0.7em' }}>
+          {footerLabel ? `${footerLabel} · ${page.pageNumber}` : page.pageNumber}
+        </span>
         <span className="block w-[1em] h-[1px] bg-amber-700/15" />
       </div>
     </div>
