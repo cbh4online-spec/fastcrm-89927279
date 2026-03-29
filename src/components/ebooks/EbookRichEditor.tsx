@@ -239,16 +239,16 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
         ref={editorRef}
         contentEditable
         className={cn(
-          "min-h-[50vh] outline-none text-slate-900",
-          "prose prose-sm max-w-none font-serif",
-          "prose-headings:text-slate-900 prose-headings:font-bold",
+          "min-h-[50vh] outline-none text-foreground",
+          "prose prose-sm max-w-none font-serif dark:prose-invert",
+          "prose-headings:text-foreground prose-headings:font-bold",
           "prose-h1:text-2xl prose-h1:mt-6 prose-h1:mb-3",
           "prose-h2:text-xl prose-h2:mt-5 prose-h2:mb-2",
           "prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2",
-          "prose-p:text-slate-900 prose-p:leading-relaxed prose-p:mb-3",
-          "prose-strong:text-slate-900 prose-a:text-primary",
-          "prose-blockquote:border-l-4 prose-blockquote:border-primary/30 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-500",
-          "prose-ul:list-disc prose-ol:list-decimal prose-li:text-slate-900",
+          "prose-p:text-foreground prose-p:leading-relaxed prose-p:mb-3",
+          "prose-strong:text-foreground prose-a:text-primary",
+          "prose-blockquote:border-l-4 prose-blockquote:border-primary/30 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground",
+          "prose-ul:list-disc prose-ol:list-decimal prose-li:text-foreground",
           "prose-img:rounded-lg prose-img:shadow-md prose-img:my-4",
           "prose-hr:border-border",
           "focus:ring-0 rounded-md transition-all",
