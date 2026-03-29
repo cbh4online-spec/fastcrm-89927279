@@ -11,6 +11,7 @@ import {
   useMetaAssets,
   useToggleAsset,
   useMetaOAuthStart,
+  useInstagramOAuthStart,
   useSyncAssets,
   useDeleteConnection,
 } from "@/hooks/useMetaConnections";
@@ -64,6 +65,7 @@ export function MetaConnectionsPage() {
   const { data: connections = [], isLoading } = useMetaConnections();
   const { data: assets = [] } = useMetaAssets();
   const oauthStart = useMetaOAuthStart();
+  const igOauthStart = useInstagramOAuthStart();
   const syncAssets = useSyncAssets();
   const deleteConnection = useDeleteConnection();
   const toggleAsset = useToggleAsset();
