@@ -9,6 +9,7 @@ import {
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
   Mail, Phone, Link, Type, MessageSquare, ChevronDown,
+  Settings, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ import { EbookBlockToolbar } from "./EbookBlockToolbar";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -29,11 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +40,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -182,20 +180,10 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   };
 
   // Drag & Drop
-  const handleDragStart = (_e: DragEvent, index: number) => {
-    setDragSourceIndex(index);
-  };
-  const handleDragOver = (e: DragEvent, index: number) => {
-    e.preventDefault();
-    setDragOverIndex(index);
-  };
-  const handleDragLeave = () => {
-    setDragOverIndex(null);
-  };
-  const handleDragEnd = () => {
-    setDragSourceIndex(null);
-    setDragOverIndex(null);
-  };
+  const handleDragStart = (_e: DragEvent, index: number) => { setDragSourceIndex(index); };
+  const handleDragOver = (e: DragEvent, index: number) => { e.preventDefault(); setDragOverIndex(index); };
+  const handleDragLeave = () => { setDragOverIndex(null); };
+  const handleDragEnd = () => { setDragSourceIndex(null); setDragOverIndex(null); };
   const handleDrop = (_e: DragEvent, targetIndex: number) => {
     if (dragSourceIndex === null || !ebook) return;
     if (dragSourceIndex === targetIndex) return;
@@ -208,9 +196,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   };
 
   // Insert block via rich editor ref
-  const insertBlock = (html: string) => {
-    richEditorRef.current?.insertBlock(html);
-  };
+  const insertBlock = (html: string) => { richEditorRef.current?.insertBlock(html); };
 
   // Inline image upload handler for toolbar
   const handleInlineImageUpload = async (file: File): Promise<string | null> => {
@@ -401,22 +387,13 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
       <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
       <input ref={chapterImgRef} type="file" accept="image/*" className="hidden" onChange={handleChapterImageUpload} />
 
-      {/* Compact Header */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border/40 bg-card/80 backdrop-blur shrink-0">
-        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors">
+      {/* ═══════════════ HEADER SIMPLIFICADO ═══════════════ */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border/40 bg-card/80 backdrop-blur shrink-0 h-12">
+        <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-accent">
           <ArrowLeft className="h-4 w-4" />
         </button>
 
-        {/* Cover thumbnail */}
-        <div className="w-8 h-10 rounded overflow-hidden bg-muted shrink-0 border border-border/40">
-          {ebook.cover_url ? (
-            <img src={ebook.cover_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
-          )}
-        </div>
-
-        {/* Title */}
+        {/* Title — editable inline */}
         <div className="flex-1 min-w-0">
           {editingTitle ? (
             <Input
@@ -435,69 +412,63 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               {ebook.title}
             </h1>
           )}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{ebook.chapters.length} capítulos</span>
-            <span>{totalWords.toLocaleString()} palavras</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
         </div>
 
-        {/* Header actions */}
-        <div className="flex items-center gap-1.5">
-          <Badge className={cn("text-xs", ebook.status === "published" ? "bg-emerald-500/90 text-white border-0" : "bg-amber-500/90 text-white border-0")}>
-            {ebook.status === "published" ? "Publicado" : "Rascunho"}
-          </Badge>
+        {/* Status badge */}
+        <Badge className={cn("text-xs shrink-0", ebook.status === "published" ? "bg-emerald-500/90 text-white border-0" : "bg-amber-500/90 text-white border-0")}>
+          {ebook.status === "published" ? "Publicado" : "Rascunho"}
+        </Badge>
 
-          {/* Theme button */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40">
-                <Palette className="h-3 w-3" /> Tema
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[420px] p-4" align="end">
-              <h4 className="text-sm font-semibold mb-3">Escolher Tema</h4>
-              <EbookThemeSelector
-                value={(ebook as any).theme || "modern-dark"}
-                onChange={(theme) => updateEbook.mutate({ id: ebookId, theme } as any)}
-              />
-            </PopoverContent>
-          </Popover>
-
-          {/* Presentation button */}
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => setShowPresentation(true)}>
-            <Play className="h-3 w-3" /> Apresentar
-          </Button>
-
-          {/* Cover buttons */}
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={generateCoverAI} disabled={generatingCoverAI}>
-            {generatingCoverAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-            Capa IA
-            <span className="text-[10px] opacity-70 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
-            {uploadingCover ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-          </Button>
-
-          {ebook.slug && (
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1 border-border/40" onClick={() => window.open(`/ebook/${ebook.slug}`, "_blank")}>
-              <Globe className="h-3 w-3" /> Ver
+        {/* Settings dropdown — groups secondary actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border/40">
+              <Settings className="h-3.5 w-3.5" />
+              Definições
+              <ChevronDown className="h-3 w-3 opacity-50" />
             </Button>
-          )}
-          {ebook.status !== "published" && (
-            <Button size="sm" className="h-8 text-xs gap-1 bg-gradient-to-r from-primary to-primary/80" onClick={publishEbook}>
-              <BookOpen className="h-3 w-3" /> Publicar
-            </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem onClick={generateCoverAI} disabled={generatingCoverAI}>
+              {generatingCoverAI ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-2" />}
+              Gerar Capa IA
+              <span className="ml-auto text-[10px] opacity-60 flex items-center gap-0.5"><Coins className="h-2.5 w-2.5" />{getCost("ebook_generate_cover")}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
+              {uploadingCover ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
+              Upload de Capa
+            </DropdownMenuItem>
+            {ebook.slug && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.open(`/ebook/${ebook.slug}`, "_blank")}>
+                  <Globe className="h-3.5 w-3.5 mr-2" /> Ver publicação
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Preview */}
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 border-border/40" onClick={() => setShowPresentation(true)}>
+          <Play className="h-3.5 w-3.5" /> Pré-visualizar
+        </Button>
+
+        {/* Publish */}
+        {ebook.status !== "published" && (
+          <Button size="sm" className="h-8 text-xs gap-1.5 bg-gradient-to-r from-primary to-primary/80" onClick={publishEbook}>
+            <BookOpen className="h-3.5 w-3.5" /> Publicar
+          </Button>
+        )}
       </div>
 
-      {/* 3-Column Layout */}
+      {/* ═══════════════ 3-COLUMN LAYOUT ═══════════════ */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar: Chapter thumbnails */}
-        <div className="w-44 shrink-0 border-r border-border/40 bg-muted/30 flex flex-col">
-          <div className="p-2 border-b border-border/40 flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Páginas</span>
+
+        {/* ── LEFT SIDEBAR: Chapter thumbnails (200px) ── */}
+        <div className="w-[200px] shrink-0 border-r border-border/40 bg-muted/30 flex flex-col">
+          <div className="p-2.5 border-b border-border/40 flex items-center justify-between">
+            <span className="text-xs font-semibold text-foreground">Capítulos</span>
             <button onClick={addChapter} className="p-1 rounded hover:bg-accent transition-colors" title="Adicionar capítulo">
               <Plus className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -524,13 +495,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 />
               ))}
               {!ebook.chapters.length && (
-                <div className="text-center py-8">
+                <div className="text-center py-6">
+                  <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">Sem capítulos</p>
                 </div>
               )}
               <button
                 onClick={addChapter}
-                className="w-full aspect-[4/3] rounded-lg border-2 border-dashed border-border/40 hover:border-primary/30 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
+                className="w-full aspect-[3/2] rounded-lg border-2 border-dashed border-border/40 hover:border-primary/30 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -538,7 +510,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           </ScrollArea>
         </div>
 
-        {/* Center: Editor */}
+        {/* ── CENTER: Editor area ── */}
         <div className="flex-1 min-w-0 overflow-y-auto bg-background" ref={editorRef}>
           <AnimatePresence mode="wait">
             {activeChapter ? (
@@ -651,7 +623,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     ref={richEditorRef}
                     value={activeChapter.content || ""}
                     onChange={(val) => updateChapter(activeChapter.id, "content", val)}
-                    placeholder="Comece a escrever o conteúdo do capítulo...&#10;&#10;Use a toolbar de blocos à direita para inserir elementos.&#10;Selecione texto para formatar com a toolbar flutuante."
+                    placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
                   />
                 </div>
               </motion.div>
@@ -662,144 +634,203 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                 animate={{ opacity: 1 }}
                 className="h-full flex items-center justify-center"
               >
-                <div className="text-center">
+                <div className="text-center max-w-xs">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mx-auto mb-4 border border-primary/10">
                     <BookOpen className="h-8 w-8 text-primary/40" />
                   </div>
-                  <p className="text-sm font-medium text-foreground">Selecione um capítulo</p>
-                  <p className="text-xs text-muted-foreground mt-1">ou adicione um novo na barra lateral</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {ebook.chapters.length > 0
+                      ? "Selecione um capítulo para editar"
+                      : "Crie o primeiro capítulo"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {ebook.chapters.length > 0
+                      ? "Clique num capítulo na barra lateral esquerda"
+                      : "Comece a construir o seu eBook adicionando conteúdo"}
+                  </p>
+                  {ebook.chapters.length === 0 && (
+                    <Button size="sm" className="mt-4 gap-1.5" onClick={addChapter}>
+                      <Plus className="h-3.5 w-3.5" /> Criar primeiro capítulo
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Right sidebar: Block toolbar + Branding */}
-        <div className="w-56 shrink-0 flex flex-col border-l border-border/40 bg-muted/20 overflow-y-auto">
-          <div>
+        {/* ── RIGHT SIDEBAR: Tabbed panel (240px) ── */}
+        <Tabs defaultValue="inserir" className="w-60 shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
+          <TabsList className="w-full rounded-none border-b border-border/40 bg-transparent h-10 p-0 shrink-0">
+            <TabsTrigger value="inserir" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
+              Inserir
+            </TabsTrigger>
+            <TabsTrigger value="estilo" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
+              Estilo
+            </TabsTrigger>
+            <TabsTrigger value="marca" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
+              Marca
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Inserir (blocks) */}
+          <TabsContent value="inserir" className="flex-1 overflow-hidden mt-0">
             <EbookBlockToolbar
               onInsertBlock={insertBlock}
-              onUndo={() => richEditorRef.current?.undo()}
-              onRedo={() => richEditorRef.current?.redo()}
               onUploadImage={handleInlineImageUpload}
               onGenerateImageAI={handleGenerateInlineImageAI}
             />
-          </div>
+          </TabsContent>
 
-          {/* Font selector */}
-          <div className="border-t border-border/40 p-3 space-y-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Palette className="h-3 w-3" /> Tipografia
-            </span>
-            <div className="space-y-1.5">
-              <div>
-                <label className="text-[10px] text-muted-foreground">Títulos</label>
-                <Select
-                  value={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
-                  onValueChange={(val) => {
-                    const gs = { ...((ebook as any).global_styles || {}), headingFont: val };
-                    updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
-                  }}
-                >
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                    <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
-                    <SelectItem value="'Lora', serif">Lora</SelectItem>
-                    <SelectItem value="'Playfair Display', serif">Playfair Display</SelectItem>
-                    <SelectItem value="Inter, sans-serif">Inter</SelectItem>
-                    <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
-                    <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground">Corpo</label>
-                <Select
-                  value={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
-                  onValueChange={(val) => {
-                    const gs = { ...((ebook as any).global_styles || {}), bodyFont: val };
-                    updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
-                  }}
-                >
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                    <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
-                    <SelectItem value="'Lora', serif">Lora</SelectItem>
-                    <SelectItem value="Inter, sans-serif">Inter</SelectItem>
-                    <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
-                    <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Branding section */}
-          <div className="border-t border-border/40 p-3 space-y-3 overflow-y-auto flex-1">
-            <div>
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Type className="h-3 w-3" /> Cabeçalho / Rodapé
-              </span>
-              <div className="mt-2 space-y-2">
-                <Input
-                  placeholder="Texto do cabeçalho"
-                  value={localHeaderText}
-                  onChange={(e) => setLocalHeaderText(e.target.value)}
-                  className="h-8 text-xs"
-                />
-                <Input
-                  placeholder="Texto do rodapé"
-                  value={localFooterText}
-                  onChange={(e) => setLocalFooterText(e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-border/30 pt-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" /> Página de Contactos
-              </span>
-              <div className="mt-2 space-y-2">
-                <Input
-                  placeholder="Slogan"
-                  value={localContactPage.slogan || ""}
-                  onChange={(e) => setLocalContactPage(prev => ({ ...prev, slogan: e.target.value }))}
-                  className="h-8 text-xs"
-                />
-                <div className="flex gap-1">
-                  <Mail className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
-                  <Input
-                    placeholder="Email"
-                    value={localContactPage.email || ""}
-                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, email: e.target.value }))}
-                    className="h-8 text-xs"
+          {/* Tab: Estilo (theme + typography) */}
+          <TabsContent value="estilo" className="flex-1 overflow-hidden mt-0">
+            <ScrollArea className="h-full">
+              <div className="p-3 space-y-4">
+                {/* Theme selector */}
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground mb-2">Aparência</h4>
+                  <EbookThemeSelector
+                    value={(ebook as any).theme || "modern-dark"}
+                    onChange={(theme) => updateEbook.mutate({ id: ebookId, theme } as any)}
                   />
                 </div>
-                <div className="flex gap-1">
-                  <Phone className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
-                  <Input
-                    placeholder="Telefone"
-                    value={localContactPage.phone || ""}
-                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, phone: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex gap-1">
-                  <Link className="h-3 w-3 text-muted-foreground mt-2.5 shrink-0" />
-                  <Input
-                    placeholder="Website"
-                    value={localContactPage.website || ""}
-                    onChange={(e) => setLocalContactPage(prev => ({ ...prev, website: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
+
+                {/* Typography */}
+                <div className="border-t border-border/30 pt-3 space-y-2">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Palette className="h-3.5 w-3.5 text-muted-foreground" /> Tipografia
+                  </span>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Títulos</label>
+                      <Select
+                        value={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
+                        onValueChange={(val) => {
+                          const gs = { ...((ebook as any).global_styles || {}), headingFont: val };
+                          updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                          <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                          <SelectItem value="'Lora', serif">Lora</SelectItem>
+                          <SelectItem value="'Playfair Display', serif">Playfair Display</SelectItem>
+                          <SelectItem value="Inter, sans-serif">Inter</SelectItem>
+                          <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                          <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Corpo</label>
+                      <Select
+                        value={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
+                        onValueChange={(val) => {
+                          const gs = { ...((ebook as any).global_styles || {}), bodyFont: val };
+                          updateEbook.mutate({ id: ebookId, global_styles: gs } as any);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                          <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                          <SelectItem value="'Lora', serif">Lora</SelectItem>
+                          <SelectItem value="Inter, sans-serif">Inter</SelectItem>
+                          <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                          <SelectItem value="system-ui, sans-serif">System UI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Tab: Marca (branding) */}
+          <TabsContent value="marca" className="flex-1 overflow-hidden mt-0">
+            <ScrollArea className="h-full">
+              <div className="p-3 space-y-4">
+                {/* Header / Footer */}
+                <div>
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Type className="h-3.5 w-3.5 text-muted-foreground" /> Cabeçalho / Rodapé
+                  </span>
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      placeholder="Texto do cabeçalho"
+                      value={localHeaderText}
+                      onChange={(e) => setLocalHeaderText(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                    <Input
+                      placeholder="Texto do rodapé"
+                      value={localFooterText}
+                      onChange={(e) => setLocalFooterText(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Contact page */}
+                <div className="border-t border-border/30 pt-3">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" /> Página de Contactos
+                  </span>
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      placeholder="Slogan"
+                      value={localContactPage.slogan || ""}
+                      onChange={(e) => setLocalContactPage(prev => ({ ...prev, slogan: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                    <div className="flex gap-1.5 items-center">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <Input
+                        placeholder="Email"
+                        value={localContactPage.email || ""}
+                        onChange={(e) => setLocalContactPage(prev => ({ ...prev, email: e.target.value }))}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="flex gap-1.5 items-center">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <Input
+                        placeholder="Telefone"
+                        value={localContactPage.phone || ""}
+                        onChange={(e) => setLocalContactPage(prev => ({ ...prev, phone: e.target.value }))}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="flex gap-1.5 items-center">
+                      <Link className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <Input
+                        placeholder="Website"
+                        value={localContactPage.website || ""}
+                        onChange={(e) => setLocalContactPage(prev => ({ ...prev, website: e.target.value }))}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* ═══════════════ STATUS BAR (footer) ═══════════════ */}
+      <div className="shrink-0 border-t border-border/40 bg-card/60 backdrop-blur px-4 py-1.5 flex items-center gap-4 text-xs text-muted-foreground">
+        <span>{ebook.chapters.length} capítulo{ebook.chapters.length !== 1 ? "s" : ""}</span>
+        <span className="text-border">·</span>
+        <span>{totalWords.toLocaleString()} palavras</span>
+        <span className="text-border">·</span>
+        <span>{Math.round(progress)}% concluído</span>
+        <span className="flex-1" />
+        <span className="flex items-center gap-1 text-emerald-500/80">
+          <CheckCircle2 className="h-3 w-3" /> Guardado
+        </span>
       </div>
 
       {/* Presentation Dialog (Fullscreen) */}

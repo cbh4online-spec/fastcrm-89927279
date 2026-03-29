@@ -1,12 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   Type, ImageIcon, Minus, Quote, Table2, Columns2,
-  Heading1, Heading2, List, ListOrdered, Undo2, Redo2,
+  Heading1, Heading2, List, ListOrdered,
   Upload, Wand2, Loader2, Link,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useState } from 'react';
 
 interface EbookBlockToolbarProps {
   onInsertBlock: (html: string) => void;
@@ -32,7 +31,7 @@ const LAYOUT_BLOCKS = [
   { icon: Columns2, label: '2 Colunas', html: '<div style="display:flex;gap:16px"><div style="flex:1"><p>Coluna esquerda</p></div><div style="flex:1"><p>Coluna direita</p></div></div>' },
 ];
 
-export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage, onGenerateImageAI }: EbookBlockToolbarProps) {
+export function EbookBlockToolbar({ onInsertBlock, onUploadImage, onGenerateImageAI }: EbookBlockToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -86,40 +85,8 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
   );
 
   return (
-    <div className="h-full flex flex-col border-l border-border/40 bg-card/50">
+    <div className="h-full flex flex-col">
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-
-      {(onUndo || onRedo) && (
-        <div className="p-2 border-b border-border/40 flex items-center gap-1">
-          <button
-            onClick={onUndo}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1 p-1.5 rounded-md text-xs font-medium",
-              "hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-            )}
-            title="Desfazer (Ctrl+Z)"
-          >
-            <Undo2 className="h-3.5 w-3.5" />
-            <span className="text-xs">Desfazer</span>
-          </button>
-          <button
-            onClick={onRedo}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1 p-1.5 rounded-md text-xs font-medium",
-              "hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-            )}
-            title="Refazer (Ctrl+Y)"
-          >
-            <Redo2 className="h-3.5 w-3.5" />
-            <span className="text-xs">Refazer</span>
-          </button>
-        </div>
-      )}
-
-      <div className="p-3 border-b border-border/40">
-        <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Blocos</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Clique para inserir</p>
-      </div>
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-4">
@@ -173,9 +140,9 @@ export function EbookBlockToolbar({ onInsertBlock, onUndo, onRedo, onUploadImage
             </div>
           </div>
 
-          {/* Blocos */}
+          {/* Layout */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Blocos</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">Layout</p>
             <div className="grid grid-cols-2 gap-1">
               {LAYOUT_BLOCKS.map(renderBlockButton)}
             </div>
