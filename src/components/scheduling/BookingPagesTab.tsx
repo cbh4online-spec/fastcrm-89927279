@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useBookingPages, useUpdateBookingPage, useDeleteBookingPage, type BookingPage } from '@/hooks/useBookingPages';
 import { BookingPageModal } from './BookingPageModal';
+import { BookingQRCodeDialog } from './BookingQRCodeDialog';
 import type { Calendar } from '@/hooks/useCalendars';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { getPublicBaseUrl } from '@/utils/getPublicDomain';
