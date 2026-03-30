@@ -129,6 +129,7 @@ export function useCSATDashboard(period: CSATPeriod = "30d") {
       };
     },
     enabled: !!wid,
+    retry: 1,
     staleTime: 30_000,
   });
 }
