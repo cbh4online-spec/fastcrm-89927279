@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useExecutiveSnapshot, useDecisionPacks, useGenerateBrief, useActOnDecision, useExecutiveSnapshots } from "@/hooks/useExecutiveBoard";
 import { InvestorViewCards } from "@/components/executive/InvestorViewCards";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { RefreshCw, TrendingUp, AlertTriangle, Target, Lightbulb, Clock, CheckCircle, XCircle, Loader2, Shield, BarChart3, Eye } from "lucide-react";
 
 const NARRATIVE_LABELS: Record<string, string> = {
