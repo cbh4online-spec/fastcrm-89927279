@@ -328,8 +328,27 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     [addNote, currentPage]
   );
 
+  // Handle clicking an existing highlight to show delete popover
+  const handleHighlightClick = useCallback((highlightId: string, position: { x: number; y: number }) => {
+    const note = notes.find(n => n.id === highlightId);
+    if (!note) return;
+    const containerRect = bookContainerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+    setDeletePopover({
+      noteId: note.id,
+      text: note.highlight_text || "",
+      note: note.note_text || "",
+      color: note.highlight_color || "#fde68a",
+      position: {
+        x: position.x - containerRect.left,
+        y: position.y - containerRect.top,
+      },
+    });
+  }, [notes]);
+
   const handleFlip = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);
+    setDeletePopover(null);
   }, []);
 
   const goToPage = useCallback((page: number) => {
