@@ -309,7 +309,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         y: rect.bottom - containerRect.top,
       },
     });
-  }, [hasNotesFeature]);
+  }, [hasNotesFeature, highlightMode]);
 
   const handleCreateHighlight = useCallback(
     (params: { highlightText: string; highlightColor: string; noteText: string }) => {
