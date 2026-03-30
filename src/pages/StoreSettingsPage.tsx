@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles, Upload, X, Image as ImageIcon, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
 import { toast } from "sonner";
