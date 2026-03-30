@@ -298,7 +298,46 @@ Deno.serve(async (req) => {
           abandoned_at: cart.abandoned_at ? new Date(cart.abandoned_at).toLocaleString('pt-PT') : '',
         };
 
-        // Log the step execution (payload ready for actual sending)
+        // Resolve merge variables in subject and body
+        const resolvedSubject = (step.subject || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => variables[key] ?? _);
+        const resolvedBody = (step.body || '').replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => variables[key] ?? _);
+
+        // Send email via send-transactional-email
+        let emailSent = false;
+        if (cart.customer_email) {
+          try {
+            const sendRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                templateName: 'cart-recovery',
+                recipientEmail: cart.customer_email,
+                idempotencyKey: `cart-recovery-${cart.id}-step-${step.step_order}`,
+                templateData: {
+                  subject: resolvedSubject,
+                  bodyHtml: resolvedBody,
+                  storeName: storeSettings?.store_name || 'Loja',
+                  previewText: resolvedSubject,
+                },
+              }),
+            });
+
+            if (sendRes.ok) {
+              emailSent = true;
+              log('Email sent', { cartId: cart.id, step: step.step_order, to: cart.customer_email });
+            } else {
+              const errBody = await sendRes.text();
+              log('Email send failed', { cartId: cart.id, status: sendRes.status, error: errBody });
+            }
+          } catch (emailErr) {
+            log('Email send error', { cartId: cart.id, error: (emailErr as Error).message });
+          }
+        }
+
+        // Log the step execution
         await supabase.from('store_automation_events').insert({
           workspace_id: wid,
           event_type: 'abandoned_cart_sequence_step_processed',
@@ -309,11 +348,19 @@ Deno.serve(async (req) => {
             step_id: step.id,
             step_order: step.step_order,
             channel: step.channel,
-            subject: step.subject,
+            subject: resolvedSubject,
             template_id: step.template_id,
             merge_variables: variables,
+            email_sent: emailSent,
           },
         });
+
+        // Only advance if email was sent (or no email required)
+        if (!emailSent && cart.customer_email) {
+          log('Skipping step advance due to email failure', { cartId: cart.id });
+          totalProcessed++;
+          continue;
+        }
 
         // Advance to next step
         const { data: nextStep } = await supabase
@@ -348,7 +395,7 @@ Deno.serve(async (req) => {
         }).eq('id', cart.id);
 
         totalProcessed++;
-        log('Processed step', { cartId: cart.id, step: currentStepOrder });
+        log('Processed step', { cartId: cart.id, step: currentStepOrder, emailSent });
       }
     }
 
