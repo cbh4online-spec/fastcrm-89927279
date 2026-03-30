@@ -170,7 +170,7 @@ export const DEFAULT_LEGAL_PAGES: Record<LegalPageKey, LegalPageData> = {
       },
       {
         title: "13. Contacto",
-        content: `<p>Para questões relacionadas com estes Termos de Uso, contacte-nos em <a href="mailto:{{email_general}}">{{email_general}}</a>.</p>`,
+        content: `<p>Para questões relacionadas com estes Termos de Uso, contacte-nos em <a href="mailto:online@metodopare.ai">online@metodopare.ai</a>.</p>`,
       },
     ],
   },
