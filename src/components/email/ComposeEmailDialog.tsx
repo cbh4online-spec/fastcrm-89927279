@@ -299,14 +299,32 @@ export function ComposeEmailDialog({
     return newConversation.id;
   };
 
+  const buildMeetingHtml = (): string => {
+    if (!showMeetingPanel || !meetingDate) return "";
+    const [h, m] = meetingTime.split(":").map(Number);
+    const start = new Date(meetingDate);
+    start.setHours(h, m, 0, 0);
+    const end = addMinutes(start, parseInt(meetingDuration));
+    let html = `<div style="margin-top: 1.5em; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">`;
+    html += `<p style="margin: 0 0 8px 0; font-weight: 600; font-size: 15px;">📅 Reunião Agendada</p>`;
+    html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Data:</strong> ${format(start, "dd/MM/yyyy")}</p>`;
+    html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Hora:</strong> ${format(start, "HH:mm")} – ${format(end, "HH:mm")}</p>`;
+    if (meetingLocation) html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Local:</strong> ${meetingLocation}</p>`;
+    if (meetingUrl) html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Link:</strong> <a href="${meetingUrl}" style="color: #0066cc;">${meetingUrl}</a></p>`;
+    html += `</div>`;
+    return html;
+  };
+
   const buildFinalBody = (): string => {
     let finalBody = body.trim();
     const attachHtml = buildAttachmentsHtml(attachments);
+    const meetingHtml = buildMeetingHtml();
 
-    if (isHtml || includeSignature || attachments.length > 0) {
+    if (isHtml || includeSignature || attachments.length > 0 || meetingHtml) {
       if (!isHtml) {
         finalBody = textToHtml(finalBody);
       }
+      finalBody += meetingHtml;
       finalBody += attachHtml;
       if (includeSignature && signatureHtml) {
         finalBody += `<div style="margin-top: 1.5em;">${signatureHtml}</div>`;
@@ -314,6 +332,32 @@ export function ComposeEmailDialog({
       return finalBody;
     }
     return finalBody;
+  };
+
+  const createMeetingEvent = async () => {
+    if (!showMeetingPanel || !meetingDate || !selectedCalendarId) return;
+    const [h, m] = meetingTime.split(":").map(Number);
+    const start = new Date(meetingDate);
+    start.setHours(h, m, 0, 0);
+    const end = addMinutes(start, parseInt(meetingDuration));
+
+    const entityRef: Record<string, string> = {};
+    if (recipient.entityType === 'contact') entityRef.contact_id = recipient.entityId;
+    if (recipient.entityType === 'company') entityRef.company_id = recipient.entityId;
+    if (recipient.entityType === 'lead') entityRef.lead_id = recipient.entityId;
+
+    await createEvent({
+      calendar_id: selectedCalendarId,
+      title: subject || `Reunião com ${recipient.name}`,
+      description: `Reunião agendada via email com ${recipient.name} (${recipient.email})`,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      location: meetingLocation || undefined,
+      meeting_url: meetingUrl || undefined,
+      status: 'confirmed',
+      attendees: [{ id: '', name: recipient.name, email: recipient.email, status: 'invited' }],
+      ...entityRef,
+    });
   };
 
   const handleSend = async () => {
