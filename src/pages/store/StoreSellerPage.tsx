@@ -81,7 +81,7 @@ export default function StoreSellerPage() {
     product_condition: l.condition,
     workspace_id: wsId,
     _sellerId: seller?.id,
-    _sellerName: seller?.display_name || seller?.name,
+    _sellerName: seller?.display_name,
   }));
 
   if (sellerLoading) {
