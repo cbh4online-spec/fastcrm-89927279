@@ -1,68 +1,75 @@
 
 
-## Enterprise Simulation & Forecast Layer — Plano de Execução
+## Autonomous Strategy Layer — Plano de Execução
 
 ### Diagnóstico
 
 **Infraestrutura existente reutilizada:**
-- `revenue_forecasts` + `compute-revenue-forecast` — forecast de receita com best/expected/worst case
-- `revenue_scenarios` + `run-revenue-scenario` — cenários what-if já funcionais (deals, conversão, reativação)
-- `revenue_forecast_snapshots` + `revenue_targets` — snapshots de pipeline e metas
-- `deal_probability_scores` — scoring probabilístico por deal
-- `demand_forecast` — forecast de procura por produto
-- `RFCScenariosPage` — UI de simulação com sliders e presets
-- `business_context` — metas mensais/trimestrais/anuais, average_ticket, sales_cycle_days
+- `business_context` — metas, ICP, ticket médio, ciclo de venda, SLA
 - `workspace_operating_state` — health scores por área
-- `workspace_memories` — padrões históricos reutilizáveis
+- `workspace_memories` — padrões históricos de sucesso/falha
+- `business_objectives` + `objective_plans` — objetivos com planos e progresso
+- `workspace_missions` — unidades operacionais transversais
+- `forecast_runs` + `simulation_scenarios` — previsões e cenários
 - `kernel_events` + `emitKernelEvent` — barramento de eventos
+- `action_executions` — motor de execução
+- `process-workspace-engine` — agregação de sinais operacionais
 
-**O que já existe vs o que falta:**
-- Já existe cenário what-if revenue-focused → falta cenários operacionais (follow-up, canal, agentes, backlog)
-- Já existe forecast de receita → falta forecast de pipeline coverage, execution capacity, risk_of_miss
-- Já existe `revenue_scenarios` → falta modelo genérico `simulation_scenarios` com comparação lado a lado
-- Falta `forecast_models`, `forecast_runs`, `forecast_settings` como schema formal
-- Falta Forecast Center UI unificada
-- Falta integração com Workspace Ops e Objectives
+**Nada disto existe ainda:**
+- `strategic_state_snapshots` — fotografias estratégicas do workspace
+- `strategic_hypotheses` — hipóteses de reposicionamento
+- `strategic_recommendations` — recomendações acionáveis
+- `strategic_recommendation_links` — ligação a objectives/missions
+- `strategy_settings` — configuração
+- Strategy Engine (edge function)
+- Strategy Center UI
 
 ---
 
-### Migration SQL (1 migration, 4 tabelas)
+### Migration SQL (1 migration, 5 tabelas)
 
-**`forecast_models`:**
+**`strategic_state_snapshots`:**
 - `id` UUID PK, `workspace_id` UUID NOT NULL
-- `model_type` TEXT NOT NULL (baseline, trend, target_gap)
-- `name` TEXT NOT NULL, `description` TEXT
-- `config_json` JSONB DEFAULT '{}'
-- `is_active` BOOLEAN DEFAULT true
-- `created_at`, `updated_at`
+- `strategic_focus` TEXT, `strategic_health_score` INT DEFAULT 50
+- `growth_mode` TEXT DEFAULT 'stabilization' (acquisition, conversion, retention, recovery, stabilization)
+- `bottleneck_type` TEXT (lead_generation, follow_up, conversion, delivery, context_gap, execution_overload, retention_risk)
+- `primary_constraint` TEXT, `main_revenue_driver` TEXT, `main_revenue_risk` TEXT
+- `execution_alignment_score` INT DEFAULT 50, `context_alignment_score` INT DEFAULT 50
+- `diagnosis_summary` TEXT, `confidence` NUMERIC(3,2) DEFAULT 0.5
+- `top_constraints` JSONB DEFAULT '[]', `top_leverage_points` JSONB DEFAULT '[]'
+- `created_at`
+- Index: `(workspace_id, created_at DESC)`
 
-**`forecast_runs`:**
+**`strategic_hypotheses`:**
 - `id` UUID PK, `workspace_id` UUID NOT NULL
-- `model_id` UUID FK → forecast_models (nullable)
-- `scenario_id` UUID (nullable), `run_type` TEXT DEFAULT 'baseline'
-- `input_snapshot_json` JSONB DEFAULT '{}', `output_snapshot_json` JSONB DEFAULT '{}'
-- `assumptions_json` JSONB DEFAULT '[]'
-- `confidence` NUMERIC(3,2) DEFAULT 0.5
+- `title` TEXT NOT NULL, `description` TEXT, `rationale` TEXT
+- `hypothesis_type` TEXT NOT NULL (increase_follow_up_intensity, shorten_sales_cycle, focus_high_ticket_offers, improve_recovery_engine, rebalance_agent_capacity, improve_context_quality, shift_channel_mix, reduce_execution_noise, strengthen_retention_motion)
+- `expected_impact` TEXT, `confidence` NUMERIC(3,2) DEFAULT 0.5
+- `status` TEXT DEFAULT 'active' (active, validated, invalidated, expired)
+- `created_at`, `updated_at`, `validated_at` TIMESTAMPTZ
+
+**`strategic_recommendations`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL
+- `title` TEXT NOT NULL, `description` TEXT, `rationale` TEXT
+- `recommendation_type` TEXT NOT NULL, `expected_impact` TEXT
+- `confidence` NUMERIC(3,2) DEFAULT 0.5, `priority` TEXT DEFAULT 'medium'
+- `status` TEXT DEFAULT 'pending' (pending, accepted, acted, dismissed, expired)
+- `linked_hypothesis_id` UUID FK → strategic_hypotheses (nullable)
+- `created_at`, `updated_at`, `acted_at` TIMESTAMPTZ
+
+**`strategic_recommendation_links`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL
+- `recommendation_id` UUID FK → strategic_recommendations
+- `objective_id` UUID FK → business_objectives (nullable)
+- `mission_id` UUID FK → workspace_missions (nullable)
 - `created_at`
 
-**`simulation_scenarios`:**
-- `id` UUID PK, `workspace_id` UUID NOT NULL
-- `title` TEXT NOT NULL, `description` TEXT
-- `scenario_type` TEXT NOT NULL (follow_up_boost, channel_switch, sla_reduction, recovery_boost, agent_swap, auto_execution, backlog_reduction, meeting_boost, custom)
-- `status` TEXT DEFAULT 'draft' (draft, simulated, applied, archived)
-- `inputs_json` JSONB DEFAULT '{}', `outputs_json` JSONB DEFAULT '{}'
-- `delta_json` JSONB DEFAULT '{}'
-- `assumptions` JSONB DEFAULT '[]'
-- `confidence` NUMERIC(3,2) DEFAULT 0.5
-- `created_by` UUID, `created_at`, `updated_at`
-
-**`forecast_settings`:**
+**`strategy_settings`:**
 - `id` UUID PK, `workspace_id` UNIQUE
 - `is_enabled` BOOLEAN DEFAULT false
-- `default_horizon_days` INT DEFAULT 30
-- `default_model_type` TEXT DEFAULT 'baseline'
+- `auto_strategy_refresh` BOOLEAN DEFAULT false
 - `confidence_threshold` NUMERIC(3,2) DEFAULT 0.3
-- `allow_memory_boost` BOOLEAN DEFAULT true
+- `allow_auto_objective_creation` BOOLEAN DEFAULT false
 - `created_at`, `updated_at`
 
 RLS: workspace members SELECT; service_role INSERT/UPDATE.
@@ -71,78 +78,85 @@ RLS: workspace members SELECT; service_role INSERT/UPDATE.
 
 ### Ficheiros a criar (4)
 
-#### 1. `supabase/functions/run-forecast-simulation/index.ts`
+#### 1. `supabase/functions/process-strategy-layer/index.ts`
 Edge function central que:
-1. Recebe `{ workspace_id, scenario_type?, inputs? }` 
-2. Recolhe sinais: business_context (metas, average_ticket, sales_cycle_days), pipeline atual (opportunities count/value by stage), action_executions (throughput), agent_work_items (backlog), workspace_operating_state (health scores)
-3. Calcula baseline forecast: `forecast_revenue_30d/90d`, `forecast_deals_30d`, `pipeline_coverage`, `execution_capacity_score`, `risk_of_miss_target`
-4. Se `scenario_type` presente, aplica modificadores operacionais (ex: `follow_up_boost` → +15% conversion, `recovery_boost` → +X€ recovered, `backlog_reduction` → +20% execution capacity)
-5. Calcula deltas vs baseline
-6. Persiste em `forecast_runs` + `simulation_scenarios`
-7. Emite `FORECAST.RUN_CREATED` / `FORECAST.SCENARIO_CREATED`
-8. Devolve output com assumptions explícitas
+1. Recebe `{ workspace_id }`
+2. Recolhe sinais: `business_context` (metas, ticket, SLA), `workspace_operating_state` (health scores), últimos `forecast_runs` (baseline), `business_objectives` (progress/at_risk), `workspace_memories` (top patterns), `workspace_missions` (backlog)
+3. Usa Gemini Flash para diagnosticar: growth_mode, bottleneck_type, primary_constraint, top_constraints, top_leverage_points, strategic_focus
+4. Gera hipóteses baseadas nos gargalos (ex: execution_overload → `reduce_execution_noise`)
+5. Gera recomendações acionáveis com rationale e expected_impact
+6. Insere `strategic_state_snapshots`, cria/atualiza `strategic_hypotheses`, cria `strategic_recommendations` (expira as antigas pending > 14 dias)
+7. Emite `STRATEGY.SNAPSHOT_CREATED`, `STRATEGY.HYPOTHESIS_CREATED`, `STRATEGY.RECOMMENDATION_CREATED`
 
-#### 2. `src/hooks/useForecastSimulation.ts`
-- `useBaselineForecast()` — último forecast_run tipo baseline
-- `useSimulationScenarios(filters?)` — lista cenários com status filter
-- `useRunSimulation()` — invoca `run-forecast-simulation`
-- `useForecastSettings()` — read/upsert settings
-- `useCompareScenarios(ids[])` — lê 2-3 cenários para comparação side-by-side
-- `useForecastStats()` — KPIs: risk_of_miss, pipeline_coverage, execution_capacity
+#### 2. `src/hooks/useStrategyLayer.ts`
+- `useStrategicState()` — último snapshot com query
+- `useStrategicHypotheses(statusFilter?)` — lista hipóteses
+- `useStrategicRecommendations(statusFilter?)` — lista recomendações
+- `useStrategySettings()` — read/upsert settings
+- `useRefreshStrategy()` — invoca `process-strategy-layer`
+- `useActOnRecommendation()` — marca recommendation como acted + opcionalmente cria objective/mission via `strategic_recommendation_links`
+- `useDismissRecommendation()` — marca dismissed
+- `useStrategyHistory()` — últimos N snapshots para ver evolução
 
-#### 3. `src/pages/ForecastCenterPage.tsx`
-Rota: `/dashboard/forecast`
-- **Baseline Panel**: forecast_revenue_30d/90d, pipeline_coverage, execution_capacity, risk_of_miss com gauge
-- **Target Gap**: barra visual meta vs baseline vs best scenario
-- **Scenario Builder**: dropdown scenario_type + sliders de inputs (intensidade 0-100%) + botão simular
-- **Scenario Cards**: últimos cenários com delta revenue, delta deals, confidence, assumptions collapsible
-- **Comparison View**: selecionar 2 cenários → tabela side-by-side (revenue, deals, conversion, workload, risk)
-- **Assumptions Panel**: cada número mostra de onde vem e que variáveis foram usadas
-- **Settings**: toggles + horizon + confidence threshold
+#### 3. `src/pages/StrategyCenterPage.tsx`
+Rota: `/dashboard/strategy`
+- **Estado Estratégico**: growth_mode badge, strategic_health_score gauge, bottleneck_type, strategic_focus
+- **Diagnóstico**: primary_constraint, top_constraints, top_leverage_points, confidence
+- **Hipóteses Ativas**: cards com título, rationale, type badge, confidence, status
+- **Recomendações**: cards com título, description, rationale, priority, expected_impact, botões "Aceitar" / "Converter em Objetivo" / "Dispensar"
+- **Executive Brief**: componente `StrategyExecutiveBrief` integrado
+- **Histórico**: últimos 10 snapshots com evolução de growth_mode e health_score
+- **Settings**: toggles auto_refresh, confidence_threshold, auto_objective_creation
+- Botão "Atualizar Estratégia"
 
-#### 4. `src/components/forecast/ScenarioComparisonTable.tsx`
-Componente reutilizável de comparação:
-- Colunas: Baseline | Cenário A | Cenário B
-- Linhas: Revenue 30d, Revenue 90d, Deals, Conversion Rate, Pipeline Coverage, Execution Capacity, Risk, Confidence
-- Deltas coloridos (verde/vermelho)
-- Badge de cenário recomendado (maior revenue delta + menor risk)
+#### 4. `src/components/strategy/StrategyExecutiveBrief.tsx`
+Componente que mostra:
+- "O que trava crescimento" — primary_constraint + bottleneck_type
+- "Maior alavanca" — top_leverage_points[0]
+- "Foco recomendado" — strategic_focus + growth_mode
+- "Objetivos a criar/ajustar" — recomendações pending com alta prioridade
+- "Áreas desalinhadas" — sub-scores da workspace_operating_state abaixo de 50
+- "Confiança estratégica" — confidence penalizada se context_alignment_score baixo
 
 ---
 
 ### Ficheiros a alterar (1)
 
 #### 5. `src/routes/AIRoutes.tsx`
-- Adicionar lazy import + rota: `/dashboard/forecast` → `ForecastCenterPage`
+- Adicionar lazy import `StrategyCenterPage` + rota `/dashboard/strategy`
 
 ---
 
 ### Fluxo
 
 ```text
-run-forecast-simulation (manual ou periódico)
+process-strategy-layer (manual ou periódico)
   │
-  ├─ Recolhe sinais (business_context, pipeline, executions, health)
-  ├─ Calcula baseline forecast
-  ├─ Se cenário: aplica modificadores operacionais
-  ├─ Calcula deltas vs baseline
-  ├─ Persiste forecast_runs + simulation_scenarios
-  ├─ Emite FORECAST.* events
-  └─ Devolve output + assumptions
+  ├─ Recolhe sinais (context, health, forecast, objectives, memory)
+  ├─ Gemini Flash → diagnóstico estratégico
+  ├─ Gera hipóteses por bottleneck
+  ├─ Gera recomendações acionáveis
+  ├─ Insere strategic_state_snapshots
+  ├─ Expira recomendações antigas
+  └─ Emite STRATEGY.* events
 
-ForecastCenterPage (UI)
+StrategyCenterPage (UI)
   │
-  ├─ Baseline forecast (gauge + KPIs)
-  ├─ Target gap visual
-  ├─ Scenario builder (tipo + sliders)
-  ├─ Scenario cards com deltas
-  ├─ Comparison table (side-by-side)
+  ├─ Estado estratégico (gauge + badges)
+  ├─ Diagnóstico (constraints + leverage)
+  ├─ Hipóteses ativas
+  ├─ Recomendações → converter em Objective/Mission
+  ├─ Executive Brief
+  ├─ Histórico de snapshots
   └─ Settings
 ```
 
 ### Compatibilidade
-- Coexiste com `revenue_scenarios` e `run-revenue-scenario` existentes (deal-level)
-- Este layer é operacional (follow-up, agentes, backlog) vs o existente que é deal-level
-- Reutiliza `business_context` para metas e `workspace_operating_state` para health inputs
-- Reutiliza `emitKernelEvent` para eventos `FORECAST.*`
-- Não altera tabelas existentes
+- Reutiliza `business_context` e `workspace_operating_state` como inputs — sem alterar
+- Reutiliza `business_objectives` e `workspace_missions` como destinos de recomendações
+- Reutiliza `workspace_memories` para evitar repetir estratégias falhadas
+- Reutiliza `forecast_runs` para fundamentar impacto esperado
+- Reutiliza `emitKernelEvent` para eventos `STRATEGY.*`
+- Não duplica centros de controlo — vive em `/dashboard/strategy`
+- Não altera nenhuma tabela existente
 
