@@ -171,18 +171,18 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
         <div className="space-y-1 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span>Criado:</span>
-            <TimeAgo date={ticket.created_at} className="text-foreground" />
+            <span className="text-foreground"><TimeAgo date={ticket.created_at} /></span>
           </div>
           {ticket.first_response_at && (
             <div className="flex justify-between">
               <span>1ª Resposta:</span>
-              <TimeAgo date={ticket.first_response_at} className="text-foreground" />
+              <span className="text-foreground"><TimeAgo date={ticket.first_response_at} /></span>
             </div>
           )}
           {ticket.resolved_at && (
             <div className="flex justify-between">
               <span>Resolvido:</span>
-              <TimeAgo date={ticket.resolved_at} className="text-foreground" />
+              <span className="text-foreground"><TimeAgo date={ticket.resolved_at} /></span>
             </div>
           )}
         </div>
