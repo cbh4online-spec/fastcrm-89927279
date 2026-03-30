@@ -13,7 +13,7 @@ export const mapContainerStyle = {
   height: "100%",
 } as const;
 
-export const mapOptions: google.maps.MapOptions = {
+export const mapOptions = {
   disableDefaultUI: false,
   zoomControl: true,
   streetViewControl: false,
