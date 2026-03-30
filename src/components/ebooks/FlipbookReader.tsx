@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Trash2, X } from "lucide-react";
 import { FlipbookPage, FlipbookPageData, ContactPageData } from "./FlipbookPage";
 import { FlipbookToolbar } from "./FlipbookToolbar";
 import { PageFlipBook, PageFlipHandle } from "./PageFlip";
@@ -258,6 +260,13 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     text: string;
     position: { x: number; y: number };
   } | null>(null);
+  const [deletePopover, setDeletePopover] = useState<{
+    noteId: string;
+    text: string;
+    note: string;
+    color: string;
+    position: { x: number; y: number };
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const flipBookRef = useRef<PageFlipHandle>(null);
   const bookContainerRef = useRef<HTMLDivElement>(null);
@@ -269,11 +278,11 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   // Build highlights map by page number
   const highlightsMap = useMemo(() => {
-    const map = new Map<number, { text: string; color: string; note?: string }[]>();
+    const map = new Map<number, { id: string; text: string; color: string; note?: string }[]>();
     for (const note of notes) {
       if (note.note_type === "highlight" && note.highlight_text && note.highlight_color) {
         const arr = map.get(note.page_number) || [];
-        arr.push({ text: note.highlight_text, color: note.highlight_color, note: note.note_text || "" });
+        arr.push({ id: note.id, text: note.highlight_text, color: note.highlight_color, note: note.note_text || "" });
         map.set(note.page_number, arr);
       }
     }
