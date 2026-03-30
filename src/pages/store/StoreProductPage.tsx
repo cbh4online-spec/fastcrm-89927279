@@ -115,7 +115,7 @@ export default function StoreProductPage() {
   const { data: recentViewers = 0 } = useRecentViewers(productId);
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
-  // Track recently viewed
+  // Track recently viewed + product_view analytics
   useEffect(() => {
     if (!product) return;
     const primaryIndex = product.primary_image_index ?? 0;
@@ -124,6 +124,13 @@ export default function StoreProductPage() {
       name: product.name,
       price: pricing?.price ?? product.base_price,
       image: product.images?.[primaryIndex] || product.images?.[0],
+    });
+    trackEvent("product_view", {
+      workspaceSlug: wsSlug,
+      productId: product.id,
+      productName: product.name,
+      price: pricing?.price ?? product.base_price,
+      currency: product.currency,
     });
   }, [product?.id]);
 

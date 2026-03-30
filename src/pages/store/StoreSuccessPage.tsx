@@ -3,8 +3,9 @@ import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Package, ArrowRight } from "lucide-react";
+import { CheckCircle2, Package } from "lucide-react";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
+import { trackEvent } from "@/lib/analytics";
 
 export default function StoreSuccessPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -17,6 +18,7 @@ export default function StoreSuccessPage() {
       plan_type: searchParams.get('plan') || 'store_purchase',
       billing_cycle: searchParams.get('billing') || 'one_time',
     });
+    trackEvent("purchase_success_page_view", { workspaceSlug: wsSlug });
   }, []);
 
   return (

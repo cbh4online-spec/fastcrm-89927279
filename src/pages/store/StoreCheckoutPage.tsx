@@ -462,12 +462,15 @@ export default function StoreCheckoutPage() {
                         value={formData.email}
                         onChange={(e) => {
                           setFormData(p => ({ ...p, email: e.target.value }));
+                          setFieldErrors(p => ({ ...p, email: "" }));
                           emailCapturedRef.current = false;
                         }}
                         onBlur={handleEmailBlur}
                         required
                         autoFocus
+                        className={fieldErrors.email ? "border-destructive" : ""}
                       />
+                      {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
                   </div>
                   </div>
 
