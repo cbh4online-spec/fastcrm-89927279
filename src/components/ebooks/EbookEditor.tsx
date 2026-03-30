@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type DragEvent } from "react";
-import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage } from "@/hooks/useEbooks";
+import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage, ContentBlock } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import {
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
   Mail, Phone, Link, Type, MessageSquare, ChevronDown,
-  Settings, CheckCircle2, Shield, Users,
+  Settings, CheckCircle2, Shield, Users, LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,8 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { EbookRichEditor, type EbookRichEditorHandle } from "./EbookRichEditor";
 import { EbookBlockToolbar } from "./EbookBlockToolbar";
+import { EbookPageCanvas } from "./EbookPageCanvas";
+import { BlockPropertiesPanel } from "./BlockPropertiesPanel";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
@@ -66,6 +68,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
   const [generating, setGenerating] = useState<string | null>(null);
@@ -76,6 +79,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const [showPresentation, setShowPresentation] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragSourceIndex, setDragSourceIndex] = useState<number | null>(null);
+  const [useVisualEditor, setUseVisualEditor] = useState(true);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chapterImgRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -137,12 +141,55 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     updateEbook.mutate({ id: ebookId, chapters });
   }, [ebookId, updateEbook]);
 
+  // Migrate HTML content to blocks
+  const migrateContentToBlocks = useCallback((content: string): ContentBlock[] => {
+    if (!content || content.trim() === '') return [];
+    const temp = document.createElement('div');
+    temp.innerHTML = content;
+    const blocks: ContentBlock[] = [];
+    temp.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) {
+          blocks.push({ id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type: 'paragraph', content: `<p>${text}</p>`, styles: { paddingTop: '4px', paddingBottom: '4px' } });
+        }
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+      let type: ContentBlock['type'] = 'paragraph';
+      let defaultStyles: ContentBlock['styles'] = { paddingTop: '4px', paddingBottom: '4px' };
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3') { type = 'heading'; defaultStyles = { paddingTop: '8px', paddingBottom: '4px', fontSize: tag === 'h1' ? '28px' : tag === 'h2' ? '24px' : '20px', fontWeight: '700' }; }
+      else if (tag === 'blockquote') { type = 'quote'; defaultStyles = { paddingTop: '12px', paddingBottom: '12px', paddingLeft: '16px' }; }
+      else if (tag === 'hr') { type = 'divider'; defaultStyles = { marginTop: '16px', marginBottom: '16px' }; }
+      else if (tag === 'ul' || tag === 'ol') { type = 'list'; }
+      else if (tag === 'table') { type = 'table'; }
+      else if (tag === 'img') { type = 'image'; defaultStyles = { borderRadius: '8px', paddingTop: '8px', paddingBottom: '8px' }; }
+      blocks.push({
+        id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type,
+        content: type === 'image' ? (el.getAttribute('src') || '') : el.outerHTML,
+        styles: defaultStyles,
+      });
+    });
+    return blocks.length > 0 ? blocks : [{ id: `blk-${Date.now()}`, type: 'paragraph', content: content, styles: { paddingTop: '4px', paddingBottom: '4px' } }];
+  }, []);
+
+  const ensureChapterBlocks = useCallback((chapter: EbookChapter): EbookChapter => {
+    if (chapter.blocks && chapter.blocks.length > 0) return chapter;
+    if (!chapter.content || chapter.content.trim() === '') return { ...chapter, blocks: [] };
+    return { ...chapter, blocks: migrateContentToBlocks(chapter.content) };
+  }, [migrateContentToBlocks]);
+
   const addChapter = () => {
     if (!ebook) return;
     const newChapter: EbookChapter = {
       id: `ch-${Date.now()}`,
       title: `Capítulo ${ebook.chapters.length + 1}`,
       content: "",
+      blocks: [],
+      layout: 'single',
     };
     const updated = [...ebook.chapters, newChapter];
     saveChapters(updated);
@@ -544,13 +591,38 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     />
                   </div>
                   <div className="flex gap-1 shrink-0 flex-wrap items-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
-                      <Undo2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
-                      <Redo2 className="h-3.5 w-3.5" />
+                    {/* Editor mode toggle */}
+                    <Button
+                      variant={useVisualEditor ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-[10px] gap-1 px-2"
+                      onClick={() => {
+                        if (!useVisualEditor) {
+                          // Switching to visual: ensure blocks
+                          const migrated = ensureChapterBlocks(activeChapter);
+                          if (migrated !== activeChapter) {
+                            saveChapters(ebook.chapters.map(c => c.id === activeChapter.id ? migrated : c));
+                          }
+                        }
+                        setUseVisualEditor(!useVisualEditor);
+                        setSelectedBlockId(null);
+                      }}
+                    >
+                      <LayoutGrid className="h-3 w-3" />
+                      {useVisualEditor ? "Visual" : "Clássico"}
                     </Button>
                     <div className="w-px h-5 bg-border my-auto mx-0.5" />
+                    {!useVisualEditor && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
+                          <Undo2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
+                          <Redo2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <div className="w-px h-5 bg-border my-auto mx-0.5" />
+                      </>
+                    )}
                     <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
                       {generatingChapterImgAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                       Img IA
@@ -604,31 +676,52 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   </div>
                 </div>
 
-                {/* WYSIWYG Editor */}
-                <div
-                  className="px-6 py-6 bg-card rounded-lg shadow mx-4 mb-6"
-                  style={{
-                    fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined,
-                    ...(() => {
-                      const gs = (ebook as any).global_styles;
-                      if (!gs) return {};
-                      const vars: Record<string, string> = {};
-                      if (gs.primaryColor) vars['--ebook-primary'] = gs.primaryColor;
-                      if (gs.accentColor) vars['--ebook-accent'] = gs.accentColor;
-                      if (gs.backgroundColor) vars['--ebook-bg'] = gs.backgroundColor;
-                      if (gs.headingFont) vars['--ebook-heading-font'] = gs.headingFont;
-                      if (gs.bodyFont) vars['--ebook-body-font'] = gs.bodyFont;
-                      return vars;
-                    })(),
-                  } as React.CSSProperties}
-                >
-                  <EbookRichEditor
-                    ref={richEditorRef}
-                    value={activeChapter.content || ""}
-                    onChange={(val) => updateChapter(activeChapter.id, "content", val)}
-                    placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
+                {/* Editor area — Visual or Classic */}
+                {useVisualEditor ? (
+                  <EbookPageCanvas
+                    chapter={ensureChapterBlocks(activeChapter)}
+                    onUpdateChapter={(updatedChapter) => {
+                      // Sync content from blocks for backward compatibility
+                      const htmlContent = (updatedChapter.blocks || [])
+                        .filter(b => b.type !== 'divider' && b.type !== 'spacer')
+                        .map(b => b.content)
+                        .join('\n');
+                      saveChapters(ebook.chapters.map(c =>
+                        c.id === activeChapter.id
+                          ? { ...updatedChapter, content: htmlContent }
+                          : c
+                      ));
+                    }}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={setSelectedBlockId}
+                    globalStyles={(ebook as any).global_styles}
                   />
-                </div>
+                ) : (
+                  <div
+                    className="px-6 py-6 bg-card rounded-lg shadow mx-4 mb-6"
+                    style={{
+                      fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined,
+                      ...(() => {
+                        const gs = (ebook as any).global_styles;
+                        if (!gs) return {};
+                        const vars: Record<string, string> = {};
+                        if (gs.primaryColor) vars['--ebook-primary'] = gs.primaryColor;
+                        if (gs.accentColor) vars['--ebook-accent'] = gs.accentColor;
+                        if (gs.backgroundColor) vars['--ebook-bg'] = gs.backgroundColor;
+                        if (gs.headingFont) vars['--ebook-heading-font'] = gs.headingFont;
+                        if (gs.bodyFont) vars['--ebook-body-font'] = gs.bodyFont;
+                        return vars;
+                      })(),
+                    } as React.CSSProperties}
+                  >
+                    <EbookRichEditor
+                      ref={richEditorRef}
+                      value={activeChapter.content || ""}
+                      onChange={(val) => updateChapter(activeChapter.id, "content", val)}
+                      placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
+                    />
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -662,9 +755,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           </AnimatePresence>
         </div>
 
-        {/* ── RIGHT SIDEBAR: Tabbed panel (240px) ── */}
-        <Tabs defaultValue="inserir" className="w-60 shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
+        {/* ── RIGHT SIDEBAR: Tabbed panel (280px) ── */}
+        <Tabs defaultValue={selectedBlockId ? "props" : "inserir"} className="w-[280px] shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
           <TabsList className="w-full rounded-none border-b border-border/40 bg-transparent h-10 p-0 shrink-0">
+            {selectedBlockId && useVisualEditor && (
+              <TabsTrigger value="props" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full text-primary font-medium">
+                Propriedades
+              </TabsTrigger>
+            )}
             <TabsTrigger value="inserir" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
               Inserir
             </TabsTrigger>
@@ -683,6 +781,32 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab: Propriedades (block properties) */}
+          {selectedBlockId && useVisualEditor && activeChapter && (() => {
+            const ch = ensureChapterBlocks(activeChapter);
+            const selectedBlock = (ch.blocks || []).find(b => b.id === selectedBlockId);
+            if (!selectedBlock) return null;
+            return (
+              <TabsContent value="props" className="flex-1 overflow-hidden mt-0">
+                <BlockPropertiesPanel
+                  block={selectedBlock}
+                  onUpdate={(updatedBlock) => {
+                    const newBlocks = (ch.blocks || []).map(b => b.id === updatedBlock.id ? updatedBlock : b);
+                    const htmlContent = newBlocks
+                      .filter(b => b.type !== 'divider' && b.type !== 'spacer')
+                      .map(b => b.content)
+                      .join('\n');
+                    saveChapters(ebook.chapters.map(c =>
+                      c.id === activeChapter.id
+                        ? { ...c, blocks: newBlocks, content: htmlContent }
+                        : c
+                    ));
+                  }}
+                />
+              </TabsContent>
+            );
+          })()}
 
           {/* Tab: Inserir (blocks) */}
           <TabsContent value="inserir" className="flex-1 overflow-hidden mt-0">
