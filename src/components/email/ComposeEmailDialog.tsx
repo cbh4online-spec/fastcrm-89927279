@@ -206,6 +206,12 @@ export function ComposeEmailDialog({
       setAttachments([]);
       setScheduledDate(undefined);
       setShowSchedulePicker(false);
+      setShowMeetingPanel(false);
+      setMeetingDate(undefined);
+      setMeetingTime("10:00");
+      setMeetingDuration("60");
+      setMeetingLocation("");
+      setMeetingUrl("");
     }
   }, [open, defaultSubject, defaultBody]);
 
