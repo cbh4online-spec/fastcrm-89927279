@@ -80,6 +80,10 @@ export default function AIEmployeesPage() {
               <Users className="h-3 w-3" />
               {bots.length} Total
             </Badge>
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/agent-ops")} className="gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Agent Ops
+            </Button>
             <Button onClick={() => navigate("/dashboard/ai-employees/new")} className="gap-2">
               <Plus className="h-4 w-4" />
               Criar AI Employee
