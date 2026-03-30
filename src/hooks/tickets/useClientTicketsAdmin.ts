@@ -47,9 +47,9 @@ export function useClientTicketsAdmin(filters?: TicketFilters) {
         .eq("workspace_id", workspaceId!)
         .order("created_at", { ascending: false });
 
-      if (filters?.status) query = query.eq("status", filters.status);
-      if (filters?.priority) query = query.eq("priority", filters.priority);
-      if (filters?.type) query = query.eq("type", filters.type);
+      if (filters?.status) query = query.eq("status", filters.status as any);
+      if (filters?.priority) query = query.eq("priority", filters.priority as any);
+      if (filters?.type) query = query.eq("type", filters.type as any);
       if (filters?.assigned_to) query = query.eq("assigned_to", filters.assigned_to);
 
       const { data, error } = await query;
