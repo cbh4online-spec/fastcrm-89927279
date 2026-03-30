@@ -177,7 +177,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       const result = outlineData?.result;
       if (!result) throw new Error("Sem resultado do outline");
 
-      const chapters = (result.chapters || []).map((ch: any, i: number) => ({
+      const aiChapters = (result.chapters || []).map((ch: any, i: number) => ({
         id: `ch-${i}`,
         title: ch.title,
         description: ch.description,
@@ -186,6 +186,15 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }));
 
       setGenProgress(15);
+
+      // Build chapters from template structure if a template is selected
+      const chapters = (selectedTemplate && selectedTemplate.page_layouts?.length > 0)
+        ? buildChaptersFromTemplate(selectedTemplate, aiChapters, {
+            title: result.title || prompt.trim(),
+            subtitle: result.subtitle,
+            authorName: result.author_name,
+          })
+        : aiChapters;
 
       const createPayload: any = {
         title: result.title || prompt.trim(),
@@ -197,7 +206,6 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
         createPayload.global_styles = selectedTemplate.style_tokens;
       }
       const ebook = await createEbook.mutateAsync(createPayload);
-
       await (supabase as any).from("ebooks").update({
         theme, image_style: imageStyle, image_keywords: imageKeywords
       }).eq("id", ebook.id);
