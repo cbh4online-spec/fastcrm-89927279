@@ -8,6 +8,7 @@ const CheckoutBundlesPage = lazy(() => import("@/pages/dashboard/checkout/Checko
 const CheckoutAnalyticsPage = lazy(() => import("@/pages/dashboard/checkout/CheckoutAnalyticsPage"));
 const ABTestsPage = lazy(() => import("@/pages/dashboard/checkout/ABTestsPage"));
 const DynamicDiscountsPage = lazy(() => import("@/pages/dashboard/checkout/DynamicDiscountsPage"));
+const RecoveryMetricsPage = lazy(() => import("@/pages/dashboard/checkout/RecoveryMetricsPage"));
 
 export function CheckoutAdminRoutes() {
   return (
@@ -19,6 +20,7 @@ export function CheckoutAdminRoutes() {
       <Route path="/dashboard/checkout/analytics" element={<CheckoutAnalyticsPage />} />
       <Route path="/dashboard/checkout/ab-tests" element={<ABTestsPage />} />
       <Route path="/dashboard/checkout/discounts" element={<DynamicDiscountsPage />} />
+      <Route path="/dashboard/checkout/recovery-metrics" element={<RecoveryMetricsPage />} />
     </>
   );
 }
