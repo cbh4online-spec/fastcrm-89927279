@@ -235,6 +235,7 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   const isApplication = step.step_type === "application";
   const isSqueeze = step.step_type === "squeeze";
   const isCustom = step.step_type === "custom";
+  const isOptin = step.step_type === "optin";
   const hasFormCapability = isOptin || isApplication || isSqueeze;
 
   const handleSave = () => {
