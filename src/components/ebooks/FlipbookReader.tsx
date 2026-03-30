@@ -374,6 +374,9 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isEditable = (e.target as HTMLElement)?.isContentEditable;
+      if (tag === "INPUT" || tag === "TEXTAREA" || isEditable) return;
       if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipNext(); }
       if (e.key === "ArrowLeft") { e.preventDefault(); flipPrev(); }
     };
