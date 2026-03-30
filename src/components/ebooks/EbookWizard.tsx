@@ -15,7 +15,7 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
-import { buildChaptersFromTemplate, countContentSlots, CONTENT_LAYOUT_KEYS, getStructuralLayouts } from "./utils/templateToChapters";
+import { buildChaptersFromTemplate, countContentSlots, CONTENT_LAYOUT_KEYS, getStructuralLayouts, getPageImageType } from "./utils/templateToChapters";
 import { LAYOUT_LABELS } from "@/types/ebook-templates";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

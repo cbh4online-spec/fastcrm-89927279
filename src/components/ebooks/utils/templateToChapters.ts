@@ -1,6 +1,7 @@
 import type { EbookTemplate, LayoutKey } from "@/types/ebook-templates";
 import { resolvePlaceholders, LAYOUT_LABELS } from "@/types/ebook-templates";
 import type { EbookChapter } from "@/hooks/useEbooks";
+import type { ImageLayoutConfig } from "../EbookImageLayoutConfig";
 
 /** Layout keys that correspond to AI-generated content chapters */
 export const CONTENT_LAYOUT_KEYS: LayoutKey[] = [
@@ -10,6 +11,37 @@ export const CONTENT_LAYOUT_KEYS: LayoutKey[] = [
   "text_image_split",
   "three_column_highlights",
 ];
+
+/** Classify a layout_key into an image config type, or null if no image should be generated */
+export type PageImageType = keyof ImageLayoutConfig;
+
+const LAYOUT_TO_IMAGE_TYPE: Record<string, PageImageType | null> = {
+  cover_hero_image: "cover",
+  cover_split: "cover",
+  chapter_intro_large: "chapter",
+  chapter_intro_minimal: "chapter",
+  rich_text: "content",
+  text_image_split: "content",
+  three_column_highlights: "content",
+  cta_page: "cta",
+  author_section: "cta",
+  thank_you_page: "cta",
+  // Structural pages without images:
+  copyright_simple: null,
+  disclaimer_clean: null,
+  table_of_contents_split: null,
+  welcome_letter: null,
+  quote_fullpage: null,
+  stats_highlight: null,
+  testimonial_block: null,
+  timeline_block: null,
+};
+
+/** Returns the image config type for a given layout_key, or null if no image should be generated */
+export function getPageImageType(layoutKey?: string): PageImageType | null {
+  if (!layoutKey) return "content"; // default for AI chapters without layout_key
+  return LAYOUT_TO_IMAGE_TYPE[layoutKey] ?? null;
+}
 
 /** Layout keys that are structural (non-content) pages */
 const STRUCTURAL_CONTENT: Record<string, (vars: Record<string, string>) => { title: string; content: string }> = {
