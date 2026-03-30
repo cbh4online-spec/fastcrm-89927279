@@ -141,12 +141,55 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
     updateEbook.mutate({ id: ebookId, chapters });
   }, [ebookId, updateEbook]);
 
+  // Migrate HTML content to blocks
+  const migrateContentToBlocks = useCallback((content: string): ContentBlock[] => {
+    if (!content || content.trim() === '') return [];
+    const temp = document.createElement('div');
+    temp.innerHTML = content;
+    const blocks: ContentBlock[] = [];
+    temp.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) {
+          blocks.push({ id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type: 'paragraph', content: `<p>${text}</p>`, styles: { paddingTop: '4px', paddingBottom: '4px' } });
+        }
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+      let type: ContentBlock['type'] = 'paragraph';
+      let defaultStyles: ContentBlock['styles'] = { paddingTop: '4px', paddingBottom: '4px' };
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3') { type = 'heading'; defaultStyles = { paddingTop: '8px', paddingBottom: '4px', fontSize: tag === 'h1' ? '28px' : tag === 'h2' ? '24px' : '20px', fontWeight: '700' }; }
+      else if (tag === 'blockquote') { type = 'quote'; defaultStyles = { paddingTop: '12px', paddingBottom: '12px', paddingLeft: '16px' }; }
+      else if (tag === 'hr') { type = 'divider'; defaultStyles = { marginTop: '16px', marginBottom: '16px' }; }
+      else if (tag === 'ul' || tag === 'ol') { type = 'list'; }
+      else if (tag === 'table') { type = 'table'; }
+      else if (tag === 'img') { type = 'image'; defaultStyles = { borderRadius: '8px', paddingTop: '8px', paddingBottom: '8px' }; }
+      blocks.push({
+        id: `blk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type,
+        content: type === 'image' ? (el.getAttribute('src') || '') : el.outerHTML,
+        styles: defaultStyles,
+      });
+    });
+    return blocks.length > 0 ? blocks : [{ id: `blk-${Date.now()}`, type: 'paragraph', content: content, styles: { paddingTop: '4px', paddingBottom: '4px' } }];
+  }, []);
+
+  const ensureChapterBlocks = useCallback((chapter: EbookChapter): EbookChapter => {
+    if (chapter.blocks && chapter.blocks.length > 0) return chapter;
+    if (!chapter.content || chapter.content.trim() === '') return { ...chapter, blocks: [] };
+    return { ...chapter, blocks: migrateContentToBlocks(chapter.content) };
+  }, [migrateContentToBlocks]);
+
   const addChapter = () => {
     if (!ebook) return;
     const newChapter: EbookChapter = {
       id: `ch-${Date.now()}`,
       title: `Capítulo ${ebook.chapters.length + 1}`,
       content: "",
+      blocks: [],
+      layout: 'single',
     };
     const updated = [...ebook.chapters, newChapter];
     saveChapters(updated);
