@@ -3,7 +3,7 @@ import { resolvePlaceholders, LAYOUT_LABELS } from "@/types/ebook-templates";
 import type { EbookChapter } from "@/hooks/useEbooks";
 
 /** Layout keys that correspond to AI-generated content chapters */
-const CONTENT_LAYOUT_KEYS: LayoutKey[] = [
+export const CONTENT_LAYOUT_KEYS: LayoutKey[] = [
   "chapter_intro_large",
   "chapter_intro_minimal",
   "rich_text",
@@ -127,6 +127,16 @@ const STRUCTURAL_CONTENT: Record<string, (vars: Record<string, string>) => { tit
     </div>`,
   }),
 };
+
+/** Count how many content slots a template has */
+export function countContentSlots(template: EbookTemplate): number {
+  return (template.page_layouts || []).filter(k => CONTENT_LAYOUT_KEYS.includes(k)).length;
+}
+
+/** Get structural (non-content) layout keys from a template */
+export function getStructuralLayouts(template: EbookTemplate): LayoutKey[] {
+  return (template.page_layouts || []).filter(k => !CONTENT_LAYOUT_KEYS.includes(k));
+}
 
 export interface TemplateChapterData {
   title: string;
