@@ -391,6 +391,9 @@ export function ComposeEmailDialog({
         isHtml: finalIsHtml,
       });
 
+      // Create calendar event if meeting is scheduled
+      await createMeetingEvent();
+
       toast.success("Email enviado com sucesso!");
       onSent?.();
       onOpenChange(false);
