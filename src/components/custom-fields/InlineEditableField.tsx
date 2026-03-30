@@ -137,7 +137,7 @@ export function InlineEditableField({
         if (Array.isArray(val) && val.length > 0) {
           return (
             <div className="flex flex-wrap gap-1">
-              {val.map((tag) => (
+              {(val as string[]).map((tag: string) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
@@ -294,7 +294,7 @@ export function InlineEditableField({
       case "tags":
         return (
           <EntityTagEditor
-            value={Array.isArray(editedValue) ? editedValue : []}
+            value={Array.isArray(editedValue) ? (editedValue as string[]) : []}
             onChange={(tags) => setEditedValue(tags)}
             placeholder={placeholder || "Adicionar etiqueta..."}
           />

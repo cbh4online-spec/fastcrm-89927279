@@ -167,7 +167,7 @@ export function useExecuteInboxAction() {
           conversation_id: conversationId,
           lead_id: leadId || null,
           action_type: actionType,
-          action_data: actionData ? JSON.parse(JSON.stringify(actionData)) : null,
+          action_data: actionData ? (JSON.parse(JSON.stringify(actionData)) as any) : null,
           automation_triggered: triggerAutomation,
           automation_rule_id: automationRuleId || null,
           performed_by: user.id,

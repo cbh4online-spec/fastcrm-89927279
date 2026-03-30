@@ -282,7 +282,7 @@ export function InviteClientDialog({ trigger, onSuccess, prefillData }: InviteCl
           contact_id: data.contact_id && data.contact_id !== "none" ? data.contact_id : null,
           company_id: data.company_id && data.company_id !== "none" ? data.company_id : null,
           notes: data.notes || null,
-          billing_address: JSON.parse(JSON.stringify(billingAddress)),
+          billing_address: JSON.parse(JSON.stringify(billingAddress)) as any,
           status: "pending",
           invite_token: inviteToken,
           invite_expires_at: inviteExpiresAt.toISOString(),

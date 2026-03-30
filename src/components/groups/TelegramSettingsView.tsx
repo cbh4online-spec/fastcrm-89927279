@@ -56,7 +56,7 @@ export function TelegramSettingsView() {
           }),
         }
       );
-      const data = await res.json();
+      const data: any = await res.json();
       if (data.success && data.result) {
         setBotUsername(data.result.username || "");
         setBotName(data.result.first_name || "");

@@ -21,7 +21,7 @@ export function useColumnWidths(storageKey: string, initialWidths?: Record<strin
   const [widths, setWidths] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem(`${storageKey}-widths`);
-      return saved ? JSON.parse(saved) : {};
+      return saved ? (JSON.parse(saved) as Record<string, number>) : {};
     } catch {
       return {};
     }

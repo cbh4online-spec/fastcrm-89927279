@@ -6,7 +6,7 @@ const MAX_SAVED = 20;
 
 function load(): C2CSavedSearch[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") as C2CSavedSearch[];
   } catch {
     return [];
   }

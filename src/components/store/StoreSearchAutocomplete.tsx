@@ -15,7 +15,7 @@ const MIN_CHARS = 2;
 
 function getSearchHistory(): string[] {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as string[];
   } catch {
     return [];
   }

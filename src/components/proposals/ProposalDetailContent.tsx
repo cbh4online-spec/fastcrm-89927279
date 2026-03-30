@@ -352,9 +352,9 @@ export function ProposalDetailContent({
           validity_days: conditionsData.validityDays,
           notes: conditionsData.notes || null,
           currency: conditionsData.currency,
-          scope_data: JSON.parse(JSON.stringify(scopeData)),
-          timeline_data: JSON.parse(JSON.stringify(timelineData.phases)),
-          references_data: JSON.parse(JSON.stringify(referencesData)),
+          scope_data: JSON.parse(JSON.stringify(scopeData)) as any,
+          timeline_data: JSON.parse(JSON.stringify(timelineData.phases)) as any,
+          references_data: JSON.parse(JSON.stringify(referencesData)) as any,
         })
         .eq("id", proposal.id);
 

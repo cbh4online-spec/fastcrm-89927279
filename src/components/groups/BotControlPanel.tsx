@@ -75,7 +75,7 @@ export function BotControlPanel({ groupId }: BotControlPanelProps) {
         setSelectedPersona(agentRes.data.persona_id || "");
         const kbIds = agentRes.data.knowledge_base_ids;
         if (Array.isArray(kbIds) && kbIds.length > 0) {
-          setSelectedKB(kbIds[0]);
+          setSelectedKB(kbIds[0] as string);
         }
       }
     } catch (err) {

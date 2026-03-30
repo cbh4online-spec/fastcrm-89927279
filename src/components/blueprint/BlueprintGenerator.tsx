@@ -176,7 +176,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
             name: blueprint.name,
             version: blueprint.version + 1,
             entity_type: blueprint.entityType,
-            schema: JSON.parse(JSON.stringify(blueprint)),
+            schema: JSON.parse(JSON.stringify(blueprint)) as any,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingBlueprintId);
@@ -199,7 +199,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
             name: blueprint.name,
             version: blueprint.version,
             entity_type: blueprint.entityType,
-            schema: JSON.parse(JSON.stringify(blueprint)),
+            schema: JSON.parse(JSON.stringify(blueprint)) as any,
             status: 'draft',
           }])
           .select('id')
@@ -288,7 +288,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
 
   const handleStartRefine = () => {
     if (blueprint) {
-      setOriginalBlueprint(JSON.parse(JSON.stringify(blueprint)));
+      setOriginalBlueprint(JSON.parse(JSON.stringify(blueprint)) as any);
       setStep('refine');
     }
   };

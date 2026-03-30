@@ -43,7 +43,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          return JSON.parse(saved) as CartState;
         } catch {
           // Invalid JSON, use default
         }

@@ -163,10 +163,10 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
         }
       );
       if (!res.ok) {
-        const err = await res.json();
+        const err: any = await res.json();
         throw new Error(err.error || "Erro IA");
       }
-      return res.json();
+      return res.json() as any;
     },
     onSuccess: (data) => {
       const extracted = Array.isArray(data.data) ? data.data : [];
@@ -225,10 +225,10 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
         }
       );
       if (!res.ok) {
-        const err = await res.json();
+        const err: any = await res.json();
         throw new Error(err.error || "Erro IA");
       }
-      return res.json();
+      return res.json() as any;
     },
     onSuccess: (data) => {
       const suggested = Array.isArray(data.data) ? data.data : [];

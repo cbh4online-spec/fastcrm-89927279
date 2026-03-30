@@ -100,7 +100,7 @@ export function EmailSignatureEditor({ initialSignature, onSave, isSaving }: Ema
     // Try to parse initial data from stored JSON, fallback to defaults
     if (initialSignature) {
       try {
-        const parsed = JSON.parse(initialSignature);
+        const parsed: any = JSON.parse(initialSignature);
         if (parsed._signatureData) return { ...defaultData, ...parsed._signatureData };
       } catch {
         // Not JSON, use plain text as name fallback

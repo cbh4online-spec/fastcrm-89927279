@@ -268,7 +268,7 @@ export function useImpactMapData() {
           workspace_id: workspaceId,
           source_block_id: variables.sourceBlockId,
           direction: data.direction ?? 'bidirectional',
-          results: JSON.parse(JSON.stringify(data.impacts)),
+          results: JSON.parse(JSON.stringify(data.impacts)) as any,
           created_by: userData?.user?.id ?? null,
         });
         queryClient.invalidateQueries({ queryKey: ['impact-simulation-snapshots', workspaceId] });

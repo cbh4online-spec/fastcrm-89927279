@@ -161,7 +161,7 @@ export function useMeetingAutomations() {
         .from('meeting_automation_events')
         .update({
           status: 'completed',
-          actions_executed: JSON.parse(JSON.stringify(actionsExecuted)),
+          actions_executed: JSON.parse(JSON.stringify(actionsExecuted)) as any,
           processed_at: new Date().toISOString(),
         })
         .eq('id', event.id);
@@ -252,7 +252,7 @@ export function useMeetingAutomations() {
         .from('meeting_automation_events')
         .update({
           status: 'completed',
-          actions_executed: JSON.parse(JSON.stringify(noShowActions)),
+          actions_executed: JSON.parse(JSON.stringify(noShowActions)) as any,
           processed_at: new Date().toISOString(),
         })
         .eq('id', event?.id);
@@ -315,7 +315,7 @@ export function useMeetingAutomations() {
           event_type: 'internal_completed',
           trigger_source: 'status_change',
           status: 'completed',
-          actions_executed: JSON.parse(JSON.stringify(internalActions)),
+          actions_executed: JSON.parse(JSON.stringify(internalActions)) as any,
           created_by: user.id,
           processed_at: new Date().toISOString(),
         });

@@ -276,7 +276,7 @@ export function CreateProductDialog({
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (savedDraft) {
         try {
-          const draft: ProductFormDraft = JSON.parse(savedDraft);
+          const draft = JSON.parse(savedDraft) as ProductFormDraft;
           // Only restore if saved within last 30 minutes
           if (Date.now() - draft.savedAt < 30 * 60 * 1000) {
             setName(draft.name);

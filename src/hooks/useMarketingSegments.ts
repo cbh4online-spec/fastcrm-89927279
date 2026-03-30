@@ -89,7 +89,7 @@ export function useCreateSegment() {
           workspace_id: currentWorkspace.id,
           name: data.name,
           description: data.description,
-          filter_rules: JSON.parse(JSON.stringify(data.filterRules)),
+          filter_rules: JSON.parse(JSON.stringify(data.filterRules)) as any,
           is_dynamic: data.isDynamic ?? true,
           created_by: user.user.id,
         }])

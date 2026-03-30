@@ -74,8 +74,8 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
           workspace_id: data.workspace_id,
           client_user_id: data.client_user_id,
           client_notes: data.client_notes || null,
-          billing_address: JSON.parse(JSON.stringify(data.billing_address || {})),
-          shipping_address: JSON.parse(JSON.stringify(data.shipping_address || {})),
+          billing_address: JSON.parse(JSON.stringify(data.billing_address || {})) as any,
+          shipping_address: JSON.parse(JSON.stringify(data.shipping_address || {})) as any,
           status: "draft" as const,
           order_number: tempNumber,
         }])

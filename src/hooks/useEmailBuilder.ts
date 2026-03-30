@@ -124,7 +124,7 @@ export function useEmailBuilder(options: UseEmailBuilderOptions = {}) {
       
       const block = prev.blocks[index];
       const newBlock: EmailBlock = {
-        ...JSON.parse(JSON.stringify(block)),
+        ...JSON.parse(JSON.stringify(block)) as EmailBlock,
         id: generateBlockId(),
       };
       
@@ -152,7 +152,7 @@ export function useEmailBuilder(options: UseEmailBuilderOptions = {}) {
   // Load a predefined layout
   const loadLayout = useCallback((blocks: EmailBlock[], globalStyles?: Partial<EmailGlobalStyles>) => {
     // Deep clone the blocks to avoid mutation issues
-    const clonedBlocks = JSON.parse(JSON.stringify(blocks)).map((block: EmailBlock) => ({
+    const clonedBlocks = (JSON.parse(JSON.stringify(blocks)) as EmailBlock[]).map((block: EmailBlock) => ({
       ...block,
       id: generateBlockId(),
     }));

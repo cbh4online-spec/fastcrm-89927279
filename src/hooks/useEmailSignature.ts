@@ -55,7 +55,7 @@ export function useEmailSignature() {
   const signatureHtml: string | null = (() => {
     if (!query.data) return null;
     try {
-      const parsed = JSON.parse(query.data);
+      const parsed: any = JSON.parse(query.data);
       return parsed.html || null;
     } catch {
       return query.data; // plain HTML fallback
