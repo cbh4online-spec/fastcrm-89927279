@@ -591,13 +591,38 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                     />
                   </div>
                   <div className="flex gap-1 shrink-0 flex-wrap items-center">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
-                      <Undo2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
-                      <Redo2 className="h-3.5 w-3.5" />
+                    {/* Editor mode toggle */}
+                    <Button
+                      variant={useVisualEditor ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-[10px] gap-1 px-2"
+                      onClick={() => {
+                        if (!useVisualEditor) {
+                          // Switching to visual: ensure blocks
+                          const migrated = ensureChapterBlocks(activeChapter);
+                          if (migrated !== activeChapter) {
+                            saveChapters(ebook.chapters.map(c => c.id === activeChapter.id ? migrated : c));
+                          }
+                        }
+                        setUseVisualEditor(!useVisualEditor);
+                        setSelectedBlockId(null);
+                      }}
+                    >
+                      <LayoutGrid className="h-3 w-3" />
+                      {useVisualEditor ? "Visual" : "Clássico"}
                     </Button>
                     <div className="w-px h-5 bg-border my-auto mx-0.5" />
+                    {!useVisualEditor && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.undo()} title="Desfazer (Ctrl+Z)">
+                          <Undo2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => richEditorRef.current?.redo()} title="Refazer (Ctrl+Y)">
+                          <Redo2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <div className="w-px h-5 bg-border my-auto mx-0.5" />
+                      </>
+                    )}
                     <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={generateChapterImageAI} disabled={generatingChapterImgAI}>
                       {generatingChapterImgAI ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
                       Img IA
@@ -651,31 +676,52 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
                   </div>
                 </div>
 
-                {/* WYSIWYG Editor */}
-                <div
-                  className="px-6 py-6 bg-card rounded-lg shadow mx-4 mb-6"
-                  style={{
-                    fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined,
-                    ...(() => {
-                      const gs = (ebook as any).global_styles;
-                      if (!gs) return {};
-                      const vars: Record<string, string> = {};
-                      if (gs.primaryColor) vars['--ebook-primary'] = gs.primaryColor;
-                      if (gs.accentColor) vars['--ebook-accent'] = gs.accentColor;
-                      if (gs.backgroundColor) vars['--ebook-bg'] = gs.backgroundColor;
-                      if (gs.headingFont) vars['--ebook-heading-font'] = gs.headingFont;
-                      if (gs.bodyFont) vars['--ebook-body-font'] = gs.bodyFont;
-                      return vars;
-                    })(),
-                  } as React.CSSProperties}
-                >
-                  <EbookRichEditor
-                    ref={richEditorRef}
-                    value={activeChapter.content || ""}
-                    onChange={(val) => updateChapter(activeChapter.id, "content", val)}
-                    placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
+                {/* Editor area — Visual or Classic */}
+                {useVisualEditor ? (
+                  <EbookPageCanvas
+                    chapter={ensureChapterBlocks(activeChapter)}
+                    onUpdateChapter={(updatedChapter) => {
+                      // Sync content from blocks for backward compatibility
+                      const htmlContent = (updatedChapter.blocks || [])
+                        .filter(b => b.type !== 'divider' && b.type !== 'spacer')
+                        .map(b => b.content)
+                        .join('\n');
+                      saveChapters(ebook.chapters.map(c =>
+                        c.id === activeChapter.id
+                          ? { ...updatedChapter, content: htmlContent }
+                          : c
+                      ));
+                    }}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={setSelectedBlockId}
+                    globalStyles={(ebook as any).global_styles}
                   />
-                </div>
+                ) : (
+                  <div
+                    className="px-6 py-6 bg-card rounded-lg shadow mx-4 mb-6"
+                    style={{
+                      fontFamily: (ebook as any).global_styles?.bodyFont ? String((ebook as any).global_styles.bodyFont) : undefined,
+                      ...(() => {
+                        const gs = (ebook as any).global_styles;
+                        if (!gs) return {};
+                        const vars: Record<string, string> = {};
+                        if (gs.primaryColor) vars['--ebook-primary'] = gs.primaryColor;
+                        if (gs.accentColor) vars['--ebook-accent'] = gs.accentColor;
+                        if (gs.backgroundColor) vars['--ebook-bg'] = gs.backgroundColor;
+                        if (gs.headingFont) vars['--ebook-heading-font'] = gs.headingFont;
+                        if (gs.bodyFont) vars['--ebook-body-font'] = gs.bodyFont;
+                        return vars;
+                      })(),
+                    } as React.CSSProperties}
+                  >
+                    <EbookRichEditor
+                      ref={richEditorRef}
+                      value={activeChapter.content || ""}
+                      onChange={(val) => updateChapter(activeChapter.id, "content", val)}
+                      placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
+                    />
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.div
