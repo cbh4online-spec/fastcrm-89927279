@@ -70,7 +70,8 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
                       <p className="text-sm font-semibold text-primary mt-1">
-                        €{(item.price * item.quantity).toFixed(2)}
+                        €{formatMoney(item.price * item.quantity)}
+                      </p>
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center border rounded-lg overflow-hidden">
