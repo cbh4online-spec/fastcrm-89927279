@@ -157,6 +157,15 @@ export function ComposeEmailDialog({
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
+  // Meeting scheduling state
+  const [showMeetingPanel, setShowMeetingPanel] = useState(false);
+  const [meetingDate, setMeetingDate] = useState<Date | undefined>();
+  const [meetingTime, setMeetingTime] = useState("10:00");
+  const [meetingDuration, setMeetingDuration] = useState("60");
+  const [meetingLocation, setMeetingLocation] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [selectedCalendarId, setSelectedCalendarId] = useState<string>("");
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { currentWorkspace } = useWorkspace();
@@ -168,6 +177,15 @@ export function ComposeEmailDialog({
   const translateEmail = useTranslateEmail();
   const { signatureHtml, isLoading: sigLoading } = useEmailSignature();
   const scheduleEmail = useScheduleEmail();
+  const { calendars } = useCalendars();
+  const { createEvent } = useCalendarEvents(selectedCalendarId ? [selectedCalendarId] : []);
+
+  // Auto-select first calendar
+  useEffect(() => {
+    if (calendars.length > 0 && !selectedCalendarId) {
+      setSelectedCalendarId(calendars[0].id);
+    }
+  }, [calendars, selectedCalendarId]);
 
   // Default template context when none provided
   const effectiveTemplateContext: VariableContext = templateContext || {
