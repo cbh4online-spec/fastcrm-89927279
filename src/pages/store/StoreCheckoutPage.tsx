@@ -602,7 +602,7 @@ export default function StoreCheckoutPage() {
                     {appliedCoupon && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Desconto</span>
-                        <span>-€{discountAmount.toFixed(2)}</span>
+                        <span>-€{formatMoney(discountAmount)}</span>
                       </div>
                     )}
                     {appliedGiftCard && giftCardAmount > 0 && (
