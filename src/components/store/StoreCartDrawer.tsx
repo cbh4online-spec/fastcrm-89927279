@@ -7,6 +7,7 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useNavigate } from "react-router-dom";
 import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
+import { formatMoney } from "@/lib/money";
 
 interface StoreCartDrawerProps {
   workspaceSlug: string;
