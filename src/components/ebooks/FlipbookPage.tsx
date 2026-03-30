@@ -326,7 +326,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
                   const href = anchor.getAttribute('href');
                   if (href) window.open(href, '_blank', 'noopener,noreferrer');
                 }
-              }
+              }}
             />
           </>
         ) : (
