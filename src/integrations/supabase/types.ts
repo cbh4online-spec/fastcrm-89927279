@@ -2516,6 +2516,239 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_handoffs: {
+        Row: {
+          completed_at: string | null
+          context_snapshot: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          from_bot_id: string | null
+          id: string
+          status: string
+          to_bot_id: string | null
+          to_user_id: string | null
+          trigger_reason: string | null
+          trigger_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          context_snapshot?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          from_bot_id?: string | null
+          id?: string
+          status?: string
+          to_bot_id?: string | null
+          to_user_id?: string | null
+          trigger_reason?: string | null
+          trigger_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          context_snapshot?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          from_bot_id?: string | null
+          id?: string
+          status?: string
+          to_bot_id?: string | null
+          to_user_id?: string | null
+          trigger_reason?: string | null
+          trigger_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_handoffs_from_bot_id_fkey"
+            columns: ["from_bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_handoffs_to_bot_id_fkey"
+            columns: ["to_bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_handoffs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_ops_settings: {
+        Row: {
+          auto_handoff_enabled: boolean
+          auto_routing_enabled: boolean
+          created_at: string
+          human_fallback_enabled: boolean
+          id: string
+          is_enabled: boolean
+          max_open_items_per_agent: number
+          supervisor_enabled: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_handoff_enabled?: boolean
+          auto_routing_enabled?: boolean
+          created_at?: string
+          human_fallback_enabled?: boolean
+          id?: string
+          is_enabled?: boolean
+          max_open_items_per_agent?: number
+          supervisor_enabled?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_handoff_enabled?: boolean
+          auto_routing_enabled?: boolean
+          created_at?: string
+          human_fallback_enabled?: boolean
+          id?: string
+          is_enabled?: boolean
+          max_open_items_per_agent?: number
+          supervisor_enabled?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_ops_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          objective_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          objective_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          objective_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_teams_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_work_items: {
+        Row: {
+          assigned_at: string | null
+          bot_id: string | null
+          completed_at: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          payload_json: Json | null
+          priority: number
+          routed_by: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          work_type: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          bot_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          payload_json?: Json | null
+          priority?: number
+          routed_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          work_type: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          bot_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          payload_json?: Json | null
+          priority?: number
+          routed_by?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          work_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_work_items_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_work_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_executions: {
         Row: {
           agent_type: string
@@ -6597,16 +6830,21 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          execution_permissions: Json | null
           guided_config: Json | null
           id: string
           knowledge_base_ids: string[] | null
           name: string
           next_run_at: string | null
+          objective_scope: string | null
+          role: string | null
           schedule_cron: string | null
           schedule_enabled: boolean | null
           settings: Json | null
+          specialization: string | null
           status: Database["public"]["Enums"]["bot_status"]
           system_prompt: string | null
+          team_id: string | null
           type: Database["public"]["Enums"]["bot_type"]
           updated_at: string
           webhook_events: string[] | null
@@ -6621,16 +6859,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          execution_permissions?: Json | null
           guided_config?: Json | null
           id?: string
           knowledge_base_ids?: string[] | null
           name: string
           next_run_at?: string | null
+          objective_scope?: string | null
+          role?: string | null
           schedule_cron?: string | null
           schedule_enabled?: boolean | null
           settings?: Json | null
+          specialization?: string | null
           status?: Database["public"]["Enums"]["bot_status"]
           system_prompt?: string | null
+          team_id?: string | null
           type?: Database["public"]["Enums"]["bot_type"]
           updated_at?: string
           webhook_events?: string[] | null
@@ -6645,16 +6888,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          execution_permissions?: Json | null
           guided_config?: Json | null
           id?: string
           knowledge_base_ids?: string[] | null
           name?: string
           next_run_at?: string | null
+          objective_scope?: string | null
+          role?: string | null
           schedule_cron?: string | null
           schedule_enabled?: boolean | null
           settings?: Json | null
+          specialization?: string | null
           status?: Database["public"]["Enums"]["bot_status"]
           system_prompt?: string | null
+          team_id?: string | null
           type?: Database["public"]["Enums"]["bot_type"]
           updated_at?: string
           webhook_events?: string[] | null
@@ -6674,6 +6922,13 @@ export type Database = {
             columns: ["calendar_id"]
             isOneToOne: false
             referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bots_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "agent_teams"
             referencedColumns: ["id"]
           },
           {
@@ -31543,6 +31798,58 @@ export type Database = {
           },
           {
             foreignKeyName: "object_relationships_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_agent_links: {
+        Row: {
+          bot_id: string | null
+          created_at: string
+          id: string
+          objective_id: string
+          role_in_objective: string | null
+          team_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bot_id?: string | null
+          created_at?: string
+          id?: string
+          objective_id: string
+          role_in_objective?: string | null
+          team_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string | null
+          created_at?: string
+          id?: string
+          objective_id?: string
+          role_in_objective?: string | null
+          team_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_agent_links_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_agent_links_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "agent_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_agent_links_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
