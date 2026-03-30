@@ -7332,6 +7332,77 @@ export type Database = {
           },
         ]
       }
+      business_objectives: {
+        Row: {
+          auto_execute_enabled: boolean | null
+          auto_plan_enabled: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          current_value: number | null
+          description: string | null
+          id: string
+          objective_type: string
+          owner_user_id: string | null
+          period_end: string | null
+          period_start: string | null
+          priority: string | null
+          status: string
+          target_value: number | null
+          title: string
+          unit: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          auto_execute_enabled?: boolean | null
+          auto_plan_enabled?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          objective_type: string
+          owner_user_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          priority?: string | null
+          status?: string
+          target_value?: number | null
+          title: string
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          auto_execute_enabled?: boolean | null
+          auto_plan_enabled?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          id?: string
+          objective_type?: string
+          owner_user_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          priority?: string | null
+          status?: string
+          target_value?: number | null
+          title?: string
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_objectives_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_affiliate_attributions: {
         Row: {
           affiliate_id: string
@@ -32282,6 +32353,57 @@ export type Database = {
           },
         ]
       }
+      objective_action_links: {
+        Row: {
+          action_execution_id: string | null
+          attributed_value: number | null
+          created_at: string | null
+          id: string
+          next_best_action_id: string | null
+          objective_id: string
+          sequence_enrollment_id: string | null
+          task_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_execution_id?: string | null
+          attributed_value?: number | null
+          created_at?: string | null
+          id?: string
+          next_best_action_id?: string | null
+          objective_id: string
+          sequence_enrollment_id?: string | null
+          task_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_execution_id?: string | null
+          attributed_value?: number | null
+          created_at?: string | null
+          id?: string
+          next_best_action_id?: string | null
+          objective_id?: string
+          sequence_enrollment_id?: string | null
+          task_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_action_links_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "business_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_action_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objective_agent_links: {
         Row: {
           bot_id: string | null
@@ -32327,6 +32449,66 @@ export type Database = {
           },
           {
             foreignKeyName: "objective_agent_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_metrics: {
+        Row: {
+          created_at: string | null
+          current_value: number | null
+          id: string
+          last_calculated_at: string | null
+          metric_key: string
+          metric_label: string | null
+          objective_id: string
+          progress_percent: number | null
+          target_value: number | null
+          unit: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          metric_key: string
+          metric_label?: string | null
+          objective_id: string
+          progress_percent?: number | null
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          last_calculated_at?: string | null
+          metric_key?: string
+          metric_label?: string | null
+          objective_id?: string
+          progress_percent?: number | null
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_metrics_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "business_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_metrics_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -32383,6 +32565,104 @@ export type Database = {
             foreignKeyName: "objective_phase_options_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_plans: {
+        Row: {
+          created_at: string | null
+          generated_by: string | null
+          id: string
+          objective_id: string
+          plan_json: Json | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          objective_id: string
+          plan_json?: Json | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          generated_by?: string | null
+          id?: string
+          objective_id?: string
+          plan_json?: Json | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_plans_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "business_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objective_settings: {
+        Row: {
+          alert_when_at_risk: boolean | null
+          auto_execute_enabled: boolean | null
+          auto_plan_enabled: boolean | null
+          auto_replan_enabled: boolean | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          max_daily_actions_per_objective: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_when_at_risk?: boolean | null
+          auto_execute_enabled?: boolean | null
+          auto_plan_enabled?: boolean | null
+          auto_replan_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          max_daily_actions_per_objective?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          alert_when_at_risk?: boolean | null
+          auto_execute_enabled?: boolean | null
+          auto_plan_enabled?: boolean | null
+          auto_replan_enabled?: boolean | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          max_daily_actions_per_objective?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
