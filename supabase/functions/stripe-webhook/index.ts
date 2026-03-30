@@ -338,6 +338,23 @@ async function handleStoreOrderCompleted(
   }
 
   logStore("Store order payment processing complete", { orderId });
+
+  // Trigger attribution processing (non-blocking)
+  fetch(
+    `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-communication-attribution`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        conversion_type: "store_order",
+        conversion_id: orderId,
+      }),
+    }
+  ).catch((err) => logStore("Attribution trigger error (non-blocking)", { error: String(err) }));
 }
 
 /** Handle store order session expired */
