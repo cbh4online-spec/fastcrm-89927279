@@ -1,9 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useHelpdeskTickets, useHelpdeskTicketMessages } from "@/hooks/useHelpdeskTickets";
+import { useHelpdeskHistory } from "@/hooks/useHelpdeskHistory";
 import { TicketMessageThread } from "@/components/helpdesk/TicketMessageThread";
 import { TicketSidebar } from "@/components/helpdesk/TicketSidebar";
+import { TicketActivityTimeline } from "@/components/helpdesk/TicketActivityTimeline";
+import { TicketRelatedList } from "@/components/helpdesk/TicketRelatedList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Headphones } from "lucide-react";
+import { ArrowLeft, Headphones, MessageSquare, History, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function HelpdeskTicketDetail() {
@@ -11,6 +15,7 @@ export default function HelpdeskTicketDetail() {
   const navigate = useNavigate();
   const { tickets, isLoading: ticketsLoading, updateTicket } = useHelpdeskTickets();
   const { messages, isLoading: messagesLoading, sendMessage } = useHelpdeskTicketMessages(id);
+  const { addHistory } = useHelpdeskHistory(id);
 
   const ticket = tickets.find((t) => t.id === id);
 
@@ -34,6 +39,20 @@ export default function HelpdeskTicketDetail() {
   }
 
   const handleUpdate = (updates: any) => {
+    // Track changes for audit log
+    const changedFields = Object.keys(updates);
+    changedFields.forEach((field) => {
+      if (field !== "updated_at" && (ticket as any)[field] !== updates[field]) {
+        addHistory.mutate({
+          ticket_id: ticket.id,
+          workspace_id: ticket.workspace_id,
+          field_changed: field,
+          old_value: String((ticket as any)[field] ?? ""),
+          new_value: String(updates[field] ?? ""),
+        });
+      }
+    });
+
     updateTicket.mutate(
       { id: ticket.id, ...updates },
       {
@@ -69,13 +88,41 @@ export default function HelpdeskTicketDetail() {
 
       {/* Split layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Main — messages */}
+        {/* Main — tabbed content */}
         <div className="flex-1 flex flex-col min-w-0 border-r">
-          <TicketMessageThread
-            messages={messages as any}
-            onSend={handleSend}
-            isSending={sendMessage.isPending}
-          />
+          <Tabs defaultValue="conversation" className="flex-1 flex flex-col">
+            <TabsList className="mx-4 mt-2 w-fit">
+              <TabsTrigger value="conversation" className="gap-1.5 text-xs">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Conversação
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="gap-1.5 text-xs">
+                <History className="h-3.5 w-3.5" />
+                Atividade
+              </TabsTrigger>
+              <TabsTrigger value="related" className="gap-1.5 text-xs">
+                <Link2 className="h-3.5 w-3.5" />
+                Relacionados
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="conversation" className="flex-1 flex flex-col mt-0 overflow-hidden">
+              <TicketMessageThread
+                messages={messages as any}
+                onSend={handleSend}
+                isSending={sendMessage.isPending}
+                ticketId={ticket.id}
+              />
+            </TabsContent>
+
+            <TabsContent value="activity" className="flex-1 overflow-y-auto mt-0">
+              <TicketActivityTimeline ticketId={ticket.id} />
+            </TabsContent>
+
+            <TabsContent value="related" className="flex-1 overflow-y-auto mt-0">
+              <TicketRelatedList currentTicket={ticket} />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Sidebar */}
