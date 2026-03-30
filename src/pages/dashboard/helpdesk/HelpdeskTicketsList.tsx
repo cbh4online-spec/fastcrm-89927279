@@ -113,6 +113,7 @@ export default function HelpdeskTicketsList() {
   );
 
   return (
+    <DashboardLayout>
     <div className="space-y-4 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
