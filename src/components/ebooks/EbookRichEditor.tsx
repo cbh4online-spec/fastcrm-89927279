@@ -142,7 +142,7 @@ export const EbookRichEditor = forwardRef<EbookRichEditorHandle, EbookRichEditor
   useEffect(() => {
     if (editorRef.current && !isFocusedRef.current) {
       const htmlValue = markdownToHtml(value);
-      if (lastValueRef.current !== value && editorRef.current.innerHTML !== htmlValue) {
+      if (editorRef.current.innerHTML !== htmlValue) {
         editorRef.current.innerHTML = htmlValue || '';
         lastValueRef.current = value;
       }
