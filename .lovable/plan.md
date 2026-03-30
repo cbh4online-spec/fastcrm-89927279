@@ -1,48 +1,42 @@
 
 
-## Dashboard de Métricas de Recuperação — Plano
+## Sequência de Recuperação de Carrinhos — Plano
 
 ### Diagnóstico
 
-A tabela `store_abandoned_carts` já contém todos os dados necessários: `recovery_status`, `subtotal`, `recovered_value`, `abandoned_at`, `recovered_at`, `sequence_id`, `outreach_status`. Existe um hook `useAbandonedCartStats` básico em `useStoreAutomation.ts` mas sem dados temporais nem breakdown por sequência. A página actual (`AbandonedCartsPage`) é apenas uma lista sem gráficos.
+A infraestrutura já existe:
+- Tabelas `email_sequences` e `email_sequence_steps` com campos `delay_hours`, `delay_days`, `subject`, `body`
+- Hooks `useCreateSequence` e `useCreateStep` para CRUD
+- `resolveTemplateVariables` e `buildRecoveryTemplateVariables` já mapeiam `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}`
+- `StoreRecoverySettings` já permite selecionar uma sequência como default
+
+**O que falta:** Um botão/ação que crie automaticamente a sequência pré-configurada com os 3 steps e conteúdo HTML com merge variables.
 
 ### Plano
 
-#### 1. Criar hook `useRecoveryMetrics` (`src/hooks/useRecoveryMetrics.ts`)
+#### 1. Criar hook `useCreateRecoverySequence` (`src/hooks/useCreateRecoverySequence.ts`)
 
-Queries à tabela `store_abandoned_carts` (read-only, sem migration):
+Mutation que:
+1. Cria `email_sequences` com nome "Recuperação de Carrinho" e tags `["recovery", "cart"]`
+2. Insere 3 `email_sequence_steps` em sequência:
+   - **Step 1** (1h): Subject "{{contact_name}}, esqueceu-se de algo?" — corpo amigável com link de recuperação
+   - **Step 2** (24h): Subject "O seu carrinho ainda espera por si" — corpo com urgência moderada e resumo do valor
+   - **Step 3** (72h): Subject "Última oportunidade — {{cart_total}} à sua espera" — corpo de urgência final
+3. Cada body usa `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}` como merge variables
+4. Retorna o ID da sequência criada
 
-- **Taxa de recuperação ao longo do tempo**: agrupa por mês/semana via `abandoned_at`, calcula recovered/total por período
-- **Valor recuperado ao longo do tempo**: soma `recovered_value` (ou `subtotal` dos recovered) por período
-- **Performance por sequência**: agrupa por `sequence_id`, JOIN com `email_sequences` para nome, calcula taxa e valor por sequência
+#### 2. Adicionar botão na `StoreRecoverySettings` (`src/components/store/StoreRecoverySettings.tsx`)
 
-#### 2. Criar página `RecoveryMetricsPage` (`src/pages/dashboard/checkout/RecoveryMetricsPage.tsx`)
-
-Rota: `/dashboard/checkout/recovery-metrics`
-
-Conteúdo:
-- **KPI cards** (topo): total abandonados, total recuperados, taxa global, valor total recuperado
-- **Gráfico 1** — Taxa de recuperação ao longo do tempo (AreaChart, eixo Y %, eixo X mês)
-- **Gráfico 2** — Valor recuperado ao longo do tempo (AreaChart, eixo Y €, eixo X mês)
-- **Gráfico 3** — Performance por sequência (BarChart horizontal: nome da sequência vs taxa + valor)
-- Filtro de período (últimos 30/60/90 dias)
-- Estado vazio, loading
-
-Usar Recharts (já disponível), padrão visual dos charts existentes (`SystemMetricsPanel`).
-
-#### 3. Adicionar rota em `CheckoutRoutes.tsx`
-
-Lazy import + rota `/dashboard/checkout/recovery-metrics`.
-
----
+- Mostrar botão "Criar Sequência de Recuperação" quando não há sequências ativas disponíveis (ou sempre, como atalho)
+- Ao clicar, invoca o hook, cria a sequência e auto-seleciona como `default_sequence_id`
+- Feedback com toast de sucesso
 
 ### Ficheiros
 
 | Acção | Ficheiro |
 |-------|----------|
-| Criar | `src/hooks/useRecoveryMetrics.ts` |
-| Criar | `src/pages/dashboard/checkout/RecoveryMetricsPage.tsx` |
-| Editar | `src/routes/CheckoutRoutes.tsx` |
+| Criar | `src/hooks/useCreateRecoverySequence.ts` |
+| Editar | `src/components/store/StoreRecoverySettings.tsx` |
 
-Sem migrations — dados já existem em `store_abandoned_carts`.
+Sem migrations — usa tabelas existentes.
 
