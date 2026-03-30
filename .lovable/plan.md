@@ -1,63 +1,78 @@
 
 
-# Componente RichTextEditor reutilizável com Tiptap
+# 2ª Vaga de Bibliotecas — Infraestrutura e Segurança
 
 ## Diagnóstico
 
-Existem actualmente duas implementações separadas:
-1. **Inbox** (`src/components/inbox/RichTextEditor.tsx`) — Tiptap, compacto, orientado a chat (Enter envia)
-2. **Email Builder** (`src/components/email-builder/RichTextEditor.tsx`) — `contentEditable` + `document.execCommand` (legacy, depreciado pelos browsers)
+O documento lista 10 bibliotecas divididas em 3 batches de prioridade. Verificando o `package.json` actual, **nenhuma** destas está instalada. Algumas já têm dependências relacionadas no projecto (ex: `zustand`, `nanoid`, `currency.js` já existem).
 
-O Email Builder usa ainda `InlineToolbar.tsx` baseado em `execCommand`. As Notas (`OpportunityNotesTab`) usam um `<Textarea>` simples.
+## Plano de Instalação
 
-## Plano
+### Batch 7 — Segurança e Pagamentos (Críticas)
 
-### 1. Criar `src/components/ui/RichTextEditor.tsx` — componente partilhado
-
-Componente Tiptap configurável com props para controlar funcionalidades:
-
-- **Extensions**: StarterKit, Placeholder, Link, Image (opcional via prop `enableImage`)
-- **Toolbar fixa** no topo (não bubble menu) com: Bold, Italic, Strikethrough, Link, Lista, Lista numerada, Imagem (condicional)
-- **Props**:
-  - `value` / `onChange(html)` — controlled mode
-  - `placeholder`, `disabled`, `className`
-  - `minHeight` (default 100px para notas, 130px para email)
-  - `enableImage?: boolean` — mostra botão de imagem na toolbar
-  - `onImageUpload?: () => void` — callback externo para upload
-  - `onInsertVariable?: (variable: string) => void` — para o Email Builder
-  - `showVariables?: boolean` — mostra botão de variáveis na toolbar
-- **Ref imperativo**: `clearContent()`, `isEmpty()`, `getHTML()`, `focus()`, `insertContent(html)`
-
-### 2. Migrar Email Builder para o novo componente
-
-- `BlockEditor.tsx` (linha 90): substituir `<RichTextEditor>` do email-builder pelo novo de `@/components/ui/RichTextEditor`
-- Passar `enableImage`, `showVariables` e `onInsertVariable` para manter funcionalidade actual
-- O `InlineToolbar.tsx` e o antigo `RichTextEditor` do email-builder podem ser removidos ou mantidos temporariamente (a toolbar de `execCommand` é substituída pela toolbar Tiptap)
-
-### 3. Migrar OpportunityNotesTab para rich-text
-
-- Substituir `<Textarea>` pelo novo `RichTextEditor`
-- Notas passam a guardar HTML em vez de plain text
-- A renderização das notas existentes usa `dangerouslySetInnerHTML` (com sanitização) em vez de `whitespace-pre-wrap`
-- Notas antigas (plain text) continuam a funcionar — se não contiver tags HTML, renderizar como texto
-
-### 4. Manter Inbox RichTextEditor separado
-
-O editor do Inbox tem comportamento específico (Enter envia, layout inline compacto) — não faz sentido unificar. Mantém-se como está.
-
-## Ficheiros alterados
-
-| Ficheiro | Acção |
+| Package | Justificação |
 |---|---|
-| `src/components/ui/RichTextEditor.tsx` | Criar (novo) |
-| `src/components/email-builder/BlockEditor.tsx` | Actualizar import |
-| `src/components/email-builder/index.ts` | Remover export do RichTextEditor antigo |
-| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | Substituir Textarea por RichTextEditor |
+| `@stripe/stripe-js` + `@stripe/react-stripe-js` | SDK frontend para os 6 edge functions de checkout existentes |
+| `dompurify` + `@types/dompurify` | Sanitização XSS para todo o HTML renderizado (Inbox, Email, Markdown, Tiptap) |
+| `libphonenumber-js` | Validação e formatação de telefones internacionais |
+
+**Config extra**: Será necessário um secret `VITE_STRIPE_PUBLISHABLE_KEY` para o Stripe funcionar no browser.
+
+### Batch 8 — Estabilidade e UX (Alta)
+
+| Package | Justificação |
+|---|---|
+| `react-error-boundary` | Error boundaries para prevenir crashes globais |
+| `slugify` | Slugs URL-safe com suporte a acentos portugueses |
+| `react-intersection-observer` | Infinite scroll e lazy loading (complementa `@tanstack/react-virtual`) |
+| `nuqs` | Sincronização de filtros com URL query string |
+
+### Batch 9 — Qualidade e Polish (Média)
+
+| Package | Justificação |
+|---|---|
+| `@react-email/components` + `@react-email/render` | Email templates como componentes React |
+| `react-number-format` | Inputs formatados para EUR, NIF, IBAN |
+| `use-debounce` | Debounce de pesquisa (reduz queries desnecessárias) |
+
+## Implementação
+
+### Passo 1 — Instalar Batch 7
+```
+npm install @stripe/stripe-js @stripe/react-stripe-js dompurify @types/dompurify libphonenumber-js
+```
+
+### Passo 2 — Instalar Batch 8
+```
+npm install react-error-boundary slugify react-intersection-observer nuqs
+```
+
+### Passo 3 — Instalar Batch 9
+```
+npm install @react-email/components @react-email/render react-number-format use-debounce
+```
+
+### Passo 4 — Integração base imediata
+
+Após instalar, criar utilitários/wrappers prontos a usar:
+
+1. **`src/utils/sanitize.ts`** — wrapper de DOMPurify para uso global
+2. **`src/utils/phone.ts`** — helpers de validação/formatação de telefone
+3. **`src/utils/slug.ts`** — helper de geração de slugs
+4. **`src/components/ui/ErrorBoundary.tsx`** — componente ErrorBoundary reutilizável com fallback UI consistente
+5. **`src/lib/stripe.ts`** — inicialização do Stripe com `loadStripe()`
+
+### Passo 5 — Aplicar DOMPurify nos pontos críticos existentes
+
+Sanitizar `dangerouslySetInnerHTML` já existente em:
+- `OpportunityNotesTab` (notas rich-text)
+- Qualquer renderização de HTML do utilizador
 
 ## Critérios de aceitação
-- Toolbar com bold, italic, strikethrough, link, listas e imagem (condicional)
-- Email Builder funciona com o novo editor (variáveis e imagens)
-- Notas suportam formatação rich-text
-- Notas antigas plain-text renderizam correctamente
+
+- Todos os 13 packages instalados sem conflitos
 - Build sem erros
+- Utilitários base criados e prontos a importar
+- DOMPurify aplicado nos pontos de `dangerouslySetInnerHTML` existentes
+- ErrorBoundary wrapping nos módulos de maior risco (dashboards com Recharts)
 
