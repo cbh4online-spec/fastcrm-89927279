@@ -150,8 +150,14 @@ function buildPages(
 ): FlipbookPageData[] {
   const pages: FlipbookPageData[] = [];
 
-  // Cover
-  pages.push({ type: "cover", title, subtitle, author, coverUrl });
+  // Check if template already provides a cover page
+  const hasCoverFromTemplate = chapters.length > 0 && chapters[0].layout_key &&
+    (chapters[0].layout_key === "cover_hero_image" || chapters[0].layout_key === "cover_split");
+
+  // Only add default cover if template doesn't provide one
+  if (!hasCoverFromTemplate) {
+    pages.push({ type: "cover", title, subtitle, author, coverUrl });
+  }
 
   // Build chapter pages first to know page numbers for TOC
   const chapterPages: FlipbookPageData[] = [];
