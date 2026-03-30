@@ -78,7 +78,7 @@ export function ManifestoEditor({ vision }: Props) {
             {content ? (
               <div className="space-y-6">
                 {/* Manifesto body with custom markdown rendering */}
-                <div className="manifesto-content">
+                <div className="manifesto-content prose max-w-none dark:prose-invert">
                   <ReactMarkdown
                     components={{
                       h1: ({ children }) => (
