@@ -7,12 +7,17 @@ import { createClient } from '@supabase/supabase-js';
  * Scans store_visitor_sessions for sessions with cart_items that have been
  * inactive for 30+ minutes. Creates store_abandoned_carts records with
  * recovery tokens and marks sessions as processed.
+ * 
+ * If auto-enrollment is enabled via store_recovery_settings, automatically
+ * enrolls eligible carts into the configured recovery sequence.
  */
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STORE-ABANDONED] ${step}${detailsStr}`);
 };
+
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -31,7 +36,6 @@ Deno.serve(async (req) => {
 
     const threshold = new Date(Date.now() - inactiveMinutes * 60 * 1000).toISOString();
 
-    // Find sessions with cart items that are inactive and not yet processed
     const { data: sessions, error: fetchError } = await supabase
       .from('store_visitor_sessions')
       .select('*')
@@ -51,6 +55,19 @@ Deno.serve(async (req) => {
 
     logStep('Found inactive sessions with carts', { count: sessions.length });
 
+    // Pre-load recovery settings for all workspaces involved
+    const workspaceIds = [...new Set(sessions.map((s: any) => s.workspace_id))];
+    const { data: allRecoverySettings } = await supabase
+      .from('store_recovery_settings')
+      .select('*')
+      .in('workspace_id', workspaceIds)
+      .eq('is_enabled', true);
+
+    const settingsMap: Record<string, any> = {};
+    for (const rs of allRecoverySettings || []) {
+      settingsMap[rs.workspace_id] = rs;
+    }
+
     let created = 0;
 
     for (const session of sessions) {
@@ -59,9 +76,8 @@ Deno.serve(async (req) => {
 
       const subtotal = session.cart_subtotal || 0;
       const recoveryToken = crypto.randomUUID();
-      const recoveryTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+      const recoveryTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      // Create abandoned cart record with recovery token
       const { data: insertedCart, error: insertError } = await supabase
         .from('store_abandoned_carts')
         .insert({
@@ -80,6 +96,7 @@ Deno.serve(async (req) => {
           customer_phone: session.customer_phone || null,
           device_type: session.device_type || null,
           referrer: session.referrer || null,
+          outreach_status: 'pending',
         })
         .select('id')
         .maybeSingle();
@@ -89,9 +106,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Emit automation events
       if (insertedCart) {
-        // abandoned_cart_created event
+        // Emit events
         await supabase.from('store_automation_events').insert({
           workspace_id: session.workspace_id,
           event_type: 'abandoned_cart_created',
@@ -106,7 +122,6 @@ Deno.serve(async (req) => {
           },
         }).catch((e: any) => logStep('Event insert error', { error: String(e) }));
 
-        // recovery_link_created event (ready for future campaigns)
         await supabase.from('store_automation_events').insert({
           workspace_id: session.workspace_id,
           event_type: 'recovery_link_created',
@@ -119,9 +134,105 @@ Deno.serve(async (req) => {
             customer_phone: session.customer_phone || null,
           },
         }).catch((e: any) => logStep('Recovery event insert error', { error: String(e) }));
+
+        // Auto-enrollment check
+        const rs = settingsMap[session.workspace_id];
+        if (rs && rs.auto_enroll_enabled && rs.default_sequence_id) {
+          const email = session.customer_email;
+          const phone = session.customer_phone;
+
+          const eligible =
+            (!rs.require_email || !!email) &&
+            (!rs.require_phone || !!phone) &&
+            (subtotal >= (rs.min_cart_value || 0));
+
+          if (eligible && email) {
+            try {
+              // Find or create contact
+              let contactId: string | null = null;
+              const { data: existingContact } = await supabase
+                .from('contacts')
+                .select('id')
+                .eq('workspace_id', session.workspace_id)
+                .eq('email', email)
+                .maybeSingle();
+
+              if (existingContact) {
+                contactId = existingContact.id;
+              } else {
+                const { data: newContact } = await supabase
+                  .from('contacts')
+                  .insert({
+                    workspace_id: session.workspace_id,
+                    email: email,
+                    first_name: session.customer_name || null,
+                    phone: phone || null,
+                    source: 'store_abandoned_cart',
+                  })
+                  .select('id')
+                  .single();
+                contactId = newContact?.id || null;
+              }
+
+              if (contactId) {
+                // Check not already enrolled
+                const { data: existingEnr } = await supabase
+                  .from('email_sequence_enrollments')
+                  .select('id')
+                  .eq('contact_id', contactId)
+                  .eq('sequence_id', rs.default_sequence_id)
+                  .eq('workspace_id', session.workspace_id)
+                  .in('status', ['active', 'paused'])
+                  .maybeSingle();
+
+                if (!existingEnr) {
+                  const { data: enrollment } = await supabase
+                    .from('email_sequence_enrollments')
+                    .insert({
+                      workspace_id: session.workspace_id,
+                      sequence_id: rs.default_sequence_id,
+                      contact_id: contactId,
+                      enrolled_by: SYSTEM_USER_ID,
+                      status: 'active',
+                      current_step: 0,
+                    })
+                    .select('id')
+                    .single();
+
+                  if (enrollment) {
+                    await supabase.from('store_abandoned_carts').update({
+                      contact_id: contactId,
+                      sequence_id: rs.default_sequence_id,
+                      sequence_enrollment_id: enrollment.id,
+                      outreach_status: 'enrolled',
+                      outreach_started_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    }).eq('id', insertedCart.id);
+
+                    await supabase.from('store_automation_events').insert({
+                      workspace_id: session.workspace_id,
+                      event_type: 'abandoned_cart_auto_enrolled',
+                      entity_type: 'abandoned_cart',
+                      entity_id: insertedCart.id,
+                      payload: {
+                        sequence_id: rs.default_sequence_id,
+                        enrollment_id: enrollment.id,
+                        contact_id: contactId,
+                      },
+                    });
+
+                    logStep('Auto-enrolled cart', { cartId: insertedCart.id, enrollmentId: enrollment.id });
+                  }
+                }
+              }
+            } catch (enrollErr) {
+              logStep('Auto-enrollment error', { cartId: insertedCart.id, error: (enrollErr as Error).message });
+            }
+          }
+        }
       }
 
-      // Emit CART.ABANDONED kernel event
+      // Emit kernel event
       try {
         await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
           method: 'POST',
@@ -135,18 +246,13 @@ Deno.serve(async (req) => {
             source_module: 'store-ecommerce',
             schema_version: 1,
             occurred_at: new Date().toISOString(),
-            payload: {
-              session_id: session.session_id,
-              subtotal: subtotal,
-              items_count: cartItems.length,
-            },
+            payload: { session_id: session.session_id, subtotal, items_count: cartItems.length },
           }),
         });
       } catch (e) {
         logStep('Kernel emit CART.ABANDONED failed', { error: (e as Error).message });
       }
 
-      // Mark session as processed
       await supabase
         .from('store_visitor_sessions')
         .update({ cart_processed: true })
