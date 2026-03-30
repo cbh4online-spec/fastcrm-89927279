@@ -67,7 +67,7 @@ export default function StoreSellerPage() {
     name: l.title,
     base_price: Number(l.price),
     currency: l.currency || "EUR",
-    images: l.photos || l.images || [],
+    images: l.photos || [],
     short_description: l.description?.slice(0, 120),
     category: l.category,
     stock_status: l.quantity > 0 ? "in_stock" : "out_of_stock",
