@@ -71,6 +71,7 @@ import { BookOpen, Upload, Lightbulb, ChevronDown, ChevronUp } from 'lucide-reac
 import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RevenueAttributionDashboard } from './RevenueAttributionDashboard';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
