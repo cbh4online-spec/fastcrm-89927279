@@ -250,14 +250,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <span className="truncate flex-1 text-left">{group.name}</span>
             <ChevronRight
               className={cn(
-                "w-3.5 h-3.5 transition-transform duration-200 text-white/30",
+                "w-3.5 h-3.5 transition-transform duration-300 ease-out text-white/30",
                 groupOpen && "rotate-90"
               )}
             />
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-0.5 mt-0.5">
-          {group.children.map((child) => renderLink(child, false, true, true))}
+        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up space-y-0.5 mt-0.5">
+          {group.children.map((child, idx) => (
+            <div
+              key={child.href}
+              className="animate-fade-in"
+              style={{ animationDelay: `${idx * 40}ms`, animationFillMode: 'both' }}
+            >
+              {renderLink(child, false, true, true)}
+            </div>
+          ))}
         </CollapsibleContent>
       </Collapsible>
     );
