@@ -35551,6 +35551,202 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_entities: {
+        Row: {
+          category: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      portfolio_metrics: {
+        Row: {
+          allocation_recommendation: string | null
+          automation_leverage_score: number | null
+          capital_efficiency_score: number | null
+          confidence: number | null
+          contribution_margin_estimate: number | null
+          conversion_rate: number | null
+          id: string
+          ltv_estimate: number | null
+          portfolio_entity_id: string
+          revenue_actual: number | null
+          revenue_forecast: number | null
+          risk_score: number | null
+          strategic_fit_score: number | null
+          updated_at: string
+          workload_cost_estimate: number | null
+          workspace_id: string
+        }
+        Insert: {
+          allocation_recommendation?: string | null
+          automation_leverage_score?: number | null
+          capital_efficiency_score?: number | null
+          confidence?: number | null
+          contribution_margin_estimate?: number | null
+          conversion_rate?: number | null
+          id?: string
+          ltv_estimate?: number | null
+          portfolio_entity_id: string
+          revenue_actual?: number | null
+          revenue_forecast?: number | null
+          risk_score?: number | null
+          strategic_fit_score?: number | null
+          updated_at?: string
+          workload_cost_estimate?: number | null
+          workspace_id: string
+        }
+        Update: {
+          allocation_recommendation?: string | null
+          automation_leverage_score?: number | null
+          capital_efficiency_score?: number | null
+          confidence?: number | null
+          contribution_margin_estimate?: number | null
+          conversion_rate?: number | null
+          id?: string
+          ltv_estimate?: number | null
+          portfolio_entity_id?: string
+          revenue_actual?: number | null
+          revenue_forecast?: number | null
+          risk_score?: number | null
+          strategic_fit_score?: number | null
+          updated_at?: string
+          workload_cost_estimate?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_metrics_portfolio_entity_id_fkey"
+            columns: ["portfolio_entity_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_recommendations: {
+        Row: {
+          acted_at: string | null
+          confidence: number | null
+          created_at: string
+          expected_impact: string | null
+          id: string
+          portfolio_entity_id: string | null
+          priority: string | null
+          rationale: string | null
+          recommendation_type: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acted_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          expected_impact?: string | null
+          id?: string
+          portfolio_entity_id?: string | null
+          priority?: string | null
+          rationale?: string | null
+          recommendation_type: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acted_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          expected_impact?: string | null
+          id?: string
+          portfolio_entity_id?: string | null
+          priority?: string | null
+          rationale?: string | null
+          recommendation_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_recommendations_portfolio_entity_id_fkey"
+            columns: ["portfolio_entity_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_settings: {
+        Row: {
+          automation_weight: number | null
+          created_at: string
+          effort_weight: number | null
+          id: string
+          is_enabled: boolean | null
+          revenue_weight: number | null
+          risk_weight: number | null
+          strategy_weight: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          automation_weight?: number | null
+          created_at?: string
+          effort_weight?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          revenue_weight?: number | null
+          risk_weight?: number | null
+          strategy_weight?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          automation_weight?: number | null
+          created_at?: string
+          effort_weight?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          revenue_weight?: number | null
+          risk_weight?: number | null
+          strategy_weight?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           attachments: Json | null
