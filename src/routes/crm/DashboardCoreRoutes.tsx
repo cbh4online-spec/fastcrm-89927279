@@ -33,6 +33,7 @@ const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
+const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 
 export function DashboardCoreRoutes() {
   return (
@@ -70,6 +71,7 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
       <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
       <Route path="/dashboard/sponsors" element={<SponsorsManagement />} />
+      <Route path="/dashboard/blog" element={<BlogDashboard />} />
 
       {/* Settings */}
       <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
