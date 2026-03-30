@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -562,7 +563,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input placeholder="+351 912 345 678" {...field} />
+                      <PhoneInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

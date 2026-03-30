@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatEUR } from "@/lib/currency";
 import type { OperationalKPIs } from "@/hooks/useOperationalDashboard";
 
 interface OperationalKPICardsProps {
@@ -29,9 +30,7 @@ interface KPICardProps {
 }
 
 function formatCurrency(value: number): string {
-  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `€${(value / 1000).toFixed(1)}K`;
-  return `€${value.toFixed(0)}`;
+  return formatEUR(value);
 }
 
 function KPICard({ title, value, microcopy, icon: Icon, highlight, route, accentColor = "default" }: KPICardProps) {

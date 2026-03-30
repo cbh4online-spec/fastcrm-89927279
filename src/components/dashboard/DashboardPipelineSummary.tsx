@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, TrendingUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatEUR } from "@/lib/currency";
 import type { PipelineSummary } from "@/hooks/useOperationalDashboard";
 
 interface DashboardPipelineSummaryProps {
@@ -14,9 +15,9 @@ interface DashboardPipelineSummaryProps {
 }
 
 function formatCurrency(value: number): string {
-  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `€${(value / 1000).toFixed(1)}K`;
-  return `€${value.toFixed(0)}`;
+  if (value >= 1000000) return formatEUR(value);
+  if (value >= 1000) return formatEUR(value);
+  return formatEUR(value);
 }
 
 export function DashboardPipelineSummary({ data, isLoading }: DashboardPipelineSummaryProps) {

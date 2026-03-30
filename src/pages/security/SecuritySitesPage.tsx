@@ -5,11 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { Building2, Plus, MapPin, Search, QrCode } from "lucide-react";
+import { Building2, Plus, MapPin, Search } from "lucide-react";
 import { useState } from "react";
 import { SecuritySiteDialog } from "@/components/security/SecuritySiteDialog";
 import { SecurityQRBatchPrint } from "@/components/security/SecurityQRCode";
+import { SecuritySitesMap } from "@/components/security/SecuritySitesMap";
 
 export default function SecuritySitesPage() {
   const { t } = useTranslation("security");
@@ -83,8 +85,15 @@ export default function SecuritySitesPage() {
           <Input placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
+        {/* Map */}
+        <SecuritySitesMap sites={filtered} />
+
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">A carregar...</div>
+          <div className="grid gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
