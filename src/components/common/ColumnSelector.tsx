@@ -251,7 +251,7 @@ export function useColumnPreferences(
     const stored = localStorage.getItem(`${storageKey}-visible`);
     if (stored) {
       try {
-        return new Set(JSON.parse(stored));
+        return new Set(JSON.parse(stored) as string[]);
       } catch {
         // Invalid stored value
       }
@@ -263,7 +263,7 @@ export function useColumnPreferences(
     const stored = localStorage.getItem(`${storageKey}-order`);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(stored) as string[];
         // Ensure all columns are in the order (add any missing ones at the end)
         const existingIds = new Set(parsed);
         const allIds = defaultColumns.map(c => c.id);

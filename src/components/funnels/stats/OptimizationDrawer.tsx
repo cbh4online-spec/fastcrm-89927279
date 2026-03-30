@@ -41,7 +41,7 @@ function getStorageKey(slug: string) {
 
 function loadHistory(slug: string): HistoryItem[] {
   try {
-    return JSON.parse(localStorage.getItem(getStorageKey(slug)) || "[]");
+    return JSON.parse(localStorage.getItem(getStorageKey(slug)) || "[]") as HistoryItem[];
   } catch { return []; }
 }
 

@@ -72,7 +72,7 @@ export function BotTestChat({ bot }: BotTestChatProps) {
         }
       );
 
-      const result = await response.json();
+      const result: any = await response.json();
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),

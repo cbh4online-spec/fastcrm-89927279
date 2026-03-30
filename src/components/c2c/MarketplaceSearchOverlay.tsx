@@ -35,7 +35,7 @@ interface MarketplaceSearchOverlayProps {
 
 function getHistory(): string[] {
   try {
-    return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]") as string[];
   } catch {
     return [];
   }
