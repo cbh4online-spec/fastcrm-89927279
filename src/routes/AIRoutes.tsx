@@ -21,6 +21,7 @@ const AISuggestionsPage = lazy(() => import("@/pages/AISuggestionsPage"));
 const AgentOperationsPage = lazy(() => import("@/pages/AgentOperationsPage"));
 const OptimizationCenterPage = lazy(() => import("@/pages/OptimizationCenterPage"));
 const ActionExecutionsPage = lazy(() => import("@/pages/ActionExecutionsPage"));
+const ObjectiveCenterPage = lazy(() => import("@/pages/ObjectiveCenterPage"));
 
 export function AIRoutes() {
   return (
