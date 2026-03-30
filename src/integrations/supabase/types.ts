@@ -45539,34 +45539,88 @@ export type Database = {
           },
         ]
       }
+      support_ticket_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          ticket_id: string
+          workspace_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id: string
+          workspace_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_history_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_messages: {
         Row: {
           attachments: Json | null
+          content_type: string
           created_at: string
           id: string
           is_internal_note: boolean
           message: string
           sender_id: string | null
+          sender_name: string | null
           sender_type: Database["public"]["Enums"]["support_message_sender"]
           ticket_id: string
         }
         Insert: {
           attachments?: Json | null
+          content_type?: string
           created_at?: string
           id?: string
           is_internal_note?: boolean
           message: string
           sender_id?: string | null
+          sender_name?: string | null
           sender_type?: Database["public"]["Enums"]["support_message_sender"]
           ticket_id: string
         }
         Update: {
           attachments?: Json | null
+          content_type?: string
           created_at?: string
           id?: string
           is_internal_note?: boolean
           message?: string
           sender_id?: string | null
+          sender_name?: string | null
           sender_type?: Database["public"]["Enums"]["support_message_sender"]
           ticket_id?: string
         }
