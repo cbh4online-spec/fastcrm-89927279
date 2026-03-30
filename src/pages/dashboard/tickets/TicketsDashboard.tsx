@@ -1,10 +1,13 @@
 import { useClientTicketStats } from "@/hooks/tickets/useClientTicketStats";
+import { useClientTicketsAdmin } from "@/hooks/tickets/useClientTicketsAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Headphones, Clock, CheckCircle, AlertTriangle, Star, TrendingUp } from "lucide-react";
+import { Headphones, Clock, CheckCircle, AlertTriangle, Star, TrendingUp, TicketCheck } from "lucide-react";
 import CountUp from "react-countup";
 import { motion } from "framer-motion";
+import TimeAgo from "react-timeago";
+import { useNavigate } from "react-router-dom";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -13,15 +16,51 @@ import {
 const PRIORITY_COLORS_CHART = { low: "#6b7280", medium: "#3b82f6", high: "#f97316", urgent: "#ef4444" };
 const TYPE_LABELS: Record<string, string> = { support: "Suporte", commercial: "Comercial", technical: "Técnico" };
 
+const STATUS_COLORS: Record<string, string> = {
+  open: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  in_progress: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  waiting_client: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  waiting_internal: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  resolved: "bg-green-500/15 text-green-400 border-green-500/30",
+  closed: "bg-muted text-muted-foreground border-muted",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  open: "Aberto",
+  in_progress: "Em Progresso",
+  waiting_client: "Aguarda Cliente",
+  waiting_internal: "Aguarda Interno",
+  resolved: "Resolvido",
+  closed: "Fechado",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  urgent: "Urgente",
+};
+
+const PRIORITY_BADGE_COLORS: Record<string, string> = {
+  low: "bg-muted text-muted-foreground",
+  medium: "bg-blue-500/15 text-blue-400",
+  high: "bg-orange-500/15 text-orange-400",
+  urgent: "bg-red-500/15 text-red-400",
+};
+
 export default function TicketsDashboard() {
   const { data: stats, isLoading } = useClientTicketStats();
+  const { data: recentTickets = [] } = useClientTicketsAdmin();
+  const navigate = useNavigate();
+
+  const latestTickets = recentTickets.slice(0, 5);
 
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-8 w-64" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Skeleton className="h-80" />
@@ -61,16 +100,17 @@ export default function TicketsDashboard() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <KPICard icon={Headphones} label="Tickets Abertos" value={stats.openCount} color="text-blue-400" />
-        <KPICard icon={Clock} label="Tempo Médio 1ª Resposta" value={formatMinutes(stats.avgFirstResponseMinutes)} isText color="text-amber-400" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <KPICard icon={Headphones} label="Total de Tickets" value={stats.totalCount} color="text-foreground" />
+        <KPICard icon={TicketCheck} label="Tickets Abertos" value={stats.openCount} color="text-blue-400" />
+        <KPICard icon={Clock} label="Tempo Médio 1ª Resp." value={formatMinutes(stats.avgFirstResponseMinutes)} isText color="text-amber-400" />
         <KPICard icon={CheckCircle} label="Tempo Médio Resolução" value={formatMinutes(stats.avgResolutionMinutes)} isText color="text-green-400" />
         <KPICard icon={AlertTriangle} label="SLA Cumprimento" value={Math.round((1 - stats.slaBreachRate) * 100)} suffix="%" color="text-orange-400" />
         <KPICard icon={Star} label="Satisfação Média" value={stats.avgSatisfaction ? Number(stats.avgSatisfaction.toFixed(1)) : null} suffix="/5" isText={stats.avgSatisfaction == null} color="text-purple-400" />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Charts + Recent Tickets */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader><CardTitle className="text-sm">Distribuição por Prioridade</CardTitle></CardHeader>
           <CardContent className="h-[280px]">
@@ -105,6 +145,44 @@ export default function TicketsDashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Sem dados</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Tickets */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              Tickets Recentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {latestTickets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum ticket ainda</p>
+            ) : (
+              latestTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  onClick={() => navigate(`/dashboard/tickets/${ticket.id}`)}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{ticket.subject}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={`text-[10px] px-1.5 py-0 ${STATUS_COLORS[ticket.status] || ""}`}>
+                        {STATUS_LABELS[ticket.status] || ticket.status}
+                      </Badge>
+                      <Badge className={`text-[10px] px-1.5 py-0 ${PRIORITY_BADGE_COLORS[ticket.priority] || ""}`}>
+                        {PRIORITY_LABELS[ticket.priority] || ticket.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap mt-0.5">
+                    <TimeAgo date={ticket.created_at} />
+                  </span>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>
