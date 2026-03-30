@@ -10,12 +10,14 @@ import { useSEOEntitiesList } from '../hooks/useSEOEntity';
 import { useTracking } from '../hooks/useTracking';
 import { PageSkeleton } from '../components/shared/PageSkeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { getPublicBaseUrl } from '@/utils/getPublicDomain';
 
 const ITEMS_PER_PAGE = 24;
+const SEARCH_LIMIT = 1000;
 
 // Group terms by first letter
-function groupByLetter(entities: Array<{ title: string; slug: string }>) {
+function groupByLetter(entities: Array<{ title: string; slug: string; tldr?: string | null; meta_description?: string | null }>) {
   return entities.reduce((acc, entity) => {
     const letter = entity.title.charAt(0).toUpperCase();
     if (!acc[letter]) {
@@ -31,9 +33,12 @@ export default function GlossaryListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { trackPageView } = useTracking();
 
+  const isSearching = searchQuery.length > 0;
+
+  // When searching, load all terms; otherwise paginate normally
   const { data, isLoading } = useSEOEntitiesList('glossary', {
-    limit: ITEMS_PER_PAGE,
-    offset: (page - 1) * ITEMS_PER_PAGE,
+    limit: isSearching ? SEARCH_LIMIT : ITEMS_PER_PAGE,
+    offset: isSearching ? 0 : (page - 1) * ITEMS_PER_PAGE,
   });
 
   useEffect(() => {
@@ -43,16 +48,23 @@ export default function GlossaryListPage() {
     });
   }, []);
 
-  const totalPages = data?.total ? Math.ceil(data.total / ITEMS_PER_PAGE) : 1;
+  // Reset to page 1 when searching
+  useEffect(() => {
+    if (isSearching) setPage(1);
+  }, [searchQuery]);
+
+  const totalPages = isSearching ? 1 : (data?.total ? Math.ceil(data.total / ITEMS_PER_PAGE) : 1);
 
   // Filter and group entities
   const filteredEntities = data?.entities?.filter(entity =>
-    entity.title.toLowerCase().includes(searchQuery.toLowerCase())
+    entity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    entity.tldr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    entity.meta_description?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
   const groupedEntities = groupByLetter(filteredEntities);
   const letters = Object.keys(groupedEntities).sort();
 
-  if (isLoading && page === 1) {
+  if (isLoading && !data) {
     return (
       <SEOPublicLayout>
         <PageSkeleton variant="list" />
@@ -65,7 +77,7 @@ export default function GlossaryListPage() {
       <SEOHead
         title="Glossário de CRM - Termos e Definições"
         description="Descubra o significado de termos de CRM, vendas e marketing. Guia completo de A a Z com explicações claras e exemplos práticos."
-        canonicalUrl="https://fastcrm.lovable.app/glossary"
+        canonicalUrl={`${getPublicBaseUrl()}/glossary`}
       />
       
       <div className="container py-8">
@@ -89,18 +101,28 @@ export default function GlossaryListPage() {
           placeholder="Pesquisar termos..."
         />
 
+        {/* Loading indicator for page transitions */}
+        {isLoading && data && (
+          <div className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">A carregar...</span>
+          </div>
+        )}
+
         {/* Alphabet Navigation */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {letters.map(letter => (
-            <a
-              key={letter}
-              href={`#letter-${letter}`}
-              className="w-8 h-8 rounded bg-muted hover:bg-primary hover:text-primary-foreground flex items-center justify-center text-sm font-medium transition-colors"
-            >
-              {letter}
-            </a>
-          ))}
-        </div>
+        {letters.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            {letters.map(letter => (
+              <a
+                key={letter}
+                href={`#letter-${letter}`}
+                className="w-8 h-8 rounded bg-muted hover:bg-primary hover:text-primary-foreground flex items-center justify-center text-sm font-medium transition-colors"
+              >
+                {letter}
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Terms by Letter */}
         <div className="space-y-8">
@@ -113,12 +135,19 @@ export default function GlossaryListPage() {
                     <CardContent className="p-4">
                       <Link
                         to={`/glossary/${entity.slug}`}
-                        className="flex items-center justify-between"
+                        className="block"
                       >
-                        <span className="font-medium group-hover:text-primary transition-colors">
-                          {entity.title}
-                        </span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium group-hover:text-primary transition-colors">
+                            {entity.title}
+                          </span>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                        </div>
+                        {(entity.tldr || entity.meta_description) && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {entity.tldr || entity.meta_description}
+                          </p>
+                        )}
                       </Link>
                     </CardContent>
                   </Card>
@@ -128,17 +157,19 @@ export default function GlossaryListPage() {
           ))}
         </div>
 
-        {filteredEntities.length === 0 && (
+        {filteredEntities.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Nenhum termo encontrado.</p>
           </div>
         )}
 
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
+        {!isSearching && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        )}
 
         <div className="mt-16">
           <CTASection variant="footer" pageType="glossary" />
