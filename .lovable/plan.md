@@ -1,28 +1,41 @@
 
 
-# Corrigir filtro "Enviado" — faltam conversas de todos os canais
+# Fix: Markdown não renderiza no modo visual do editor de eBooks
 
 ## Diagnóstico
-A coluna `last_message_direction` na tabela `conversations` foi criada e preenchida apenas **uma vez** via migração de backfill. **Não existe nenhum trigger** que actualize este campo quando uma nova mensagem é inserida. Resultado: apenas conversas que já tinham a última mensagem outbound no momento do backfill (maioritariamente Instagram/GHL) aparecem nos "Enviados". Emails, WhatsApp e outros canais enviados após o backfill nunca actualizam `last_message_direction`.
+A função `markdownToHtml()` em `EbookRichEditor.tsx` (linhas 20-45) é um parser regex simplificado que **não suporta**:
+- Listas não-ordenadas (`* item`, `- item`)
+- Listas ordenadas (`1. item`)
+- Listas aninhadas com bold (`* **Custódia:**`)
+- Tabelas GFM
+- Blocos de código com ``` fences
 
-Já existe o trigger `trg_increment_unread` que actualiza `unread_count` em INSERT — basta criar um trigger análogo para `last_message_direction`.
+O projecto já tem `react-markdown` (v10.1.0) instalado. No entanto, como o editor usa `contentEditable` (não é read-only), não podemos simplesmente substituir por `<ReactMarkdown>` — precisamos converter markdown → HTML de forma completa antes de injectar no `contentEditable`.
 
 ## Alterações
 
-### 1. Criar trigger para actualizar `last_message_direction` (migração SQL)
-- Criar função `update_conversation_last_message_direction()` que, em cada INSERT na tabela `messages`, faz UPDATE à conversa correspondente com `last_message_direction = NEW.direction`
-- Actualiza também `last_message_at` e `last_message_preview` no mesmo trigger para manter consistência (actualmente estes campos também podem ficar desactualizados)
-- Criar trigger `trg_update_last_message_direction` AFTER INSERT ON `messages`
+### 1. Melhorar `markdownToHtml()` em `EbookRichEditor.tsx`
+Substituir o parser regex limitado por uma conversão completa que suporte:
+- **Listas não-ordenadas** (`* item`, `- item`) → `<ul><li>...</li></ul>`
+- **Listas ordenadas** (`1. item`) → `<ol><li>...</li></ol>`
+- **Bold dentro de listas** (`* **Texto:**`) → preservado correctamente
+- **Blocos de código** (``` fences) → `<pre><code>...</code></pre>`
+- **Tabelas** (pipes GFM) → `<table><tr><td>...</td></tr></table>`
 
-### 2. Re-backfill dos dados existentes
-- Na mesma migração, executar UPDATE para recalcular `last_message_direction` de todas as conversas com base na mensagem mais recente (mesmo SQL do backfill original)
+A abordagem: processar o markdown por blocos/linhas, agrupando linhas consecutivas de lista em `<ul>/<ol>`, mantendo os regex existentes para headings, bold, italic, links e imagens.
+
+### 2. Garantir migração transparente
+- A função já detecta HTML existente (linha 22: `if (md.includes('<p>'))`) e faz bypass — isto mantém-se
+- Conteúdo misto (parte markdown, parte HTML) continua a funcionar
+- Não altera como o conteúdo é guardado na base de dados
 
 ### Ficheiros
 | Ficheiro | Alteração |
 |---|---|
-| Nova migração SQL | Trigger + backfill para `last_message_direction`, `last_message_at`, `last_message_preview` |
+| `src/components/ebooks/EbookRichEditor.tsx` | Reescrever `markdownToHtml()` com suporte completo a listas, tabelas e code blocks |
 
 ### Resultado esperado
-- Todas as conversas onde a última mensagem foi enviada (outbound) — de qualquer canal — aparecem na pasta "Enviado"
-- O campo mantém-se automaticamente actualizado para mensagens futuras
+- Capítulos com markdown (headings, listas, bold, links, HR) renderizam correctamente no modo visual
+- O editor `contentEditable` continua editável normalmente
+- Conteúdo já em HTML não é afectado
 
