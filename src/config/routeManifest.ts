@@ -249,6 +249,11 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("helpdesk-sla",            "Políticas SLA",        "/dashboard/helpdesk/sla-policies",       Clock,       "suporte", { moduleSlug: "helpdesk", isBeta: true }),
   e("helpdesk-kb",             "Base de Conhecimento", "/dashboard/helpdesk/knowledge-base",     BookOpen,    "suporte", { moduleSlug: "helpdesk", isBeta: true }),
 
+  // Client Tickets (B2B Portal)
+  e("client-tickets",          "Tickets Clientes",     "/dashboard/tickets",                    Headphones,  "portal-b2b"),
+  e("client-tickets-dashboard","Dashboard Tickets",    "/dashboard/tickets/dashboard",           Gauge,       "portal-b2b", { visibleInSidebar: false }),
+  e("client-tickets-settings", "Config. Tickets",      "/dashboard/tickets/settings",            Settings,    "portal-b2b", { visibleInSidebar: false }),
+
   // ══════════════════════════════════════════════════════════════
   // RH (Recursos Humanos)
   // ══════════════════════════════════════════════════════════════
