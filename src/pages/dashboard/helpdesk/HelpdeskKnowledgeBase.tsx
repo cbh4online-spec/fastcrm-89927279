@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ export default function HelpdeskKnowledgeBase() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
@@ -304,5 +306,6 @@ export default function HelpdeskKnowledgeBase() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }

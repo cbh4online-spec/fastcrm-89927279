@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useHelpdeskTickets, useHelpdeskTicketMessages } from "@/hooks/useHelpdeskTickets";
 import { useHelpdeskHistory } from "@/hooks/useHelpdeskHistory";
 import { TicketMessageThread } from "@/components/helpdesk/TicketMessageThread";
@@ -21,20 +22,24 @@ export default function HelpdeskTicketDetail() {
 
   if (ticketsLoading) {
     return (
+      <DashboardLayout>
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
+      </DashboardLayout>
     );
   }
 
   if (!ticket) {
     return (
+      <DashboardLayout>
       <div className="p-6 text-center">
         <p className="text-muted-foreground">Ticket não encontrado</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/dashboard/helpdesk/tickets")}>
           Voltar à lista
         </Button>
       </div>
+      </DashboardLayout>
     );
   }
 
@@ -72,6 +77,7 @@ export default function HelpdeskTicketDetail() {
   };
 
   return (
+    <DashboardLayout>
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b">
@@ -131,5 +137,6 @@ export default function HelpdeskTicketDetail() {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   );
 }

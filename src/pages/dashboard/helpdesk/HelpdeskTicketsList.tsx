@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,7 @@ export default function HelpdeskTicketsList() {
   );
 
   return (
+    <DashboardLayout>
     <div className="space-y-4 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -292,5 +294,6 @@ export default function HelpdeskTicketsList() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }

@@ -1,3 +1,4 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,7 @@ export default function HelpdeskDashboard() {
 
   if (isLoading) {
     return (
+      <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
@@ -108,10 +110,12 @@ export default function HelpdeskDashboard() {
           <Skeleton className="h-[280px] rounded-lg" />
         </div>
       </div>
+      </DashboardLayout>
     );
   }
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -337,5 +341,6 @@ export default function HelpdeskDashboard() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

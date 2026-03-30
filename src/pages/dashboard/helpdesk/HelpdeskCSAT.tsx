@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,7 @@ export default function HelpdeskCSAT() {
 
   if (isLoading || !metrics) {
     return (
+      <DashboardLayout>
       <div className="space-y-6 p-6">
         <Skeleton height={32} width={300} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -33,10 +35,12 @@ export default function HelpdeskCSAT() {
           {[1,2,3,4].map((i) => <Skeleton key={i} height={300} />)}
         </div>
       </div>
+      </DashboardLayout>
     );
   }
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -181,5 +185,6 @@ export default function HelpdeskCSAT() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
