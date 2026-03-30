@@ -1,179 +1,117 @@
 
 
-## Sistema de Recuperação de Carrinhos Abandonados — Plano de Execução
+## Recuperação Automática de Carrinhos via Sequências — Plano de Execução
 
 ### Diagnóstico
 
-**O que já existe e funciona:**
-- `store_abandoned_carts` — tabela com `session_id`, `items`, `subtotal`, `customer_email`, `customer_name`, `recovery_status`, `recovery_attempts`, `recovered_order_id`
-- `detect-abandoned-carts` — edge function que processa `store_visitor_sessions` inativas (30min) e cria registos em `store_abandoned_carts`
-- `store-cart-abandonment` — edge function que cria `store_automation_events` e marca carrinhos como `contacted`
-- `store-webhook` — já marca carrinhos como `recovered` quando uma encomenda é paga (por email/contact_id)
-- `store-capture-lead` — já cria/atualiza `store_abandoned_carts` quando lead é capturada no checkout
-- `useStoreAutomation.ts` — hooks de leitura/escrita para carrinhos abandonados
-- `StoreCartsTab` — painel com KPIs e listagem (apenas read-only)
-- `RecoverCartPage` — existe mas usa `checkout_abandoned_carts` (sistema de checkout funnels, **não** da loja online)
+**Infraestrutura existente:**
+- `email_sequences` com `exit_conditions` (jsonb), `tags`, `is_active`
+- `email_sequence_steps` com `template_id`, `delay_days`, `delay_hours`, `channel`, `condition_type`, `condition_value`
+- `email_sequence_enrollments` com `contact_id`, `current_step`, `status`, `exit_reason`, `next_send_at`
+- `store_abandoned_carts` com `recovery_token`, `customer_email`, `customer_phone`, `contact_id`, `recovery_status`
+- `detect-abandoned-carts` — edge function que cria registos + tokens + eventos
+- `auto-followup-scheduler` — executor existente mas focado em `followup_queue` (AI inbox), **não** em `email_sequence_enrollments`
+- `store_automation_events` — log de eventos da loja
+- `useEmailSequences` / `useEnrollContact` — hooks completos de CRUD
 
 **O que falta:**
-1. `store_abandoned_carts` não tem `recovery_token`, `customer_phone`, `device_type`, `contacted_at`, `contact_channel`
-2. Não existe página de recuperação para a **loja online** (apenas para checkout funnels)
-3. Não existe rota `/store/:workspaceSlug/recover/:token`
-4. `StoreCartsTab` não tem ações (gerar link, copiar, contactar, ver detalhe)
-5. `store_orders` não tem `abandoned_cart_id` para rastreio de origem
-6. Não existe mecanismo de restore do carrinho via token
-7. Não existe detalhe individual do carrinho abandonado
+1. Não existe `store_recovery_settings` (configuração por workspace)
+2. `store_abandoned_carts` não tem campos de outreach (`sequence_id`, `sequence_enrollment_id`, `outreach_status`)
+3. Não existe executor para `email_sequence_enrollments` — o `auto-followup-scheduler` usa `followup_queue`, não sequências
+4. Não existe merge variables para dados do carrinho nos templates
+5. `StoreCartsTab` não mostra estado de outreach nem permite inscrição em sequência
 
 ---
 
-### FASE I — Migration SQL
+### Migration SQL
 
-**Alterar `store_abandoned_carts`** — adicionar campos:
-- `recovery_token TEXT UNIQUE` — token seguro (crypto.randomUUID)
-- `recovery_token_expires_at TIMESTAMPTZ`
-- `customer_phone TEXT`
-- `device_type TEXT`
-- `referrer TEXT`
-- `contacted_at TIMESTAMPTZ`
-- `contact_channel TEXT` — 'email', 'whatsapp', 'phone', 'manual'
-- `recovered_at TIMESTAMPTZ`
-- `recovered_value NUMERIC(12,2)`
+**Nova tabela `store_recovery_settings`:**
+- `id`, `workspace_id` (UNIQUE), `is_enabled`, `default_sequence_id` (FK `email_sequences`), `auto_enroll_enabled`, `min_cart_value`, `require_email`, `require_phone`, `abandonment_delay_minutes`, `created_at`, `updated_at`
+- RLS: workspace members
 
-**Alterar `store_orders`** — adicionar campo:
-- `abandoned_cart_id UUID REFERENCES store_abandoned_carts(id) ON DELETE SET NULL`
+**Novos campos em `store_abandoned_carts`:**
+- `sequence_id UUID REFERENCES email_sequences(id) ON DELETE SET NULL`
+- `sequence_enrollment_id UUID REFERENCES email_sequence_enrollments(id) ON DELETE SET NULL`
+- `outreach_status TEXT DEFAULT 'pending'` — pending, enrolled, in_progress, contacted, recovered, exited, failed
+- `outreach_started_at TIMESTAMPTZ`
+- `last_outreach_at TIMESTAMPTZ`
+- `outreach_step INTEGER DEFAULT 0`
+- `exit_reason TEXT`
 
-**Índice:** `idx_store_abandoned_carts_token ON store_abandoned_carts(recovery_token)`
-
----
-
-### FASE A — Melhorar deteção (`detect-abandoned-carts`)
-
-**Alterar** `supabase/functions/detect-abandoned-carts/index.ts`:
-- Copiar `customer_phone`, `device_type`, `referrer` da sessão para o registo abandonado
-- Gerar `recovery_token` (UUID) com `recovery_token_expires_at` (7 dias)
-- Logging `[STORE-ABANDONED]`
+**Índices:** `outreach_status`, `sequence_enrollment_id`
 
 ---
 
-### FASE B — Página de recuperação da loja
+### Ficheiros a criar (4)
 
-**Criar** `src/pages/store/StoreRecoverCartPage.tsx`:
-- Recebe `:workspaceSlug` e `:token` dos params
-- Consulta `store_abandoned_carts` pelo `recovery_token` (via edge function para segurança)
-- Valida expiração
-- Mostra itens do carrinho, subtotal, aviso se produtos indisponíveis
-- Botão "Continuar Compra" → restaura carrinho via zustand store e redireciona para checkout
-- Se token inválido/expirado → mensagem clara
+#### 1. `src/lib/storeRecoveryTemplateVariables.ts`
+Utilitário que recebe um `store_abandoned_cart` + `store_settings` e devolve `Record<string, string>` com:
+- `contact_name`, `store_name`, `cart_total`, `cart_items_summary`, `recovery_link`, `abandoned_at`, `workspace_name`
 
-**Criar** `supabase/functions/store-recover-cart/index.ts`:
-- Recebe `token` + `workspaceSlug`
-- Valida token, expiração, workspace
-- Retorna items, subtotal, workspace_id
-- Regista evento `recovery_link_opened` em `store_automation_events`
-- Nunca expõe dados de outro workspace
+#### 2. `src/components/store/StoreRecoverySettings.tsx`
+Formulário de configuração com:
+- Toggle `is_enabled` / `auto_enroll_enabled`
+- Selector de sequência (dropdown das sequências do workspace)
+- `min_cart_value`, `require_email`, `require_phone`, `abandonment_delay_minutes`
+- Botão guardar com upsert em `store_recovery_settings`
 
-**Adicionar rota** em `src/routes/StoreRoutes.tsx`:
-- `<Route path=":workspaceSlug/recover/:token" element={<StoreRecoverCartPage />} />`
+#### 3. `src/components/store/StoreAbandonedCartOutreachDetail.tsx`
+Dialog/Sheet com dados do carrinho + estado do outreach + timeline de steps + enrollment associado
 
----
-
-### FASE C — Restore do carrinho
-
-Dentro de `StoreRecoverCartPage`:
-- Valida cada produto contra a DB (via dados retornados pela edge function)
-- Produtos inativos/sem stock → aviso visual, não adiciona
-- Produtos válidos → `addItem` no zustand store
-- Regista `cart_restored` em `store_automation_events`
-- Redireciona para `/store/:workspaceSlug/checkout`
+#### 4. `supabase/functions/process-store-recovery/index.ts`
+Edge function que:
+1. Lê `store_recovery_settings` para cada workspace ativo
+2. Procura `store_abandoned_carts` com `outreach_status = 'pending'` + elegibilidade (email, subtotal)
+3. Encontra ou cria contacto CRM (`contacts`) por email
+4. Insere `email_sequence_enrollments` (enrolled_by = service account UUID placeholder)
+5. Atualiza `store_abandoned_carts` com `sequence_id`, `sequence_enrollment_id`, `outreach_status = 'enrolled'`
+6. Regista `store_automation_events` (`abandoned_cart_auto_enrolled`)
+7. Processa enrollments ativos: resolve `next_send_at`, carrega step, monta merge variables, avança `current_step`
+8. Exit conditions: se `recovery_status = 'recovered'` → exita enrollment; se `expires_at` passou → exita
+9. Nesta fase: cria payload/log de envio sem provider externo obrigatório
 
 ---
 
-### FASE D — Ações no painel `StoreCartsTab`
+### Ficheiros a alterar (2)
 
-**Alterar** `src/components/store/StoreCartsTab.tsx`:
+#### 5. `src/components/store/StoreCartsTab.tsx`
+- Importar `StoreRecoverySettings` e renderizar numa secção colapsável (Collapsible ou Accordion)
+- Por cada carrinho abandonado: mostrar badge de `outreach_status`, step atual, sequência associada
+- Adicionar ao DropdownMenu: "Inscrever em sequência", "Parar sequência", "Trocar sequência"
+- Adicionar filtros por `outreach_status`
 
-Adicionar por cada carrinho abandonado:
-1. **Gerar/copiar link** — gera token se não existir, copia URL
-2. **Marcar contactado** — atualiza `recovery_status`, `contacted_at`, `contact_channel`
-3. **Marcar recuperado** — manual override
-4. **Marcar expirado** — manual override
-5. **Ver detalhe** — abre drawer/dialog
-
-Usar `DropdownMenu` com ações no card existente (sem destruir layout).
-
----
-
-### FASE E — Detalhe do carrinho abandonado
-
-**Criar** `src/components/store/StoreAbandonedCartDetail.tsx`:
-
-Dialog/Sheet com:
-- Dados do visitante (nome, email, telefone)
-- Itens com quantidades e preços
-- Subtotal
-- Device type, referrer
-- Recovery status + timeline
-- Link de recuperação (com botão copiar)
-- Encomenda recuperada (se existir, com link)
+#### 6. `supabase/functions/detect-abandoned-carts/index.ts`
+- Após criar o registo abandonado, verificar se `store_recovery_settings` existe e `auto_enroll_enabled = true`
+- Se elegível, chamar a lógica de enrollment inline (ou invocar `process-store-recovery`)
 
 ---
 
-### FASE F — Associação à encomenda recuperada
+### Fluxo final
 
-**Alterar** `supabase/functions/create-store-checkout/index.ts`:
-- Aceitar `abandonedCartId` opcional no payload
-- Gravar em `store_orders.abandoned_cart_id`
-- Incluir no metadata do Stripe session
+```text
+detect-abandoned-carts
+  │
+  ├─ Cria store_abandoned_cart (outreach_status='pending')
+  ├─ Verifica store_recovery_settings
+  └─ Se auto_enroll_enabled + elegível → enrollment imediato
+       │
+       ├─ Encontra/cria contacto CRM
+       ├─ Insere email_sequence_enrollments
+       ├─ Atualiza cart (outreach_status='enrolled')
+       └─ Emite evento 'abandoned_cart_auto_enrolled'
 
-**Alterar** `supabase/functions/store-webhook/index.ts` (bloco store):
-- Quando `metadata.abandoned_cart_id` existe:
-  - Atualizar `store_abandoned_carts`: `recovery_status='recovered'`, `recovered_at`, `recovered_value`, `recovered_order_id`
-
-**Alterar** `StoreCheckoutPage.tsx`:
-- Ler `?recover=<token>` do URL
-- Se presente, enviar `abandonedCartId` no payload do checkout
-
----
-
-### FASE G — Automação V1
-
-**Alterar** `supabase/functions/detect-abandoned-carts/index.ts`:
-- Após criar registo abandonado com token, emitir evento `recovery_link_created` em `store_automation_events` com payload preparado (email, phone, recovery_url)
-- Isto fica pronto para futura integração com email/WhatsApp campaigns
-
----
-
-### FASE H — Tracking e métricas
-
-Eventos registados em `store_automation_events`:
-- `abandoned_cart_created` — na deteção
-- `recovery_link_created` — na deteção (com token)
-- `recovery_link_opened` — na edge function de recover
-- `cart_restored` — na página de recuperação
-- `abandoned_cart_recovered` — no webhook (pagamento confirmado)
-- `abandoned_cart_marked_contacted` — no painel (manual)
-- `abandoned_cart_expired` — no job de expiração existente
-
----
-
-### Ficheiros a criar (3)
-1. `src/pages/store/StoreRecoverCartPage.tsx`
-2. `src/components/store/StoreAbandonedCartDetail.tsx`
-3. `supabase/functions/store-recover-cart/index.ts`
-
-### Ficheiros a alterar (6)
-1. `src/components/store/StoreCartsTab.tsx` — ações por carrinho
-2. `src/routes/StoreRoutes.tsx` — nova rota recover
-3. `src/pages/store/StoreCheckoutPage.tsx` — ler `?recover=` e enviar `abandonedCartId`
-4. `supabase/functions/detect-abandoned-carts/index.ts` — copiar phone/device, gerar token
-5. `supabase/functions/create-store-checkout/index.ts` — aceitar `abandonedCartId`
-6. `supabase/functions/store-webhook/index.ts` — marcar recovered com `abandoned_cart_id`
-
-### Migrations (1)
-- Novos campos em `store_abandoned_carts` + `abandoned_cart_id` em `store_orders` + índice
+process-store-recovery (cron/manual)
+  │
+  ├─ Processa enrollments ativos com next_send_at <= now
+  ├─ Carrega step + template + merge variables
+  ├─ Cria payload de envio / log
+  ├─ Avança current_step / next_send_at
+  └─ Exit se cart recovered/expired
+```
 
 ### Compatibilidade
-- `RecoverCartPage` existente (checkout funnels) permanece intacta
-- `checkout_abandoned_carts` não é afetada
-- Layout do `StoreCartsTab` mantido, apenas adicionadas ações
-- Build funcional validado no final
+- `auto-followup-scheduler` permanece intacto (focado em AI inbox)
+- `email_sequence_enrollments` reutilizado sem alterações de schema (usa `enrolled_by` com system UUID)
+- Templates existentes funcionam com merge variables via `condition_value` ou body inline
+- `StoreCartsTab` mantém layout base, apenas adiciona badges + ações + filtros + secção de settings
 
