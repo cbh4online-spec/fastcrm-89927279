@@ -1,36 +1,55 @@
 
 
-# Adicionar animação suave e auto-expansão nos menus da sidebar
+# Tornar o compositor de email verdadeiramente dinâmico e profissional
 
 ## Diagnóstico
-- Os grupos colapsáveis da sidebar usam `Collapsible` do Radix UI, mas o `CollapsibleContent` **não tem animação** — abre/fecha instantaneamente sem transição visual
-- O comportamento de auto-expansão já existe (grupo com rota ativa abre automaticamente), mas ao clicar noutro grupo **falta feedback visual** — o conteúdo aparece/desaparece bruscamente
-- O projeto já tem keyframes `accordion-down`/`accordion-up` no Tailwind config que podem ser reutilizados
+O compositor actual é um dialog básico com um `<textarea>` simples, toolbar apertada e layout pouco profissional. O projecto já tem componentes ricos (`RichTextEditor` com contentEditable, `InlineToolbar` com formatação completa, `AIEmailAssistPanel`, templates, anexos, pagamentos, reuniões, traduções) mas o compositor não os utiliza adequadamente. O campo "Para" é estático (badge fixa) sem possibilidade de pesquisar contactos.
 
-## Alterações
+## Plano de implementação
 
-### 1. Animar o `CollapsibleContent` na sidebar (`Sidebar.tsx`)
-- Adicionar classes CSS de animação ao `CollapsibleContent` usando `data-[state=open]` e `data-[state=closed]` do Radix
-- Usar `overflow-hidden` + animação de altura (grid-template-rows trick ou max-height) para transição suave
-- Adicionar `transition-transform` ao ícone `ChevronRight` (já tem `rotate-90`, falta suavizar mais)
+### 1. Substituir textarea por RichTextEditor
+- Substituir o `<textarea>` pelo `RichTextEditor` existente em `src/components/email-builder/RichTextEditor.tsx` que já suporta:
+  - Formatação inline (bold, italic, underline, strikethrough)
+  - Headings, alinhamento, listas
+  - Inserção de variáveis dinâmicas
+  - Cores de texto
+  - Links
+  - Atalhos de teclado (Ctrl+B/I/U)
+- Envolver o compositor com `EmailEditorProvider` para o contexto funcionar
+- Remover os botões de formatação manuais da toolbar (já existem no InlineToolbar ao seleccionar texto)
 
-### 2. Adicionar animação de entrada nos sub-items
-- Cada filho dentro do grupo recebe um `fade-in` com delay escalonado (`stagger`) para efeito cascata
-- Usar as animações `fade-in` já existentes no projecto
+### 2. Campo "Para" com pesquisa de contactos
+- Substituir o badge estático por um input com autocomplete usando `useEntitySearch` (hook já existente com `searchContacts`)
+- Permitir pesquisar contactos, leads e empresas por nome/email
+- Mostrar resultados em dropdown com avatar, nome e email
+- Permitir adicionar múltiplos destinatários (não apenas um)
 
-### 3. Auto-abrir grupo ao clicar (quando grupo tem href direto)
-- Actualmente o `toggleGroup` alterna aberto/fechado — manter este comportamento
-- Garantir que ao clicar, o grupo **abre automaticamente** se estava fechado (já funciona via `onOpenChange`)
+### 3. Redesenhar layout do compositor
+- Expandir dialog para `max-w-3xl` com layout mais espaçoso
+- Header profissional com remetente e título "Novo Email"
+- Toolbar reorganizada em grupos lógicos com separadores:
+  - **Grupo 1**: Templates, AI Assist
+  - **Grupo 2**: Anexos, Link pagamento, Reunião
+  - **Grupo 3**: Traduzir, Agendar
+- Barra de status inferior com indicadores (HTML, anexos, assinatura, prioridade)
+- Área de escrita mais ampla (min-height: 300px)
 
-### Ficheiros a editar
+### 4. Novas funcionalidades
+- **Selector de prioridade** (Normal, Alta, Urgente) com badge visual
+- **Confirmação de leitura** (toggle para solicitar read receipt)
+- **Rascunho automático** — guardar estado enquanto o dialog está aberto
+- **Undo/Redo** no editor rico (já suportado nativamente pelo contentEditable)
+- **Drag & drop de ficheiros** na área de edição para anexar
+
+### 5. Ficheiros a editar
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/layout/Sidebar.tsx` | Adicionar classes de animação ao `CollapsibleContent`, stagger nos filhos |
-| `src/components/ui/collapsible.tsx` | (Opcional) Criar `CollapsibleContent` com animação por defeito via `forwardRef` e classes Tailwind |
+| `src/components/email/ComposeEmailDialog.tsx` | Redesenho completo: RichTextEditor, pesquisa de contactos, layout profissional, prioridade, read receipt, drag & drop |
 
 ### Resultado esperado
-- Ao clicar num grupo (ex: "Operações"), os sub-itens deslizam suavemente para baixo com fade-in escalonado
-- O ícone `ChevronRight` roda suavemente para 90°
-- Ao fechar, os itens recolhem com animação inversa
-- Feedback visual claro que guia o utilizador
+- Editor rico com toolbar flutuante ao seleccionar texto (bold, italic, headings, cores, links, variáveis)
+- Campo "Para" pesquisável com autocomplete de contactos/leads/empresas
+- Layout mais espaçoso e profissional
+- Toolbar organizada com todas as funcionalidades existentes bem agrupadas
+- Novas opções: prioridade, confirmação de leitura, drag & drop de anexos
 
