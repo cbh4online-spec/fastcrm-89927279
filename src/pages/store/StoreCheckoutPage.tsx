@@ -306,6 +306,7 @@ export default function StoreCheckoutPage() {
         clearCart();
         window.location.href = `/store/${wsSlug}/success`;
       } else if (data?.url) {
+        trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: finalTotal });
         clearCart();
         window.location.href = data.url;
       } else {
@@ -314,6 +315,7 @@ export default function StoreCheckoutPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao criar checkout";
       toast.error(message);
+      try { Sentry.captureException(err); } catch {}
       setIsProcessing(false);
     }
   };
