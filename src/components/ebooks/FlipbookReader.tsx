@@ -252,11 +252,11 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   // Build highlights map by page number
   const highlightsMap = useMemo(() => {
-    const map = new Map<number, { text: string; color: string }[]>();
+    const map = new Map<number, { text: string; color: string; note?: string }[]>();
     for (const note of notes) {
       if (note.note_type === "highlight" && note.highlight_text && note.highlight_color) {
         const arr = map.get(note.page_number) || [];
-        arr.push({ text: note.highlight_text, color: note.highlight_color, note: note.content || "" });
+        arr.push({ text: note.highlight_text, color: note.highlight_color, note: note.note_text || "" });
         map.set(note.page_number, arr);
       }
     }
