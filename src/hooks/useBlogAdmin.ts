@@ -148,7 +148,7 @@ export function useSaveBlogArticle() {
           .eq("id", articleId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("seo_entities").insert([payload]);
+        const { error } = await supabase.from("seo_entities").insert([payload as any]);
         if (error) throw error;
       }
     },
