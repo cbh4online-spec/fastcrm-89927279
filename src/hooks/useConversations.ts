@@ -72,6 +72,7 @@ export interface ConversationFilters {
   channel?: ConversationChannel;
   assigned_to?: string;
   unread_only?: boolean;
+  lastMessageDirection?: "inbound" | "outbound";
 }
 
 export function useConversations(filters?: ConversationFilters) {
