@@ -15,6 +15,7 @@ interface EbookChapter {
   title: string;
   content: string;
   cover_image?: string;
+  layout_key?: string;
 }
 
 interface FlipbookReaderProps {
@@ -156,14 +157,24 @@ function buildPages(
   const chapterPages: FlipbookPageData[] = [];
   const tocEntries: { title: string; pageStart: number }[] = [];
 
+  // Structural layout keys that are full-page content (no separate chapter-title page)
+  const STRUCTURAL_LAYOUTS = new Set([
+    "cover_hero_image", "cover_split", "copyright_simple", "disclaimer_clean",
+    "table_of_contents_split", "welcome_letter", "quote_fullpage", "stats_highlight",
+    "testimonial_block", "timeline_block", "cta_page", "author_section", "thank_you_page",
+  ]);
+
   let pageOffset = 2; // cover + toc
   for (let i = 0; i < chapters.length; i++) {
     const ch = chapters[i];
-    tocEntries.push({ title: ch.title, pageStart: pageOffset + 1 });
+    const isStructural = ch.layout_key && STRUCTURAL_LAYOUTS.has(ch.layout_key);
 
-    // Chapter title page
-    chapterPages.push({ type: "chapter-title", chapterIndex: i, title: ch.title, coverImage: ch.cover_image });
-    pageOffset++;
+    // Skip structural pages in TOC and don't give them a chapter-title page
+    if (!isStructural) {
+      tocEntries.push({ title: ch.title, pageStart: pageOffset + 1 });
+      chapterPages.push({ type: "chapter-title", chapterIndex: i, title: ch.title, coverImage: ch.cover_image });
+      pageOffset++;
+    }
 
     // Content pages
     const contentPages = splitContentIntoPages(ch.content);
@@ -175,8 +186,8 @@ function buildPages(
         content,
         pageNumber: 0,
         totalPages: 0,
-        headerText,
-        footerText,
+        headerText: isStructural ? undefined : headerText,
+        footerText: isStructural ? undefined : footerText,
       });
       pageOffset++;
     }

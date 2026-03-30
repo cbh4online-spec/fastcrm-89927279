@@ -15,6 +15,7 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
+import { buildChaptersFromTemplate } from "./utils/templateToChapters";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EbookTemplate } from "@/types/ebook-templates";
@@ -176,7 +177,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       const result = outlineData?.result;
       if (!result) throw new Error("Sem resultado do outline");
 
-      const chapters = (result.chapters || []).map((ch: any, i: number) => ({
+      const aiChapters = (result.chapters || []).map((ch: any, i: number) => ({
         id: `ch-${i}`,
         title: ch.title,
         description: ch.description,
@@ -185,6 +186,15 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }));
 
       setGenProgress(15);
+
+      // Build chapters from template structure if a template is selected
+      const chapters = (selectedTemplate && selectedTemplate.page_layouts?.length > 0)
+        ? buildChaptersFromTemplate(selectedTemplate, aiChapters, {
+            title: result.title || prompt.trim(),
+            subtitle: result.subtitle,
+            authorName: result.author_name,
+          })
+        : aiChapters;
 
       const createPayload: any = {
         title: result.title || prompt.trim(),
@@ -196,7 +206,6 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
         createPayload.global_styles = selectedTemplate.style_tokens;
       }
       const ebook = await createEbook.mutateAsync(createPayload);
-
       await (supabase as any).from("ebooks").update({
         theme, image_style: imageStyle, image_keywords: imageKeywords
       }).eq("id", ebook.id);
@@ -204,12 +213,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       setGenProgress(20);
 
       if (mode === "generate") {
-        for (let i = 0; i < chapters.length; i++) {
-          const ch = chapters[i];
-          setGenStatus(`A escrever capítulo ${i + 1}/${chapters.length}: ${ch.title}`);
+        // Only generate content for AI chapters (not structural template pages)
+        const contentChapters = chapters.map((ch, idx) => ({ ch, idx }))
+          .filter(({ ch }) => !ch.layout_key || ["chapter_intro_large", "chapter_intro_minimal", "rich_text", "text_image_split", "three_column_highlights"].includes(ch.layout_key as string));
+        
+        for (let j = 0; j < contentChapters.length; j++) {
+          const { ch, idx } = contentChapters[j];
+          setGenStatus(`A escrever capítulo ${j + 1}/${contentChapters.length}: ${ch.title}`);
 
           if (!canAfford("ebook_generate_chapter")) {
-            toast.warning(`Créditos insuficientes. Gerados ${i} de ${chapters.length} capítulos.`);
+            toast.warning(`Créditos insuficientes. Gerados ${j} de ${contentChapters.length} capítulos.`);
             break;
           }
 
@@ -224,10 +237,10 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           });
 
           if (!chErr && chData?.content) {
-            chapters[i] = { ...chapters[i], content: chData.content };
+            chapters[idx] = { ...chapters[idx], content: chData.content };
           }
 
-          const contentProgress = 20 + ((i + 1) / chapters.length) * (generateImages ? 50 : 75);
+          const contentProgress = 20 + ((j + 1) / contentChapters.length) * (generateImages ? 50 : 75);
           setGenProgress(Math.round(contentProgress));
         }
 
