@@ -3,6 +3,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
+export interface BlockStyles {
+  padding?: string;
+  paddingTop?: string;
+  paddingRight?: string;
+  paddingBottom?: string;
+  paddingLeft?: string;
+  margin?: string;
+  marginTop?: string;
+  marginRight?: string;
+  marginBottom?: string;
+  marginLeft?: string;
+  bgColor?: string;
+  textColor?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  lineHeight?: string;
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  borderWidth?: string;
+  borderColor?: string;
+  borderRadius?: string;
+  borderStyle?: string;
+  shadow?: 'none' | 'soft' | 'medium' | 'hard';
+  opacity?: string;
+  width?: string;
+  minHeight?: string;
+  gap?: string;
+}
+
+export type ContentBlockType = 'heading' | 'paragraph' | 'image' | 'quote' | 'divider' | 'list' | 'cta' | 'table' | 'columns' | 'spacer';
+
+export interface ContentBlock {
+  id: string;
+  type: ContentBlockType;
+  content: string;
+  children?: ContentBlock[];
+  styles: BlockStyles;
+  meta?: Record<string, unknown>;
+}
+
+export type PageLayout = 'single' | 'two-col-50' | 'two-col-60-40' | 'two-col-40-60' | 'hero-image' | 'text-image-split' | 'three-col';
+
 export interface EbookChapter {
   id: string;
   title: string;
@@ -10,6 +51,8 @@ export interface EbookChapter {
   content: string;
   sections?: string[];
   cover_image?: string;
+  blocks?: ContentBlock[];
+  layout?: PageLayout;
 }
 
 export interface EbookContactPage {
