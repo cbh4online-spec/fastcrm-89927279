@@ -22,6 +22,7 @@ export type FlipbookPageData =
   | { type: "contact"; contactData: ContactPageData; title: string };
 
 export interface HighlightMark {
+  id?: string;
   text: string;
   color: string;
   note?: string;
@@ -33,6 +34,7 @@ interface FlipbookPageProps {
   pageHeight?: number;
   onGoToPage?: (page: number) => void;
   highlights?: HighlightMark[];
+  onHighlightClick?: (id: string, position: { x: number; y: number }) => void;
 }
 
 function useScaleFactor(pageHeight?: number) {
@@ -59,10 +61,11 @@ function applyHighlightsToHtml(html: string, highlights?: HighlightMark[]): stri
     if (!hl.text || hl.text.length < 2) continue;
     const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(?![^<]*>)(${escaped})`, "gi");
-    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
+    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px;cursor:pointer`;
     const titleAttr = hl.note ? hl.note.replace(/"/g, '&quot;') : 'Sublinhado';
     const noteClass = hl.note ? 'highlight-mark highlight-mark--has-note' : 'highlight-mark';
-    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}">$1</mark>`);
+    const idAttr = hl.id ? ` data-highlight-id="${hl.id}"` : '';
+    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}"${idAttr}>$1</mark>`);
   }
   return result;
 }
@@ -75,15 +78,16 @@ function applyHighlightsToText(text: string, highlights?: HighlightMark[]): stri
     if (!hl.text || hl.text.length < 2) continue;
     const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(${escaped})`, "gi");
-    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
+    const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px;cursor:pointer`;
     const titleAttr = hl.note ? hl.note.replace(/"/g, '&quot;') : 'Sublinhado';
     const noteClass = hl.note ? 'highlight-mark highlight-mark--has-note' : 'highlight-mark';
-    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}">$1</mark>`);
+    const idAttr = hl.id ? ` data-highlight-id="${hl.id}"` : '';
+    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}"${idAttr}>$1</mark>`);
   }
   return result !== text ? result : null;
 }
 
-export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highlights }: FlipbookPageProps) {
+export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highlights, onHighlightClick }: FlipbookPageProps) {
   const { baseFontSize } = useScaleFactor(pageHeight);
   const baseStyle = { fontSize: `${baseFontSize}px` };
 
@@ -302,6 +306,19 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
               dangerouslySetInnerHTML={{ __html: applyHighlightsToHtml(page.content, highlights) }}
               onClick={(e) => {
                 const target = e.target as HTMLElement;
+                // Handle highlight clicks
+                const mark = target.closest('mark.highlight-mark');
+                if (mark) {
+                  const hlId = mark.getAttribute('data-highlight-id');
+                  if (hlId && onHighlightClick) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = mark.getBoundingClientRect();
+                    onHighlightClick(hlId, { x: rect.left + rect.width / 2, y: rect.bottom });
+                    return;
+                  }
+                }
+                // Handle link clicks
                 const anchor = target.closest('a');
                 if (anchor) {
                   e.preventDefault();
@@ -309,7 +326,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
                   const href = anchor.getAttribute('href');
                   if (href) window.open(href, '_blank', 'noopener,noreferrer');
                 }
-              }}
+              }
             />
           </>
         ) : (
