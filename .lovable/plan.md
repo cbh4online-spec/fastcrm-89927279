@@ -1,46 +1,36 @@
 
 
-## Adicionar Menu Lateral às Páginas do Helpdesk
+## Instalar Dependências para a Loja Online
 
 ### Diagnóstico
 
-As páginas do Helpdesk estão inconsistentes — apenas 2 de 8 usam o `DashboardLayout` (que inclui a sidebar, topbar, auth guard e todos os wrappers do CRM):
+Após inspeção do `package.json`, a maioria das dependências pedidas **já existe**:
 
-| Página | Tem `DashboardLayout`? |
-|--------|----------------------|
-| HelpdeskAutomations | Sim |
-| HelpdeskSLAPolicies | Sim |
-| HelpdeskDashboard | **Não** |
-| HelpdeskTicketsList | **Não** |
-| HelpdeskTicketDetail | **Não** |
-| HelpdeskCannedResponses | **Não** |
-| HelpdeskKnowledgeBase | **Não** |
-| HelpdeskCSAT | **Não** |
+| Dependência | Estado |
+|---|---|
+| `zustand` | ✅ Já instalada (^5.0.12) |
+| `libphonenumber-js` | ✅ Já instalada (^1.12.41) |
+| `@sentry/react` | ✅ Já instalada (^10.46.0) |
+| `posthog-js` | ✅ Já instalada (^1.364.1) |
+| **`decimal.js`** | ❌ Não existe — instalar |
+| **`validator`** | ❌ Não existe — instalar |
+| **`@types/validator`** | ❌ Não existe (dev) — instalar |
 
-### Solução
+### Plano
 
-Envolver as 6 páginas que faltam com `<DashboardLayout>`. Isto é o mesmo padrão já usado em `HelpdeskAutomations` e `HelpdeskSLAPolicies`, e em todas as outras páginas do dashboard (ex: `WeeklyDashboard`).
+1. Instalar `decimal.js` e `validator` como dependências de produção
+2. Instalar `@types/validator` como dependência de desenvolvimento
+3. Validar que o build compila sem erros
 
-### Ficheiros a Editar
+### Comandos
 
-1. **`src/pages/dashboard/helpdesk/HelpdeskDashboard.tsx`** — importar `DashboardLayout`, envolver o return
-2. **`src/pages/dashboard/helpdesk/HelpdeskTicketsList.tsx`** — idem
-3. **`src/pages/dashboard/helpdesk/HelpdeskTicketDetail.tsx`** — idem
-4. **`src/pages/dashboard/helpdesk/HelpdeskCannedResponses.tsx`** — idem
-5. **`src/pages/dashboard/helpdesk/HelpdeskKnowledgeBase.tsx`** — idem
-6. **`src/pages/dashboard/helpdesk/HelpdeskCSAT.tsx`** — idem
-
-### Alteração Tipo (repetida em cada ficheiro)
-
-```tsx
-// Adicionar import
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-
-// Envolver o return existente
-return (
-  <DashboardLayout>
-    {/* conteúdo existente */}
-  </DashboardLayout>
-);
+```bash
+npm install decimal.js validator
+npm install -D @types/validator
 ```
+
+### Riscos
+
+- Nenhum conflito esperado — são bibliotecas standalone sem dependências pesadas
+- Não serão feitas alterações a componentes existentes
 
