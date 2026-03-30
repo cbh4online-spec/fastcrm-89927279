@@ -1,164 +1,90 @@
 
 
-## Diagnóstico
+## Fase 3 — Motor de SLA Configurável e Automações para o Helpdesk
 
-Existem **dois sistemas de tickets paralelos** na plataforma:
+### Estado Atual
 
-| Sistema | Tabelas | Hooks | Páginas |
-|---------|---------|-------|---------|
-| **Admin Helpdesk** | `support_tickets`, `support_ticket_messages`, `support_canned_responses`, `support_ticket_history` | `useHelpdeskTickets`, `useHelpdeskCannedResponses`, `useHelpdeskHistory` | `/dashboard/helpdesk/*` (4 páginas + 14 componentes) |
-| **Client Portal** | `client_tickets`, `client_ticket_messages` | `useClientTickets`, `useTicketMessages` | `/client/support`, `/client/support/:id` (2 páginas básicas) |
+- `ticket_sla_rules` já existe na DB com campos `first_response_hours`, `resolution_hours`, `escalation_after_hours`, `escalate_to`
+- Hook `useTicketSLARules` já funciona (CRUD via upsert)
+- `TicketsSettings.tsx` já tem UI básica de SLA (tabela editável) e canned responses
+- `automation_rules` já existe como sistema global com 30+ triggers — **não há triggers específicos de tickets/helpdesk**
+- Não existe página `/dashboard/helpdesk/sla-policies` nem `/dashboard/helpdesk/automations`
+- Não há lógica de auto-assign, escalação automática, ou notificação de SLA breach
 
-### Problema
-A tabela `client_tickets` é minimalista — sem `ticket_number`, `assigned_to`, `tags`, `source`, `first_response_at`, `satisfaction_rating`, `sla_breached`. A UI do portal é funcional mas básica. O admin não tem forma de gerir `client_tickets` (só vê `support_tickets`).
+### O que vamos construir
 
-O pedido quer enriquecer o sistema `client_tickets` com funcionalidade de nível Zoho Desk. Dado o volume (~40 ficheiros), proponho 3 fases de implementação.
+#### 1. Migration DB — Novos triggers de automação + tabela de automações helpdesk
 
----
+- Adicionar novos valores ao enum `automation_trigger`: `ticket_created`, `ticket_status_changed`, `ticket_assigned`, `ticket_sla_warning`, `ticket_sla_breached`
+- Criar tabela `helpdesk_automations` (separada do sistema genérico, focada em regras simples do helpdesk):
+  - `id`, `workspace_id`, `name`, `trigger` (enum: `on_create`, `on_sla_warning`, `on_sla_breach`, `on_status_change`, `on_priority_change`)
+  - `conditions` (JSONB — ex: `{"priority": "urgent", "department": "technical"}`)
+  - `action_type` (enum: `auto_assign_round_robin`, `auto_assign_specific`, `escalate`, `change_priority`, `add_tag`, `send_notification`, `change_status`)
+  - `action_config` (JSONB — ex: `{"assign_to": "uuid"}` ou `{"escalate_to": "uuid"}`)
+  - `is_active`, `execution_count`, `last_executed_at`, `created_at`
+- RLS com workspace_id scope
 
-## Fase 1 — DB + Hooks (fundação)
+#### 2. Página SLA Policies (`/dashboard/helpdesk/sla-policies`)
 
-### 1a. Migration: Enriquecer `client_tickets`
-```sql
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS ticket_number TEXT;
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS assigned_to UUID;
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS sla_breached BOOLEAN DEFAULT false;
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'portal';
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS first_response_at TIMESTAMPTZ;
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS satisfaction_rating INTEGER;
-ALTER TABLE client_tickets ADD COLUMN IF NOT EXISTS satisfaction_comment TEXT;
-```
+Página dedicada e mais completa que a secção no TicketsSettings:
+- **Tabela de regras SLA** por prioridade (urgente/alta/média/baixa) com campos editáveis inline:
+  - 1ª Resposta (horas), Resolução (horas), Escalação após (horas), Escalar para (dropdown de agentes)
+- **Indicadores visuais**: badge colorido por prioridade, ícones de alerta
+- **Preview**: "Um ticket urgente deve ser respondido em 1h e resolvido em 4h"
+- **Horário de trabalho**: Configuração de business hours (9h-18h, Seg-Sex) — campo informativo por agora, preparado para cálculo futuro
+- Toggle ativar/desativar por regra
 
-### 1b. Migration: Enriquecer `client_ticket_messages`
-```sql
-ALTER TABLE client_ticket_messages ADD COLUMN IF NOT EXISTS sender_name TEXT;
-ALTER TABLE client_ticket_messages ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT 'text';
-ALTER TABLE client_ticket_messages ADD COLUMN IF NOT EXISTS is_internal_note BOOLEAN DEFAULT false;
-```
+#### 3. Página Automações Helpdesk (`/dashboard/helpdesk/automations`)
 
-### 1c. Migration: Criar `ticket_sla_rules`
-Tabela nova com `workspace_id`, `priority`, `first_response_hours`, `resolution_hours`, `escalation_after_hours`, `escalate_to`, `is_active`.
+Interface visual para criar regras de automação do helpdesk:
+- **Lista de automações** com estado (ativa/inativa), trigger, ação, contador de execuções
+- **Dialog de criação/edição** com 3 passos:
+  1. **Trigger**: Quando? (Ticket criado, SLA em risco, SLA violado, Estado alterado, Prioridade alterada)
+  2. **Condições** (opcional): Filtros (prioridade = urgente, departamento = técnico, canal = email)
+  3. **Ação**: O que fazer? (Auto-assign round-robin, Assign agente específico, Escalar, Alterar prioridade, Adicionar tag, Notificar, Alterar estado)
+- **Auto-assign round-robin**: Distribui tickets equitativamente entre agentes do workspace
+- **Escalação automática**: Quando SLA < 25% do tempo restante, escalar para o agente definido na regra SLA
+- Templates pré-definidos:
+  - "Auto-atribuir tickets urgentes ao gestor"
+  - "Escalar quando SLA em risco"
+  - "Notificar equipa quando ticket criado via WhatsApp"
 
-### 1d. Migration: Criar `ticket_canned_responses`
-Tabela nova (separada de `support_canned_responses` que é do Helpdesk interno).
+#### 4. Hook `useHelpdeskAutomations`
 
-### 1e. Auto-generate `ticket_number`
-Trigger para gerar `TK-00001` sequencial por workspace na inserção.
+- CRUD para `helpdesk_automations`
+- Query com filtros (trigger, is_active)
+- Toggle ativar/desativar
+- Estatísticas de execução
 
-### 1f. Auto-calculate `sla_deadline`
-Trigger que calcula `sla_deadline` com base em `ticket_sla_rules` para a prioridade do ticket.
+#### 5. Integração nas Rotas
 
-### 1g. Indexes + RLS
-Indexes nos campos filtráveis. RLS em todas as tabelas novas com `workspace_id` scope.
+- Adicionar rotas em `HelpdeskRoutes.tsx`:
+  - `/dashboard/helpdesk/sla-policies` → `HelpdeskSLAPolicies`
+  - `/dashboard/helpdesk/automations` → `HelpdeskAutomations`
+- Atualizar `routeManifest.ts`:
+  - `helpdesk-sla` → remover `isBeta: true`
+  - Adicionar `helpdesk-automations` com ícone `Zap`
 
-### 1h. Hooks (8 hooks)
-- `useClientTicketsAdmin` — Lista com filtros avançados para o CRM admin (query `client_tickets` com workspace_id)
-- `useClientTicketDetail` — Single ticket com mensagens
-- `useCreateClientTicket` — Criar ticket com auto ticket_number e SLA
-- `useUpdateClientTicket` — Update status, priority, assignment, tags
-- `useCreateTicketMessage` — Mensagem (client/agent/internal note)
-- `useTicketSLARules` — CRUD para regras SLA
-- `useTicketCannedResponses` — CRUD para respostas pré-definidas
-- `useClientTicketStats` — KPIs: open count, FRT, MTTR, SLA breach rate, satisfaction avg
-
-Realtime: subscrição em `client_ticket_messages` para mensagens instantâneas.
-
----
-
-## Fase 2 — Admin Pages (CRM Side)
-
-### 2a. Ticket List (`/dashboard/tickets`)
-- `@tanstack/react-table` com `DataTable` existente
-- Colunas: ticket_number, subject, client, type, priority, status, agent, SLA countdown, created_at
-- Toggle tabela/kanban (reutilizar padrão do Helpdesk com `@dnd-kit`)
-- Bulk actions: assign, status, priority, tag
-- Filtros com URL sync (`nuqs`), pesquisa fuzzy (`fuse.js` + `use-debounce`)
-- Skeleton loaders
-
-### 2b. Ticket Detail (`/dashboard/tickets/:id`)
-- Layout 70/30 (conversação + sidebar)
-- Tabs: Conversação | Atividade | Relacionados
-- Mensagens com markdown rendering, `react-timeago`, avatars
-- Internal notes (fundo amarelo, visíveis só para agentes)
-- Reply composer com TipTap (reutilizar `RichTextEditor` existente), toggle resposta/nota interna
-- Canned responses picker, botão "Sugerir IA" (placeholder)
-- Sidebar: status, priority, agent dropdown, tags editor, SLA timer, client info card, CSAT
-
-### 2c. Ticket Dashboard (`/dashboard/tickets/dashboard`)
-- 5 KPIs com `react-countup`
-- Gráficos `recharts`: tendência 30d, volume por tipo, distribuição por prioridade
-- Skeleton loaders
-
-### 2d. SLA Settings (`/dashboard/tickets/settings`)
-- Tabela editável de regras SLA por prioridade
-- Gestão de canned responses
-
----
-
-## Fase 3 — Client Portal Enhancement
-
-### 3a. Client Ticket List (`/client/support`)
-- Melhorar com ticket_number, `react-timeago`, badges coloridos, filtro por status
-- Formulário de criação com TipTap e `react-dropzone`
-
-### 3b. Client Ticket Detail (`/client/support/:id`)
-- Conversação com markdown rendering e anexos
-- SEM notas internas, SEM assignment, SEM SLA
-- CSAT rating (1-5 estrelas) quando resolvido
-- Botão "Marcar como resolvido"
-
-### 3c. Edge Function: `ai-ticket-suggest-reply`
-- Placeholder que retorna "Funcionalidade IA em desenvolvimento"
-- Estrutura preparada para Anthropic
-
----
-
-## Ficheiros Criados/Modificados
+### Ficheiros
 
 ```text
-FASE 1 (DB + Hooks):
-  supabase/migrations/...                           (migration)
-  src/hooks/tickets/useClientTicketsAdmin.ts         (NOVO)
-  src/hooks/tickets/useClientTicketDetail.ts         (NOVO)
-  src/hooks/tickets/useCreateClientTicket.ts         (NOVO)
-  src/hooks/tickets/useUpdateClientTicket.ts         (NOVO)
-  src/hooks/tickets/useCreateTicketMessage.ts        (NOVO)
-  src/hooks/tickets/useTicketSLARules.ts             (NOVO)
-  src/hooks/tickets/useTicketCannedResponses.ts      (NOVO)
-  src/hooks/tickets/useClientTicketStats.ts          (NOVO)
+NOVOS:
+  supabase/migrations/...                              (migration: helpdesk_automations table)
+  src/pages/dashboard/helpdesk/HelpdeskSLAPolicies.tsx (página SLA dedicada)
+  src/pages/dashboard/helpdesk/HelpdeskAutomations.tsx (página automações)
+  src/hooks/useHelpdeskAutomations.ts                  (CRUD automações)
+  src/components/helpdesk/AutomationRuleDialog.tsx     (dialog criar/editar regra)
 
-FASE 2 (Admin):
-  src/pages/dashboard/tickets/TicketsList.tsx         (NOVO)
-  src/pages/dashboard/tickets/TicketDetail.tsx        (NOVO)
-  src/pages/dashboard/tickets/TicketsDashboard.tsx    (NOVO)
-  src/pages/dashboard/tickets/TicketsSettings.tsx     (NOVO)
-  src/components/tickets/TicketKanban.tsx              (NOVO)
-  src/components/tickets/TicketBulkBar.tsx             (NOVO)
-  src/components/tickets/TicketConversation.tsx        (NOVO)
-  src/components/tickets/TicketDetailSidebar.tsx       (NOVO)
-  src/components/tickets/TicketCSATStars.tsx            (NOVO)
-  src/routes/TicketsRoutes.tsx                         (NOVO)
-  src/config/routeManifest.ts                          (EDIT — add tickets routes)
-
-FASE 3 (Client Portal):
-  src/pages/client/ClientSupportPage.tsx              (EDIT — enrich)
-  src/pages/client/ClientTicketDetailPage.tsx          (EDIT — enrich)
-  src/hooks/client-portal/useClientTickets.ts          (EDIT — adapt to new columns)
-  supabase/functions/ai-ticket-suggest-reply/index.ts  (NOVO)
+EDITADOS:
+  src/routes/HelpdeskRoutes.tsx                        (2 novas rotas)
+  src/config/routeManifest.ts                          (helpdesk-automations, unhide sla)
 ```
 
-## Implementação
-
-Dada a dimensão, vou implementar **Fase 1 + Fase 2** neste ciclo (DB, hooks, todas as páginas admin). A Fase 3 (client portal enhancement + edge function) fica para o ciclo seguinte.
-
-## Critérios de Aceitação
-- 4 novas tabelas/alterações com RLS e triggers
-- 8 hooks TanStack Query com cache invalidation
-- Dashboard admin com 5+ KPIs e gráficos
-- Lista com tabela/kanban, bulk actions, filtros URL
-- Detalhe com thread, sidebar, notas internas
-- SLA configurável por prioridade
-- Realtime em mensagens
-- Texto em pt-PT, dark mode, responsive
+### Critérios de Aceitação
+- Página SLA com tabela editável inline para 4 prioridades
+- Página automações com lista + dialog de criação (3 passos)
+- Pelo menos 5 tipos de ação disponíveis
+- Round-robin lógica funcional (distribuição equitativa)
+- Templates pré-definidos clicáveis
+- Tudo em pt-PT, dark mode, responsive
 
