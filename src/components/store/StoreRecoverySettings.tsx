@@ -41,6 +41,7 @@ export function StoreRecoverySettings() {
   const wid = currentWorkspace?.id;
   const queryClient = useQueryClient();
   const sequences = useEmailSequences();
+  const createRecovery = useCreateRecoverySequence();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["store-recovery-settings", wid],
