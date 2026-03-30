@@ -20598,6 +20598,201 @@ export type Database = {
           },
         ]
       }
+      executive_decision_packs: {
+        Row: {
+          confidence: number | null
+          context_json: Json | null
+          created_at: string
+          decision_type: string
+          expected_impact: string | null
+          id: string
+          options_json: Json | null
+          rationale: string | null
+          recommended_option: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context_json?: Json | null
+          created_at?: string
+          decision_type: string
+          expected_impact?: string | null
+          id?: string
+          options_json?: Json | null
+          rationale?: string | null
+          recommended_option?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context_json?: Json | null
+          created_at?: string
+          decision_type?: string
+          expected_impact?: string | null
+          id?: string
+          options_json?: Json | null
+          rationale?: string | null
+          recommended_option?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executive_decision_packs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      executive_mode_settings: {
+        Row: {
+          created_at: string
+          default_mode: string | null
+          id: string
+          include_forecast: boolean | null
+          include_risks: boolean | null
+          include_strategy: boolean | null
+          is_enabled: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_mode?: string | null
+          id?: string
+          include_forecast?: boolean | null
+          include_risks?: boolean | null
+          include_strategy?: boolean | null
+          is_enabled?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_mode?: string | null
+          id?: string
+          include_forecast?: boolean | null
+          include_risks?: boolean | null
+          include_strategy?: boolean | null
+          is_enabled?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executive_mode_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      executive_snapshots: {
+        Row: {
+          confidence: number | null
+          context_health: number | null
+          created_at: string
+          execution_health: number | null
+          focus_priority: string | null
+          id: string
+          key_decisions_json: Json | null
+          narrative_type: string | null
+          outlook_30d: string | null
+          outlook_90d: string | null
+          period_end: string | null
+          period_start: string | null
+          pipeline_actual: number | null
+          pipeline_required: number | null
+          priorities_json: Json | null
+          revenue_actual: number | null
+          revenue_forecast: number | null
+          revenue_target: number | null
+          risk_level: string | null
+          risks_json: Json | null
+          snapshot_type: string
+          strategic_health: number | null
+          summary: string | null
+          title: string | null
+          wins_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context_health?: number | null
+          created_at?: string
+          execution_health?: number | null
+          focus_priority?: string | null
+          id?: string
+          key_decisions_json?: Json | null
+          narrative_type?: string | null
+          outlook_30d?: string | null
+          outlook_90d?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          pipeline_actual?: number | null
+          pipeline_required?: number | null
+          priorities_json?: Json | null
+          revenue_actual?: number | null
+          revenue_forecast?: number | null
+          revenue_target?: number | null
+          risk_level?: string | null
+          risks_json?: Json | null
+          snapshot_type?: string
+          strategic_health?: number | null
+          summary?: string | null
+          title?: string | null
+          wins_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context_health?: number | null
+          created_at?: string
+          execution_health?: number | null
+          focus_priority?: string | null
+          id?: string
+          key_decisions_json?: Json | null
+          narrative_type?: string | null
+          outlook_30d?: string | null
+          outlook_90d?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          pipeline_actual?: number | null
+          pipeline_required?: number | null
+          priorities_json?: Json | null
+          revenue_actual?: number | null
+          revenue_forecast?: number | null
+          revenue_target?: number | null
+          risk_level?: string | null
+          risks_json?: Json | null
+          snapshot_type?: string
+          strategic_health?: number | null
+          summary?: string | null
+          title?: string | null
+          wins_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executive_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extension_audit_logs: {
         Row: {
           action: string
