@@ -4,7 +4,7 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  getFacetedRowCountModel,
+  getFacetedRowModel,
   getFacetedUniqueValues,
   flexRender,
   type ColumnDef,
@@ -98,7 +98,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
-    getFacetedRowCountModel: getFacetedRowCountModel(),
+    getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     enableRowSelection: enableSelection,
   });
@@ -170,10 +170,7 @@ export function DataTable<TData, TValue>({
                 {enableSelection && (
                   <TableHead className="w-[40px]">
                     <Checkbox
-                      checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && "indeterminate")
-                      }
+                      checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() ? ("indeterminate" as const) : false)}
                       onCheckedChange={(value) =>
                         table.toggleAllPageRowsSelected(!!value)
                       }
