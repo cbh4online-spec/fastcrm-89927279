@@ -3,35 +3,51 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Send, Lock, MessageSquare, Zap } from "lucide-react";
+import { Send, Lock, MessageSquare, Bot, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
 import { CannedResponsePicker } from "./CannedResponsePicker";
+import { TicketAttachments } from "./TicketAttachments";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
+import TimeAgo from "react-timeago";
+
+interface Attachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+}
 
 interface Message {
   id: string;
   sender_type: string;
   sender_id: string | null;
+  sender_name?: string | null;
   message: string;
+  content_type?: string;
   is_internal_note: boolean;
   created_at: string;
+  attachments?: Attachment[] | null;
 }
 
 interface TicketMessageThreadProps {
   messages: Message[];
   onSend: (message: string, isInternal: boolean) => void;
   isSending?: boolean;
+  ticketId?: string;
 }
 
-export function TicketMessageThread({ messages, onSend, isSending }: TicketMessageThreadProps) {
+export function TicketMessageThread({ messages, onSend, isSending, ticketId }: TicketMessageThreadProps) {
   const [text, setText] = useState("");
   const [isInternal, setIsInternal] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [showAttachments, setShowAttachments] = useState(false);
 
   const handleSend = () => {
     if (!text.trim()) return;
     onSend(text.trim(), isInternal);
     setText("");
+    setAttachments([]);
+    setShowAttachments(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -39,6 +55,14 @@ export function TicketMessageThread({ messages, onSend, isSending }: TicketMessa
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const getSenderLabel = (msg: Message) => {
+    if (msg.is_internal_note) return "Nota Interna";
+    if (msg.sender_type === "ai") return "IA";
+    if (msg.sender_type === "agent") return msg.sender_name || "Agente";
+    if (msg.sender_type === "client") return msg.sender_name || "Cliente";
+    return "Sistema";
   };
 
   return (
@@ -59,19 +83,36 @@ export function TicketMessageThread({ messages, onSend, isSending }: TicketMessa
               msg.sender_type === "agent" && !msg.is_internal_note && "ml-auto bg-primary/10 border border-primary/20",
               msg.sender_type === "client" && "mr-auto bg-muted border border-border",
               msg.sender_type === "system" && "mx-auto bg-muted/50 text-muted-foreground text-center text-xs max-w-full",
+              msg.sender_type === "ai" && "ml-auto bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800",
               msg.is_internal_note && "ml-auto bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
             )}
           >
             <div className="flex items-center gap-2 mb-1">
               {msg.is_internal_note && <Lock className="h-3 w-3 text-amber-600" />}
-              <span className="text-xs font-medium capitalize">
-                {msg.is_internal_note ? "Nota Interna" : msg.sender_type === "agent" ? "Agente" : msg.sender_type === "client" ? "Cliente" : "Sistema"}
+              {msg.sender_type === "ai" && <Bot className="h-3 w-3 text-violet-600" />}
+              <span className="text-xs font-medium">
+                {getSenderLabel(msg)}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(msg.created_at), "dd MMM HH:mm", { locale: pt })}
+              <span className="text-[10px] text-muted-foreground">
+                <TimeAgo date={msg.created_at} />
               </span>
             </div>
-            <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+            {msg.content_type === "markdown" || msg.content_type === "html" ? (
+              <MarkdownRenderer content={msg.message} className="text-sm" />
+            ) : (
+              <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+            )}
+            {/* Inline attachments */}
+            {msg.attachments && msg.attachments.length > 0 && (
+              <div className="mt-2">
+                <TicketAttachments
+                  ticketId=""
+                  attachments={msg.attachments}
+                  onAttachmentsChange={() => {}}
+                  readOnly
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -87,7 +128,27 @@ export function TicketMessageThread({ messages, onSend, isSending }: TicketMessa
             </Label>
           </div>
           <CannedResponsePicker onSelect={(content) => setText((prev) => prev + content)} />
+          {ticketId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() => setShowAttachments(!showAttachments)}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+              Anexo
+            </Button>
+          )}
         </div>
+
+        {showAttachments && ticketId && (
+          <TicketAttachments
+            ticketId={ticketId}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+          />
+        )}
+
         <div className="flex gap-2">
           <Textarea
             value={text}
@@ -108,6 +169,7 @@ export function TicketMessageThread({ messages, onSend, isSending }: TicketMessa
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        <p className="text-[10px] text-muted-foreground">Ctrl+Enter para enviar</p>
       </div>
     </div>
   );

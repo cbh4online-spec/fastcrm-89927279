@@ -1,10 +1,15 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SLATimer } from "./SLATimer";
-import { Calendar, Tag, User, Building2, Headphones, Flag, Clock } from "lucide-react";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
+import { AgentAssignDropdown } from "./AgentAssignDropdown";
+import { TicketTagsEditor } from "./TicketTagsEditor";
+import { CSATWidget } from "./CSATWidget";
+import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+import TimeAgo from "react-timeago";
 import type { SupportTicket, TicketStatus, TicketPriority } from "@/hooks/useHelpdeskTickets";
+import { useState } from "react";
 
 const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
   { value: "open", label: "Aberto" },
@@ -16,11 +21,11 @@ const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
   { value: "closed", label: "Fechado" },
 ];
 
-const PRIORITY_OPTIONS: { value: TicketPriority; label: string; color: string }[] = [
-  { value: "low", label: "Baixa", color: "text-blue-600" },
-  { value: "medium", label: "Média", color: "text-yellow-600" },
-  { value: "high", label: "Alta", color: "text-orange-600" },
-  { value: "urgent", label: "Urgente", color: "text-red-600" },
+const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
+  { value: "low", label: "Baixa" },
+  { value: "medium", label: "Média" },
+  { value: "high", label: "Alta" },
+  { value: "urgent", label: "Urgente" },
 ];
 
 const DEPARTMENTS = ["Suporte", "Comercial", "Técnico", "Faturação"];
@@ -31,10 +36,20 @@ interface TicketSidebarProps {
 }
 
 export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
+  const [copied, setCopied] = useState(false);
+  const isResolved = ticket.status === "resolved" || ticket.status === "closed";
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(ticket.id);
+    setCopied(true);
+    toast.success("ID copiado");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-5 p-4">
       {/* SLA */}
-      {ticket.sla_deadline && (
+      {ticket.sla_deadline && !isResolved && (
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
             <Clock className="h-3 w-3" /> SLA
@@ -81,6 +96,17 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
         </Select>
       </div>
 
+      {/* Agent Assignment */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <User className="h-3 w-3" /> Agente
+        </h4>
+        <AgentAssignDropdown
+          value={ticket.assigned_to}
+          onChange={(agentId) => onUpdate({ assigned_to: agentId })}
+        />
+      </div>
+
       {/* Department */}
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
@@ -113,39 +139,67 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
         <Badge variant="secondary" className="text-xs capitalize">{ticket.channel}</Badge>
       </div>
 
-      {/* Tags */}
-      {ticket.tags && ticket.tags.length > 0 && (
+      {/* Tags — editable */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <Tag className="h-3 w-3" /> Tags
+        </h4>
+        <TicketTagsEditor
+          tags={ticket.tags || []}
+          onChange={(tags) => onUpdate({ tags })}
+        />
+      </div>
+
+      {/* CSAT — only when resolved */}
+      {isResolved && (
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-            <Tag className="h-3 w-3" /> Tags
+            <CheckCircle className="h-3 w-3" /> Satisfação
           </h4>
-          <div className="flex flex-wrap gap-1">
-            {ticket.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>
-            ))}
-          </div>
+          <CSATWidget rating={null} readOnly />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Aguardar avaliação do cliente
+          </p>
         </div>
       )}
 
-      {/* Dates */}
+      {/* Dates — with relative time */}
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
           <Calendar className="h-3 w-3" /> Datas
         </h4>
         <div className="space-y-1 text-xs text-muted-foreground">
-          <div>Criado: {format(new Date(ticket.created_at), "dd MMM yyyy HH:mm", { locale: pt })}</div>
+          <div className="flex justify-between">
+            <span>Criado:</span>
+            <TimeAgo date={ticket.created_at} className="text-foreground" />
+          </div>
           {ticket.first_response_at && (
-            <div>1ª Resposta: {format(new Date(ticket.first_response_at), "dd MMM HH:mm", { locale: pt })}</div>
+            <div className="flex justify-between">
+              <span>1ª Resposta:</span>
+              <TimeAgo date={ticket.first_response_at} className="text-foreground" />
+            </div>
           )}
           {ticket.resolved_at && (
-            <div>Resolvido: {format(new Date(ticket.resolved_at), "dd MMM HH:mm", { locale: pt })}</div>
+            <div className="flex justify-between">
+              <span>Resolvido:</span>
+              <TimeAgo date={ticket.resolved_at} className="text-foreground" />
+            </div>
           )}
         </div>
       </div>
 
-      {/* Ticket Number */}
-      <div className="text-xs text-muted-foreground">
-        Ticket #{ticket.ticket_number}
+      {/* Ticket ID with copy */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Ticket #{ticket.ticket_number}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-[10px] gap-1 px-2"
+          onClick={handleCopyId}
+        >
+          {copied ? <CheckCircle className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "Copiado" : "Copiar ID"}
+        </Button>
       </div>
     </div>
   );
