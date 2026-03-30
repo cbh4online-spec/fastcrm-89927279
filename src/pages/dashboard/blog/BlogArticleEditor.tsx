@@ -33,7 +33,7 @@ function generateSlug(title: string): string {
 
 export default function BlogArticleEditor({ article, onBack }: BlogArticleEditorProps) {
   const saveArticle = useSaveBlogArticle();
-  const { generate, isGenerating } = useGenerateSEOContent();
+  const { generateContent, isGenerating } = useGenerateSEOContent();
   const { currentWorkspace } = useWorkspace();
 
   const [title, setTitle] = useState(article?.title || "");
@@ -72,7 +72,7 @@ export default function BlogArticleEditor({ article, onBack }: BlogArticleEditor
     const built: SEOContent = {
       sections,
       faqs,
-      cta: ctaText ? { type: "blog", text: ctaText, url: ctaUrl } : undefined,
+      cta: ctaText ? { type: "signup" as const, text: ctaText, url: ctaUrl } : undefined,
     };
 
     saveArticle.mutate(
@@ -99,15 +99,15 @@ export default function BlogArticleEditor({ article, onBack }: BlogArticleEditor
             : publishedAt
             ? new Date(publishedAt).toISOString()
             : null,
-        content: built as unknown as SEOContent,
-      },
+        content: built as Record<string, unknown>,
+      } as Partial<SEOEntity> & { id?: string },
       { onSuccess: onBack }
     );
   };
 
   const handleGenerate = async () => {
     if (!title) return;
-    const result = await generate({
+    const result = await generateContent({
       entity_type: "blog",
       topic: title,
       intent,

@@ -129,22 +129,23 @@ export function useSaveBlogArticle() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
 
-  return useMutation({
-    mutationFn: async (article: Partial<SEOEntity> & { id?: string }) => {
+  return useMutation<void, Error, Partial<SEOEntity> & { id?: string }>({
+    mutationFn: async (article) => {
       if (!currentWorkspace?.id) throw new Error("Workspace não encontrado");
 
-      const payload = {
-        ...article,
-        entity_type: "blog" as const,
+      const { id: articleId, ...rest } = article;
+      const payload: Record<string, unknown> = {
+        ...rest,
+        entity_type: "blog",
         workspace_id: currentWorkspace.id,
         updated_at: new Date().toISOString(),
       };
 
-      if (article.id) {
+      if (articleId) {
         const { error } = await supabase
           .from("seo_entities")
           .update(payload)
-          .eq("id", article.id);
+          .eq("id", articleId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("seo_entities").insert([payload]);
