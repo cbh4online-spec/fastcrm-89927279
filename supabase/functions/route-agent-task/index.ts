@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // 3. Find eligible bots
     let botsQuery = supabase
       .from("bots")
-      .select("id, name, role, channel, status, team_id, specialization")
+      .select("id, name, role, channel, status, team_id, specialization, execution_permissions")
       .eq("workspace_id", workspace_id)
       .eq("status", "active");
 
@@ -146,7 +146,31 @@ Deno.serve(async (req) => {
       return loadA - loadB;
     });
 
-    const selectedBot = sortedBots[0];
+    // Filter by execution permissions
+    const WORK_TYPE_PERMISSION_MAP: Record<string, string> = {
+      qualify_lead: "can_create_task",
+      followup_contact: "can_send_email",
+      recover_cart: "can_generate_recovery",
+      reengage_lead: "can_enroll_sequence",
+      propose_meeting: "can_create_task",
+      escalate_human: "can_create_task",
+      intervene_renewal: "can_send_email",
+      enrich_context: "can_create_task",
+    };
+
+    const requiredPerm = WORK_TYPE_PERMISSION_MAP[work_type];
+    const permFiltered = requiredPerm
+      ? sortedBots.filter((b: any) => {
+          const perms = b.execution_permissions || {};
+          // If no permissions set, allow (backwards compat)
+          if (Object.keys(perms).length === 0) return true;
+          // If requires_human_approval, skip auto-routing
+          if (perms.requires_human_approval) return false;
+          return perms[requiredPerm] !== false;
+        })
+      : sortedBots;
+
+    const selectedBot = permFiltered[0] || sortedBots[0];
 
     // Check max open items
     const currentLoad = workloadMap[selectedBot.id] || 0;

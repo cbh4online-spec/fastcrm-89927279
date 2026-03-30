@@ -283,6 +283,84 @@ export function useAgentOpsStats() {
   });
 }
 
+// ─── Performance Stats ──────────────────────────────────────────
+export interface AgentPerfStat {
+  botId: string;
+  total: number;
+  completed: number;
+  failed: number;
+  open: number;
+  avgCompletionMs: number;
+}
+
+export function useAgentPerformanceStats() {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+
+  return useQuery({
+    queryKey: ["agent-perf-stats", wsId],
+    queryFn: async (): Promise<AgentPerfStat[]> => {
+      if (!wsId) return [];
+
+      // Get active bots
+      const { data: bots } = await (supabase as any)
+        .from("bots")
+        .select("id")
+        .eq("workspace_id", wsId)
+        .eq("status", "active");
+
+      if (!bots || bots.length === 0) return [];
+
+      const botIds = bots.map((b: any) => b.id);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const { data: items } = await (supabase as any)
+        .from("agent_work_items")
+        .select("bot_id, status, assigned_at, completed_at")
+        .eq("workspace_id", wsId)
+        .in("bot_id", botIds)
+        .gte("created_at", sevenDaysAgo.toISOString());
+
+      const map: Record<string, AgentPerfStat> = {};
+      for (const id of botIds) {
+        map[id] = { botId: id, total: 0, completed: 0, failed: 0, open: 0, avgCompletionMs: 0 };
+      }
+
+      const completionTimes: Record<string, number[]> = {};
+      for (const id of botIds) completionTimes[id] = [];
+
+      for (const wi of items || []) {
+        if (!wi.bot_id || !map[wi.bot_id]) continue;
+        const m = map[wi.bot_id];
+        m.total++;
+        if (wi.status === "completed") {
+          m.completed++;
+          if (wi.assigned_at && wi.completed_at) {
+            const ms = new Date(wi.completed_at).getTime() - new Date(wi.assigned_at).getTime();
+            if (ms > 0) completionTimes[wi.bot_id].push(ms);
+          }
+        } else if (wi.status === "failed") {
+          m.failed++;
+        } else if (["pending", "assigned", "in_progress"].includes(wi.status)) {
+          m.open++;
+        }
+      }
+
+      for (const id of botIds) {
+        const times = completionTimes[id];
+        if (times.length > 0) {
+          map[id].avgCompletionMs = times.reduce((a, b) => a + b, 0) / times.length;
+        }
+      }
+
+      return Object.values(map).filter((s) => s.total > 0);
+    },
+    enabled: !!wsId,
+    refetchInterval: 60_000,
+  });
+}
+
 // ─── Mutations ───────────────────────────────────────────────────
 export function useCreateWorkItem() {
   const { currentWorkspace } = useWorkspace();
@@ -311,11 +389,30 @@ export function useCreateWorkItem() {
         .select()
         .single();
       if (error) throw error;
+
+      // Emit kernel event
+      try {
+        await supabase.functions.invoke("kernel-ingest-event", {
+          body: {
+            workspace_id: wsId,
+            type: "AGENT.WORK_ITEM_CREATED",
+            entity_kind: input.entity_type,
+            entity_id: input.entity_id || data.id,
+            actor_type: "user",
+            source_module: "agent-ops",
+            payload: { work_item_id: data.id, work_type: input.work_type, bot_id: input.bot_id },
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+          },
+        });
+      } catch (_) { /* fire and forget */ }
+
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agent-work-items", wsId] });
       qc.invalidateQueries({ queryKey: ["agent-ops-stats", wsId] });
+      qc.invalidateQueries({ queryKey: ["agent-perf-stats", wsId] });
       toast.success("Work item criado!");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -340,10 +437,29 @@ export function useCompleteWorkItem() {
         .update(updates)
         .eq("id", id);
       if (error) throw error;
+
+      // Emit kernel event
+      try {
+        const eventType = status === "completed" ? "AGENT.WORK_COMPLETED" : "AGENT.WORK_FAILED";
+        await supabase.functions.invoke("kernel-ingest-event", {
+          body: {
+            workspace_id: wsId,
+            type: eventType,
+            entity_kind: "agent_work_item",
+            entity_id: id,
+            actor_type: "system",
+            source_module: "agent-ops",
+            payload: { work_item_id: id, status, error_message },
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+          },
+        });
+      } catch (_) { /* fire and forget */ }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agent-work-items", wsId] });
       qc.invalidateQueries({ queryKey: ["agent-ops-stats", wsId] });
+      qc.invalidateQueries({ queryKey: ["agent-perf-stats", wsId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -376,12 +492,68 @@ export function useCreateHandoff() {
         .select()
         .single();
       if (error) throw error;
+
+      // Emit kernel event
+      try {
+        await supabase.functions.invoke("kernel-ingest-event", {
+          body: {
+            workspace_id: wsId,
+            type: "AGENT.HANDOFF_CREATED",
+            entity_kind: input.entity_type,
+            entity_id: input.entity_id || data.id,
+            actor_type: "system",
+            source_module: "agent-ops",
+            payload: { handoff_id: data.id, from_bot_id: input.from_bot_id, to_bot_id: input.to_bot_id, trigger_type: input.trigger_type },
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+          },
+        });
+      } catch (_) { /* fire and forget */ }
+
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agent-handoffs", wsId] });
       qc.invalidateQueries({ queryKey: ["agent-ops-stats", wsId] });
       toast.success("Handoff criado!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useCompleteHandoff() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const wsId = currentWorkspace?.id;
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "completed" | "failed" }) => {
+      const { error } = await (supabase as any)
+        .from("agent_handoffs")
+        .update({ status, completed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+
+      // Emit kernel event
+      try {
+        await supabase.functions.invoke("kernel-ingest-event", {
+          body: {
+            workspace_id: wsId,
+            type: "AGENT.HANDOFF_COMPLETED",
+            entity_kind: "agent_handoff",
+            entity_id: id,
+            actor_type: "system",
+            source_module: "agent-ops",
+            payload: { handoff_id: id, status },
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+          },
+        });
+      } catch (_) { /* fire and forget */ }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agent-handoffs", wsId] });
+      qc.invalidateQueries({ queryKey: ["agent-ops-stats", wsId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

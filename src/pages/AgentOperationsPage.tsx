@@ -21,8 +21,10 @@ import {
   TrendingUp,
   Settings2,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
+import { AgentPerformancePanel } from "@/components/agent-ops/AgentPerformancePanel";
 import {
   useAgentWorkItems,
   useAgentHandoffs,
@@ -126,6 +128,9 @@ export default function AgentOperationsPage() {
             </TabsTrigger>
             <TabsTrigger value="teams" className="gap-1">
               <Users className="w-3.5 h-3.5" /> Equipas
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-1">
+              <BarChart3 className="w-3.5 h-3.5" /> Performance
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-1">
               <Settings2 className="w-3.5 h-3.5" /> Configurações
@@ -250,6 +255,11 @@ export default function AgentOperationsPage() {
           {/* Teams Tab */}
           <TabsContent value="teams">
             <AgentTeamManager />
+          </TabsContent>
+
+          {/* Performance Tab */}
+          <TabsContent value="performance">
+            <AgentPerformancePanel />
           </TabsContent>
 
           {/* Settings Tab */}
