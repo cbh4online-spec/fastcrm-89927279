@@ -23142,6 +23142,59 @@ export type Database = {
           },
         ]
       }
+      helpdesk_automations: {
+        Row: {
+          action_config: Json | null
+          action_type: string
+          conditions: Json | null
+          created_at: string | null
+          execution_count: number | null
+          id: string
+          is_active: boolean | null
+          last_executed_at: string | null
+          name: string
+          trigger_event: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type?: string
+          conditions?: Json | null
+          created_at?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name: string
+          trigger_event?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string
+          conditions?: Json | null
+          created_at?: string | null
+          execution_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_executed_at?: string | null
+          name?: string
+          trigger_event?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ig_ai_media_insights: {
         Row: {
           analyzed_at: string | null
