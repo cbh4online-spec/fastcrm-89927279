@@ -15,6 +15,7 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
+import { buildChaptersFromTemplate } from "./utils/templateToChapters";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EbookTemplate } from "@/types/ebook-templates";
