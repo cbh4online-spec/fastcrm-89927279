@@ -755,9 +755,14 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
           </AnimatePresence>
         </div>
 
-        {/* ── RIGHT SIDEBAR: Tabbed panel (240px) ── */}
-        <Tabs defaultValue="inserir" className="w-60 shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
+        {/* ── RIGHT SIDEBAR: Tabbed panel (280px) ── */}
+        <Tabs defaultValue={selectedBlockId ? "props" : "inserir"} className="w-[280px] shrink-0 flex flex-col border-l border-border/40 bg-muted/20">
           <TabsList className="w-full rounded-none border-b border-border/40 bg-transparent h-10 p-0 shrink-0">
+            {selectedBlockId && useVisualEditor && (
+              <TabsTrigger value="props" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full text-primary font-medium">
+                Propriedades
+              </TabsTrigger>
+            )}
             <TabsTrigger value="inserir" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
               Inserir
             </TabsTrigger>
@@ -776,6 +781,32 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
               )}
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab: Propriedades (block properties) */}
+          {selectedBlockId && useVisualEditor && activeChapter && (() => {
+            const ch = ensureChapterBlocks(activeChapter);
+            const selectedBlock = (ch.blocks || []).find(b => b.id === selectedBlockId);
+            if (!selectedBlock) return null;
+            return (
+              <TabsContent value="props" className="flex-1 overflow-hidden mt-0">
+                <BlockPropertiesPanel
+                  block={selectedBlock}
+                  onUpdate={(updatedBlock) => {
+                    const newBlocks = (ch.blocks || []).map(b => b.id === updatedBlock.id ? updatedBlock : b);
+                    const htmlContent = newBlocks
+                      .filter(b => b.type !== 'divider' && b.type !== 'spacer')
+                      .map(b => b.content)
+                      .join('\n');
+                    saveChapters(ebook.chapters.map(c =>
+                      c.id === activeChapter.id
+                        ? { ...c, blocks: newBlocks, content: htmlContent }
+                        : c
+                    ));
+                  }}
+                />
+              </TabsContent>
+            );
+          })()}
 
           {/* Tab: Inserir (blocks) */}
           <TabsContent value="inserir" className="flex-1 overflow-hidden mt-0">
