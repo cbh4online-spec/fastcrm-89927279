@@ -44,6 +44,17 @@ export interface Bot {
   updated_at: string;
 }
 
+export const AGENT_ROLES = [
+  { value: "lead_qualifier", label: "Qualificador de Leads" },
+  { value: "followup_operator", label: "Operador de Follow-up" },
+  { value: "abandoned_cart_recovery", label: "Recuperação de Carrinhos" },
+  { value: "renewal_guardian", label: "Guardião de Renovações" },
+  { value: "pipeline_nudger", label: "Acelerador de Pipeline" },
+  { value: "meeting_setter", label: "Agendador de Reuniões" },
+  { value: "human_handoff_router", label: "Router para Humano" },
+  { value: "revenue_supervisor", label: "Supervisor de Revenue" },
+] as const;
+
 export interface CreateBotData {
   name: string;
   description?: string;
@@ -54,6 +65,9 @@ export interface CreateBotData {
   system_prompt?: string;
   guided_config?: Record<string, unknown>;
   settings?: Partial<Bot["settings"]>;
+  role?: string;
+  team_id?: string;
+  specialization?: string;
 }
 
 export function useBots() {
