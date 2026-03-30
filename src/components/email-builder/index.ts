@@ -4,7 +4,5 @@ export { ElementsSidebar } from './ElementsSidebar';
 export { LayoutsSidebar } from './LayoutsSidebar';
 export { DesignSidebar } from './DesignSidebar';
 export { BlockEditor } from './BlockEditor';
-export { RichTextEditor } from './RichTextEditor';
-export { InlineToolbar } from './InlineToolbar';
 export { VariablePicker } from './VariablePicker';
 export { ImageUploader } from './ImageUploader';

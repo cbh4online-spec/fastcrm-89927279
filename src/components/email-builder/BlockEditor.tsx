@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { X, Trash2, Copy, ChevronUp, ChevronDown, Upload } from 'lucide-react';
-import { RichTextEditor } from './RichTextEditor';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import {
   HeroBlockEditor,
   ProductBlockEditor,
