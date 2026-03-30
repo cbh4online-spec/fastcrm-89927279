@@ -104,7 +104,7 @@ export default function StoreSellerPage() {
   return (
     <>
       <Helmet>
-        <title>{seller.display_name || seller.name} | {storeName}</title>
+        <title>{seller.display_name} | {storeName}</title>
       </Helmet>
       <div className="min-h-screen bg-background">
         <StoreHeader
@@ -116,30 +116,23 @@ export default function StoreSellerPage() {
           products={[]}
         />
 
-        {/* Seller banner */}
-        {seller.banner_url && (
-          <div className="h-48 w-full overflow-hidden">
-            <img src={seller.banner_url} alt="" className="w-full h-full object-cover" />
-          </div>
-        )}
-
         <div className="container mx-auto px-4 py-8">
           {/* Seller header */}
           <div className="flex items-start gap-6 mb-8">
             <Avatar className="h-20 w-20 border-2 border-primary/20">
-              <AvatarImage src={seller.avatar_url || seller.photo_url} />
+              <AvatarImage src={seller.avatar_url || undefined} />
               <AvatarFallback className="text-2xl font-bold">
-                {(seller.display_name || seller.name || "S").charAt(0).toUpperCase()}
+                {(seller.display_name || "S").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground">{seller.display_name || seller.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{seller.display_name}</h1>
               {seller.bio && <p className="text-muted-foreground mt-1">{seller.bio}</p>}
               <div className="flex items-center gap-3 mt-2">
-                {seller.rating_average > 0 && (
+                {(seller.avg_rating ?? 0) > 0 && (
                   <Badge variant="secondary" className="gap-1">
                     <Star className="h-3 w-3 fill-warning text-warning" />
-                    {Number(seller.rating_average).toFixed(1)}
+                    {Number(seller.avg_rating).toFixed(1)}
                   </Badge>
                 )}
                 <Badge variant="outline">{listings.length} produto{listings.length !== 1 ? "s" : ""}</Badge>
