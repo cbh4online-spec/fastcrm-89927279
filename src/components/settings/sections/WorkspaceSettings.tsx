@@ -406,7 +406,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
                 <Label htmlFor="workspaceSlug">URL do Workspace</Label>
                 <div className="flex">
                   <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground">
-                    app.fastcrm.com/
+                    fastcrm.metodopare.ai/
                   </span>
                   <Input
                     id="workspaceSlug"
