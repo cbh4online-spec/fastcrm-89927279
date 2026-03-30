@@ -634,6 +634,34 @@ Deno.serve(async (req) => {
               payment_intent: session.payment_intent,
             }
           );
+
+          // Trigger attribution (non-blocking)
+          const attrUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-communication-attribution`;
+          const attrHeaders = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          };
+          fetch(attrUrl, {
+            method: "POST",
+            headers: attrHeaders,
+            body: JSON.stringify({
+              workspace_id: workspaceId,
+              conversion_type: "opportunity_won",
+              conversion_id: opportunityId,
+            }),
+          }).catch(() => {});
+
+          if (proposalId) {
+            fetch(attrUrl, {
+              method: "POST",
+              headers: attrHeaders,
+              body: JSON.stringify({
+                workspace_id: workspaceId,
+                conversion_type: "proposal_paid",
+                conversion_id: proposalId,
+              }),
+            }).catch(() => {});
+          }
         }
         break;
       }

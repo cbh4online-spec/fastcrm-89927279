@@ -371,6 +371,10 @@ export function TemplatesListPage() {
               <Brain className="h-4 w-4" />
               Treino do Workspace
             </TabsTrigger>
+            <TabsTrigger value="revenue" className="gap-1.5">
+              <DollarSign className="h-4 w-4" />
+              Receita
+            </TabsTrigger>
             <TabsTrigger value="sequences" className="gap-1.5" onClick={() => navigate('/dashboard/sequences')}>
               <ListOrdered className="h-4 w-4" />
               Sequências
