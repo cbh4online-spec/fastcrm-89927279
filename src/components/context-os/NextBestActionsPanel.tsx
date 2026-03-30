@@ -44,6 +44,33 @@ export function NextBestActionsPanel() {
   const actMutation = useActOnNBA();
   const dismissMutation = useDismissNBA();
   const generateMutation = useGenerateNBAs();
+  const executeAction = useExecuteAction();
+
+  const handleActWithExecution = async (action: NextBestAction) => {
+    try {
+      // Create action execution from NBA
+      await executeAction.mutateAsync({
+        action_type: action.action_type,
+        title: action.title,
+        description: action.description || undefined,
+        source_type: 'next_best_action',
+        source_id: action.id,
+        entity_type: action.entity_type,
+        entity_id: action.entity_id,
+        payload: {
+          rationale: action.rationale,
+          priority_score: action.priority_score,
+          impact_estimate: action.impact_estimate,
+          ...(action.suggested_payload_json as Record<string, unknown> || {}),
+        },
+        correlation_id: `nba-${action.id}-${Date.now()}`,
+      });
+      // Mark NBA as acted
+      actMutation.mutate(action);
+    } catch {
+      // toast handled by hook
+    }
+  };
 
   const topActions = (actions ?? []).slice(0, 10);
 
