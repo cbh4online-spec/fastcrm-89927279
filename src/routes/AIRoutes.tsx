@@ -65,6 +65,7 @@ export function AIRoutes() {
       <Route path="/dashboard/board" element={<BoardCenterPage />} />
       <Route path="/dashboard/portfolio" element={<PortfolioCenterPage />} />
       <Route path="/dashboard/ledger" element={<LedgerCenterPage />} />
+      <Route path="/dashboard/control-tower" element={<ControlTowerPage />} />
     </>
   );
 }

@@ -127,7 +127,7 @@ export interface Intervention {
 export function useControlTowerInterventions() {
   const { data: state } = useControlTowerState();
   const interventions: Intervention[] = Array.isArray(state?.interventions_json)
-    ? (state.interventions_json as Intervention[])
+    ? (state.interventions_json as unknown as Intervention[])
     : [];
   return interventions;
 }
