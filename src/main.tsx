@@ -10,6 +10,17 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/jetbrains-mono/400.css";
 
+// Library CSS
+import "react-loading-skeleton/dist/skeleton.css";
+import "driver.js/dist/driver.css";
+
+// Analytics & monitoring — conditional (no-op without env vars)
+import { initSentry } from "./lib/sentry";
+import { initPostHog } from "./lib/posthog";
+
+initSentry();
+initPostHog();
+
 // PWA: prevent service worker interference in Lovable preview / iframes
 const isInIframe = (() => {
   try {
