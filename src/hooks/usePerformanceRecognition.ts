@@ -55,8 +55,8 @@ export function usePerformanceRecognition(limit = 10) {
 
       return (data || []).map((r: any) => ({
         ...r,
-        user_name: r.user_id ? profileMap.get(r.user_id)?.full_name || "Utilizador" : null,
-        avatar_url: r.user_id ? profileMap.get(r.user_id)?.avatar_url || null : null,
+        user_name: r.user_id ? (profileMap.get(r.user_id) as any)?.full_name || "Utilizador" : null,
+        avatar_url: r.user_id ? (profileMap.get(r.user_id) as any)?.avatar_url || null : null,
       })) as PerformanceRecognition[];
     },
   });

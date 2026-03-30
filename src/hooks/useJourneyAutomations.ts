@@ -110,9 +110,9 @@ export function useCreateJourneyAutomation() {
           name: automation.name,
           description: automation.description,
           trigger_type: automation.triggerType,
-          trigger_config: JSON.parse(JSON.stringify(automation.triggerConfig)),
-          conditions: JSON.parse(JSON.stringify(automation.conditions)),
-          actions: JSON.parse(JSON.stringify(automation.actions)),
+          trigger_config: JSON.parse(JSON.stringify(automation.triggerConfig)) as any,
+          conditions: JSON.parse(JSON.stringify(automation.conditions)) as any,
+          actions: JSON.parse(JSON.stringify(automation.actions)) as any,
           is_active: automation.isActive,
           affected_clients_count: affectedCount,
           created_by: user.id

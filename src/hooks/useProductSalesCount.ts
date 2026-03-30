@@ -18,9 +18,9 @@ export function useProductSalesCount(workspaceId: string) {
         const items = order.items as any[];
         if (!Array.isArray(items)) continue;
         for (const item of items) {
-          const pid = item.product_id || item.productId;
+          const pid = item?.product_id || item?.productId;
           if (pid) {
-            counts.set(pid, (counts.get(pid) || 0) + (item.quantity || 1));
+            counts.set(pid, (counts.get(pid) || 0) + (item?.quantity || 1));
           }
         }
       }
@@ -45,10 +45,10 @@ export function useBatchReviewStats(workspaceId: string) {
 
       const stats = new Map<string, { sum: number; count: number }>();
       for (const r of data || []) {
-        const existing = stats.get(r.product_id) || { sum: 0, count: 0 };
+        const existing = stats.get(r?.product_id) || { sum: 0, count: 0 };
         existing.sum += r.rating;
         existing.count += 1;
-        stats.set(r.product_id, existing);
+        stats.set(r?.product_id, existing);
       }
       return stats;
     },
