@@ -44,6 +44,7 @@ import {
   Brain,
   Star,
   ListOrdered,
+  DollarSign,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
