@@ -10,7 +10,7 @@ import {
 import { Opportunity } from "@/types/opportunity";
 import { toast } from "sonner";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { exportToExcel } from "@/utils/excelUtils";
 
 interface DealsImportExportMenuProps {
   opportunities: Opportunity[];
@@ -43,11 +43,8 @@ export function DealsImportExportMenu({ opportunities }: DealsImportExportMenuPr
     toast.success(t("exportComplete"));
   };
 
-  const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Deals");
-    XLSX.writeFile(wb, `deals_${new Date().toISOString().split("T")[0]}.xlsx`);
+  const handleExportExcel = async () => {
+    await exportToExcel(exportData, "Deals", `deals_${new Date().toISOString().split("T")[0]}.xlsx`);
     toast.success(t("exportComplete"));
   };
 

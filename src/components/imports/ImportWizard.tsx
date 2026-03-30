@@ -23,7 +23,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { parseExcelFile } from "@/utils/excelUtils";
 
 interface ImportWizardProps {
   file: File;
@@ -149,76 +149,32 @@ export function ImportWizard({ file, importType, onClose, onComplete }: ImportWi
         });
       } else if (extension === "xlsx" || extension === "xls") {
         const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+        const result = await parseExcelFile(arrayBuffer);
         
-        // Try to find the header row by looking for non-empty content
-        const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
-        let headerRowIndex = 0;
-        
-        // Look for the first row with meaningful data (not all empty)
-        for (let r = range.s.r; r <= Math.min(range.e.r, 10); r++) {
-          let hasContent = false;
-          let contentCount = 0;
-          for (let c = range.s.c; c <= range.e.c; c++) {
-            const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
-            if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== "") {
-              hasContent = true;
-              contentCount++;
-            }
-          }
-          // Consider this the header row if it has at least 2 cells with content
-          if (hasContent && contentCount >= 2) {
-            headerRowIndex = r;
-            break;
-          }
-        }
-        
-        // Parse with header starting at detected row
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { 
-          defval: "",
-          range: headerRowIndex
-        });
-        
-        if (jsonData.length > 0) {
-          // Filter out columns that are empty or have names like __EMPTY
-          const allHeaders = Object.keys(jsonData[0]);
-          const validHeaders = allHeaders.filter(h => {
-            // Exclude __EMPTY columns and columns with no name
-            if (!h || h.startsWith("__EMPTY") || h.startsWith("_")) return false;
-            // Check if at least one row has data for this column
-            return jsonData.some(row => {
-              const val = row[h];
-              return val !== undefined && val !== null && String(val).trim() !== "";
-            });
-          });
-          
-          if (validHeaders.length === 0) {
-            toast.error("Não foram encontradas colunas válidas no ficheiro");
-            onClose();
-            return;
-          }
-          
-          // Create filtered rows with only valid headers
-          const filteredRows = jsonData.map(row => {
-            const filteredRow: Record<string, string> = {};
-            validHeaders.forEach(h => {
-              filteredRow[h] = String(row[h] || "").trim();
-            });
-            return filteredRow;
-          }).filter(row => {
-            // Filter out completely empty rows
-            return validHeaders.some(h => row[h] && row[h].trim() !== "");
-          });
-          
-          setParsedData({ headers: validHeaders, rows: filteredRows });
-          autoMapColumns(validHeaders);
-          setStep("mapping");
-        } else {
-          toast.error("Ficheiro vazio ou sem dados válidos");
+        if (result.headers.length === 0) {
+          toast.error("Não foram encontradas colunas válidas no ficheiro");
           onClose();
+          return;
         }
+
+        // Filter columns with at least one row of data
+        const validHeaders = result.headers.filter(h =>
+          result.rows.some(row => row[h]?.trim())
+        );
+
+        if (validHeaders.length === 0) {
+          toast.error("Não foram encontradas colunas válidas no ficheiro");
+          onClose();
+          return;
+        }
+
+        const filteredRows = result.rows.filter(row =>
+          validHeaders.some(h => row[h]?.trim())
+        );
+
+        setParsedData({ headers: validHeaders, rows: filteredRows });
+        autoMapColumns(validHeaders);
+        setStep("mapping");
       } else {
         toast.error("Formato de ficheiro não suportado");
         onClose();

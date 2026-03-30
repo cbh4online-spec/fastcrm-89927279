@@ -9,7 +9,7 @@ import { Loader2, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { parseExcelFile } from "@/utils/excelUtils";
 
 interface SupplierImportModalProps {
   open: boolean;
@@ -70,17 +70,11 @@ export function SupplierImportModal({ open, onOpenChange, workspaceId, onComplet
         },
       });
     } else {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
-        const parsed = json.map(validateRow);
-        setRows(parsed);
-        setStep("preview");
-      };
-      reader.readAsArrayBuffer(file);
+      const buffer = await file.arrayBuffer();
+      const result = await parseExcelFile(buffer);
+      const parsed = result.rows.map(validateRow);
+      setRows(parsed);
+      setStep("preview");
     }
   }, [t]);
 

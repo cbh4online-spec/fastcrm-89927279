@@ -6,7 +6,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { parseExcelFile } from "@/utils/excelUtils";
 
 import { IndustryModelStep } from "./steps/IndustryModelStep";
 import { ColumnMappingStep } from "./steps/ColumnMappingStep";
@@ -86,21 +86,10 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
         });
       } else if (extension === "xlsx" || extension === "xls") {
         const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: "" });
+        const result = await parseExcelFile(arrayBuffer);
         
-        if (jsonData.length > 0) {
-          const allHeaders = Object.keys(jsonData[0]);
-          const validHeaders = allHeaders.filter(h => !h.startsWith("__EMPTY") && !h.startsWith("_"));
-          const filteredRows = jsonData.map(row => {
-            const filteredRow: Record<string, string> = {};
-            validHeaders.forEach(h => { filteredRow[h] = String(row[h] || "").trim(); });
-            return filteredRow;
-          }).filter(row => validHeaders.some(h => row[h]?.trim()));
-          
-          processData(validHeaders, filteredRows);
+        if (result.headers.length > 0) {
+          processData(result.headers, result.rows);
         } else {
           toast.error("Ficheiro vazio");
           onClose();
