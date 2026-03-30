@@ -248,7 +248,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("helpdesk-canned",        "Respostas Rápidas",    "/dashboard/helpdesk/canned-responses",   Zap,         "suporte", { moduleSlug: "helpdesk" }),
   e("helpdesk-sla",            "Políticas SLA",        "/dashboard/helpdesk/sla-policies",       Clock,       "suporte", { moduleSlug: "helpdesk" }),
   e("helpdesk-automations",   "Automações",           "/dashboard/helpdesk/automations",        Zap,         "suporte", { moduleSlug: "helpdesk" }),
-  e("helpdesk-kb",             "Base de Conhecimento", "/dashboard/helpdesk/knowledge-base",     BookOpen,    "suporte", { moduleSlug: "helpdesk", isBeta: true }),
+  e("helpdesk-kb",             "Base de Conhecimento", "/dashboard/helpdesk/knowledge-base",     BookOpen,    "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-csat",           "Satisfação (CSAT)",    "/dashboard/helpdesk/csat",               Award,       "suporte", { moduleSlug: "helpdesk" }),
 
   // Client Tickets (B2B Portal)
   e("client-tickets",          "Tickets Clientes",     "/dashboard/tickets",                    Headphones,  "portal-b2b"),
