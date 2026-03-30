@@ -33,6 +33,7 @@ const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
 const PricingPage = lazy(() => import("@/pages/PricingPage"));
+const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 
@@ -44,6 +45,7 @@ export function DashboardCoreRoutes() {
       <Route path="/fastcrm" element={<FastCRMLanding />} />
       <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/changelog" element={<ChangelogPage />} />
       <Route path="/proposal/:id" element={<ProposalView />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
