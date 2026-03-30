@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BotTypeCard } from "./BotTypeCard";
-import { BotType, CreateBotData, useBots } from "@/hooks/useBots";
+import { BotType, CreateBotData, useBots, AGENT_ROLES } from "@/hooks/useBots";
+import { useAgentTeams } from "@/hooks/useAgentOperations";
 import { ArrowLeft, ArrowRight, Check, Bot, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAIProfiles } from "@/hooks/useAIProfiles";
@@ -39,6 +40,7 @@ export function BotWizard() {
   const { createBot } = useBots();
   const { profiles: aiProfiles } = useAIProfiles();
   const { knowledgeBases } = useKnowledgeBase();
+  const { teams } = useAgentTeams();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Partial<CreateBotData>>({
@@ -152,6 +154,42 @@ export function BotWizard() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Papel do Agente</Label>
+                <Select value={(form as any).role || ""} onValueChange={v => setField("role" as any, v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar papel..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGENT_ROLES.map(r => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {teams.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Equipa</Label>
+                  <Select value={(form as any).team_id || ""} onValueChange={v => setField("team_id" as any, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar equipa..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Especialização</Label>
+                <Input
+                  placeholder="Ex: E-commerce, SaaS B2B, Imobiliário..."
+                  value={(form as any).specialization || ""}
+                  onChange={e => setField("specialization" as any, e.target.value)}
+                />
               </div>
             </div>
           </div>
