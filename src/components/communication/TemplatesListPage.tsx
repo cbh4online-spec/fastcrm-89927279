@@ -72,6 +72,7 @@ import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavo
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RevenueAttributionDashboard } from './RevenueAttributionDashboard';
+import { useOptimizationRecommendations } from '@/hooks/useOptimizationEngine';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
