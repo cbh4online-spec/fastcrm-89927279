@@ -84,10 +84,10 @@ async function fetchAnalytics(workspaceId: string, productId?: string, daysInact
     }
   );
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err: any = await res.json().catch(() => ({}));
     throw new Error(err.error || "Erro ao calcular analytics");
   }
-  return res.json();
+  return res.json() as Promise<any>;
 }
 
 export function useProductAnalytics(workspaceId: string | undefined, daysInactive = 90) {
