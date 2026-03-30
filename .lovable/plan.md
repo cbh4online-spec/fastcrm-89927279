@@ -1,113 +1,95 @@
 
 
-# 3ª Vaga de Bibliotecas — Arsenal Completo
+# 4ª Vaga de Bibliotecas — Nível HubSpot
 
 ## Diagnóstico
 
-O documento lista ~70 packages novos. Cruzando com o `package.json` actual, **já existem**: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `exceljs`, `react-qr-code` (cobre `qrcode.react`), `cmdk`, `react-resizable-panels`, `sonner`, `vaul`, `@dnd-kit/*`, `@radix-ui/react-tooltip`, `dompurify`, `nanoid` (substitui `uuid`), `react-markdown` (substitui `marked`).
+Cruzando o documento com o `package.json` actual:
 
-**Packages a excluir** (redundantes ou cobertos):
-- `@supabase/realtime-js` — já incluído no `@supabase/supabase-js`
-- `qrcode.react` — já tens `react-qr-code`
-- `uuid` — já tens `nanoid` + `crypto.randomUUID()`
-- `xlsx-populate`/`exceljs` — já tens `exceljs`
-- `marked`/`markdown-it` — já tens `react-markdown`
-- `sanitize-html` — já tens `dompurify`
-- `nif-validator` — algoritmo trivial, implementar como utility
-- `otplib` — usado no backend, não no frontend
-- `react-beautiful-dnd`, `react-tooltip`, `cmdk`, `react-split-pane`, `sonner`, `vaul` — já existem equivalentes
-- `vitest`, `@testing-library/react`, `@testing-library/jest-dom` — já instalados
+**Já existem**: `autoprefixer`, `@sentry/react`, `@testing-library/user-event`, `msw`, `web-vitals`, `@react-pdf/renderer`, `file-saver`, `jszip`, `browser-image-compression`
 
-**Total real a instalar: ~50 packages**
+**A excluir**:
+- `@playwright/test` + `playwright` — E2E testing não corre no Lovable sandbox
+- `@storybook/*` + `chromatic` — Storybook não corre no Lovable preview
+- `mixpanel-browser`, `@amplitude/analytics-browser` — redundantes com PostHog
+- `@vercel/analytics` — não estamos na Vercel
+- `openai`, `stripe` (server-side), `resend` — SDKs backend, usar nas edge functions com Deno imports
+- `@googleapis/calendar` — backend SDK, não frontend
+- `postcss-nesting` — browsers modernos já suportam nativamente
+- `autoprefixer` — já instalado
 
-## Plano de Instalação (11 batches)
+**Total real a instalar: ~35 packages**
 
-### Batch 10 — Mapas e Calendário (9 packages)
+## Plano de Instalação (7 batches)
+
+### Batch 21 — Tiptap Extensions (10 packages)
 ```
-@react-google-maps/api @googlemaps/markerclusterer use-places-autocomplete
-@fullcalendar/react @fullcalendar/daygrid @fullcalendar/timegrid @fullcalendar/interaction @fullcalendar/list
-rrule
-```
-**Config**: Necessário `VITE_GOOGLE_MAPS_API_KEY` (publishable, codebase).
-
-### Batch 11 — Real-Time e Comunicação (4 packages)
-```
-react-use-websocket @emoji-mart/data @emoji-mart/react linkify-react
+@tiptap/extension-text-align @tiptap/extension-underline @tiptap/extension-text-style
+@tiptap/extension-color @tiptap/extension-highlight @tiptap/extension-typography
+@tiptap/extension-character-count @tiptap/extension-task-list @tiptap/extension-task-item
+@tiptap/extension-mention
 ```
 
-### Batch 12 — Visualizações Avançadas (6 packages)
+### Batch 22 — Tiptap Extensions cont. (5 packages)
 ```
-@nivo/line @nivo/bar @nivo/pie @nivo/sankey @nivo/funnel react-sparklines
-```
-**Nota**: `@nivo/heatmap` e `@nivo/treemap` verificar se já existem; se não, adicionar.
-
-### Batch 13 — Ficheiros e Export (5 packages)
-```
-file-saver @types/file-saver jszip browser-image-compression react-pdf @react-pdf/renderer
+@tiptap/extension-code-block-lowlight lowlight @tiptap/extension-youtube
+@tiptap/extension-subscript @tiptap/extension-superscript
 ```
 
-### Batch 14 — UI/UX Avançado (8 packages)
+### Batch 23 — Radix UI Extras (6 packages)
 ```
-react-loading-skeleton react-medium-image-zoom react-player react-copy-to-clipboard
-react-responsive react-window-infinite-loader @floating-ui/react react-wrap-balancer
+@radix-ui/react-toolbar @radix-ui/react-form @radix-ui/react-visually-hidden
+@radix-ui/react-portal @radix-ui/react-roving-focus @radix-ui/react-focus-scope
+```
+Excluir `@radix-ui/react-direction` — RTL não é prioritário.
+
+### Batch 24 — Testing (dev) (3 packages)
+```
+@vitest/coverage-v8 @vitest/ui @faker-js/faker happy-dom
 ```
 
-### Batch 15 — Segurança (2 packages)
+### Batch 25 — Analytics (2 packages)
 ```
-jose zxcvbn
+posthog-js react-ga4
+```
+Excluir Hotjar (privacy concerns com session recording).
+
+### Batch 26 — Developer Utilities (7 packages)
+```
+type-fest ts-pattern dayjs tailwind-variants @total-typescript/ts-reset neverthrow zod-form-data
 ```
 
-### Batch 16 — Estado e Performance (6 packages)
+### Batch 27 — Design System (4 packages)
 ```
-immer @tanstack/react-query-devtools p-queue superjson match-sorter lodash-es @types/lodash-es
-```
-
-### Batch 17 — Texto e Conteúdo (3 packages)
-```
-diff reading-time turndown
+tailwindcss-radix tailwindcss-container-queries @fontsource/inter @fontsource/jetbrains-mono
 ```
 
-### Batch 18 — Developer Experience (4 packages)
+### Batch 28 — Integrações frontend (1 package)
 ```
-@testing-library/user-event msw @sentry/react web-vitals
+ai
 ```
-**Config**: `VITE_SENTRY_DSN` necessário para Sentry.
-
-### Batch 19 — i18n e PWA (6 packages)
-```
-i18next-http-backend intl-messageformat countries-list vite-plugin-pwa workbox-window idb-keyval
-```
-
-### Batch 20 — CRM Específico (3 packages)
-```
-cron-parser iban fuse.js
-```
+Vercel AI SDK para streaming unificado.
 
 ## Integração Base Imediata
 
-Após instalação, criar wrappers/utilitários prontos a usar:
-
-1. **`src/lib/maps.ts`** — inicialização do Google Maps com API key
-2. **`src/utils/nif.ts`** — validador de NIF português (sem dependência externa)
-3. **`src/utils/iban.ts`** — wrapper de validação IBAN
-4. **`src/utils/image-compression.ts`** — wrapper de `browser-image-compression` com defaults do projecto
-5. **`src/lib/sentry.ts`** — inicialização do Sentry (condicional, só se DSN existir)
-6. **`src/components/ui/Skeleton.tsx`** — wrapper de `react-loading-skeleton` com estilos consistentes
-7. **Adicionar `ReactQueryDevtools`** ao `App.tsx` (só em dev)
-8. **Configurar `vite-plugin-pwa`** no `vite.config.ts` com manifest e registerType autoUpdate
+1. **Actualizar `RichTextEditor.tsx`** — adicionar todas as novas extensions Tiptap (underline, text-align, color, highlight, task lists, mentions, character count, youtube, code blocks)
+2. **Actualizar `tailwind.config.ts`** — adicionar plugins `tailwindcss-radix` e `tailwindcss-container-queries`
+3. **Importar fonts** em `src/main.tsx` — Inter 400/500/600/700 + JetBrains Mono 400
+4. **Criar `src/lib/posthog.ts`** — inicialização condicional com `VITE_POSTHOG_KEY`
+5. **Adicionar `@total-typescript/ts-reset`** ao `tsconfig.json`
 
 ## Critérios de Aceitação
 
-- ~50 packages instalados sem conflitos
+- ~35 packages instalados sem conflitos
 - Build sem erros
-- Utilitários base criados e prontos a importar
-- Google Maps, Sentry, PWA configurados (aguardando keys quando necessário)
-- ReactQueryDevtools visível em development
+- RichTextEditor com toolbar completa (15 Tiptap extensions)
+- Tailwind plugins configurados
+- Fonts Inter e JetBrains Mono disponíveis
+- PostHog e GA4 prontos (aguardando keys)
 
 ## Riscos
 
-- **Bundle size**: ~50 packages de uma vez pode impactar build time. Todos são tree-shakeable.
-- **Google Maps API key**: sem ela, mapas não funcionam — pode ser configurada depois.
-- **Sentry DSN**: sem ele, o Sentry simplesmente não inicializa (graceful).
-- **FullCalendar**: é pesado (~200KB); considerar lazy loading do módulo Calendário.
+- **Tiptap extensions**: 15 extensions de uma vez pode causar conflitos de versão — todas devem ser da mesma major version (^3.21.0)
+- **Bundle size**: Fonts adicionam ~100KB mas eliminam CDN dependency
+- **PostHog/GA4**: Sem keys, simplesmente não inicializam (graceful)
 
