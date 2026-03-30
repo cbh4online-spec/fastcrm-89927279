@@ -257,6 +257,11 @@ export default function AgentOperationsPage() {
             <AgentTeamManager />
           </TabsContent>
 
+          {/* Performance Tab */}
+          <TabsContent value="performance">
+            <AgentPerformancePanel />
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings">
             <AgentOpsSettings />

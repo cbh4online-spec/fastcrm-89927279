@@ -157,6 +157,57 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
         <NextBestActionsPanel />
       </motion.div>
 
+      {/* Agent Activity Section */}
+      {(activeWorkItems.length > 0 || recentHandoffs.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" />
+            <h2 className="text-lg font-bold">Agentes Ativos</h2>
+          </div>
+
+          {activeWorkItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Work Items em Progresso</p>
+              {activeWorkItems.slice(0, 5).map((wi) => (
+                <div key={wi.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                  <Bot className="w-4 h-4 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{getBotName(wi.bot_id)}</p>
+                    <p className="text-xs text-muted-foreground">{wi.work_type} · {wi.entity_type}</p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px]">Em progresso</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {recentHandoffs.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Handoffs Pendentes</p>
+              {recentHandoffs.slice(0, 3).map((h) => (
+                <div key={h.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/50 border border-border">
+                  <ArrowRightLeft className="w-4 h-4 text-amber-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {getBotName(h.from_bot_id)} → {h.to_bot_id ? getBotName(h.to_bot_id) : "Humano"}
+                    </p>
+                    {h.trigger_reason && <p className="text-xs text-muted-foreground truncate">{h.trigger_reason}</p>}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    {formatDistanceToNow(new Date(h.created_at), { addSuffix: true, locale: pt })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
+
       {/* Block Editor drawer */}
       {editingBlock && (
         <ContextBlockEditor
