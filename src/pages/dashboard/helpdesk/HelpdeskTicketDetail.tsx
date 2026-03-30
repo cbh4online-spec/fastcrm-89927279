@@ -32,12 +32,14 @@ export default function HelpdeskTicketDetail() {
 
   if (!ticket) {
     return (
+      <DashboardLayout>
       <div className="p-6 text-center">
         <p className="text-muted-foreground">Ticket não encontrado</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate("/dashboard/helpdesk/tickets")}>
           Voltar à lista
         </Button>
       </div>
+      </DashboardLayout>
     );
   }
 
