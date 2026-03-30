@@ -28,6 +28,18 @@ const STEP_TYPE_ICONS: Record<string, string> = {
   upsell: "🚀",
   testimonials: "⭐",
   video: "🎬",
+  downsell: "📉",
+  order_bump: "🎁",
+  squeeze: "🔒",
+  webinar: "🎥",
+  sales_letter: "📝",
+  application: "📄",
+  booking: "📅",
+  bridge: "🌉",
+  countdown: "⏰",
+  tripwire: "⚡",
+  membership: "🔑",
+  custom: "🧩",
 };
 
 const STEP_TYPE_COLORS: Record<string, string> = {
@@ -38,7 +50,61 @@ const STEP_TYPE_COLORS: Record<string, string> = {
   testimonials: "border-l-yellow-500",
   video: "border-l-rose-500",
   upsell: "border-l-rose-500",
+  downsell: "border-l-orange-500",
+  order_bump: "border-l-pink-500",
+  squeeze: "border-l-indigo-500",
+  webinar: "border-l-cyan-500",
+  sales_letter: "border-l-teal-500",
+  application: "border-l-slate-500",
+  booking: "border-l-sky-500",
+  bridge: "border-l-lime-500",
+  countdown: "border-l-red-500",
+  tripwire: "border-l-yellow-600",
+  membership: "border-l-purple-500",
+  custom: "border-l-gray-500",
 };
+
+const STEP_TYPE_GROUPS = [
+  {
+    label: "Captura",
+    types: [
+      { value: "optin", label: "Opt-in" },
+      { value: "squeeze", label: "Squeeze Page" },
+      { value: "application", label: "Aplicação / Candidatura" },
+      { value: "booking", label: "Agendamento" },
+    ],
+  },
+  {
+    label: "Venda",
+    types: [
+      { value: "checkout", label: "Checkout" },
+      { value: "order_bump", label: "Order Bump" },
+      { value: "upsell", label: "Upsell" },
+      { value: "downsell", label: "Downsell" },
+      { value: "tripwire", label: "Tripwire" },
+      { value: "sales_letter", label: "Sales Letter" },
+    ],
+  },
+  {
+    label: "Conteúdo",
+    types: [
+      { value: "page", label: "Página" },
+      { value: "video", label: "Vídeo" },
+      { value: "testimonials", label: "Testemunhos" },
+      { value: "webinar", label: "Webinar" },
+      { value: "bridge", label: "Bridge / Pré-sell" },
+      { value: "countdown", label: "Countdown / Escassez" },
+    ],
+  },
+  {
+    label: "Outros",
+    types: [
+      { value: "membership", label: "Membership" },
+      { value: "thankyou", label: "Thank You" },
+      { value: "custom", label: "Custom" },
+    ],
+  },
+];
 
 interface FunnelStepsTabProps {
   funnelId: string;
@@ -343,14 +409,19 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
               <Label>Tipo</Label>
               <Select value={newStepType} onValueChange={setNewStepType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="page">🏠 Página</SelectItem>
-                  <SelectItem value="optin">📋 Opt-in</SelectItem>
-                  <SelectItem value="checkout">💳 Checkout</SelectItem>
-                  <SelectItem value="thankyou">✅ Thank You</SelectItem>
-                  <SelectItem value="upsell">🚀 Upsell</SelectItem>
-                  <SelectItem value="testimonials">⭐ Testemunhos</SelectItem>
-                  <SelectItem value="video">🎬 Vídeo</SelectItem>
+                <SelectContent className="max-h-80">
+                  {STEP_TYPE_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {group.label}
+                      </div>
+                      {group.types.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {STEP_TYPE_ICONS[t.value] || "📄"} {t.label}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
