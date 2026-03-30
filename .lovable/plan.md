@@ -1,170 +1,143 @@
 
 
-## Autonomous Workspace Engine — Plano de Execução
+## Enterprise Memory & Learning Layer — Plano de Execução
 
 ### Diagnóstico
 
 **Infraestrutura existente reutilizada:**
-- `system_metrics_daily` + `useSystemMetrics` — health score básico já calculado
-- `action_executions` + `process-action-execution` — motor de execução completo
-- `business_objectives` + `objective_plans` — objetivos com planos e progresso
-- `kernel_events` + `emitKernelEvent` — barramento de eventos consolidado
-- `agent_work_items` + `agent_handoffs` — orquestração multi-agente
-- `next_best_actions` + `optimization_recommendations` — sinais operacionais
-- `ContextOSHub` — hub estratégico com context score
-- `AIRoutes.tsx` — roteamento centralizado
+- `kernel_events` — matéria-prima para extração de memórias
+- `action_executions` — outcomes de ações para correlacionar com memórias
+- `business_objectives` + `objective_action_links` — resultados por objetivo
+- `agent_work_items` + `agent_handoffs` — performance por agente
+- `workspace_operating_state` + `workspace_missions` — contexto operacional
+- `next_best_actions` + `optimization_recommendations` — consumidores de memória
+- `process-workspace-engine` — pode invocar extração de memória
+- `emitKernelEvent` — padrão de eventos consolidado
 
-**Nada disto existe ainda:**
-- `workspace_operating_state` — estado consolidado do workspace
-- `workspace_missions` — unidades operacionais transversais
-- `mission_links` — ligação missão → execução
-- `workspace_alerts` — alertas operacionais
-- `workspace_engine_settings` — configuração do motor
-- Signal aggregator + health engine
-- Mission generator + executor
-- Workspace Ops UI + Executive Brief
+**Nada disto existe ainda** — sistema de memória totalmente novo.
 
 ---
 
-### Migration SQL (1 migration, 5 tabelas)
+### Migration SQL (1 migration, 4 tabelas)
 
-**`workspace_operating_state`:**
-- `id` UUID PK, `workspace_id` UUID UNIQUE NOT NULL
-- `health_score` INT DEFAULT 50, `revenue_health` INT DEFAULT 50, `pipeline_health` INT DEFAULT 50
-- `execution_health` INT DEFAULT 50, `response_health` INT DEFAULT 50, `context_health` INT DEFAULT 50, `automation_health` INT DEFAULT 50
-- `risk_level` TEXT DEFAULT 'medium' (low/medium/high/critical)
-- `primary_focus` TEXT, `active_missions_count` INT DEFAULT 0, `blockers_count` INT DEFAULT 0
-- `last_recalculated_at` TIMESTAMPTZ, `created_at`, `updated_at`
+**`workspace_memories`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL
+- `memory_type` TEXT NOT NULL (success_pattern, failure_pattern, execution_lesson, routing_lesson, conversion_pattern, recovery_pattern, context_gap_pattern, agent_performance_pattern)
+- `title` TEXT NOT NULL, `summary` TEXT
+- `source_type` TEXT, `source_id` TEXT, `entity_type` TEXT, `entity_id` TEXT
+- `context_snapshot_json` JSONB DEFAULT '{}', `outcome_snapshot_json` JSONB DEFAULT '{}'
+- `confidence` NUMERIC(3,2) DEFAULT 0.5, `importance_score` INT DEFAULT 50, `freshness_score` INT DEFAULT 100
+- `validity_status` TEXT DEFAULT 'valid' (valid, aging, stale, contradicted, archived)
+- `reuse_count` INT DEFAULT 0, `last_used_at` TIMESTAMPTZ
+- `created_at`, `updated_at`
+- Index: `(workspace_id, memory_type, validity_status)`
 
-**`workspace_missions`:**
-- `id` UUID PK, `workspace_id`, `title` TEXT NOT NULL, `description` TEXT
-- `mission_type` TEXT NOT NULL (recover_revenue, unblock_pipeline, reduce_execution_backlog, escalate_human_attention, refresh_context, stabilize_automation, improve_response_time, close_high_value_opportunity)
-- `status` TEXT DEFAULT 'pending' (pending, active, completed, cancelled)
-- `priority` TEXT DEFAULT 'medium', `impact_estimate` NUMERIC(12,2)
-- `urgency` TEXT DEFAULT 'normal' (low, normal, high, critical)
-- `owner_type` TEXT, `owner_id` UUID, `source_type` TEXT, `source_id` TEXT
-- `created_at`, `updated_at`, `started_at` TIMESTAMPTZ, `completed_at` TIMESTAMPTZ
+**`workspace_memory_links`:**
+- `id` UUID PK, `workspace_id`, `memory_id` UUID FK → workspace_memories
+- `linked_type` TEXT NOT NULL, `linked_id` UUID NOT NULL, `created_at`
 
-**`mission_links`:**
-- `id` UUID PK, `workspace_id`, `mission_id` UUID FK
-- `linked_type` TEXT NOT NULL (task, action_execution, objective, next_best_action, bot, handoff, contact, opportunity, cart)
-- `linked_id` UUID NOT NULL, `created_at`
-
-**`workspace_alerts`:**
+**`workspace_learning_cycles`:**
 - `id` UUID PK, `workspace_id`
-- `alert_type` TEXT NOT NULL (execution_backlog, revenue_drop, no_response_risk, high_value_stall, automation_failure, context_stale, human_attention_required)
-- `severity` TEXT DEFAULT 'medium' (low, medium, high, critical)
-- `title` TEXT, `description` TEXT, `status` TEXT DEFAULT 'open' (open, acknowledged, resolved)
-- `related_type` TEXT, `related_id` UUID
-- `created_at`, `updated_at`, `resolved_at` TIMESTAMPTZ
+- `cycle_type` TEXT NOT NULL (daily, weekly, event_triggered)
+- `status` TEXT DEFAULT 'pending' (pending, running, completed, failed)
+- `summary` TEXT
+- `memories_created` INT DEFAULT 0, `memories_updated` INT DEFAULT 0
+- `started_at`, `completed_at`, `created_at`, `updated_at`
 
-**`workspace_engine_settings`:**
+**`memory_usage_logs`:**
+- `id` UUID PK, `workspace_id`, `memory_id` UUID FK
+- `used_by_type` TEXT, `used_by_id` TEXT
+- `outcome_type` TEXT, `outcome_id` TEXT, `outcome_quality` TEXT (positive, neutral, negative)
+- `created_at`
+
+**`memory_settings`:**
 - `id` UUID PK, `workspace_id` UNIQUE
 - `is_enabled` BOOLEAN DEFAULT false
-- `auto_mission_generation` BOOLEAN DEFAULT false, `auto_escalation_enabled` BOOLEAN DEFAULT true
-- `auto_brief_enabled` BOOLEAN DEFAULT true, `refresh_interval_minutes` INT DEFAULT 60
-- `risk_alert_threshold` TEXT DEFAULT 'high'
+- `auto_extract_enabled` BOOLEAN DEFAULT false
+- `min_confidence_threshold` NUMERIC(3,2) DEFAULT 0.3
+- `max_memories_per_query` INT DEFAULT 5
+- `memory_decay_days` INT DEFAULT 90
+- `financial_weight_multiplier` NUMERIC(3,2) DEFAULT 1.5
 - `created_at`, `updated_at`
 
-RLS: workspace members SELECT; service_role INSERT/UPDATE.
+RLS: workspace members SELECT; service_role INSERT/UPDATE/DELETE. Realtime on `workspace_memories`.
 
 ---
 
-### Ficheiros a criar (5)
+### Ficheiros a criar (4)
 
-#### 1. `supabase/functions/process-workspace-engine/index.ts`
+#### 1. `supabase/functions/process-workspace-memory/index.ts`
 Edge function central que:
-1. Agrega sinais: query `action_executions` (pending/failed counts), `business_objectives` (at_risk count), `next_best_actions` (open count), `agent_work_items` (pending/failed), `tasks` (overdue), context drift score
-2. Calcula health sub-scores (revenue, pipeline, execution, response, context, automation) — cada 0-100
-3. Calcula `health_score` global (média ponderada)
-4. Classifica `risk_level` baseado no score global
-5. Upsert em `workspace_operating_state`
-6. Detecta condições de alerta → insere em `workspace_alerts`
-7. Se `auto_mission_generation` activo: identifica missões prioritárias baseadas nos sinais (ex: execution_backlog alto → missão `reduce_execution_backlog`), evita duplicados por mission_type+status
-8. Emite kernel events: `WORKSPACE.STATE_RECALCULATED`, `WORKSPACE.ALERT_CREATED`, `WORKSPACE.MISSION_CREATED`
+1. Recebe `{ workspace_id }` ou `{ workspace_id, event_type_filter }`
+2. Lê últimos kernel events (24h ou desde último ciclo)
+3. Agrupa eventos por entidade e tipo (TASK.*, ACTION.*, AGENT.*, OBJECTIVE.*)
+4. Usa Gemini Flash para extrair padrões: o que funcionou, o que falhou, lições
+5. Cria/atualiza `workspace_memories` — se padrão semelhante existe, reforça `confidence` e `reuse_count`
+6. Aplica decay: memórias com `updated_at` > `memory_decay_days` passam a `aging` → `stale`
+7. Regista ciclo em `workspace_learning_cycles`
+8. Emite `MEMORY.CREATED` / `MEMORY.UPDATED` / `LEARNING.CYCLE_COMPLETED`
 
-#### 2. `supabase/functions/process-workspace-missions/index.ts`
-Edge function que:
-1. Recebe `{ workspace_id, mission_id }` — processa missão específica
-2. Lê missão + sinais do workspace
-3. Baseado no `mission_type`, cria `action_executions` e `mission_links` (ex: `reduce_execution_backlog` → retry failed actions; `recover_revenue` → create recovery tasks)
-4. Atualiza missão para `active`
-5. Emite `WORKSPACE.MISSION_CREATED` / `WORKSPACE.MISSION_COMPLETED`
+#### 2. `src/hooks/useWorkspaceMemory.ts`
+- `useWorkspaceMemories(filters?)` — lista com type/validity filter + realtime
+- `useMemoryStats()` — KPIs: total, by type, avg confidence, top patterns
+- `useMemorySettings()` — read/upsert settings
+- `useTriggerLearningCycle()` — invoca `process-workspace-memory`
+- `useLearningCycles()` — lista ciclos com status
+- `useLogMemoryUsage()` — mutation para registar uso + feedback
 
-#### 3. `src/hooks/useWorkspaceEngine.ts`
-- `useWorkspaceState()` — query `workspace_operating_state` com realtime
-- `useWorkspaceMissions(filters?)` — lista missões com status filter
-- `useWorkspaceAlerts()` — lista alertas open/acknowledged
-- `useWorkspaceEngineSettings()` — read/upsert settings
-- `useRecalculateWorkspace()` — invoca `process-workspace-engine`
-- `useExecuteMission()` — invoca `process-workspace-missions`
-- `useResolveMission()` — marca missão completed
-- `useResolveAlert()` — marca alerta resolved
-- `useWorkspaceStats()` — KPIs: health, missions active, alerts open, blockers
+#### 3. `src/pages/MemoryCenterPage.tsx`
+Rota: `/dashboard/memory`
+- KPIs: memórias ativas, confiança média, padrões de sucesso vs falha, ciclos completados
+- Lista filtrada por: tipo, validity, importance, recency
+- Cada memória: título, summary, type badge, confidence bar, freshness, reuse count, validity status
+- Secção "Padrões de Sucesso" (top 5 por confidence + importance)
+- Secção "Padrões de Falha" (top 5 failure_pattern)
+- Secção "Lições Recentes" (últimas 10 criadas)
+- Botão "Iniciar Ciclo de Aprendizagem"
+- Settings panel (toggles auto_extract, decay days, confidence threshold)
 
-#### 4. `src/pages/WorkspaceOpsPage.tsx`
-Rota: `/dashboard/workspace-ops`
-- Health score global (gauge/circle) + sub-scores (6 barras)
-- Risk level badge
-- Primary focus card
-- Missões ativas (cards com título, tipo, priority, impact, botão executar/concluir)
-- Alertas abertos (lista com severity badges, botão acknowledge/resolve)
-- Blockers count + top blockers
-- Ações críticas pendentes (últimas 5 action_executions failed)
-- Botão "Recalcular Estado"
-- Settings panel (toggles auto_mission, auto_escalation, refresh interval)
-
-#### 5. `src/components/workspace-ops/WorkspaceExecutiveBrief.tsx`
-Componente integrado na WorkspaceOpsPage:
-- Secção "A correr bem" — sub-scores >= 70
-- Secção "Em risco" — sub-scores < 50
-- Secção "Requer ação humana" — alertas severity high/critical
-- Secção "Maior alavanca" — missão com maior impact_estimate
-- Secção "Executado automaticamente" — action_executions completed today
-- Secção "Bloqueado" — missions/alerts sem resolução > 48h
+#### 4. `src/components/workspace-ops/WorkspaceLearningBrief.tsx`
+Componente integrado na MemoryCenterPage:
+- "O que aprendemos este mês" — memórias criadas no período
+- "Padrões que ganharam força" — confidence subiu
+- "Padrões obsoletos" — validity = stale/contradicted
+- "Alta confiança" — top por confidence
+- "Baixa confiança" — áreas onde o sistema ainda opera com pouca evidência
 
 ---
 
 ### Ficheiros a alterar (1)
 
-#### 6. `src/routes/AIRoutes.tsx`
-- Adicionar lazy import + rota: `/dashboard/workspace-ops` → `WorkspaceOpsPage`
+#### 5. `src/routes/AIRoutes.tsx`
+- Adicionar lazy import + rota: `/dashboard/memory` → `MemoryCenterPage`
 
 ---
 
 ### Fluxo
 
 ```text
-process-workspace-engine (periódico ou manual)
+Kernel Events (contínuo)
   │
-  ├─ Agrega sinais de todos os módulos
-  ├─ Calcula health_score + sub-scores
-  ├─ Upsert workspace_operating_state
-  ├─ Detecta alertas → workspace_alerts
-  ├─ Gera missões automáticas (se enabled)
-  │   └─ workspace_missions (pending)
-  └─ Emite WORKSPACE.STATE_RECALCULATED
-  
-process-workspace-missions (por missão)
-  │
-  ├─ Lê missão + contexto
-  ├─ Cria action_executions + mission_links
-  ├─ Marca missão active
-  └─ Emite WORKSPACE.MISSION_CREATED
+  └─ process-workspace-memory (periódico ou manual)
+      ├─ Lê eventos 24h
+      ├─ Agrupa por entidade/tipo
+      ├─ Gemini Flash extrai padrões
+      ├─ Cria/reforça workspace_memories
+      ├─ Aplica decay a memórias antigas
+      ├─ Regista learning_cycle
+      └─ Emite MEMORY.* events
 
-WorkspaceOpsPage (UI)
-  │
-  ├─ Health gauge + sub-scores
-  ├─ Missões ativas
-  ├─ Alertas
-  ├─ Executive Brief
-  └─ Settings
+Consumidores (future integration points):
+  ├─ Command Center → retrieve memories por query
+  ├─ NBA/Optimization → boost actions com memory support
+  ├─ Agent Router → prefer agents com success patterns
+  └─ Objective Planning → avoid failed strategies
 ```
 
 ### Compatibilidade
-- Reutiliza `action_executions` com `source_type: 'workspace_mission'`
-- Reutiliza `kernel_events` para todos os eventos `WORKSPACE.*`
-- Não altera nenhuma tabela existente
-- Não duplica centros de controlo — vive em `/dashboard/workspace-ops` como vista operacional transversal
-- Health engine agrega dados de tabelas existentes sem modificá-las
+- Reutiliza `kernel_events` como fonte — sem alterar tabelas existentes
+- Reutiliza `emitKernelEvent` para eventos `MEMORY.*`
+- Não duplica centros de controlo — vive em `/dashboard/memory`
+- Memory retrieval preparado para integração futura com Command Center e NBA
+- Decay automático evita acumulação de memórias obsoletas
 
