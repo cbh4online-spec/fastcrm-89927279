@@ -1,91 +1,88 @@
 
 
-# Gestão de Páginas Legais no Backoffice
+# Expandir Tipos de Step nos Funis
 
 ## Diagnóstico
 
-Actualmente, o conteúdo das 4 páginas legais (Privacidade, Termos, RGPD, Cookies) está **hardcoded em TSX**. O backoffice RGPD só gere dados da empresa (nome, NIF, morada, emails). Não existe forma de editar o texto das páginas sem alterar código.
+Actualmente existem apenas **7 tipos de step**: Página, Opt-in, Checkout, Thank You, Upsell, Testemunhos e Vídeo. Faltam tipos essenciais do mercado (downsell, squeeze, webinar, order bump, etc.) e não há possibilidade de criar tipos personalizados.
 
-## Abordagem
+## Plano
 
-Armazenar o conteúdo de cada página legal como JSON na tabela `admin_settings` (já existente, com RLS para super_admin). Cada página terá uma chave (ex: `legal_page_privacy`) com um array de secções editáveis.
+### 1. Expandir tipos de step disponíveis
 
-### Estrutura de dados
+Adicionar os tipos em falta ao sistema (select de criação, ícones, cores, editor, renderização pública):
 
-```json
-{
-  "title": "Política de Privacidade",
-  "description": "Meta description...",
-  "lastUpdated": "2026-03-30",
-  "sections": [
-    { "title": "1. Responsável pelo Tratamento", "content": "O responsável..." },
-    { "title": "2. Dados Recolhidos", "content": "Recolhemos..." }
-  ]
-}
-```
+| Tipo | Chave | Ícone | Descrição |
+|---|---|---|---|
+| **Downsell** | `downsell` | 📉 | Oferta alternativa mais acessível |
+| **Order Bump** | `order_bump` | 🎁 | Adição rápida pré-checkout |
+| **Squeeze Page** | `squeeze` | 🔒 | Captura agressiva, sem navegação |
+| **Webinar** | `webinar` | 🎥 | Registo/replay de webinar |
+| **Sales Letter** | `sales_letter` | 📝 | Carta de vendas longa |
+| **Aplicação/Candidatura** | `application` | 📄 | Formulário de qualificação |
+| **Agendamento** | `booking` | 📅 | Integração com booking pages |
+| **Bridging/Pré-sell** | `bridge` | 🌉 | Página de aquecimento entre anúncio e oferta |
+| **Countdown/Escassez** | `countdown` | ⏰ | Página com timer de urgência |
+| **Tripwire** | `tripwire` | ⚡ | Oferta de baixo valor para converter lead |
+| **Membership** | `membership` | 🔑 | Acesso a área de membros |
+| **Custom** | `custom` | 🧩 | Tipo personalizado definido pelo utilizador |
 
-## Plano de Implementação
-
-### 1. Hook `useLegalPageContent`
-- Leitura/escrita de conteúdo de página legal em `admin_settings`
-- Chaves: `legal_page_privacy`, `legal_page_terms`, `legal_page_gdpr`, `legal_page_cookies`
-- Inicialização automática com o conteúdo actual hardcoded como default
-
-### 2. Hook `usePublicLegalPage`
-- Versão pública (sem autenticação) para as páginas front-end
-- Fallback para defaults hardcoded se não existir na DB
-- Necessita RLS `SELECT` para anon/public na `admin_settings` filtrado por chave `legal_page_*`, ou usar edge function
-
-**Nota importante**: a tabela `admin_settings` tem RLS restrito a super_admin. Para as páginas públicas lerem o conteúdo, criar uma **database function `SECURITY DEFINER`** que retorna apenas as chaves `legal_page_%` sem exigir autenticação.
-
-### 3. Componente `LegalPageEditor`
-- Interface no backoffice com tabs para cada página (Privacidade, Termos, RGPD, Cookies)
-- Cada tab mostra lista de secções editáveis (título + textarea com conteúdo)
-- Botões para adicionar/remover/reordenar secções (drag ou setas)
-- Campo para título da página, meta description e data de última actualização
-- Botão guardar com preview
-- Suporte para variáveis dinâmicas: `{{company_name}}`, `{{email_dpo}}`, `{{email_general}}`, `{{address}}`, `{{nif}}`, `{{phone}}` — substituídas automaticamente na renderização pública
-
-### 4. Expandir GDPRBackofficePage
-- Adicionar tabs: "Dados da Empresa" (actual) + "Privacidade" + "Termos" + "RGPD" + "Cookies"
-- Cada tab legal usa o `LegalPageEditor`
-
-### 5. Actualizar páginas públicas
-- `PrivacyPolicyPage`, `TermsOfUsePage`, `GDPRPage`, `CookiePolicyPage` passam a ler conteúdo da DB via `usePublicLegalPage`
-- Substituem variáveis `{{company_name}}` etc. pelos dados reais
-- Mantêm o layout actual (`LegalPageLayout`) mas o conteúdo vem da DB
-- Fallback para conteúdo hardcoded actual se DB vazio
-
-### 6. Migration: função pública de leitura
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_legal_page_content(page_key text)
-RETURNS jsonb
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT value FROM admin_settings WHERE key = page_key AND key LIKE 'legal_page_%'
-$$;
-```
-
-## Ficheiros
+### 2. Ficheiros a alterar
 
 | Ficheiro | Alteração |
 |---|---|
-| `supabase/migrations/new` | Função `get_legal_page_content` |
-| `src/modules/growth-seo/hooks/useLegalPageContent.ts` | Novo — CRUD admin |
-| `src/modules/growth-seo/hooks/usePublicLegalPage.ts` | Novo — leitura pública |
-| `src/modules/growth-seo/components/admin/LegalPageEditor.tsx` | Novo — editor de secções |
-| `src/modules/growth-seo/pages/GDPRBackofficePage.tsx` | Expandir com tabs por página |
-| `src/modules/growth-seo/pages/PrivacyPolicyPage.tsx` | Ler conteúdo da DB |
-| `src/modules/growth-seo/pages/TermsOfUsePage.tsx` | Ler conteúdo da DB |
-| `src/modules/growth-seo/pages/GDPRPage.tsx` | Ler conteúdo da DB |
-| `src/modules/growth-seo/pages/CookiePolicyPage.tsx` | Ler conteúdo da DB |
-| `src/modules/growth-seo/index.ts` | Exportar novos hooks |
+| `src/components/funnels/tabs/FunnelStepsTab.tsx` | Expandir `STEP_TYPE_ICONS`, `STEP_TYPE_COLORS` e o `<Select>` com todos os novos tipos; agrupar por categoria (Captura, Venda, Pós-venda, Conteúdo, Outros) |
+| `src/components/funnels/FunnelStepEditor.tsx` | Expandir `AI_SUGGESTIONS` com prompts para os novos tipos; adicionar campos específicos (ex: countdown config, booking link, membership URL) |
+| `src/pages/PublicFunnelPage.tsx` | Expandir `STEP_TYPE_ICONS` e renderização para novos tipos (countdown timer, formulário de aplicação, embed de webinar, etc.) |
+| `src/components/funnels/FunnelsList.tsx` | Sem alteração (já usa `step_type` genérico) |
 
-## Critérios de Aceitação
-- Super admin pode editar título, descrição, data e secções de cada página legal
-- Variáveis dinâmicas (empresa, emails) são substituídas na renderização
-- Páginas públicas mostram conteúdo da DB com fallback para o actual
-- Conteúdo inicial pré-populado com o texto hardcoded existente
+### 3. Campos específicos por tipo no editor
+
+- **countdown**: data/hora alvo, texto expirado, acção ao expirar (redirecionar ou esconder)
+- **webinar**: URL do vídeo, data do evento, formulário de registo
+- **booking**: link para booking page existente (integração com `booking_pages`)
+- **application**: campos customizados de formulário (reutilizar lógica do optin)
+- **squeeze**: igual ao optin mas com flag `hide_navigation = true`
+- **bridge**: igual a página mas com CTA pré-configurado
+- **membership**: URL de acesso, instruções
+- **custom**: nome do tipo personalizável, campos livres
+
+### 4. Agrupamento visual no selector
+
+```text
+── Captura ──
+  📋 Opt-in
+  🔒 Squeeze Page
+  📄 Aplicação/Candidatura
+  📅 Agendamento
+
+── Venda ──
+  💳 Checkout
+  🎁 Order Bump
+  🚀 Upsell
+  📉 Downsell
+  ⚡ Tripwire
+  📝 Sales Letter
+
+── Conteúdo ──
+  🏠 Página
+  🎬 Vídeo
+  ⭐ Testemunhos
+  🎥 Webinar
+  🌉 Bridge/Pré-sell
+  ⏰ Countdown
+
+── Outros ──
+  🔑 Membership
+  ✅ Thank You
+  🧩 Custom
+```
+
+### Critérios de aceitação
+- Todos os novos tipos aparecem no selector agrupados por categoria
+- Cada tipo tem ícone, cor e sugestões AI dedicadas
+- Campos específicos (countdown, booking, etc.) aparecem condicionalmente no editor
+- Tipo "Custom" permite nome livre
+- Renderização pública suporta todos os novos tipos
+- Sem alteração à base de dados (step_type já é text livre)
 
