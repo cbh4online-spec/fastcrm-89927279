@@ -590,6 +590,16 @@ export function TemplatesListPage() {
                                   {template.isDynamic && (
                                     <Zap className="h-3.5 w-3.5 text-amber-500" />
                                   )}
+                                  {templatesWithOptRecs.has(template.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Otimização disponível</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
                                 </CardTitle>
                                 <p className="text-xs text-muted-foreground">
                                   {CHANNEL_LABELS[template.channel]} • {TONE_LABELS[template.tone]}
