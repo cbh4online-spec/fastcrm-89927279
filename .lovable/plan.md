@@ -1,165 +1,158 @@
 
 
-## Camada de Execução Operacional — Plano de Execução
+## Business Autopilot por Objetivos — Plano de Execução
 
 ### Diagnóstico
 
-**Infraestrutura existente:**
-- `CommandQuickActions` — executa ações inline (create_task, schedule_meeting, create_followup) via `useCreateTask`, sem persistência de execução
-- `ai-command-orchestrator` — devolve `suggested_actions` com tipos: navigate, create_task, send_email, schedule_meeting, generate_report, create_followup, analyze_deeper, export_pdf
-- `NextBestActionsPanel` — mostra NBAs com act/dismiss mas sem execução real (apenas marca status)
-- `optimization_recommendations` — modelo similar com apply/dismiss
-- `emitKernelEvent` / `kernel-ingest-event` — padrão consolidado
-- `useCreateTask` — mutation existente para criação de tarefas
-- Nenhuma tabela `action_executions` existe ainda
+**Infraestrutura existente reutilizada:**
+- `action_executions` + `process-action-execution` — motor de execução com handlers (create_task, enroll_in_sequence, etc.)
+- `next_best_actions` + `useNextBestActions` — recomendações priorizadas com act/dismiss
+- `kernel_events` + `emitKernelEvent` — padrão de eventos consolidado
+- `ContextOSHub` — hub estratégico com NextBestActionsPanel integrado
+- `useCreateTask` — mutation para criação de tarefas
+- `optimization_recommendations` — modelo de recomendações similar
+- `AIRoutes.tsx` — roteamento centralizado para módulos AI/ops
 
-**O que falta:**
-1. `action_executions` — tabela de registo e estado de execuções
-2. `action_execution_settings` — config auto-execução por workspace
-3. `action_approvals` — aprovação humana para ações sensíveis
-4. Edge function `process-action-execution` — motor de execução
-5. Refactor de `CommandQuickActions` para usar execuções persistidas
-6. Integração NBA → execução
-7. UI de histórico de execuções
-8. Kernel events de lifecycle
+**O que será criado:**
+1. 4 tabelas: `business_objectives`, `objective_metrics`, `objective_plans`, `objective_action_links`, `objective_settings`
+2. 3 edge functions: `generate-objective-plan`, `process-objective-plan`, `recalculate-objective-progress`
+3. 1 hook: `useBusinessObjectives.ts`
+4. 2 componentes UI: `ObjectiveCenterPage.tsx`, `ObjectiveDetail.tsx`
+5. 1 rota: `/dashboard/objectives`
 
 ---
 
-### Migration SQL (1 migration)
+### Migration SQL (1 migration, 5 tabelas)
 
-**`action_executions`:**
-- `id` UUID PK, `workspace_id`, `source_type` TEXT (command_center, next_best_action, optimization_recommendation, manual, automation), `source_id` TEXT nullable
-- `action_type` TEXT, `title` TEXT, `description` TEXT nullable, `payload_json` JSONB DEFAULT '{}'
-- `result_json` JSONB nullable, `entity_type` TEXT nullable, `entity_id` UUID nullable
-- `created_by` UUID nullable, `execution_mode` TEXT DEFAULT 'manual' (manual, assisted, auto)
-- `status` TEXT DEFAULT 'pending' (pending, processing, completed, failed, cancelled, skipped)
-- `executed_at` TIMESTAMPTZ, `failed_at` TIMESTAMPTZ, `cancelled_at` TIMESTAMPTZ, `error_message` TEXT
-- `correlation_id` TEXT, `created_at`, `updated_at`
-- Index on `(workspace_id, status)`, `(correlation_id)`
+**`business_objectives`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL, `title` TEXT NOT NULL, `description` TEXT
+- `objective_type` TEXT NOT NULL (recover_revenue, generate_meetings, increase_pipeline_value, improve_conversion_rate, reduce_renewal_risk, recover_abandoned_carts, increase_store_revenue, reactivate_silent_leads)
+- `status` TEXT DEFAULT 'draft' (draft, active, at_risk, on_track, completed, paused, cancelled)
+- `target_value` NUMERIC(12,2), `current_value` NUMERIC(12,2) DEFAULT 0, `unit` TEXT DEFAULT '€'
+- `period_start` DATE, `period_end` DATE
+- `owner_user_id` UUID, `priority` TEXT DEFAULT 'medium' (low, medium, high, critical)
+- `auto_plan_enabled` BOOLEAN DEFAULT false, `auto_execute_enabled` BOOLEAN DEFAULT false
+- `created_at`, `updated_at`, `completed_at` TIMESTAMPTZ
+- Index: `(workspace_id, status)`
 
-**`action_execution_settings`:**
-- `id` UUID PK, `workspace_id` UNIQUE
-- `auto_execution_enabled` BOOLEAN DEFAULT false
-- `allow_auto_task_creation` BOOLEAN DEFAULT false, `allow_auto_sequence_enrollment` BOOLEAN DEFAULT false
-- `allow_auto_recovery_trigger` BOOLEAN DEFAULT false, `require_human_approval_for_email` BOOLEAN DEFAULT true
+**`objective_metrics`:**
+- `id` UUID PK, `workspace_id`, `objective_id` UUID FK → business_objectives
+- `metric_key` TEXT, `metric_label` TEXT, `current_value` NUMERIC(12,2) DEFAULT 0, `target_value` NUMERIC(12,2)
+- `unit` TEXT, `progress_percent` INT DEFAULT 0, `last_calculated_at` TIMESTAMPTZ
 - `created_at`, `updated_at`
 
-**`action_approvals`:**
-- `id` UUID PK, `workspace_id`, `action_execution_id` UUID FK
-- `approval_status` TEXT DEFAULT 'pending' (pending, approved, rejected)
-- `requested_by` UUID, `approved_by` UUID nullable
-- `approved_at` TIMESTAMPTZ, `rejected_at` TIMESTAMPTZ, `notes` TEXT
+**`objective_plans`:**
+- `id` UUID PK, `workspace_id`, `objective_id` UUID FK
+- `title` TEXT, `plan_json` JSONB DEFAULT '{}', `status` TEXT DEFAULT 'draft' (draft, active, completed, superseded)
+- `generated_by` TEXT DEFAULT 'ai', `created_at`, `updated_at`
+
+**`objective_action_links`:**
+- `id` UUID PK, `workspace_id`, `objective_id` UUID FK
+- `action_execution_id` UUID, `task_id` UUID, `next_best_action_id` UUID, `sequence_enrollment_id` UUID
+- `attributed_value` NUMERIC(12,2) DEFAULT 0, `created_at`
+
+**`objective_settings`:**
+- `id` UUID PK, `workspace_id` UNIQUE
+- `is_enabled` BOOLEAN DEFAULT false, `max_daily_actions_per_objective` INT DEFAULT 10
+- `auto_plan_enabled` BOOLEAN DEFAULT false, `auto_replan_enabled` BOOLEAN DEFAULT false
+- `auto_execute_enabled` BOOLEAN DEFAULT false, `alert_when_at_risk` BOOLEAN DEFAULT true
 - `created_at`, `updated_at`
 
 RLS: workspace members SELECT; service_role INSERT/UPDATE.
 
 ---
 
-### Ficheiros a criar (5)
+### Ficheiros a criar (6)
 
-#### 1. `supabase/functions/process-action-execution/index.ts`
-Edge function que:
-1. Recebe `{ workspace_id, action_execution_id }` ou `{ workspace_id, action_type, payload, source_type, source_id, entity_type, entity_id, execution_mode, correlation_id }`
-2. Se não existir execution, cria em `action_executions` com status `pending`
-3. Marca status `processing`
-4. Resolve handler por `action_type`:
-   - `create_task` → insert em `tasks`
-   - `create_followup_note` → insert em `tasks` com due_at +3 dias
-   - `enroll_in_sequence` → insert em `email_sequence_enrollments`
-   - `mark_recommendation_acted` → update `optimization_recommendations` ou `next_best_actions`
-   - `trigger_abandoned_cart_recovery` → invoke `process-store-recovery`
-   - `send_email` → requer aprovação se `require_human_approval_for_email`
-   - `schedule_meeting` → cria task tipo meeting
-   - `navigate_entity`, `generate_report` → marca completed (ação client-side)
-5. Grava `result_json`, marca `completed` ou `failed`
-6. Emite kernel event `ACTION.COMPLETED` / `ACTION.FAILED`
-7. Idempotência via `correlation_id` — não executa se já existe completed com mesmo correlation_id
+#### 1. `supabase/functions/generate-objective-plan/index.ts`
+- Recebe `{ workspace_id, objective_id }`
+- Lê objetivo + métricas atuais + NBAs abertas + context score
+- Usa Gemini Flash para gerar plano com: initiatives, action_groups, expected_impact, timeline
+- Insere em `objective_plans`
+- Emite `OBJECTIVE.PLAN_GENERATED` via kernel
 
-#### 2. `src/hooks/useActionExecution.ts`
-- `useExecuteAction()` — mutation: cria execution + invoca edge function
-- `useActionExecutions(filters?)` — lista execuções com status/type filters
-- `useActionExecutionSettings()` — read/upsert settings
-- `useActionApprovals()` — lista aprovações pendentes
-- `useApproveAction()` / `useRejectAction()` — mutations de aprovação
-- `useActionStats()` — KPIs: pending, completed today, failed, approvals pending
+#### 2. `supabase/functions/process-objective-plan/index.ts`
+- Recebe `{ workspace_id, objective_id }`
+- Lê plano ativo → extrai ações
+- Cria `action_executions` (via insert direto, source_type: 'objective') + `objective_action_links`
+- Distribui ações ao longo do período (max_daily_actions_per_objective)
+- Evita duplicados por correlation_id = `obj_{objective_id}_{action_type}_{entity_id}`
+- Emite `OBJECTIVE.ACTION_LINKED`
 
-#### 3. `src/pages/ActionExecutionsPage.tsx`
-Dashboard em `/dashboard/actions`:
-- KPIs: pendentes, executadas hoje, falhadas, aprovações pendentes, taxa de execução
-- Tabela de execuções com filtros (status, source_type, action_type)
-- Cada linha: título, tipo, status badge, source, entity, timestamp, botão detalhe
-- Tab de aprovações pendentes
-- Settings panel inline
+#### 3. `supabase/functions/recalculate-objective-progress/index.ts`
+- Recebe `{ workspace_id }` ou `{ workspace_id, objective_id }`
+- Para cada objetivo ativo: query `objective_action_links` → sum `attributed_value`
+- Atualiza `current_value` em `business_objectives`
+- Atualiza `progress_percent` em `objective_metrics`
+- Calcula trajetória: se progresso < (dias_passados / total_dias × target) → marca `at_risk`
+- Se progresso >= trajetória → marca `on_track`
+- Se `current_value >= target_value` → marca `completed`
+- Emite `OBJECTIVE.AT_RISK` / `OBJECTIVE.ON_TRACK` / `OBJECTIVE.COMPLETED`
 
-#### 4. `src/components/actions/ActionExecutionDetail.tsx`
-Modal/drawer:
-- Inputs (payload_json formatado), output (result_json), erro se falhou
-- Origem (command_center / NBA / optimization), entidade afetada
-- Modo (manual/auto), estado de aprovação se aplicável
-- Timeline de eventos
+#### 4. `src/hooks/useBusinessObjectives.ts`
+- `useBusinessObjectives(filters?)` — lista com status filter + realtime
+- `useObjectiveDetail(id)` — objetivo + metrics + plano + action_links
+- `useCreateObjective()` — mutation insert
+- `useUpdateObjective()` — mutation update (pause, cancel, complete)
+- `useGeneratePlan(objectiveId)` — invoca `generate-objective-plan`
+- `useExecutePlan(objectiveId)` — invoca `process-objective-plan`
+- `useRecalculateProgress()` — invoca `recalculate-objective-progress`
+- `useObjectiveSettings()` — read/upsert settings
+- `useObjectiveStats()` — KPIs: ativos, at_risk, receita em progresso, ações geradas
 
-#### 5. `src/components/actions/QuickActionButton.tsx`
-Componente reutilizável para executar ações a partir de qualquer contexto:
-- Recebe `actionType`, `payload`, `entityType`, `entityId`, `sourceType`
-- Usa `useExecuteAction()` internamente
-- Mostra loading/success/error inline
-- Reutilizado em CommandQuickActions, NextBestActionsPanel, e entity pages
+#### 5. `src/pages/ObjectiveCenterPage.tsx`
+- Rota: `/dashboard/objectives`
+- KPIs: objetivos ativos, em risco, receita em recuperação, taxa de execução
+- Lista de objetivos com: título, tipo, target vs current, progress bar, status badge, owner
+- Cada card: botões ver detalhe, gerar plano, pausar
+- Formulário de criação inline (tipo, título, target, período, owner)
+- Settings panel com toggles de auto-plan/auto-execute
+
+#### 6. `src/components/objectives/ObjectiveDetail.tsx`
+- Modal/drawer com:
+  - Métricas (progress bars por metric_key)
+  - Plano atual (initiatives formatadas do plan_json)
+  - Ações ligadas (lista de action_links com status)
+  - Tarefas geradas
+  - Botões: gerar plano, executar plano, replanear, pausar, concluir
+  - Timeline de kernel events filtrados por `OBJECTIVE.*`
 
 ---
 
-### Ficheiros a alterar (3)
+### Ficheiros a alterar (1)
 
-#### 6. `src/components/command-center-v2/CommandQuickActions.tsx`
-- Refactor: cada ação usa `useExecuteAction()` em vez de lógica inline
-- Mantém mesma UI mas persiste execução em `action_executions`
-- Ações sensíveis (send_email) criam approval request
-- Status visual reflete estado real da execução
-
-#### 7. `src/components/context-os/NextBestActionsPanel.tsx`
-- Botão "Agir" passa a criar `action_execution` com `source_type: 'next_best_action'`
-- Após execução bem-sucedida, marca NBA como `acted`
-- Fecha ciclo: recomendação → execução → resultado
-
-#### 8. `src/routes/AIRoutes.tsx`
-- Adicionar rota: `/dashboard/actions` → `ActionExecutionsPage`
+#### 7. `src/routes/AIRoutes.tsx`
+- Adicionar lazy import + rota: `/dashboard/objectives` → `ObjectiveCenterPage`
 
 ---
 
 ### Fluxo
 
 ```text
-Origem (Command Center / NBA / Optimization / Manual)
+Utilizador cria objetivo (ex: "Recuperar 5.000€ em 30 dias")
   │
-  ├─ UI dispara useExecuteAction()
-  │   ├─ Cria action_executions (status: pending)
-  │   └─ Invoca process-action-execution
+  ├─ Emite OBJECTIVE.CREATED
+  ├─ Gerar plano (generate-objective-plan)
+  │   ├─ Lê métricas, NBAs, context
+  │   ├─ IA gera initiatives + action_groups
+  │   └─ Insere objective_plans
   │
-  └─ process-action-execution
-       │
-       ├─ Resolve handler por action_type
-       ├─ Verifica se requer aprovação
-       │   ├─ Sim → cria action_approvals, emite ACTION.APPROVAL_REQUESTED
-       │   └─ Não → executa handler
-       │
-       ├─ Executa (create_task, enroll_sequence, etc.)
-       ├─ Grava result_json, status = completed/failed
-       └─ Emite ACTION.COMPLETED / ACTION.FAILED
-
-ActionExecutionsPage (UI)
+  ├─ Executar plano (process-objective-plan)
+  │   ├─ Cria action_executions (create_task, enroll_sequence, etc.)
+  │   ├─ Cria objective_action_links
+  │   └─ Distribui ao longo do período
   │
-  ├─ Lista execuções + filtros
-  ├─ Aprovações pendentes
-  ├─ Detalhe de execução
-  └─ Settings de auto-execução
+  └─ Recalcular progresso (recalculate-objective-progress)
+      ├─ Soma attributed_value das ações
+      ├─ Atualiza current_value e progress_percent
+      ├─ Se desvio → marca at_risk, emite evento
+      └─ Se completo → marca completed
 ```
 
-### Eventos Kernel
-- `ACTION.CREATED`, `ACTION.STARTED`, `ACTION.COMPLETED`, `ACTION.FAILED`, `ACTION.CANCELLED`
-- `ACTION.APPROVAL_REQUESTED`, `ACTION.APPROVED`, `ACTION.REJECTED`
-
 ### Compatibilidade
-- `CommandQuickActions` mantém mesma UI — refactor interno para persistência
-- `NextBestActionsPanel` ganha execução real sem redesign
-- `useCreateTask` reutilizado dentro dos handlers
-- Nenhum sistema paralelo — execução é camada transversal
+- `action_executions` reutilizado com `source_type: 'objective'`
+- `objective_action_links` liga objetivos a ações existentes sem alterar nenhuma tabela
+- Kernel events seguem padrão `emitKernelEvent` existente
+- ContextOSHub não é alterado — objetivos vivem em página própria
+- Não duplica sistema de tasks — usa `process-action-execution` para criar tarefas reais
 
