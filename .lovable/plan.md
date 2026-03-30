@@ -1,36 +1,23 @@
 
 
-## Instalar Dependências para a Loja Online
+## Instalar Typesense + Adapter para Pesquisa Avançada
 
 ### Diagnóstico
 
-Após inspeção do `package.json`, a maioria das dependências pedidas **já existe**:
-
-| Dependência | Estado |
-|---|---|
-| `zustand` | ✅ Já instalada (^5.0.12) |
-| `libphonenumber-js` | ✅ Já instalada (^1.12.41) |
-| `@sentry/react` | ✅ Já instalada (^10.46.0) |
-| `posthog-js` | ✅ Já instalada (^1.364.1) |
-| **`decimal.js`** | ❌ Não existe — instalar |
-| **`validator`** | ❌ Não existe — instalar |
-| **`@types/validator`** | ❌ Não existe (dev) — instalar |
+Nenhuma das duas dependências existe no `package.json`.
 
 ### Plano
 
-1. Instalar `decimal.js` e `validator` como dependências de produção
-2. Instalar `@types/validator` como dependência de desenvolvimento
-3. Validar que o build compila sem erros
+1. Instalar `typesense` e `typesense-instantsearch-adapter` como dependências de produção
+2. Validar build
 
-### Comandos
+### Comando
 
 ```bash
-npm install decimal.js validator
-npm install -D @types/validator
+npm install typesense typesense-instantsearch-adapter
 ```
 
 ### Riscos
 
-- Nenhum conflito esperado — são bibliotecas standalone sem dependências pesadas
-- Não serão feitas alterações a componentes existentes
+Nenhum conflito esperado — são bibliotecas standalone. O adapter depende de `instantsearch.js` que será instalado automaticamente como dependência transitiva.
 
