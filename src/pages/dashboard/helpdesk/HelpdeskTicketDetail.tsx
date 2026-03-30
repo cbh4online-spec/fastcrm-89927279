@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useHelpdeskTickets, useHelpdeskTicketMessages } from "@/hooks/useHelpdeskTickets";
 import { useHelpdeskHistory } from "@/hooks/useHelpdeskHistory";
 import { TicketMessageThread } from "@/components/helpdesk/TicketMessageThread";
