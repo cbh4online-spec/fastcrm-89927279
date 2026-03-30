@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useConfetti } from "@/hooks/useConfetti";
+import { formatEUR } from "@/lib/currency";
 import { useOpportunities, useMoveOpportunity, Opportunity } from "@/hooks/useOpportunities";
 import { usePipelineStages, PipelineStage } from "@/hooks/usePipelineStages";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -228,7 +230,12 @@ export function OpportunitiesBoard() {
   }, [filteredOpportunities, stages]);
 
   const handleMoveOpportunity = async (oppId: string, stageId: string) => {
-    await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId });
+    const result = await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId });
+    // Fire confetti if moved to a "won" stage
+    const targetStage = stages?.find(s => s.id === stageId);
+    if (targetStage?.name?.toLowerCase().includes("won") || targetStage?.name?.toLowerCase().includes("ganho")) {
+      fire();
+    }
   };
 
   const handleFilterSelect = (filterId: string) => {
