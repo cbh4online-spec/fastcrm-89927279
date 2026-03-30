@@ -481,18 +481,73 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                 {/* Step 2: Estrutura & Estilo */}
                 {step === 2 && (
                   <>
+                    {/* Template structure preview */}
+                    {selectedTemplate && selectedTemplate.page_layouts?.length > 0 && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <LayoutGrid className="h-4 w-4 text-primary" />
+                          <Label className="text-sm font-medium text-primary">Estrutura do template: {selectedTemplate.name}</Label>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedTemplate.page_layouts.map((key, i) => {
+                            const isContent = CONTENT_LAYOUT_KEYS.includes(key);
+                            return (
+                              <div key={i} className="flex items-center gap-1">
+                                <Badge
+                                  variant={isContent ? "default" : "secondary"}
+                                  className={cn(
+                                    "text-[10px] py-0.5",
+                                    isContent ? "bg-primary/20 text-primary border-primary/30" : "bg-muted text-muted-foreground"
+                                  )}
+                                >
+                                  {LAYOUT_LABELS[key] || key}
+                                  <span className="ml-1 opacity-60">{isContent ? "IA" : "auto"}</span>
+                                </Badge>
+                                {i < selectedTemplate.page_layouts.length - 1 && (
+                                  <ArrowRight className="h-3 w-3 text-muted-foreground/40" />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {countContentSlots(selectedTemplate)} capítulos de conteúdo (IA) + {getStructuralLayouts(selectedTemplate).length} páginas estruturais (automáticas) = {selectedTemplate.page_layouts.length} páginas total
+                        </p>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Número de capítulos</Label>
-                        <div className="flex items-center gap-3">
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setChapterCount(Math.max(3, chapterCount - 1))} disabled={chapterCount <= 3}>
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="text-2xl font-bold text-foreground w-10 text-center">{chapterCount}</span>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setChapterCount(Math.min(15, chapterCount + 1))} disabled={chapterCount >= 15}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {selectedTemplate && countContentSlots(selectedTemplate) > 0 ? (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl font-bold text-primary w-10 text-center">{chapterCount}</span>
+                              <span className="text-xs text-muted-foreground">definido pelo template</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              O template define {countContentSlots(selectedTemplate)} slots de conteúdo. Pode ajustar — capítulos extra serão adicionados após a estrutura do template.
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setChapterCount(Math.max(1, chapterCount - 1))} disabled={chapterCount <= 1}>
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setChapterCount(Math.min(15, chapterCount + 1))} disabled={chapterCount >= 15}>
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setChapterCount(Math.max(3, chapterCount - 1))} disabled={chapterCount <= 3}>
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="text-2xl font-bold text-foreground w-10 text-center">{chapterCount}</span>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setChapterCount(Math.min(15, chapterCount + 1))} disabled={chapterCount >= 15}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-2">
