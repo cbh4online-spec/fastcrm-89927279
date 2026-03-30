@@ -504,6 +504,7 @@ Deno.serve(async (req) => {
         gift_card_reserved_amount: giftCardReserved,
         pricing_breakdown: breakdown as any,
         source: "store",
+        abandoned_cart_id: abandonedCartId || null,
       })
       .select("id")
       .single();
