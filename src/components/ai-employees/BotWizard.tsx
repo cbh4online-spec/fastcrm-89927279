@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BotTypeCard } from "./BotTypeCard";
-import { BotType, CreateBotData, useBots } from "@/hooks/useBots";
+import { BotType, CreateBotData, useBots, AGENT_ROLES } from "@/hooks/useBots";
+import { useAgentTeams } from "@/hooks/useAgentOperations";
 import { ArrowLeft, ArrowRight, Check, Bot, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAIProfiles } from "@/hooks/useAIProfiles";
