@@ -263,10 +263,16 @@ export default function StoreCheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
     if (!formData.email.trim()) {
-      toast.error("Preencha o email");
-      return;
+      errors.email = "Preencha o email";
+    } else if (!isEmail(formData.email)) {
+      errors.email = "Email inválido";
     }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: finalTotal, itemCount: items.length, currency: items[0]?.currency });
     setIsProcessing(true);
 
     try {
