@@ -775,6 +775,92 @@ export function ComposeEmailDialog({
                 </div>
               </div>
             )}
+
+            {/* Meeting scheduling panel */}
+            {showMeetingPanel && (
+              <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarPlus className="w-4 h-4" />Agendar Reunião
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setShowMeetingPanel(false); setMeetingDate(undefined); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Calendar selector */}
+                {calendars.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0 w-20">Calendário:</Label>
+                    <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                      <SelectTrigger className="h-8 text-sm flex-1">
+                        <SelectValue placeholder="Selecionar calendário" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {calendars.map((cal) => (
+                          <SelectItem key={cal.id} value={cal.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                              {cal.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Date & time */}
+                <div className="flex gap-3 items-start flex-wrap">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-[180px] justify-start text-left font-normal", !meetingDate && "text-muted-foreground")}>
+                        {meetingDate ? format(meetingDate, "dd/MM/yyyy") : "Selecionar data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={meetingDate}
+                        onSelect={setMeetingDate}
+                        disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} className="w-[120px] h-8" />
+                  <Select value={meetingDuration} onValueChange={setMeetingDuration}>
+                    <SelectTrigger className="w-[120px] h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">1 hora</SelectItem>
+                      <SelectItem value="90">1h30</SelectItem>
+                      <SelectItem value="120">2 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Location & URL */}
+                <div className="flex gap-3 items-center flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <Input value={meetingLocation} onChange={(e) => setMeetingLocation(e.target.value)} placeholder="Local (opcional)" className="h-8 text-sm" />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
+                    <Video className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <Input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="URL videoconferência (opcional)" className="h-8 text-sm" />
+                  </div>
+                </div>
+
+                {meetingDate && (
+                  <div className="text-xs text-muted-foreground">
+                    ✓ Ao enviar, será criado um evento no calendário selecionado com os detalhes da reunião.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}
