@@ -56,7 +56,7 @@ export function SupplierImportModal({ open, onOpenChange, workspaceId, onComplet
     return { name, email: email || undefined, vat_number: vat_number || undefined, phone: phone || undefined, category: category || undefined, address: address || undefined, valid: errors.length === 0, errors };
   };
 
-  const handleFile = useCallback((file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
     if (ext === "csv") {

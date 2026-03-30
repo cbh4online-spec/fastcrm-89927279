@@ -643,10 +643,7 @@ export function ImportProfilesDialog({
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "template_importacao_alunos.xlsx");
+    exportToExcel(template, "Template", "template_importacao_alunos.xlsx");
   };
 
   const resetDialog = () => {
