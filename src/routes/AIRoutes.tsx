@@ -28,6 +28,7 @@ const ForecastCenterPage = lazy(() => import("@/pages/ForecastCenterPage"));
 const StrategyCenterPage = lazy(() => import("@/pages/StrategyCenterPage"));
 const BoardCenterPage = lazy(() => import("@/pages/BoardCenterPage"));
 const PortfolioCenterPage = lazy(() => import("@/pages/PortfolioCenterPage"));
+const LedgerCenterPage = lazy(() => import("@/pages/LedgerCenterPage"));
 
 export function AIRoutes() {
   return (
