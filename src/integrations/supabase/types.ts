@@ -28629,6 +28629,47 @@ export type Database = {
           },
         ]
       }
+      ledger_settings: {
+        Row: {
+          auto_chain_build: boolean
+          created_at: string
+          id: string
+          is_enabled: boolean
+          max_chain_depth: number
+          retain_raw_payloads: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_chain_build?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          max_chain_depth?: number
+          retain_raw_payloads?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_chain_build?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          max_chain_depth?: number
+          retain_raw_payloads?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_points: {
         Row: {
           balance: number
@@ -33140,6 +33181,125 @@ export type Database = {
             foreignKeyName: "objective_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operating_ledger_chains: {
+        Row: {
+          chain_type: string
+          correlation_id: string
+          created_at: string
+          ended_at: string | null
+          event_count: number
+          id: string
+          outcome_currency: string | null
+          outcome_id: string | null
+          outcome_summary: string | null
+          outcome_type: string | null
+          outcome_value: number | null
+          root_event_id: string | null
+          started_at: string | null
+          status: string
+          success_score: number | null
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          chain_type?: string
+          correlation_id: string
+          created_at?: string
+          ended_at?: string | null
+          event_count?: number
+          id?: string
+          outcome_currency?: string | null
+          outcome_id?: string | null
+          outcome_summary?: string | null
+          outcome_type?: string | null
+          outcome_value?: number | null
+          root_event_id?: string | null
+          started_at?: string | null
+          status?: string
+          success_score?: number | null
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          chain_type?: string
+          correlation_id?: string
+          created_at?: string
+          ended_at?: string | null
+          event_count?: number
+          id?: string
+          outcome_currency?: string | null
+          outcome_id?: string | null
+          outcome_summary?: string | null
+          outcome_type?: string | null
+          outcome_value?: number | null
+          root_event_id?: string | null
+          started_at?: string | null
+          status?: string
+          success_score?: number | null
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_ledger_chains_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operating_ledger_links: {
+        Row: {
+          chain_id: string | null
+          created_at: string
+          depth: number
+          event_id: string
+          id: string
+          parent_event_id: string | null
+          relation_type: string
+          workspace_id: string
+        }
+        Insert: {
+          chain_id?: string | null
+          created_at?: string
+          depth?: number
+          event_id: string
+          id?: string
+          parent_event_id?: string | null
+          relation_type?: string
+          workspace_id: string
+        }
+        Update: {
+          chain_id?: string | null
+          created_at?: string
+          depth?: number
+          event_id?: string
+          id?: string
+          parent_event_id?: string | null
+          relation_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_ledger_links_chain_id_fkey"
+            columns: ["chain_id"]
+            isOneToOne: false
+            referencedRelation: "operating_ledger_chains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operating_ledger_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
