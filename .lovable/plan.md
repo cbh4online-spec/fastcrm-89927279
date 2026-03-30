@@ -1,29 +1,21 @@
 
+# Criar página pública /pricing
 
-# Corrigir espaço a avançar página durante escrita de notas
+## Diagnóstico
+A rota `/pricing` não existe — retorna 404. O footer SEO já linka para `/pricing`. Já existe o componente `LandingPricingSection` usado na landing page principal, que mostra planos (Starter, Growth, Scale) e bundles, com dados da DB ou fallback.
 
-## Alteração única
+## Plano
 
-**Ficheiro**: `src/components/ebooks/FlipbookReader.tsx`, linhas 376-378
+### 1. Criar página `src/pages/PricingPage.tsx`
+- Página pública standalone com SEO (Helmet)
+- Reutilizar `LandingStickyHeader` + `SEOFooter` para manter consistência visual
+- Reutilizar `LandingPricingSection` como secção principal
+- Adicionar secção de FAQ específica de preços
+- Adicionar CTA final
 
-Substituir:
-```typescript
-const handler = (e: KeyboardEvent) => {
-  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipNext(); }
-  if (e.key === "ArrowLeft") { e.preventDefault(); flipPrev(); }
-};
-```
+### 2. Registar rota em `DashboardCoreRoutes.tsx`
+- Adicionar `<Route path="/pricing" element={<PricingPage />} />` junto das rotas públicas
 
-Por:
-```typescript
-const handler = (e: KeyboardEvent) => {
-  const tag = (e.target as HTMLElement)?.tagName;
-  const isEditable = (e.target as HTMLElement)?.isContentEditable;
-  if (tag === "INPUT" || tag === "TEXTAREA" || isEditable) return;
-  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipNext(); }
-  if (e.key === "ArrowLeft") { e.preventDefault(); flipPrev(); }
-};
-```
-
-Isto impede que teclas de navegação (espaço, setas) sejam capturadas quando o utilizador está a escrever num campo de texto ou nota.
-
+### Ficheiros alterados
+- **Novo**: `src/pages/PricingPage.tsx`
+- **Editado**: `src/routes/crm/DashboardCoreRoutes.tsx` (adicionar rota)
