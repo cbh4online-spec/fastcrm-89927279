@@ -78,7 +78,7 @@ export default function StoreRecoverCartPage() {
         toast.success("Carrinho recuperado!");
       }
 
-      navigate(`/store/${workspaceSlug}/checkout`);
+      navigate(`/store/${workspaceSlug}/checkout?abandoned_cart_id=${data.cart_id}`);
     } catch {
       toast.error("Erro ao restaurar carrinho");
     } finally {
