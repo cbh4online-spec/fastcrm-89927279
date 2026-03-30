@@ -213,12 +213,16 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       setGenProgress(20);
 
       if (mode === "generate") {
-        for (let i = 0; i < chapters.length; i++) {
-          const ch = chapters[i];
-          setGenStatus(`A escrever capítulo ${i + 1}/${chapters.length}: ${ch.title}`);
+        // Only generate content for AI chapters (not structural template pages)
+        const contentChapters = chapters.map((ch, idx) => ({ ch, idx }))
+          .filter(({ ch }) => !ch.layout_key || ["chapter_intro_large", "chapter_intro_minimal", "rich_text", "text_image_split", "three_column_highlights"].includes(ch.layout_key as string));
+        
+        for (let j = 0; j < contentChapters.length; j++) {
+          const { ch, idx } = contentChapters[j];
+          setGenStatus(`A escrever capítulo ${j + 1}/${contentChapters.length}: ${ch.title}`);
 
           if (!canAfford("ebook_generate_chapter")) {
-            toast.warning(`Créditos insuficientes. Gerados ${i} de ${chapters.length} capítulos.`);
+            toast.warning(`Créditos insuficientes. Gerados ${j} de ${contentChapters.length} capítulos.`);
             break;
           }
 
@@ -233,10 +237,10 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           });
 
           if (!chErr && chData?.content) {
-            chapters[i] = { ...chapters[i], content: chData.content };
+            chapters[idx] = { ...chapters[idx], content: chData.content };
           }
 
-          const contentProgress = 20 + ((i + 1) / chapters.length) * (generateImages ? 50 : 75);
+          const contentProgress = 20 + ((j + 1) / contentChapters.length) * (generateImages ? 50 : 75);
           setGenProgress(Math.round(contentProgress));
         }
 
