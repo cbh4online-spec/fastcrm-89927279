@@ -33,6 +33,8 @@ interface CTTShippingOption {
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const abandonedCartId = searchParams.get("abandoned_cart_id") || undefined;
   const { items, subtotal, clearCart } = useStoreCart();
   const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: storeSettings } = usePublicStoreSettings(wsId || "");
