@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       giftCardCode,
       couponCode,
       mode: checkoutMode,
+      abandonedCartId,
     } = await req.json();
 
     logStep("Request body", {
