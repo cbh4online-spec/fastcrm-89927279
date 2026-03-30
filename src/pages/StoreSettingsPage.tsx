@@ -23,6 +23,7 @@ import { StoreLoyaltyManager } from "@/components/store-settings/StoreLoyaltyMan
 import { StoreReferralManager } from "@/components/store-settings/StoreReferralManager";
 import { StoreOffersManager } from "@/components/store-settings/StoreOffersManager";
 import { StoreGiftCardsManager } from "@/components/store-settings/StoreGiftCardsManager";
+import { StoreC2CSettings } from "@/components/store-settings/StoreC2CSettings";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
