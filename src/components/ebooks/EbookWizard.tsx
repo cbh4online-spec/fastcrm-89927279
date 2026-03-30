@@ -15,7 +15,8 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
-import { buildChaptersFromTemplate } from "./utils/templateToChapters";
+import { buildChaptersFromTemplate, countContentSlots, CONTENT_LAYOUT_KEYS, getStructuralLayouts } from "./utils/templateToChapters";
+import { LAYOUT_LABELS } from "@/types/ebook-templates";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EbookTemplate } from "@/types/ebook-templates";
@@ -387,6 +388,11 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
                     onSelect={(id, tpl) => {
                       setSelectedTemplateId(id);
                       setSelectedTemplate(tpl);
+                      // Auto-sync chapterCount to template content slots
+                      if (tpl && tpl.page_layouts?.length > 0) {
+                        const slots = countContentSlots(tpl);
+                        if (slots > 0) setChapterCount(slots);
+                      }
                     }}
                   />
                 )}
