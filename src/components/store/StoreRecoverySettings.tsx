@@ -157,6 +157,23 @@ export function StoreRecoverySettings() {
                   )}
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+                disabled={createRecovery.isPending}
+                onClick={async () => {
+                  const seqId = await createRecovery.mutateAsync();
+                  update({ default_sequence_id: seqId });
+                }}
+              >
+                {createRecovery.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-2" />
+                )}
+                Criar Sequência de Recuperação (3 steps)
+              </Button>
             </div>
 
             {/* Auto enroll */}
