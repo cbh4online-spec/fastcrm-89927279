@@ -1,24 +1,24 @@
 
 
-## Diagnóstico — 404 em `/dashboard/helpdesk/knowledge-base`
+## Diagnóstico — 404 em `/dashboard/helpdesk/csat`
 
-### Conclusão da Análise
+### Análise
 
-Após revisão completa de todos os ficheiros relevantes, **não existe nenhum bug real**:
+Todos os ficheiros estão corretos e consistentes:
 
-1. **Rota registada** — `HelpdeskRoutes.tsx` linha 22: `<Route path="/dashboard/helpdesk/knowledge-base" element={<HelpdeskKnowledgeBase />} />`
-2. **Ficheiro existe** — `src/pages/dashboard/helpdesk/HelpdeskKnowledgeBase.tsx` (308 linhas, `export default`)
-3. **Imports válidos** — `useKBAdmin`, `KBArticleEditor`, `MarkdownRenderer`, `react-timeago`, `react-loading-skeleton` — todos existem e estão instalados
-4. **CRMRoutes inclui HelpdeskRoutes** — linha 71 de `CRMRoutes.tsx`
-5. **Dependências instaladas** — `slugify`, `react-loading-skeleton`, `react-countup` no `package.json`
+1. **Rota registada** — `HelpdeskRoutes.tsx` linha 23: `<Route path="/dashboard/helpdesk/csat" element={<HelpdeskCSAT />} />`
+2. **Ficheiro existe** — `src/pages/dashboard/helpdesk/HelpdeskCSAT.tsx` (185 linhas, importa corretamente `useCSATDashboard`, `CSATCharts`, `CSATWidget`, `CountUp`, `Skeleton`, `TimeAgo`)
+3. **Componentes existem** — `CSATCharts.tsx` (95 linhas) e `CSATWidget.tsx` (47 linhas)
+4. **Hook existe** — `useCSATDashboard.ts` com tipo `CSATPeriod` exportado
+5. **CRMRoutes inclui HelpdeskRoutes** — linha 71
 
-### Causa do 404
+### Causa
 
-O screenshot mostra **"Loading preview..."** no canto inferior do card de implementação, o que indica que o build ainda não tinha terminado quando a página foi carregada. O React Router não encontrou a rota porque o módulo lazy ainda não estava disponível, caindo no catch-all `*` → `NotFound`.
+Mesmo problema anterior: o preview foi carregado antes do build terminar. O lazy import não resolveu e o React Router caiu no catch-all `*` → NotFound.
 
 ### Resolução
 
-**Basta recarregar a página** (refresh do browser no preview). Não são necessárias alterações de código.
+**Fazer refresh da página no preview.** Não são necessárias alterações de código.
 
-Se o problema persistir após refresh, pode ser um erro de compilação silencioso — nesse caso, posso investigar os logs de build em detalhe.
+Se persistir após refresh, posso investigar os logs de compilação para erros silenciosos.
 
