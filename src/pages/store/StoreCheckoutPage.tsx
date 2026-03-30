@@ -608,7 +608,7 @@ export default function StoreCheckoutPage() {
                     {appliedGiftCard && giftCardAmount > 0 && (
                       <div className="flex justify-between text-sm text-purple-600">
                         <span>Gift Card</span>
-                        <span>-€{giftCardAmount.toFixed(2)}</span>
+                        <span>-€{formatMoney(giftCardAmount)}</span>
                       </div>
                     )}
                     {effectiveShippingCost > 0 && selectedCttOption && (
