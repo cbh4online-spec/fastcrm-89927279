@@ -57,6 +57,14 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/c2c/disputes" element={<C2CDisputesPage />} />
       <Route path="/dashboard/c2c/tiers" element={<C2CSellerTiersPage />} />
       <Route path="/dashboard/c2c/config" element={<MarketplaceConfigPage />} />
+      {/* Unified marketplace admin routes */}
+      <Route path="/dashboard/marketplace/sellers" element={<C2CSellersAdmin />} />
+      <Route path="/dashboard/marketplace/listings" element={<C2CContentModeration />} />
+      <Route path="/dashboard/marketplace/orders" element={<MarketplaceOrdersPage />} />
+      <Route path="/dashboard/marketplace/payouts" element={<MarketplacePayoutsPage />} />
+      <Route path="/dashboard/marketplace/analytics" element={<C2CMarketplaceAnalytics />} />
+      <Route path="/dashboard/marketplace/moderation" element={<C2CModerationPage />} />
+      <Route path="/dashboard/marketplace/config" element={<MarketplaceConfigPage />} />
       <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
       <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
       <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
