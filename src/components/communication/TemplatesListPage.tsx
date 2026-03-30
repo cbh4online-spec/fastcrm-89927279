@@ -72,6 +72,7 @@ import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavo
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RevenueAttributionDashboard } from './RevenueAttributionDashboard';
+import { useOptimizationRecommendations } from '@/hooks/useOptimizationEngine';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -127,7 +128,17 @@ export function TemplatesListPage() {
   const { data: favoriteIds } = useTemplateFavorites();
   const toggleFavorite = useToggleFavorite();
   const { recommendations } = useTemplateRecommendations();
+  const { data: optRecommendations } = useOptimizationRecommendations({ status: 'open' });
 
+  // Build set of template IDs with open optimization recommendations
+  const templatesWithOptRecs = useMemo(() => {
+    const set = new Set<string>();
+    for (const rec of (optRecommendations || [])) {
+      if (rec.entity_type === 'template') set.add(rec.entity_id);
+      if (rec.suggested_action_json?.template_id) set.add(rec.suggested_action_json.template_id);
+    }
+    return set;
+  }, [optRecommendations]);
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
     {
@@ -578,6 +589,16 @@ export function TemplatesListPage() {
                                   )}
                                   {template.isDynamic && (
                                     <Zap className="h-3.5 w-3.5 text-amber-500" />
+                                  )}
+                                  {templatesWithOptRecs.has(template.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Otimização disponível</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </CardTitle>
                                 <p className="text-xs text-muted-foreground">
