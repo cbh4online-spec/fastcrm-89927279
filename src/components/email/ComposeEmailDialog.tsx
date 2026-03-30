@@ -83,6 +83,10 @@ import { useScheduleEmail } from "@/hooks/useScheduledEmails";
 import { EmailAttachmentList, type EmailAttachment } from "./EmailAttachmentList";
 import { InsertPaymentLinkDialog } from "./InsertPaymentLinkDialog";
 import { AIEmailAssistPanel } from "./AIEmailAssistPanel";
+import { useCalendars } from "@/hooks/useCalendars";
+import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { addMinutes } from "date-fns";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
