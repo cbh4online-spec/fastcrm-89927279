@@ -1,21 +1,29 @@
 
-# Adicionar guarda `highlightMode` no `handleMouseUp`
+
+# Corrigir espaço a avançar página durante escrita de notas
+
+## Diagnóstico
+
+Em `FlipbookReader.tsx` linha 377, o handler de teclado global captura a tecla espaço (`" "`) para avançar página. Este handler não verifica se o foco está num campo de texto, causando o conflito.
 
 ## Alteração
 
-Ficheiro `src/components/ebooks/FlipbookReader.tsx`, linha 294 — adicionar verificação de `highlightMode` logo após o check de `hasNotesFeature`:
+Ficheiro `src/components/ebooks/FlipbookReader.tsx`, linha 376-378 — adicionar guarda que ignora o evento quando o foco está num `input`, `textarea` ou elemento `contentEditable`:
 
 ```typescript
-const handleMouseUp = useCallback(() => {
-    if (!hasNotesFeature || !highlightMode) return;
-    // ... resto da lógica
-}, [hasNotesFeature, highlightMode]);
-```
+const handler = (e: KeyboardEvent) => {
+  const tag = (e.target as HTMLElement)?.tagName;
+  const isEditable = (e.target as HTMLElement)?.isContentEditable;
+  if (tag === "INPUT" || tag === "TEXTAREA" || isEditable) return;
 
-Isto garante que o popover de sublinhado só aparece quando o modo sublinhado está activamente ligado. Sem esta guarda, qualquer selecção de texto abre o popover mesmo em modo de leitura normal.
+  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); flipNext(); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); flipPrev(); }
+};
+```
 
 ## Ficheiro a alterar
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/ebooks/FlipbookReader.tsx` | Adicionar `!highlightMode` ao early return + `highlightMode` às deps do `useCallback` |
+| `src/components/ebooks/FlipbookReader.tsx` | Adicionar guarda de foco no handler de teclado global |
+
