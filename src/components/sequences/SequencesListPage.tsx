@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ import {
   Users,
   Play,
   Pause,
+  DollarSign,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
@@ -31,6 +33,7 @@ import {
 } from '@/hooks/useEmailSequences';
 import { SequenceFormDialog } from './SequenceFormDialog';
 import { SequenceDetailDialog } from './SequenceDetailDialog';
+import { RevenueAttributionDashboard } from '@/components/communication/RevenueAttributionDashboard';
 
 const sortOptions = [
   { value: 'updated_desc', label: 'Mais recentes' },
