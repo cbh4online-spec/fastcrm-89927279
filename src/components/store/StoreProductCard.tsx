@@ -226,6 +226,17 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
           {/* Info */}
           <div className="p-4 flex flex-col flex-1 gap-1.5">
+            {/* Seller badge for C2C */}
+            {(product as any)._isC2C && (product as any)._sellerName && (
+              <Link
+                to={`/store/${workspaceSlug}/seller/${(product as any)._sellerSlug || (product as any)._sellerId}`}
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-primary/80 hover:text-primary transition-colors w-fit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <User className="h-3 w-3" />
+                Vendido por {(product as any)._sellerName}
+              </Link>
+            )}
             {product.category && (
               <p className="text-[11px] font-semibold text-primary/70 uppercase tracking-widest">
                 {product.category}
