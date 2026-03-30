@@ -597,7 +597,7 @@ export default function StoreCheckoutPage() {
                   <>
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
-                      <span>€{subtotal.toFixed(2)}</span>
+                      <span>€{formatMoney(subtotal)}</span>
                     </div>
                     {appliedCoupon && (
                       <div className="flex justify-between text-sm text-green-600">
