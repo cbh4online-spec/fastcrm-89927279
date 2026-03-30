@@ -1,38 +1,48 @@
 
 
-# Adicionar agendamento de reunião e seleção de calendário no compositor de email
+# Corrigir lógica de filtragem da Inbox e adicionar filtro por canal
 
-## Contexto
-O compositor de email (`ComposeEmailDialog`) atualmente não permite agendar reuniões nem escolher um calendário. O sistema já tem infraestrutura de calendários (`useCalendars`) e um modal de criação de eventos (`CalendarEventModal`) que podem ser reutilizados.
+## Diagnóstico
+1. **"Caixa de entrada"** filtra por `status=open` sem distinguir direção — deveria mostrar apenas mensagens **recebidas** (`last_message_direction = 'inbound'` ou todas as abertas, que é o comportamento padrão)
+2. **"Enviado"** filtra por `last_message_direction = 'outbound'` mas também aplica `status=open` (via `getStatusFromCategory` que retorna "open" por defeito) — deveria mostrar **todas** as conversas onde a última mensagem foi enviada pelo utilizador, independentemente do status
+3. **Filtro por canal** (WhatsApp, Email, Instagram, etc.) não existe na sidebar — o utilizador precisa de filtrar por canal recebido
+4. O `selectedChannel` já é passado da `InboxSidebar` → `InboxView` → `ConversationList`, mas a sidebar não tem UI para selecionar canais
 
 ## Alterações
 
-### 1. Adicionar seletor de calendário ao compositor de email
-- Importar `useCalendars` no `ComposeEmailDialog`
-- Adicionar um `Select` dropdown na zona do remetente/toolbar para escolher o calendário associado ao email
-- Guardar `selectedCalendarId` no state do compositor
-- O calendário escolhido será usado para criar eventos/reuniões associados
+### 1. Corrigir lógica `getStatusFromCategory` em `ConversationList.tsx`
+- **"all" (Caixa de entrada)**: manter `status=open` (mensagens abertas, recebidas e enviadas — comportamento padrão de inbox)
+- **"sent"**: não filtrar por status (remover `status=open`), apenas por `last_message_direction=outbound`
+- **"drafts"**: `status=pending`
+- **"spam"/"trash"**: `status=archived`
+- **"scheduled"**: `status=open` + placeholder (sem dados reais de agendamento ainda)
 
-### 2. Adicionar botão "Agendar Reunião" na toolbar do compositor
-- Novo botão com ícone `CalendarPlus` na toolbar (junto aos outros botões: templates, anexos, pagamento)
-- Ao clicar, abre um painel inline (semelhante ao schedule picker existente) com:
-  - Data e hora da reunião
-  - Duração (30min, 1h, 1h30, 2h — com default do calendário)
-  - Localização / URL de videoconferência (opcional)
-  - Título da reunião (pré-preenchido com assunto do email)
-- Ao enviar o email, cria automaticamente um evento no calendário selecionado via `useCalendarEvents.createEvent`
-- O email inclui automaticamente os detalhes da reunião no corpo (data, hora, local/link)
+### 2. Adicionar filtro por canal na sidebar (`InboxSidebar.tsx`)
+- Nova secção colapsável **"Canais"** entre Pastas e Vistas
+- Ícones para cada canal: Email, WhatsApp, Instagram, Facebook, SMS, GHL, Telefone, Webchat
+- Ao clicar num canal, chama `onChannelChange` com o canal correspondente
+- Botão "Todos" para limpar o filtro de canal
+- Mostrar contagem de conversas por canal
 
-### 3. Ficheiros a editar
+### 3. Ajustar `useConversations.ts`
+- Tornar o filtro `status` verdadeiramente opcional (quando `undefined`, não aplicar `.eq("status", ...)`)
+- Actualmente já suporta `lastMessageDirection` e `channel`
+
+### 4. Ajustar `ConversationList.tsx`
+- Quando `categoryFilter === "sent"`, passar `status: undefined` (sem filtro de status)
+- Garantir que o `channelFilter` externo é sempre aplicado correctamente
+
+### Ficheiros a editar
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/email/ComposeEmailDialog.tsx` | Adicionar seletor de calendário, botão e painel de agendamento de reunião, lógica de criação de evento ao enviar |
+| `src/components/inbox/InboxSidebar.tsx` | Adicionar secção "Canais" com botões por canal |
+| `src/components/inbox/ConversationList.tsx` | Corrigir `getStatusFromCategory` para "sent" não forçar status |
+| `src/hooks/useConversations.ts` | Garantir que `status=undefined` não aplica filtro |
 
-### 4. Fluxo do utilizador
-1. Abre compositor de email
-2. Seleciona calendário no dropdown (se tiver mais que um)
-3. Clica em "Agendar Reunião" na toolbar
-4. Preenche data/hora/duração
-5. Ao enviar o email, o evento é criado no calendário escolhido com o destinatário como participante
-6. O corpo do email inclui bloco com detalhes da reunião
+### Fluxo corrigido
+- **Caixa de entrada** → `status=open` (todas abertas)
+- **Enviado** → `lastMessageDirection=outbound`, sem filtro de status
+- **Rascunhos** → `status=pending`
+- **Spam/Reciclagem** → `status=archived`
+- **Filtro canal** → `channel=email|whatsapp|...` combinado com qualquer pasta
 
