@@ -75,7 +75,7 @@ export function useFormFieldOrder(entityType: FormEntityType) {
     const stored = localStorage.getItem(key);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        return JSON.parse(stored) as any;
       } catch {
         return null;
       }

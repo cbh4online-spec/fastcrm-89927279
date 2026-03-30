@@ -76,7 +76,7 @@ export function useBlueprintVersions(blueprintId: string | null) {
         .insert([{
           blueprint_id: blueprintId,
           version,
-          schema: JSON.parse(JSON.stringify(schema)),
+          schema: JSON.parse(JSON.stringify(schema)) as any,
           change_summary: changeSummary || null,
           created_by: user?.id || null,
         }]);
