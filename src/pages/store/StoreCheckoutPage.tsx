@@ -243,21 +243,23 @@ export default function StoreCheckoutPage() {
 
   const discountAmount = appliedCoupon
     ? (() => {
+        const sub = toMoney(subtotal);
         let discount = appliedCoupon.discount_type === "percentage"
-          ? subtotal * (appliedCoupon.discount_value / 100)
-          : Math.min(appliedCoupon.discount_value, subtotal);
-        // Cap percentage discounts if max_discount_amount is set
+          ? moneyMul(sub, appliedCoupon.discount_value / 100)
+          : moneyMin(appliedCoupon.discount_value, sub);
         if (appliedCoupon.discount_type === "percentage" && appliedCoupon.max_discount_amount) {
-          discount = Math.min(discount, appliedCoupon.max_discount_amount);
+          discount = moneyMin(discount, appliedCoupon.max_discount_amount);
         }
-        return discount;
+        return moneyToNumber(discount);
       })()
     : 0;
-  
+
   const selectedCttOption = cttOptions.find((o) => o.id === selectedShippingId);
   const effectiveShippingCost = selectedCttOption?.price ?? 0;
-  const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.current_balance, subtotal - discountAmount + effectiveShippingCost) : 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount + effectiveShippingCost - giftCardAmount);
+  const giftCardAmount = appliedGiftCard
+    ? moneyToNumber(moneyMin(appliedGiftCard.current_balance, moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost)))
+    : 0;
+  const finalTotal = moneyToNumber(moneyMax(0, moneySub(moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost), giftCardAmount)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
