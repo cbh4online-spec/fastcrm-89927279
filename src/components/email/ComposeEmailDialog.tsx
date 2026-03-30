@@ -649,6 +649,22 @@ export function ComposeEmailDialog({
                   </Tooltip>
                 </TooltipProvider>
 
+                {/* Meeting scheduling */}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={showMeetingPanel ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setShowMeetingPanel(!showMeetingPanel)}
+                      >
+                        <CalendarPlus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Agendar reunião</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 {/* AI Assist */}
                 <AIEmailAssistPanel
                   body={body}
