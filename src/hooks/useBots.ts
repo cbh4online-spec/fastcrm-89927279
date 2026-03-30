@@ -107,6 +107,9 @@ export function useBots() {
           system_prompt: input.system_prompt || null,
           guided_config: input.guided_config || {},
           settings: input.settings || undefined,
+          role: input.role || null,
+          team_id: input.team_id || null,
+          specialization: input.specialization || null,
         })
         .select()
         .single();

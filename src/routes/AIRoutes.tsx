@@ -43,6 +43,7 @@ export function AIRoutes() {
       <Route path="/dashboard/ai-usage" element={<AIUsagePage />} />
       <Route path="/dashboard/ai-operations" element={<AIOperationsCenterPage />} />
       <Route path="/dashboard/ceo-copilot" element={<CEOCopilotPage />} />
+      <Route path="/dashboard/agent-ops" element={<AgentOperationsPage />} />
     </>
   );
 }
