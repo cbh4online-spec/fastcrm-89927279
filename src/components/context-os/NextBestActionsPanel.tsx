@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNextBestActions, useActOnNBA, useDismissNBA, useNBAStats, useGenerateNBAs, type NextBestAction } from '@/hooks/useNextBestActions';
+import { useExecuteAction } from '@/hooks/useActionExecution';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +44,33 @@ export function NextBestActionsPanel() {
   const actMutation = useActOnNBA();
   const dismissMutation = useDismissNBA();
   const generateMutation = useGenerateNBAs();
+  const executeAction = useExecuteAction();
+
+  const handleActWithExecution = async (action: NextBestAction) => {
+    try {
+      // Create action execution from NBA
+      await executeAction.mutateAsync({
+        action_type: action.action_type,
+        title: action.title,
+        description: action.description || undefined,
+        source_type: 'next_best_action',
+        source_id: action.id,
+        entity_type: action.entity_type,
+        entity_id: action.entity_id,
+        payload: {
+          rationale: action.rationale,
+          priority_score: action.priority_score,
+          impact_estimate: action.impact_estimate,
+          ...(action.suggested_payload_json as Record<string, unknown> || {}),
+        },
+        correlation_id: `nba-${action.id}-${Date.now()}`,
+      });
+      // Mark NBA as acted
+      actMutation.mutate(action);
+    } catch {
+      // toast handled by hook
+    }
+  };
 
   const topActions = (actions ?? []).slice(0, 10);
 
@@ -200,8 +228,8 @@ export function NextBestActionsPanel() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-emerald-600 hover:text-emerald-700"
-                            title="Marcar como executada"
-                            onClick={() => actMutation.mutate(action)}
+                            title="Executar ação"
+                            onClick={() => handleActWithExecution(action)}
                             disabled={actMutation.isPending}
                           >
                             <Check className="h-3.5 w-3.5" />

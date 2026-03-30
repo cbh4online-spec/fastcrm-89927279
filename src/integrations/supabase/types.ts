@@ -2223,6 +2223,187 @@ export type Database = {
           },
         ]
       }
+      action_approvals: {
+        Row: {
+          action_execution_id: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          rejected_at: string | null
+          requested_by: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_execution_id: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          requested_by?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_execution_id?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          requested_by?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_approvals_action_execution_id_fkey"
+            columns: ["action_execution_id"]
+            isOneToOne: false
+            referencedRelation: "action_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_approvals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_execution_settings: {
+        Row: {
+          allow_auto_recovery_trigger: boolean
+          allow_auto_sequence_enrollment: boolean
+          allow_auto_task_creation: boolean
+          auto_execution_enabled: boolean
+          created_at: string
+          id: string
+          require_human_approval_for_email: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_auto_recovery_trigger?: boolean
+          allow_auto_sequence_enrollment?: boolean
+          allow_auto_task_creation?: boolean
+          auto_execution_enabled?: boolean
+          created_at?: string
+          id?: string
+          require_human_approval_for_email?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allow_auto_recovery_trigger?: boolean
+          allow_auto_sequence_enrollment?: boolean
+          allow_auto_task_creation?: boolean
+          auto_execution_enabled?: boolean
+          created_at?: string
+          id?: string
+          require_human_approval_for_email?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_execution_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_executions: {
+        Row: {
+          action_type: string
+          cancelled_at: string | null
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          executed_at: string | null
+          execution_mode: string
+          failed_at: string | null
+          id: string
+          payload_json: Json
+          result_json: Json | null
+          source_id: string | null
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          cancelled_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          execution_mode?: string
+          failed_at?: string | null
+          id?: string
+          payload_json?: Json
+          result_json?: Json | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          cancelled_at?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          execution_mode?: string
+          failed_at?: string | null
+          id?: string
+          payload_json?: Json
+          result_json?: Json | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           action: string

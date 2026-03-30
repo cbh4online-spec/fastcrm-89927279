@@ -6,10 +6,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useCreateTask } from "@/hooks/useTasks";
-import { addDays, format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useExecuteAction } from "@/hooks/useActionExecution";
 
 interface CommandQuickActionsProps {
   actions: CommandAction[];
@@ -37,9 +36,12 @@ const actionStyles: Record<string, string> = {
   create_followup: "border-primary/20 hover:bg-primary/5",
 };
 
+// Client-side only actions that don't need server execution
+const CLIENT_ONLY_ACTIONS = new Set(['navigate', 'analyze_deeper', 'export_pdf', 'generate_report']);
+
 export function CommandQuickActions({ actions, entityId, entityName, onExecuteCommand }: CommandQuickActionsProps) {
   const navigate = useNavigate();
-  const createTask = useCreateTask();
+  const executeAction = useExecuteAction();
   const [loadingAction, setLoadingAction] = useState<number | null>(null);
   const [completedActions, setCompletedActions] = useState<Set<number>>(new Set());
 
@@ -50,129 +52,105 @@ export function CommandQuickActions({ actions, entityId, entityName, onExecuteCo
   };
 
   const handleAction = async (action: CommandAction, index: number) => {
-    switch (action.action_type) {
-      case "navigate":
-        if (action.target) navigate(action.target);
-        break;
+    // Client-side only actions
+    if (action.action_type === 'navigate') {
+      if (action.target) navigate(action.target);
+      return;
+    }
 
-      case "generate_report": {
-        const target = action.target || "/dashboard/proposals";
-        toast.info("A abrir gerador de proposta…");
-        navigate(target);
-        break;
+    if (action.action_type === 'analyze_deeper') {
+      if (onExecuteCommand) {
+        const cmd = entityName
+          ? `Aprofunda a análise de ${entityName}`
+          : "Aprofunda a análise anterior";
+        onExecuteCommand(cmd);
       }
+      return;
+    }
 
-      case "export_pdf": {
-        const target = action.target || "/dashboard/proposals";
-        toast.info("A abrir exportação…");
-        navigate(target);
-        break;
-      }
+    if (action.action_type === 'generate_report' || action.action_type === 'export_pdf') {
+      const target = action.target || "/dashboard/proposals";
+      toast.info(action.action_type === 'generate_report' ? "A abrir gerador de proposta…" : "A abrir exportação…");
+      navigate(target);
+      return;
+    }
 
-      case "schedule_meeting": {
-        setLoadingAction(index);
-        try {
-          const title = entityName
-            ? `Review com Cliente — ${entityName}`
-            : action.label || "Review com Cliente";
-          const dueAt = format(addDays(new Date(), 1), "yyyy-MM-dd'T'09:00:00");
-
-          await createTask.mutateAsync({
-            title,
-            related_type: entityId ? "opportunity" : undefined,
-            related_id: entityId || undefined,
-            due_at: dueAt,
-            status: "pending",
-          });
-
-          markCompleted(index);
-          toast.success("Reunião de review agendada", {
-            description: title,
-            action: {
-              label: "Ver tarefas",
-              onClick: () => navigate("/dashboard/tasks"),
-            },
-          });
-        } catch {
-          toast.error("Erro ao agendar reunião");
-        } finally {
-          setLoadingAction(null);
-        }
-        break;
-      }
-
-      case "create_task": {
-        setLoadingAction(index);
-        try {
-          const title = action.label || "Nova tarefa";
-          await createTask.mutateAsync({
-            title,
-            related_type: entityId ? "opportunity" : undefined,
-            related_id: entityId || undefined,
-            status: "pending",
-          });
-
-          markCompleted(index);
-          toast.success("Tarefa criada", {
-            description: title,
-            action: {
-              label: "Ver tarefas",
-              onClick: () => navigate("/dashboard/tasks"),
-            },
-          });
-        } catch {
-          toast.error("Erro ao criar tarefa");
-        } finally {
-          setLoadingAction(null);
-        }
-        break;
-      }
-
-      case "create_followup": {
-        setLoadingAction(index);
-        try {
-          const title = entityName
-            ? `Follow-up — ${entityName}`
-            : action.label || "Follow-up";
-          const dueAt = format(addDays(new Date(), 3), "yyyy-MM-dd'T'09:00:00");
-
-          await createTask.mutateAsync({
-            title,
-            related_type: entityId ? "opportunity" : undefined,
-            related_id: entityId || undefined,
-            due_at: dueAt,
-            status: "pending",
-          });
-
-          markCompleted(index);
-          toast.success("Follow-up agendado para 3 dias", {
-            description: title,
-            action: {
-              label: "Ver tarefas",
-              onClick: () => navigate("/dashboard/tasks"),
-            },
-          });
-        } catch {
-          toast.error("Erro ao criar follow-up");
-        } finally {
-          setLoadingAction(null);
-        }
-        break;
-      }
-
-      case "analyze_deeper": {
-        if (onExecuteCommand) {
-          const cmd = entityName
-            ? `Aprofunda a análise de ${entityName}`
-            : "Aprofunda a análise anterior";
-          onExecuteCommand(cmd);
-        }
-        break;
-      }
-
-      case "send_email":
+    if (action.action_type === 'send_email') {
+      // Route through execution engine for audit, but navigate to inbox
+      setLoadingAction(index);
+      try {
+        await executeAction.mutateAsync({
+          action_type: 'send_email',
+          title: action.label || 'Enviar email',
+          source_type: 'command_center',
+          entity_type: entityId ? 'opportunity' : undefined,
+          entity_id: entityId,
+          payload: { entity_name: entityName },
+          correlation_id: `cmd-send_email-${entityId || 'none'}-${Date.now()}`,
+        });
         navigate("/dashboard/inbox");
-        break;
+      } catch {
+        // toast handled by hook
+      } finally {
+        setLoadingAction(null);
+      }
+      return;
+    }
+
+    // Server-executed actions: create_task, schedule_meeting, create_followup
+    setLoadingAction(index);
+    try {
+      const payload: Record<string, unknown> = {
+        title: action.label || action.action_type,
+        entity_name: entityName,
+      };
+
+      if (action.action_type === 'schedule_meeting') {
+        const dueAt = new Date();
+        dueAt.setDate(dueAt.getDate() + 1);
+        dueAt.setHours(9, 0, 0, 0);
+        payload.title = entityName ? `Review com Cliente — ${entityName}` : (action.label || 'Review com Cliente');
+        payload.due_at = dueAt.toISOString();
+        payload.related_type = entityId ? 'opportunity' : undefined;
+        payload.related_id = entityId || undefined;
+      }
+
+      if (action.action_type === 'create_followup') {
+        const dueAt = new Date();
+        dueAt.setDate(dueAt.getDate() + 3);
+        dueAt.setHours(9, 0, 0, 0);
+        payload.title = entityName ? `Follow-up — ${entityName}` : (action.label || 'Follow-up');
+        payload.due_at = dueAt.toISOString();
+        payload.days = 3;
+        payload.related_type = entityId ? 'opportunity' : undefined;
+        payload.related_id = entityId || undefined;
+      }
+
+      if (action.action_type === 'create_task') {
+        payload.related_type = entityId ? 'opportunity' : undefined;
+        payload.related_id = entityId || undefined;
+      }
+
+      // Map create_followup to create_followup_note action_type
+      const mappedType = action.action_type === 'create_followup' ? 'create_followup_note' : action.action_type;
+
+      const result = await executeAction.mutateAsync({
+        action_type: mappedType,
+        title: (payload.title as string) || action.label || action.action_type,
+        source_type: 'command_center',
+        entity_type: entityId ? 'opportunity' : undefined,
+        entity_id: entityId,
+        payload,
+        correlation_id: `cmd-${action.action_type}-${entityId || 'none'}-${Date.now()}`,
+      });
+
+      if (result.status === 'completed') {
+        markCompleted(index);
+      }
+    } catch {
+      // toast handled by hook
+    } finally {
+      setLoadingAction(null);
     }
   };
 
