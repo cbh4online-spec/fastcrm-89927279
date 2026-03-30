@@ -129,6 +129,9 @@ export default function AgentOperationsPage() {
             <TabsTrigger value="teams" className="gap-1">
               <Users className="w-3.5 h-3.5" /> Equipas
             </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-1">
+              <BarChart3 className="w-3.5 h-3.5" /> Performance
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-1">
               <Settings2 className="w-3.5 h-3.5" /> Configurações
             </TabsTrigger>
