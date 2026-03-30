@@ -223,6 +223,8 @@
     "ts-pattern": "^5.9.0",
     "turndown": "^7.2.2",
     "type-fest": "^5.5.0",
+    "typesense": "^3.0.4",
+    "typesense-instantsearch-adapter": "^3.0.2",
     "use-debounce": "^10.1.1",
     "use-places-autocomplete": "^4.0.1",
     "validator": "^13.15.26",
