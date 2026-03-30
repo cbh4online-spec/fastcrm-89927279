@@ -1,49 +1,63 @@
 
 
-# Integrar Tiptap no MessageInput do Inbox
+# Componente RichTextEditor reutilizável com Tiptap
 
-## Resumo
-Substituir o `<textarea>` por um editor Tiptap inline, mantendo o layout circular existente e adicionando uma toolbar de formatação compacta.
+## Diagnóstico
 
-## Alterações
+Existem actualmente duas implementações separadas:
+1. **Inbox** (`src/components/inbox/RichTextEditor.tsx`) — Tiptap, compacto, orientado a chat (Enter envia)
+2. **Email Builder** (`src/components/email-builder/RichTextEditor.tsx`) — `contentEditable` + `document.execCommand` (legacy, depreciado pelos browsers)
 
-### 1. Criar `src/components/inbox/RichTextEditor.tsx`
-Componente wrapper do Tiptap com:
-- Extensions: StarterKit, Placeholder, Link
-- Bubble menu (toolbar flutuante ao seleccionar texto) com botões: Bold, Italic, Strikethrough, Link
-- Estilo inline compatível com o container rounded existente
-- Prop `onUpdate` para devolver HTML, `onEnterSend` para trigger de envio
-- Prop `placeholder`, `disabled`, `editable`
-- Método imperativo `clearContent()` via ref
+O Email Builder usa ainda `InlineToolbar.tsx` baseado em `execCommand`. As Notas (`OpportunityNotesTab`) usam um `<Textarea>` simples.
 
-### 2. Modificar `src/components/inbox/MessageInput.tsx`
-- Substituir `<textarea>` pelo novo `RichTextEditor`
-- `onSend` passa a enviar HTML (`editor.getHTML()`) em vez de plain text
-- Manter todos os botões existentes (Plus, Smile, Mic, Paperclip, Send)
-- Enter sem Shift continua a enviar; Shift+Enter nova linha
-- Verificação de conteúdo vazio: usar `editor.isEmpty` em vez de `message.trim()`
-- Manter a prop interface compatível (`onSend: (message: string) => Promise<void>` — agora envia HTML string)
+## Plano
 
-### 3. Adicionar toolbar compacta acima do input (opcional toggle)
-- Linha de botões pequenos: **B**, *I*, ~~S~~, Link, Lista
-- Visível apenas quando o editor tem foco ou tem conteúdo formatado
-- Posicionada dentro do container, acima da área de texto
+### 1. Criar `src/components/ui/RichTextEditor.tsx` — componente partilhado
 
-## Estrutura visual
+Componente Tiptap configurável com props para controlar funcionalidades:
 
-```text
-┌─────────────────────────────────────────────┐
-│ [B] [I] [S] [Link] [UL] [OL]    ← toolbar  │
-├─────────────────────────────────────────────┤
-│ [+]  Editor Tiptap inline...   [😊][🎤][📎][➤] │
-└─────────────────────────────────────────────┘
-```
+- **Extensions**: StarterKit, Placeholder, Link, Image (opcional via prop `enableImage`)
+- **Toolbar fixa** no topo (não bubble menu) com: Bold, Italic, Strikethrough, Link, Lista, Lista numerada, Imagem (condicional)
+- **Props**:
+  - `value` / `onChange(html)` — controlled mode
+  - `placeholder`, `disabled`, `className`
+  - `minHeight` (default 100px para notas, 130px para email)
+  - `enableImage?: boolean` — mostra botão de imagem na toolbar
+  - `onImageUpload?: () => void` — callback externo para upload
+  - `onInsertVariable?: (variable: string) => void` — para o Email Builder
+  - `showVariables?: boolean` — mostra botão de variáveis na toolbar
+- **Ref imperativo**: `clearContent()`, `isEmpty()`, `getHTML()`, `focus()`, `insertContent(html)`
+
+### 2. Migrar Email Builder para o novo componente
+
+- `BlockEditor.tsx` (linha 90): substituir `<RichTextEditor>` do email-builder pelo novo de `@/components/ui/RichTextEditor`
+- Passar `enableImage`, `showVariables` e `onInsertVariable` para manter funcionalidade actual
+- O `InlineToolbar.tsx` e o antigo `RichTextEditor` do email-builder podem ser removidos ou mantidos temporariamente (a toolbar de `execCommand` é substituída pela toolbar Tiptap)
+
+### 3. Migrar OpportunityNotesTab para rich-text
+
+- Substituir `<Textarea>` pelo novo `RichTextEditor`
+- Notas passam a guardar HTML em vez de plain text
+- A renderização das notas existentes usa `dangerouslySetInnerHTML` (com sanitização) em vez de `whitespace-pre-wrap`
+- Notas antigas (plain text) continuam a funcionar — se não contiver tags HTML, renderizar como texto
+
+### 4. Manter Inbox RichTextEditor separado
+
+O editor do Inbox tem comportamento específico (Enter envia, layout inline compacto) — não faz sentido unificar. Mantém-se como está.
+
+## Ficheiros alterados
+
+| Ficheiro | Acção |
+|---|---|
+| `src/components/ui/RichTextEditor.tsx` | Criar (novo) |
+| `src/components/email-builder/BlockEditor.tsx` | Actualizar import |
+| `src/components/email-builder/index.ts` | Remover export do RichTextEditor antigo |
+| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | Substituir Textarea por RichTextEditor |
 
 ## Critérios de aceitação
-- Editor suporta bold, italic, strikethrough, links e listas
-- Enter envia, Shift+Enter quebra linha
-- Mensagem enviada como HTML string
-- Input limpa após envio
-- Placeholder visível quando vazio
-- Sem regressões nos botões existentes
+- Toolbar com bold, italic, strikethrough, link, listas e imagem (condicional)
+- Email Builder funciona com o novo editor (variáveis e imagens)
+- Notas suportam formatação rich-text
+- Notas antigas plain-text renderizam correctamente
+- Build sem erros
 
