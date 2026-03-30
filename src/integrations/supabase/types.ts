@@ -29934,6 +29934,140 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_orders: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string | null
+          currency: string
+          gross_amount: number
+          id: string
+          listing_id: string | null
+          net_amount: number
+          seller_id: string
+          status: string
+          store_order_id: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string | null
+          currency?: string
+          gross_amount?: number
+          id?: string
+          listing_id?: string | null
+          net_amount?: number
+          seller_id: string
+          status?: string
+          store_order_id: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string | null
+          currency?: string
+          gross_amount?: number
+          id?: string
+          listing_id?: string | null
+          net_amount?: number
+          seller_id?: string
+          status?: string
+          store_order_id?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_orders_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_wallet_entries: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          currency: string
+          entry_type: string
+          id: string
+          notes: string | null
+          reference_id: string | null
+          reference_type: string | null
+          seller_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          created_at?: string | null
+          currency?: string
+          entry_type: string
+          id?: string
+          notes?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          currency?: string
+          entry_type?: string
+          id?: string
+          notes?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_wallet_entries_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_wallet_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_ai_analysis: {
         Row: {
           buying_signals: Json | null
@@ -46718,6 +46852,13 @@ export type Database = {
         Row: {
           accent_color: string | null
           banner_url: string | null
+          c2c_allow_mixed_cart: boolean | null
+          c2c_default_commission_rate: number | null
+          c2c_enabled: boolean | null
+          c2c_listing_moderation_required: boolean | null
+          c2c_payout_manual_mode: boolean | null
+          c2c_payout_minimum_amount: number | null
+          c2c_seller_approval_required: boolean | null
           created_at: string
           custom_domain: string | null
           footer_text: string | null
@@ -46738,6 +46879,13 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           banner_url?: string | null
+          c2c_allow_mixed_cart?: boolean | null
+          c2c_default_commission_rate?: number | null
+          c2c_enabled?: boolean | null
+          c2c_listing_moderation_required?: boolean | null
+          c2c_payout_manual_mode?: boolean | null
+          c2c_payout_minimum_amount?: number | null
+          c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
           footer_text?: string | null
@@ -46758,6 +46906,13 @@ export type Database = {
         Update: {
           accent_color?: string | null
           banner_url?: string | null
+          c2c_allow_mixed_cart?: boolean | null
+          c2c_default_commission_rate?: number | null
+          c2c_enabled?: boolean | null
+          c2c_listing_moderation_required?: boolean | null
+          c2c_payout_manual_mode?: boolean | null
+          c2c_payout_minimum_amount?: number | null
+          c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
           footer_text?: string | null
