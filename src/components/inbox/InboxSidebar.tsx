@@ -84,6 +84,7 @@ export function InboxSidebar({
   onChannelChange,
 }: InboxSidebarProps) {
   const [foldersOpen, setFoldersOpen] = useState(true);
+  const [channelsOpen, setChannelsOpen] = useState(false);
   const [viewsOpen, setViewsOpen] = useState(true);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
