@@ -95,7 +95,7 @@ export default function StoreSellerPage() {
   if (!seller) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <Package className="h-16 w-16 text-muted-foreground/30" />
+        <Package className="h-16 w-16 text-muted-foreground/30 mb-3" />
         <h1 className="text-xl font-semibold">Vendedor não encontrado</h1>
       </div>
     );
