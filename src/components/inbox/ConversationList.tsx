@@ -212,6 +212,7 @@ export function ConversationList({
     if (categoryFilter === "trash" || categoryFilter === "spam" || categoryFilter === "archives") return "archived";
     if (categoryFilter === "closed") return "closed";
     if (categoryFilter === "drafts") return "pending";
+    if (categoryFilter === "sent") return undefined; // Sent: no status filter, only direction
     if (activeTab === "resolved") return "closed";
     return "open";
   };
