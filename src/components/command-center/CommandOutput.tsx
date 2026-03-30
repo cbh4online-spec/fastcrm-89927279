@@ -3,7 +3,7 @@ import { AskResult, AskResultAction, AskResultItem, AutomationPreview } from "@/
 import { AskFastCRMResultPanel } from "@/components/ask-fastcrm/AskFastCRMResultPanel";
 import { Loader2, Terminal } from "lucide-react";
 import { motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 interface Props {
   slashResult?: SlashCommandResult | null;
@@ -52,9 +52,7 @@ export function CommandOutput({
             <span className="text-sm">A processar comando...</span>
           </div>
         ) : (
-          <div className="text-sm text-foreground/80 prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{slashResult.content}</ReactMarkdown>
-          </div>
+          <MarkdownRenderer content={slashResult.content} className="text-foreground/80" />
         )}
       </motion.div>
     );
