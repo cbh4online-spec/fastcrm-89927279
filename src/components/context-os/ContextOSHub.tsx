@@ -50,6 +50,14 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
   const { upsert } = useBusinessContext();
   const { currentWorkspace } = useWorkspace();
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
+  const { data: activeWorkItems = [] } = useAgentWorkItems({ status: "in_progress" });
+  const { data: recentHandoffs = [] } = useAgentHandoffs({ status: "pending" });
+  const { bots } = useBots();
+
+  const getBotName = (id: string | null) => {
+    if (!id) return "—";
+    return bots.find((b) => b.id === id)?.name || id.slice(0, 8);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
