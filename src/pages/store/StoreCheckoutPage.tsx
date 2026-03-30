@@ -297,6 +297,7 @@ export default function StoreCheckoutPage() {
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
           shippingMethodName: selectedCttOption?.name || undefined,
+          abandonedCartId: abandonedCartId || undefined,
           successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
           cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
         },
