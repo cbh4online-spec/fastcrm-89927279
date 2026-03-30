@@ -129,7 +129,7 @@ export function EntityPicker({
       {label && (
         <label className="text-sm font-medium text-foreground">{label}</label>
       )}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"

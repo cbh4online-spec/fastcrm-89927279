@@ -382,7 +382,7 @@ export function MeetingCreateModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Data</FormLabel>
-                    <Popover>
+                    <Popover modal={false}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
