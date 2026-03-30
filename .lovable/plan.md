@@ -1,55 +1,28 @@
 
 
-# Tornar o compositor de email verdadeiramente dinâmico e profissional
+# Corrigir filtro "Enviado" — faltam conversas de todos os canais
 
 ## Diagnóstico
-O compositor actual é um dialog básico com um `<textarea>` simples, toolbar apertada e layout pouco profissional. O projecto já tem componentes ricos (`RichTextEditor` com contentEditable, `InlineToolbar` com formatação completa, `AIEmailAssistPanel`, templates, anexos, pagamentos, reuniões, traduções) mas o compositor não os utiliza adequadamente. O campo "Para" é estático (badge fixa) sem possibilidade de pesquisar contactos.
+A coluna `last_message_direction` na tabela `conversations` foi criada e preenchida apenas **uma vez** via migração de backfill. **Não existe nenhum trigger** que actualize este campo quando uma nova mensagem é inserida. Resultado: apenas conversas que já tinham a última mensagem outbound no momento do backfill (maioritariamente Instagram/GHL) aparecem nos "Enviados". Emails, WhatsApp e outros canais enviados após o backfill nunca actualizam `last_message_direction`.
 
-## Plano de implementação
+Já existe o trigger `trg_increment_unread` que actualiza `unread_count` em INSERT — basta criar um trigger análogo para `last_message_direction`.
 
-### 1. Substituir textarea por RichTextEditor
-- Substituir o `<textarea>` pelo `RichTextEditor` existente em `src/components/email-builder/RichTextEditor.tsx` que já suporta:
-  - Formatação inline (bold, italic, underline, strikethrough)
-  - Headings, alinhamento, listas
-  - Inserção de variáveis dinâmicas
-  - Cores de texto
-  - Links
-  - Atalhos de teclado (Ctrl+B/I/U)
-- Envolver o compositor com `EmailEditorProvider` para o contexto funcionar
-- Remover os botões de formatação manuais da toolbar (já existem no InlineToolbar ao seleccionar texto)
+## Alterações
 
-### 2. Campo "Para" com pesquisa de contactos
-- Substituir o badge estático por um input com autocomplete usando `useEntitySearch` (hook já existente com `searchContacts`)
-- Permitir pesquisar contactos, leads e empresas por nome/email
-- Mostrar resultados em dropdown com avatar, nome e email
-- Permitir adicionar múltiplos destinatários (não apenas um)
+### 1. Criar trigger para actualizar `last_message_direction` (migração SQL)
+- Criar função `update_conversation_last_message_direction()` que, em cada INSERT na tabela `messages`, faz UPDATE à conversa correspondente com `last_message_direction = NEW.direction`
+- Actualiza também `last_message_at` e `last_message_preview` no mesmo trigger para manter consistência (actualmente estes campos também podem ficar desactualizados)
+- Criar trigger `trg_update_last_message_direction` AFTER INSERT ON `messages`
 
-### 3. Redesenhar layout do compositor
-- Expandir dialog para `max-w-3xl` com layout mais espaçoso
-- Header profissional com remetente e título "Novo Email"
-- Toolbar reorganizada em grupos lógicos com separadores:
-  - **Grupo 1**: Templates, AI Assist
-  - **Grupo 2**: Anexos, Link pagamento, Reunião
-  - **Grupo 3**: Traduzir, Agendar
-- Barra de status inferior com indicadores (HTML, anexos, assinatura, prioridade)
-- Área de escrita mais ampla (min-height: 300px)
+### 2. Re-backfill dos dados existentes
+- Na mesma migração, executar UPDATE para recalcular `last_message_direction` de todas as conversas com base na mensagem mais recente (mesmo SQL do backfill original)
 
-### 4. Novas funcionalidades
-- **Selector de prioridade** (Normal, Alta, Urgente) com badge visual
-- **Confirmação de leitura** (toggle para solicitar read receipt)
-- **Rascunho automático** — guardar estado enquanto o dialog está aberto
-- **Undo/Redo** no editor rico (já suportado nativamente pelo contentEditable)
-- **Drag & drop de ficheiros** na área de edição para anexar
-
-### 5. Ficheiros a editar
+### Ficheiros
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/email/ComposeEmailDialog.tsx` | Redesenho completo: RichTextEditor, pesquisa de contactos, layout profissional, prioridade, read receipt, drag & drop |
+| Nova migração SQL | Trigger + backfill para `last_message_direction`, `last_message_at`, `last_message_preview` |
 
 ### Resultado esperado
-- Editor rico com toolbar flutuante ao seleccionar texto (bold, italic, headings, cores, links, variáveis)
-- Campo "Para" pesquisável com autocomplete de contactos/leads/empresas
-- Layout mais espaçoso e profissional
-- Toolbar organizada com todas as funcionalidades existentes bem agrupadas
-- Novas opções: prioridade, confirmação de leitura, drag & drop de anexos
+- Todas as conversas onde a última mensagem foi enviada (outbound) — de qualquer canal — aparecem na pasta "Enviado"
+- O campo mantém-se automaticamente actualizado para mensagens futuras
 
