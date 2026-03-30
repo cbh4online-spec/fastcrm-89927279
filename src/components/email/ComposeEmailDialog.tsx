@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -979,7 +980,7 @@ export function ComposeEmailDialog({
             ) : (
               <ScrollArea className="h-full min-h-[300px]">
                 <div className="bg-white text-gray-900 min-h-[300px]">
-                  <div className="p-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                  <div className="p-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlPreview) }} />
                 </div>
               </ScrollArea>
             )}
