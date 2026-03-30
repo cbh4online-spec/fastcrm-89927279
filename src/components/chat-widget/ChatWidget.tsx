@@ -96,7 +96,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to load widget");
 
-      const data = await response.json();
+      const data: any = await response.json();
       setConfig(data.config);
     } catch (err) {
       console.error("[ChatWidget] Config error:", err);
@@ -123,7 +123,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to initialize chat");
 
-      const data = await response.json();
+      const data: any = await response.json();
       setConversationId(data.conversationId);
       setMessages(data.messages || []);
     } catch (err) {
@@ -163,7 +163,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to send message");
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (data.message) {
         setMessages((prev) => [...prev, data.message]);
       }

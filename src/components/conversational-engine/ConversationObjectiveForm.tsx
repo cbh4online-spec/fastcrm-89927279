@@ -295,14 +295,14 @@ Responde APENAS com JSON válido no formato:
 
       if (!response.ok) throw new Error("Erro na API");
 
-      const data = await response.json();
+      const data: any = await response.json();
       const content = data.choices?.[0]?.message?.content || "";
 
       // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("Resposta inválida da IA");
 
-      const generated = JSON.parse(jsonMatch[0]);
+      const generated: any = JSON.parse(jsonMatch[0]);
 
       // Validate and apply
       setFormData({

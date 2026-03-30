@@ -300,14 +300,14 @@ Responde APENAS com o JSON, sem texto adicional.`
         throw new Error("Erro na API de IA");
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       const content = data.choices?.[0]?.message?.content;
 
       if (content) {
         // Parse JSON from response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const generated = JSON.parse(jsonMatch[0]);
+          const generated: any = JSON.parse(jsonMatch[0]);
           setFormData((prev) => ({
             ...prev,
             name: generated.name || prev.name,

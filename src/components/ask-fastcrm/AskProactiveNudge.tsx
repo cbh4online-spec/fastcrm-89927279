@@ -21,7 +21,7 @@ export function AskProactiveNudge({ onAskQuery }: Props) {
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("ask-proactive-dismissed");
-      return stored ? new Set(JSON.parse(stored)) : new Set();
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
     } catch {
       return new Set();
     }
