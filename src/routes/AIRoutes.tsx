@@ -49,6 +49,7 @@ export function AIRoutes() {
       <Route path="/dashboard/agent-ops" element={<AgentOperationsPage />} />
       <Route path="/dashboard/optimization" element={<OptimizationCenterPage />} />
       <Route path="/dashboard/actions" element={<ActionExecutionsPage />} />
+      <Route path="/dashboard/objectives" element={<ObjectiveCenterPage />} />
     </>
   );
 }
