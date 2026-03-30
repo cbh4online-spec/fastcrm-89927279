@@ -5,10 +5,12 @@ import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Receipt, Loader2, Search, FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Receipt, Search, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useState, useMemo } from "react";
+import { formatEUR } from "@/lib/currency";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   draft: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -40,8 +42,12 @@ export default function ClientInvoicesPage() {
   if (permLoading) {
     return (
       <ClientLayout>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-4 py-8">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-64" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))}
         </div>
       </ClientLayout>
     );
@@ -73,8 +79,10 @@ export default function ClientInvoicesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="grid gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <Card>

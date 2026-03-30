@@ -4,12 +4,14 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSupplierInvoices } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, FileText } from "lucide-react";
 import { useState } from "react";
 import { SupplierInvoiceForm } from "@/components/procurement/SupplierInvoiceForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
 import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
+import { formatEUR } from "@/lib/currency";
 
 export default function SupplierInvoicesPage() {
   const { t } = useTranslation("procurement");
@@ -33,8 +35,10 @@ export default function SupplierInvoicesPage() {
         />
         
         {isLoading ? (
-          <div className="flex items-center justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="space-y-2 p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
           </div>
         ) : (invoices as any[]).length === 0 ? (
           <ProcurementEmptyState
@@ -62,7 +66,7 @@ export default function SupplierInvoicesPage() {
                   <TableCell className="font-medium">{inv.invoice_number || "—"}</TableCell>
                   <TableCell>{inv.supplier?.name || "—"}</TableCell>
                   <TableCell className="font-mono">{inv.purchase_order?.po_number || "—"}</TableCell>
-                  <TableCell>€{(Number(inv.total) || 0).toFixed(2)}</TableCell>
+                  <TableCell>{formatEUR(Number(inv.total) || 0)}</TableCell>
                   <TableCell>{inv.due_date || "—"}</TableCell>
                   <TableCell>
                     <ProcurementStatusBadge status={inv.status} />
