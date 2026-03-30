@@ -1,115 +1,170 @@
 
 
-## Multi-Agent Revenue Operations — Diagnóstico e Plano
+## Autonomous Workspace Engine — Plano de Execução
 
-### Diagnóstico: Infraestrutura Já Existente
+### Diagnóstico
 
-Após análise detalhada do código, **a grande maioria da arquitetura descrita já está implementada**:
+**Infraestrutura existente reutilizada:**
+- `system_metrics_daily` + `useSystemMetrics` — health score básico já calculado
+- `action_executions` + `process-action-execution` — motor de execução completo
+- `business_objectives` + `objective_plans` — objetivos com planos e progresso
+- `kernel_events` + `emitKernelEvent` — barramento de eventos consolidado
+- `agent_work_items` + `agent_handoffs` — orquestração multi-agente
+- `next_best_actions` + `optimization_recommendations` — sinais operacionais
+- `ContextOSHub` — hub estratégico com context score
+- `AIRoutes.tsx` — roteamento centralizado
 
-| Fase | Estado | Detalhe |
-|------|--------|---------|
-| A — Papéis de Agente | ✅ Feito | `bots` tem `role`, `team_id`, `specialization`, `objective_scope`, `execution_permissions`. `AGENT_ROLES` com 8 papéis definidos |
-| B — Agent Teams | ✅ Feito | Tabela `agent_teams` + `AgentTeamManager` UI com CRUD completo |
-| C — Agent Router | ✅ Feito | Edge function `route-agent-task` com role-mapping, workload balancing, capacity check, human fallback |
-| D — Agent Handoffs | ✅ Feito | Tabela `agent_handoffs` + `useCreateHandoff` + UI na tab Handoffs |
-| E — Agent Work Items | ✅ Feito | Tabela `agent_work_items` + `useCreateWorkItem` + `useCompleteWorkItem` + UI com filtros |
-| F — Supervisor Agent | ❌ Falta | Sem lógica de supervisor nem UI dedicada |
-| G — Ligação a Objetivos | ✅ Feito | Tabela `objective_agent_links` com FK para teams e bots |
-| H — Command Center + Context OS | ❌ Falta | Sem integração de agente recomendado ou handoffs no ContextOS |
-| I — UI de Orquestração | ✅ Parcial | `AgentOperationsPage` existe com KPIs, work items, handoffs, teams, settings. Falta tab de performance/analytics |
-| J — Analytics por Agente | ❌ Parcial | `useBotAnalytics` existe (conversations, leads, bookings, handovers). Falta revenue influenced, tempo médio, throughput |
-| K — Permissões | ✅ Parcial | Campo `execution_permissions` existe nos bots. Falta UI de edição e validação no router |
-| L — Human Fallback | ✅ Feito | Router escala para humano quando sem agente ou capacidade excedida |
-| M — Kernel Events | ✅ Parcial | `AGENT.ROUTED` e `AGENT.ESCALATED_TO_HUMAN` emitidos. Faltam `WORK_ITEM_CREATED`, `WORK_COMPLETED`, `WORK_FAILED`, `HANDOFF_COMPLETED`, `SUPERVISOR_ALERT` |
-| N — Settings | ✅ Feito | `agent_ops_settings` com todos os campos + UI |
-
----
-
-### O que falta implementar (scope real)
-
-**1. Supervisor Engine** — Edge function `supervisor-agent-check` que:
-- Lê KPIs por agente (work items completed/failed ratio, tempo médio)
-- Identifica agentes com alta taxa de falha ou baixa throughput
-- Redistribui work items de agentes sobrecarregados
-- Emite `AGENT.SUPERVISOR_ALERT`
-
-**2. Analytics expandidos** — Adicionar tab "Performance" à `AgentOperationsPage`:
-- Revenue influenced por agente (via `action_executions` + `objective_action_links`)
-- Tempo médio até conclusão de work item
-- Taxa de sucesso por agente
-- Throughput diário
-- Handoffs realizados vs bem-sucedidos
-
-**3. Kernel Events completos** — Adicionar emissão no hook `useCompleteWorkItem` e `useCreateWorkItem`:
-- `AGENT.WORK_ITEM_CREATED` ao criar
-- `AGENT.WORK_COMPLETED` / `AGENT.WORK_FAILED` ao completar
-- `AGENT.HANDOFF_COMPLETED` ao completar handoff
-
-**4. Context OS integration** — Adicionar secção ao `ContextOSHub`:
-- Agente recomendado por entidade (baseado no role mapping)
-- Últimos handoffs relevantes
-- Work items ativos na entidade
-
-**5. Permissions UI** — Adicionar editor de permissões no detalhe do bot:
-- Checkboxes para: `can_create_task`, `can_enroll_sequence`, `can_send_email`, `can_generate_recovery`, `requires_human_approval`
+**Nada disto existe ainda:**
+- `workspace_operating_state` — estado consolidado do workspace
+- `workspace_missions` — unidades operacionais transversais
+- `mission_links` — ligação missão → execução
+- `workspace_alerts` — alertas operacionais
+- `workspace_engine_settings` — configuração do motor
+- Signal aggregator + health engine
+- Mission generator + executor
+- Workspace Ops UI + Executive Brief
 
 ---
 
-### Ficheiros a criar (3)
+### Migration SQL (1 migration, 5 tabelas)
 
-1. **`supabase/functions/supervisor-agent-check/index.ts`** — Motor de supervisão que analisa performance por agente, redistribui carga e emite alertas
+**`workspace_operating_state`:**
+- `id` UUID PK, `workspace_id` UUID UNIQUE NOT NULL
+- `health_score` INT DEFAULT 50, `revenue_health` INT DEFAULT 50, `pipeline_health` INT DEFAULT 50
+- `execution_health` INT DEFAULT 50, `response_health` INT DEFAULT 50, `context_health` INT DEFAULT 50, `automation_health` INT DEFAULT 50
+- `risk_level` TEXT DEFAULT 'medium' (low/medium/high/critical)
+- `primary_focus` TEXT, `active_missions_count` INT DEFAULT 0, `blockers_count` INT DEFAULT 0
+- `last_recalculated_at` TIMESTAMPTZ, `created_at`, `updated_at`
 
-2. **`src/components/agent-ops/AgentPerformancePanel.tsx`** — Tab de performance com métricas por agente: success rate, throughput, tempo médio, revenue influenced
+**`workspace_missions`:**
+- `id` UUID PK, `workspace_id`, `title` TEXT NOT NULL, `description` TEXT
+- `mission_type` TEXT NOT NULL (recover_revenue, unblock_pipeline, reduce_execution_backlog, escalate_human_attention, refresh_context, stabilize_automation, improve_response_time, close_high_value_opportunity)
+- `status` TEXT DEFAULT 'pending' (pending, active, completed, cancelled)
+- `priority` TEXT DEFAULT 'medium', `impact_estimate` NUMERIC(12,2)
+- `urgency` TEXT DEFAULT 'normal' (low, normal, high, critical)
+- `owner_type` TEXT, `owner_id` UUID, `source_type` TEXT, `source_id` TEXT
+- `created_at`, `updated_at`, `started_at` TIMESTAMPTZ, `completed_at` TIMESTAMPTZ
 
-3. **`src/components/agent-ops/AgentPermissionsEditor.tsx`** — Editor de permissões de execução por bot (checkboxes + save)
+**`mission_links`:**
+- `id` UUID PK, `workspace_id`, `mission_id` UUID FK
+- `linked_type` TEXT NOT NULL (task, action_execution, objective, next_best_action, bot, handoff, contact, opportunity, cart)
+- `linked_id` UUID NOT NULL, `created_at`
 
-### Ficheiros a alterar (5)
+**`workspace_alerts`:**
+- `id` UUID PK, `workspace_id`
+- `alert_type` TEXT NOT NULL (execution_backlog, revenue_drop, no_response_risk, high_value_stall, automation_failure, context_stale, human_attention_required)
+- `severity` TEXT DEFAULT 'medium' (low, medium, high, critical)
+- `title` TEXT, `description` TEXT, `status` TEXT DEFAULT 'open' (open, acknowledged, resolved)
+- `related_type` TEXT, `related_id` UUID
+- `created_at`, `updated_at`, `resolved_at` TIMESTAMPTZ
 
-4. **`src/pages/AgentOperationsPage.tsx`** — Adicionar tab "Performance" com `AgentPerformancePanel`
+**`workspace_engine_settings`:**
+- `id` UUID PK, `workspace_id` UNIQUE
+- `is_enabled` BOOLEAN DEFAULT false
+- `auto_mission_generation` BOOLEAN DEFAULT false, `auto_escalation_enabled` BOOLEAN DEFAULT true
+- `auto_brief_enabled` BOOLEAN DEFAULT true, `refresh_interval_minutes` INT DEFAULT 60
+- `risk_alert_threshold` TEXT DEFAULT 'high'
+- `created_at`, `updated_at`
 
-5. **`src/hooks/useAgentOperations.ts`** — Adicionar `useAgentPerformanceStats()` (métricas por bot), emitir kernel events em `useCreateWorkItem` e `useCompleteWorkItem`
-
-6. **`src/components/context-os/ContextOSHub.tsx`** — Adicionar secção "Agentes Ativos" mostrando work items e handoffs por entidade
-
-7. **`supabase/functions/route-agent-task/index.ts`** — Validar `execution_permissions` do bot antes de atribuir work item
-
-8. **`src/hooks/useBots.ts`** — Adicionar `useUpdateBotPermissions()` mutation
-
-### Migration
-
-Nenhuma migration necessária — todas as tabelas e colunas já existem.
+RLS: workspace members SELECT; service_role INSERT/UPDATE.
 
 ---
 
-### Fluxo completo (já funcional + melhorias)
+### Ficheiros a criar (5)
+
+#### 1. `supabase/functions/process-workspace-engine/index.ts`
+Edge function central que:
+1. Agrega sinais: query `action_executions` (pending/failed counts), `business_objectives` (at_risk count), `next_best_actions` (open count), `agent_work_items` (pending/failed), `tasks` (overdue), context drift score
+2. Calcula health sub-scores (revenue, pipeline, execution, response, context, automation) — cada 0-100
+3. Calcula `health_score` global (média ponderada)
+4. Classifica `risk_level` baseado no score global
+5. Upsert em `workspace_operating_state`
+6. Detecta condições de alerta → insere em `workspace_alerts`
+7. Se `auto_mission_generation` activo: identifica missões prioritárias baseadas nos sinais (ex: execution_backlog alto → missão `reduce_execution_backlog`), evita duplicados por mission_type+status
+8. Emite kernel events: `WORKSPACE.STATE_RECALCULATED`, `WORKSPACE.ALERT_CREATED`, `WORKSPACE.MISSION_CREATED`
+
+#### 2. `supabase/functions/process-workspace-missions/index.ts`
+Edge function que:
+1. Recebe `{ workspace_id, mission_id }` — processa missão específica
+2. Lê missão + sinais do workspace
+3. Baseado no `mission_type`, cria `action_executions` e `mission_links` (ex: `reduce_execution_backlog` → retry failed actions; `recover_revenue` → create recovery tasks)
+4. Atualiza missão para `active`
+5. Emite `WORKSPACE.MISSION_CREATED` / `WORKSPACE.MISSION_COMPLETED`
+
+#### 3. `src/hooks/useWorkspaceEngine.ts`
+- `useWorkspaceState()` — query `workspace_operating_state` com realtime
+- `useWorkspaceMissions(filters?)` — lista missões com status filter
+- `useWorkspaceAlerts()` — lista alertas open/acknowledged
+- `useWorkspaceEngineSettings()` — read/upsert settings
+- `useRecalculateWorkspace()` — invoca `process-workspace-engine`
+- `useExecuteMission()` — invoca `process-workspace-missions`
+- `useResolveMission()` — marca missão completed
+- `useResolveAlert()` — marca alerta resolved
+- `useWorkspaceStats()` — KPIs: health, missions active, alerts open, blockers
+
+#### 4. `src/pages/WorkspaceOpsPage.tsx`
+Rota: `/dashboard/workspace-ops`
+- Health score global (gauge/circle) + sub-scores (6 barras)
+- Risk level badge
+- Primary focus card
+- Missões ativas (cards com título, tipo, priority, impact, botão executar/concluir)
+- Alertas abertos (lista com severity badges, botão acknowledge/resolve)
+- Blockers count + top blockers
+- Ações críticas pendentes (últimas 5 action_executions failed)
+- Botão "Recalcular Estado"
+- Settings panel (toggles auto_mission, auto_escalation, refresh interval)
+
+#### 5. `src/components/workspace-ops/WorkspaceExecutiveBrief.tsx`
+Componente integrado na WorkspaceOpsPage:
+- Secção "A correr bem" — sub-scores >= 70
+- Secção "Em risco" — sub-scores < 50
+- Secção "Requer ação humana" — alertas severity high/critical
+- Secção "Maior alavanca" — missão com maior impact_estimate
+- Secção "Executado automaticamente" — action_executions completed today
+- Secção "Bloqueado" — missions/alerts sem resolução > 48h
+
+---
+
+### Ficheiros a alterar (1)
+
+#### 6. `src/routes/AIRoutes.tsx`
+- Adicionar lazy import + rota: `/dashboard/workspace-ops` → `WorkspaceOpsPage`
+
+---
+
+### Fluxo
 
 ```text
-Evento/Entidade
+process-workspace-engine (periódico ou manual)
   │
-  ├─ route-agent-task (✅ existe)
-  │   ├─ Verifica settings (✅)
-  │   ├─ Mapeia work_type → roles (✅)
-  │   ├─ Seleciona bot com menor carga (✅)
-  │   ├─ Valida permissões (🆕)
-  │   ├─ Cria work item + emite AGENT.ROUTED (✅)
-  │   └─ Fallback humano se sem agente (✅)
+  ├─ Agrega sinais de todos os módulos
+  ├─ Calcula health_score + sub-scores
+  ├─ Upsert workspace_operating_state
+  ├─ Detecta alertas → workspace_alerts
+  ├─ Gera missões automáticas (se enabled)
+  │   └─ workspace_missions (pending)
+  └─ Emite WORKSPACE.STATE_RECALCULATED
+  
+process-workspace-missions (por missão)
   │
-  ├─ supervisor-agent-check (🆕)
-  │   ├─ Analisa KPIs por agente
-  │   ├─ Redistribui se necessário
-  │   └─ Emite AGENT.SUPERVISOR_ALERT
+  ├─ Lê missão + contexto
+  ├─ Cria action_executions + mission_links
+  ├─ Marca missão active
+  └─ Emite WORKSPACE.MISSION_CREATED
+
+WorkspaceOpsPage (UI)
   │
-  ├─ AgentOperationsPage (✅ + 🆕 tab Performance)
-  │   ├─ KPIs globais (✅)
-  │   ├─ Work Items com filtros (✅)
-  │   ├─ Handoffs (✅)
-  │   ├─ Teams (✅)
-  │   ├─ Performance por agente (🆕)
-  │   └─ Settings (✅)
-  │
-  └─ ContextOSHub (🆕 secção agentes)
-      ├─ Agente recomendado
-      ├─ Work items ativos
-      └─ Handoffs recentes
+  ├─ Health gauge + sub-scores
+  ├─ Missões ativas
+  ├─ Alertas
+  ├─ Executive Brief
+  └─ Settings
 ```
+
+### Compatibilidade
+- Reutiliza `action_executions` com `source_type: 'workspace_mission'`
+- Reutiliza `kernel_events` para todos os eventos `WORKSPACE.*`
+- Não altera nenhuma tabela existente
+- Não duplica centros de controlo — vive em `/dashboard/workspace-ops` como vista operacional transversal
+- Health engine agrega dados de tabelas existentes sem modificá-las
 
