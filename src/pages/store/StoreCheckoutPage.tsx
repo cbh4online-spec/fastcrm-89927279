@@ -543,7 +543,7 @@ export default function StoreCheckoutPage() {
                         <p className="text-sm font-medium line-clamp-1">{item.name}</p>
                         <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
                       </div>
-                      <p className="text-sm font-medium">€{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm font-medium">€{formatMoney(item.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
