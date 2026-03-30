@@ -42721,10 +42721,15 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           device_type: string | null
+          exit_reason: string | null
           expires_at: string | null
           id: string
           items: Json
+          last_outreach_at: string | null
           last_recovery_at: string | null
+          outreach_started_at: string | null
+          outreach_status: string | null
+          outreach_step: number | null
           recovered_at: string | null
           recovered_order_id: string | null
           recovered_value: number | null
@@ -42733,6 +42738,8 @@ export type Database = {
           recovery_token: string | null
           recovery_token_expires_at: string | null
           referrer: string | null
+          sequence_enrollment_id: string | null
+          sequence_id: string | null
           session_id: string
           subtotal: number | null
           updated_at: string
@@ -42749,10 +42756,15 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           device_type?: string | null
+          exit_reason?: string | null
           expires_at?: string | null
           id?: string
           items?: Json
+          last_outreach_at?: string | null
           last_recovery_at?: string | null
+          outreach_started_at?: string | null
+          outreach_status?: string | null
+          outreach_step?: number | null
           recovered_at?: string | null
           recovered_order_id?: string | null
           recovered_value?: number | null
@@ -42761,6 +42773,8 @@ export type Database = {
           recovery_token?: string | null
           recovery_token_expires_at?: string | null
           referrer?: string | null
+          sequence_enrollment_id?: string | null
+          sequence_id?: string | null
           session_id: string
           subtotal?: number | null
           updated_at?: string
@@ -42777,10 +42791,15 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           device_type?: string | null
+          exit_reason?: string | null
           expires_at?: string | null
           id?: string
           items?: Json
+          last_outreach_at?: string | null
           last_recovery_at?: string | null
+          outreach_started_at?: string | null
+          outreach_status?: string | null
+          outreach_step?: number | null
           recovered_at?: string | null
           recovered_order_id?: string | null
           recovered_value?: number | null
@@ -42789,6 +42808,8 @@ export type Database = {
           recovery_token?: string | null
           recovery_token_expires_at?: string | null
           referrer?: string | null
+          sequence_enrollment_id?: string | null
+          sequence_id?: string | null
           session_id?: string
           subtotal?: number | null
           updated_at?: string
@@ -42807,6 +42828,20 @@ export type Database = {
             columns: ["recovered_order_id"]
             isOneToOne: false
             referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_abandoned_carts_sequence_enrollment_id_fkey"
+            columns: ["sequence_enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_abandoned_carts_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
             referencedColumns: ["id"]
           },
           {
@@ -44167,6 +44202,63 @@ export type Database = {
             foreignKeyName: "store_product_alerts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_recovery_settings: {
+        Row: {
+          abandonment_delay_minutes: number
+          auto_enroll_enabled: boolean
+          created_at: string
+          default_sequence_id: string | null
+          id: string
+          is_enabled: boolean
+          min_cart_value: number | null
+          require_email: boolean
+          require_phone: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          abandonment_delay_minutes?: number
+          auto_enroll_enabled?: boolean
+          created_at?: string
+          default_sequence_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_cart_value?: number | null
+          require_email?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          abandonment_delay_minutes?: number
+          auto_enroll_enabled?: boolean
+          created_at?: string
+          default_sequence_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_cart_value?: number | null
+          require_email?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_recovery_settings_default_sequence_id_fkey"
+            columns: ["default_sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_recovery_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
