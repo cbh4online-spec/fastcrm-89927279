@@ -72,6 +72,7 @@ export interface ConversationFilters {
   channel?: ConversationChannel;
   assigned_to?: string;
   unread_only?: boolean;
+  lastMessageDirection?: "inbound" | "outbound";
 }
 
 export function useConversations(filters?: ConversationFilters) {
@@ -153,6 +154,10 @@ export function useConversations(filters?: ConversationFilters) {
 
       if (filters?.unread_only) {
         query = query.gt("unread_count", 0);
+      }
+
+      if (filters?.lastMessageDirection) {
+        query = query.eq("last_message_direction", filters.lastMessageDirection);
       }
 
       const { data: convData, error: convError } = await query;

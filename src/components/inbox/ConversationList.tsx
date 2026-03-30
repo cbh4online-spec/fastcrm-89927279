@@ -207,9 +207,12 @@ export function ConversationList({
     return () => { supabase.removeChannel(channel); };
   }, [currentWorkspace?.id, queryClient]);
 
-  // Determine status filter from tab
-  const getStatusFromTab = (tab: SimplifiedTab): ConversationStatus | undefined => {
-    if (tab === "resolved") return "closed";
+  // Determine status filter from category/tab
+  const getStatusFromCategory = (): ConversationStatus | undefined => {
+    if (categoryFilter === "trash" || categoryFilter === "spam" || categoryFilter === "archives") return "archived";
+    if (categoryFilter === "closed") return "closed";
+    if (categoryFilter === "drafts") return "pending";
+    if (activeTab === "resolved") return "closed";
     return "open";
   };
 
@@ -224,14 +227,20 @@ export function ConversationList({
       negotiations: "active",
       closed: "resolved",
       archives: "resolved",
+      sent: "requires_response",
+      drafts: "requires_response",
+      scheduled: "requires_response",
+      spam: "requires_response",
+      trash: "requires_response",
     };
     const mapped = categoryToTab[categoryFilter];
     if (mapped) setActiveTab(mapped);
   }, [categoryFilter]);
 
   const { data: conversations, isLoading } = useConversations({
-    status: getStatusFromTab(activeTab),
+    status: getStatusFromCategory(),
     channel: externalChannelFilter || defaultChannel || undefined,
+    lastMessageDirection: categoryFilter === "sent" ? "outbound" : undefined,
   });
   const deleteConversations = useDeleteConversations();
 

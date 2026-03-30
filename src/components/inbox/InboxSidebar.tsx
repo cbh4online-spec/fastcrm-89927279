@@ -40,6 +40,10 @@ export type InboxCategory =
   | "closed"
   | "archives"
   | "drafts"
+  | "sent"
+  | "scheduled"
+  | "spam"
+  | "trash"
   | "mentions"
   | "files";
 
@@ -86,10 +90,10 @@ export function InboxSidebar({
     { id: "my", label: "Meu", icon: Users, category: "assigned", count: allConversations?.filter(c => c.assigned_to && c.status === "open").length || 0 },
     { id: "inbox", label: "Caixa de entrada", icon: Inbox, category: "all", count: unreadCount },
     { id: "drafts", label: "Rascunhos", icon: FileEdit, category: "drafts" },
-    { id: "scheduled", label: "Agendado", icon: CalendarClock },
-    { id: "sent", label: "Enviado", icon: Send },
-    { id: "spam", label: "Spam", icon: AlertOctagon },
-    { id: "trash", label: "Reciclagem", icon: Trash2 },
+    { id: "scheduled", label: "Agendado", icon: CalendarClock, category: "scheduled" },
+    { id: "sent", label: "Enviado", icon: Send, category: "sent" },
+    { id: "spam", label: "Spam", icon: AlertOctagon, category: "spam" },
+    { id: "trash", label: "Reciclagem", icon: Trash2, category: "trash" },
     { id: "closing", label: "A fechar este mês", icon: Briefcase, category: "negotiations", count: allConversations?.filter(c => c.opportunities?.length).length || 0 },
     { id: "clients", label: "Clientes", icon: Users, category: "closed", count: allConversations?.filter(c => c.status === "closed").length || 0 },
   ];
@@ -142,7 +146,7 @@ export function InboxSidebar({
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
                     )}
-                    onClick={() => folder.category && onCategoryChange(folder.category)}
+                    onClick={() => folder.category ? onCategoryChange(folder.category) : undefined}
                   >
                     <div className="flex items-center gap-2">
                       <Icon className="w-3.5 h-3.5" />
