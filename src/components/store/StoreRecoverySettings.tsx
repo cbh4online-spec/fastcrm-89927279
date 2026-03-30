@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings2 } from "lucide-react";
+import { Loader2, Settings2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { useCreateRecoverySequence } from "@/hooks/useCreateRecoverySequence";
 
 const sb = supabase as any;
 
@@ -40,6 +41,7 @@ export function StoreRecoverySettings() {
   const wid = currentWorkspace?.id;
   const queryClient = useQueryClient();
   const sequences = useEmailSequences();
+  const createRecovery = useCreateRecoverySequence();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["store-recovery-settings", wid],
@@ -155,6 +157,23 @@ export function StoreRecoverySettings() {
                   )}
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+                disabled={createRecovery.isPending}
+                onClick={async () => {
+                  const seqId = await createRecovery.mutateAsync();
+                  update({ default_sequence_id: seqId });
+                }}
+              >
+                {createRecovery.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-2" />
+                )}
+                Criar Sequência de Recuperação (3 steps)
+              </Button>
             </div>
 
             {/* Auto enroll */}
