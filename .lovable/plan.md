@@ -1,53 +1,79 @@
 
 
-# Estado Actual — Checklist de Instalação FastCRM
+# Verificação e Ativação das Livrarias — Plano de Execução
 
 ## Diagnóstico
 
-Cruzando os 32 batches do documento com o `package.json` actual, **a esmagadora maioria já está instalada** (Vagas 1–4 completas). Restam apenas **6 packages** genuinamente em falta que não foram excluídos por decisão técnica anterior:
+### Configurações base — estado actual
 
-### Packages em falta (não redundantes, não excluídos)
+| Config | Estado |
+|---|---|
+| Tailwind plugins (animate, typography, radix, container-queries) | ✅ Feito |
+| Fonts Inter + JetBrains Mono | ✅ Importados em `main.tsx` |
+| ReactQueryDevtools | ✅ Em `App.tsx` |
+| PWA (`vite-plugin-pwa`) | ✅ Em `vite.config.ts` |
+| ErrorBoundary | ✅ Existe em `src/components/ui/ErrorBoundary.tsx` |
+| `vitest.config.ts` | ✅ Existe |
+| **Skeleton CSS** | ❌ Não importado |
+| **Driver.js CSS** | ❌ Não importado |
+| **Sentry init em `main.tsx`** | ❌ Wrapper existe em `src/lib/sentry.ts` mas nunca é chamado |
+| **PostHog init em `main.tsx`** | ❌ Wrapper existe em `src/lib/posthog.ts` mas nunca é chamado |
 
-| Package | Batch | Razão |
-|---|---|---|
-| `@nivo/heatmap` | 13 | Mencionado para verificar, não foi instalado |
-| `@nivo/treemap` | 13 | Mencionado para verificar, não foi instalado |
-| `react-pdf` | 14 | Viewer de PDFs (diferente de `@react-pdf/renderer` que gera PDFs) |
-| `react-window-infinite-loader` | 16 | Infinite scroll para listas virtualizadas |
-| `vite-plugin-pwa` | 21 | Adiado na Vaga 3 por estabilidade do preview |
-| `workbox-window` | 21 | Dependência do PWA |
+### Ativações nos módulos — tudo por fazer (0/15)
 
-### Packages correctamente excluídos (confirmar que se mantêm fora)
+## Plano de Execução
 
-- `xlsx` → substituído por `exceljs` ✅
-- `uuid` → coberto por `nanoid` ✅
-- `sanitize-html` → coberto por `dompurify` ✅
-- `@playwright/test`, `chromatic`, `@storybook/*` → não correm no Lovable ✅
-- `@hotjar/browser` → privacy concerns ✅
-- `resend`, `openai`, `stripe` (server) → usar via Deno nas edge functions ✅
-- `@radix-ui/react-direction` → RTL não prioritário ✅
+Dado o volume (~15 ativações, cada uma tocando múltiplos ficheiros), proponho dividir em **3 fases** executadas em mensagens separadas. Cada fase é auto-contida e o build deve passar no final.
 
-## Plano
+---
 
-### Passo 1 — Instalar os 6 packages em falta
-```
-@nivo/heatmap @nivo/treemap react-pdf react-window-infinite-loader vite-plugin-pwa workbox-window
-```
+### Fase 1 — Configurações em falta + Fundações (esta mensagem)
 
-### Passo 2 — Batch 32: Verificações de config
-- Confirmar `tailwind.config.ts` tem todos os plugins (já feito nas vagas anteriores)
-- Confirmar `postcss.config.js` tem autoprefixer
-- `vitest.config.ts` — verificar se já existe ou criar com `happy-dom` + `coverage-v8`
+1. **Importar CSS em falta** — adicionar `react-loading-skeleton/dist/skeleton.css` e `driver.js/dist/driver.css` em `src/main.tsx`
+2. **Chamar Sentry init** — importar e chamar `initSentry()` de `src/lib/sentry.ts` em `main.tsx`
+3. **Chamar PostHog init** — importar e chamar `initPostHog()` de `src/lib/posthog.ts` em `main.tsx`
+4. **Criar `SkeletonTheme` wrapper** — componente reutilizável com cores do dark theme (`baseColor="#1a1a2e"`, `highlightColor="#2a2a4a"`)
+5. **Criar `MarkdownRenderer`** — componente com `react-markdown` + `remarkGfm` + `@tailwindcss/typography` + `dompurify`
+6. **Criar `useConfetti` hook** — wrapper de `canvas-confetti` com cores amber/gold
+7. **Criar `useAnalytics` hook** — wrapper de PostHog com `track`, `identify`, `page`
+8. **Criar `formatEUR` / `EUR` utility** em `src/lib/currency.ts` — com `currency.js`
+9. **Criar `PhoneInput` component** — com `libphonenumber-js` + `react-number-format`
+10. **Criar `CurrencyInput` component** — com `react-number-format` para EUR
+11. **Criar `PDFViewer` component** — com `react-pdf` e configuração do worker
 
-### Passo 3 — PWA config (adiado anteriormente)
-- Adicionar `vite-plugin-pwa` ao `vite.config.ts` com manifest FastCRM e `registerType: 'autoUpdate'`
+### Fase 2 — Componentes de infraestrutura (mensagem seguinte)
 
-## Resultado
+12. **Criar `DataTable` genérico** — com `@tanstack/react-table` (sorting, filtering, pagination, selection, column visibility)
+13. **Criar `FileUpload` + `ImageUpload`** — com `react-dropzone` + `browser-image-compression` + `react-easy-crop`
+14. **Criar `useURLFilters` hook** — com `nuqs` para filtros sincronizados com URL
+15. **Melhorar Global Search (⌘K)** — integrar `fuse.js` + `match-sorter` + `use-debounce`
 
-Após esta execução, **todos os batches 0–32 ficam completos**. O checklist fica 100% ✅.
+### Fase 3 — Integração nos módulos (mensagem final)
+
+16. **Substituir loading spinners** por skeleton loaders em todas as páginas de lista
+17. **Aplicar `MarkdownRenderer`** no ebook, Knowledge Base, AI Copilot
+18. **Aplicar `formatEUR`** em propostas, facturas, produtos, KPIs
+19. **Aplicar `PhoneInput`** em formulários de contactos/leads/empresas
+20. **Implementar DnD no Pipeline Kanban** com `@dnd-kit`
+21. **Implementar FullCalendar** no módulo calendário
+22. **Implementar Maps** no Security Ops
+23. **Aplicar confetti** na gamificação e pipeline wins
+
+---
+
+## Critérios de Aceitação
+
+- Todas as CSS imports necessárias presentes
+- Sentry e PostHog inicializam condicionalmente (sem keys = graceful skip)
+- Componentes reutilizáveis criados e prontos a importar
+- Build sem erros após cada fase
+- Nenhuma funcionalidade existente quebrada
 
 ## Riscos
 
-- `vite-plugin-pwa` pode interferir com o preview do Lovable — configurar com `devOptions: { enabled: false }` para evitar problemas no sandbox
-- `react-pdf` usa um worker PDF.js que precisa de configuração do `workerSrc`
+- **Fase 3 é a mais arriscada** — toca em muitos componentes existentes; cada substituição deve ser feita com cuidado
+- **react-pdf worker** — precisa de CDN ou bundle do `pdf.worker.min.js`
+- **FullCalendar** — pesado (~200KB), deve ser lazy-loaded
+
+Aprovar para iniciar pela **Fase 1**?
 
