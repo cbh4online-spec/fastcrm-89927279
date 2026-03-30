@@ -40,6 +40,7 @@ export function BotWizard() {
   const { createBot } = useBots();
   const { profiles: aiProfiles } = useAIProfiles();
   const { knowledgeBases } = useKnowledgeBase();
+  const { teams } = useAgentTeams();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Partial<CreateBotData>>({
