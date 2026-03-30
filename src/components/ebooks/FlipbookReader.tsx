@@ -580,7 +580,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
                   </Button>
                 </div>
               </div>
-            )
+            )}
           </div>
         </div>
 
