@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Star, TrendingUp, Users, ThumbsUp, BarChart3 } from "lucide-react";
+import { Star, TrendingUp, Users, ThumbsUp, BarChart3, AlertCircle, RefreshCw } from "lucide-react";
 import { useCSATDashboard, type CSATPeriod } from "@/hooks/useCSATDashboard";
 import { CSATTrendChart, CSATDistributionChart, CSATByTypeChart, CSATByAgentChart } from "@/components/helpdesk/CSATCharts";
 import { CSATWidget } from "@/components/helpdesk/CSATWidget";
+import { Button } from "@/components/ui/button";
 import CountUp from "react-countup";
 import Skeleton from "react-loading-skeleton";
 import TimeAgo from "react-timeago";
@@ -21,9 +22,9 @@ const PERIODS: { value: CSATPeriod; label: string }[] = [
 
 export default function HelpdeskCSAT() {
   const [period, setPeriod] = useState<CSATPeriod>("30d");
-  const { data: metrics, isLoading } = useCSATDashboard(period);
+  const { data: metrics, isLoading, isError, refetch } = useCSATDashboard(period);
 
-  if (isLoading || !metrics) {
+  if (isLoading) {
     return (
       <DashboardLayout>
       <div className="space-y-6 p-6">
@@ -35,6 +36,24 @@ export default function HelpdeskCSAT() {
           {[1,2,3,4].map((i) => <Skeleton key={i} height={300} />)}
         </div>
       </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isError || !metrics) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
+          <AlertCircle className="h-10 w-10 text-muted-foreground" />
+          <div>
+            <h2 className="text-lg font-semibold">Não foi possível carregar os dados de CSAT</h2>
+            <p className="text-sm text-muted-foreground mt-1">Verifique a sua ligação ou tente novamente.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar novamente
+          </Button>
+        </div>
       </DashboardLayout>
     );
   }
