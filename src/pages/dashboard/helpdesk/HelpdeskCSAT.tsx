@@ -25,6 +25,7 @@ export default function HelpdeskCSAT() {
 
   if (isLoading || !metrics) {
     return (
+      <DashboardLayout>
       <div className="space-y-6 p-6">
         <Skeleton height={32} width={300} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
