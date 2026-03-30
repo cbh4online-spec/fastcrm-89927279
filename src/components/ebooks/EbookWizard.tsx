@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { EbookThemeSelector } from "./EbookThemeSelector";
 import { EbookImageStylePicker, IMAGE_STYLES } from "./EbookImageStylePicker";
-import { DEFAULT_IMAGE_LAYOUT, SIZE_TO_ASPECT, type ImageLayoutConfig } from "./EbookImageLayoutConfig";
+import { DEFAULT_IMAGE_LAYOUT, SIZE_TO_ASPECT, ASPECT_TO_PROMPT, type ImageLayoutConfig } from "./EbookImageLayoutConfig";
 import { TemplatePickerStep } from "./templates/TemplatePickerStep";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
@@ -118,12 +118,19 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const totalContentCredits = mode === "generate"
     ? outlineCost + (chapterCount * chapterCost)
     : outlineCost;
-  const chapterImageCount = generateImages
-    ? imageLayout.chapter.count + imageLayout.content.count
-    : 0;
-  const totalImageCredits = generateImages
-    ? coverCost + (chapterCount * imageCost * (chapterImageCount > 0 ? 1 : 0))
-    : coverCost;
+
+  // Calculate image credits based on actual page type distribution
+  const estimateImageCredits = () => {
+    if (!generateImages) return coverCost;
+    // Estimate: cover pages = 1, chapter pages ≈ chapterCount, content pages ≈ chapterCount, cta pages ≈ 1
+    const coverImages = imageLayout.cover.count * 1;
+    const chapterImages = imageLayout.chapter.count * chapterCount;
+    const contentImages = imageLayout.content.count * chapterCount;
+    const ctaImages = imageLayout.cta.count * 1;
+    const totalImages = coverImages + chapterImages + contentImages + ctaImages;
+    return coverCost + (totalImages * imageCost);
+  };
+  const totalImageCredits = estimateImageCredits();
   const totalCredits = totalContentCredits + totalImageCredits;
 
   const canProceedStep1 = prompt.trim().length > 10;
@@ -270,11 +277,27 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }
       setGenProgress(generateImages ? 80 : 95);
 
-      if (generateImages && imageLayout.chapter.count > 0) {
+      if (generateImages) {
+        // Build list of chapters that need images, respecting per-type config
+        const imageJobs: { chapterIdx: number; imgType: keyof ImageLayoutConfig; imgNum: number }[] = [];
         for (let i = 0; i < chapters.length; i++) {
-          setGenStatus(`A gerar imagem ${i + 1}/${chapters.length}...`);
+          const pageType = getPageImageType(chapters[i].layout_key as string | undefined);
+          if (!pageType) continue; // structural page without images
+          const cfg = imageLayout[pageType];
+          if (cfg.count <= 0) continue;
+          for (let n = 0; n < cfg.count; n++) {
+            imageJobs.push({ chapterIdx: i, imgType: pageType, imgNum: n });
+          }
+        }
+
+        for (let j = 0; j < imageJobs.length; j++) {
+          const { chapterIdx, imgType, imgNum } = imageJobs[j];
+          const ch = chapters[chapterIdx];
+          const cfg = imageLayout[imgType];
+          setGenStatus(`A gerar imagem ${j + 1}/${imageJobs.length}...`);
+
           if (!canAfford("ebook_generate_chapter_image")) {
-            toast.warning(`Créditos insuficientes para imagens. Geradas ${i} de ${chapters.length}.`);
+            toast.warning(`Créditos insuficientes para imagens. Geradas ${j} de ${imageJobs.length}.`);
             break;
           }
 
@@ -285,17 +308,26 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
           });
 
           const styleInfo = IMAGE_STYLES.find(s => s.id === imageStyle);
-          const sizeHint = SIZE_TO_ASPECT[imageLayout.chapter.size];
-          const posHint = imageLayout.chapter.position;
-          const imgPrompt = `Create an atmospheric illustration for chapter "${chapters[i].title}" from book "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. Format: ${sizeHint}. Position context: ${posHint}. No text.`;
+          const aspectHint = cfg.aspectPreset ? ASPECT_TO_PROMPT[cfg.aspectPreset] : SIZE_TO_ASPECT[cfg.size];
+          const posHint = cfg.position;
+          const customHint = cfg.customPrompt ? `. Additional style: ${cfg.customPrompt}` : "";
+          const bgHint = cfg.asBackground ? " This image will be used as a page background, make it atmospheric and not too busy." : "";
+          const imgPrompt = `Create an atmospheric illustration for "${ch.title}" from book "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. Format: ${aspectHint}. Position context: ${posHint}${customHint}${bgHint}. No text.`;
+
           const { data: imgData } = await supabase.functions.invoke("ebook-ai-assist", {
-            body: { action: "generate_image", imagePrompt: imgPrompt, ebookId: ebook.id, target: `chapter-${chapters[i].id}` },
+            body: { action: "generate_image", imagePrompt: imgPrompt, ebookId: ebook.id, target: `chapter-${ch.id}${imgNum > 0 ? `-${imgNum}` : ""}` },
           });
           if (imgData?.url) {
-            chapters[i] = { ...chapters[i], cover_image: imgData.url, imageSize: imageLayout.chapter.size, imagePosition: imageLayout.chapter.position };
+            // For first image, set as cover_image; for additional images, append to extra_images array
+            if (imgNum === 0) {
+              chapters[chapterIdx] = { ...chapters[chapterIdx], cover_image: imgData.url, imageSize: cfg.size, imagePosition: cfg.position };
+            } else {
+              const existing = (chapters[chapterIdx] as any).extra_images || [];
+              chapters[chapterIdx] = { ...chapters[chapterIdx], extra_images: [...existing, imgData.url] } as any;
+            }
           }
 
-          setGenProgress(80 + ((i + 1) / chapters.length) * 18);
+          setGenProgress(80 + ((j + 1) / imageJobs.length) * 18);
         }
 
         await (supabase as any).from("ebooks").update({
