@@ -83,6 +83,66 @@ const AI_SUGGESTIONS: Record<string, string[]> = {
     "Página de vendas com benefícios e prova social",
     "Página sobre nós com história da marca",
   ],
+  downsell: [
+    "Oferta alternativa mais acessível pós-recusa",
+    "Downsell com plano básico a preço reduzido",
+    "Proposta simplificada para quem recusou o upsell",
+  ],
+  order_bump: [
+    "Adição rápida de produto complementar no checkout",
+    "Order bump com desconto especial de 30%",
+    "Oferta irresistível de último momento antes do pagamento",
+  ],
+  squeeze: [
+    "Squeeze page minimalista para captar emails",
+    "Página de captura agressiva com uma só acção",
+    "Opt-in focado sem distrações para lead magnet",
+  ],
+  webinar: [
+    "Página de registo para webinar ao vivo",
+    "Replay de webinar com contagem regressiva",
+    "Página de webinar com agenda e benefícios",
+  ],
+  sales_letter: [
+    "Carta de vendas longa para produto premium",
+    "Sales letter com storytelling e prova social",
+    "Página de vendas estilo carta com testemunhos",
+  ],
+  application: [
+    "Formulário de candidatura para programa exclusivo",
+    "Página de qualificação para consultoria premium",
+    "Aplicação com perguntas de triagem para mentoria",
+  ],
+  booking: [
+    "Página de agendamento para demonstração gratuita",
+    "Marcação de reunião de discovery com calendário",
+    "Agendamento de sessão estratégica personalizada",
+  ],
+  bridge: [
+    "Página de aquecimento entre anúncio e oferta",
+    "Bridge page com história de transformação",
+    "Pré-sell com contexto antes do checkout",
+  ],
+  countdown: [
+    "Página de escassez com timer para oferta limitada",
+    "Countdown para encerramento de inscrições",
+    "Urgência com contagem regressiva para lançamento",
+  ],
+  tripwire: [
+    "Oferta tripwire de €7 para converter leads",
+    "Produto de entrada com preço irresistível",
+    "Mini-curso a baixo custo como porta de entrada",
+  ],
+  membership: [
+    "Página de acesso à área de membros exclusiva",
+    "Boas-vindas à comunidade com instruções de acesso",
+    "Portal de membros com links de acesso rápido",
+  ],
+  custom: [
+    "Cria conteúdo personalizado para esta página",
+    "Gera copy adaptado ao objectivo deste step",
+    "Página personalizada com elementos à medida",
+  ],
 };
 
 const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
@@ -168,6 +228,15 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
 
   const isTestimonials = step.step_type === "testimonials";
   const isVideo = step.step_type === "video";
+  const isCountdown = step.step_type === "countdown";
+  const isWebinar = step.step_type === "webinar";
+  const isBooking = step.step_type === "booking";
+  const isMembership = step.step_type === "membership";
+  const isApplication = step.step_type === "application";
+  const isSqueeze = step.step_type === "squeeze";
+  const isCustom = step.step_type === "custom";
+  const isOptin = step.step_type === "optin";
+  const hasFormCapability = isOptin || isApplication || isSqueeze;
 
   const handleSave = () => {
     updateStep.mutate({
@@ -180,10 +249,11 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
         cta_color: ctaColor,
         image_url: images[0] || imageUrl || "",
         images,
-        form_fields: step.step_type === "optin" ? formFields : undefined,
+        form_fields: hasFormCapability ? formFields : undefined,
         testimonials: isTestimonials ? testimonials : undefined,
-        video: isVideo ? videoConfig : undefined,
+        video: (isVideo || isWebinar) ? videoConfig : undefined,
         design: appearance,
+        hide_navigation: isSqueeze ? true : undefined,
       },
     });
     toast.success("Step guardado");
@@ -283,7 +353,6 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   };
 
   const suggestions = AI_SUGGESTIONS[step.step_type] || AI_SUGGESTIONS.page;
-  const isOptin = step.step_type === "optin";
 
   return (
     <div className="space-y-4">
@@ -323,9 +392,9 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
         <TabsList className="flex-wrap">
           <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
           <TabsTrigger value="imagem">Imagens</TabsTrigger>
-          {isOptin && <TabsTrigger value="formulario">Formulário</TabsTrigger>}
+          {hasFormCapability && <TabsTrigger value="formulario">Formulário</TabsTrigger>}
           {isTestimonials && <TabsTrigger value="testemunhos">Testemunhos</TabsTrigger>}
-          {isVideo && <TabsTrigger value="video">Vídeo</TabsTrigger>}
+          {(isVideo || isWebinar) && <TabsTrigger value="video">Vídeo</TabsTrigger>}
           <TabsTrigger value="design">Design</TabsTrigger>
         </TabsList>
 
@@ -517,8 +586,8 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
           </div>
         </TabsContent>
 
-        {/* Form Builder Tab (optin only) */}
-        {isOptin && (
+        {/* Form Builder Tab (optin, application, squeeze) */}
+        {hasFormCapability && (
           <TabsContent value="formulario">
             <Card>
               <CardHeader>
@@ -646,8 +715,8 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
           </TabsContent>
         )}
 
-        {/* Video Tab */}
-        {isVideo && (
+        {/* Video Tab (video & webinar) */}
+        {(isVideo || isWebinar) && (
           <TabsContent value="video">
             <Card>
               <CardHeader>

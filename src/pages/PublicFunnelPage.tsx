@@ -59,6 +59,18 @@ const STEP_TYPE_ICONS: Record<string, string> = {
   upsell: "🚀",
   testimonials: "⭐",
   video: "🎬",
+  downsell: "📉",
+  order_bump: "🎁",
+  squeeze: "🔒",
+  webinar: "🎥",
+  sales_letter: "📝",
+  application: "📄",
+  booking: "📅",
+  bridge: "🌉",
+  countdown: "⏰",
+  tripwire: "⚡",
+  membership: "🔑",
+  custom: "🧩",
 };
 
 function ImageGallery({ images }: { images: string[] }) {
@@ -281,7 +293,7 @@ export default function PublicFunnelPage() {
   const content = parseContent(step.content);
   const isLast = currentStepIndex >= steps.length - 1;
   const isFirst = currentStepIndex === 0;
-  const hasForm = step.step_type === "optin" && content.form_fields && content.form_fields.length > 0;
+  const hasForm = (step.step_type === "optin" || step.step_type === "application" || step.step_type === "squeeze") && content.form_fields && content.form_fields.length > 0;
   const stepImages = getImages(content);
 
   return (
@@ -353,8 +365,8 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {/* Video Section */}
-          {step.step_type === "video" && content.video?.url && (
+          {/* Video Section (video & webinar) */}
+          {(step.step_type === "video" || step.step_type === "webinar") && content.video?.url && (
             <div className="space-y-3">
               {content.video.caption && (
                 <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
