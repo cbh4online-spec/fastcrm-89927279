@@ -31090,6 +31090,48 @@ export type Database = {
           },
         ]
       }
+      mission_links: {
+        Row: {
+          created_at: string
+          id: string
+          linked_id: string
+          linked_type: string
+          mission_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_id: string
+          linked_type: string
+          mission_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_id?: string
+          linked_type?: string
+          mission_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_links_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_filters: {
         Row: {
           auto_flag_threshold: number | null
@@ -50631,6 +50673,59 @@ export type Database = {
           },
         ]
       }
+      workspace_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string | null
+          id: string
+          related_id: string | null
+          related_type: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_id?: string | null
+          related_type?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_id?: string | null
+          related_type?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_bundles: {
         Row: {
           bundle_id: string
@@ -50866,6 +50961,53 @@ export type Database = {
             foreignKeyName: "workspace_email_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_engine_settings: {
+        Row: {
+          auto_brief_enabled: boolean
+          auto_escalation_enabled: boolean
+          auto_mission_generation: boolean
+          created_at: string
+          id: string
+          is_enabled: boolean
+          refresh_interval_minutes: number
+          risk_alert_threshold: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_brief_enabled?: boolean
+          auto_escalation_enabled?: boolean
+          auto_mission_generation?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          refresh_interval_minutes?: number
+          risk_alert_threshold?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_brief_enabled?: boolean
+          auto_escalation_enabled?: boolean
+          auto_mission_generation?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          refresh_interval_minutes?: number
+          risk_alert_threshold?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_engine_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -51273,6 +51415,74 @@ export type Database = {
           },
         ]
       }
+      workspace_missions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          impact_estimate: number | null
+          mission_type: string
+          owner_id: string | null
+          owner_type: string | null
+          priority: string
+          source_id: string | null
+          source_type: string | null
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_estimate?: number | null
+          mission_type: string
+          owner_id?: string | null
+          owner_type?: string | null
+          priority?: string
+          source_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          urgency?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_estimate?: number | null
+          mission_type?: string
+          owner_id?: string | null
+          owner_type?: string | null
+          priority?: string
+          source_id?: string | null
+          source_type?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_missions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_module_subscriptions: {
         Row: {
           activated_at: string | null
@@ -51501,6 +51711,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_onboarding_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_operating_state: {
+        Row: {
+          active_missions_count: number
+          automation_health: number
+          blockers_count: number
+          context_health: number
+          created_at: string
+          execution_health: number
+          health_score: number
+          id: string
+          last_recalculated_at: string | null
+          pipeline_health: number
+          primary_focus: string | null
+          response_health: number
+          revenue_health: number
+          risk_level: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_missions_count?: number
+          automation_health?: number
+          blockers_count?: number
+          context_health?: number
+          created_at?: string
+          execution_health?: number
+          health_score?: number
+          id?: string
+          last_recalculated_at?: string | null
+          pipeline_health?: number
+          primary_focus?: string | null
+          response_health?: number
+          revenue_health?: number
+          risk_level?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_missions_count?: number
+          automation_health?: number
+          blockers_count?: number
+          context_health?: number
+          created_at?: string
+          execution_health?: number
+          health_score?: number
+          id?: string
+          last_recalculated_at?: string | null
+          pipeline_health?: number
+          primary_focus?: string | null
+          response_health?: number
+          revenue_health?: number
+          risk_level?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_operating_state_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
             referencedRelation: "workspaces"
