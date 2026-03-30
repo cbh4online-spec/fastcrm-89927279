@@ -135,7 +135,7 @@ export function BillingAssistantDrawer({
           <div className="text-xs text-muted-foreground">
             {isAssistant ? "Assistente" : "Você"} • {message.timestamp.toLocaleTimeString("pt-PT")}
           </div>
-          <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none">
+          <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert">
             {message.content}
           </div>
         </div>

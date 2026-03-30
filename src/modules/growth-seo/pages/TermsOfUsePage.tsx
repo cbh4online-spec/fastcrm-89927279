@@ -18,7 +18,7 @@ export default function TermsOfUsePage() {
         <section key={index}>
           <h2 className="text-xl font-semibold mb-3">{section.title}</h2>
           <div
-            className="text-muted-foreground leading-relaxed prose-content"
+            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed"
             dangerouslySetInnerHTML={{ __html: section.content }}
           />
         </section>

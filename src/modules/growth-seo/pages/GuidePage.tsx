@@ -120,7 +120,7 @@ export default function GuidePage() {
 
                   {section.type === 'text' && (
                     <div
-                      className="text-muted-foreground leading-relaxed pl-11"
+                      className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed pl-11"
                       dangerouslySetInnerHTML={{ __html: section.content }}
                     />
                   )}
