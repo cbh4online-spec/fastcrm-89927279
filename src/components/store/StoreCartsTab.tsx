@@ -1,13 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShoppingCart, Clock, Smartphone, Monitor, Tablet, AlertTriangle, Eye, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ShoppingCart, Clock, Smartphone, Monitor, Tablet, AlertTriangle, Eye, DollarSign, MoreHorizontal, Copy, Phone as PhoneIcon, Mail, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { useState, useCallback } from "react";
+import { StoreAbandonedCartDetail } from "./StoreAbandonedCartDetail";
 
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
@@ -31,6 +36,22 @@ const recoveryStatusLabels: Record<string, { label: string; variant: "default" |
 export function StoreCartsTab() {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
+  const queryClient = useQueryClient();
+  const [detailCart, setDetailCart] = useState<any>(null);
+
+  // Get store slug for recovery links
+  const storeSlug = useQuery({
+    queryKey: ["store-slug", workspaceId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("store_settings" as any)
+        .select("store_slug")
+        .eq("workspace_id", workspaceId!)
+        .maybeSingle();
+      return (data as any)?.store_slug || workspaceId;
+    },
+    enabled: !!workspaceId,
+  });
 
   // Active carts: sessions with cart_items in last 30 minutes
   const activeCarts = useQuery({
@@ -49,7 +70,7 @@ export function StoreCartsTab() {
       return (data || []) as any[];
     },
     enabled: !!workspaceId,
-    refetchInterval: 15_000, // Auto-refresh every 15s
+    refetchInterval: 15_000,
   });
 
   // Abandoned carts
@@ -68,6 +89,63 @@ export function StoreCartsTab() {
     },
     enabled: !!workspaceId,
   });
+
+  const getRecoveryUrl = useCallback((cart: any) => {
+    if (!cart.recovery_token || !storeSlug.data) return null;
+    return `${window.location.origin}/store/${storeSlug.data}/recover/${cart.recovery_token}`;
+  }, [storeSlug.data]);
+
+  const generateToken = useCallback(async (cart: any) => {
+    if (cart.recovery_token) {
+      const url = getRecoveryUrl(cart);
+      if (url) {
+        navigator.clipboard.writeText(url);
+        toast.success("Link copiado!");
+      }
+      return;
+    }
+
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await (supabase as any)
+      .from("store_abandoned_carts")
+      .update({
+        recovery_token: token,
+        recovery_token_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", cart.id);
+
+    if (error) {
+      toast.error("Erro ao gerar link");
+      return;
+    }
+
+    const url = `${window.location.origin}/store/${storeSlug.data}/recover/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link gerado e copiado!");
+    queryClient.invalidateQueries({ queryKey: ["store-abandoned-carts"] });
+  }, [storeSlug.data, queryClient, getRecoveryUrl]);
+
+  const updateCartStatus = useCallback(async (cart: any, status: string, extra: Record<string, any> = {}) => {
+    const { error } = await (supabase as any)
+      .from("store_abandoned_carts")
+      .update({
+        recovery_status: status,
+        updated_at: new Date().toISOString(),
+        ...extra,
+      })
+      .eq("id", cart.id);
+
+    if (error) {
+      toast.error("Erro ao atualizar");
+      return;
+    }
+
+    toast.success("Estado atualizado");
+    queryClient.invalidateQueries({ queryKey: ["store-abandoned-carts"] });
+  }, [queryClient]);
 
   // KPIs
   const totalAbandoned = abandonedCarts.data?.length || 0;
@@ -230,6 +308,19 @@ export function StoreCartsTab() {
                           </span>
                           <Badge variant={status.variant} className="text-xs">{status.label}</Badge>
                         </div>
+                        {/* Contact info badges */}
+                        <div className="flex items-center gap-2 mb-1">
+                          {cart.customer_email && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" /> {cart.customer_email}
+                            </span>
+                          )}
+                          {cart.customer_phone && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <PhoneIcon className="h-3 w-3" /> {cart.customer_phone}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1 mb-1">
                           {items.slice(0, 3).map((item: any, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs">
@@ -242,7 +333,45 @@ export function StoreCartsTab() {
                         </div>
                         <p className="text-xs text-muted-foreground">{timeAgo}</p>
                       </div>
-                      <p className="text-sm font-bold text-destructive">€{(cart.subtotal || 0).toFixed(2)}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-destructive">€{(cart.subtotal || 0).toFixed(2)}</p>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => generateToken(cart)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              {cart.recovery_token ? "Copiar link" : "Gerar link de recuperação"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDetailCart(cart)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Ver detalhe
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {cart.recovery_status !== "contacted" && (
+                              <DropdownMenuItem onClick={() => updateCartStatus(cart, "contacted", { contacted_at: new Date().toISOString(), contact_channel: "manual" })}>
+                                <PhoneIcon className="h-4 w-4 mr-2" />
+                                Marcar contactado
+                              </DropdownMenuItem>
+                            )}
+                            {cart.recovery_status !== "recovered" && (
+                              <DropdownMenuItem onClick={() => updateCartStatus(cart, "recovered", { recovered_at: new Date().toISOString() })}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Marcar recuperado
+                              </DropdownMenuItem>
+                            )}
+                            {cart.recovery_status !== "expired" && (
+                              <DropdownMenuItem onClick={() => updateCartStatus(cart, "expired")}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Marcar expirado
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   );
                 })}
@@ -251,6 +380,14 @@ export function StoreCartsTab() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Detail dialog */}
+      <StoreAbandonedCartDetail
+        cart={detailCart}
+        open={!!detailCart}
+        onOpenChange={(open) => { if (!open) setDetailCart(null); }}
+        workspaceSlug={storeSlug.data}
+      />
     </div>
   );
 }
