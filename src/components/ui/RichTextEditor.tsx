@@ -77,7 +77,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       if (!editor) return;
       const current = editor.getHTML();
       if (value !== undefined && value !== current) {
-        editor.commands.setContent(value, false);
+        editor.commands.setContent(value, { emitUpdate: false });
       }
     }, [value, editor]);
 
