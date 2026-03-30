@@ -57,6 +57,7 @@ export function AIRoutes() {
       <Route path="/dashboard/workspace-ops" element={<WorkspaceOpsPage />} />
       <Route path="/dashboard/memory" element={<MemoryCenterPage />} />
       <Route path="/dashboard/forecast" element={<ForecastCenterPage />} />
+      <Route path="/dashboard/strategy" element={<StrategyCenterPage />} />
     </>
   );
 }
