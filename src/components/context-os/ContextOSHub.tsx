@@ -138,6 +138,20 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
         ))}
       </div>
 
+      {/* Next Best Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-3"
+      >
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-bold">Próximas Ações Recomendadas</h2>
+        </div>
+        <NextBestActionsPanel />
+      </motion.div>
+
       {/* Block Editor drawer */}
       {editingBlock && (
         <ContextBlockEditor
