@@ -32314,6 +32314,190 @@ export type Database = {
           },
         ]
       }
+      optimization_action_logs: {
+        Row: {
+          action_type: string
+          after_json: Json | null
+          applied_by: string
+          applied_mode: string
+          before_json: Json | null
+          created_at: string
+          id: string
+          recommendation_id: string | null
+          reverted_at: string | null
+          target_entity_id: string
+          target_entity_type: string
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          after_json?: Json | null
+          applied_by?: string
+          applied_mode?: string
+          before_json?: Json | null
+          created_at?: string
+          id?: string
+          recommendation_id?: string | null
+          reverted_at?: string | null
+          target_entity_id: string
+          target_entity_type: string
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          after_json?: Json | null
+          applied_by?: string
+          applied_mode?: string
+          before_json?: Json | null
+          created_at?: string
+          id?: string
+          recommendation_id?: string | null
+          reverted_at?: string | null
+          target_entity_id?: string
+          target_entity_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_action_logs_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "optimization_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "optimization_action_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      optimization_recommendations: {
+        Row: {
+          applied_at: string | null
+          auto_applicable: boolean
+          auto_applied: boolean
+          confidence: string
+          created_at: string
+          dismissed_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          impact_estimate: number | null
+          rationale: string | null
+          recommendation_type: string
+          status: string
+          suggested_action_json: Json | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          auto_applicable?: boolean
+          auto_applied?: boolean
+          confidence?: string
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          impact_estimate?: number | null
+          rationale?: string | null
+          recommendation_type: string
+          status?: string
+          suggested_action_json?: Json | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          auto_applicable?: boolean
+          auto_applied?: boolean
+          confidence?: string
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          impact_estimate?: number | null
+          rationale?: string | null
+          recommendation_type?: string
+          status?: string
+          suggested_action_json?: Json | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      optimization_settings: {
+        Row: {
+          allow_auto_pause: boolean
+          allow_auto_promote: boolean
+          allow_auto_switch_variant: boolean
+          auto_optimize_enabled: boolean
+          created_at: string
+          id: string
+          is_enabled: boolean
+          min_revenue_delta: number
+          min_samples_threshold: number
+          min_score_delta: number
+          optimization_window_days: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_auto_pause?: boolean
+          allow_auto_promote?: boolean
+          allow_auto_switch_variant?: boolean
+          auto_optimize_enabled?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          min_revenue_delta?: number
+          min_samples_threshold?: number
+          min_score_delta?: number
+          optimization_window_days?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allow_auto_pause?: boolean
+          allow_auto_promote?: boolean
+          allow_auto_switch_variant?: boolean
+          auto_optimize_enabled?: boolean
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          min_revenue_delta?: number
+          min_samples_threshold?: number
+          min_score_delta?: number
+          optimization_window_days?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_audit_log: {
         Row: {
           action: string
