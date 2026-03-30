@@ -71,7 +71,6 @@ export default function OptimizationCenterPage() {
       <PageHeader
         title="Centro de Otimização"
         description="Recomendações automáticas para melhorar a performance de templates e sequências"
-        icon={<Zap className="h-6 w-6 text-primary" />}
       />
 
       {/* KPI Cards */}
