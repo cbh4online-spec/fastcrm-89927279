@@ -1,27 +1,47 @@
 
 
-# Melhorar assinatura de email com ícones 3D para redes sociais
+# Corrigir botões da sidebar do Inbox (Enviado, Rascunhos, Agendado, Spam, Reciclagem)
 
 ## Diagnóstico
-A assinatura atual usa links de texto simples para redes sociais ("LinkedIn · X · Instagram · Facebook · YouTube · WhatsApp"). O utilizador quer substituir por ícones visuais com aspeto 3D/moderno, como é comum em assinaturas profissionais.
+Os botões "Enviado", "Rascunhos", "Agendado", "Spam" e "Reciclagem" na sidebar do Inbox não fazem nada porque:
+1. Não têm `category` definida no array `folders` (linhas 89-92 de `InboxSidebar.tsx`)
+2. O handler `onClick` só executa se `folder.category` existir (linha 145)
+3. A `ConversationList` não tem lógica de filtro para estes tipos
+
+A tabela `conversations` tem `status` limitado a `open | closed | pending | archived` — não existe `spam`, `trash`, `draft` ou `scheduled`. Contudo, tem `last_message_direction` que permite filtrar "Enviado".
 
 ## Solução
-Substituir os links de texto por ícones SVG inline (compatíveis com email) com estilo 3D (gradientes, sombras simuladas). Como muitos clientes de email não suportam SVG nem CSS avançado, a abordagem mais fiável é usar **imagens PNG hospedadas no storage** do projeto com aspeto 3D/glossy.
+Expandir o sistema de categorias para incluir estes novos tipos como filtros client-side, usando os dados já disponíveis:
 
-**Abordagem escolhida**: Gerar ícones 3D usando a API de geração de imagem (Gemini), fazer upload para o storage bucket, e referenciar os URLs públicos no HTML da assinatura.
+| Pasta | Filtro |
+|---|---|
+| **Enviado** | `last_message_direction = 'outbound'` |
+| **Rascunhos** | `status = 'pending'` (proxy mais próximo; conversas sem mensagens enviadas) |
+| **Agendado** | Conversas com `sla_deadline` futuro (ou placeholder vazio) |
+| **Spam** | `status = 'archived'` + placeholder (sem flag de spam na DB) |
+| **Reciclagem** | `status = 'archived'` |
 
 ## Plano
 
-### 1. Gerar ícones 3D para cada rede social
-Usar a API de imagem para criar ícones 3D/glossy (32x32px) para: LinkedIn, X, Instagram, Facebook, YouTube, WhatsApp.
+### 1. Expandir `InboxCategory` type
+Adicionar novos valores: `"sent"`, `"drafts"`, `"scheduled"`, `"spam"`, `"trash"`.
 
-### 2. Upload dos ícones para storage
-Criar bucket `email-assets` (se não existir) e fazer upload dos ícones PNG.
+### 2. Atualizar `InboxSidebar.tsx`
+- Dar `category` a todas as pastas que não têm
+- Remover a condição `folder.category &&` do onClick para garantir que todos os botões funcionam
+- Marcar visualmente o item ativo para todas as pastas
 
-### 3. Atualizar `generateSignatureHtml` no EmailSignatureEditor
-Substituir os links de texto (`<a>LinkedIn</a>`) por `<a><img src="URL_ICONE" width="24" height="24" /></a>` com os URLs públicos dos ícones hospedados.
+### 3. Atualizar `ConversationList.tsx`
+- Expandir `categoryToTab` mapping e adicionar filtro por `last_message_direction` para "sent"
+- Adicionar lógica de filtro no `tabFilteredConversations` para cada novo tipo
+- Para "trash"/"spam": filtrar por `status = 'archived'`
+
+### 4. Atualizar `useConversations.ts`
+- Aceitar `last_message_direction` como filtro opcional no hook
+- Passar o filtro na query quando categoria é "sent"
 
 ### Ficheiros
-- **Editado**: `src/components/settings/sections/EmailSignatureEditor.tsx` (função `generateSignatureHtml`, linhas 357-365 e 384-386)
-- **Storage**: Upload de 6 ícones PNG para bucket `email-assets`
+- **Editado**: `src/components/inbox/InboxSidebar.tsx` — categories em todos os folders + active state
+- **Editado**: `src/components/inbox/ConversationList.tsx` — novos filtros por categoria
+- **Editado**: `src/hooks/useConversations.ts` — filtro `last_message_direction`
 
