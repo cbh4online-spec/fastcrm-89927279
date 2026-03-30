@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { subDays, format, startOfWeek } from "date-fns";
 
 interface PeriodMetric {
