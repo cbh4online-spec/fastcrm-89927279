@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, Pencil, ArrowRight, RefreshCw } from "lucide-react";
+import { Brain, Pencil, ArrowRight, RefreshCw, Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { motion } from "framer-motion";
 import { ContextBlockEditor } from "./ContextBlockEditor";
 import { ContextOSExport } from "./ContextOSExport";
+import { NextBestActionsPanel } from "./NextBestActionsPanel";
 
 interface ContextOSHubProps {
   data: BusinessContext | null;
@@ -136,6 +137,20 @@ export function ContextOSHub({ data }: ContextOSHubProps) {
           </motion.div>
         ))}
       </div>
+
+      {/* Next Best Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="space-y-3"
+      >
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-bold">Próximas Ações Recomendadas</h2>
+        </div>
+        <NextBestActionsPanel />
+      </motion.div>
 
       {/* Block Editor drawer */}
       {editingBlock && (
