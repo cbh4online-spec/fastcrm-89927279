@@ -140,7 +140,7 @@ export function useConversations(filters?: ConversationFilters) {
         .order("conversation_priority_score", { ascending: false, nullsFirst: true })
         .order("last_message_at", { ascending: false, nullsFirst: false });
 
-      if (filters?.status) {
+      if (filters?.status !== undefined) {
         query = query.eq("status", filters.status);
       }
 

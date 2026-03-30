@@ -21,6 +21,13 @@ import {
   Briefcase,
   Users,
   Search,
+  Phone,
+  MessageSquare,
+  Globe,
+  Instagram,
+  Facebook,
+  Zap,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
