@@ -418,10 +418,15 @@ export default function StoreCheckoutPage() {
                           type="tel"
                           placeholder="+351 912 345 678"
                           value={formData.phone}
-                          onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                          onChange={(e) => { setFormData(p => ({ ...p, phone: e.target.value })); setFieldErrors(p => ({ ...p, phone: "" })); }}
                           required
+                          className={fieldErrors.phone ? "border-destructive" : ""}
                         />
-                        <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
+                        {fieldErrors.phone ? (
+                          <p className="text-xs text-destructive">{fieldErrors.phone}</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
+                        )}
                       </div>
                     </div>
                   </div>
