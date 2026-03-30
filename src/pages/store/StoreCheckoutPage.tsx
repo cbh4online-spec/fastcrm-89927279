@@ -17,6 +17,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
+import isEmail from "validator/es/lib/isEmail";
+import { Sentry } from "@/lib/sentry";
+import { trackEvent } from "@/lib/analytics";
+import { toMoney, moneySub, moneyAdd, moneyMul, moneyMin, moneyMax, moneyToNumber, formatMoney } from "@/lib/money";
 
 interface CTTShippingOption {
   id: string;
@@ -130,25 +135,33 @@ export default function StoreCheckoutPage() {
     phone: "",
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const isStep1Valid = () => {
     if (!formData.name.trim() || !formData.phone.trim()) return false;
-    const phoneClean = formData.phone.replace(/\s/g, "");
-    return phoneClean.length >= 9;
+    return isValidPhoneNumber(formData.phone, "PT");
   };
 
   const handleStep1Continue = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.error("Preencha o nome");
-      return;
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = "Preencha o nome";
+    if (!formData.phone.trim()) {
+      errors.phone = "Preencha o telefone";
+    } else if (!isValidPhoneNumber(formData.phone, "PT")) {
+      errors.phone = "Número de telefone inválido";
     }
-    const phoneClean = formData.phone.replace(/\s/g, "");
-    if (phoneClean.length < 9) {
-      toast.error("Número de telefone inválido");
-      return;
-    }
-    // Capture lead immediately on step 1 completion
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    // Normalize phone
+    try {
+      const parsed = parsePhoneNumber(formData.phone, "PT");
+      if (parsed) setFormData((p) => ({ ...p, phone: parsed.formatInternational() }));
+    } catch {}
+
     captureLead({ name: formData.name, phone: formData.phone });
+    trackEvent("begin_checkout", { workspaceSlug: wsSlug, subtotal, itemCount: items.length });
     setStep(2);
   };
 
@@ -223,6 +236,7 @@ export default function StoreCheckoutPage() {
       });
       setCouponCode("");
       toast.success("Cupão aplicado!");
+      trackEvent("apply_coupon", { workspaceSlug: wsSlug, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value });
     } finally {
       setCouponLoading(false);
     }
@@ -230,28 +244,36 @@ export default function StoreCheckoutPage() {
 
   const discountAmount = appliedCoupon
     ? (() => {
+        const sub = toMoney(subtotal);
         let discount = appliedCoupon.discount_type === "percentage"
-          ? subtotal * (appliedCoupon.discount_value / 100)
-          : Math.min(appliedCoupon.discount_value, subtotal);
-        // Cap percentage discounts if max_discount_amount is set
+          ? moneyMul(sub, appliedCoupon.discount_value / 100)
+          : moneyMin(appliedCoupon.discount_value, sub);
         if (appliedCoupon.discount_type === "percentage" && appliedCoupon.max_discount_amount) {
-          discount = Math.min(discount, appliedCoupon.max_discount_amount);
+          discount = moneyMin(discount, appliedCoupon.max_discount_amount);
         }
-        return discount;
+        return moneyToNumber(discount);
       })()
     : 0;
-  
+
   const selectedCttOption = cttOptions.find((o) => o.id === selectedShippingId);
   const effectiveShippingCost = selectedCttOption?.price ?? 0;
-  const giftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.current_balance, subtotal - discountAmount + effectiveShippingCost) : 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount + effectiveShippingCost - giftCardAmount);
+  const giftCardAmount = appliedGiftCard
+    ? moneyToNumber(moneyMin(appliedGiftCard.current_balance, moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost)))
+    : 0;
+  const finalTotal = moneyToNumber(moneyMax(0, moneySub(moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost), giftCardAmount)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
     if (!formData.email.trim()) {
-      toast.error("Preencha o email");
-      return;
+      errors.email = "Preencha o email";
+    } else if (!isEmail(formData.email)) {
+      errors.email = "Email inválido";
     }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: finalTotal, itemCount: items.length, currency: items[0]?.currency });
     setIsProcessing(true);
 
     try {
@@ -285,6 +307,7 @@ export default function StoreCheckoutPage() {
         clearCart();
         window.location.href = `/store/${wsSlug}/success`;
       } else if (data?.url) {
+        trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: finalTotal });
         clearCart();
         window.location.href = data.url;
       } else {
@@ -293,6 +316,7 @@ export default function StoreCheckoutPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao criar checkout";
       toast.error(message);
+      try { Sentry.captureException(err); } catch {}
       setIsProcessing(false);
     }
   };
@@ -377,10 +401,12 @@ export default function StoreCheckoutPage() {
                           id="name"
                           placeholder="O seu nome completo"
                           value={formData.name}
-                          onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                          onChange={(e) => { setFormData(p => ({ ...p, name: e.target.value })); setFieldErrors(p => ({ ...p, name: "" })); }}
                           required
                           autoFocus
+                          className={fieldErrors.name ? "border-destructive" : ""}
                         />
+                        {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="flex items-center gap-1.5">
@@ -392,10 +418,15 @@ export default function StoreCheckoutPage() {
                           type="tel"
                           placeholder="+351 912 345 678"
                           value={formData.phone}
-                          onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                          onChange={(e) => { setFormData(p => ({ ...p, phone: e.target.value })); setFieldErrors(p => ({ ...p, phone: "" })); }}
                           required
+                          className={fieldErrors.phone ? "border-destructive" : ""}
                         />
-                        <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
+                        {fieldErrors.phone ? (
+                          <p className="text-xs text-destructive">{fieldErrors.phone}</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -431,12 +462,15 @@ export default function StoreCheckoutPage() {
                         value={formData.email}
                         onChange={(e) => {
                           setFormData(p => ({ ...p, email: e.target.value }));
+                          setFieldErrors(p => ({ ...p, email: "" }));
                           emailCapturedRef.current = false;
                         }}
                         onBlur={handleEmailBlur}
                         required
                         autoFocus
+                        className={fieldErrors.email ? "border-destructive" : ""}
                       />
+                      {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
                   </div>
                   </div>
 
@@ -519,7 +553,7 @@ export default function StoreCheckoutPage() {
                         <p className="text-sm font-medium line-clamp-1">{item.name}</p>
                         <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
                       </div>
-                      <p className="text-sm font-medium">€{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm font-medium">€{formatMoney(item.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
@@ -563,7 +597,7 @@ export default function StoreCheckoutPage() {
                     <StoreGiftCardBalance
                       workspaceId={wsSlug}
                       appliedGiftCard={appliedGiftCard}
-                      onApply={setAppliedGiftCard}
+                      onApply={(gc) => { setAppliedGiftCard(gc); trackEvent("apply_gift_card", { workspaceSlug: wsSlug, giftCardCode: gc?.code }); }}
                       onRemove={() => setAppliedGiftCard(null)}
                     />
                   </div>
@@ -573,24 +607,24 @@ export default function StoreCheckoutPage() {
                   <>
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
-                      <span>€{subtotal.toFixed(2)}</span>
+                      <span>€{formatMoney(subtotal)}</span>
                     </div>
                     {appliedCoupon && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Desconto</span>
-                        <span>-€{discountAmount.toFixed(2)}</span>
+                        <span>-€{formatMoney(discountAmount)}</span>
                       </div>
                     )}
                     {appliedGiftCard && giftCardAmount > 0 && (
                       <div className="flex justify-between text-sm text-purple-600">
                         <span>Gift Card</span>
-                        <span>-€{giftCardAmount.toFixed(2)}</span>
+                        <span>-€{formatMoney(giftCardAmount)}</span>
                       </div>
                     )}
                     {effectiveShippingCost > 0 && selectedCttOption && (
                       <div className="flex justify-between text-sm">
                         <span>Envio ({selectedCttOption.name})</span>
-                        <span>€{effectiveShippingCost.toFixed(2)}</span>
+                        <span>€{formatMoney(effectiveShippingCost)}</span>
                       </div>
                     )}
                   </>
@@ -599,7 +633,7 @@ export default function StoreCheckoutPage() {
                 <Separator />
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">€{finalTotal.toFixed(2)}</span>
+                  <span className="text-primary">€{formatMoney(finalTotal)}</span>
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useNavigate } from "react-router-dom";
 import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
+import { formatMoney } from "@/lib/money";
 
 interface StoreCartDrawerProps {
   workspaceSlug: string;
@@ -69,7 +70,7 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
                       <p className="text-sm font-semibold text-primary mt-1">
-                        €{(item.price * item.quantity).toFixed(2)}
+                        €{formatMoney(item.price * item.quantity)}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center border rounded-lg overflow-hidden">
@@ -114,7 +115,7 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-xl font-bold">€{subtotal.toFixed(2)}</span>
+                <span className="text-xl font-bold">€{formatMoney(subtotal)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Impostos e portes calculados no checkout
