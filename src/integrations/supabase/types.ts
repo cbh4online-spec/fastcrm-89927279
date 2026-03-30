@@ -12507,6 +12507,130 @@ export type Database = {
           },
         ]
       }
+      communication_attribution_settings: {
+        Row: {
+          allow_email_fallback: boolean
+          attribution_window_days: number
+          created_at: string
+          default_model: string
+          id: string
+          include_assists: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_email_fallback?: boolean
+          attribution_window_days?: number
+          created_at?: string
+          default_model?: string
+          id?: string
+          include_assists?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allow_email_fallback?: boolean
+          attribution_window_days?: number
+          created_at?: string
+          default_model?: string
+          id?: string
+          include_assists?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_attribution_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_attributions: {
+        Row: {
+          attribution_model: string
+          attribution_weight: number
+          channel: string | null
+          communication_job_id: string | null
+          contact_id: string | null
+          context_id: string | null
+          context_type: string | null
+          conversion_at: string | null
+          conversion_id: string
+          conversion_type: string
+          conversion_value: number
+          created_at: string
+          currency: string
+          enrollment_id: string | null
+          id: string
+          provider: string | null
+          sent_at: string | null
+          sequence_id: string | null
+          sequence_step_id: string | null
+          template_id: string | null
+          touch_type: string
+          workspace_id: string
+        }
+        Insert: {
+          attribution_model?: string
+          attribution_weight?: number
+          channel?: string | null
+          communication_job_id?: string | null
+          contact_id?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          conversion_at?: string | null
+          conversion_id: string
+          conversion_type: string
+          conversion_value?: number
+          created_at?: string
+          currency?: string
+          enrollment_id?: string | null
+          id?: string
+          provider?: string | null
+          sent_at?: string | null
+          sequence_id?: string | null
+          sequence_step_id?: string | null
+          template_id?: string | null
+          touch_type?: string
+          workspace_id: string
+        }
+        Update: {
+          attribution_model?: string
+          attribution_weight?: number
+          channel?: string | null
+          communication_job_id?: string | null
+          contact_id?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          conversion_at?: string | null
+          conversion_id?: string
+          conversion_type?: string
+          conversion_value?: number
+          created_at?: string
+          currency?: string
+          enrollment_id?: string | null
+          id?: string
+          provider?: string | null
+          sent_at?: string | null
+          sequence_id?: string | null
+          sequence_step_id?: string | null
+          template_id?: string | null
+          touch_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_attributions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_template_variants: {
         Row: {
           body: string

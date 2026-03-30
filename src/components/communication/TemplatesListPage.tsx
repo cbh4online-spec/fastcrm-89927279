@@ -44,6 +44,7 @@ import {
   Brain,
   Star,
   ListOrdered,
+  DollarSign,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
@@ -70,6 +71,7 @@ import { BookOpen, Upload, Lightbulb, ChevronDown, ChevronUp } from 'lucide-reac
 import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
 import { useTemplateRecommendations, TemplateRecommendation } from '@/hooks/useTemplateRecommendations';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RevenueAttributionDashboard } from './RevenueAttributionDashboard';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -370,6 +372,10 @@ export function TemplatesListPage() {
             <TabsTrigger value="learning" className="gap-1.5">
               <Brain className="h-4 w-4" />
               Treino do Workspace
+            </TabsTrigger>
+            <TabsTrigger value="revenue" className="gap-1.5">
+              <DollarSign className="h-4 w-4" />
+              Receita
             </TabsTrigger>
             <TabsTrigger value="sequences" className="gap-1.5" onClick={() => navigate('/dashboard/sequences')}>
               <ListOrdered className="h-4 w-4" />
@@ -949,6 +955,11 @@ export function TemplatesListPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Revenue Tab */}
+          <TabsContent value="revenue" className="mt-4">
+            <RevenueAttributionDashboard mode="templates" />
           </TabsContent>
         </Tabs>
       </div>
