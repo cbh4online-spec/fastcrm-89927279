@@ -353,7 +353,6 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   };
 
   const suggestions = AI_SUGGESTIONS[step.step_type] || AI_SUGGESTIONS.page;
-  const isOptin = step.step_type === "optin";
 
   return (
     <div className="space-y-4">
