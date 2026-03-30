@@ -61,6 +61,7 @@ export function AIRoutes() {
       <Route path="/dashboard/forecast" element={<ForecastCenterPage />} />
       <Route path="/dashboard/strategy" element={<StrategyCenterPage />} />
       <Route path="/dashboard/board" element={<BoardCenterPage />} />
+      <Route path="/dashboard/portfolio" element={<PortfolioCenterPage />} />
     </>
   );
 }
