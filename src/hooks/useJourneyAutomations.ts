@@ -261,9 +261,9 @@ export function useInitializeDefaultAutomations() {
         name: auto.name,
         description: auto.description,
         trigger_type: auto.triggerType,
-        trigger_config: JSON.parse(JSON.stringify(auto.triggerConfig)),
-        conditions: JSON.parse(JSON.stringify(auto.conditions)),
-        actions: JSON.parse(JSON.stringify(auto.actions)),
+        trigger_config: JSON.parse(JSON.stringify(auto.triggerConfig)) as any,
+        conditions: JSON.parse(JSON.stringify(auto.conditions)) as any,
+        actions: JSON.parse(JSON.stringify(auto.actions)) as any,
         is_active: auto.isActive,
         affected_clients_count: 0,
         created_by: user.id
@@ -271,7 +271,7 @@ export function useInitializeDefaultAutomations() {
 
       const { error } = await supabase
         .from('journey_automations')
-        .insert(automationsToCreate);
+        .insert(automationsToCreate as any);
 
       if (error) throw error;
     },
