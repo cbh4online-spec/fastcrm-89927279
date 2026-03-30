@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Brain, Pencil, ArrowRight, RefreshCw, Zap } from "lucide-react";
+import { Brain, Pencil, ArrowRight, RefreshCw, Zap, Bot, ArrowRightLeft } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useContextScore, BlockStatus } from "@/hooks/useContextScore";
 import { BusinessContext, BusinessContextUpdate, useBusinessContext } from "@/hooks/useBusinessContext";
@@ -10,6 +11,10 @@ import { motion } from "framer-motion";
 import { ContextBlockEditor } from "./ContextBlockEditor";
 import { ContextOSExport } from "./ContextOSExport";
 import { NextBestActionsPanel } from "./NextBestActionsPanel";
+import { useAgentWorkItems, useAgentHandoffs } from "@/hooks/useAgentOperations";
+import { useBots } from "@/hooks/useBots";
+import { formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface ContextOSHubProps {
   data: BusinessContext | null;
