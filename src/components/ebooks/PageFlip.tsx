@@ -3,10 +3,10 @@ import HTMLFlipBook from "react-pageflip";
 import { FlipbookPage, FlipbookPageData, HighlightMark } from "./FlipbookPage";
 
 // react-pageflip requires forwardRef pages
-const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData; pageWidth: number; pageHeight: number; onGoToPage?: (page: number) => void; highlights?: HighlightMark[] }>(
-  ({ page, pageWidth, pageHeight, onGoToPage, highlights }, ref) => (
+const PageWrapper = forwardRef<HTMLDivElement, { page: FlipbookPageData; pageWidth: number; pageHeight: number; onGoToPage?: (page: number) => void; highlights?: HighlightMark[]; onHighlightClick?: (id: string, position: { x: number; y: number }) => void }>(
+  ({ page, pageWidth, pageHeight, onGoToPage, highlights, onHighlightClick }, ref) => (
     <div ref={ref} className="w-full h-full">
-      <FlipbookPage page={page} pageWidth={pageWidth} pageHeight={pageHeight} onGoToPage={onGoToPage} highlights={highlights} />
+      <FlipbookPage page={page} pageWidth={pageWidth} pageHeight={pageHeight} onGoToPage={onGoToPage} highlights={highlights} onHighlightClick={onHighlightClick} />
     </div>
   )
 );
@@ -26,6 +26,7 @@ interface PageFlipProps {
   onGoToPage?: (page: number) => void;
   highlightMode?: boolean;
   highlightsMap?: Map<number, HighlightMark[]>;
+  onHighlightClick?: (id: string, position: { x: number; y: number }) => void;
 }
 
 // A4 ratio ≈ 1:1.414
@@ -73,7 +74,7 @@ function calcDimensions(isFullscreen: boolean) {
 }
 
 export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
-  ({ pages, onFlip, isFullscreen = false, onGoToPage, highlightMode = false, highlightsMap }, ref) => {
+  ({ pages, onFlip, isFullscreen = false, onGoToPage, highlightMode = false, highlightsMap, onHighlightClick }, ref) => {
     const flipBookRef = useRef<any>(null);
     const [dims, setDims] = useState(() => calcDimensions(isFullscreen));
 
@@ -126,7 +127,7 @@ export const PageFlipBook = forwardRef<PageFlipHandle, PageFlipProps>(
           style={{}}
         >
           {pages.map((page, i) => (
-            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} onGoToPage={onGoToPage} highlights={highlightsMap?.get(i)} />
+            <PageWrapper key={i} page={page} pageWidth={dims.width} pageHeight={dims.height} onGoToPage={onGoToPage} highlights={highlightsMap?.get(i)} onHighlightClick={onHighlightClick} />
           ))}
         </HTMLFlipBook>
       </div>
