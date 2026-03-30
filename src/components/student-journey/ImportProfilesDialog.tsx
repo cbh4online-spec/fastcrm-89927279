@@ -42,7 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { parseExcelFile, exportToExcel } from "@/utils/excelUtils";
 import Papa from "papaparse";
 import { LifecycleStage } from "@/types/studentJourney";
 
@@ -299,33 +299,6 @@ export function ImportProfilesDialog({
   // Expected field keywords for header detection
   const EXPECTED_FIELDS = ["nome", "email", "telefone", "phone", "interesse", "origem", "source", "curso", "formacao"];
 
-  // Find the row containing headers (scans first 10 rows)
-  const findHeaderRow = (sheet: XLSX.WorkSheet): number => {
-    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
-    const maxScanRows = Math.min(10, range.e.r + 1);
-
-    for (let row = 0; row < maxScanRows; row++) {
-      let matchCount = 0;
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = sheet[cellAddr];
-        if (cell && cell.v) {
-          const normalized = normalizeHeader(String(cell.v));
-          if (EXPECTED_FIELDS.some((f) => normalized.includes(f))) {
-            matchCount++;
-          }
-        }
-      }
-      // If we find at least 2 expected fields, it's likely the header row
-      if (matchCount >= 2) {
-        console.log(`[Excel Import] Header row detected at row ${row + 1}`);
-        return row;
-      }
-    }
-    console.log("[Excel Import] No header row detected, defaulting to row 1");
-    return 0; // Default: first row
-  };
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -367,44 +340,11 @@ export function ImportProfilesDialog({
 
     if (ext === "xlsx" || ext === "xls") {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-      // Detect header row dynamically
-      const headerRow = findHeaderRow(sheet);
-
-      // Convert starting from the correct row
-      const json = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-        header: 1,
-        range: headerRow,
-      }) as unknown[][];
-
-      if (json.length < 2) {
-        return { data: [], headers: [] };
-      }
-
-      // Keep original headers
-      const headers = (json[0] as (string | undefined)[])
-        .map((h) => (h ? String(h).trim() : ""))
-        .filter((h) => h);
-      
-      const dataRows = json.slice(1) as (string | number | undefined)[][];
-
-      // Map data rows to objects using original headers
-      const records = dataRows
-        .filter((row) => row && row.some((cell) => cell !== undefined && cell !== null && cell !== ""))
-        .map((row) => {
-          const obj: Record<string, string> = {};
-          headers.forEach((header, idx) => {
-            if (header && row[idx] !== undefined && row[idx] !== null && row[idx] !== "") {
-              obj[header] = String(row[idx]);
-            }
-          });
-          return obj;
-        })
-        .filter((obj) => Object.keys(obj).length > 0);
-
-      return { data: records, headers };
+      const result = await parseExcelFile(buffer, {
+        expectedFields: EXPECTED_FIELDS,
+        normalizeHeader: normalizeHeader,
+      });
+      return { data: result.rows, headers: result.headers };
     } else if (ext === "csv") {
       return new Promise((resolve, reject) => {
         Papa.parse<Record<string, string>>(file, {
@@ -703,10 +643,7 @@ export function ImportProfilesDialog({
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "template_importacao_alunos.xlsx");
+    exportToExcel(template, "Template", "template_importacao_alunos.xlsx");
   };
 
   const resetDialog = () => {

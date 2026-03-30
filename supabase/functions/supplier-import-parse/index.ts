@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import * as XLSX from "npm:xlsx@0.18.5";
+import ExcelJS from "npm:exceljs@4.4.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +43,6 @@ Deno.serve(async (req) => {
       const lines = text.split(/\r?\n/).filter((l: string) => l.trim());
       if (lines.length === 0) throw new Error("Empty CSV file");
 
-      // Detect delimiter
       const firstLine = lines[0];
       const delimiter = firstLine.includes(";") ? ";" : ",";
 
@@ -60,12 +59,35 @@ Deno.serve(async (req) => {
     } else {
       // XLSX
       const buffer = await fileData.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      if (rows.length > 0) {
-        columns = Object.keys(rows[0]);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const worksheet = workbook.worksheets[0];
+
+      if (worksheet && worksheet.rowCount > 0) {
+        // Get headers from first row
+        const headerRow = worksheet.getRow(1);
+        const colMap: Record<number, string> = {};
+        headerRow.eachCell((cell, colNumber) => {
+          const val = String(cell.value || "").trim();
+          if (val) {
+            columns.push(val);
+            colMap[colNumber] = val;
+          }
+        });
+
+        // Get data rows
+        for (let r = 2; r <= worksheet.rowCount; r++) {
+          const row = worksheet.getRow(r);
+          const obj: Record<string, unknown> = {};
+          let hasData = false;
+          for (const [colNum, header] of Object.entries(colMap)) {
+            const cell = row.getCell(parseInt(colNum));
+            const val = cell.value;
+            obj[header] = val !== null && val !== undefined ? String(val).trim() : "";
+            if (obj[header]) hasData = true;
+          }
+          if (hasData) rows.push(obj);
+        }
       }
     }
 

@@ -37,7 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { parseExcelFile } from "@/utils/excelUtils";
 
 // Course ID mapping based on column names
 const COURSE_COLUMN_MAPPING: Record<string, string> = {
@@ -126,30 +126,6 @@ export function BulkEnrollmentDialog({
       .replace(/[^a-z0-9]/g, ""); // Remove non-alphanumeric
   };
 
-  // Find the header row by scanning for expected fields
-  const findHeaderRow = (sheet: XLSX.WorkSheet): number => {
-    const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
-    const maxScanRows = Math.min(10, range.e.r + 1);
-
-    for (let row = 0; row < maxScanRows; row++) {
-      let matchCount = 0;
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddr = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = sheet[cellAddr];
-        if (cell && cell.v) {
-          const normalized = normalizeColumnName(String(cell.v));
-          if (EXPECTED_HEADER_FIELDS.some((f) => normalized.includes(f))) {
-            matchCount++;
-          }
-        }
-      }
-      // If we find at least 2 expected fields, this is the header row
-      if (matchCount >= 2) {
-        return row;
-      }
-    }
-    return 0; // Default: first row
-  };
 
   // Find name column with robust pattern matching
   const findNameColumn = (headers: string[]): string | null => {
@@ -195,18 +171,12 @@ export function BulkEnrollmentDialog({
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      
-      // Detect header row (scan first 10 rows for expected fields)
-      const headerRow = findHeaderRow(sheet);
-      console.log(`Header row detected at index: ${headerRow}`);
-      
-      // Convert to JSON starting from the detected header row
-      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { 
-        defval: "",
-        range: headerRow,
+      const result = await parseExcelFile(buffer, {
+        expectedFields: EXPECTED_HEADER_FIELDS,
+        normalizeHeader: normalizeColumnName,
       });
+      
+      const json = result.rows as Record<string, unknown>[];
       
       if (json.length === 0) {
         toast.error("Ficheiro vazio ou sem dados válidos");

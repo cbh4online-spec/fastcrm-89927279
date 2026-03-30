@@ -9,7 +9,7 @@ import { Loader2, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { parseExcelFile } from "@/utils/excelUtils";
 
 interface CatalogBulkPriceModalProps {
   open: boolean;
@@ -59,9 +59,8 @@ export function CatalogBulkPriceModal({ open, onOpenChange, workspaceId, onCompl
       });
     } else {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, any>[];
+      const result = await parseExcelFile(buffer);
+      rawRows = result.rows as Record<string, any>[];
     }
 
     // Fetch existing catalog for matching

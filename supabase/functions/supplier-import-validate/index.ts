@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import * as XLSX from "npm:xlsx@0.18.5";
+import ExcelJS from "npm:exceljs@4.4.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,7 +103,6 @@ function computePrices(
       error = `Unknown pricing_mode: ${pricingMode}`;
   }
 
-  // Pack size adjustment
   if (unitPrice != null && priceIsPerPack && packSize > 1) {
     unitPrice = unitPrice / packSize;
   }
@@ -172,9 +171,31 @@ Deno.serve(async (req) => {
       }
     } else {
       const buffer = await fileData.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const worksheet = workbook.worksheets[0];
+
+      if (worksheet && worksheet.rowCount > 0) {
+        const headerRow = worksheet.getRow(1);
+        const colMap: Record<number, string> = {};
+        headerRow.eachCell((cell, colNumber) => {
+          const val = String(cell.value || "").trim();
+          if (val) colMap[colNumber] = val;
+        });
+
+        for (let r = 2; r <= worksheet.rowCount; r++) {
+          const row = worksheet.getRow(r);
+          const obj: Record<string, unknown> = {};
+          let hasData = false;
+          for (const [colNum, header] of Object.entries(colMap)) {
+            const cell = row.getCell(parseInt(colNum));
+            const val = cell.value;
+            obj[header] = val !== null && val !== undefined ? String(val).trim() : "";
+            if (obj[header]) hasData = true;
+          }
+          if (hasData) rows.push(obj);
+        }
+      }
     }
 
     // Load products for matching
@@ -226,11 +247,9 @@ Deno.serve(async (req) => {
         categoryDiscounts
       );
 
-      // Matching
       let productId: string | null = null;
       let matchStatus = "unmatched";
 
-      // 1) barcode
       const barcodeCol = mapping["barcode"];
       if (barcodeCol && raw[barcodeCol]) {
         const bc = String(raw[barcodeCol]).trim().toLowerCase();
@@ -240,7 +259,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 2) supplier_sku
       if (!productId) {
         const skuCol = mapping["supplier_sku"];
         if (skuCol && raw[skuCol]) {
@@ -252,7 +270,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 3) product_name exact match
       if (!productId) {
         const nameCol = mapping["product_name"];
         if (nameCol && raw[nameCol]) {
@@ -298,20 +315,17 @@ Deno.serve(async (req) => {
         error_text: error,
       });
 
-      // Batch insert
       if (importRows.length >= batchSize) {
         await supabase.from("supplier_price_import_rows").insert(importRows.splice(0, batchSize));
       }
     }
 
-    // Insert remaining
     if (importRows.length > 0) {
       await supabase.from("supplier_price_import_rows").insert(importRows);
     }
 
     const stats = { total: rows.length, matched, unmatched, errors };
 
-    // Update import
     await supabase
       .from("supplier_price_imports")
       .update({
