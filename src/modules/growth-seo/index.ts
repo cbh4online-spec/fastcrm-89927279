@@ -98,3 +98,6 @@ export { default as CookiePolicyPage } from './pages/CookiePolicyPage';
 export { default as GDPRBackofficePage } from './pages/GDPRBackofficePage';
 export { useCompanyLegalData } from './hooks/useCompanyLegalData';
 export { usePublicCompanyData } from './hooks/usePublicCompanyData';
+export { useLegalPageContent, LEGAL_PAGE_KEYS, LEGAL_PAGE_LABELS } from './hooks/useLegalPageContent';
+export type { LegalPageData, LegalSection, LegalPageKey } from './hooks/useLegalPageContent';
+export { usePublicLegalPage } from './hooks/usePublicLegalPage';
