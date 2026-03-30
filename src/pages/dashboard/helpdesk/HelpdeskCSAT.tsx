@@ -35,6 +35,7 @@ export default function HelpdeskCSAT() {
           {[1,2,3,4].map((i) => <Skeleton key={i} height={300} />)}
         </div>
       </div>
+      </DashboardLayout>
     );
   }
 
