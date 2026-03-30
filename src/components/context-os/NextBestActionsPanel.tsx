@@ -228,8 +228,8 @@ export function NextBestActionsPanel() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-emerald-600 hover:text-emerald-700"
-                            title="Marcar como executada"
-                            onClick={() => actMutation.mutate(action)}
+                            title="Executar ação"
+                            onClick={() => handleActWithExecution(action)}
                             disabled={actMutation.isPending}
                           >
                             <Check className="h-3.5 w-3.5" />
