@@ -1,48 +1,55 @@
 
 
-# Integração CRM nos Leitores de eBooks
+# Fix: Conteúdo do editor não carrega na montagem inicial
 
 ## Diagnóstico
 
-Actualmente, quando um leitor preenche o lead gate (nome + email), os dados são guardados em `ebook_views` mas **não é feito match com a tabela `contacts`**. O campo `contact_id` existe na tabela mas nunca é preenchido. O dashboard de analytics mostra os leitores identificados mas sem indicação de pertença ao CRM.
+O bug está no `EbookRichEditor.tsx`. O `lastValueRef` é inicializado com o valor da prop `value` (linha 70):
 
-## Plano
+```
+const lastValueRef = useRef(value);
+```
 
-### 1. Match CRM na criação da view (`PublicEbookPage.tsx`)
+O `useEffect` de sincronização (linhas 142-150) usa a condição:
 
-Na função `createView`, após receber o email do leitor:
-- Fazer query a `contacts` pelo email no workspace: `contacts.email = reader_email AND workspace_id`
-- Se encontrado: preencher `contact_id` no insert de `ebook_views`
-- Se não encontrado: `contact_id` fica null
+```
+if (lastValueRef.current !== value && editorRef.current.innerHTML !== htmlValue)
+```
 
-### 2. Enriquecer dados no hook de analytics (`useEbookAnalytics.ts`)
+Na **montagem inicial**, `lastValueRef.current === value` (ambos são o conteúdo do capítulo), logo a condição é `false` e o `innerHTML` do `contentEditable` **nunca é preenchido**. O editor monta sempre vazio.
 
-- Na lista `identifiedReaders`, incluir flag `isInCrm: boolean` (baseado em `contact_id !== null`)
-- Expor `contactId` já existente na interface
+## Correcção
 
-### 3. Coluna CRM na tabela de leitores (`EbookAnalytics.tsx`)
+Alterar a inicialização de `lastValueRef` para um valor sentinela que nunca coincida com conteúdo real, garantindo que o primeiro `useEffect` preencha o editor:
 
-- Adicionar coluna "CRM" na tabela de leitores identificados
-- Se `contactId` existe: badge verde "No CRM" com link para `/contacts/{contactId}`
-- Se não existe: badge cinza "Novo" — indicando que não consta no CRM
-- Ordenar leitores: primeiro os do CRM, depois os novos
+**`src/components/ebooks/EbookRichEditor.tsx`** — 1 linha:
 
-### 4. KPI adicional
+- Linha 70: mudar `useRef(value)` para `useRef<string>("")` (ou um sentinela como `__INIT__`)
+- Isto garante que na primeira execução do `useEffect`, `lastValueRef.current !== value` é `true`, e o `innerHTML` é preenchido com o conteúdo convertido
 
-- Novo KPI card: "Leitores no CRM" — contagem de views com `contact_id` preenchido vs total identificados
+Alternativamente, simplificar a condição do `useEffect` para:
+
+```typescript
+if (editorRef.current && !isFocusedRef.current) {
+  const htmlValue = markdownToHtml(value);
+  if (editorRef.current.innerHTML !== htmlValue) {
+    editorRef.current.innerHTML = htmlValue || '';
+    lastValueRef.current = value;
+  }
+}
+```
+
+Esta segunda opção é mais robusta porque sincroniza sempre que o conteúdo difere, independentemente do `lastValueRef`.
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `src/pages/PublicEbookPage.tsx` | Match email com `contacts` ao criar view |
-| `src/hooks/useEbookAnalytics.ts` | Flag `isInCrm` nos leitores |
-| `src/components/ebooks/EbookAnalytics.tsx` | Coluna CRM + badge + KPI |
+| `src/components/ebooks/EbookRichEditor.tsx` | Fix na inicialização do `lastValueRef` e/ou condição do `useEffect` |
 
 ## Critérios de aceitação
 
-- Lead gate com email existente no CRM preenche `contact_id` automaticamente
-- Dashboard mostra claramente quais leitores estão no CRM
-- Badge com link directo para o perfil do contacto
-- KPI de conversão CRM visível
+- Ao seleccionar um capítulo com conteúdo, o texto aparece imediatamente no editor
+- Editar texto funciona normalmente (sem resets, sem perda de conteúdo)
+- Trocar entre capítulos carrega o conteúdo correcto de cada um
 
