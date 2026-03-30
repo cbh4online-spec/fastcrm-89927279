@@ -2,9 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TicketCSATStars } from "@/components/tickets/TicketCSATStars";
-import { Clock, User, Building2, Tag, Calendar } from "lucide-react";
+import { useAgentMembers } from "@/hooks/useWorkspaceMembers";
+import { Clock, User, Tag, Calendar } from "lucide-react";
 import TimeAgo from "react-timeago";
+import { useMemo } from "react";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberto",
@@ -42,6 +45,15 @@ interface TicketDetailSidebarProps {
 
 export function TicketDetailSidebar({ ticket, onUpdate }: TicketDetailSidebarProps) {
   const isResolved = ["resolved", "closed"].includes(ticket.status);
+  const { data: agents } = useAgentMembers();
+
+  const getInitials = (name: string | null | undefined) =>
+    name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+
+  const assignedAgent = useMemo(() => {
+    if (!ticket.assigned_to || !agents) return null;
+    return agents.find((a) => a.user_id === ticket.assigned_to);
+  }, [ticket.assigned_to, agents]);
 
   return (
     <ScrollArea className="h-full">
@@ -72,6 +84,42 @@ export function TicketDetailSidebar({ ticket, onUpdate }: TicketDetailSidebarPro
               {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>
                   <span className={PRIORITY_COLORS[k]}>{v}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Assigned Agent */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5" />
+            Atribuído a
+          </label>
+          <Select
+            value={ticket.assigned_to || "unassigned"}
+            onValueChange={(v) => onUpdate({ assigned_to: v === "unassigned" ? null : v })}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Selecionar agente..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Sem atribuição</span>
+                </div>
+              </SelectItem>
+              {agents?.map((agent) => (
+                <SelectItem key={agent.user_id} value={agent.user_id}>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                        {getInitials(agent.profile?.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{agent.profile?.full_name || agent.profile?.email || "Agente"}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
