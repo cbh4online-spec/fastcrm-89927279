@@ -262,7 +262,7 @@ export function OpportunitiesBoard() {
         <PageHeader
           title="Oportunidades"
           count={totalCount}
-          description={`Pipeline: ${totalValue.toLocaleString("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 0 })}`}
+          description={`Pipeline: ${formatEUR(totalValue)}`}
           tabs={pageTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
