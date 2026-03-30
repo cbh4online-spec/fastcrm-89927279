@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Brain, Pencil, ArrowRight, RefreshCw } from "lucide-react";
+import { Brain, Pencil, ArrowRight, RefreshCw, Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { motion } from "framer-motion";
 import { ContextBlockEditor } from "./ContextBlockEditor";
 import { ContextOSExport } from "./ContextOSExport";
+import { NextBestActionsPanel } from "./NextBestActionsPanel";
 
 interface ContextOSHubProps {
   data: BusinessContext | null;
