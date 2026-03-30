@@ -614,7 +614,7 @@ export default function StoreCheckoutPage() {
                     {effectiveShippingCost > 0 && selectedCttOption && (
                       <div className="flex justify-between text-sm">
                         <span>Envio ({selectedCttOption.name})</span>
-                        <span>€{effectiveShippingCost.toFixed(2)}</span>
+                        <span>€{formatMoney(effectiveShippingCost)}</span>
                       </div>
                     )}
                   </>
