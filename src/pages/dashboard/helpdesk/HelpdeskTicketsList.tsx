@@ -11,7 +11,7 @@ import { SLATimer } from "@/components/helpdesk/SLATimer";
 import { TicketKanbanBoard } from "@/components/helpdesk/TicketKanbanBoard";
 import { TicketBulkActions } from "@/components/helpdesk/TicketBulkActions";
 import { useHelpdeskTickets, type TicketStatus, type TicketPriority } from "@/hooks/useHelpdeskTickets";
-import { Headphones, LayoutGrid, List, Checkbox } from "lucide-react";
+import { Headphones, LayoutGrid, List } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
