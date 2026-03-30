@@ -46,6 +46,9 @@ export function SequencesListPage() {
   const [viewingSequence, setViewingSequence] = useState<any>(null);
   const [searchValue, setSearchValue] = useState('');
   const [sortValue, setSortValue] = useState('updated_desc');
+  const [activeTab, setActiveTab] = useState('list');
+  const [searchValue, setSearchValue] = useState('');
+  const [sortValue, setSortValue] = useState('updated_desc');
 
   const { data: sequences, isLoading } = useEmailSequences();
   const deleteSequence = useDeleteSequence();

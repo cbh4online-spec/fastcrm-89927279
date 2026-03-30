@@ -956,6 +956,11 @@ export function TemplatesListPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Revenue Tab */}
+          <TabsContent value="revenue" className="mt-4">
+            <RevenueAttributionDashboard mode="templates" />
+          </TabsContent>
         </Tabs>
       </div>
 
