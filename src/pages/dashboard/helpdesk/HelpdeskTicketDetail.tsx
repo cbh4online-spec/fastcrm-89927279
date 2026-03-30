@@ -77,6 +77,7 @@ export default function HelpdeskTicketDetail() {
   };
 
   return (
+    <DashboardLayout>
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b">
