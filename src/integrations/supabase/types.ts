@@ -43429,6 +43429,73 @@ export type Database = {
           },
         ]
       }
+      store_gift_card_reservations: {
+        Row: {
+          amount_reserved: number
+          consumed_at: string | null
+          created_at: string
+          expires_at: string | null
+          gift_card_id: string
+          id: string
+          released_at: string | null
+          status: string
+          store_order_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_reserved?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          gift_card_id: string
+          id?: string
+          released_at?: string | null
+          status?: string
+          store_order_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount_reserved?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          gift_card_id?: string
+          id?: string
+          released_at?: string | null
+          status?: string
+          store_order_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_gift_card_reservations_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "store_gift_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_gift_card_reservations_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_gift_card_reservations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_gift_card_transactions: {
         Row: {
           amount: number
@@ -43776,6 +43843,7 @@ export type Database = {
           company_id: string | null
           completed_at: string | null
           contact_id: string | null
+          coupon_code: string | null
           coupon_id: string | null
           created_at: string
           currency: string
@@ -43783,12 +43851,15 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           discount_amount: number | null
+          gift_card_id: string | null
+          gift_card_reserved_amount: number | null
           id: string
           items: Json
           notes: string | null
           opportunity_id: string | null
           order_number: string
           paid_at: string | null
+          pricing_breakdown: Json | null
           refunded_at: string | null
           shipped_at: string | null
           shipping_address: Json | null
@@ -43796,6 +43867,7 @@ export type Database = {
           shipping_method_id: string | null
           shipping_method_name: string | null
           shipping_weight: number | null
+          source: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -43816,6 +43888,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           contact_id?: string | null
+          coupon_code?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
@@ -43823,12 +43896,15 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
+          gift_card_id?: string | null
+          gift_card_reserved_amount?: number | null
           id?: string
           items?: Json
           notes?: string | null
           opportunity_id?: string | null
           order_number: string
           paid_at?: string | null
+          pricing_breakdown?: Json | null
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
@@ -43836,6 +43912,7 @@ export type Database = {
           shipping_method_id?: string | null
           shipping_method_name?: string | null
           shipping_weight?: number | null
+          source?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -43856,6 +43933,7 @@ export type Database = {
           company_id?: string | null
           completed_at?: string | null
           contact_id?: string | null
+          coupon_code?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
@@ -43863,12 +43941,15 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           discount_amount?: number | null
+          gift_card_id?: string | null
+          gift_card_reserved_amount?: number | null
           id?: string
           items?: Json
           notes?: string | null
           opportunity_id?: string | null
           order_number?: string
           paid_at?: string | null
+          pricing_breakdown?: Json | null
           refunded_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
@@ -43876,6 +43957,7 @@ export type Database = {
           shipping_method_id?: string | null
           shipping_method_name?: string | null
           shipping_weight?: number | null
+          source?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -43917,6 +43999,13 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "store_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_gift_card_id_fkey"
+            columns: ["gift_card_id"]
+            isOneToOne: false
+            referencedRelation: "store_gift_cards"
             referencedColumns: ["id"]
           },
           {

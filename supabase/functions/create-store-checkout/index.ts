@@ -1,5 +1,14 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import {
+  resolveStoreProducts,
+  validateCoupon,
+  calculateOrderTotals,
+  normalizeCurrency,
+  type CartItem,
+  type ValidatedCoupon,
+  type PricingBreakdown,
+} from "../_shared/store-pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +28,6 @@ async function upsertContact(
   phone: string | null
 ): Promise<string | null> {
   try {
-    // Search by email first
     const { data: existing } = await supabaseClient
       .from("contacts")
       .select("id, name, phone")
@@ -29,7 +37,6 @@ async function upsertContact(
       .maybeSingle();
 
     if (existing) {
-      // Update missing fields
       const updates: Record<string, string> = {};
       if (!existing.name && name) updates.name = name;
       if (!existing.phone && phone) updates.phone = phone;
@@ -40,7 +47,6 @@ async function upsertContact(
       return existing.id;
     }
 
-    // Create new contact
     const { data: newContact, error } = await supabaseClient
       .from("contacts")
       .insert({
@@ -92,10 +98,18 @@ Deno.serve(async (req) => {
       shippingCost,
       shippingMethodName,
       giftCardCode,
-      mode: checkoutMode, // "payment" (default) or "subscription"
+      couponCode,
+      mode: checkoutMode,
     } = await req.json();
 
-    logStep("Request body", { workspaceId, itemCount: items?.length, customerEmail, mode: checkoutMode, giftCardCode: !!giftCardCode });
+    logStep("Request body", {
+      workspaceId,
+      itemCount: items?.length,
+      customerEmail,
+      mode: checkoutMode,
+      giftCardCode: !!giftCardCode,
+      couponCode: couponCode || null,
+    });
 
     if (!workspaceId) throw new Error("Workspace ID is required");
     if (!items || items.length === 0) throw new Error("Cart is empty");
@@ -103,7 +117,7 @@ Deno.serve(async (req) => {
     if (!customerName) throw new Error("Customer name is required");
     if (!customerPhone) throw new Error("Customer phone is required");
 
-    // Get workspace Stripe config
+    // ── Get workspace Stripe config ──
     const { data: stripeConfig, error: configError } = await supabaseClient
       .from("workspace_stripe_config")
       .select("stripe_secret_key_encrypted, stripe_publishable_key, is_active, test_mode")
@@ -121,122 +135,57 @@ Deno.serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if customer exists in Stripe
-    const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
-    let customerId: string | undefined;
+    // ── FASE A: Server-side product resolution & pricing ──
+    const cartItems: CartItem[] = items.map((i: any) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      name: i.name,
+      price: i.price,
+    }));
 
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Found existing Stripe customer", { customerId });
-    }
-
-    // Validate products exist and get prices from DB
-    const productIds = items.map((i: { productId: string }) => i.productId);
-    const { data: products, error: productsError } = await supabaseClient
-      .from("products")
-      .select("id, name, base_price, currency, images, primary_image_index, sku, short_description, stock_quantity, track_stock, stock_status, billing_type, billing_frequency")
-      .eq("workspace_id", workspaceId)
-      .eq("store_published", true)
-      .eq("status", "active")
-      .in("id", productIds);
-
-    if (productsError) throw new Error("Failed to fetch products");
-    if (!products || products.length === 0) throw new Error("No valid products found");
-
-    logStep("Products validated", { count: products.length });
-
-    // Stock validation — block checkout if insufficient stock
-    for (const item of items as Array<{ productId: string; quantity: number }>) {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) throw new Error(`Produto ${item.productId} não encontrado`);
-      if (product.track_stock && product.stock_status === "out_of_stock") {
-        throw new Error(`"${product.name}" está esgotado`);
-      }
-      if (product.track_stock && product.stock_quantity !== null && item.quantity > product.stock_quantity) {
-        throw new Error(`Stock insuficiente para "${product.name}". Disponível: ${product.stock_quantity}`);
-      }
-    }
-
-    logStep("Stock validation passed");
-
-    // Determine if this is a subscription checkout
-    const hasRecurringProduct = products.some(p => 
-      p.billing_type === "recurring" || p.billing_type === "subscription" || checkoutMode === "subscription"
+    const { products, normalized } = await resolveStoreProducts(
+      supabaseClient,
+      workspaceId,
+      cartItems,
     );
-    const sessionMode = hasRecurringProduct ? "subscription" : "payment";
-    logStep("Checkout mode determined", { sessionMode, hasRecurringProduct });
 
-    // Build line items from DB prices (never trust client prices)
-    const lineItems = items.map((item: { productId: string; quantity: number }) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
-
-      const images = product.images as string[] | null;
-      const primaryIdx = product.primary_image_index ?? 0;
-      const imageUrl = images?.[primaryIdx] || images?.[0];
-
-      const priceData: Record<string, unknown> = {
-        currency: (product.currency || "EUR").toLowerCase(),
-        product_data: {
-          name: product.name,
-          description: product.short_description || undefined,
-          ...(imageUrl ? { images: [imageUrl] } : {}),
-          metadata: {
-            product_id: product.id,
-            sku: product.sku || "",
-          },
-        },
-        unit_amount: Math.round(product.base_price * 100),
-      };
-
-      // Add recurring interval for subscription products
-      if (sessionMode === "subscription") {
-        const billingFreq = (product.billing_frequency as string) || "monthly";
-        const intervalMap: Record<string, string> = {
-          daily: "day", weekly: "week", monthly: "month", quarterly: "month",
-          semiannual: "month", yearly: "year", annual: "year",
-        };
-        const intervalCountMap: Record<string, number> = {
-          quarterly: 3, semiannual: 6,
-        };
-        priceData.recurring = {
-          interval: intervalMap[billingFreq] || "month",
-          ...(intervalCountMap[billingFreq] ? { interval_count: intervalCountMap[billingFreq] } : {}),
-        };
-      }
-
-      return { price_data: priceData, quantity: item.quantity };
-    });
-
-    // Add shipping as a line item if applicable (only for one-time payments)
+    const currency = normalizeCurrency(products);
     const parsedShippingCost = parseFloat(shippingCost) || 0;
-    if (parsedShippingCost > 0 && sessionMode === "payment") {
-      lineItems.push({
-        price_data: {
-          currency: (products[0]?.currency || "EUR").toLowerCase(),
-          product_data: {
-            name: `Envio — ${shippingMethodName || "Standard"}`,
-          },
-          unit_amount: Math.round(parsedShippingCost * 100),
-        },
-        quantity: 1,
-      });
+
+    // ── FASE B: Backend coupon validation ──
+    let validatedCoupon: ValidatedCoupon | null = null;
+    const itemCategoryIds = normalized
+      .map((n) => n.category_id)
+      .filter((c): c is string => !!c);
+
+    const rawSubtotal = normalized.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+
+    if (couponCode) {
+      try {
+        validatedCoupon = await validateCoupon(
+          supabaseClient,
+          workspaceId,
+          couponCode,
+          customerEmail,
+          rawSubtotal,
+          itemCategoryIds,
+        );
+      } catch (couponError) {
+        // Return coupon error with 400 so frontend can show it
+        const msg = couponError instanceof Error ? couponError.message : String(couponError);
+        logStep("Coupon validation failed", { couponCode, error: msg });
+        return new Response(JSON.stringify({ error: msg }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
     }
 
-    const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
-
-    // Optional auth - store checkout works for guests too
-    let userId: string | null = null;
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabaseClient.auth.getUser(token);
-      userId = userData?.user?.id || null;
-    }
-
-    // ── Gift Card processing ──
-    let giftCardDeduction = 0;
+    // ── FASE C: Gift card validation (no immediate debit) ──
+    let giftCardReserved = 0;
     let giftCardId: string | null = null;
+    let giftCardBalance = 0;
+
     if (giftCardCode) {
       const { data: gc, error: gcError } = await supabaseClient
         .from("store_gift_cards")
@@ -246,97 +195,166 @@ Deno.serve(async (req) => {
         .eq("status", "active")
         .maybeSingle();
 
-      if (gcError || !gc) {
-        throw new Error("Gift Card inválido ou não encontrado");
-      }
-      if (gc.expires_at && new Date(gc.expires_at) < new Date()) {
+      if (gcError || !gc) throw new Error("Gift Card inválido ou não encontrado");
+      if (gc.expires_at && new Date(gc.expires_at) < new Date())
         throw new Error("Gift Card expirado");
-      }
-      if (gc.current_balance <= 0) {
-        throw new Error("Gift Card sem saldo");
-      }
+      if (gc.current_balance <= 0) throw new Error("Gift Card sem saldo");
 
-      // Calculate order total before gift card
-      const orderTotalBeforeGC = lineItems.reduce(
-        (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
-          sum + (li.price_data.unit_amount * li.quantity) / 100,
-        0
-      );
-
-      giftCardDeduction = Math.min(gc.current_balance, orderTotalBeforeGC);
       giftCardId = gc.id;
-      logStep("Gift card validated", { giftCardId, deduction: giftCardDeduction, balance: gc.current_balance });
+      giftCardBalance = gc.current_balance;
     }
 
-    // Calculate final total after gift card
-    const orderTotal = lineItems.reduce(
-      (sum: number, li: { price_data: { unit_amount: number }; quantity: number }) =>
-        sum + (li.price_data.unit_amount * li.quantity) / 100,
-      0
-    );
-    const remainingAfterGC = orderTotal - giftCardDeduction;
-
-    // Use provided contactId or upsert contact in CRM
-    const contactId = providedContactId || await upsertContact(
-      supabaseClient,
-      workspaceId,
-      customerName,
-      customerEmail,
-      customerPhone || null
+    // ── Calculate totals using pricing engine ──
+    // First pass without gift card to know the amount available for GC
+    const preGcBreakdown = calculateOrderTotals(
+      normalized,
+      validatedCoupon,
+      parsedShippingCost,
+      0, // no GC yet
+      currency,
     );
 
-    const orderItems = items.map((item: { productId: string; quantity: number; name: string; price: number }) => {
-      const product = products.find((p) => p.id === item.productId);
-      return {
-        product_id: item.productId,
-        name: product?.name || item.name,
-        quantity: item.quantity,
-        unit_price: product?.base_price || item.price,
-        sku: product?.sku || null,
-      };
+    // Determine gift card reservation amount
+    if (giftCardId && giftCardBalance > 0) {
+      giftCardReserved = Math.min(giftCardBalance, preGcBreakdown.total_payable);
+      giftCardReserved = Math.round(giftCardReserved * 100) / 100;
+    }
+
+    // Final breakdown with gift card
+    const breakdown: PricingBreakdown = calculateOrderTotals(
+      normalized,
+      validatedCoupon,
+      parsedShippingCost,
+      giftCardReserved,
+      currency,
+    );
+
+    logStep("Final pricing", {
+      subtotal: breakdown.subtotal,
+      discount: breakdown.discount_amount,
+      shipping: breakdown.shipping_amount,
+      gcReserved: breakdown.gift_card_reserved,
+      totalPayable: breakdown.total_payable,
     });
 
-    // If gift card covers full amount, skip Stripe
-    if (giftCardId && remainingAfterGC <= 0) {
+    // ── Determine checkout mode ──
+    const hasRecurringProduct = products.some(
+      (p: any) =>
+        p.billing_type === "recurring" ||
+        p.billing_type === "subscription" ||
+        checkoutMode === "subscription",
+    );
+    const sessionMode = hasRecurringProduct ? "subscription" : "payment";
+
+    // ── Stripe customer lookup ──
+    const customers = await stripe.customers.list({ email: customerEmail, limit: 1 });
+    let customerId: string | undefined;
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+      logStep("Found existing Stripe customer", { customerId });
+    }
+
+    // ── Optional auth ──
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      userId = userData?.user?.id || null;
+    }
+
+    // ── CRM contact ──
+    const contactId =
+      providedContactId ||
+      (await upsertContact(supabaseClient, workspaceId, customerName, customerEmail, customerPhone || null));
+
+    // ── FASE C: Gift card covers full amount → immediate consume ──
+    if (giftCardId && breakdown.total_payable <= 0) {
       logStep("Gift card covers full amount, skipping Stripe");
 
-      // Debit gift card
-      const gc = (await supabaseClient.from("store_gift_cards").select("current_balance").eq("id", giftCardId).single()).data!;
-      const newBalance = gc.current_balance - giftCardDeduction;
-      await supabaseClient.from("store_gift_cards").update({
-        current_balance: newBalance,
-        status: newBalance <= 0 ? "depleted" : "active",
-      }).eq("id", giftCardId);
+      // Debit gift card immediately (no Stripe involved)
+      const { data: gc } = await supabaseClient
+        .from("store_gift_cards")
+        .select("current_balance")
+        .eq("id", giftCardId)
+        .single();
 
-      // Record transaction
+      const newBalance = gc!.current_balance - giftCardReserved;
+      await supabaseClient
+        .from("store_gift_cards")
+        .update({
+          current_balance: newBalance,
+          status: newBalance <= 0 ? "depleted" : "active",
+        })
+        .eq("id", giftCardId);
+
       await supabaseClient.from("store_gift_card_transactions").insert({
         gift_card_id: giftCardId,
         workspace_id: workspaceId,
-        amount: giftCardDeduction,
-        balance_before: gc.current_balance,
+        amount: giftCardReserved,
+        balance_before: gc!.current_balance,
         balance_after: newBalance,
         description: `Pagamento completo via Gift Card`,
       });
 
-      // Create paid order directly
-      const { error: orderError } = await supabaseClient.from("store_orders").insert({
-        workspace_id: workspaceId,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone || null,
-        user_id: userId,
-        contact_id: contactId,
-        items: orderItems,
-        subtotal: orderItems.reduce((s: number, i: { unit_price: number; quantity: number }) => s + i.unit_price * i.quantity, 0),
-        shipping_cost: parsedShippingCost,
-        shipping_method_id: shippingMethodId || null,
-        shipping_method_name: shippingMethodName || null,
-        total: orderTotal,
-        currency: (products[0]?.currency || "EUR").toUpperCase(),
-        status: "paid",
-      });
+      // Create paid order
+      const { data: order, error: orderError } = await supabaseClient
+        .from("store_orders")
+        .insert({
+          workspace_id: workspaceId,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone || null,
+          user_id: userId,
+          contact_id: contactId,
+          items: breakdown.items_normalized,
+          subtotal: breakdown.subtotal,
+          discount_amount: breakdown.discount_amount,
+          shipping_cost: breakdown.shipping_amount,
+          shipping_method_id: shippingMethodId || null,
+          shipping_method_name: shippingMethodName || null,
+          total: breakdown.subtotal - breakdown.discount_amount + breakdown.shipping_amount,
+          currency: breakdown.currency,
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          coupon_id: breakdown.coupon_id,
+          coupon_code: breakdown.coupon_code,
+          gift_card_id: giftCardId,
+          gift_card_reserved_amount: giftCardReserved,
+          pricing_breakdown: breakdown as any,
+          source: "store",
+        })
+        .select("id")
+        .single();
 
       if (orderError) logStep("Order insert error", { message: orderError.message });
+
+      // Create consumed reservation record for audit
+      if (order) {
+        await supabaseClient.from("store_gift_card_reservations").insert({
+          workspace_id: workspaceId,
+          gift_card_id: giftCardId,
+          store_order_id: order.id,
+          amount_reserved: giftCardReserved,
+          status: "consumed",
+          consumed_at: new Date().toISOString(),
+        });
+      }
+
+      // Increment coupon used_count if applicable
+      if (validatedCoupon) {
+        await supabaseClient
+          .from("store_coupons")
+          .update({ used_count: validatedCoupon.used_count + 1 })
+          .eq("id", validatedCoupon.id);
+
+        await supabaseClient.from("store_coupon_usage").insert({
+          coupon_id: validatedCoupon.id,
+          customer_email: customerEmail,
+          order_id: order?.id,
+          workspace_id: workspaceId,
+        });
+      }
 
       return new Response(JSON.stringify({ success: true, paidWithGiftCard: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -344,38 +362,166 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If gift card partial, debit now and create Stripe session for remainder
-    if (giftCardId && giftCardDeduction > 0) {
-      const gc = (await supabaseClient.from("store_gift_cards").select("current_balance").eq("id", giftCardId).single()).data!;
-      const newBalance = gc.current_balance - giftCardDeduction;
-      await supabaseClient.from("store_gift_cards").update({
-        current_balance: newBalance,
-        status: newBalance <= 0 ? "depleted" : "active",
-      }).eq("id", giftCardId);
+    // ── FASE C: Gift card partial → create RESERVATION (no debit yet) ──
+    let reservationId: string | null = null;
 
-      await supabaseClient.from("store_gift_card_transactions").insert({
-        gift_card_id: giftCardId,
-        workspace_id: workspaceId,
-        amount: giftCardDeduction,
-        balance_before: gc.current_balance,
-        balance_after: newBalance,
-        description: `Pagamento parcial via Gift Card (€${giftCardDeduction.toFixed(2)})`,
+    if (giftCardId && giftCardReserved > 0) {
+      logStep("[STORE-GIFTCARD] Creating reservation", {
+        giftCardId,
+        amount: giftCardReserved,
       });
 
-      logStep("Gift card partially deducted", { deducted: giftCardDeduction, remaining: remainingAfterGC });
+      const { data: reservation, error: resError } = await supabaseClient
+        .from("store_gift_card_reservations")
+        .insert({
+          workspace_id: workspaceId,
+          gift_card_id: giftCardId,
+          amount_reserved: giftCardReserved,
+          status: "reserved",
+          expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2h
+        })
+        .select("id")
+        .single();
 
-      // Replace line items with a single item for remaining amount
-      lineItems.length = 0;
-      lineItems.push({
-        price_data: {
-          currency: (products[0]?.currency || "EUR").toLowerCase(),
-          product_data: { name: `Encomenda (restante após Gift Card)` },
-          unit_amount: Math.round(remainingAfterGC * 100),
-        },
-        quantity: 1,
-      });
+      if (resError) {
+        logStep("[STORE-GIFTCARD] Reservation insert error", { message: resError.message });
+        throw new Error("Erro ao reservar Gift Card");
+      }
+
+      reservationId = reservation.id;
+      logStep("[STORE-GIFTCARD] Reservation created", { reservationId });
     }
 
+    // ── Build Stripe line items ──
+    let lineItems: any[];
+
+    if (giftCardReserved > 0) {
+      // When GC partial, create single line item for remaining amount
+      lineItems = [
+        {
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: { name: `Encomenda (restante após Gift Card)` },
+            unit_amount: Math.round(breakdown.total_payable * 100),
+          },
+          quantity: 1,
+        },
+      ];
+    } else {
+      // Standard line items from products
+      lineItems = normalized.map((item) => {
+        const product = products.find((p: any) => p.id === item.product_id)!;
+        const images = product.images as string[] | null;
+        const primaryIdx = product.primary_image_index ?? 0;
+        const imageUrl = images?.[primaryIdx] || images?.[0];
+
+        const priceData: Record<string, unknown> = {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: product.name,
+            description: product.short_description || undefined,
+            ...(imageUrl ? { images: [imageUrl] } : {}),
+            metadata: { product_id: product.id, sku: product.sku || "" },
+          },
+          unit_amount: Math.round(product.base_price * 100),
+        };
+
+        if (sessionMode === "subscription") {
+          const billingFreq = (product.billing_frequency as string) || "monthly";
+          const intervalMap: Record<string, string> = {
+            daily: "day", weekly: "week", monthly: "month", quarterly: "month",
+            semiannual: "month", yearly: "year", annual: "year",
+          };
+          const intervalCountMap: Record<string, number> = { quarterly: 3, semiannual: 6 };
+          priceData.recurring = {
+            interval: intervalMap[billingFreq] || "month",
+            ...(intervalCountMap[billingFreq] ? { interval_count: intervalCountMap[billingFreq] } : {}),
+          };
+        }
+
+        return { price_data: priceData, quantity: item.quantity };
+      });
+
+      // Discount as negative line item (if applicable and no GC)
+      if (breakdown.discount_amount > 0) {
+        // Use Stripe coupon/discount via line items — subtract from total
+        // We create a single line item for the discounted total instead
+        const totalBeforeShipping = breakdown.subtotal - breakdown.discount_amount;
+        lineItems = [
+          {
+            price_data: {
+              currency: currency.toLowerCase(),
+              product_data: {
+                name: lineItems.length === 1
+                  ? normalized[0].name
+                  : `Encomenda (${normalized.length} produtos)`,
+              },
+              unit_amount: Math.round(totalBeforeShipping * 100),
+            },
+            quantity: 1,
+          },
+        ];
+      }
+
+      // Add shipping line item (payment mode only)
+      if (parsedShippingCost > 0 && sessionMode === "payment") {
+        lineItems.push({
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: { name: `Envio — ${shippingMethodName || "Standard"}` },
+            unit_amount: Math.round(parsedShippingCost * 100),
+          },
+          quantity: 1,
+        });
+      }
+    }
+
+    const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
+
+    // ── Create store_order (pending) ──
+    const { data: order, error: orderError } = await supabaseClient
+      .from("store_orders")
+      .insert({
+        workspace_id: workspaceId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone || null,
+        user_id: userId,
+        contact_id: contactId,
+        items: breakdown.items_normalized,
+        subtotal: breakdown.subtotal,
+        discount_amount: breakdown.discount_amount,
+        shipping_cost: breakdown.shipping_amount,
+        shipping_method_id: shippingMethodId || null,
+        shipping_method_name: shippingMethodName || null,
+        total: breakdown.total_payable,
+        currency: breakdown.currency,
+        status: "pending",
+        coupon_id: breakdown.coupon_id,
+        coupon_code: breakdown.coupon_code,
+        gift_card_id: giftCardId,
+        gift_card_reserved_amount: giftCardReserved,
+        pricing_breakdown: breakdown as any,
+        source: "store",
+      })
+      .select("id")
+      .single();
+
+    if (orderError) {
+      logStep("Order insert error", { message: orderError.message });
+    }
+
+    const orderId = order?.id || null;
+
+    // Link reservation to order
+    if (reservationId && orderId) {
+      await supabaseClient
+        .from("store_gift_card_reservations")
+        .update({ store_order_id: orderId })
+        .eq("id", reservationId);
+    }
+
+    // ── Create Stripe Checkout Session ──
     const sessionConfig: Record<string, unknown> = {
       customer: customerId,
       customer_email: customerId ? undefined : customerEmail,
@@ -389,19 +535,21 @@ Deno.serve(async (req) => {
         customer_name: customerName,
         customer_phone: customerPhone || "",
         source: "store",
+        store_order_id: orderId || "",
         gift_card_id: giftCardId || "",
-        gift_card_deduction: giftCardDeduction.toString(),
+        gift_card_reservation_id: reservationId || "",
+        gift_card_deduction: giftCardReserved.toString(),
+        coupon_id: validatedCoupon?.id || "",
+        coupon_code: validatedCoupon?.code || "",
       },
     };
 
-    // Add shipping collection only for payment mode
     if (sessionMode === "payment") {
       sessionConfig.shipping_address_collection = {
         allowed_countries: ["PT", "ES", "FR", "DE", "IT", "GB", "US", "BR"],
       };
     }
 
-    // Add subscription metadata for recurring
     if (sessionMode === "subscription") {
       sessionConfig.subscription_data = {
         metadata: {
@@ -416,29 +564,18 @@ Deno.serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
-    // Create store order record
-    const { error: orderError } = await supabaseClient
-      .from("store_orders")
-      .insert({
-        workspace_id: workspaceId,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone || null,
-        user_id: userId,
-        contact_id: contactId,
-        items: orderItems,
-        subtotal: orderItems.reduce((s: number, i: { unit_price: number; quantity: number }) => s + i.unit_price * i.quantity, 0),
-        shipping_cost: parsedShippingCost,
-        shipping_method_id: shippingMethodId || null,
-        shipping_method_name: shippingMethodName || null,
-        total: remainingAfterGC,
-        currency: (products[0]?.currency || "EUR").toUpperCase(),
-        status: "pending",
-        stripe_session_id: session.id,
-      });
-
-    if (orderError) {
-      logStep("Order insert error (non-blocking)", { message: orderError.message });
+    // Update order and reservation with stripe_session_id
+    if (orderId) {
+      await supabaseClient
+        .from("store_orders")
+        .update({ stripe_session_id: session.id })
+        .eq("id", orderId);
+    }
+    if (reservationId) {
+      await supabaseClient
+        .from("store_gift_card_reservations")
+        .update({ stripe_session_id: session.id })
+        .eq("id", reservationId);
     }
 
     return new Response(JSON.stringify({ url: session.url }), {
