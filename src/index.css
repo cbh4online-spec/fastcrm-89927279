@@ -235,3 +235,33 @@
     -webkit-user-select: text !important;
   }
 }
+
+/* ── Highlight marks: fade-in animation & tooltip ── */
+@keyframes highlight-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.highlight-mark {
+  animation: highlight-fade-in 0.4s ease-out both;
+  transition: background-color 0.2s ease, filter 0.2s ease;
+  position: relative;
+}
+
+.highlight-mark:hover {
+  filter: brightness(0.92);
+}
+
+.highlight-mark--has-note {
+  cursor: help;
+}
+
+.highlight-mark--has-note:hover {
+  filter: brightness(0.85);
+}

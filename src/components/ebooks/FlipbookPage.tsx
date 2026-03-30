@@ -24,6 +24,7 @@ export type FlipbookPageData =
 export interface HighlightMark {
   text: string;
   color: string;
+  note?: string;
 }
 
 interface FlipbookPageProps {
@@ -59,7 +60,9 @@ function applyHighlightsToHtml(html: string, highlights?: HighlightMark[]): stri
     const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(?![^<]*>)(${escaped})`, "gi");
     const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
-    result = result.replace(regex, `<mark style="${markStyle}" title="Sublinhado">$1</mark>`);
+    const titleAttr = hl.note ? hl.note.replace(/"/g, '&quot;') : 'Sublinhado';
+    const noteClass = hl.note ? 'highlight-mark highlight-mark--has-note' : 'highlight-mark';
+    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}">$1</mark>`);
   }
   return result;
 }
@@ -73,7 +76,9 @@ function applyHighlightsToText(text: string, highlights?: HighlightMark[]): stri
     const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(${escaped})`, "gi");
     const markStyle = `background-color:${hl.color}40;border-bottom:2px solid ${hl.color};border-radius:2px;padding:0 2px`;
-    result = result.replace(regex, `<mark style="${markStyle}" title="Sublinhado">$1</mark>`);
+    const titleAttr = hl.note ? hl.note.replace(/"/g, '&quot;') : 'Sublinhado';
+    const noteClass = hl.note ? 'highlight-mark highlight-mark--has-note' : 'highlight-mark';
+    result = result.replace(regex, `<mark class="${noteClass}" style="${markStyle}" title="${titleAttr}" data-note="${titleAttr}">$1</mark>`);
   }
   return result !== text ? result : null;
 }

@@ -256,7 +256,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
     for (const note of notes) {
       if (note.note_type === "highlight" && note.highlight_text && note.highlight_color) {
         const arr = map.get(note.page_number) || [];
-        arr.push({ text: note.highlight_text, color: note.highlight_color });
+        arr.push({ text: note.highlight_text, color: note.highlight_color, note: note.content || "" });
         map.set(note.page_number, arr);
       }
     }
