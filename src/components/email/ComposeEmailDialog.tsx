@@ -380,7 +380,7 @@ export function ComposeEmailDialog({
       setConversationId(convId);
 
       const finalBody = buildFinalBody();
-      const finalIsHtml = isHtml || (includeSignature && !!signatureHtml) || attachments.length > 0;
+      const finalIsHtml = isHtml || (includeSignature && !!signatureHtml) || attachments.length > 0 || (showMeetingPanel && !!meetingDate);
 
       await sendEmail.mutateAsync({
         connectionId: connection.id,
