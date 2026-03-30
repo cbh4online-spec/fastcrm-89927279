@@ -195,6 +195,7 @@ export function OpportunitiesBoard() {
   const { data: opportunities, isLoading: oppLoading, refetch } = useOpportunities();
   const { data: stages, isLoading: stagesLoading } = usePipelineStages();
   const moveOpportunity = useMoveOpportunity();
+  const { fire } = useConfetti();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
