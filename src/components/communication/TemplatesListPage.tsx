@@ -128,7 +128,17 @@ export function TemplatesListPage() {
   const { data: favoriteIds } = useTemplateFavorites();
   const toggleFavorite = useToggleFavorite();
   const { recommendations } = useTemplateRecommendations();
+  const { data: optRecommendations } = useOptimizationRecommendations({ status: 'open' });
 
+  // Build set of template IDs with open optimization recommendations
+  const templatesWithOptRecs = useMemo(() => {
+    const set = new Set<string>();
+    for (const rec of (optRecommendations || [])) {
+      if (rec.entity_type === 'template') set.add(rec.entity_id);
+      if (rec.suggested_action_json?.template_id) set.add(rec.suggested_action_json.template_id);
+    }
+    return set;
+  }, [optRecommendations]);
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
     {
