@@ -5,6 +5,8 @@ const HelpdeskDashboard = lazy(() => import("@/pages/dashboard/helpdesk/Helpdesk
 const HelpdeskTicketsList = lazy(() => import("@/pages/dashboard/helpdesk/HelpdeskTicketsList"));
 const HelpdeskTicketDetail = lazy(() => import("@/pages/dashboard/helpdesk/HelpdeskTicketDetail"));
 const HelpdeskCannedResponses = lazy(() => import("@/pages/dashboard/helpdesk/HelpdeskCannedResponses"));
+const HelpdeskSLAPolicies = lazy(() => import("@/pages/dashboard/helpdesk/HelpdeskSLAPolicies"));
+const HelpdeskAutomations = lazy(() => import("@/pages/dashboard/helpdesk/HelpdeskAutomations"));
 
 export function HelpdeskRoutes() {
   return (
@@ -13,6 +15,8 @@ export function HelpdeskRoutes() {
       <Route path="/dashboard/helpdesk/tickets" element={<HelpdeskTicketsList />} />
       <Route path="/dashboard/helpdesk/tickets/:id" element={<HelpdeskTicketDetail />} />
       <Route path="/dashboard/helpdesk/canned-responses" element={<HelpdeskCannedResponses />} />
+      <Route path="/dashboard/helpdesk/sla-policies" element={<HelpdeskSLAPolicies />} />
+      <Route path="/dashboard/helpdesk/automations" element={<HelpdeskAutomations />} />
     </>
   );
 }
