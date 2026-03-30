@@ -387,7 +387,7 @@ function generateSignatureHtml(data: SignatureData): string {
     : '';
 
   const socialLine = socialLinks.length > 0
-    ? `<p style="margin:6px 0 0;font-size:12px;">${socialLinks.join(' &nbsp;·&nbsp; ')}</p>`
+    ? `<p style="margin:6px 0 0;font-size:0;line-height:0;">${socialLinks.join('')}</p>`
     : '';
 
   if (layout === 'minimal') {
