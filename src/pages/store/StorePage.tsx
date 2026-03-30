@@ -3,6 +3,8 @@ import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
