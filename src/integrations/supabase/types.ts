@@ -30529,6 +30529,104 @@ export type Database = {
           },
         ]
       }
+      memory_settings: {
+        Row: {
+          auto_extract_enabled: boolean | null
+          created_at: string
+          financial_weight_multiplier: number | null
+          id: string
+          is_enabled: boolean | null
+          max_memories_per_query: number | null
+          memory_decay_days: number | null
+          min_confidence_threshold: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_extract_enabled?: boolean | null
+          created_at?: string
+          financial_weight_multiplier?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          max_memories_per_query?: number | null
+          memory_decay_days?: number | null
+          min_confidence_threshold?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_extract_enabled?: boolean | null
+          created_at?: string
+          financial_weight_multiplier?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          max_memories_per_query?: number | null
+          memory_decay_days?: number | null
+          min_confidence_threshold?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memory_usage_logs: {
+        Row: {
+          created_at: string
+          id: string
+          memory_id: string
+          outcome_id: string | null
+          outcome_quality: string | null
+          outcome_type: string | null
+          used_by_id: string | null
+          used_by_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          memory_id: string
+          outcome_id?: string | null
+          outcome_quality?: string | null
+          outcome_type?: string | null
+          used_by_id?: string | null
+          used_by_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          memory_id?: string
+          outcome_id?: string | null
+          outcome_quality?: string | null
+          outcome_type?: string | null
+          used_by_id?: string | null
+          used_by_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_usage_logs_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memory_usage_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_permissions: {
         Row: {
           can_access: boolean | null
@@ -51380,6 +51478,56 @@ export type Database = {
           },
         ]
       }
+      workspace_learning_cycles: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          cycle_type: string
+          id: string
+          memories_created: number | null
+          memories_updated: number | null
+          started_at: string | null
+          status: string | null
+          summary: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          cycle_type: string
+          id?: string
+          memories_created?: number | null
+          memories_updated?: number | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          cycle_type?: string
+          id?: string
+          memories_created?: number | null
+          memories_updated?: number | null
+          started_at?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_learning_cycles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -51408,6 +51556,122 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_memories: {
+        Row: {
+          confidence: number | null
+          context_snapshot_json: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          freshness_score: number | null
+          id: string
+          importance_score: number | null
+          last_used_at: string | null
+          memory_type: string
+          outcome_snapshot_json: Json | null
+          reuse_count: number | null
+          source_id: string | null
+          source_type: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          validity_status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context_snapshot_json?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          freshness_score?: number | null
+          id?: string
+          importance_score?: number | null
+          last_used_at?: string | null
+          memory_type: string
+          outcome_snapshot_json?: Json | null
+          reuse_count?: number | null
+          source_id?: string | null
+          source_type?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          validity_status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context_snapshot_json?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          freshness_score?: number | null
+          id?: string
+          importance_score?: number | null
+          last_used_at?: string | null
+          memory_type?: string
+          outcome_snapshot_json?: Json | null
+          reuse_count?: number | null
+          source_id?: string | null
+          source_type?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          validity_status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_memories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_memory_links: {
+        Row: {
+          created_at: string
+          id: string
+          linked_id: string
+          linked_type: string
+          memory_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_id: string
+          linked_type: string
+          memory_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_id?: string
+          linked_type?: string
+          memory_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_memory_links_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_memory_links_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
