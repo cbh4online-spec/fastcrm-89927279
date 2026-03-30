@@ -623,7 +623,7 @@ export default function StoreCheckoutPage() {
                 <Separator />
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Total</span>
-                  <span className="text-primary">€{finalTotal.toFixed(2)}</span>
+                  <span className="text-primary">€{formatMoney(finalTotal)}</span>
                 </div>
               </div>
             </div>
