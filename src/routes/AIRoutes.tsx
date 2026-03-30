@@ -22,6 +22,7 @@ const AgentOperationsPage = lazy(() => import("@/pages/AgentOperationsPage"));
 const OptimizationCenterPage = lazy(() => import("@/pages/OptimizationCenterPage"));
 const ActionExecutionsPage = lazy(() => import("@/pages/ActionExecutionsPage"));
 const ObjectiveCenterPage = lazy(() => import("@/pages/ObjectiveCenterPage"));
+const WorkspaceOpsPage = lazy(() => import("@/pages/WorkspaceOpsPage"));
 
 export function AIRoutes() {
   return (
@@ -50,6 +51,7 @@ export function AIRoutes() {
       <Route path="/dashboard/optimization" element={<OptimizationCenterPage />} />
       <Route path="/dashboard/actions" element={<ActionExecutionsPage />} />
       <Route path="/dashboard/objectives" element={<ObjectiveCenterPage />} />
+      <Route path="/dashboard/workspace-ops" element={<WorkspaceOpsPage />} />
     </>
   );
 }
