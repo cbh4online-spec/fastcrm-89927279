@@ -27,7 +27,7 @@ export default function StoreSellerPage() {
         .from("c2c_sellers")
         .select("*")
         .eq("workspace_id", wsId)
-        .eq("status", "active");
+        .eq("status", "approved");
 
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sellerSlug);
       if (isUuid) {
