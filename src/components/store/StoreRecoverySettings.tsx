@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings2 } from "lucide-react";
+import { Loader2, Settings2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { useCreateRecoverySequence } from "@/hooks/useCreateRecoverySequence";
 
 const sb = supabase as any;
 
