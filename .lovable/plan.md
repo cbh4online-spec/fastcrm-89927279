@@ -1,80 +1,50 @@
 
 
-# Criação de eBook não respeita o template — Diagnóstico e Plano
+# Wizard não adapta estrutura ao template seleccionado
 
 ## Diagnóstico
 
-O problema é claro: quando o utilizador selecciona um template no Wizard, **apenas os `style_tokens` são guardados** como `global_styles` (cores e fontes). O template contém mais dois campos cruciais que são **completamente ignorados**:
+O `buildChaptersFromTemplate` já existe e funciona, mas o wizard ignora a estrutura do template na UI:
 
-1. **`page_layouts`** — a sequência de blocos/páginas do template (capa, copyright, índice, capítulos, CTA, agradecimento, etc.)
-2. **`default_content`** — o conteúdo pré-definido do template (textos de exemplo, placeholders como `{{book_title}}`, `{{author_name}}`)
+1. **Step 2 (Estrutura)** permite escolher `chapterCount` livremente — deveria auto-ajustar ao número de slots de conteúdo do template (`chapter_intro_*`, `rich_text`, `text_image_split`, `three_column_highlights`)
+2. Se o utilizador pede 7 capítulos mas o template só tem 3 slots de conteúdo, 4 capítulos ficam "soltos" fora da estrutura
+3. Não há feedback visual sobre o que o template inclui (capa, copyright, índice, CTA, etc.)
 
-O wizard gera capítulos via IA sem considerar a estrutura do template. O resultado é um eBook com as fontes/cores do template mas sem a sua estrutura visual.
+## Plano
 
-## Plano de Implementação
+### 1. Adaptar Step 2 quando template está seleccionado
 
-### 1. Actualizar `EbookWizard.tsx` — aplicar estrutura do template
+Quando `selectedTemplate` existe com `page_layouts`:
 
-Quando um template é seleccionado, após criar o eBook:
+- Calcular automaticamente o número de content slots do template (layouts em `CONTENT_LAYOUT_KEYS`)
+- Definir `chapterCount` = número de content slots (e bloquear o selector ou mostrar como informativo)
+- Mostrar resumo visual da estrutura do template: lista das páginas que serão criadas (ex: "Capa → Copyright → Índice → 5 Capítulos → CTA → Agradecimento")
+- Permitir override do número de capítulos se o utilizador quiser, mas avisar que capítulos extra serão adicionados fora da estrutura do template
 
-- **Gerar capítulos estruturais a partir do `page_layouts`**: converter cada `LayoutKey` do template num capítulo ou bloco especial. Por exemplo:
-  - `cover_hero_image` → capítulo "Capa" com conteúdo do `default_content` (título, subtítulo, imagem)
-  - `copyright_simple` → capítulo "Copyright" com texto de copyright
-  - `table_of_contents_split` → capítulo "Índice" (gerado automaticamente)
-  - `welcome_letter` → capítulo "Carta de Boas-Vindas"
-  - `chapter_intro_large/minimal` → capítulo de conteúdo (aqui encaixam os capítulos gerados pela IA)
-  - `cta_page`, `author_section`, `thank_you_page` → capítulos finais com default_content
+### 2. Sincronizar `chapterCount` ao seleccionar template (Step 0)
 
-- **Mesclar capítulos IA com estrutura template**: os capítulos gerados pela IA preenchem os slots `chapter_intro_*` / `rich_text` do template. Os capítulos estruturais (capa, copyright, CTA, etc.) são adicionados nas posições correctas.
+No `onSelect` do `TemplatePickerStep`, quando um template é escolhido:
+- Contar content slots e fazer `setChapterCount(contentSlotCount)`
+- Quando "Sem template" é escolhido, restaurar o `chapterCount` anterior
 
-- **Resolver placeholders**: aplicar `resolvePlaceholders()` do `ebook-templates.ts` nos conteúdos, substituindo `{{book_title}}`, `{{author_name}}` etc. pelos dados reais do eBook.
+### 3. Mostrar preview da estrutura no Step 2
 
-### 2. Criar função `buildChaptersFromTemplate()` (novo helper)
+Componente inline que mostra a sequência de páginas do template com ícones:
+- Páginas estruturais (capa, copyright, índice, CTA, etc.) com badge "automático"
+- Slots de conteúdo com badge "IA"
+- Total de páginas estimado
 
-Ficheiro: `src/components/ebooks/utils/templateToChapters.ts`
-
-```text
-buildChaptersFromTemplate(
-  template: EbookTemplate,
-  aiChapters: EbookChapter[],
-  ebookData: { title, subtitle, authorName }
-) → EbookChapter[]
-```
-
-Lógica:
-- Percorrer `template.page_layouts` em ordem
-- Para cada layout key, criar um capítulo com:
-  - Título derivado do `LAYOUT_LABELS[key]`
-  - Conteúdo do `default_content` com placeholders resolvidos
-  - Se for `chapter_intro_*` ou `rich_text`, consumir o próximo capítulo IA da lista
-- Devolver a lista completa de capítulos na ordem do template
-
-### 3. Actualizar `EbookWizard.tsx` — integrar builder
-
-No `handleGenerate`, após gerar os capítulos IA:
-- Se `selectedTemplate` existe, chamar `buildChaptersFromTemplate()` em vez de usar os capítulos IA directamente
-- Os capítulos resultantes incluem tanto a estrutura do template como o conteúdo gerado
-
-### 4. Actualizar `FlipbookReader.tsx` — renderizar blocos de template
-
-Os capítulos estruturais (capa, copyright, CTA) contêm conteúdo HTML específico do template. O `FlipbookReader` já renderiza HTML, mas os blocos do template usam `BlockRenderer`. Precisamos:
-- Detectar capítulos com `layout_key` metadata
-- Renderizá-los usando o `BlockRenderer` existente em vez de HTML genérico
-
-## Ficheiros
+## Ficheiros a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/utils/templateToChapters.ts` | **Novo** — função `buildChaptersFromTemplate()` |
-| `src/components/ebooks/EbookWizard.tsx` | Integrar builder de capítulos quando template seleccionado |
-| `src/hooks/useEbooks.ts` | Adicionar `layout_key` opcional ao `EbookChapter` |
-| `src/components/ebooks/FlipbookReader.tsx` | Suporte para renderizar capítulos com `layout_key` via `BlockRenderer` |
+| `src/components/ebooks/EbookWizard.tsx` | Sincronizar `chapterCount` com template; adaptar Step 2 UI |
+| `src/components/ebooks/utils/templateToChapters.ts` | Exportar `CONTENT_LAYOUT_KEYS` e helper `countContentSlots()` |
 
 ## Critérios de Aceitação
 
-- Seleccionar template → eBook criado com a estrutura completa do template (capa, copyright, índice, capítulos, CTA, agradecimento)
-- Conteúdo default do template é usado com placeholders resolvidos (título real, nome do autor)
-- Capítulos gerados pela IA são inseridos nos slots correctos da estrutura
-- Estilos visuais (cores, fontes) continuam a ser aplicados
-- Criação "Sem template" mantém o comportamento actual
+- Seleccionar template → `chapterCount` auto-ajusta aos content slots
+- Step 2 mostra resumo visual da estrutura do template
+- eBook gerado respeita a sequência de páginas do template
+- "Sem template" mantém comportamento actual
 
