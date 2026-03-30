@@ -183,7 +183,6 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         {/* Bubble menu on selection */}
         <BubbleMenu
           editor={editor}
-          tippyOptions={{ duration: 150 }}
           className="flex items-center gap-0.5 p-1 rounded-lg bg-popover border shadow-xl"
         >
           {toolbarButtons}
