@@ -1,51 +1,43 @@
 
 
-## Envio Real de Emails de Recuperação — Plano
+## Marketplace C2C — Sprint 1 Completo ✅
 
-### Diagnóstico
+### O que foi implementado
 
-O `process-store-recovery` já processa steps de sequências, resolve merge variables e avança enrollments — mas **não envia emails**. Apenas regista o step em `store_automation_events`. O sistema de email transacional (`send-transactional-email`) já existe e é usado pelo `funnel-nurture-processor` com o mesmo padrão (fetch direto entre edge functions).
+#### Fase A — Migrations
+- Tabela `marketplace_orders` (liga `store_orders` a sellers)
+- Tabela `marketplace_wallet_entries` (ledger granular do seller)
+- Colunas C2C em `store_settings` (c2c_enabled, commission, payout, etc.)
+- RLS policies + índices
 
-**O que falta:**
-1. Template React Email para recuperação de carrinho (genérico, com props para subject/body dinâmicos)
-2. Invocação real do `send-transactional-email` dentro do `process-store-recovery`
+#### Fase B — Store Settings
+- Tab "Marketplace" em Store Settings com toggle C2C, moderação, comissão, payouts, carrinho misto
+- Componente `StoreC2CSettings.tsx`
 
-### Abordagem
+#### Fase C — Integração na Loja Pública
+- `StorePage.tsx` agora faz query a `c2c_listings` quando C2C está ativo
+- Listings C2C misturados com produtos normais
+- Badge "Vendido por [seller]" no `StoreProductCard.tsx`
+- Página pública do seller: `/store/:workspaceSlug/seller/:sellerSlug`
 
-Como os recovery emails usam subject/body custom definidos nos `email_sequence_steps` (com merge variables `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}`), o template precisa aceitar HTML pré-resolvido como prop — não pode ser estático.
+#### Fase D — Order Split no Checkout
+- `create-store-checkout` identifica items C2C via `c2c_listings`
+- Cria `marketplace_orders` por seller com gross, commission e net
+- Usa commission_rate do seller ou default do workspace
 
-### Plano
+#### Fase E — Wallet/Ledger
+- `stripe-webhook` credita wallet do seller quando order é paga
+- Insere `marketplace_wallet_entries` (sale_credit + commission_debit)
+- Atualiza `c2c_sellers.balance_available`
+- Hooks: `useMarketplaceOrders`, `useSellerWallet`
 
-#### 1. Criar template `cart-recovery.tsx`
+#### Fase F — Admin Routes
+- `/dashboard/marketplace/sellers` → `C2CSellersAdmin`
+- `/dashboard/marketplace/listings` → `C2CContentModeration`
+- `/dashboard/marketplace/orders` → `MarketplaceOrdersPage` (novo)
+- `/dashboard/marketplace/payouts` → `MarketplacePayoutsPage` (novo)
+- `/dashboard/marketplace/analytics` → `C2CMarketplaceAnalytics`
 
-Ficheiro: `supabase/functions/_shared/transactional-email-templates/cart-recovery.tsx`
-
-- Props: `subject`, `bodyHtml` (HTML já resolvido com variáveis), `storeName`
-- O componente renderiza o `bodyHtml` dentro de um container branded
-- Usa `dangerouslySetInnerHTML` controlado (o HTML vem do step.body resolvido internamente, não de input do utilizador)
-- Subject dinâmico via função
-
-#### 2. Registar no registry
-
-Adicionar `cart-recovery` ao `TEMPLATES` em `registry.ts`.
-
-#### 3. Alterar `process-store-recovery/index.ts`
-
-Após resolver as merge variables e antes de avançar o step:
-1. Resolver `{{variáveis}}` no subject e body do step
-2. Invocar `send-transactional-email` via fetch (mesmo padrão do `funnel-nurture-processor`)
-3. Registar sucesso/falha no `store_automation_events`
-4. Só avançar o step se o envio foi bem sucedido
-
-### Ficheiros
-
-| Acção | Ficheiro |
-|-------|----------|
-| Criar | `supabase/functions/_shared/transactional-email-templates/cart-recovery.tsx` |
-| Editar | `supabase/functions/_shared/transactional-email-templates/registry.ts` |
-| Editar | `supabase/functions/process-store-recovery/index.ts` |
-
-Deploy necessário: `send-transactional-email`, `process-store-recovery`.
-
-Sem migrations.
-
+### Sprints Futuros
+- Sprint 2: Payouts completos, disputas, kernel events
+- Sprint 3: AI moderation, Command Center, Control Tower
