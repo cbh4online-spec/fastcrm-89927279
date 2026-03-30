@@ -312,8 +312,14 @@ export function OpportunitiesBoard() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64 mt-4">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="flex gap-4 mt-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="flex-shrink-0 w-80 rounded-lg border bg-muted/30 p-3 space-y-3">
+                <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+                <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+              </div>
+            ))}
           </div>
         ) : !stages?.length ? (
           <div className="flex flex-col items-center justify-center h-64 text-center mt-4">

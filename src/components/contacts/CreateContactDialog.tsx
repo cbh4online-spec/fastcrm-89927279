@@ -422,11 +422,9 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
                   placeholder="+351 912 345 678"
                 />
               </div>
