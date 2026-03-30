@@ -29,6 +29,8 @@ const C2CSellerTiersPage = lazy(() => import("@/pages/c2c/C2CSellerTiersPage"));
 const C2CSellersAdmin = lazy(() => import("@/pages/c2c/C2CSellersAdmin"));
 const C2CModerationPage = lazy(() => import("@/pages/c2c/C2CModerationPage"));
 const MarketplaceConfigPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceConfigPage"));
+const MarketplaceOrdersPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceOrdersPage"));
+const MarketplacePayoutsPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplacePayoutsPage"));
 
 export function C2CDashboardRoutes() {
   return (
