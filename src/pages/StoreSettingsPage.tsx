@@ -617,6 +617,10 @@ export default function StoreSettingsPage() {
             <TabsContent value="gift-cards" className="mt-4">
               <StoreGiftCardsManager />
             </TabsContent>
+
+            <TabsContent value="marketplace" className="mt-4">
+              <StoreC2CSettings />
+            </TabsContent>
           </Tabs>
         </div>
       </DashboardLayout>
