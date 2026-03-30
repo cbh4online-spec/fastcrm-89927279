@@ -1,34 +1,37 @@
 
 
-# Fix: Menus não funcionam no modal "Nova Reunião"
+# Adicionar classes `prose` a áreas de conteúdo markdown
 
-## Diagnóstico
-O modal `MeetingCreateModal` usa `Dialog` (Radix). Dentro dele, existem:
-1. **EntityPicker** — usa `Popover` (Radix) para o dropdown de contactos/empresas
-2. **Calendário de data** — usa `Popover` (Radix) para o date picker
-3. **Duração** — usa `Select` (Radix)
+## Contexto
+O plugin `@tailwindcss/typography` foi activado mas várias áreas que renderizam HTML/markdown ainda usam classes genéricas (`prose-content`, `text-muted-foreground`) em vez das classes `prose` do plugin, perdendo a estilização automática de listas, tabelas, blockquotes, etc.
 
-O problema: quando um `Popover` abre dentro de um `Dialog` modal, o Radix cria dois "focus traps" em conflito. O Dialog tenta manter o foco dentro de si, mas o Popover (que é modal por defeito) também tenta capturar o foco. Resultado: os menus abrem mas não respondem a cliques, ou nem sequer abrem.
+## Áreas já com `prose` (sem alteração necessária)
+- `ContentSections.tsx`, `FAQSection.tsx`, `EbookRichEditor.tsx`, `CommandOutput.tsx`, `CommandResponseCard.tsx`, `ChatMessage.tsx`, `EmailCanvas.tsx`, `BotTestChat.tsx`, `AIFunnelChat.tsx`, `PersonaTestChat.tsx`, `DiagnosticAssistant.tsx`, `EmailMessageBubble.tsx`, `ComposeEmailDialog.tsx`, `EmailRichComposer.tsx`
 
-O `Select` usa `Portal` e geralmente funciona, mas pode ter conflitos semelhantes.
+## Áreas a corrigir
 
-## Solução
-Adicionar `modal={false}` aos componentes `Popover` que estão dentro de Dialogs:
+### 1. Páginas legais (Terms, GDPR, Cookies)
+Ficheiros: `TermsOfUsePage.tsx`, `GDPRPage.tsx`, `CookiePolicyPage.tsx`
+- Substituir `className="text-muted-foreground leading-relaxed prose-content"` por `className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground leading-relaxed"`
 
-### 1. `EntityPicker.tsx` — Popover com `modal={false}`
-Linha 132: `<Popover open={open} onOpenChange={setOpen}>` → `<Popover open={open} onOpenChange={setOpen} modal={false}>`
+### 2. GuidePage — secções de texto com `dangerouslySetInnerHTML`
+Ficheiro: `src/modules/growth-seo/pages/GuidePage.tsx`
+- Linha 123: adicionar `prose prose-sm max-w-none dark:prose-invert` ao div que renderiza `section.content`
 
-### 2. `MeetingCreateModal.tsx` — Date Popover com `modal={false}`
-Linha 385: `<Popover>` → `<Popover modal={false}>`
+### 3. ManifestoEditor — wrapper do ReactMarkdown
+Ficheiro: `src/components/vision/ManifestoEditor.tsx`
+- Linha 81: adicionar `prose max-w-none dark:prose-invert` ao div `manifesto-content` para que os custom components herdem a base tipográfica
+
+### 4. BillingAssistantDrawer — texto de mensagens
+Ficheiro: `src/components/billing-assistant/BillingAssistantDrawer.tsx`
+- Linha 138: já tem `prose prose-sm max-w-none` mas falta `dark:prose-invert` — adicionar
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/common/EntityPicker.tsx` | Adicionar `modal={false}` ao Popover |
-| `src/components/meetings/MeetingCreateModal.tsx` | Adicionar `modal={false}` ao Popover do calendário |
-
-### Resultado esperado
-- Dropdown de "Cliente/Participante" abre e permite selecionar contactos/empresas
-- Calendário de data abre e permite selecionar datas
-- Select de duração funciona normalmente
-- Todos os menus respondem a cliques dentro do modal
+| `src/modules/growth-seo/pages/TermsOfUsePage.tsx` | `prose-content` → `prose prose-sm max-w-none dark:prose-invert` |
+| `src/modules/growth-seo/pages/GDPRPage.tsx` | Idem |
+| `src/modules/growth-seo/pages/CookiePolicyPage.tsx` | Idem |
+| `src/modules/growth-seo/pages/GuidePage.tsx` | Adicionar `prose prose-sm max-w-none dark:prose-invert` ao div de texto |
+| `src/components/vision/ManifestoEditor.tsx` | Adicionar `prose max-w-none dark:prose-invert` ao wrapper |
+| `src/components/billing-assistant/BillingAssistantDrawer.tsx` | Adicionar `dark:prose-invert` |
 
