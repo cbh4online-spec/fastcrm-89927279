@@ -29,6 +29,7 @@ const StrategyCenterPage = lazy(() => import("@/pages/StrategyCenterPage"));
 const BoardCenterPage = lazy(() => import("@/pages/BoardCenterPage"));
 const PortfolioCenterPage = lazy(() => import("@/pages/PortfolioCenterPage"));
 const LedgerCenterPage = lazy(() => import("@/pages/LedgerCenterPage"));
+const ControlTowerPage = lazy(() => import("@/pages/ControlTowerPage"));
 
 export function AIRoutes() {
   return (
@@ -64,6 +65,7 @@ export function AIRoutes() {
       <Route path="/dashboard/board" element={<BoardCenterPage />} />
       <Route path="/dashboard/portfolio" element={<PortfolioCenterPage />} />
       <Route path="/dashboard/ledger" element={<LedgerCenterPage />} />
+      <Route path="/dashboard/control-tower" element={<ControlTowerPage />} />
     </>
   );
 }

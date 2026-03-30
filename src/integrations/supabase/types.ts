@@ -15822,6 +15822,112 @@ export type Database = {
           },
         ]
       }
+      control_tower_settings: {
+        Row: {
+          auto_refresh_seconds: number
+          created_at: string
+          default_mode: string
+          enable_intervention_queue: boolean
+          id: string
+          is_enabled: boolean
+          show_executive_first: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_refresh_seconds?: number
+          created_at?: string
+          default_mode?: string
+          enable_intervention_queue?: boolean
+          id?: string
+          is_enabled?: boolean
+          show_executive_first?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_refresh_seconds?: number
+          created_at?: string
+          default_mode?: string
+          enable_intervention_queue?: boolean
+          id?: string
+          is_enabled?: boolean
+          show_executive_first?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_tower_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      control_tower_state: {
+        Row: {
+          active_agents: number
+          active_missions: number
+          context_risk: number
+          execution_risk: number
+          focus_priority: string | null
+          forecast_risk: number
+          id: string
+          interventions_json: Json
+          open_critical_items: number
+          open_interventions: number
+          overall_status: string
+          overdue_tasks: number
+          revenue_risk: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_agents?: number
+          active_missions?: number
+          context_risk?: number
+          execution_risk?: number
+          focus_priority?: string | null
+          forecast_risk?: number
+          id?: string
+          interventions_json?: Json
+          open_critical_items?: number
+          open_interventions?: number
+          overall_status?: string
+          overdue_tasks?: number
+          revenue_risk?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_agents?: number
+          active_missions?: number
+          context_risk?: number
+          execution_risk?: number
+          focus_priority?: string | null
+          forecast_risk?: number
+          id?: string
+          interventions_json?: Json
+          open_critical_items?: number
+          open_interventions?: number
+          overall_status?: string
+          overdue_tasks?: number
+          revenue_risk?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_tower_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_ai_state: {
         Row: {
           active_bot_id: string | null
