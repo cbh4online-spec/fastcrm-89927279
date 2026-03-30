@@ -31788,6 +31788,178 @@ export type Database = {
           },
         ]
       }
+      next_best_action_logs: {
+        Row: {
+          action_id: string
+          actor_id: string | null
+          actor_type: string
+          after_json: Json | null
+          before_json: Json | null
+          created_at: string
+          event_type: string
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_id: string
+          actor_id?: string | null
+          actor_type?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          created_at?: string
+          event_type: string
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          action_id?: string
+          actor_id?: string | null
+          actor_type?: string
+          after_json?: Json | null
+          before_json?: Json | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_best_action_logs_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "next_best_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_best_action_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_best_action_settings: {
+        Row: {
+          created_at: string
+          enable_auto_generation: boolean
+          id: string
+          is_enabled: boolean
+          min_priority_to_show: number
+          refresh_interval_minutes: number
+          stale_context_threshold: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enable_auto_generation?: boolean
+          id?: string
+          is_enabled?: boolean
+          min_priority_to_show?: number
+          refresh_interval_minutes?: number
+          stale_context_threshold?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enable_auto_generation?: boolean
+          id?: string
+          is_enabled?: boolean
+          min_priority_to_show?: number
+          refresh_interval_minutes?: number
+          stale_context_threshold?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_best_action_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      next_best_actions: {
+        Row: {
+          acted_at: string | null
+          action_type: string
+          confidence: string
+          created_at: string
+          description: string | null
+          dismissed_at: string | null
+          due_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          impact_estimate: number | null
+          priority_score: number
+          rationale: string | null
+          source_signals_json: Json | null
+          status: string
+          suggested_payload_json: Json | null
+          title: string
+          updated_at: string
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          acted_at?: string | null
+          action_type: string
+          confidence?: string
+          created_at?: string
+          description?: string | null
+          dismissed_at?: string | null
+          due_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          impact_estimate?: number | null
+          priority_score?: number
+          rationale?: string | null
+          source_signals_json?: Json | null
+          status?: string
+          suggested_payload_json?: Json | null
+          title: string
+          updated_at?: string
+          urgency?: string
+          workspace_id: string
+        }
+        Update: {
+          acted_at?: string | null
+          action_type?: string
+          confidence?: string
+          created_at?: string
+          description?: string | null
+          dismissed_at?: string | null
+          due_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          impact_estimate?: number | null
+          priority_score?: number
+          rationale?: string | null
+          source_signals_json?: Json | null
+          status?: string
+          suggested_payload_json?: Json | null
+          title?: string
+          updated_at?: string
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_best_actions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       object_permissions: {
         Row: {
           allowed: boolean
