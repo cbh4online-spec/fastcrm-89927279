@@ -171,7 +171,57 @@ export function InboxSidebar({
             </CollapsibleContent>
           </Collapsible>
 
-          {/* VISTAS */}
+          {/* CANAIS */}
+          <Collapsible open={channelsOpen} onOpenChange={setChannelsOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors mt-2">
+                <span>Canais</span>
+                {channelsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-0.5">
+              {[
+                { id: "all" as const, label: "Todos", icon: Layers },
+                { id: "email" as const, label: "Email", icon: Mail },
+                { id: "whatsapp" as const, label: "WhatsApp", icon: Phone },
+                { id: "instagram" as const, label: "Instagram", icon: Instagram },
+                { id: "facebook" as const, label: "Facebook", icon: Facebook },
+                { id: "sms" as const, label: "SMS", icon: MessageSquare },
+                { id: "phone" as const, label: "Telefone", icon: Phone },
+                { id: "ghl" as const, label: "GHL", icon: Zap },
+                { id: "webchat" as const, label: "Webchat", icon: Globe },
+              ].map((ch) => {
+                const Icon = ch.icon;
+                const isActive = selectedChannel === ch.id;
+                const count = ch.id === "all"
+                  ? undefined
+                  : allConversations?.filter(c => c.channel === ch.id).length || 0;
+                return (
+                  <button
+                    key={ch.id}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
+                    )}
+                    onClick={() => onChannelChange(ch.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{ch.label}</span>
+                    </div>
+                    {count !== undefined && count > 0 && (
+                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-medium bg-primary/20 text-primary border-0">
+                        {count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </CollapsibleContent>
+          </Collapsible>
+
           <Collapsible open={viewsOpen} onOpenChange={setViewsOpen}>
             <CollapsibleTrigger asChild>
               <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors mt-2">
