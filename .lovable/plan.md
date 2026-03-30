@@ -1,50 +1,66 @@
 
 
-# Wizard não adapta estrutura ao template seleccionado
+# Enriquecer Visual das Páginas Estruturais do eBook
 
 ## Diagnóstico
 
-O `buildChaptersFromTemplate` já existe e funciona, mas o wizard ignora a estrutura do template na UI:
+As páginas estruturais geradas por `templateToChapters.ts` (capa, copyright, índice, CTA, agradecimento, etc.) são HTML inline genérico sem qualquer ligação visual ao template escolhido. Usam estilos hardcoded (`style="padding:3rem"`) sem cores, fontes ou elementos decorativos do template. No `FlipbookReader`, são renderizadas como páginas de conteúdo comuns — perdem toda a identidade visual.
 
-1. **Step 2 (Estrutura)** permite escolher `chapterCount` livremente — deveria auto-ajustar ao número de slots de conteúdo do template (`chapter_intro_*`, `rich_text`, `text_image_split`, `three_column_highlights`)
-2. Se o utilizador pede 7 capítulos mas o template só tem 3 slots de conteúdo, 4 capítulos ficam "soltos" fora da estrutura
-3. Não há feedback visual sobre o que o template inclui (capa, copyright, índice, CTA, etc.)
+**Problemas concretos:**
+- Páginas estruturais não usam as cores do template (`--ebook-primary`, `--ebook-accent`, etc.)
+- Sem gradientes, separadores, ornamentos ou hierarquia visual
+- A capa gerada pelo template compete com a capa default do `buildPages` (duplica)
+- Páginas como CTA, Agradecimento e Sobre o Autor são texto puro sem design
+- Nenhuma página estrutural tem layout diferenciado (tudo é bloco de texto corrido)
 
 ## Plano
 
-### 1. Adaptar Step 2 quando template está seleccionado
+### 1. Reescrever HTML das páginas estruturais com CSS variables (`templateToChapters.ts`)
 
-Quando `selectedTemplate` existe com `page_layouts`:
+Cada gerador em `STRUCTURAL_CONTENT` passa a produzir HTML rico que usa as CSS variables do template (`var(--ebook-primary)`, `var(--ebook-accent)`, etc.):
 
-- Calcular automaticamente o número de content slots do template (layouts em `CONTENT_LAYOUT_KEYS`)
-- Definir `chapterCount` = número de content slots (e bloquear o selector ou mostrar como informativo)
-- Mostrar resumo visual da estrutura do template: lista das páginas que serão criadas (ex: "Capa → Copyright → Índice → 5 Capítulos → CTA → Agradecimento")
-- Permitir override do número de capítulos se o utilizador quiser, mas avisar que capítulos extra serão adicionados fora da estrutura do template
+- **Capa**: fundo com gradiente da cor primária, título grande centrado, linhas decorativas, subtítulo e autor com tipografia do template
+- **Copyright**: layout discreto com separador, texto reduzido, ornamento
+- **Índice**: numeração estilizada com cor accent, linhas pontilhadas, hierarquia clara
+- **Carta de Boas-Vindas**: aspas decorativas, assinatura estilizada
+- **Citação**: fundo com gradiente accent, aspas grandes, texto centrado
+- **Estatísticas**: cards com números grandes em cor accent, ícones decorativos
+- **Testemunho**: card com borda accent, avatar placeholder, citação estilizada
+- **Timeline**: pontos circulares coloridos, linhas de ligação, badges de fase
+- **CTA**: botão estilizado com cor accent, fundo gradiente, ícones de contacto
+- **Sobre o Autor**: layout com avatar placeholder, bio formatada, redes sociais
+- **Agradecimento**: ornamento central, tipografia elegante, assinatura
 
-### 2. Sincronizar `chapterCount` ao seleccionar template (Step 0)
+### 2. Eliminar duplicação de capa no `FlipbookReader.tsx`
 
-No `onSelect` do `TemplatePickerStep`, quando um template é escolhido:
-- Contar content slots e fazer `setChapterCount(contentSlotCount)`
-- Quando "Sem template" é escolhido, restaurar o `chapterCount` anterior
+O `buildPages` actualmente adiciona sempre uma capa default. Quando o template inclui `cover_hero_image` ou `cover_split`, há duplicação. Corrigir:
+- Se o primeiro capítulo tem `layout_key` de capa, não criar a capa default
+- A capa do template passa a ser renderizada como a capa principal
 
-### 3. Mostrar preview da estrutura no Step 2
+### 3. Renderizar páginas estruturais com layout dedicado no `FlipbookPage.tsx`
 
-Componente inline que mostra a sequência de páginas do template com ícones:
-- Páginas estruturais (capa, copyright, índice, CTA, etc.) com badge "automático"
-- Slots de conteúdo com badge "IA"
-- Total de páginas estimado
+Actualmente as páginas estruturais passam pelo renderer de conteúdo genérico. Adicionar CSS scoped específico para as classes das páginas estruturais:
+- `.ebook-cover-page` — ocupar página inteira, centrar
+- `.ebook-structural-page` — classe base com padding e tipografia adequados
+- Garantir que as CSS variables do template são respeitadas dentro do HTML inline
+
+### 4. Passar `style_tokens` como variáveis no HTML gerado
+
+O `buildChaptersFromTemplate` recebe o template com `style_tokens`. Injectar as cores directamente no HTML das páginas estruturais como fallback (para quando as CSS variables não estão disponíveis), mas usar `var(--ebook-*)` como método principal.
 
 ## Ficheiros a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/EbookWizard.tsx` | Sincronizar `chapterCount` com template; adaptar Step 2 UI |
-| `src/components/ebooks/utils/templateToChapters.ts` | Exportar `CONTENT_LAYOUT_KEYS` e helper `countContentSlots()` |
+| `src/components/ebooks/utils/templateToChapters.ts` | Reescrever todos os geradores com HTML visualmente rico |
+| `src/components/ebooks/FlipbookReader.tsx` | Evitar capa duplicada quando template inclui capa |
+| `src/components/ebooks/FlipbookPage.tsx` | Adicionar CSS scoped para páginas estruturais |
 
 ## Critérios de Aceitação
 
-- Seleccionar template → `chapterCount` auto-ajusta aos content slots
-- Step 2 mostra resumo visual da estrutura do template
-- eBook gerado respeita a sequência de páginas do template
-- "Sem template" mantém comportamento actual
+- Todas as páginas estruturais usam cores e fontes do template
+- Cada tipo de página tem layout visual distinto e profissional
+- Sem duplicação de capa
+- Elementos decorativos (gradientes, separadores, ornamentos) presentes
+- Visual coerente entre páginas estruturais e de conteúdo
 
