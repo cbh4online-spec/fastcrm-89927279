@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type DragEvent } from "react";
-import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage } from "@/hooks/useEbooks";
+import { useEbook, useUpdateEbook, EbookChapter, EbookContactPage, ContentBlock } from "@/hooks/useEbooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import {
   Upload, Wand2, Coins, Minimize2, Maximize2,
   Palette, Play, Trash2, Undo2, Redo2,
   Mail, Phone, Link, Type, MessageSquare, ChevronDown,
-  Settings, CheckCircle2, Shield, Users,
+  Settings, CheckCircle2, Shield, Users, LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,8 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { EbookRichEditor, type EbookRichEditorHandle } from "./EbookRichEditor";
 import { EbookBlockToolbar } from "./EbookBlockToolbar";
+import { EbookPageCanvas } from "./EbookPageCanvas";
+import { BlockPropertiesPanel } from "./BlockPropertiesPanel";
 import { ChapterThumbnail } from "./ChapterThumbnail";
 import { BlockActionMenu } from "./BlockActionMenu";
 import { EbookThemeSelector } from "./EbookThemeSelector";
