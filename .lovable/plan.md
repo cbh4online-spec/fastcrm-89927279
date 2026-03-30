@@ -1,150 +1,165 @@
 
 
-## Next Best Action Engine — Plano de Execução
+## Camada de Execução Operacional — Plano de Execução
 
 ### Diagnóstico
 
 **Infraestrutura existente:**
-- `ContextOSHub` — grid de blocos estratégicos com score global, editor inline
-- `ContextOSDashboard` — dashboard avançado com tabs (Blocos, Bindings, Alertas, Eventos, Métricas), já usa `ContextActionsPanel`
-- `ContextActionsPanel` — gera ações via IA (`useAIGenerateActions`), mas são efémeras (state local, sem persistência)
-- `emitKernelEvent` / `kernel-ingest-event` — padrão consolidado em 8+ edge functions
-- `kernel_events` — tabela com realtime subscription
-- `optimization_recommendations` — modelo similar (entity_type, status open/applied/dismissed, confidence)
-- `communication_attributions` — revenue por template/sequence/contact
-- `workspace_template_stats` — scores por template
-- `ContextOSPage` — renderiza WizardShell ou ContextOSHub conforme score
+- `CommandQuickActions` — executa ações inline (create_task, schedule_meeting, create_followup) via `useCreateTask`, sem persistência de execução
+- `ai-command-orchestrator` — devolve `suggested_actions` com tipos: navigate, create_task, send_email, schedule_meeting, generate_report, create_followup, analyze_deeper, export_pdf
+- `NextBestActionsPanel` — mostra NBAs com act/dismiss mas sem execução real (apenas marca status)
+- `optimization_recommendations` — modelo similar com apply/dismiss
+- `emitKernelEvent` / `kernel-ingest-event` — padrão consolidado
+- `useCreateTask` — mutation existente para criação de tarefas
+- Nenhuma tabela `action_executions` existe ainda
 
 **O que falta:**
-1. `next_best_actions` — tabela de recomendações comerciais persistidas
-2. `next_best_action_settings` — config por workspace
-3. `next_best_action_logs` — auditoria
-4. Edge function de processamento (collect signals → decision engine → persist)
-5. UI de NBA integrada no ContextOS (não paralela)
-6. Hook de leitura/ação
+1. `action_executions` — tabela de registo e estado de execuções
+2. `action_execution_settings` — config auto-execução por workspace
+3. `action_approvals` — aprovação humana para ações sensíveis
+4. Edge function `process-action-execution` — motor de execução
+5. Refactor de `CommandQuickActions` para usar execuções persistidas
+6. Integração NBA → execução
+7. UI de histórico de execuções
+8. Kernel events de lifecycle
 
 ---
 
 ### Migration SQL (1 migration)
 
-**`next_best_actions`:**
-- `id` UUID PK, `workspace_id`, `entity_type` TEXT, `entity_id` UUID
-- `action_type` TEXT, `title` TEXT, `description` TEXT, `rationale` TEXT
-- `priority_score` INT (0-100), `confidence` TEXT (low/medium/high)
-- `impact_estimate` NUMERIC(12,2), `urgency` TEXT (low/medium/high/critical)
-- `due_at` TIMESTAMPTZ nullable
-- `status` TEXT DEFAULT 'open' (open, acted, dismissed, expired)
-- `source_signals_json` JSONB, `suggested_payload_json` JSONB
-- `created_at`, `updated_at`, `acted_at`, `dismissed_at`
-- UNIQUE `(workspace_id, entity_type, entity_id, action_type, status)` WHERE status = 'open'
+**`action_executions`:**
+- `id` UUID PK, `workspace_id`, `source_type` TEXT (command_center, next_best_action, optimization_recommendation, manual, automation), `source_id` TEXT nullable
+- `action_type` TEXT, `title` TEXT, `description` TEXT nullable, `payload_json` JSONB DEFAULT '{}'
+- `result_json` JSONB nullable, `entity_type` TEXT nullable, `entity_id` UUID nullable
+- `created_by` UUID nullable, `execution_mode` TEXT DEFAULT 'manual' (manual, assisted, auto)
+- `status` TEXT DEFAULT 'pending' (pending, processing, completed, failed, cancelled, skipped)
+- `executed_at` TIMESTAMPTZ, `failed_at` TIMESTAMPTZ, `cancelled_at` TIMESTAMPTZ, `error_message` TEXT
+- `correlation_id` TEXT, `created_at`, `updated_at`
+- Index on `(workspace_id, status)`, `(correlation_id)`
 
-**`next_best_action_settings`:**
+**`action_execution_settings`:**
 - `id` UUID PK, `workspace_id` UNIQUE
-- `is_enabled` BOOLEAN DEFAULT false, `refresh_interval_minutes` INT DEFAULT 60
-- `stale_context_threshold` INT DEFAULT 14, `min_priority_to_show` INT DEFAULT 20
-- `enable_auto_generation` BOOLEAN DEFAULT true
+- `auto_execution_enabled` BOOLEAN DEFAULT false
+- `allow_auto_task_creation` BOOLEAN DEFAULT false, `allow_auto_sequence_enrollment` BOOLEAN DEFAULT false
+- `allow_auto_recovery_trigger` BOOLEAN DEFAULT false, `require_human_approval_for_email` BOOLEAN DEFAULT true
 - `created_at`, `updated_at`
 
-**`next_best_action_logs`:**
-- `id` UUID PK, `workspace_id`, `action_id` UUID FK, `event_type` TEXT
-- `before_json` JSONB, `after_json` JSONB
-- `actor_type` TEXT, `actor_id` TEXT, `created_at`
-
-Índices: `(workspace_id, status)`, `(entity_type, entity_id)`, `(priority_score DESC)`
+**`action_approvals`:**
+- `id` UUID PK, `workspace_id`, `action_execution_id` UUID FK
+- `approval_status` TEXT DEFAULT 'pending' (pending, approved, rejected)
+- `requested_by` UUID, `approved_by` UUID nullable
+- `approved_at` TIMESTAMPTZ, `rejected_at` TIMESTAMPTZ, `notes` TEXT
+- `created_at`, `updated_at`
 
 RLS: workspace members SELECT; service_role INSERT/UPDATE.
 
 ---
 
-### Ficheiros a criar (4)
+### Ficheiros a criar (5)
 
-#### 1. `supabase/functions/process-next-best-actions/index.ts`
+#### 1. `supabase/functions/process-action-execution/index.ts`
 Edge function que:
-1. Recebe `{ workspace_id }` ou batch
-2. Lê `next_best_action_settings`
-3. Recolhe sinais por entidade elegível:
-   - Leads/contacts com `last_activity` antiga → `re-engage_silent_lead`
-   - Oportunidades com stage avançado + sem follow-up → `escalate_opportunity`, `send_proposal`
-   - Carrinhos abandonados sem recovery → `recover_abandoned_cart`
-   - Propostas enviadas sem resposta → `follow_after_proposal`
-   - Context score baixo → `refresh_context`
-   - Leads com high score sem ação → `call_now`, `schedule_meeting`
-   - Sequências com baixa performance → `pause_sequence`
-   - Revenue attribution alta sem follow-up → `send_followup_email`
-4. Calcula `priority_score` = f(potential_revenue × 0.3 + urgency × 0.25 + conversion_prob × 0.2 + risk × 0.15 + recency_penalty × 0.1)
-5. Insere em `next_best_actions` (ON CONFLICT DO NOTHING para open)
-6. Expira ações open com mais de 7 dias
-7. Emite `NBA.CREATED` via kernel-ingest-event
+1. Recebe `{ workspace_id, action_execution_id }` ou `{ workspace_id, action_type, payload, source_type, source_id, entity_type, entity_id, execution_mode, correlation_id }`
+2. Se não existir execution, cria em `action_executions` com status `pending`
+3. Marca status `processing`
+4. Resolve handler por `action_type`:
+   - `create_task` → insert em `tasks`
+   - `create_followup_note` → insert em `tasks` com due_at +3 dias
+   - `enroll_in_sequence` → insert em `email_sequence_enrollments`
+   - `mark_recommendation_acted` → update `optimization_recommendations` ou `next_best_actions`
+   - `trigger_abandoned_cart_recovery` → invoke `process-store-recovery`
+   - `send_email` → requer aprovação se `require_human_approval_for_email`
+   - `schedule_meeting` → cria task tipo meeting
+   - `navigate_entity`, `generate_report` → marca completed (ação client-side)
+5. Grava `result_json`, marca `completed` ou `failed`
+6. Emite kernel event `ACTION.COMPLETED` / `ACTION.FAILED`
+7. Idempotência via `correlation_id` — não executa se já existe completed com mesmo correlation_id
 
-#### 2. `src/hooks/useNextBestActions.ts`
-- `useNextBestActions(filters?)` — lista NBAs com status/entity filters + realtime
-- `useNBASettings()` — read/upsert settings
-- `useActOnNBA()` — mutation: status → 'acted', regista log, emite NBA.ACTED
-- `useDismissNBA()` — mutation: status → 'dismissed', emite NBA.DISMISSED
-- `useNBAStats()` — KPIs: open count, acted today, potential revenue, overdue
+#### 2. `src/hooks/useActionExecution.ts`
+- `useExecuteAction()` — mutation: cria execution + invoca edge function
+- `useActionExecutions(filters?)` — lista execuções com status/type filters
+- `useActionExecutionSettings()` — read/upsert settings
+- `useActionApprovals()` — lista aprovações pendentes
+- `useApproveAction()` / `useRejectAction()` — mutations de aprovação
+- `useActionStats()` — KPIs: pending, completed today, failed, approvals pending
 
-#### 3. `src/components/context-os/NextBestActionsPanel.tsx`
-Componente integrado no ContextOSHub/Dashboard:
-- Lista top NBAs por priority_score
-- Cada card: título, entidade, prioridade (badge colorido), impacto estimado, urgência, rationale
-- Botões: Agir (abre entidade/compose), Ignorar, Ver detalhe
-- Filtros inline: entity_type, urgency
-- Empty state com botão para gerar manualmente
+#### 3. `src/pages/ActionExecutionsPage.tsx`
+Dashboard em `/dashboard/actions`:
+- KPIs: pendentes, executadas hoje, falhadas, aprovações pendentes, taxa de execução
+- Tabela de execuções com filtros (status, source_type, action_type)
+- Cada linha: título, tipo, status badge, source, entity, timestamp, botão detalhe
+- Tab de aprovações pendentes
+- Settings panel inline
 
-#### 4. `src/components/context-os/NextBestActionDetail.tsx`
-Modal/drawer de detalhe:
-- Sinais que originaram (source_signals_json formatado)
-- Ação sugerida + payload
-- Impacto estimado + confiança
-- Quick actions: link para entidade, compose email, abrir oportunidade
-- Histórico de logs da ação
+#### 4. `src/components/actions/ActionExecutionDetail.tsx`
+Modal/drawer:
+- Inputs (payload_json formatado), output (result_json), erro se falhou
+- Origem (command_center / NBA / optimization), entidade afetada
+- Modo (manual/auto), estado de aprovação se aplicável
+- Timeline de eventos
+
+#### 5. `src/components/actions/QuickActionButton.tsx`
+Componente reutilizável para executar ações a partir de qualquer contexto:
+- Recebe `actionType`, `payload`, `entityType`, `entityId`, `sourceType`
+- Usa `useExecuteAction()` internamente
+- Mostra loading/success/error inline
+- Reutilizado em CommandQuickActions, NextBestActionsPanel, e entity pages
 
 ---
 
-### Ficheiros a alterar (2)
+### Ficheiros a alterar (3)
 
-#### 5. `src/components/context-os/ContextOSHub.tsx`
-- Adicionar secção "Próximas Ações" abaixo do grid de blocos
-- Renderizar `NextBestActionsPanel` com top 5 ações
-- Mostrar KPI cards: ações pendentes, receita potencial, ações vencidas
+#### 6. `src/components/command-center-v2/CommandQuickActions.tsx`
+- Refactor: cada ação usa `useExecuteAction()` em vez de lógica inline
+- Mantém mesma UI mas persiste execução em `action_executions`
+- Ações sensíveis (send_email) criam approval request
+- Status visual reflete estado real da execução
 
-#### 6. `src/routes/crm/DashboardCoreRoutes.tsx`
-- Sem nova rota necessária — NBA vive dentro do ContextOS existente (/dashboard/context-os)
-- Nenhuma alteração de routing se o painel for integrado no Hub
+#### 7. `src/components/context-os/NextBestActionsPanel.tsx`
+- Botão "Agir" passa a criar `action_execution` com `source_type: 'next_best_action'`
+- Após execução bem-sucedida, marca NBA como `acted`
+- Fecha ciclo: recomendação → execução → resultado
 
-*(Alternativa: se quiser acesso direto, adicionar rota `/dashboard/next-best-actions` que renderiza ContextOSPage com tab NBA ativa)*
+#### 8. `src/routes/AIRoutes.tsx`
+- Adicionar rota: `/dashboard/actions` → `ActionExecutionsPage`
 
 ---
 
 ### Fluxo
 
 ```text
-process-next-best-actions (cron/manual)
+Origem (Command Center / NBA / Optimization / Manual)
   │
-  ├─ Lê settings (thresholds, enabled?)
-  ├─ Query entidades elegíveis (leads, contacts, opportunities, carts)
-  ├─ Para cada entidade:
-  │   ├─ Recolhe sinais (activity, attribution, scores, context freshness)
-  │   ├─ Avalia regras → gera action_type + rationale
-  │   └─ Calcula priority_score
-  ├─ Insere next_best_actions (idempotente)
-  ├─ Expira ações antigas
-  └─ Emite NBA.CREATED kernel events
+  ├─ UI dispara useExecuteAction()
+  │   ├─ Cria action_executions (status: pending)
+  │   └─ Invoca process-action-execution
+  │
+  └─ process-action-execution
+       │
+       ├─ Resolve handler por action_type
+       ├─ Verifica se requer aprovação
+       │   ├─ Sim → cria action_approvals, emite ACTION.APPROVAL_REQUESTED
+       │   └─ Não → executa handler
+       │
+       ├─ Executa (create_task, enroll_sequence, etc.)
+       ├─ Grava result_json, status = completed/failed
+       └─ Emite ACTION.COMPLETED / ACTION.FAILED
 
-ContextOSHub (UI)
+ActionExecutionsPage (UI)
   │
-  ├─ NextBestActionsPanel (top ações por prioridade)
-  ├─ Agir → marca acted, emite NBA.ACTED, abre entidade
-  ├─ Ignorar → marca dismissed, emite NBA.DISMISSED
-  └─ Detalhe → NextBestActionDetail (sinais, payload, logs)
+  ├─ Lista execuções + filtros
+  ├─ Aprovações pendentes
+  ├─ Detalhe de execução
+  └─ Settings de auto-execução
 ```
 
 ### Eventos Kernel
-- `NBA.CREATED`, `NBA.ACTED`, `NBA.DISMISSED`, `NBA.EXPIRED`
+- `ACTION.CREATED`, `ACTION.STARTED`, `ACTION.COMPLETED`, `ACTION.FAILED`, `ACTION.CANCELLED`
+- `ACTION.APPROVAL_REQUESTED`, `ACTION.APPROVED`, `ACTION.REJECTED`
 
 ### Compatibilidade
-- ContextOS mantido intacto — NBA é secção adicional no Hub
-- `ContextActionsPanel` existente (ações IA efémeras) coexiste — NBA é persistido e priorizado
-- `optimization_recommendations` não é duplicado — NBA foca em ações comerciais por entidade, optimizations foca em variantes/templates
-- Kernel events seguem padrão existente
+- `CommandQuickActions` mantém mesma UI — refactor interno para persistência
+- `NextBestActionsPanel` ganha execução real sem redesign
+- `useCreateTask` reutilizado dentro dos handlers
+- Nenhum sistema paralelo — execução é camada transversal
 
