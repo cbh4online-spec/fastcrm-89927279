@@ -161,5 +161,6 @@ export default function HelpdeskCannedResponses() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }

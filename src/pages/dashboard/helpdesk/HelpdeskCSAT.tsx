@@ -185,5 +185,6 @@ export default function HelpdeskCSAT() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

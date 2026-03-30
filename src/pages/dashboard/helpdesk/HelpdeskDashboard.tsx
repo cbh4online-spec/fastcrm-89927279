@@ -341,5 +341,6 @@ export default function HelpdeskDashboard() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

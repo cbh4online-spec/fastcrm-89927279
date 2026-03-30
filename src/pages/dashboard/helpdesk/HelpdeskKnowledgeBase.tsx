@@ -306,5 +306,6 @@ export default function HelpdeskKnowledgeBase() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }

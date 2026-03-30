@@ -137,5 +137,6 @@ export default function HelpdeskTicketDetail() {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   );
 }

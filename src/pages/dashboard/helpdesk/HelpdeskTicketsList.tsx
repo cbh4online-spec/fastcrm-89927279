@@ -294,5 +294,6 @@ export default function HelpdeskTicketsList() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }
