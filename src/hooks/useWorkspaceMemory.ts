@@ -183,13 +183,11 @@ export function useLogMemoryUsage() {
       });
       if (error) throw error;
 
-      // Increment reuse count and update last_used_at
-      await supabase.rpc('increment_memory_reuse', { p_memory_id: params.memory_id }).catch(() => {
-        // Fallback: direct update if RPC doesn't exist
-        supabase.from('workspace_memories')
-          .update({ reuse_count: supabase.rpc ? undefined : 1, last_used_at: new Date().toISOString() })
-          .eq('id', params.memory_id);
-      });
+      // Update reuse count and last_used_at
+      await supabase
+        .from('workspace_memories')
+        .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
+        .eq('id', params.memory_id);
     },
   });
 }
