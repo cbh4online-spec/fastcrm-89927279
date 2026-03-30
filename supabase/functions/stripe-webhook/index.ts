@@ -339,6 +339,75 @@ async function handleStoreOrderCompleted(
 
   logStore("Store order payment processing complete", { orderId });
 
+  // ── MARKETPLACE WALLET CREDIT ──
+  try {
+    const { data: mkOrders } = await supabase
+      .from("marketplace_orders")
+      .select("id, seller_id, gross_amount, commission_amount, net_amount, currency")
+      .eq("store_order_id", orderId)
+      .eq("status", "pending");
+
+    if (mkOrders && mkOrders.length > 0) {
+      for (const mko of mkOrders) {
+        // Get current seller balance
+        const { data: sellerData } = await supabase
+          .from("c2c_sellers")
+          .select("balance_available")
+          .eq("id", mko.seller_id)
+          .single();
+
+        const currentBalance = sellerData?.balance_available ?? 0;
+        const newBalance = currentBalance + mko.net_amount;
+
+        // Insert wallet entries: sale credit
+        await supabase.from("marketplace_wallet_entries").insert({
+          workspace_id: workspaceId,
+          seller_id: mko.seller_id,
+          entry_type: "sale_credit",
+          amount: mko.net_amount,
+          currency: mko.currency,
+          reference_type: "marketplace_order",
+          reference_id: mko.id,
+          balance_after: newBalance,
+          notes: `Venda #${orderId.slice(0, 8)} — líquido após comissão`,
+        });
+
+        // Insert commission debit entry (informational)
+        await supabase.from("marketplace_wallet_entries").insert({
+          workspace_id: workspaceId,
+          seller_id: mko.seller_id,
+          entry_type: "commission_debit",
+          amount: -mko.commission_amount,
+          currency: mko.currency,
+          reference_type: "marketplace_order",
+          reference_id: mko.id,
+          balance_after: newBalance,
+          notes: `Comissão sobre venda #${orderId.slice(0, 8)}`,
+        });
+
+        // Update seller balance
+        await supabase
+          .from("c2c_sellers")
+          .update({ balance_available: newBalance })
+          .eq("id", mko.seller_id);
+
+        // Mark marketplace order as paid
+        await supabase
+          .from("marketplace_orders")
+          .update({ status: "paid", updated_at: new Date().toISOString() })
+          .eq("id", mko.id);
+
+        logStore("Marketplace wallet credited", {
+          sellerId: mko.seller_id,
+          netAmount: mko.net_amount,
+          newBalance,
+        });
+      }
+    }
+  } catch (walletErr) {
+    logStore("Marketplace wallet error (non-blocking)", { error: String(walletErr) });
+  }
+
   // Trigger attribution processing (non-blocking)
   fetch(
     `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-communication-attribution`,
