@@ -9,7 +9,7 @@ function FallbackUI({ error, resetErrorBoundary }: FallbackProps) {
       <div className="space-y-1">
         <h3 className="text-lg font-semibold text-foreground">Algo correu mal</h3>
         <p className="text-sm text-muted-foreground max-w-md">
-          {error?.message || "Ocorreu um erro inesperado. Tente novamente."}
+          {error instanceof Error ? error.message : "Ocorreu um erro inesperado. Tente novamente."}
         </p>
       </div>
       <Button variant="outline" size="sm" onClick={resetErrorBoundary} className="gap-2">
