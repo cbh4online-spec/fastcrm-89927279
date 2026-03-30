@@ -53,6 +53,8 @@ export interface EbookChapter {
   cover_image?: string;
   blocks?: ContentBlock[];
   layout?: PageLayout;
+  layout_key?: string;
+  [key: string]: unknown;
 }
 
 export interface EbookContactPage {
