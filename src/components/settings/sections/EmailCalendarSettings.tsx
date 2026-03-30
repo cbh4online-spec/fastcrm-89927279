@@ -131,9 +131,12 @@ export function EmailCalendarSettings() {
         initialSignature={signaturePayload || ""}
         onSave={async (html) => {
           try {
+            console.log("[Signature] Saving payload length:", html?.length);
             await saveSignature(html);
+            console.log("[Signature] Save success");
             toast.success("Assinatura gravada com sucesso");
-          } catch {
+          } catch (err) {
+            console.error("[Signature] Save error:", err);
             toast.error("Erro ao gravar assinatura");
           }
         }}
