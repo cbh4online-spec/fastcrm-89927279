@@ -354,14 +354,19 @@ function generateSignatureHtml(data: SignatureData): string {
     return '<p style="color:#999;font-size:13px;font-style:italic;">Preencha os campos para ver a pré-visualização</p>';
   }
 
+  const ICON_BASE = 'https://eumnfkccyvlyoyjchiwe.supabase.co/storage/v1/object/public/email-assets/social-icons';
+  const socialIconStyle = 'display:inline-block;margin-right:6px;vertical-align:middle;';
+  const mkIcon = (url: string, icon: string, alt: string) =>
+    `<a href="${ensureUrl(url)}" target="_blank" style="text-decoration:none;"><img src="${ICON_BASE}/${icon}" alt="${alt}" width="24" height="24" style="${socialIconStyle}border-radius:4px;" /></a>`;
+
   const socialLinks: string[] = [];
   if (showSocials) {
-    if (linkedin) socialLinks.push(`<a href="${ensureUrl(linkedin)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">LinkedIn</a>`);
-    if (twitter) socialLinks.push(`<a href="${ensureUrl(twitter)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">X</a>`);
-    if (instagram) socialLinks.push(`<a href="${ensureUrl(instagram)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Instagram</a>`);
-    if (facebook) socialLinks.push(`<a href="${ensureUrl(facebook)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Facebook</a>`);
-    if (youtube) socialLinks.push(`<a href="${ensureUrl(youtube)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">YouTube</a>`);
-    if (whatsapp) socialLinks.push(`<a href="${ensureUrl(whatsapp)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">WhatsApp</a>`);
+    if (linkedin) socialLinks.push(mkIcon(linkedin, 'linkedin-3d.png', 'LinkedIn'));
+    if (twitter) socialLinks.push(mkIcon(twitter, 'x-3d.png', 'X'));
+    if (instagram) socialLinks.push(mkIcon(instagram, 'instagram-3d.png', 'Instagram'));
+    if (facebook) socialLinks.push(mkIcon(facebook, 'facebook-3d.png', 'Facebook'));
+    if (youtube) socialLinks.push(mkIcon(youtube, 'youtube-3d.png', 'YouTube'));
+    if (whatsapp) socialLinks.push(mkIcon(whatsapp, 'whatsapp-3d.png', 'WhatsApp'));
   }
 
   const avatarHtml = showAvatar && avatarUrl
@@ -382,7 +387,7 @@ function generateSignatureHtml(data: SignatureData): string {
     : '';
 
   const socialLine = socialLinks.length > 0
-    ? `<p style="margin:6px 0 0;font-size:12px;">${socialLinks.join(' &nbsp;·&nbsp; ')}</p>`
+    ? `<p style="margin:6px 0 0;font-size:0;line-height:0;">${socialLinks.join('')}</p>`
     : '';
 
   if (layout === 'minimal') {
