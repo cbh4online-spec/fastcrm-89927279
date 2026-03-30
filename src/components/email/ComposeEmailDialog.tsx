@@ -63,6 +63,9 @@ import {
   X,
   CreditCard,
   Sparkles,
+  CalendarPlus,
+  MapPin,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -80,6 +83,10 @@ import { useScheduleEmail } from "@/hooks/useScheduledEmails";
 import { EmailAttachmentList, type EmailAttachment } from "./EmailAttachmentList";
 import { InsertPaymentLinkDialog } from "./InsertPaymentLinkDialog";
 import { AIEmailAssistPanel } from "./AIEmailAssistPanel";
+import { useCalendars } from "@/hooks/useCalendars";
+import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { addMinutes } from "date-fns";
 
 export interface ComposeEmailDialogProps {
   open: boolean;
@@ -150,6 +157,15 @@ export function ComposeEmailDialog({
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
+  // Meeting scheduling state
+  const [showMeetingPanel, setShowMeetingPanel] = useState(false);
+  const [meetingDate, setMeetingDate] = useState<Date | undefined>();
+  const [meetingTime, setMeetingTime] = useState("10:00");
+  const [meetingDuration, setMeetingDuration] = useState("60");
+  const [meetingLocation, setMeetingLocation] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [selectedCalendarId, setSelectedCalendarId] = useState<string>("");
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { currentWorkspace } = useWorkspace();
@@ -161,6 +177,15 @@ export function ComposeEmailDialog({
   const translateEmail = useTranslateEmail();
   const { signatureHtml, isLoading: sigLoading } = useEmailSignature();
   const scheduleEmail = useScheduleEmail();
+  const { calendars } = useCalendars();
+  const { createEvent } = useCalendarEvents(selectedCalendarId ? [selectedCalendarId] : []);
+
+  // Auto-select first calendar
+  useEffect(() => {
+    if (calendars.length > 0 && !selectedCalendarId) {
+      setSelectedCalendarId(calendars[0].id);
+    }
+  }, [calendars, selectedCalendarId]);
 
   // Default template context when none provided
   const effectiveTemplateContext: VariableContext = templateContext || {
@@ -181,6 +206,12 @@ export function ComposeEmailDialog({
       setAttachments([]);
       setScheduledDate(undefined);
       setShowSchedulePicker(false);
+      setShowMeetingPanel(false);
+      setMeetingDate(undefined);
+      setMeetingTime("10:00");
+      setMeetingDuration("60");
+      setMeetingLocation("");
+      setMeetingUrl("");
     }
   }, [open, defaultSubject, defaultBody]);
 
@@ -268,14 +299,32 @@ export function ComposeEmailDialog({
     return newConversation.id;
   };
 
+  const buildMeetingHtml = (): string => {
+    if (!showMeetingPanel || !meetingDate) return "";
+    const [h, m] = meetingTime.split(":").map(Number);
+    const start = new Date(meetingDate);
+    start.setHours(h, m, 0, 0);
+    const end = addMinutes(start, parseInt(meetingDuration));
+    let html = `<div style="margin-top: 1.5em; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">`;
+    html += `<p style="margin: 0 0 8px 0; font-weight: 600; font-size: 15px;">📅 Reunião Agendada</p>`;
+    html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Data:</strong> ${format(start, "dd/MM/yyyy")}</p>`;
+    html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Hora:</strong> ${format(start, "HH:mm")} – ${format(end, "HH:mm")}</p>`;
+    if (meetingLocation) html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Local:</strong> ${meetingLocation}</p>`;
+    if (meetingUrl) html += `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Link:</strong> <a href="${meetingUrl}" style="color: #0066cc;">${meetingUrl}</a></p>`;
+    html += `</div>`;
+    return html;
+  };
+
   const buildFinalBody = (): string => {
     let finalBody = body.trim();
     const attachHtml = buildAttachmentsHtml(attachments);
+    const meetingHtml = buildMeetingHtml();
 
-    if (isHtml || includeSignature || attachments.length > 0) {
+    if (isHtml || includeSignature || attachments.length > 0 || meetingHtml) {
       if (!isHtml) {
         finalBody = textToHtml(finalBody);
       }
+      finalBody += meetingHtml;
       finalBody += attachHtml;
       if (includeSignature && signatureHtml) {
         finalBody += `<div style="margin-top: 1.5em;">${signatureHtml}</div>`;
@@ -283,6 +332,32 @@ export function ComposeEmailDialog({
       return finalBody;
     }
     return finalBody;
+  };
+
+  const createMeetingEvent = async () => {
+    if (!showMeetingPanel || !meetingDate || !selectedCalendarId) return;
+    const [h, m] = meetingTime.split(":").map(Number);
+    const start = new Date(meetingDate);
+    start.setHours(h, m, 0, 0);
+    const end = addMinutes(start, parseInt(meetingDuration));
+
+    const entityRef: Record<string, string> = {};
+    if (recipient.entityType === 'contact') entityRef.contact_id = recipient.entityId;
+    if (recipient.entityType === 'company') entityRef.company_id = recipient.entityId;
+    if (recipient.entityType === 'lead') entityRef.lead_id = recipient.entityId;
+
+    await createEvent({
+      calendar_id: selectedCalendarId,
+      title: subject || `Reunião com ${recipient.name}`,
+      description: `Reunião agendada via email com ${recipient.name} (${recipient.email})`,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      location: meetingLocation || undefined,
+      meeting_url: meetingUrl || undefined,
+      status: 'confirmed',
+      attendees: [{ id: '', name: recipient.name, email: recipient.email, status: 'invited' }],
+      ...entityRef,
+    });
   };
 
   const handleSend = async () => {
@@ -305,7 +380,7 @@ export function ComposeEmailDialog({
       setConversationId(convId);
 
       const finalBody = buildFinalBody();
-      const finalIsHtml = isHtml || (includeSignature && !!signatureHtml) || attachments.length > 0;
+      const finalIsHtml = isHtml || (includeSignature && !!signatureHtml) || attachments.length > 0 || (showMeetingPanel && !!meetingDate);
 
       await sendEmail.mutateAsync({
         connectionId: connection.id,
@@ -315,6 +390,9 @@ export function ComposeEmailDialog({
         body: finalBody,
         isHtml: finalIsHtml,
       });
+
+      // Create calendar event if meeting is scheduled
+      await createMeetingEvent();
 
       toast.success("Email enviado com sucesso!");
       onSent?.();
@@ -571,6 +649,22 @@ export function ComposeEmailDialog({
                   </Tooltip>
                 </TooltipProvider>
 
+                {/* Meeting scheduling */}
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={showMeetingPanel ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setShowMeetingPanel(!showMeetingPanel)}
+                      >
+                        <CalendarPlus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Agendar reunião</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
                 {/* AI Assist */}
                 <AIEmailAssistPanel
                   body={body}
@@ -679,6 +773,92 @@ export function ComposeEmailDialog({
                   </Popover>
                   <Input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-[120px] h-8" />
                 </div>
+              </div>
+            )}
+
+            {/* Meeting scheduling panel */}
+            {showMeetingPanel && (
+              <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <CalendarPlus className="w-4 h-4" />Agendar Reunião
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setShowMeetingPanel(false); setMeetingDate(undefined); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Calendar selector */}
+                {calendars.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0 w-20">Calendário:</Label>
+                    <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                      <SelectTrigger className="h-8 text-sm flex-1">
+                        <SelectValue placeholder="Selecionar calendário" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {calendars.map((cal) => (
+                          <SelectItem key={cal.id} value={cal.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                              {cal.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Date & time */}
+                <div className="flex gap-3 items-start flex-wrap">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-[180px] justify-start text-left font-normal", !meetingDate && "text-muted-foreground")}>
+                        {meetingDate ? format(meetingDate, "dd/MM/yyyy") : "Selecionar data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={meetingDate}
+                        onSelect={setMeetingDate}
+                        disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} className="w-[120px] h-8" />
+                  <Select value={meetingDuration} onValueChange={setMeetingDuration}>
+                    <SelectTrigger className="w-[120px] h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">1 hora</SelectItem>
+                      <SelectItem value="90">1h30</SelectItem>
+                      <SelectItem value="120">2 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Location & URL */}
+                <div className="flex gap-3 items-center flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <Input value={meetingLocation} onChange={(e) => setMeetingLocation(e.target.value)} placeholder="Local (opcional)" className="h-8 text-sm" />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
+                    <Video className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <Input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="URL videoconferência (opcional)" className="h-8 text-sm" />
+                  </div>
+                </div>
+
+                {meetingDate && (
+                  <div className="text-xs text-muted-foreground">
+                    ✓ Ao enviar, será criado um evento no calendário selecionado com os detalhes da reunião.
+                  </div>
+                )}
               </div>
             )}
           </div>
