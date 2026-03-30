@@ -25,6 +25,7 @@ const ObjectiveCenterPage = lazy(() => import("@/pages/ObjectiveCenterPage"));
 const WorkspaceOpsPage = lazy(() => import("@/pages/WorkspaceOpsPage"));
 const MemoryCenterPage = lazy(() => import("@/pages/MemoryCenterPage"));
 const ForecastCenterPage = lazy(() => import("@/pages/ForecastCenterPage"));
+const StrategyCenterPage = lazy(() => import("@/pages/StrategyCenterPage"));
 
 export function AIRoutes() {
   return (
@@ -56,6 +57,7 @@ export function AIRoutes() {
       <Route path="/dashboard/workspace-ops" element={<WorkspaceOpsPage />} />
       <Route path="/dashboard/memory" element={<MemoryCenterPage />} />
       <Route path="/dashboard/forecast" element={<ForecastCenterPage />} />
+      <Route path="/dashboard/strategy" element={<StrategyCenterPage />} />
     </>
   );
 }

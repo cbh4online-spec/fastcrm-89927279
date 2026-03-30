@@ -46373,6 +46373,287 @@ export type Database = {
           },
         ]
       }
+      strategic_hypotheses: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          description: string | null
+          expected_impact: string | null
+          hypothesis_type: string
+          id: string
+          rationale: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          validated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          hypothesis_type: string
+          id?: string
+          rationale?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          validated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          hypothesis_type?: string
+          id?: string
+          rationale?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          validated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_hypotheses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategic_recommendation_links: {
+        Row: {
+          created_at: string
+          id: string
+          mission_id: string | null
+          objective_id: string | null
+          recommendation_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mission_id?: string | null
+          objective_id?: string | null
+          recommendation_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mission_id?: string | null
+          objective_id?: string | null
+          recommendation_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_recommendation_links_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategic_recommendation_links_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "business_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategic_recommendation_links_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "strategic_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategic_recommendation_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategic_recommendations: {
+        Row: {
+          acted_at: string | null
+          confidence: number | null
+          created_at: string
+          description: string | null
+          expected_impact: string | null
+          id: string
+          linked_hypothesis_id: string | null
+          priority: string | null
+          rationale: string | null
+          recommendation_type: string
+          status: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acted_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          id?: string
+          linked_hypothesis_id?: string | null
+          priority?: string | null
+          rationale?: string | null
+          recommendation_type: string
+          status?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acted_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          expected_impact?: string | null
+          id?: string
+          linked_hypothesis_id?: string | null
+          priority?: string | null
+          rationale?: string | null
+          recommendation_type?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_recommendations_linked_hypothesis_id_fkey"
+            columns: ["linked_hypothesis_id"]
+            isOneToOne: false
+            referencedRelation: "strategic_hypotheses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategic_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategic_state_snapshots: {
+        Row: {
+          bottleneck_type: string | null
+          confidence: number | null
+          context_alignment_score: number | null
+          created_at: string
+          diagnosis_summary: string | null
+          execution_alignment_score: number | null
+          growth_mode: string | null
+          id: string
+          main_revenue_driver: string | null
+          main_revenue_risk: string | null
+          primary_constraint: string | null
+          strategic_focus: string | null
+          strategic_health_score: number | null
+          top_constraints: Json | null
+          top_leverage_points: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          bottleneck_type?: string | null
+          confidence?: number | null
+          context_alignment_score?: number | null
+          created_at?: string
+          diagnosis_summary?: string | null
+          execution_alignment_score?: number | null
+          growth_mode?: string | null
+          id?: string
+          main_revenue_driver?: string | null
+          main_revenue_risk?: string | null
+          primary_constraint?: string | null
+          strategic_focus?: string | null
+          strategic_health_score?: number | null
+          top_constraints?: Json | null
+          top_leverage_points?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          bottleneck_type?: string | null
+          confidence?: number | null
+          context_alignment_score?: number | null
+          created_at?: string
+          diagnosis_summary?: string | null
+          execution_alignment_score?: number | null
+          growth_mode?: string | null
+          id?: string
+          main_revenue_driver?: string | null
+          main_revenue_risk?: string | null
+          primary_constraint?: string | null
+          strategic_focus?: string | null
+          strategic_health_score?: number | null
+          top_constraints?: Json | null
+          top_leverage_points?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_state_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategy_settings: {
+        Row: {
+          allow_auto_objective_creation: boolean | null
+          auto_strategy_refresh: boolean | null
+          confidence_threshold: number | null
+          created_at: string
+          id: string
+          is_enabled: boolean | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_auto_objective_creation?: boolean | null
+          auto_strategy_refresh?: boolean | null
+          confidence_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          allow_auto_objective_creation?: boolean | null
+          auto_strategy_refresh?: boolean | null
+          confidence_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_event_log: {
         Row: {
           created_at: string | null
