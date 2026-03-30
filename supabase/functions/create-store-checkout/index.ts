@@ -536,6 +536,7 @@ Deno.serve(async (req) => {
         user_id: userId || "",
         customer_name: customerName,
         customer_phone: customerPhone || "",
+        customer_email: customerEmail,
         source: "store",
         store_order_id: orderId || "",
         gift_card_id: giftCardId || "",
@@ -543,6 +544,7 @@ Deno.serve(async (req) => {
         gift_card_deduction: giftCardReserved.toString(),
         coupon_id: validatedCoupon?.id || "",
         coupon_code: validatedCoupon?.code || "",
+        abandoned_cart_id: abandonedCartId || "",
       },
     };
 
