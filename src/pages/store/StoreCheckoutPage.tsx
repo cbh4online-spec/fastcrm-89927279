@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
