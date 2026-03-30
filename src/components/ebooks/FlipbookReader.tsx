@@ -15,6 +15,7 @@ interface EbookChapter {
   title: string;
   content: string;
   cover_image?: string;
+  layout_key?: string;
 }
 
 interface FlipbookReaderProps {
