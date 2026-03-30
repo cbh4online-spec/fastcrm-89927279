@@ -16,32 +16,130 @@ export interface EbookRichEditorHandle {
   redo: () => void;
 }
 
-/** Convert simple markdown to HTML for migration */
-function markdownToHtml(md: string): string {
-  if (!md) return '';
-  if (md.includes('<p>') || md.includes('<h1>') || md.includes('<div>')) return md;
-
-  let html = md
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+/** Apply inline markdown formatting (bold, italic, links, images) */
+function applyInlineFormatting(text: string): string {
+  return text
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:8px 0" />')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    .replace(/^---$/gm, '<hr />')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+}
 
-  const blocks = html.split(/\n\n+/);
-  html = blocks.map(block => {
-    const trimmed = block.trim();
-    if (!trimmed) return '';
-    if (/^<(h[1-6]|blockquote|hr|ul|ol|li|img|div|table)/.test(trimmed)) return trimmed;
-    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
-  }).join('\n');
+/** Convert markdown to HTML with full support for lists, tables, code blocks */
+function markdownToHtml(md: string): string {
+  if (!md) return '';
+  // Skip if already HTML
+  if (md.includes('<p>') || md.includes('<h1>') || md.includes('<div>')) return md;
 
-  return html;
+  const lines = md.split('\n');
+  const output: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // --- Code fences ---
+    if (line.trimStart().startsWith('```')) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      output.push(`<pre><code>${codeLines.join('\n').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
+      continue;
+    }
+
+    // --- Headings ---
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      output.push(`<h${level}>${applyInlineFormatting(headingMatch[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // --- HR ---
+    if (/^---+$/.test(line.trim())) {
+      output.push('<hr />');
+      i++;
+      continue;
+    }
+
+    // --- Blockquote ---
+    if (line.match(/^>\s/)) {
+      output.push(`<blockquote>${applyInlineFormatting(line.replace(/^>\s/, ''))}</blockquote>`);
+      i++;
+      continue;
+    }
+
+    // --- Unordered list ---
+    if (/^\s*[\*\-]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*[\*\-]\s+/.test(lines[i])) {
+        items.push(applyInlineFormatting(lines[i].replace(/^\s*[\*\-]\s+/, '')));
+        i++;
+      }
+      output.push('<ul>' + items.map(item => `<li>${item}</li>`).join('') + '</ul>');
+      continue;
+    }
+
+    // --- Ordered list ---
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(applyInlineFormatting(lines[i].replace(/^\s*\d+\.\s+/, '')));
+        i++;
+      }
+      output.push('<ol>' + items.map(item => `<li>${item}</li>`).join('') + '</ol>');
+      continue;
+    }
+
+    // --- GFM Table ---
+    if (line.includes('|') && i + 1 < lines.length && /^\s*\|?\s*[-:]+/.test(lines[i + 1])) {
+      const headerCells = line.split('|').map(c => c.trim()).filter(Boolean);
+      i += 2; // skip header + separator
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].includes('|')) {
+        const cells = lines[i].split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length === 0) break;
+        rows.push(cells);
+        i++;
+      }
+      let table = '<table style="width:100%;border-collapse:collapse;margin:8px 0"><thead><tr>';
+      table += headerCells.map(c => `<th style="border:1px solid #ddd;padding:6px 10px;text-align:left">${applyInlineFormatting(c)}</th>`).join('');
+      table += '</tr></thead><tbody>';
+      for (const row of rows) {
+        table += '<tr>' + row.map(c => `<td style="border:1px solid #ddd;padding:6px 10px">${applyInlineFormatting(c)}</td>`).join('') + '</tr>';
+      }
+      table += '</tbody></table>';
+      output.push(table);
+      continue;
+    }
+
+    // --- Empty line ---
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    // --- Paragraph: collect consecutive non-special lines ---
+    const paraLines: string[] = [];
+    while (i < lines.length && lines[i].trim() !== '' &&
+      !/^(#{1,6}\s|>\s|\s*[\*\-]\s|\s*\d+\.\s|---+$|```)/.test(lines[i]) &&
+      !(lines[i].includes('|') && i + 1 < lines.length && /^\s*\|?\s*[-:]+/.test(lines[i + 1]))) {
+      paraLines.push(lines[i]);
+      i++;
+    }
+    if (paraLines.length > 0) {
+      output.push(`<p>${applyInlineFormatting(paraLines.join('<br>'))}</p>`);
+    }
+  }
+
+  return output.join('\n');
 }
 
 export { markdownToHtml };
