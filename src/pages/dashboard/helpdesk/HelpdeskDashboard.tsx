@@ -94,6 +94,7 @@ export default function HelpdeskDashboard() {
 
   if (isLoading) {
     return (
+      <DashboardLayout>
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
