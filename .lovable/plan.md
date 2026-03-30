@@ -1,158 +1,115 @@
 
 
-## Business Autopilot por Objetivos — Plano de Execução
+## Multi-Agent Revenue Operations — Diagnóstico e Plano
 
-### Diagnóstico
+### Diagnóstico: Infraestrutura Já Existente
 
-**Infraestrutura existente reutilizada:**
-- `action_executions` + `process-action-execution` — motor de execução com handlers (create_task, enroll_in_sequence, etc.)
-- `next_best_actions` + `useNextBestActions` — recomendações priorizadas com act/dismiss
-- `kernel_events` + `emitKernelEvent` — padrão de eventos consolidado
-- `ContextOSHub` — hub estratégico com NextBestActionsPanel integrado
-- `useCreateTask` — mutation para criação de tarefas
-- `optimization_recommendations` — modelo de recomendações similar
-- `AIRoutes.tsx` — roteamento centralizado para módulos AI/ops
+Após análise detalhada do código, **a grande maioria da arquitetura descrita já está implementada**:
 
-**O que será criado:**
-1. 4 tabelas: `business_objectives`, `objective_metrics`, `objective_plans`, `objective_action_links`, `objective_settings`
-2. 3 edge functions: `generate-objective-plan`, `process-objective-plan`, `recalculate-objective-progress`
-3. 1 hook: `useBusinessObjectives.ts`
-4. 2 componentes UI: `ObjectiveCenterPage.tsx`, `ObjectiveDetail.tsx`
-5. 1 rota: `/dashboard/objectives`
-
----
-
-### Migration SQL (1 migration, 5 tabelas)
-
-**`business_objectives`:**
-- `id` UUID PK, `workspace_id` UUID NOT NULL, `title` TEXT NOT NULL, `description` TEXT
-- `objective_type` TEXT NOT NULL (recover_revenue, generate_meetings, increase_pipeline_value, improve_conversion_rate, reduce_renewal_risk, recover_abandoned_carts, increase_store_revenue, reactivate_silent_leads)
-- `status` TEXT DEFAULT 'draft' (draft, active, at_risk, on_track, completed, paused, cancelled)
-- `target_value` NUMERIC(12,2), `current_value` NUMERIC(12,2) DEFAULT 0, `unit` TEXT DEFAULT '€'
-- `period_start` DATE, `period_end` DATE
-- `owner_user_id` UUID, `priority` TEXT DEFAULT 'medium' (low, medium, high, critical)
-- `auto_plan_enabled` BOOLEAN DEFAULT false, `auto_execute_enabled` BOOLEAN DEFAULT false
-- `created_at`, `updated_at`, `completed_at` TIMESTAMPTZ
-- Index: `(workspace_id, status)`
-
-**`objective_metrics`:**
-- `id` UUID PK, `workspace_id`, `objective_id` UUID FK → business_objectives
-- `metric_key` TEXT, `metric_label` TEXT, `current_value` NUMERIC(12,2) DEFAULT 0, `target_value` NUMERIC(12,2)
-- `unit` TEXT, `progress_percent` INT DEFAULT 0, `last_calculated_at` TIMESTAMPTZ
-- `created_at`, `updated_at`
-
-**`objective_plans`:**
-- `id` UUID PK, `workspace_id`, `objective_id` UUID FK
-- `title` TEXT, `plan_json` JSONB DEFAULT '{}', `status` TEXT DEFAULT 'draft' (draft, active, completed, superseded)
-- `generated_by` TEXT DEFAULT 'ai', `created_at`, `updated_at`
-
-**`objective_action_links`:**
-- `id` UUID PK, `workspace_id`, `objective_id` UUID FK
-- `action_execution_id` UUID, `task_id` UUID, `next_best_action_id` UUID, `sequence_enrollment_id` UUID
-- `attributed_value` NUMERIC(12,2) DEFAULT 0, `created_at`
-
-**`objective_settings`:**
-- `id` UUID PK, `workspace_id` UNIQUE
-- `is_enabled` BOOLEAN DEFAULT false, `max_daily_actions_per_objective` INT DEFAULT 10
-- `auto_plan_enabled` BOOLEAN DEFAULT false, `auto_replan_enabled` BOOLEAN DEFAULT false
-- `auto_execute_enabled` BOOLEAN DEFAULT false, `alert_when_at_risk` BOOLEAN DEFAULT true
-- `created_at`, `updated_at`
-
-RLS: workspace members SELECT; service_role INSERT/UPDATE.
+| Fase | Estado | Detalhe |
+|------|--------|---------|
+| A — Papéis de Agente | ✅ Feito | `bots` tem `role`, `team_id`, `specialization`, `objective_scope`, `execution_permissions`. `AGENT_ROLES` com 8 papéis definidos |
+| B — Agent Teams | ✅ Feito | Tabela `agent_teams` + `AgentTeamManager` UI com CRUD completo |
+| C — Agent Router | ✅ Feito | Edge function `route-agent-task` com role-mapping, workload balancing, capacity check, human fallback |
+| D — Agent Handoffs | ✅ Feito | Tabela `agent_handoffs` + `useCreateHandoff` + UI na tab Handoffs |
+| E — Agent Work Items | ✅ Feito | Tabela `agent_work_items` + `useCreateWorkItem` + `useCompleteWorkItem` + UI com filtros |
+| F — Supervisor Agent | ❌ Falta | Sem lógica de supervisor nem UI dedicada |
+| G — Ligação a Objetivos | ✅ Feito | Tabela `objective_agent_links` com FK para teams e bots |
+| H — Command Center + Context OS | ❌ Falta | Sem integração de agente recomendado ou handoffs no ContextOS |
+| I — UI de Orquestração | ✅ Parcial | `AgentOperationsPage` existe com KPIs, work items, handoffs, teams, settings. Falta tab de performance/analytics |
+| J — Analytics por Agente | ❌ Parcial | `useBotAnalytics` existe (conversations, leads, bookings, handovers). Falta revenue influenced, tempo médio, throughput |
+| K — Permissões | ✅ Parcial | Campo `execution_permissions` existe nos bots. Falta UI de edição e validação no router |
+| L — Human Fallback | ✅ Feito | Router escala para humano quando sem agente ou capacidade excedida |
+| M — Kernel Events | ✅ Parcial | `AGENT.ROUTED` e `AGENT.ESCALATED_TO_HUMAN` emitidos. Faltam `WORK_ITEM_CREATED`, `WORK_COMPLETED`, `WORK_FAILED`, `HANDOFF_COMPLETED`, `SUPERVISOR_ALERT` |
+| N — Settings | ✅ Feito | `agent_ops_settings` com todos os campos + UI |
 
 ---
 
-### Ficheiros a criar (6)
+### O que falta implementar (scope real)
 
-#### 1. `supabase/functions/generate-objective-plan/index.ts`
-- Recebe `{ workspace_id, objective_id }`
-- Lê objetivo + métricas atuais + NBAs abertas + context score
-- Usa Gemini Flash para gerar plano com: initiatives, action_groups, expected_impact, timeline
-- Insere em `objective_plans`
-- Emite `OBJECTIVE.PLAN_GENERATED` via kernel
+**1. Supervisor Engine** — Edge function `supervisor-agent-check` que:
+- Lê KPIs por agente (work items completed/failed ratio, tempo médio)
+- Identifica agentes com alta taxa de falha ou baixa throughput
+- Redistribui work items de agentes sobrecarregados
+- Emite `AGENT.SUPERVISOR_ALERT`
 
-#### 2. `supabase/functions/process-objective-plan/index.ts`
-- Recebe `{ workspace_id, objective_id }`
-- Lê plano ativo → extrai ações
-- Cria `action_executions` (via insert direto, source_type: 'objective') + `objective_action_links`
-- Distribui ações ao longo do período (max_daily_actions_per_objective)
-- Evita duplicados por correlation_id = `obj_{objective_id}_{action_type}_{entity_id}`
-- Emite `OBJECTIVE.ACTION_LINKED`
+**2. Analytics expandidos** — Adicionar tab "Performance" à `AgentOperationsPage`:
+- Revenue influenced por agente (via `action_executions` + `objective_action_links`)
+- Tempo médio até conclusão de work item
+- Taxa de sucesso por agente
+- Throughput diário
+- Handoffs realizados vs bem-sucedidos
 
-#### 3. `supabase/functions/recalculate-objective-progress/index.ts`
-- Recebe `{ workspace_id }` ou `{ workspace_id, objective_id }`
-- Para cada objetivo ativo: query `objective_action_links` → sum `attributed_value`
-- Atualiza `current_value` em `business_objectives`
-- Atualiza `progress_percent` em `objective_metrics`
-- Calcula trajetória: se progresso < (dias_passados / total_dias × target) → marca `at_risk`
-- Se progresso >= trajetória → marca `on_track`
-- Se `current_value >= target_value` → marca `completed`
-- Emite `OBJECTIVE.AT_RISK` / `OBJECTIVE.ON_TRACK` / `OBJECTIVE.COMPLETED`
+**3. Kernel Events completos** — Adicionar emissão no hook `useCompleteWorkItem` e `useCreateWorkItem`:
+- `AGENT.WORK_ITEM_CREATED` ao criar
+- `AGENT.WORK_COMPLETED` / `AGENT.WORK_FAILED` ao completar
+- `AGENT.HANDOFF_COMPLETED` ao completar handoff
 
-#### 4. `src/hooks/useBusinessObjectives.ts`
-- `useBusinessObjectives(filters?)` — lista com status filter + realtime
-- `useObjectiveDetail(id)` — objetivo + metrics + plano + action_links
-- `useCreateObjective()` — mutation insert
-- `useUpdateObjective()` — mutation update (pause, cancel, complete)
-- `useGeneratePlan(objectiveId)` — invoca `generate-objective-plan`
-- `useExecutePlan(objectiveId)` — invoca `process-objective-plan`
-- `useRecalculateProgress()` — invoca `recalculate-objective-progress`
-- `useObjectiveSettings()` — read/upsert settings
-- `useObjectiveStats()` — KPIs: ativos, at_risk, receita em progresso, ações geradas
+**4. Context OS integration** — Adicionar secção ao `ContextOSHub`:
+- Agente recomendado por entidade (baseado no role mapping)
+- Últimos handoffs relevantes
+- Work items ativos na entidade
 
-#### 5. `src/pages/ObjectiveCenterPage.tsx`
-- Rota: `/dashboard/objectives`
-- KPIs: objetivos ativos, em risco, receita em recuperação, taxa de execução
-- Lista de objetivos com: título, tipo, target vs current, progress bar, status badge, owner
-- Cada card: botões ver detalhe, gerar plano, pausar
-- Formulário de criação inline (tipo, título, target, período, owner)
-- Settings panel com toggles de auto-plan/auto-execute
-
-#### 6. `src/components/objectives/ObjectiveDetail.tsx`
-- Modal/drawer com:
-  - Métricas (progress bars por metric_key)
-  - Plano atual (initiatives formatadas do plan_json)
-  - Ações ligadas (lista de action_links com status)
-  - Tarefas geradas
-  - Botões: gerar plano, executar plano, replanear, pausar, concluir
-  - Timeline de kernel events filtrados por `OBJECTIVE.*`
+**5. Permissions UI** — Adicionar editor de permissões no detalhe do bot:
+- Checkboxes para: `can_create_task`, `can_enroll_sequence`, `can_send_email`, `can_generate_recovery`, `requires_human_approval`
 
 ---
 
-### Ficheiros a alterar (1)
+### Ficheiros a criar (3)
 
-#### 7. `src/routes/AIRoutes.tsx`
-- Adicionar lazy import + rota: `/dashboard/objectives` → `ObjectiveCenterPage`
+1. **`supabase/functions/supervisor-agent-check/index.ts`** — Motor de supervisão que analisa performance por agente, redistribui carga e emite alertas
+
+2. **`src/components/agent-ops/AgentPerformancePanel.tsx`** — Tab de performance com métricas por agente: success rate, throughput, tempo médio, revenue influenced
+
+3. **`src/components/agent-ops/AgentPermissionsEditor.tsx`** — Editor de permissões de execução por bot (checkboxes + save)
+
+### Ficheiros a alterar (5)
+
+4. **`src/pages/AgentOperationsPage.tsx`** — Adicionar tab "Performance" com `AgentPerformancePanel`
+
+5. **`src/hooks/useAgentOperations.ts`** — Adicionar `useAgentPerformanceStats()` (métricas por bot), emitir kernel events em `useCreateWorkItem` e `useCompleteWorkItem`
+
+6. **`src/components/context-os/ContextOSHub.tsx`** — Adicionar secção "Agentes Ativos" mostrando work items e handoffs por entidade
+
+7. **`supabase/functions/route-agent-task/index.ts`** — Validar `execution_permissions` do bot antes de atribuir work item
+
+8. **`src/hooks/useBots.ts`** — Adicionar `useUpdateBotPermissions()` mutation
+
+### Migration
+
+Nenhuma migration necessária — todas as tabelas e colunas já existem.
 
 ---
 
-### Fluxo
+### Fluxo completo (já funcional + melhorias)
 
 ```text
-Utilizador cria objetivo (ex: "Recuperar 5.000€ em 30 dias")
+Evento/Entidade
   │
-  ├─ Emite OBJECTIVE.CREATED
-  ├─ Gerar plano (generate-objective-plan)
-  │   ├─ Lê métricas, NBAs, context
-  │   ├─ IA gera initiatives + action_groups
-  │   └─ Insere objective_plans
+  ├─ route-agent-task (✅ existe)
+  │   ├─ Verifica settings (✅)
+  │   ├─ Mapeia work_type → roles (✅)
+  │   ├─ Seleciona bot com menor carga (✅)
+  │   ├─ Valida permissões (🆕)
+  │   ├─ Cria work item + emite AGENT.ROUTED (✅)
+  │   └─ Fallback humano se sem agente (✅)
   │
-  ├─ Executar plano (process-objective-plan)
-  │   ├─ Cria action_executions (create_task, enroll_sequence, etc.)
-  │   ├─ Cria objective_action_links
-  │   └─ Distribui ao longo do período
+  ├─ supervisor-agent-check (🆕)
+  │   ├─ Analisa KPIs por agente
+  │   ├─ Redistribui se necessário
+  │   └─ Emite AGENT.SUPERVISOR_ALERT
   │
-  └─ Recalcular progresso (recalculate-objective-progress)
-      ├─ Soma attributed_value das ações
-      ├─ Atualiza current_value e progress_percent
-      ├─ Se desvio → marca at_risk, emite evento
-      └─ Se completo → marca completed
+  ├─ AgentOperationsPage (✅ + 🆕 tab Performance)
+  │   ├─ KPIs globais (✅)
+  │   ├─ Work Items com filtros (✅)
+  │   ├─ Handoffs (✅)
+  │   ├─ Teams (✅)
+  │   ├─ Performance por agente (🆕)
+  │   └─ Settings (✅)
+  │
+  └─ ContextOSHub (🆕 secção agentes)
+      ├─ Agente recomendado
+      ├─ Work items ativos
+      └─ Handoffs recentes
 ```
-
-### Compatibilidade
-- `action_executions` reutilizado com `source_type: 'objective'`
-- `objective_action_links` liga objetivos a ações existentes sem alterar nenhuma tabela
-- Kernel events seguem padrão `emitKernelEvent` existente
-- ContextOSHub não é alterado — objetivos vivem em página própria
-- Não duplica sistema de tasks — usa `process-action-execution` para criar tarefas reais
 
