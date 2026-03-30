@@ -21,8 +21,10 @@ import {
   TrendingUp,
   Settings2,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
+import { AgentPerformancePanel } from "@/components/agent-ops/AgentPerformancePanel";
 import {
   useAgentWorkItems,
   useAgentHandoffs,
