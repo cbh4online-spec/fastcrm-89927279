@@ -135,25 +135,33 @@ export default function StoreCheckoutPage() {
     phone: "",
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const isStep1Valid = () => {
     if (!formData.name.trim() || !formData.phone.trim()) return false;
-    const phoneClean = formData.phone.replace(/\s/g, "");
-    return phoneClean.length >= 9;
+    return isValidPhoneNumber(formData.phone, "PT");
   };
 
   const handleStep1Continue = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.error("Preencha o nome");
-      return;
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = "Preencha o nome";
+    if (!formData.phone.trim()) {
+      errors.phone = "Preencha o telefone";
+    } else if (!isValidPhoneNumber(formData.phone, "PT")) {
+      errors.phone = "Número de telefone inválido";
     }
-    const phoneClean = formData.phone.replace(/\s/g, "");
-    if (phoneClean.length < 9) {
-      toast.error("Número de telefone inválido");
-      return;
-    }
-    // Capture lead immediately on step 1 completion
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    // Normalize phone
+    try {
+      const parsed = parsePhoneNumber(formData.phone, "PT");
+      if (parsed) setFormData((p) => ({ ...p, phone: parsed.formatInternational() }));
+    } catch {}
+
     captureLead({ name: formData.name, phone: formData.phone });
+    trackEvent("begin_checkout", { workspaceSlug: wsSlug, subtotal, itemCount: items.length });
     setStep(2);
   };
 
