@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useContacts } from "@/hooks/useContacts";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
@@ -422,11 +423,9 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
                   placeholder="+351 912 345 678"
                 />
               </div>

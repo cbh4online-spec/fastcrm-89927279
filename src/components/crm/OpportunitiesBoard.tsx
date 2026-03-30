@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useConfetti } from "@/hooks/useConfetti";
+import { formatEUR } from "@/lib/currency";
 import { useOpportunities, useMoveOpportunity, Opportunity } from "@/hooks/useOpportunities";
 import { usePipelineStages, PipelineStage } from "@/hooks/usePipelineStages";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -73,11 +75,7 @@ function KanbanColumn({
         </div>
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <DollarSign className="w-3.5 h-3.5" />
-          {totalValue.toLocaleString("pt-PT", {
-            style: "currency",
-            currency: "EUR",
-            minimumFractionDigits: 0,
-          })}
+          {formatEUR(totalValue)}
         </div>
       </div>
 
@@ -113,9 +111,7 @@ function KanbanColumn({
                     )}
                     <div className="flex items-center gap-1 mt-2 text-sm font-medium text-primary">
                       <DollarSign className="w-3.5 h-3.5" />
-                      {Number(opp.value).toLocaleString("pt-PT", {
-                        minimumFractionDigits: 0,
-                      })}
+                      {formatEUR(Number(opp.value))}
                     </div>
                   </div>
                 </div>
@@ -193,6 +189,7 @@ export function OpportunitiesBoard() {
   const { data: opportunities, isLoading: oppLoading, refetch } = useOpportunities();
   const { data: stages, isLoading: stagesLoading } = usePipelineStages();
   const moveOpportunity = useMoveOpportunity();
+  const { fire } = useConfetti();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
@@ -228,7 +225,12 @@ export function OpportunitiesBoard() {
   }, [filteredOpportunities, stages]);
 
   const handleMoveOpportunity = async (oppId: string, stageId: string) => {
-    await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId });
+    const result = await moveOpportunity.mutateAsync({ id: oppId, stage_id: stageId });
+    // Fire confetti if moved to a "won" stage
+    const targetStage = stages?.find(s => s.id === stageId);
+    if (targetStage?.name?.toLowerCase().includes("won") || targetStage?.name?.toLowerCase().includes("ganho")) {
+      fire();
+    }
   };
 
   const handleFilterSelect = (filterId: string) => {
@@ -260,7 +262,7 @@ export function OpportunitiesBoard() {
         <PageHeader
           title="Oportunidades"
           count={totalCount}
-          description={`Pipeline: ${totalValue.toLocaleString("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 0 })}`}
+          description={`Pipeline: ${formatEUR(totalValue)}`}
           tabs={pageTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -312,8 +314,14 @@ export function OpportunitiesBoard() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64 mt-4">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="flex gap-4 mt-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="flex-shrink-0 w-80 rounded-lg border bg-muted/30 p-3 space-y-3">
+                <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+                <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+              </div>
+            ))}
           </div>
         ) : !stages?.length ? (
           <div className="flex flex-col items-center justify-center h-64 text-center mt-4">

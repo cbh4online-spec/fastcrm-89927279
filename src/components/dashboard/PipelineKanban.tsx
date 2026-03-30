@@ -7,6 +7,7 @@ import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useNavigate } from "react-router-dom";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatEUR } from "@/lib/currency";
 
 const stageColors: Record<string, string> = {
   "Lead": "bg-blue-500",
@@ -58,9 +59,9 @@ export function PipelineKanban() {
   };
 
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `€${(value / 1000).toFixed(0)}K`;
-    return `€${value.toFixed(0)}`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M €`;
+    if (value >= 1000) return `${(value / 1000).toFixed(0)}K €`;
+    return formatEUR(value);
   };
 
   return (

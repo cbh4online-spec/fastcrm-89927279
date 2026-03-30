@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 export interface ChatMessageData {
   id: string;
@@ -69,9 +69,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
       >
         {message.type === "card" ? (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
+          <MarkdownRenderer content={message.content} />
         ) : (
           <p className="whitespace-pre-wrap">{message.content}</p>
         )}

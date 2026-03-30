@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CalendarView } from './CalendarView';
+import { FullCalendarAgenda } from './FullCalendarView';
 import { CalendarListView, type CalendarFilters } from './CalendarListView';
 import { CalendarHeatmapView } from './CalendarHeatmapView';
 import { CalendarGlobalFilters } from './CalendarGlobalFilters';
@@ -230,7 +231,7 @@ export function CalendarGlobalView({
       {/* View content */}
       <div className="flex-1 overflow-hidden">
         {globalViewMode === 'agenda' && (
-          <CalendarView
+          <FullCalendarAgenda
             events={filteredEvents}
             calendars={calendars}
             selectedCalendarIds={selectedCalendarIds}

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { detectIntent, getConversationalResponse } from "@/lib/conversationalIntent";
 import { MessageSquare, RotateCcw, Bot, User as UserIcon, X, FileText, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 const PLACEHOLDERS = [
   "Gera um brief executivo do meu negócio...",
@@ -308,9 +308,7 @@ export function AIQuestionBox() {
         <FileText className="h-4 w-4" />
         <span className="text-xs font-semibold uppercase tracking-wider">Brief Executivo</span>
       </div>
-      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
-        <ReactMarkdown>{msg.content}</ReactMarkdown>
-      </div>
+      <MarkdownRenderer content={msg.content} className="[&>p]:my-1 [&>ul]:my-1" />
       <button
         onClick={() => navigate("/dashboard/strategy")}
         className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
@@ -373,9 +371,7 @@ export function AIQuestionBox() {
             )}>
               {msg.role === 'assistant' ? (
                 msg.type === 'brief' ? renderBriefCard(msg) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer content={msg.content} className="[&>p]:my-1 [&>ul]:my-1" />
                 )
               ) : (
                 <p>{msg.content}</p>
