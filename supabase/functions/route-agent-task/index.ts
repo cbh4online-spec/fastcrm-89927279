@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // 3. Find eligible bots
     let botsQuery = supabase
       .from("bots")
-      .select("id, name, role, channel, status, team_id, specialization")
+      .select("id, name, role, channel, status, team_id, specialization, execution_permissions")
       .eq("workspace_id", workspace_id)
       .eq("status", "active");
 
