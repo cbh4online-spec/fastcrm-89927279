@@ -1,42 +1,51 @@
 
 
-## Sequência de Recuperação de Carrinhos — Plano
+## Envio Real de Emails de Recuperação — Plano
 
 ### Diagnóstico
 
-A infraestrutura já existe:
-- Tabelas `email_sequences` e `email_sequence_steps` com campos `delay_hours`, `delay_days`, `subject`, `body`
-- Hooks `useCreateSequence` e `useCreateStep` para CRUD
-- `resolveTemplateVariables` e `buildRecoveryTemplateVariables` já mapeiam `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}`
-- `StoreRecoverySettings` já permite selecionar uma sequência como default
+O `process-store-recovery` já processa steps de sequências, resolve merge variables e avança enrollments — mas **não envia emails**. Apenas regista o step em `store_automation_events`. O sistema de email transacional (`send-transactional-email`) já existe e é usado pelo `funnel-nurture-processor` com o mesmo padrão (fetch direto entre edge functions).
 
-**O que falta:** Um botão/ação que crie automaticamente a sequência pré-configurada com os 3 steps e conteúdo HTML com merge variables.
+**O que falta:**
+1. Template React Email para recuperação de carrinho (genérico, com props para subject/body dinâmicos)
+2. Invocação real do `send-transactional-email` dentro do `process-store-recovery`
+
+### Abordagem
+
+Como os recovery emails usam subject/body custom definidos nos `email_sequence_steps` (com merge variables `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}`), o template precisa aceitar HTML pré-resolvido como prop — não pode ser estático.
 
 ### Plano
 
-#### 1. Criar hook `useCreateRecoverySequence` (`src/hooks/useCreateRecoverySequence.ts`)
+#### 1. Criar template `cart-recovery.tsx`
 
-Mutation que:
-1. Cria `email_sequences` com nome "Recuperação de Carrinho" e tags `["recovery", "cart"]`
-2. Insere 3 `email_sequence_steps` em sequência:
-   - **Step 1** (1h): Subject "{{contact_name}}, esqueceu-se de algo?" — corpo amigável com link de recuperação
-   - **Step 2** (24h): Subject "O seu carrinho ainda espera por si" — corpo com urgência moderada e resumo do valor
-   - **Step 3** (72h): Subject "Última oportunidade — {{cart_total}} à sua espera" — corpo de urgência final
-3. Cada body usa `{{contact_name}}`, `{{cart_total}}`, `{{recovery_link}}` como merge variables
-4. Retorna o ID da sequência criada
+Ficheiro: `supabase/functions/_shared/transactional-email-templates/cart-recovery.tsx`
 
-#### 2. Adicionar botão na `StoreRecoverySettings` (`src/components/store/StoreRecoverySettings.tsx`)
+- Props: `subject`, `bodyHtml` (HTML já resolvido com variáveis), `storeName`
+- O componente renderiza o `bodyHtml` dentro de um container branded
+- Usa `dangerouslySetInnerHTML` controlado (o HTML vem do step.body resolvido internamente, não de input do utilizador)
+- Subject dinâmico via função
 
-- Mostrar botão "Criar Sequência de Recuperação" quando não há sequências ativas disponíveis (ou sempre, como atalho)
-- Ao clicar, invoca o hook, cria a sequência e auto-seleciona como `default_sequence_id`
-- Feedback com toast de sucesso
+#### 2. Registar no registry
+
+Adicionar `cart-recovery` ao `TEMPLATES` em `registry.ts`.
+
+#### 3. Alterar `process-store-recovery/index.ts`
+
+Após resolver as merge variables e antes de avançar o step:
+1. Resolver `{{variáveis}}` no subject e body do step
+2. Invocar `send-transactional-email` via fetch (mesmo padrão do `funnel-nurture-processor`)
+3. Registar sucesso/falha no `store_automation_events`
+4. Só avançar o step se o envio foi bem sucedido
 
 ### Ficheiros
 
 | Acção | Ficheiro |
 |-------|----------|
-| Criar | `src/hooks/useCreateRecoverySequence.ts` |
-| Editar | `src/components/store/StoreRecoverySettings.tsx` |
+| Criar | `supabase/functions/_shared/transactional-email-templates/cart-recovery.tsx` |
+| Editar | `supabase/functions/_shared/transactional-email-templates/registry.ts` |
+| Editar | `supabase/functions/process-store-recovery/index.ts` |
 
-Sem migrations — usa tabelas existentes.
+Deploy necessário: `send-transactional-email`, `process-store-recovery`.
+
+Sem migrations.
 
