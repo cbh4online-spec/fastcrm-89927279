@@ -37,7 +37,7 @@ import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/c
 import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { LeadDuplicateReviewPanel } from "@/components/leads/LeadDuplicateReviewPanel";
-import { LeadsKanbanView } from "@/components/leads/LeadsKanbanView";
+import { LeadsKanbanDnD } from "@/components/leads/LeadsKanbanDnD";
 import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -387,7 +387,7 @@ export function SmartLeadsTable() {
         {activeTab === "duplicates" ? (
           <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
         ) : activeTab === "kanban" ? (
-          <LeadsKanbanView leads={filteredLeads as SmartLead[]} isLoading={isLoading} />
+          <LeadsKanbanDnD leads={filteredLeads as SmartLead[]} isLoading={isLoading} />
         ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
