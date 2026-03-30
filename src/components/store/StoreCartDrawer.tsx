@@ -72,7 +72,6 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
                       <p className="text-sm font-semibold text-primary mt-1">
                         €{formatMoney(item.price * item.quantity)}
                       </p>
-                      </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center border rounded-lg overflow-hidden">
                           <Button
