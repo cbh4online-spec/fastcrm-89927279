@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
       giftCardCode,
       couponCode,
       mode: checkoutMode,
+      abandonedCartId,
     } = await req.json();
 
     logStep("Request body", {
@@ -323,6 +324,7 @@ Deno.serve(async (req) => {
           gift_card_reserved_amount: giftCardReserved,
           pricing_breakdown: breakdown as any,
           source: "store",
+          abandoned_cart_id: abandonedCartId || null,
         })
         .select("id")
         .single();
@@ -503,6 +505,7 @@ Deno.serve(async (req) => {
         gift_card_reserved_amount: giftCardReserved,
         pricing_breakdown: breakdown as any,
         source: "store",
+        abandoned_cart_id: abandonedCartId || null,
       })
       .select("id")
       .single();
@@ -534,6 +537,7 @@ Deno.serve(async (req) => {
         user_id: userId || "",
         customer_name: customerName,
         customer_phone: customerPhone || "",
+        customer_email: customerEmail,
         source: "store",
         store_order_id: orderId || "",
         gift_card_id: giftCardId || "",
@@ -541,6 +545,7 @@ Deno.serve(async (req) => {
         gift_card_deduction: giftCardReserved.toString(),
         coupon_id: validatedCoupon?.id || "",
         coupon_code: validatedCoupon?.code || "",
+        abandoned_cart_id: abandonedCartId || "",
       },
     };
 

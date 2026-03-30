@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
@@ -33,6 +33,8 @@ interface CTTShippingOption {
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const abandonedCartId = searchParams.get("abandoned_cart_id") || undefined;
   const { items, subtotal, clearCart } = useStoreCart();
   const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: storeSettings } = usePublicStoreSettings(wsId || "");
@@ -295,6 +297,7 @@ export default function StoreCheckoutPage() {
           shippingMethodId: selectedShippingId || undefined,
           shippingCost: effectiveShippingCost,
           shippingMethodName: selectedCttOption?.name || undefined,
+          abandonedCartId: abandonedCartId || undefined,
           successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
           cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
         },

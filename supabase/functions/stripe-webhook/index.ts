@@ -307,6 +307,36 @@ async function handleStoreOrderCompleted(
     coupon_id: couponId || null,
   });
 
+  // 7. Mark abandoned cart as recovered if applicable
+  const abandonedCartId = metadata.abandoned_cart_id;
+  if (abandonedCartId) {
+    const totalPaid = (session.amount_total || 0) / 100;
+    await supabase
+      .from("store_abandoned_carts")
+      .update({
+        recovery_status: "recovered",
+        recovered_at: new Date().toISOString(),
+        recovered_order_id: orderId,
+        recovered_value: totalPaid,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", abandonedCartId);
+
+    // Record automation event
+    await supabase.from("store_automation_events").insert({
+      workspace_id: workspaceId,
+      event_type: "abandoned_cart_recovered",
+      entity_type: "abandoned_cart",
+      entity_id: abandonedCartId,
+      payload: {
+        order_id: orderId,
+        recovered_value: totalPaid,
+      },
+    }).catch(() => {});
+
+    logStore("Abandoned cart marked as recovered", { abandonedCartId, orderId });
+  }
+
   logStore("Store order payment processing complete", { orderId });
 }
 

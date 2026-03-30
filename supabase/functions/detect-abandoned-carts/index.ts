@@ -5,13 +5,13 @@ import { createClient } from '@supabase/supabase-js';
  * Detect Abandoned Carts
  * 
  * Scans store_visitor_sessions for sessions with cart_items that have been
- * inactive for 30+ minutes. Creates store_abandoned_carts records and marks
- * sessions as processed.
+ * inactive for 30+ minutes. Creates store_abandoned_carts records with
+ * recovery tokens and marks sessions as processed.
  */
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[ECOMMERCE] ${step}${detailsStr}`);
+  console.log(`[STORE-ABANDONED] ${step}${detailsStr}`);
 };
 
 Deno.serve(async (req) => {
@@ -58,9 +58,11 @@ Deno.serve(async (req) => {
       if (!cartItems || cartItems.length === 0) continue;
 
       const subtotal = session.cart_subtotal || 0;
+      const recoveryToken = crypto.randomUUID();
+      const recoveryTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
-      // Create abandoned cart record
-      const { error: insertError } = await supabase
+      // Create abandoned cart record with recovery token
+      const { data: insertedCart, error: insertError } = await supabase
         .from('store_abandoned_carts')
         .insert({
           workspace_id: session.workspace_id,
@@ -70,12 +72,53 @@ Deno.serve(async (req) => {
           currency: 'EUR',
           abandoned_at: session.cart_updated_at || session.last_activity_at,
           recovery_status: 'abandoned',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        });
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          recovery_token: recoveryToken,
+          recovery_token_expires_at: recoveryTokenExpiresAt,
+          customer_name: session.customer_name || null,
+          customer_email: session.customer_email || null,
+          customer_phone: session.customer_phone || null,
+          device_type: session.device_type || null,
+          referrer: session.referrer || null,
+        })
+        .select('id')
+        .maybeSingle();
 
       if (insertError) {
         logStep('Insert error', { sessionId: session.session_id, error: insertError.message });
         continue;
+      }
+
+      // Emit automation events
+      if (insertedCart) {
+        // abandoned_cart_created event
+        await supabase.from('store_automation_events').insert({
+          workspace_id: session.workspace_id,
+          event_type: 'abandoned_cart_created',
+          entity_type: 'abandoned_cart',
+          entity_id: insertedCart.id,
+          payload: {
+            session_id: session.session_id,
+            subtotal,
+            items_count: cartItems.length,
+            customer_email: session.customer_email || null,
+            customer_phone: session.customer_phone || null,
+          },
+        }).catch((e: any) => logStep('Event insert error', { error: String(e) }));
+
+        // recovery_link_created event (ready for future campaigns)
+        await supabase.from('store_automation_events').insert({
+          workspace_id: session.workspace_id,
+          event_type: 'recovery_link_created',
+          entity_type: 'abandoned_cart',
+          entity_id: insertedCart.id,
+          payload: {
+            recovery_token: recoveryToken,
+            expires_at: recoveryTokenExpiresAt,
+            customer_email: session.customer_email || null,
+            customer_phone: session.customer_phone || null,
+          },
+        }).catch((e: any) => logStep('Recovery event insert error', { error: String(e) }));
       }
 
       // Emit CART.ABANDONED kernel event

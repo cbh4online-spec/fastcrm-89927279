@@ -42712,18 +42712,27 @@ export type Database = {
       store_abandoned_carts: {
         Row: {
           abandoned_at: string
+          contact_channel: string | null
           contact_id: string | null
+          contacted_at: string | null
           created_at: string
           currency: string | null
           customer_email: string | null
           customer_name: string | null
+          customer_phone: string | null
+          device_type: string | null
           expires_at: string | null
           id: string
           items: Json
           last_recovery_at: string | null
+          recovered_at: string | null
           recovered_order_id: string | null
+          recovered_value: number | null
           recovery_attempts: number | null
           recovery_status: string
+          recovery_token: string | null
+          recovery_token_expires_at: string | null
+          referrer: string | null
           session_id: string
           subtotal: number | null
           updated_at: string
@@ -42731,18 +42740,27 @@ export type Database = {
         }
         Insert: {
           abandoned_at?: string
+          contact_channel?: string | null
           contact_id?: string | null
+          contacted_at?: string | null
           created_at?: string
           currency?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_phone?: string | null
+          device_type?: string | null
           expires_at?: string | null
           id?: string
           items?: Json
           last_recovery_at?: string | null
+          recovered_at?: string | null
           recovered_order_id?: string | null
+          recovered_value?: number | null
           recovery_attempts?: number | null
           recovery_status?: string
+          recovery_token?: string | null
+          recovery_token_expires_at?: string | null
+          referrer?: string | null
           session_id: string
           subtotal?: number | null
           updated_at?: string
@@ -42750,18 +42768,27 @@ export type Database = {
         }
         Update: {
           abandoned_at?: string
+          contact_channel?: string | null
           contact_id?: string | null
+          contacted_at?: string | null
           created_at?: string
           currency?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_phone?: string | null
+          device_type?: string | null
           expires_at?: string | null
           id?: string
           items?: Json
           last_recovery_at?: string | null
+          recovered_at?: string | null
           recovered_order_id?: string | null
+          recovered_value?: number | null
           recovery_attempts?: number | null
           recovery_status?: string
+          recovery_token?: string | null
+          recovery_token_expires_at?: string | null
+          referrer?: string | null
           session_id?: string
           subtotal?: number | null
           updated_at?: string
@@ -43838,6 +43865,7 @@ export type Database = {
       }
       store_orders: {
         Row: {
+          abandoned_cart_id: string | null
           billing_address: Json | null
           campaign_id: string | null
           company_id: string | null
@@ -43883,6 +43911,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          abandoned_cart_id?: string | null
           billing_address?: Json | null
           campaign_id?: string | null
           company_id?: string | null
@@ -43928,6 +43957,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          abandoned_cart_id?: string | null
           billing_address?: Json | null
           campaign_id?: string | null
           company_id?: string | null
@@ -43973,6 +44003,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "store_orders_abandoned_cart_id_fkey"
+            columns: ["abandoned_cart_id"]
+            isOneToOne: false
+            referencedRelation: "store_abandoned_carts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "store_orders_campaign_id_fkey"
             columns: ["campaign_id"]
