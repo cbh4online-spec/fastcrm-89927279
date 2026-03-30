@@ -1,159 +1,179 @@
 
 
-## Motor Transacional Backend — Plano de Execução
+## Sistema de Recuperação de Carrinhos Abandonados — Plano de Execução
 
 ### Diagnóstico
 
-**Estado atual:**
-- `create-store-checkout` já valida produtos e stock no backend, mas **não valida cupões** — aceita apenas `giftCardCode`
-- Gift cards são **debitados imediatamente** antes da confirmação de pagamento (linhas 304-377) — risco de perda de saldo se Stripe falhar
-- O webhook `stripe-webhook` **não tem qualquer lógica para `source: "store"`** — encomendas da loja nunca são atualizadas para `paid`
-- Não há tratamento de `checkout.session.expired` nem `payment_intent.payment_failed`
-- `store_orders` já tem `coupon_id`, `discount_amount`, `shipping_cost`, `stripe_session_id`, `contact_id`
-- `stripe_event_log` já existe com idempotência por `stripe_event_id`
-- `store_order_events` já existe com trigger automático em mudanças de status
-- Ambas as functions usam `SUPABASE_SERVICE_ROLE_KEY` (bypassa RLS)
+**O que já existe e funciona:**
+- `store_abandoned_carts` — tabela com `session_id`, `items`, `subtotal`, `customer_email`, `customer_name`, `recovery_status`, `recovery_attempts`, `recovered_order_id`
+- `detect-abandoned-carts` — edge function que processa `store_visitor_sessions` inativas (30min) e cria registos em `store_abandoned_carts`
+- `store-cart-abandonment` — edge function que cria `store_automation_events` e marca carrinhos como `contacted`
+- `store-webhook` — já marca carrinhos como `recovered` quando uma encomenda é paga (por email/contact_id)
+- `store-capture-lead` — já cria/atualiza `store_abandoned_carts` quando lead é capturada no checkout
+- `useStoreAutomation.ts` — hooks de leitura/escrita para carrinhos abandonados
+- `StoreCartsTab` — painel com KPIs e listagem (apenas read-only)
+- `RecoverCartPage` — existe mas usa `checkout_abandoned_carts` (sistema de checkout funnels, **não** da loja online)
 
-**Problemas críticos a resolver:**
-1. Gift card debitado antes da confirmação Stripe → risco de perda de saldo
-2. Cupões nunca validados no backend
-3. Webhook ignora encomendas da loja
-4. Sem idempotência para eventos de loja no webhook
-
----
-
-### Ficheiros a criar (2)
-
-#### 1. `supabase/functions/_shared/store-pricing.ts`
-Motor de cálculo server-side com funções:
-- `resolveStoreProducts(supabase, workspaceId, items[])` — busca preços reais da DB, valida status/stock
-- `validateCoupon(supabase, workspaceId, couponCode, customerEmail, subtotal, categoryIds[])` — valida atividade, expiração, `max_uses`, `single_use_per_customer`, `min_order_amount`, `category_ids`
-- `calculateDiscount(coupon, subtotal, eligibleSubtotal)` — aplica `percentage`/`fixed`, respeita `max_discount_amount`
-- `calculateOrderTotals(products, items, coupon?, shippingCost, giftCardReserved)` — retorna breakdown completo:
-  ```
-  { subtotal, discount_amount, shipping_amount, gift_card_reserved, total_payable, currency, items_normalized }
-  ```
-
-#### 2. Migration SQL — `store_gift_card_reservations` + novos campos em `store_orders`
-
-**Nova tabela `store_gift_card_reservations`:**
-| Campo | Tipo |
-|---|---|
-| id | UUID PK |
-| workspace_id | UUID FK workspaces |
-| gift_card_id | UUID FK store_gift_cards |
-| store_order_id | UUID FK store_orders (nullable) |
-| stripe_session_id | TEXT |
-| amount_reserved | NUMERIC |
-| status | TEXT (`reserved`, `consumed`, `released`) |
-| expires_at | TIMESTAMPTZ (default now + 2h) |
-| consumed_at | TIMESTAMPTZ |
-| released_at | TIMESTAMPTZ |
-| created_at / updated_at | TIMESTAMPTZ |
-
-RLS: bypass via service_role (edge functions). SELECT para workspace members.
-
-**Novos campos em `store_orders`:**
-- `coupon_code TEXT`
-- `gift_card_id UUID`
-- `gift_card_reserved_amount NUMERIC DEFAULT 0`
-- `pricing_breakdown JSONB`
-- `source TEXT DEFAULT 'store'`
-
-Índices: `idx_gift_card_reservations_session`, `idx_gift_card_reservations_status`, `idx_store_orders_source`
+**O que falta:**
+1. `store_abandoned_carts` não tem `recovery_token`, `customer_phone`, `device_type`, `contacted_at`, `contact_channel`
+2. Não existe página de recuperação para a **loja online** (apenas para checkout funnels)
+3. Não existe rota `/store/:workspaceSlug/recover/:token`
+4. `StoreCartsTab` não tem ações (gerar link, copiar, contactar, ver detalhe)
+5. `store_orders` não tem `abandoned_cart_id` para rastreio de origem
+6. Não existe mecanismo de restore do carrinho via token
+7. Não existe detalhe individual do carrinho abandonado
 
 ---
 
-### Ficheiros a alterar (2)
+### FASE I — Migration SQL
 
-#### 3. `supabase/functions/create-store-checkout/index.ts`
+**Alterar `store_abandoned_carts`** — adicionar campos:
+- `recovery_token TEXT UNIQUE` — token seguro (crypto.randomUUID)
+- `recovery_token_expires_at TIMESTAMPTZ`
+- `customer_phone TEXT`
+- `device_type TEXT`
+- `referrer TEXT`
+- `contacted_at TIMESTAMPTZ`
+- `contact_channel TEXT` — 'email', 'whatsapp', 'phone', 'manual'
+- `recovered_at TIMESTAMPTZ`
+- `recovered_value NUMERIC(12,2)`
 
-Alterações cirúrgicas:
-- Importar `store-pricing.ts`
-- Aceitar `couponCode` no payload (além do existente `giftCardCode`)
-- Substituir cálculo inline de totais por `calculateOrderTotals()`
-- Validar cupão via `validateCoupon()` — rejeitar com mensagem clara se inválido
-- **Gift card: criar reserva em vez de débito imediato**
-  - Inserir em `store_gift_card_reservations` com `status: 'reserved'`
-  - Não alterar `current_balance` do gift card
-  - No caso de gift card cobrir 100%: debitar imediatamente (mantém lógica atual) mas registar como `consumed` na reserva
-- Gravar `store_orders` com campos novos: `coupon_code`, `gift_card_id`, `gift_card_reserved_amount`, `pricing_breakdown`, `source`
-- Incluir no metadata do Stripe session: `store_order_id`, `gift_card_reservation_id`, `coupon_id`
+**Alterar `store_orders`** — adicionar campo:
+- `abandoned_cart_id UUID REFERENCES store_abandoned_carts(id) ON DELETE SET NULL`
 
-#### 4. `supabase/functions/stripe-webhook/index.ts`
-
-Alterações cirúrgicas (manter 100% da lógica existente de subscrições/propostas):
-
-**Em `checkout.session.completed`**, após o bloco existente de propostas:
-```
-if (metadata.source === "store") {
-  // 1. Idempotência via stripe_event_log
-  // 2. Encontrar store_order por stripe_session_id
-  // 3. Atualizar: status='paid', paid_at, stripe_payment_intent_id
-  // 4. Consumir reserva de gift card (status → consumed, debitar saldo real)
-  // 5. Incrementar used_count do cupão + registar store_coupon_usage
-  // 6. Inserir store_order_events
-  // 7. Registar stripe_event_log
-}
-```
-
-**Novo case `checkout.session.expired`:**
-```
-if (metadata.source === "store") {
-  // 1. Libertar reserva gift card (status → released, released_at)
-  // 2. Atualizar store_order: status='cancelled'
-}
-```
-
-**Novo case `payment_intent.payment_failed`:**
-```
-if (metadata.source === "store") {
-  // 1. Libertar reserva gift card
-  // 2. Atualizar store_order: status='payment_failed'
-}
-```
-
-Logging estruturado: `[STORE-WEBHOOK]`, `[STORE-GIFTCARD]`
+**Índice:** `idx_store_abandoned_carts_token ON store_abandoned_carts(recovery_token)`
 
 ---
 
-### Fluxo final
+### FASE A — Melhorar deteção (`detect-abandoned-carts`)
 
-```text
-Frontend                    create-store-checkout              Stripe             stripe-webhook
-   │                              │                              │                      │
-   ├─ POST {items, coupon, gc} ──►│                              │                      │
-   │                              ├─ resolveProducts (DB)        │                      │
-   │                              ├─ validateCoupon (DB)         │                      │
-   │                              ├─ calculateTotals             │                      │
-   │                              ├─ reserveGiftCard (DB)        │                      │
-   │                              ├─ INSERT store_order          │                      │
-   │                              ├─ create checkout session ───►│                      │
-   │◄─ { url } ──────────────────┤                              │                      │
-   │                              │                              │                      │
-   ├─ redirect to Stripe ────────┼─────────────────────────────►│                      │
-   │                              │                              │                      │
-   │                              │                              ├── webhook event ────►│
-   │                              │                              │                      ├─ idempotency check
-   │                              │                              │                      ├─ update order → paid
-   │                              │                              │                      ├─ consume GC reservation
-   │                              │                              │                      ├─ increment coupon usage
-   │                              │                              │                      └─ log events
-```
+**Alterar** `supabase/functions/detect-abandoned-carts/index.ts`:
+- Copiar `customer_phone`, `device_type`, `referrer` da sessão para o registo abandonado
+- Gerar `recovery_token` (UUID) com `recovery_token_expires_at` (7 dias)
+- Logging `[STORE-ABANDONED]`
 
-### Compatibilidade frontend
+---
 
-- O frontend continua a enviar o mesmo payload + `couponCode` (já usado para preview)
-- Resposta mantém `{ url }` ou `{ success: true, paidWithGiftCard: true }`
-- Se cupão inválido: `{ error: "Cupão expirado" }` com status 400
-- Success/cancel pages inalteradas
+### FASE B — Página de recuperação da loja
 
-### Riscos e mitigações
+**Criar** `src/pages/store/StoreRecoverCartPage.tsx`:
+- Recebe `:workspaceSlug` e `:token` dos params
+- Consulta `store_abandoned_carts` pelo `recovery_token` (via edge function para segurança)
+- Valida expiração
+- Mostra itens do carrinho, subtotal, aviso se produtos indisponíveis
+- Botão "Continuar Compra" → restaura carrinho via zustand store e redireciona para checkout
+- Se token inválido/expirado → mensagem clara
 
-| Risco | Mitigação |
-|---|---|
-| Gift card reservation expira mas webhook chega tarde | `expires_at = now() + 2h` (Stripe sessions expiram em 24h, mas usamos 2h com fallback no webhook) |
-| Webhook duplicado | `stripe_event_log` com `UNIQUE(stripe_event_id)` |
-| Cupão usado entre validação e pagamento | Incremento de `used_count` apenas no webhook, não no checkout |
-| `store_orders.total` diverge do Stripe | Total calculado por `store-pricing.ts`, mesmo valor enviado ao Stripe |
+**Criar** `supabase/functions/store-recover-cart/index.ts`:
+- Recebe `token` + `workspaceSlug`
+- Valida token, expiração, workspace
+- Retorna items, subtotal, workspace_id
+- Regista evento `recovery_link_opened` em `store_automation_events`
+- Nunca expõe dados de outro workspace
+
+**Adicionar rota** em `src/routes/StoreRoutes.tsx`:
+- `<Route path=":workspaceSlug/recover/:token" element={<StoreRecoverCartPage />} />`
+
+---
+
+### FASE C — Restore do carrinho
+
+Dentro de `StoreRecoverCartPage`:
+- Valida cada produto contra a DB (via dados retornados pela edge function)
+- Produtos inativos/sem stock → aviso visual, não adiciona
+- Produtos válidos → `addItem` no zustand store
+- Regista `cart_restored` em `store_automation_events`
+- Redireciona para `/store/:workspaceSlug/checkout`
+
+---
+
+### FASE D — Ações no painel `StoreCartsTab`
+
+**Alterar** `src/components/store/StoreCartsTab.tsx`:
+
+Adicionar por cada carrinho abandonado:
+1. **Gerar/copiar link** — gera token se não existir, copia URL
+2. **Marcar contactado** — atualiza `recovery_status`, `contacted_at`, `contact_channel`
+3. **Marcar recuperado** — manual override
+4. **Marcar expirado** — manual override
+5. **Ver detalhe** — abre drawer/dialog
+
+Usar `DropdownMenu` com ações no card existente (sem destruir layout).
+
+---
+
+### FASE E — Detalhe do carrinho abandonado
+
+**Criar** `src/components/store/StoreAbandonedCartDetail.tsx`:
+
+Dialog/Sheet com:
+- Dados do visitante (nome, email, telefone)
+- Itens com quantidades e preços
+- Subtotal
+- Device type, referrer
+- Recovery status + timeline
+- Link de recuperação (com botão copiar)
+- Encomenda recuperada (se existir, com link)
+
+---
+
+### FASE F — Associação à encomenda recuperada
+
+**Alterar** `supabase/functions/create-store-checkout/index.ts`:
+- Aceitar `abandonedCartId` opcional no payload
+- Gravar em `store_orders.abandoned_cart_id`
+- Incluir no metadata do Stripe session
+
+**Alterar** `supabase/functions/store-webhook/index.ts` (bloco store):
+- Quando `metadata.abandoned_cart_id` existe:
+  - Atualizar `store_abandoned_carts`: `recovery_status='recovered'`, `recovered_at`, `recovered_value`, `recovered_order_id`
+
+**Alterar** `StoreCheckoutPage.tsx`:
+- Ler `?recover=<token>` do URL
+- Se presente, enviar `abandonedCartId` no payload do checkout
+
+---
+
+### FASE G — Automação V1
+
+**Alterar** `supabase/functions/detect-abandoned-carts/index.ts`:
+- Após criar registo abandonado com token, emitir evento `recovery_link_created` em `store_automation_events` com payload preparado (email, phone, recovery_url)
+- Isto fica pronto para futura integração com email/WhatsApp campaigns
+
+---
+
+### FASE H — Tracking e métricas
+
+Eventos registados em `store_automation_events`:
+- `abandoned_cart_created` — na deteção
+- `recovery_link_created` — na deteção (com token)
+- `recovery_link_opened` — na edge function de recover
+- `cart_restored` — na página de recuperação
+- `abandoned_cart_recovered` — no webhook (pagamento confirmado)
+- `abandoned_cart_marked_contacted` — no painel (manual)
+- `abandoned_cart_expired` — no job de expiração existente
+
+---
+
+### Ficheiros a criar (3)
+1. `src/pages/store/StoreRecoverCartPage.tsx`
+2. `src/components/store/StoreAbandonedCartDetail.tsx`
+3. `supabase/functions/store-recover-cart/index.ts`
+
+### Ficheiros a alterar (6)
+1. `src/components/store/StoreCartsTab.tsx` — ações por carrinho
+2. `src/routes/StoreRoutes.tsx` — nova rota recover
+3. `src/pages/store/StoreCheckoutPage.tsx` — ler `?recover=` e enviar `abandonedCartId`
+4. `supabase/functions/detect-abandoned-carts/index.ts` — copiar phone/device, gerar token
+5. `supabase/functions/create-store-checkout/index.ts` — aceitar `abandonedCartId`
+6. `supabase/functions/store-webhook/index.ts` — marcar recovered com `abandoned_cart_id`
+
+### Migrations (1)
+- Novos campos em `store_abandoned_carts` + `abandoned_cart_id` em `store_orders` + índice
+
+### Compatibilidade
+- `RecoverCartPage` existente (checkout funnels) permanece intacta
+- `checkout_abandoned_carts` não é afetada
+- Layout do `StoreCartsTab` mantido, apenas adicionadas ações
+- Build funcional validado no final
 
