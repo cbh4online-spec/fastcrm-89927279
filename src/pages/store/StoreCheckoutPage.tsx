@@ -597,7 +597,7 @@ export default function StoreCheckoutPage() {
                     <StoreGiftCardBalance
                       workspaceId={wsSlug}
                       appliedGiftCard={appliedGiftCard}
-                      onApply={setAppliedGiftCard}
+                      onApply={(gc) => { setAppliedGiftCard(gc); trackEvent("apply_gift_card", { workspaceSlug: wsSlug, giftCardCode: gc?.code }); }}
                       onRemove={() => setAppliedGiftCard(null)}
                     />
                   </div>

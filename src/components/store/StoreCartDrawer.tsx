@@ -116,7 +116,7 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-xl font-bold">€{subtotal.toFixed(2)}</span>
+                <span className="text-xl font-bold">€{formatMoney(subtotal)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Impostos e portes calculados no checkout
