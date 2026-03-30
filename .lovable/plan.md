@@ -1,72 +1,48 @@
 
 
-# Geração de Imagens não respeita configuração por tipo de página
+# Eliminar highlights ao clicar num highlight existente
 
 ## Diagnóstico
 
-O loop de geração de imagens no `EbookWizard.tsx` (linhas 273-305) tem três problemas:
-
-1. **Gera imagens para TODOS os capítulos** — incluindo páginas estruturais (Copyright, Disclaimer, TOC, etc.) que não devem ter imagens geradas
-2. **Usa apenas `imageLayout.chapter`** para tudo — ignora completamente as configurações de `content`, `cta` e `cover` definidas pelo utilizador
-3. **Não respeita `count: 0`** por tipo — se o utilizador definir "Nenhuma" imagem para conteúdo, continua a gerar
-
-Adicionalmente, as opções de configuração são limitadas: faltam presets de aspecto, opção de estilo por tipo de página, e preview visual do que será gerado.
+Os highlights são renderizados como `<mark>` no HTML via `applyHighlightsToHtml`, mas não têm handler de clique. Não existe forma de eliminar um highlight individual directamente na página — apenas via painel de notas lateral.
 
 ## Plano
 
-### 1. Corrigir loop de geração de imagens (`EbookWizard.tsx`)
+### 1. Adicionar `data-highlight-id` aos `<mark>` gerados
 
-Separar a geração por tipo de página:
+Em `FlipbookPage.tsx`, alterar `applyHighlightsToHtml` e `applyHighlightsToText` para aceitar o `noteId` em cada `HighlightMark` e inserir `data-highlight-id="{id}"` no `<mark>`. Também adicionar `cursor:pointer` ao estilo inline.
 
-- **Classificar cada capítulo** como `cover`, `chapter`, `content` ou `cta` com base no `layout_key`
-- **Para cada tipo**, usar a configuração correspondente de `imageLayout` (count, size, position)
-- **Saltar** capítulos estruturais sem imagem (copyright, disclaimer, TOC, etc.)
-- **Gerar múltiplas imagens** se `count > 1` para um tipo
-- **Ajustar o prompt** de IA com hints de size/position correcto por tipo
+Actualizar `HighlightMark` para incluir `id?: string`.
 
-Mapeamento `layout_key` → tipo de imagem:
-- `cover_hero_image`, `cover_split` → `cover`
-- `chapter_intro_large`, `chapter_intro_minimal` → `chapter`
-- `rich_text`, `text_image_split`, `three_column_highlights` → `content`
-- `cta_page`, `author_section`, `thank_you_page` → `cta`
-- Restantes (copyright, disclaimer, TOC, welcome, quote, stats, testimonial, timeline) → sem imagem
+### 2. Construir `highlightsMap` com `id` do note
 
-### 2. Enriquecer opções do `EbookImageLayoutConfig`
+Em `FlipbookReader.tsx`, ao construir o `highlightsMap`, incluir o `note.id` em cada entrada para que o `<mark>` saiba que nota eliminar.
 
-Adicionar ao painel de configuração por tipo de página:
+### 3. Adicionar handler de clique nos `<mark>` (FlipbookPage)
 
-- **Estilo de aspecto visual** — presets rápidos: "Paisagem 16:9", "Retrato 3:4", "Quadrado 1:1", "Banner largo"
-- **Opção de prompt personalizado** por tipo — campo de texto opcional para instruções específicas (ex: "usar tons azuis para capítulos")
-- **Contagem até 3** (actualmente max 2) para páginas de conteúdo
-- **Preview visual** compacto do layout (mini-diagrama mostrando posição da imagem na página)
-- **Toggle "Imagem de fundo"** — para capas e CTAs, opção de usar imagem como fundo vs. inserida
+No `onClick` do `ebook-html-content` div (já existente para links), detectar cliques em `<mark class="highlight-mark">`:
+- Extrair `data-highlight-id`
+- Chamar novo callback `onHighlightClick(highlightId, rect)` passado via props
 
-### 3. Actualizar cálculo de créditos
+### 4. Criar mini-popover de confirmação de eliminação
 
-O custo estimado de imagens deve reflectir a configuração real:
-- Somar `imageLayout[tipo].count` × número de capítulos desse tipo
-- Mostrar breakdown no resumo de custos
+Novo componente inline ou reutilizar padrão existente — popover compacto posicionado junto ao highlight clicado com:
+- Texto do highlight (preview)
+- Nota associada (se existir)
+- Botão "Eliminar" (vermelho)
+- Botão "Cancelar"
 
-### 4. Integrar imagens geradas nas páginas estruturais
+### 5. Propagar o callback até ao FlipbookReader
 
-Para capas e CTAs com imagens geradas:
-- Inserir a URL da imagem no HTML estrutural (o template já tem placeholders visuais)
-- Usar `imagePosition` para ajustar layout (fundo vs. inline)
+- `FlipbookPage` recebe `onHighlightClick?: (id: string, position: {x:number,y:number}) => void`
+- `PageWrapper` no `PageFlip.tsx` propaga esta prop
+- `FlipbookReader` mostra o popover de confirmação e chama `deleteNote.mutate(id)` ao confirmar
 
 ## Ficheiros a alterar
 
-| Ficheiro | Acção |
+| Ficheiro | Alteração |
 |---|---|
-| `src/components/ebooks/EbookWizard.tsx` | Refactorizar loop de imagens para respeitar config por tipo; corrigir cálculo de créditos |
-| `src/components/ebooks/EbookImageLayoutConfig.tsx` | Adicionar presets de aspecto, prompt personalizado, preview mini-layout, toggle fundo, count até 3 |
-| `src/components/ebooks/utils/templateToChapters.ts` | Adicionar helper `getPageImageType()` para classificar layout_key → tipo de imagem |
-
-## Critérios de Aceitação
-
-- Imagens geradas apenas para tipos de página com `count > 0`
-- Size/position correctos por tipo (cover usa config cover, content usa config content)
-- Páginas estruturais sem imagem (copyright, disclaimer, etc.) não gastam créditos
-- Custo estimado reflecte configuração real
-- UI oferece mais controlo: aspecto, prompt custom, preview visual
-- Configuração "Sem imagem" (count=0) é respeitada por tipo
+| `src/components/ebooks/FlipbookPage.tsx` | Adicionar `id` ao `HighlightMark`, `data-highlight-id` nos `<mark>`, callback `onHighlightClick` |
+| `src/components/ebooks/FlipbookReader.tsx` | Incluir `id` no `highlightsMap`, handler + popover de eliminação |
+| `src/components/ebooks/PageFlip.tsx` | Propagar `onHighlightClick` via `PageWrapper` |
 
