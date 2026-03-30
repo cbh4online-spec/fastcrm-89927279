@@ -19,6 +19,7 @@ const CEOCopilotPage = lazy(() => import("@/pages/CEOCopilotPage"));
 const KnowledgeBase = lazy(() => import("@/pages/KnowledgeBase"));
 const AISuggestionsPage = lazy(() => import("@/pages/AISuggestionsPage"));
 const AgentOperationsPage = lazy(() => import("@/pages/AgentOperationsPage"));
+const OptimizationCenterPage = lazy(() => import("@/pages/OptimizationCenterPage"));
 
 export function AIRoutes() {
   return (

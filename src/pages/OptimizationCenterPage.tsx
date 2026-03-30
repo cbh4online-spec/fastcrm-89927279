@@ -70,7 +70,7 @@ export default function OptimizationCenterPage() {
     <div className="space-y-6">
       <PageHeader
         title="Centro de Otimização"
-        subtitle="Recomendações automáticas para melhorar a performance de templates e sequências"
+        description="Recomendações automáticas para melhorar a performance de templates e sequências"
         icon={<Zap className="h-6 w-6 text-primary" />}
       />
 
