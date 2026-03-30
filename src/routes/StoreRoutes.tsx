@@ -14,6 +14,7 @@ const StoreLoyaltyPage = lazy(() => import("@/pages/store/StoreLoyaltyPage"));
 const StoreReferralPage = lazy(() => import("@/pages/store/StoreReferralPage"));
 const StoreGiftCardsPage = lazy(() => import("@/pages/store/StoreGiftCardsPage"));
 const StoreRecoverCartPage = lazy(() => import("@/pages/store/StoreRecoverCartPage"));
+const StoreSellerPage = lazy(() => import("@/pages/store/StoreSellerPage"));
 
 export function StoreRoutes() {
   return (
