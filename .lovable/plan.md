@@ -1,143 +1,148 @@
 
 
-## Enterprise Memory & Learning Layer — Plano de Execução
+## Enterprise Simulation & Forecast Layer — Plano de Execução
 
 ### Diagnóstico
 
 **Infraestrutura existente reutilizada:**
-- `kernel_events` — matéria-prima para extração de memórias
-- `action_executions` — outcomes de ações para correlacionar com memórias
-- `business_objectives` + `objective_action_links` — resultados por objetivo
-- `agent_work_items` + `agent_handoffs` — performance por agente
-- `workspace_operating_state` + `workspace_missions` — contexto operacional
-- `next_best_actions` + `optimization_recommendations` — consumidores de memória
-- `process-workspace-engine` — pode invocar extração de memória
-- `emitKernelEvent` — padrão de eventos consolidado
+- `revenue_forecasts` + `compute-revenue-forecast` — forecast de receita com best/expected/worst case
+- `revenue_scenarios` + `run-revenue-scenario` — cenários what-if já funcionais (deals, conversão, reativação)
+- `revenue_forecast_snapshots` + `revenue_targets` — snapshots de pipeline e metas
+- `deal_probability_scores` — scoring probabilístico por deal
+- `demand_forecast` — forecast de procura por produto
+- `RFCScenariosPage` — UI de simulação com sliders e presets
+- `business_context` — metas mensais/trimestrais/anuais, average_ticket, sales_cycle_days
+- `workspace_operating_state` — health scores por área
+- `workspace_memories` — padrões históricos reutilizáveis
+- `kernel_events` + `emitKernelEvent` — barramento de eventos
 
-**Nada disto existe ainda** — sistema de memória totalmente novo.
+**O que já existe vs o que falta:**
+- Já existe cenário what-if revenue-focused → falta cenários operacionais (follow-up, canal, agentes, backlog)
+- Já existe forecast de receita → falta forecast de pipeline coverage, execution capacity, risk_of_miss
+- Já existe `revenue_scenarios` → falta modelo genérico `simulation_scenarios` com comparação lado a lado
+- Falta `forecast_models`, `forecast_runs`, `forecast_settings` como schema formal
+- Falta Forecast Center UI unificada
+- Falta integração com Workspace Ops e Objectives
 
 ---
 
 ### Migration SQL (1 migration, 4 tabelas)
 
-**`workspace_memories`:**
+**`forecast_models`:**
 - `id` UUID PK, `workspace_id` UUID NOT NULL
-- `memory_type` TEXT NOT NULL (success_pattern, failure_pattern, execution_lesson, routing_lesson, conversion_pattern, recovery_pattern, context_gap_pattern, agent_performance_pattern)
-- `title` TEXT NOT NULL, `summary` TEXT
-- `source_type` TEXT, `source_id` TEXT, `entity_type` TEXT, `entity_id` TEXT
-- `context_snapshot_json` JSONB DEFAULT '{}', `outcome_snapshot_json` JSONB DEFAULT '{}'
-- `confidence` NUMERIC(3,2) DEFAULT 0.5, `importance_score` INT DEFAULT 50, `freshness_score` INT DEFAULT 100
-- `validity_status` TEXT DEFAULT 'valid' (valid, aging, stale, contradicted, archived)
-- `reuse_count` INT DEFAULT 0, `last_used_at` TIMESTAMPTZ
+- `model_type` TEXT NOT NULL (baseline, trend, target_gap)
+- `name` TEXT NOT NULL, `description` TEXT
+- `config_json` JSONB DEFAULT '{}'
+- `is_active` BOOLEAN DEFAULT true
 - `created_at`, `updated_at`
-- Index: `(workspace_id, memory_type, validity_status)`
 
-**`workspace_memory_links`:**
-- `id` UUID PK, `workspace_id`, `memory_id` UUID FK → workspace_memories
-- `linked_type` TEXT NOT NULL, `linked_id` UUID NOT NULL, `created_at`
-
-**`workspace_learning_cycles`:**
-- `id` UUID PK, `workspace_id`
-- `cycle_type` TEXT NOT NULL (daily, weekly, event_triggered)
-- `status` TEXT DEFAULT 'pending' (pending, running, completed, failed)
-- `summary` TEXT
-- `memories_created` INT DEFAULT 0, `memories_updated` INT DEFAULT 0
-- `started_at`, `completed_at`, `created_at`, `updated_at`
-
-**`memory_usage_logs`:**
-- `id` UUID PK, `workspace_id`, `memory_id` UUID FK
-- `used_by_type` TEXT, `used_by_id` TEXT
-- `outcome_type` TEXT, `outcome_id` TEXT, `outcome_quality` TEXT (positive, neutral, negative)
+**`forecast_runs`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL
+- `model_id` UUID FK → forecast_models (nullable)
+- `scenario_id` UUID (nullable), `run_type` TEXT DEFAULT 'baseline'
+- `input_snapshot_json` JSONB DEFAULT '{}', `output_snapshot_json` JSONB DEFAULT '{}'
+- `assumptions_json` JSONB DEFAULT '[]'
+- `confidence` NUMERIC(3,2) DEFAULT 0.5
 - `created_at`
 
-**`memory_settings`:**
+**`simulation_scenarios`:**
+- `id` UUID PK, `workspace_id` UUID NOT NULL
+- `title` TEXT NOT NULL, `description` TEXT
+- `scenario_type` TEXT NOT NULL (follow_up_boost, channel_switch, sla_reduction, recovery_boost, agent_swap, auto_execution, backlog_reduction, meeting_boost, custom)
+- `status` TEXT DEFAULT 'draft' (draft, simulated, applied, archived)
+- `inputs_json` JSONB DEFAULT '{}', `outputs_json` JSONB DEFAULT '{}'
+- `delta_json` JSONB DEFAULT '{}'
+- `assumptions` JSONB DEFAULT '[]'
+- `confidence` NUMERIC(3,2) DEFAULT 0.5
+- `created_by` UUID, `created_at`, `updated_at`
+
+**`forecast_settings`:**
 - `id` UUID PK, `workspace_id` UNIQUE
 - `is_enabled` BOOLEAN DEFAULT false
-- `auto_extract_enabled` BOOLEAN DEFAULT false
-- `min_confidence_threshold` NUMERIC(3,2) DEFAULT 0.3
-- `max_memories_per_query` INT DEFAULT 5
-- `memory_decay_days` INT DEFAULT 90
-- `financial_weight_multiplier` NUMERIC(3,2) DEFAULT 1.5
+- `default_horizon_days` INT DEFAULT 30
+- `default_model_type` TEXT DEFAULT 'baseline'
+- `confidence_threshold` NUMERIC(3,2) DEFAULT 0.3
+- `allow_memory_boost` BOOLEAN DEFAULT true
 - `created_at`, `updated_at`
 
-RLS: workspace members SELECT; service_role INSERT/UPDATE/DELETE. Realtime on `workspace_memories`.
+RLS: workspace members SELECT; service_role INSERT/UPDATE.
 
 ---
 
 ### Ficheiros a criar (4)
 
-#### 1. `supabase/functions/process-workspace-memory/index.ts`
+#### 1. `supabase/functions/run-forecast-simulation/index.ts`
 Edge function central que:
-1. Recebe `{ workspace_id }` ou `{ workspace_id, event_type_filter }`
-2. Lê últimos kernel events (24h ou desde último ciclo)
-3. Agrupa eventos por entidade e tipo (TASK.*, ACTION.*, AGENT.*, OBJECTIVE.*)
-4. Usa Gemini Flash para extrair padrões: o que funcionou, o que falhou, lições
-5. Cria/atualiza `workspace_memories` — se padrão semelhante existe, reforça `confidence` e `reuse_count`
-6. Aplica decay: memórias com `updated_at` > `memory_decay_days` passam a `aging` → `stale`
-7. Regista ciclo em `workspace_learning_cycles`
-8. Emite `MEMORY.CREATED` / `MEMORY.UPDATED` / `LEARNING.CYCLE_COMPLETED`
+1. Recebe `{ workspace_id, scenario_type?, inputs? }` 
+2. Recolhe sinais: business_context (metas, average_ticket, sales_cycle_days), pipeline atual (opportunities count/value by stage), action_executions (throughput), agent_work_items (backlog), workspace_operating_state (health scores)
+3. Calcula baseline forecast: `forecast_revenue_30d/90d`, `forecast_deals_30d`, `pipeline_coverage`, `execution_capacity_score`, `risk_of_miss_target`
+4. Se `scenario_type` presente, aplica modificadores operacionais (ex: `follow_up_boost` → +15% conversion, `recovery_boost` → +X€ recovered, `backlog_reduction` → +20% execution capacity)
+5. Calcula deltas vs baseline
+6. Persiste em `forecast_runs` + `simulation_scenarios`
+7. Emite `FORECAST.RUN_CREATED` / `FORECAST.SCENARIO_CREATED`
+8. Devolve output com assumptions explícitas
 
-#### 2. `src/hooks/useWorkspaceMemory.ts`
-- `useWorkspaceMemories(filters?)` — lista com type/validity filter + realtime
-- `useMemoryStats()` — KPIs: total, by type, avg confidence, top patterns
-- `useMemorySettings()` — read/upsert settings
-- `useTriggerLearningCycle()` — invoca `process-workspace-memory`
-- `useLearningCycles()` — lista ciclos com status
-- `useLogMemoryUsage()` — mutation para registar uso + feedback
+#### 2. `src/hooks/useForecastSimulation.ts`
+- `useBaselineForecast()` — último forecast_run tipo baseline
+- `useSimulationScenarios(filters?)` — lista cenários com status filter
+- `useRunSimulation()` — invoca `run-forecast-simulation`
+- `useForecastSettings()` — read/upsert settings
+- `useCompareScenarios(ids[])` — lê 2-3 cenários para comparação side-by-side
+- `useForecastStats()` — KPIs: risk_of_miss, pipeline_coverage, execution_capacity
 
-#### 3. `src/pages/MemoryCenterPage.tsx`
-Rota: `/dashboard/memory`
-- KPIs: memórias ativas, confiança média, padrões de sucesso vs falha, ciclos completados
-- Lista filtrada por: tipo, validity, importance, recency
-- Cada memória: título, summary, type badge, confidence bar, freshness, reuse count, validity status
-- Secção "Padrões de Sucesso" (top 5 por confidence + importance)
-- Secção "Padrões de Falha" (top 5 failure_pattern)
-- Secção "Lições Recentes" (últimas 10 criadas)
-- Botão "Iniciar Ciclo de Aprendizagem"
-- Settings panel (toggles auto_extract, decay days, confidence threshold)
+#### 3. `src/pages/ForecastCenterPage.tsx`
+Rota: `/dashboard/forecast`
+- **Baseline Panel**: forecast_revenue_30d/90d, pipeline_coverage, execution_capacity, risk_of_miss com gauge
+- **Target Gap**: barra visual meta vs baseline vs best scenario
+- **Scenario Builder**: dropdown scenario_type + sliders de inputs (intensidade 0-100%) + botão simular
+- **Scenario Cards**: últimos cenários com delta revenue, delta deals, confidence, assumptions collapsible
+- **Comparison View**: selecionar 2 cenários → tabela side-by-side (revenue, deals, conversion, workload, risk)
+- **Assumptions Panel**: cada número mostra de onde vem e que variáveis foram usadas
+- **Settings**: toggles + horizon + confidence threshold
 
-#### 4. `src/components/workspace-ops/WorkspaceLearningBrief.tsx`
-Componente integrado na MemoryCenterPage:
-- "O que aprendemos este mês" — memórias criadas no período
-- "Padrões que ganharam força" — confidence subiu
-- "Padrões obsoletos" — validity = stale/contradicted
-- "Alta confiança" — top por confidence
-- "Baixa confiança" — áreas onde o sistema ainda opera com pouca evidência
+#### 4. `src/components/forecast/ScenarioComparisonTable.tsx`
+Componente reutilizável de comparação:
+- Colunas: Baseline | Cenário A | Cenário B
+- Linhas: Revenue 30d, Revenue 90d, Deals, Conversion Rate, Pipeline Coverage, Execution Capacity, Risk, Confidence
+- Deltas coloridos (verde/vermelho)
+- Badge de cenário recomendado (maior revenue delta + menor risk)
 
 ---
 
 ### Ficheiros a alterar (1)
 
 #### 5. `src/routes/AIRoutes.tsx`
-- Adicionar lazy import + rota: `/dashboard/memory` → `MemoryCenterPage`
+- Adicionar lazy import + rota: `/dashboard/forecast` → `ForecastCenterPage`
 
 ---
 
 ### Fluxo
 
 ```text
-Kernel Events (contínuo)
+run-forecast-simulation (manual ou periódico)
   │
-  └─ process-workspace-memory (periódico ou manual)
-      ├─ Lê eventos 24h
-      ├─ Agrupa por entidade/tipo
-      ├─ Gemini Flash extrai padrões
-      ├─ Cria/reforça workspace_memories
-      ├─ Aplica decay a memórias antigas
-      ├─ Regista learning_cycle
-      └─ Emite MEMORY.* events
+  ├─ Recolhe sinais (business_context, pipeline, executions, health)
+  ├─ Calcula baseline forecast
+  ├─ Se cenário: aplica modificadores operacionais
+  ├─ Calcula deltas vs baseline
+  ├─ Persiste forecast_runs + simulation_scenarios
+  ├─ Emite FORECAST.* events
+  └─ Devolve output + assumptions
 
-Consumidores (future integration points):
-  ├─ Command Center → retrieve memories por query
-  ├─ NBA/Optimization → boost actions com memory support
-  ├─ Agent Router → prefer agents com success patterns
-  └─ Objective Planning → avoid failed strategies
+ForecastCenterPage (UI)
+  │
+  ├─ Baseline forecast (gauge + KPIs)
+  ├─ Target gap visual
+  ├─ Scenario builder (tipo + sliders)
+  ├─ Scenario cards com deltas
+  ├─ Comparison table (side-by-side)
+  └─ Settings
 ```
 
 ### Compatibilidade
-- Reutiliza `kernel_events` como fonte — sem alterar tabelas existentes
-- Reutiliza `emitKernelEvent` para eventos `MEMORY.*`
-- Não duplica centros de controlo — vive em `/dashboard/memory`
-- Memory retrieval preparado para integração futura com Command Center e NBA
-- Decay automático evita acumulação de memórias obsoletas
+- Coexiste com `revenue_scenarios` e `run-revenue-scenario` existentes (deal-level)
+- Este layer é operacional (follow-up, agentes, backlog) vs o existente que é deal-level
+- Reutiliza `business_context` para metas e `workspace_operating_state` para health inputs
+- Reutiliza `emitKernelEvent` para eventos `FORECAST.*`
+- Não altera tabelas existentes
 
