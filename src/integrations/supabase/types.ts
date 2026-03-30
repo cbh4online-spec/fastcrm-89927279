@@ -11827,28 +11827,37 @@ export type Database = {
       client_ticket_messages: {
         Row: {
           attachments: Json | null
+          content_type: string | null
           created_at: string
           id: string
+          is_internal_note: boolean | null
           message: string
           sender_id: string | null
+          sender_name: string | null
           sender_type: string
           ticket_id: string
         }
         Insert: {
           attachments?: Json | null
+          content_type?: string | null
           created_at?: string
           id?: string
+          is_internal_note?: boolean | null
           message: string
           sender_id?: string | null
+          sender_name?: string | null
           sender_type?: string
           ticket_id: string
         }
         Update: {
           attachments?: Json | null
+          content_type?: string | null
           created_at?: string
           id?: string
+          is_internal_note?: boolean | null
           message?: string
           sender_id?: string | null
+          sender_name?: string | null
           sender_type?: string
           ticket_id?: string
         }
@@ -11864,49 +11873,73 @@ export type Database = {
       }
       client_tickets: {
         Row: {
+          assigned_to: string | null
           client_user_id: string
           closed_at: string | null
           company_id: string | null
           created_at: string
           description: string | null
+          first_response_at: string | null
           id: string
           priority: Database["public"]["Enums"]["ticket_priority"]
           resolved_at: string | null
+          satisfaction_comment: string | null
+          satisfaction_rating: number | null
+          sla_breached: boolean | null
           sla_deadline: string | null
+          source: string | null
           status: Database["public"]["Enums"]["ticket_status"]
           subject: string
+          tags: string[] | null
+          ticket_number: string | null
           type: Database["public"]["Enums"]["ticket_type"]
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          assigned_to?: string | null
           client_user_id: string
           closed_at?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null
+          first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
           resolved_at?: string | null
+          satisfaction_comment?: string | null
+          satisfaction_rating?: number | null
+          sla_breached?: boolean | null
           sla_deadline?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject: string
+          tags?: string[] | null
+          ticket_number?: string | null
           type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          assigned_to?: string | null
           client_user_id?: string
           closed_at?: string | null
           company_id?: string | null
           created_at?: string
           description?: string | null
+          first_response_at?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"]
           resolved_at?: string | null
+          satisfaction_comment?: string | null
+          satisfaction_rating?: number | null
+          sla_breached?: boolean | null
           sla_deadline?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["ticket_status"]
           subject?: string
+          tags?: string[] | null
+          ticket_number?: string | null
           type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
           workspace_id?: string
@@ -46715,6 +46748,91 @@ export type Database = {
           },
           {
             foreignKeyName: "templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_canned_responses: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          id: string
+          shortcut: string | null
+          title: string
+          usage_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          shortcut?: string | null
+          title: string
+          usage_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          shortcut?: string | null
+          title?: string
+          usage_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_canned_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_sla_rules: {
+        Row: {
+          created_at: string | null
+          escalate_to: string | null
+          escalation_after_hours: number | null
+          first_response_hours: number
+          id: string
+          is_active: boolean | null
+          priority: string
+          resolution_hours: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          escalate_to?: string | null
+          escalation_after_hours?: number | null
+          first_response_hours?: number
+          id?: string
+          is_active?: boolean | null
+          priority: string
+          resolution_hours?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          escalate_to?: string | null
+          escalation_after_hours?: number | null
+          first_response_hours?: number
+          id?: string
+          is_active?: boolean | null
+          priority?: string
+          resolution_hours?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_sla_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
