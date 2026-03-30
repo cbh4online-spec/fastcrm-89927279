@@ -246,6 +246,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("helpdesk",               "Dashboard Suporte",    "/dashboard/helpdesk",                   Headphones,  "suporte", { moduleSlug: "helpdesk" }),
   e("helpdesk-tickets",       "Tickets",              "/dashboard/helpdesk/tickets",            Headphones,  "suporte", { moduleSlug: "helpdesk" }),
   e("helpdesk-canned",        "Respostas Rápidas",    "/dashboard/helpdesk/canned-responses",   Zap,         "suporte", { moduleSlug: "helpdesk" }),
+  e("helpdesk-sla",            "Políticas SLA",        "/dashboard/helpdesk/sla-policies",       Clock,       "suporte", { moduleSlug: "helpdesk", isBeta: true }),
+  e("helpdesk-kb",             "Base de Conhecimento", "/dashboard/helpdesk/knowledge-base",     BookOpen,    "suporte", { moduleSlug: "helpdesk", isBeta: true }),
 
   // ══════════════════════════════════════════════════════════════
   // RH (Recursos Humanos)

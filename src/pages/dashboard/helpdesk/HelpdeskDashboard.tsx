@@ -14,9 +14,8 @@ import {
   AgentWorkloadChart,
 } from "@/components/helpdesk/HelpdeskCharts";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
 import { useMemo } from "react";
+import TimeAgo from "react-timeago";
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Aberto",
@@ -329,7 +328,7 @@ export default function HelpdeskDashboard() {
                     {ticket.priority}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground shrink-0">
-                    {format(new Date(ticket.created_at), "dd MMM", { locale: pt })}
+                    <TimeAgo date={ticket.created_at} />
                   </span>
                 </div>
               ))}
