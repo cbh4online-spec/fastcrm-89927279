@@ -1,55 +1,38 @@
 
 
-# Fix: Conteúdo do editor não carrega na montagem inicial
+# Melhorar indicador visual dos highlights com animação e tooltip
 
-## Diagnóstico
+## Alterações
 
-O bug está no `EbookRichEditor.tsx`. O `lastValueRef` é inicializado com o valor da prop `value` (linha 70):
+### 1. Adicionar `note` ao `HighlightMark` (`FlipbookPage.tsx`)
+- Estender interface: `note?: string`
+- Nas funções `applyHighlightsToHtml` e `applyHighlightsToText`:
+  - Adicionar `title` dinâmico: se `hl.note` existe, mostrar a nota; senão, "Sublinhado"
+  - Adicionar classe CSS `highlight-mark` ao `<mark>` para animação
+  - Adicionar `data-note` attribute para acessibilidade
 
-```
-const lastValueRef = useRef(value);
-```
+### 2. Propagar nota no `highlightsMap` (`FlipbookReader.tsx`)
+- Incluir `note: note.content || ""` no objecto pushed para o mapa (linha 259)
 
-O `useEffect` de sincronização (linhas 142-150) usa a condição:
+### 3. Animação CSS (`index.css` ou inline)
+- Adicionar keyframe `highlight-fade-in` (opacidade 0→1 + ligeiro scale)
+- Estilo `.highlight-mark`: `animation: highlight-fade-in 0.4s ease-out`
+- Cursor pointer no hover quando há nota, com transição de opacidade no background
 
-```
-if (lastValueRef.current !== value && editorRef.current.innerHTML !== htmlValue)
-```
-
-Na **montagem inicial**, `lastValueRef.current === value` (ambos são o conteúdo do capítulo), logo a condição é `false` e o `innerHTML` do `contentEditable` **nunca é preenchido**. O editor monta sempre vazio.
-
-## Correcção
-
-Alterar a inicialização de `lastValueRef` para um valor sentinela que nunca coincida com conteúdo real, garantindo que o primeiro `useEffect` preencha o editor:
-
-**`src/components/ebooks/EbookRichEditor.tsx`** — 1 linha:
-
-- Linha 70: mudar `useRef(value)` para `useRef<string>("")` (ou um sentinela como `__INIT__`)
-- Isto garante que na primeira execução do `useEffect`, `lastValueRef.current !== value` é `true`, e o `innerHTML` é preenchido com o conteúdo convertido
-
-Alternativamente, simplificar a condição do `useEffect` para:
-
-```typescript
-if (editorRef.current && !isFocusedRef.current) {
-  const htmlValue = markdownToHtml(value);
-  if (editorRef.current.innerHTML !== htmlValue) {
-    editorRef.current.innerHTML = htmlValue || '';
-    lastValueRef.current = value;
-  }
-}
-```
-
-Esta segunda opção é mais robusta porque sincroniza sempre que o conteúdo difere, independentemente do `lastValueRef`.
+### 4. Tooltip nativo melhorado
+- Usar atributo `title` com o texto da nota — funciona em todos os browsers sem dependências extra
+- Alternativa: se quisermos tooltip styled, wrapping o `<mark>` num `<span>` com CSS `::after` pseudo-element (leve, sem JS extra)
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/ebooks/EbookRichEditor.tsx` | Fix na inicialização do `lastValueRef` e/ou condição do `useEffect` |
+| `FlipbookPage.tsx` | Estender `HighlightMark`, actualizar funções de highlight com classe + title dinâmico |
+| `FlipbookReader.tsx` | Passar `note` no `highlightsMap` |
+| `src/index.css` | Adicionar keyframe `highlight-fade-in` e estilos `.highlight-mark` |
 
 ## Critérios de aceitação
-
-- Ao seleccionar um capítulo com conteúdo, o texto aparece imediatamente no editor
-- Editar texto funciona normalmente (sem resets, sem perda de conteúdo)
-- Trocar entre capítulos carrega o conteúdo correcto de cada um
+- Highlights aparecem com animação fade-in suave ao carregar a página
+- Tooltip mostra a nota associada ao passar o cursor (ou "Sublinhado" se sem nota)
+- Animação não interfere com performance nem navegação do flipbook
 
