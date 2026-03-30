@@ -75,11 +75,7 @@ function KanbanColumn({
         </div>
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <DollarSign className="w-3.5 h-3.5" />
-          {totalValue.toLocaleString("pt-PT", {
-            style: "currency",
-            currency: "EUR",
-            minimumFractionDigits: 0,
-          })}
+          {formatEUR(totalValue)}
         </div>
       </div>
 
