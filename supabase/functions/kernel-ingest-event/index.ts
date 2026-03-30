@@ -396,6 +396,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── LEDGER: incremental link insertion ───
+    if (correlation_id && event?.id) {
+      supabase.from("operating_ledger_links").insert({
+        workspace_id,
+        event_id: event.id,
+        parent_event_id: causation_id ?? null,
+        relation_type: "triggered",
+        depth: causation_id ? 1 : 0,
+      }).then(() => {});
+    }
+
     // Log to system_function_runs (fire-and-forget)
     const latency = Date.now() - startTime;
     supabase.from("system_function_runs").insert({
