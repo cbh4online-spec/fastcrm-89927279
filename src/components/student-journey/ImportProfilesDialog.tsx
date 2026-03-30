@@ -42,7 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { parseExcelFile } from "@/utils/excelUtils";
+import { parseExcelFile, exportToExcel } from "@/utils/excelUtils";
 import Papa from "papaparse";
 import { LifecycleStage } from "@/types/studentJourney";
 
