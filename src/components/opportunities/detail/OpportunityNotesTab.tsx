@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Plus, Save, X } from "lucide-react";
@@ -111,7 +112,7 @@ export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesT
                   {contentIsHtml ? (
                     <div
                       className="text-sm prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
                     />
                   ) : (
                     <p className="text-sm whitespace-pre-wrap">{content}</p>
