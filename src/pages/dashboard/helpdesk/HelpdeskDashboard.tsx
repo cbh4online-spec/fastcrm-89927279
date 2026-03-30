@@ -110,6 +110,7 @@ export default function HelpdeskDashboard() {
           <Skeleton className="h-[280px] rounded-lg" />
         </div>
       </div>
+      </DashboardLayout>
     );
   }
 
