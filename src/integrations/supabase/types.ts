@@ -21834,6 +21834,148 @@ export type Database = {
           },
         ]
       }
+      forecast_models: {
+        Row: {
+          config_json: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          model_type: string
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          config_json?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          model_type?: string
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          config_json?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          model_type?: string
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_models_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forecast_runs: {
+        Row: {
+          assumptions_json: Json | null
+          confidence: number | null
+          created_at: string | null
+          id: string
+          input_snapshot_json: Json | null
+          model_id: string | null
+          output_snapshot_json: Json | null
+          run_type: string | null
+          scenario_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assumptions_json?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          input_snapshot_json?: Json | null
+          model_id?: string | null
+          output_snapshot_json?: Json | null
+          run_type?: string | null
+          scenario_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assumptions_json?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          input_snapshot_json?: Json | null
+          model_id?: string | null
+          output_snapshot_json?: Json | null
+          run_type?: string | null
+          scenario_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_runs_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "forecast_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forecast_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forecast_settings: {
+        Row: {
+          allow_memory_boost: boolean | null
+          confidence_threshold: number | null
+          created_at: string | null
+          default_horizon_days: number | null
+          default_model_type: string | null
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          allow_memory_boost?: boolean | null
+          confidence_threshold?: number | null
+          created_at?: string | null
+          default_horizon_days?: number | null
+          default_model_type?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          allow_memory_boost?: boolean | null
+          confidence_threshold?: number | null
+          created_at?: string | null
+          default_horizon_days?: number | null
+          default_model_type?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_builder_submissions: {
         Row: {
           ai_score: number | null
@@ -42871,6 +43013,65 @@ export type Database = {
           },
           {
             foreignKeyName: "shipping_zones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_scenarios: {
+        Row: {
+          assumptions: Json | null
+          confidence: number | null
+          created_at: string | null
+          created_by: string | null
+          delta_json: Json | null
+          description: string | null
+          id: string
+          inputs_json: Json | null
+          outputs_json: Json | null
+          scenario_type: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assumptions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          delta_json?: Json | null
+          description?: string | null
+          id?: string
+          inputs_json?: Json | null
+          outputs_json?: Json | null
+          scenario_type?: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assumptions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          delta_json?: Json | null
+          description?: string | null
+          id?: string
+          inputs_json?: Json | null
+          outputs_json?: Json | null
+          scenario_type?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_scenarios_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
