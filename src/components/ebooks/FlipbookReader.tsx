@@ -529,7 +529,58 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
               onGoToPage={goToPage}
               highlightMode={highlightMode}
               highlightsMap={highlightsMap}
+              onHighlightClick={handleHighlightClick}
             />
+
+            {/* Delete highlight popover */}
+            {deletePopover && (
+              <div
+                className="absolute z-50 bg-slate-800 border border-white/20 rounded-lg shadow-2xl p-3 min-w-[220px] max-w-[300px]"
+                style={{
+                  left: `${deletePopover.position.x}px`,
+                  top: `${deletePopover.position.y}px`,
+                  transform: "translate(-50%, 8px)",
+                  pointerEvents: "auto",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-white/80">Sublinhado</span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 text-white/40 hover:text-white" onClick={() => setDeletePopover(null)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="text-[11px] bg-white/5 rounded px-2 py-1.5 mb-2 line-clamp-2 italic" style={{ color: deletePopover.color, borderLeft: `3px solid ${deletePopover.color}` }}>
+                  "{deletePopover.text}"
+                </div>
+                {deletePopover.note && !deletePopover.note.startsWith("Sublinhado:") && (
+                  <div className="text-[10px] text-white/50 mb-2 line-clamp-2">
+                    📝 {deletePopover.note}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1 h-7 text-xs text-white/60 hover:text-white"
+                    onClick={() => setDeletePopover(null)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 h-7 text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/20"
+                    onClick={() => {
+                      deleteNote.mutate(deletePopover.noteId);
+                      setDeletePopover(null);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            )
           </div>
         </div>
 
