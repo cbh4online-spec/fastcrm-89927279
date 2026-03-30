@@ -1,95 +1,53 @@
 
 
-# 4ª Vaga de Bibliotecas — Nível HubSpot
+# Estado Actual — Checklist de Instalação FastCRM
 
 ## Diagnóstico
 
-Cruzando o documento com o `package.json` actual:
+Cruzando os 32 batches do documento com o `package.json` actual, **a esmagadora maioria já está instalada** (Vagas 1–4 completas). Restam apenas **6 packages** genuinamente em falta que não foram excluídos por decisão técnica anterior:
 
-**Já existem**: `autoprefixer`, `@sentry/react`, `@testing-library/user-event`, `msw`, `web-vitals`, `@react-pdf/renderer`, `file-saver`, `jszip`, `browser-image-compression`
+### Packages em falta (não redundantes, não excluídos)
 
-**A excluir**:
-- `@playwright/test` + `playwright` — E2E testing não corre no Lovable sandbox
-- `@storybook/*` + `chromatic` — Storybook não corre no Lovable preview
-- `mixpanel-browser`, `@amplitude/analytics-browser` — redundantes com PostHog
-- `@vercel/analytics` — não estamos na Vercel
-- `openai`, `stripe` (server-side), `resend` — SDKs backend, usar nas edge functions com Deno imports
-- `@googleapis/calendar` — backend SDK, não frontend
-- `postcss-nesting` — browsers modernos já suportam nativamente
-- `autoprefixer` — já instalado
+| Package | Batch | Razão |
+|---|---|---|
+| `@nivo/heatmap` | 13 | Mencionado para verificar, não foi instalado |
+| `@nivo/treemap` | 13 | Mencionado para verificar, não foi instalado |
+| `react-pdf` | 14 | Viewer de PDFs (diferente de `@react-pdf/renderer` que gera PDFs) |
+| `react-window-infinite-loader` | 16 | Infinite scroll para listas virtualizadas |
+| `vite-plugin-pwa` | 21 | Adiado na Vaga 3 por estabilidade do preview |
+| `workbox-window` | 21 | Dependência do PWA |
 
-**Total real a instalar: ~35 packages**
+### Packages correctamente excluídos (confirmar que se mantêm fora)
 
-## Plano de Instalação (7 batches)
+- `xlsx` → substituído por `exceljs` ✅
+- `uuid` → coberto por `nanoid` ✅
+- `sanitize-html` → coberto por `dompurify` ✅
+- `@playwright/test`, `chromatic`, `@storybook/*` → não correm no Lovable ✅
+- `@hotjar/browser` → privacy concerns ✅
+- `resend`, `openai`, `stripe` (server) → usar via Deno nas edge functions ✅
+- `@radix-ui/react-direction` → RTL não prioritário ✅
 
-### Batch 21 — Tiptap Extensions (10 packages)
+## Plano
+
+### Passo 1 — Instalar os 6 packages em falta
 ```
-@tiptap/extension-text-align @tiptap/extension-underline @tiptap/extension-text-style
-@tiptap/extension-color @tiptap/extension-highlight @tiptap/extension-typography
-@tiptap/extension-character-count @tiptap/extension-task-list @tiptap/extension-task-item
-@tiptap/extension-mention
-```
-
-### Batch 22 — Tiptap Extensions cont. (5 packages)
-```
-@tiptap/extension-code-block-lowlight lowlight @tiptap/extension-youtube
-@tiptap/extension-subscript @tiptap/extension-superscript
+@nivo/heatmap @nivo/treemap react-pdf react-window-infinite-loader vite-plugin-pwa workbox-window
 ```
 
-### Batch 23 — Radix UI Extras (6 packages)
-```
-@radix-ui/react-toolbar @radix-ui/react-form @radix-ui/react-visually-hidden
-@radix-ui/react-portal @radix-ui/react-roving-focus @radix-ui/react-focus-scope
-```
-Excluir `@radix-ui/react-direction` — RTL não é prioritário.
+### Passo 2 — Batch 32: Verificações de config
+- Confirmar `tailwind.config.ts` tem todos os plugins (já feito nas vagas anteriores)
+- Confirmar `postcss.config.js` tem autoprefixer
+- `vitest.config.ts` — verificar se já existe ou criar com `happy-dom` + `coverage-v8`
 
-### Batch 24 — Testing (dev) (3 packages)
-```
-@vitest/coverage-v8 @vitest/ui @faker-js/faker happy-dom
-```
+### Passo 3 — PWA config (adiado anteriormente)
+- Adicionar `vite-plugin-pwa` ao `vite.config.ts` com manifest FastCRM e `registerType: 'autoUpdate'`
 
-### Batch 25 — Analytics (2 packages)
-```
-posthog-js react-ga4
-```
-Excluir Hotjar (privacy concerns com session recording).
+## Resultado
 
-### Batch 26 — Developer Utilities (7 packages)
-```
-type-fest ts-pattern dayjs tailwind-variants @total-typescript/ts-reset neverthrow zod-form-data
-```
-
-### Batch 27 — Design System (4 packages)
-```
-tailwindcss-radix tailwindcss-container-queries @fontsource/inter @fontsource/jetbrains-mono
-```
-
-### Batch 28 — Integrações frontend (1 package)
-```
-ai
-```
-Vercel AI SDK para streaming unificado.
-
-## Integração Base Imediata
-
-1. **Actualizar `RichTextEditor.tsx`** — adicionar todas as novas extensions Tiptap (underline, text-align, color, highlight, task lists, mentions, character count, youtube, code blocks)
-2. **Actualizar `tailwind.config.ts`** — adicionar plugins `tailwindcss-radix` e `tailwindcss-container-queries`
-3. **Importar fonts** em `src/main.tsx` — Inter 400/500/600/700 + JetBrains Mono 400
-4. **Criar `src/lib/posthog.ts`** — inicialização condicional com `VITE_POSTHOG_KEY`
-5. **Adicionar `@total-typescript/ts-reset`** ao `tsconfig.json`
-
-## Critérios de Aceitação
-
-- ~35 packages instalados sem conflitos
-- Build sem erros
-- RichTextEditor com toolbar completa (15 Tiptap extensions)
-- Tailwind plugins configurados
-- Fonts Inter e JetBrains Mono disponíveis
-- PostHog e GA4 prontos (aguardando keys)
+Após esta execução, **todos os batches 0–32 ficam completos**. O checklist fica 100% ✅.
 
 ## Riscos
 
-- **Tiptap extensions**: 15 extensions de uma vez pode causar conflitos de versão — todas devem ser da mesma major version (^3.21.0)
-- **Bundle size**: Fonts adicionam ~100KB mas eliminam CDN dependency
-- **PostHog/GA4**: Sem keys, simplesmente não inicializam (graceful)
+- `vite-plugin-pwa` pode interferir com o preview do Lovable — configurar com `devOptions: { enabled: false }` para evitar problemas no sandbox
+- `react-pdf` usa um worker PDF.js que precisa de configuração do `workerSrc`
 
