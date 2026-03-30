@@ -401,10 +401,12 @@ export default function StoreCheckoutPage() {
                           id="name"
                           placeholder="O seu nome completo"
                           value={formData.name}
-                          onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                          onChange={(e) => { setFormData(p => ({ ...p, name: e.target.value })); setFieldErrors(p => ({ ...p, name: "" })); }}
                           required
                           autoFocus
+                          className={fieldErrors.name ? "border-destructive" : ""}
                         />
+                        {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="flex items-center gap-1.5">
