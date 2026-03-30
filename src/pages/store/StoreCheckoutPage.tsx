@@ -236,6 +236,7 @@ export default function StoreCheckoutPage() {
       });
       setCouponCode("");
       toast.success("Cupão aplicado!");
+      trackEvent("apply_coupon", { workspaceSlug: wsSlug, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value });
     } finally {
       setCouponLoading(false);
     }
