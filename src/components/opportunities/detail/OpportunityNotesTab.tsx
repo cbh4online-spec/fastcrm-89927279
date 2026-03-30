@@ -1,25 +1,29 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Plus, Save, X } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
 import { Opportunity } from "@/types/opportunity";
 import { toast } from "sonner";
+import { RichTextEditor, type RichTextEditorRef } from "@/components/ui/RichTextEditor";
 
 interface OpportunityNotesTabProps {
   opportunity: Opportunity;
   onUpdate: (updates: { id: string } & Record<string, unknown>) => Promise<void>;
 }
 
+function isHtml(text: string) {
+  return /<[a-z][\s\S]*>/i.test(text);
+}
+
 export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesTabProps) {
   const { t } = useTranslation("crm");
   const [isAdding, setIsAdding] = useState(false);
-  const [noteText, setNoteText] = useState("");
+  const [noteHtml, setNoteHtml] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const editorRef = useRef<RichTextEditorRef>(null);
 
-  // Parse notes - we store as a simple text for now, each note separated by a delimiter
   const notesRaw = opportunity.notes || "";
   const noteEntries = notesRaw
     ? notesRaw.split("\n---\n").filter(Boolean).map((text, i) => ({
@@ -29,16 +33,18 @@ export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesT
     : [];
 
   const handleSave = async () => {
-    if (!noteText.trim()) return;
+    if (editorRef.current?.isEmpty()) return;
     setIsSaving(true);
     try {
       const timestamp = `[${new Date().toISOString()}] `;
-      const newNote = timestamp + noteText.trim();
+      const html = editorRef.current?.getHTML() ?? noteHtml;
+      const newNote = timestamp + html;
       const updatedNotes = notesRaw
         ? newNote + "\n---\n" + notesRaw
         : newNote;
       await onUpdate({ id: opportunity.id, notes: updatedNotes });
-      setNoteText("");
+      setNoteHtml("");
+      editorRef.current?.clearContent();
       setIsAdding(false);
       toast.success(t("oppDetail_noteSaved"));
     } catch {
@@ -60,19 +66,19 @@ export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesT
       {isAdding && (
         <Card>
           <CardContent className="pt-4 space-y-3">
-            <Textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
+            <RichTextEditor
+              ref={editorRef}
+              value={noteHtml}
+              onChange={setNoteHtml}
               placeholder={t("notesPlaceholder")}
-              className="min-h-[100px]"
-              autoFocus
+              minHeight="100px"
             />
             <div className="flex items-center gap-2 justify-end">
-              <Button variant="ghost" size="sm" onClick={() => { setIsAdding(false); setNoteText(""); }}>
+              <Button variant="ghost" size="sm" onClick={() => { setIsAdding(false); setNoteHtml(""); editorRef.current?.clearContent(); }}>
                 <X className="w-3.5 h-3.5 mr-1" />
                 {t("cancel")}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={!noteText.trim() || isSaving}>
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
                 <Save className="w-3.5 h-3.5 mr-1" />
                 {isSaving ? "..." : t("oppDetail_saveNote")}
               </Button>
@@ -89,10 +95,10 @@ export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesT
       ) : (
         <div className="space-y-3">
           {noteEntries.map((note) => {
-            // Extract timestamp if present
             const timestampMatch = note.text.match(/^\[(\d{4}-\d{2}-\d{2}T[^\]]+)\]\s*/);
             const timestamp = timestampMatch ? timestampMatch[1] : null;
             const content = timestampMatch ? note.text.replace(timestampMatch[0], "") : note.text;
+            const contentIsHtml = isHtml(content);
 
             return (
               <Card key={note.id} className="border-border/50">
@@ -102,7 +108,14 @@ export function OpportunityNotesTab({ opportunity, onUpdate }: OpportunityNotesT
                       {formatDate(timestamp, "dd MMM yyyy HH:mm")}
                     </p>
                   )}
-                  <p className="text-sm whitespace-pre-wrap">{content}</p>
+                  {contentIsHtml ? (
+                    <div
+                      className="text-sm prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: content }}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{content}</p>
+                  )}
                 </CardContent>
               </Card>
             );
