@@ -68,6 +68,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
   const [generating, setGenerating] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export function EbookEditor({ ebookId, onBack }: EbookEditorProps) {
   const [showPresentation, setShowPresentation] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragSourceIndex, setDragSourceIndex] = useState<number | null>(null);
+  const [useVisualEditor, setUseVisualEditor] = useState(true);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chapterImgRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
