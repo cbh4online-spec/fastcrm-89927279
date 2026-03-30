@@ -33,6 +33,12 @@ export interface Bot {
     working_hours_end: string;
     working_days: number[];
   };
+  // Agent Ops fields
+  role: string | null;
+  team_id: string | null;
+  specialization: string | null;
+  objective_scope: string | null;
+  execution_permissions: Record<string, unknown>;
   created_by: string | null;
   created_at: string;
   updated_at: string;
