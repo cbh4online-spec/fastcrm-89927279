@@ -33,6 +33,7 @@ const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
 const PricingPage = lazy(() => import("@/pages/PricingPage"));
+const ChangelogPage = lazy(() => import("@/pages/ChangelogPage"));
 const GDPRBackofficePage = lazy(() => import("@/modules/growth-seo/pages/GDPRBackofficePage"));
 const BlogDashboard = lazy(() => import("@/pages/dashboard/blog/index"));
 
