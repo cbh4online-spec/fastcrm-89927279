@@ -291,7 +291,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
 
   // Text selection handler for highlights
   const handleMouseUp = useCallback(() => {
-    if (!hasNotesFeature) return;
+    if (!hasNotesFeature || !highlightMode) return;
     const selection = window.getSelection();
     const text = selection?.toString().trim();
     if (!text || text.length < 3) return;
@@ -309,7 +309,7 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         y: rect.bottom - containerRect.top,
       },
     });
-  }, [hasNotesFeature]);
+  }, [hasNotesFeature, highlightMode]);
 
   const handleCreateHighlight = useCallback(
     (params: { highlightText: string; highlightColor: string; noteText: string }) => {
