@@ -261,6 +261,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="referrals" className="gap-1"><Users className="h-4 w-4" /> Referrals</TabsTrigger>
               <TabsTrigger value="offers" className="gap-1"><HandCoins className="h-4 w-4" /> Ofertas</TabsTrigger>
               <TabsTrigger value="gift-cards" className="gap-1"><Gift className="h-4 w-4" /> Gift Cards</TabsTrigger>
+              <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
