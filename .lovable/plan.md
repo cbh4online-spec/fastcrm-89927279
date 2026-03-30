@@ -1,61 +1,56 @@
 
 
-## Capital Allocation & Portfolio Layer — Plano de Execução
+## Enterprise Operating Ledger — Plano de Execução
 
 ### Diagnóstico
 
 **Infraestrutura existente reutilizada:**
-- `business_context` — offers, pricing_model, average_ticket, revenue targets
-- `forecast_runs` + `simulation_scenarios` — baseline e cenários
-- `strategic_state_snapshots` + `strategic_recommendations` — foco e hipóteses
-- `executive_snapshots` + `executive_decision_packs` — Board Mode
-- `workspace_operating_state` — health scores operacionais
-- `workspace_memories` — padrões históricos
-- `emitKernelEvent` — barramento de eventos
+- `kernel_events` — já tem `correlation_id`, `causation_id`, `idempotency_key`, `entity_kind`, `entity_id`, `payload`, `metadata_json`
+- `kernel-ingest-event` — pipeline completa com matrix, signals, decisions, actions
+- `emitKernelEvent` — client-side emitter com correlation/causation
+- `kernel_entities`, `kernel_signals`, `kernel_decisions`, `kernel_actions` — EDA completa
 
-**Nada disto existe ainda** — portfolio_entities, portfolio_metrics, portfolio_recommendations, portfolio_settings, allocation engine, Portfolio Center UI.
+**O que falta:**
+- `operating_ledger_chains` — agrupamento causal de eventos
+- `operating_ledger_links` — relações parent/child entre eventos
+- `ledger_settings` — configuração por workspace
+- Chain builder (edge function)
+- Ledger Center UI com drill-down
+
+**Decisão arquitectural:** Não duplicar eventos numa tabela `operating_ledger_events` separada. Os `kernel_events` já contêm toda a informação necessária (correlation_id, causation_id, entity_kind, payload). O ledger adiciona apenas a camada de **chains** e **links** sobre os eventos existentes, evitando duplicação de dados.
 
 ---
 
-### Migration SQL (1 migration, 4 tabelas)
+### Migration SQL (1 migration, 3 tabelas)
 
-**`portfolio_entities`:**
+**`operating_ledger_chains`:**
 - `id` UUID PK, `workspace_id` UUID NOT NULL
-- `entity_type` TEXT NOT NULL (offer, product, channel, sequence, agent, mission, objective)
-- `entity_id` TEXT NOT NULL, `name` TEXT NOT NULL, `category` TEXT
-- `status` TEXT DEFAULT 'active' (active, paused, deprecated)
+- `root_event_id` UUID (referência a kernel_events)
+- `correlation_id` TEXT NOT NULL
+- `chain_type` TEXT NOT NULL (lead_journey, recovery_journey, opportunity_journey, objective_execution, mission_execution, action_chain, agent_handoff_chain, strategy_to_execution, forecast_to_action)
+- `title` TEXT, `status` TEXT DEFAULT 'active' (active, completed, failed, stalled)
+- `outcome_type` TEXT, `outcome_id` TEXT, `outcome_value` NUMERIC, `outcome_currency` TEXT DEFAULT 'EUR', `outcome_summary` TEXT, `success_score` INT
+- `event_count` INT DEFAULT 0
+- `started_at` TIMESTAMPTZ, `ended_at` TIMESTAMPTZ
 - `created_at`, `updated_at`
-- Unique: `(workspace_id, entity_type, entity_id)`
+- Index: `(workspace_id, correlation_id)`, `(workspace_id, chain_type, created_at DESC)`
 
-**`portfolio_metrics`:**
+**`operating_ledger_links`:**
 - `id` UUID PK, `workspace_id` UUID NOT NULL
-- `portfolio_entity_id` UUID FK → portfolio_entities
-- `revenue_actual` NUMERIC DEFAULT 0, `revenue_forecast` NUMERIC DEFAULT 0
-- `contribution_margin_estimate` NUMERIC DEFAULT 0, `conversion_rate` NUMERIC(5,4) DEFAULT 0
-- `ltv_estimate` NUMERIC DEFAULT 0, `workload_cost_estimate` NUMERIC DEFAULT 0
-- `automation_leverage_score` INT DEFAULT 50, `risk_score` INT DEFAULT 50
-- `strategic_fit_score` INT DEFAULT 50, `capital_efficiency_score` INT DEFAULT 50
-- `allocation_recommendation` TEXT DEFAULT 'maintain' (invest_more, maintain, optimize, deprioritize, pause, scale)
-- `confidence` NUMERIC(3,2) DEFAULT 0.5
-- `updated_at`
+- `chain_id` UUID FK → operating_ledger_chains
+- `event_id` UUID NOT NULL (referência a kernel_events)
+- `parent_event_id` UUID (referência a kernel_events, nullable)
+- `relation_type` TEXT NOT NULL (caused, triggered, executed, updated, resolved, converted, escalated, completed)
+- `depth` INT DEFAULT 0
+- `created_at`
+- Index: `(chain_id, depth)`, `(event_id)`
 
-**`portfolio_recommendations`:**
-- `id` UUID PK, `workspace_id` UUID NOT NULL
-- `portfolio_entity_id` UUID FK → portfolio_entities (nullable)
-- `recommendation_type` TEXT NOT NULL (increase_attention, increase_automation, shift_channel_mix, reduce_effort, pause_investment, reinforce_offer, promote_bundle, reassign_agent_capacity, simplify_sequence, focus_high_ltv_segment)
-- `title` TEXT NOT NULL, `rationale` TEXT, `expected_impact` TEXT
-- `confidence` NUMERIC(3,2) DEFAULT 0.5, `priority` TEXT DEFAULT 'medium'
-- `status` TEXT DEFAULT 'pending' (pending, accepted, acted, dismissed, expired)
-- `created_at`, `updated_at`, `acted_at` TIMESTAMPTZ
-
-**`portfolio_settings`:**
+**`ledger_settings`:**
 - `id` UUID PK, `workspace_id` UNIQUE
 - `is_enabled` BOOLEAN DEFAULT false
-- `risk_weight` NUMERIC(3,2) DEFAULT 0.15
-- `revenue_weight` NUMERIC(3,2) DEFAULT 0.35
-- `effort_weight` NUMERIC(3,2) DEFAULT 0.20
-- `automation_weight` NUMERIC(3,2) DEFAULT 0.10
-- `strategy_weight` NUMERIC(3,2) DEFAULT 0.20
+- `auto_chain_build` BOOLEAN DEFAULT true
+- `max_chain_depth` INT DEFAULT 20
+- `retain_raw_payloads` BOOLEAN DEFAULT true
 - `created_at`, `updated_at`
 
 RLS: workspace members SELECT; service_role INSERT/UPDATE/DELETE.
@@ -64,74 +59,91 @@ RLS: workspace members SELECT; service_role INSERT/UPDATE/DELETE.
 
 ### Ficheiros a criar (3)
 
-#### 1. `supabase/functions/process-portfolio-allocation/index.ts`
+#### 1. `supabase/functions/process-ledger-chains/index.ts`
 Edge function que:
-1. Recebe `{ workspace_id }`
-2. Recolhe sinais: `business_context` (offers, average_ticket, targets), `workspace_operating_state` (health), último `forecast_runs` (revenue forecast), `strategic_state_snapshots` (growth_mode, bottleneck), `strategic_recommendations` (pending)
-3. Usa Gemini Flash com tool calling para:
-   - Consolidar entidades no portfolio (offers de business_context, canais ativos, agentes)
-   - Calcular capital_efficiency_score por entidade (receita, conversão, risco, esforço, automação, alinhamento estratégico)
-   - Gerar allocation_recommendation por entidade (invest_more/maintain/optimize/deprioritize/pause/scale)
-   - Gerar portfolio_recommendations acionáveis com rationale
-4. Upsert `portfolio_entities` + `portfolio_metrics`
-5. Insere `portfolio_recommendations` (expira pending > 14 dias)
-6. Emite `PORTFOLIO.SNAPSHOT_UPDATED`, `PORTFOLIO.RECOMMENDATION_CREATED`
+1. Recebe `{ workspace_id }` ou é chamada periodicamente
+2. Busca `kernel_events` recentes sem chain associada (LEFT JOIN operating_ledger_links)
+3. Agrupa por `correlation_id`
+4. Para cada grupo:
+   - Deteta root event (sem `causation_id` ou primeiro cronologicamente)
+   - Infere `chain_type` pelo `entity_kind` e `type` do root (ex: entity_kind=cart → recovery_journey, entity_kind=objective → objective_execution)
+   - Cria/atualiza `operating_ledger_chains`
+   - Cria `operating_ledger_links` com parent/child baseado em `causation_id`
+   - Calcula `depth` por evento
+   - Resolve outcomes: se último evento contém payment/conversion/completion → preenche outcome fields
+   - Atualiza `status` da chain (completed se outcome resolvido, failed se eventos de erro)
+5. Emite `LEDGER.CHAIN_CREATED`, `LEDGER.OUTCOME_RESOLVED` via kernel
 
-#### 2. `src/hooks/usePortfolioAllocation.ts`
-- `usePortfolioEntities(typeFilter?)` — lista entidades com métricas
-- `usePortfolioRecommendations(statusFilter?)` — lista recomendações
-- `usePortfolioSettings()` — read/upsert settings
-- `useRefreshPortfolio()` — invoca `process-portfolio-allocation`
-- `useActOnPortfolioRecommendation()` — marca como acted/dismissed
-- `usePortfolioTopAssets()` — top 5 por capital_efficiency_score
-- `usePortfolioWeakest()` — bottom 5 por capital_efficiency_score
+#### 2. `src/hooks/useLedger.ts`
+- `useLedgerChains(typeFilter?, statusFilter?)` — lista chains com paginação
+- `useLedgerChainDetail(chainId)` — chain + links + eventos associados (JOIN kernel_events)
+- `useLedgerSettings()` — read/upsert settings
+- `useRefreshLedger()` — invoca `process-ledger-chains`
+- `useLedgerStats()` — contagens por chain_type, status, outcomes com valor
+- `useLedgerSearch(query)` — pesquisa por correlation_id, entity_id, outcome_type
 
-#### 3. `src/pages/PortfolioCenterPage.tsx`
-Rota: `/dashboard/portfolio`
-- **Top Assets**: top 5 entidades por capital efficiency com badge de allocation
-- **Áreas a Cortar**: bottom 5 entidades com recomendação deprioritize/pause
-- **Capital Efficiency Grid**: tabela com entity_type, name, revenue, conversion, risk, efficiency score, allocation badge
-- **Alocação por Tipo**: breakdown por offer/channel/agent/sequence (mini cards agrupados)
-- **Recomendações**: cards com título, rationale, expected_impact, priority, botões aceitar/dispensar
-- **Foco Recomendado**: destaque da entidade com maior potencial de crescimento
-- **Settings**: sliders para pesos (revenue, risk, effort, automation, strategy)
-- Botão "Atualizar Portfolio"
+#### 3. `src/pages/LedgerCenterPage.tsx`
+Rota: `/dashboard/ledger`
+- **Resumo Executivo**: total chains, completed, failed, receita total atribuída
+- **Chains Recentes**: lista com chain_type badge, status, título, outcome, started_at
+- **Filtros**: por chain_type, status, período
+- **Chain Detail** (drill-down inline ou modal):
+  - Timeline vertical dos eventos (ordered by depth/occurred_at)
+  - Cada nó mostra: event type, entity_kind, entity_id, actor, timestamp
+  - Relações parent→child com relation_type badge
+  - Outcome summary no final
+  - Receita associada se existir
+- **Top Causal Chains**: chains com maior outcome_value
+- **Chains Falhadas**: chains com status=failed para debug
+- **Pesquisa**: por correlation_id / entity_id
+- **Settings**: toggles auto_chain_build, max_chain_depth, retain_raw_payloads
+- Botão "Reconstruir Chains"
 
 ---
 
-### Ficheiros a alterar (1)
+### Ficheiros a alterar (2)
 
 #### 4. `src/routes/AIRoutes.tsx`
-- Adicionar lazy import `PortfolioCenterPage` + rota `/dashboard/portfolio`
+- Adicionar lazy import `LedgerCenterPage` + rota `/dashboard/ledger`
+
+#### 5. `supabase/functions/kernel-ingest-event/index.ts`
+- Após inserir evento com sucesso, se `correlation_id` existe, fazer fire-and-forget insert em `operating_ledger_links` com o event_id e parent via causation_id (se existir). Isto garante ingestão incremental sem depender apenas do batch builder.
 
 ---
 
 ### Fluxo
 
 ```text
-process-portfolio-allocation (manual ou periódico)
+kernel-ingest-event (cada evento)
   │
-  ├─ Recolhe sinais (context, offers, health, forecast, strategy)
-  ├─ Gemini Flash → eficiência + alocação por entidade
-  ├─ Upsert portfolio_entities + portfolio_metrics
-  ├─ Gera portfolio_recommendations
-  ├─ Expira recomendações antigas
-  └─ Emite PORTFOLIO.* events
+  ├─ Insere kernel_events (existente)
+  ├─ Se correlation_id existe:
+  │   └─ Insere operating_ledger_links (incremental)
+  │
+process-ledger-chains (batch, manual ou periódico)
+  │
+  ├─ Agrupa eventos orphan por correlation_id
+  ├─ Cria/atualiza operating_ledger_chains
+  ├─ Resolve parent/child via causation_id
+  ├─ Infere chain_type
+  ├─ Resolve outcomes (payment, conversion, completion)
+  └─ Emite LEDGER.* events
 
-PortfolioCenterPage (UI)
+LedgerCenterPage (UI)
   │
-  ├─ Top assets + áreas a cortar
-  ├─ Capital efficiency grid
-  ├─ Alocação por tipo
-  ├─ Recomendações (aceitar/dispensar)
-  ├─ Foco recomendado
-  └─ Settings (pesos)
+  ├─ Chains recentes + filtros
+  ├─ Chain detail com timeline
+  ├─ Top causal chains (receita)
+  ├─ Chains falhadas
+  ├─ Pesquisa
+  └─ Settings
 ```
 
 ### Compatibilidade
-- Consome `business_context`, `forecast_runs`, `strategic_state_snapshots` como read-only
-- Reutiliza `emitKernelEvent` para eventos `PORTFOLIO.*`
-- Board Mode pode consumir `portfolio_metrics` e `portfolio_recommendations` para enriquecer executive view
-- Strategy Layer pode converter `portfolio_recommendations` em objectives/missions
-- Não altera nenhuma tabela existente
+- Consome `kernel_events` como read-only (não duplica)
+- Reutiliza `correlation_id` e `causation_id` já emitidos por todos os módulos
+- Reutiliza `emitKernelEvent` para eventos `LEDGER.*`
+- Board Mode e Strategy podem consumir chains com outcomes para validar impacto real
+- Memory pode usar chains completas como evidência de padrões
+- Não altera nenhuma tabela existente (apenas adiciona insert incremental no ingest)
 
