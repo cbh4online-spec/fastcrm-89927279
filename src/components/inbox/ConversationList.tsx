@@ -131,7 +131,7 @@ export function ConversationList({
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(PINNED_KEY);
-      return stored ? new Set(JSON.parse(stored)) : new Set();
+      return stored ? new Set(JSON.parse(stored) as string[]) : new Set();
     } catch { return new Set(); }
   });
   const [density, setDensity] = useState<"normal" | "compact">(() => {

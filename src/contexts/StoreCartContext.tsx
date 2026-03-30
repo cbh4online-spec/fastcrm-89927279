@@ -32,7 +32,7 @@ const SYNC_DEBOUNCE_MS = 2000;
 function loadCart(): CartItem[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    return stored ? (JSON.parse(stored) as CartItem[]) : [];
   } catch {
     return [];
   }

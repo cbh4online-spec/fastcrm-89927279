@@ -43,7 +43,7 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
       const data = await fetchSheet(rfqId, supplierId);
       const rowsWithExcluded = data.rows.map(r => ({ ...r, excluded: false }));
       setRows(rowsWithExcluded);
-      setOriginalRows(JSON.parse(JSON.stringify(rowsWithExcluded)));
+      setOriginalRows(JSON.parse(JSON.stringify(rowsWithExcluded)) as any);
       setCurrency(data.currency);
       setLoaded(true);
     } catch {
@@ -209,7 +209,7 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
 
   const handleSaveDraft = async () => {
     await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: buildSaveRows("draft") });
-    setOriginalRows(JSON.parse(JSON.stringify(rows)));
+    setOriginalRows(JSON.parse(JSON.stringify(rows)) as any);
   };
 
   const handleSubmit = async () => {
@@ -227,7 +227,7 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
 
     await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: buildSaveRows("submitted") });
     await submitSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId });
-    setOriginalRows(JSON.parse(JSON.stringify(rows)));
+    setOriginalRows(JSON.parse(JSON.stringify(rows)) as any);
     onOpenChange(false);
   };
 

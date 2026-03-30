@@ -62,7 +62,7 @@ export function useAgentBehavioralMode() {
     try {
       const stored = localStorage.getItem(getStorageKey(WORKSPACE_SETTINGS_KEY, workspaceId));
       if (stored) {
-        return JSON.parse(stored);
+        return JSON.parse(stored) as any;
       }
     } catch (e) {
       console.warn('[BehavioralMode] Failed to load workspace settings:', e);
@@ -81,7 +81,7 @@ export function useAgentBehavioralMode() {
     try {
       const stored = localStorage.getItem(getStorageKey(USER_PREFERENCES_KEY, workspaceId, userId));
       if (stored) {
-        return JSON.parse(stored);
+        return JSON.parse(stored) as any;
       }
     } catch (e) {
       console.warn('[BehavioralMode] Failed to load user preferences:', e);

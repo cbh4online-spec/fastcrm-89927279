@@ -168,7 +168,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         throw new Error("Falha na geração de imagem");
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       const generatedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (generatedImageUrl) {

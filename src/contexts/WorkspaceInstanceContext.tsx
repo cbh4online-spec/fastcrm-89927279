@@ -129,7 +129,7 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
           return { success: false, error: `Control Plane error: ${response.status}` };
         }
 
-        return await response.json();
+        return await response.json() as any;
       } catch (err) {
         console.error("Error calling Control Plane:", err);
         return { success: false, error: "Failed to connect to Control Plane" };
