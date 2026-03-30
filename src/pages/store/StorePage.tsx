@@ -66,6 +66,24 @@ export default function StorePage() {
     [infiniteData]
   );
 
+  const sentinelRef = useInfiniteScroll({
+    hasNextPage: !!hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
+
+  const { data: featuredProducts = [] } = useStoreProducts({
+    workspaceId: wsId,
+    featured: true,
+  });
+
+  const { data: categories = [] } = useStoreCategories(wsId);
+  const { data: tierPricing } = useStoreTierPricing(wsId);
+  const { data: storeSettings } = usePublicStoreSettings(wsId);
+  const { items: recentlyViewed } = useRecentlyViewed(wsId || "");
+  const { data: reviewStats } = useBatchReviewStats(wsId);
+  const { data: salesCounts } = useProductSalesCount(wsId);
+
   // ── C2C Listings Integration ──
   const c2cEnabled = storeSettings?.c2c_enabled ?? false;
 
@@ -86,9 +104,8 @@ export default function StorePage() {
     enabled: !!wsId && c2cEnabled,
   });
 
-  // Map C2C listings to product-like shape
   const mappedC2CProducts = useMemo(() => {
-    if (!c2cEnabled) return [];
+    if (!c2cEnabled) return [] as any[];
     return c2cListings.map((l: any) => ({
       id: l.id,
       name: l.title,
@@ -97,7 +114,7 @@ export default function StorePage() {
       images: l.photos || [],
       short_description: l.description?.slice(0, 120),
       category: null,
-      stock_status: l.status === "sold" ? "out_of_stock" : "in_stock",
+      stock_status: "in_stock",
       stock_quantity: null,
       track_stock: false,
       store_featured: l.is_featured || false,
@@ -114,34 +131,15 @@ export default function StorePage() {
     }));
   }, [c2cListings, c2cEnabled, wsId]);
 
-  // Merge store products + C2C
   const allProducts = useMemo(() => {
-    return [...allStoreProducts, ...mappedC2CProducts];
+    return [...allStoreProducts, ...mappedC2CProducts] as any[];
   }, [allStoreProducts, mappedC2CProducts]);
 
   // Client-side stock filter
   const products = useMemo(() => {
     if (!filters.inStock) return allProducts;
-    return allProducts.filter(p => p.stock_status !== "out_of_stock");
+    return allProducts.filter((p: any) => p.stock_status !== "out_of_stock");
   }, [allProducts, filters.inStock]);
-
-  const sentinelRef = useInfiniteScroll({
-    hasNextPage: !!hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  });
-
-  const { data: featuredProducts = [] } = useStoreProducts({
-    workspaceId: wsId,
-    featured: true,
-  });
-
-  const { data: categories = [] } = useStoreCategories(wsId);
-  const { data: tierPricing } = useStoreTierPricing(wsId);
-  const { data: storeSettings } = usePublicStoreSettings(wsId);
-  const { items: recentlyViewed } = useRecentlyViewed(wsId || "");
-  const { data: reviewStats } = useBatchReviewStats(wsId);
-  const { data: salesCounts } = useProductSalesCount(wsId);
 
   const storeName = storeSettings?.store_name || "Loja";
   const showHero = !search && !filters.categoryId && !filters.minPrice && !filters.maxPrice && !filters.inStock;
