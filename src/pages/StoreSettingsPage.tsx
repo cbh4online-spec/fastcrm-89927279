@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, Target, HelpCircle, Star, Users, HandCoins, Gift, Link as LinkIcon, Sparkles, Upload, X, Image as ImageIcon, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SectionAIAssistButton } from "@/components/proposals/SectionAIAssistButton";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { StoreLoyaltyManager } from "@/components/store-settings/StoreLoyaltyMan
 import { StoreReferralManager } from "@/components/store-settings/StoreReferralManager";
 import { StoreOffersManager } from "@/components/store-settings/StoreOffersManager";
 import { StoreGiftCardsManager } from "@/components/store-settings/StoreGiftCardsManager";
+import { StoreC2CSettings } from "@/components/store-settings/StoreC2CSettings";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -260,6 +261,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="referrals" className="gap-1"><Users className="h-4 w-4" /> Referrals</TabsTrigger>
               <TabsTrigger value="offers" className="gap-1"><HandCoins className="h-4 w-4" /> Ofertas</TabsTrigger>
               <TabsTrigger value="gift-cards" className="gap-1"><Gift className="h-4 w-4" /> Gift Cards</TabsTrigger>
+              <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="space-y-4 mt-4">
@@ -614,6 +616,10 @@ export default function StoreSettingsPage() {
 
             <TabsContent value="gift-cards" className="mt-4">
               <StoreGiftCardsManager />
+            </TabsContent>
+
+            <TabsContent value="marketplace" className="mt-4">
+              <StoreC2CSettings />
             </TabsContent>
           </Tabs>
         </div>

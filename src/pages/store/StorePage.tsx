@@ -3,6 +3,8 @@ import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
@@ -59,16 +61,10 @@ export default function StorePage() {
     maxPrice: filters.maxPrice,
   });
 
-  const allProducts = useMemo(
+  const allStoreProducts = useMemo(
     () => infiniteData?.pages.flat() ?? [],
     [infiniteData]
   );
-
-  // Client-side stock filter
-  const products = useMemo(() => {
-    if (!filters.inStock) return allProducts;
-    return allProducts.filter(p => p.stock_status !== "out_of_stock");
-  }, [allProducts, filters.inStock]);
 
   const sentinelRef = useInfiniteScroll({
     hasNextPage: !!hasNextPage,
@@ -87,6 +83,63 @@ export default function StorePage() {
   const { items: recentlyViewed } = useRecentlyViewed(wsId || "");
   const { data: reviewStats } = useBatchReviewStats(wsId);
   const { data: salesCounts } = useProductSalesCount(wsId);
+
+  // ── C2C Listings Integration ──
+  const c2cEnabled = storeSettings?.c2c_enabled ?? false;
+
+  const { data: c2cListings = [] } = useQuery({
+    queryKey: ["c2c-listings-public", wsId],
+    queryFn: async () => {
+      if (!wsId) return [];
+      const { data, error } = await supabase
+        .from("c2c_listings")
+        .select("*, c2c_sellers!inner(id, display_name, slug, avatar_url, avg_rating)")
+        .eq("workspace_id", wsId)
+        .eq("status", "active")
+        .eq("moderation_status", "approved")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!wsId && c2cEnabled,
+  });
+
+  const mappedC2CProducts = useMemo(() => {
+    if (!c2cEnabled) return [] as any[];
+    return c2cListings.map((l: any) => ({
+      id: l.id,
+      name: l.title,
+      base_price: Number(l.price),
+      currency: l.currency || "EUR",
+      images: l.photos || [],
+      short_description: l.description?.slice(0, 120),
+      category: null,
+      stock_status: "in_stock",
+      stock_quantity: null,
+      track_stock: false,
+      store_featured: l.is_featured || false,
+      created_at: l.created_at,
+      sku: null,
+      billing_type: "one_time",
+      primary_image_index: 0,
+      product_condition: l.condition,
+      workspace_id: wsId,
+      _isC2C: true,
+      _sellerId: l.c2c_sellers?.id,
+      _sellerName: l.c2c_sellers?.display_name,
+      _sellerSlug: l.c2c_sellers?.slug,
+    }));
+  }, [c2cListings, c2cEnabled, wsId]);
+
+  const allProducts = useMemo(() => {
+    return [...allStoreProducts, ...mappedC2CProducts] as any[];
+  }, [allStoreProducts, mappedC2CProducts]);
+
+  // Client-side stock filter
+  const products = useMemo(() => {
+    if (!filters.inStock) return allProducts;
+    return allProducts.filter((p: any) => p.stock_status !== "out_of_stock");
+  }, [allProducts, filters.inStock]);
 
   const storeName = storeSettings?.store_name || "Loja";
   const showHero = !search && !filters.categoryId && !filters.minPrice && !filters.maxPrice && !filters.inStock;

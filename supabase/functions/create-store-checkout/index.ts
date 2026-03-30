@@ -516,6 +516,80 @@ Deno.serve(async (req) => {
 
     const orderId = order?.id || null;
 
+    // ── MARKETPLACE ORDER SPLIT ──
+    // Check if any items come from C2C sellers (via c2c_listings)
+    if (orderId) {
+      try {
+        const productIds = normalized.map((n) => n.product_id);
+        // Check if any products are c2c listings
+        const { data: sellerListings } = await supabaseClient
+          .from("c2c_listings")
+          .select("id, seller_id, price")
+          .in("id", productIds)
+          .eq("workspace_id", workspaceId);
+
+        if (sellerListings && sellerListings.length > 0) {
+          // Get default commission rate from store settings
+          const { data: storeConfig } = await supabaseClient
+            .from("store_settings")
+            .select("c2c_default_commission_rate")
+            .eq("workspace_id", workspaceId)
+            .maybeSingle();
+
+          const defaultRate = storeConfig?.c2c_default_commission_rate ?? 10;
+
+          // Group by seller
+          const sellerGroups = new Map<string, { listings: typeof sellerListings; grossTotal: number }>();
+          for (const listing of sellerListings) {
+            const item = normalized.find((n) => n.product_id === listing.id);
+            const qty = item?.quantity || 1;
+            const gross = Number(listing.price) * qty;
+            const existing = sellerGroups.get(listing.seller_id) || { listings: [], grossTotal: 0 };
+            existing.listings.push(listing);
+            existing.grossTotal += gross;
+            sellerGroups.set(listing.seller_id, existing);
+          }
+
+          // Get seller-specific commission rates
+          const sellerIds = [...sellerGroups.keys()];
+          const { data: sellers } = await supabaseClient
+            .from("c2c_sellers")
+            .select("id, commission_rate")
+            .in("id", sellerIds);
+
+          const sellerRates = new Map<string, number>();
+          for (const s of sellers || []) {
+            sellerRates.set(s.id, s.commission_rate ?? defaultRate);
+          }
+
+          // Create marketplace_orders per seller
+          for (const [sellerId, group] of sellerGroups) {
+            const rate = sellerRates.get(sellerId) ?? defaultRate;
+            const gross = group.grossTotal;
+            const commission = Math.round(gross * rate) / 100;
+            const net = gross - commission;
+
+            await supabaseClient.from("marketplace_orders").insert({
+              workspace_id: workspaceId,
+              store_order_id: orderId,
+              seller_id: sellerId,
+              listing_id: group.listings[0]?.id || null,
+              gross_amount: gross,
+              commission_rate: rate,
+              commission_amount: commission,
+              net_amount: net,
+              currency: currency,
+              status: "pending",
+            });
+
+            logStep("Created marketplace_order", { sellerId, gross, commission, net });
+          }
+        }
+      } catch (mkErr) {
+        logStep("Marketplace order split error (non-blocking)", { error: String(mkErr) });
+      }
+    }
+
     // Link reservation to order
     if (reservationId && orderId) {
       await supabaseClient

@@ -21,6 +21,13 @@ export interface StoreSettings {
   custom_domain: string | null;
   prices_include_vat: boolean;
   vat_rate: number;
+  c2c_enabled: boolean;
+  c2c_seller_approval_required: boolean;
+  c2c_listing_moderation_required: boolean;
+  c2c_default_commission_rate: number;
+  c2c_payout_minimum_amount: number;
+  c2c_payout_manual_mode: boolean;
+  c2c_allow_mixed_cart: boolean;
   created_at: string;
   updated_at: string;
 }
