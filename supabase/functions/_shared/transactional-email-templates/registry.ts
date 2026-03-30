@@ -17,6 +17,7 @@ import { template as funnelMeetingTrialInvite } from './funnel-meeting-trial-inv
 import { template as funnelNurtureValue } from './funnel-nurture-value.tsx'
 import { template as funnelNurtureSocialProof } from './funnel-nurture-social-proof.tsx'
 import { template as funnelNurtureLastChance } from './funnel-nurture-last-chance.tsx'
+import { template as cartRecovery } from './cart-recovery.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-invitation': eventInvitation,
@@ -27,4 +28,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'funnel-nurture-value': funnelNurtureValue,
   'funnel-nurture-social-proof': funnelNurtureSocialProof,
   'funnel-nurture-last-chance': funnelNurtureLastChance,
+  'cart-recovery': cartRecovery,
 }
