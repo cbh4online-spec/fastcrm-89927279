@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Send, Loader2, Bot as BotIcon, User, Trash2, Bug } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 interface ChatMessage {
   id: string;
@@ -157,9 +157,7 @@ export function BotTestChat({ bot }: BotTestChatProps) {
                   }`}
                 >
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
+                    <MarkdownRenderer content={msg.content} className="[&>p]:m-0" />
                   ) : (
                     msg.content
                   )}
