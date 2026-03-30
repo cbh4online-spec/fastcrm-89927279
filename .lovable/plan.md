@@ -1,90 +1,41 @@
 
 
-# Área de Gestão do Blog — Avançada
+# Verificação e Correcção do Glossário
 
 ## Diagnóstico
 
-Actualmente, os posts de blog são geridos dentro da lista genérica de entidades SEO (`SEOEntitiesList`), filtrados por `entity_type: 'blog'`. Não existe uma página dedicada com funcionalidades específicas de blog como editor rico, calendário editorial, categorias/tags, imagem de destaque, agendamento de publicação, ou dashboard de performance por artigo.
+A página `/glossary` está funcional — lista termos agrupados por letra, navegação alfabética, pesquisa e página de detalhe a funcionar. No entanto, existem problemas a corrigir:
 
-## Plano
+### Problemas encontrados
 
-### 1. Nova rota `/dashboard/blog` com layout dedicado
+1. **Canonical URL errado** — Linha 68 de `GlossaryListPage.tsx` aponta para `https://fastcrm.lovable.app/glossary` em vez de `https://fastcrm.metodopare.ai/glossary`
+2. **Pesquisa limitada à página actual** — O filtro de pesquisa só filtra os 24 termos carregados na página corrente, não pesquisa todos os termos da base de dados
+3. **Cards sem descrição** — Os cards de termos mostram apenas o título e seta, sem qualquer contexto (tldr/meta_description) que ajude o utilizador a decidir se quer clicar
+4. **Falta estado loading nas páginas seguintes** — O skeleton só aparece quando `page === 1`, nas restantes páginas não há indicação de carregamento
 
-Criar `src/pages/dashboard/blog/index.tsx` com tabs:
-- **Artigos** — lista filtrada por `entity_type='blog'` com colunas específicas (título, autor, categoria, estado, views, AI score, data publicação)
-- **Editor** — formulário completo de criação/edição de artigo
-- **Calendário** — vista mensal dos artigos agendados/publicados
-- **Analytics** — métricas específicas do blog (top artigos, views/dia, tempo médio leitura)
+## Plano de Implementação
 
-### 2. Componente `BlogArticlesList` 
+### 1. Corrigir canonical URL
+Actualizar para usar domínio correcto ou remover hardcode e usar `window.location.origin`.
 
-Tabela avançada dedicada ao blog com:
-- **Filtros**: estado (rascunho/publicado/arquivado), intenção, pesquisa por título
-- **Colunas**: thumbnail (og_image), título + slug, estado, intenção, AI score, views, data publicação, acções
-- **Acções rápidas**: publicar, despublicar, duplicar, eliminar, ver página pública, editar
-- **Selecção bulk**: publicar/arquivar/eliminar em massa
-- **Ordenação**: por views, data, AI score
-- **Estado vazio**: CTA para criar primeiro artigo
+### 2. Carregar todos os termos para pesquisa local
+Quando existe `searchQuery`, buscar todos os termos (sem paginação) para que a pesquisa funcione sobre o glossário inteiro. Alternativa: aumentar o limit quando há pesquisa activa.
 
-### 3. Componente `BlogArticleEditor`
+### 3. Adicionar tldr aos cards
+Mostrar o `tldr` ou `meta_description` truncado por baixo do título em cada card para dar contexto ao utilizador.
 
-Formulário completo de criação/edição:
-- **SEO**: título, meta description, H1, slug (auto-gerado), canonical URL
-- **Conteúdo**: TL;DR, secções (heading + corpo + tipo), FAQs
-- **Media**: imagem OG (upload ou URL), preview do card social
-- **Configuração**: intenção, idioma, país, prioridade sitemap, frequência de alteração
-- **Agendamento**: data/hora de publicação futura (published_at)
-- **Geração IA**: botão para gerar conteúdo via `useGenerateSEOContent` pré-configurado para tipo blog
-- **Preview**: visualização do artigo como ficará na página pública
-- **Guardar**: rascunho ou publicar directamente
+### 4. Corrigir loading em todas as páginas
+Remover a condição `page === 1` do skeleton ou adicionar um indicador de loading inline para páginas subsequentes.
 
-### 4. Componente `BlogCalendar`
+## Ficheiro a alterar
 
-Vista de calendário mensal:
-- Cada dia mostra artigos publicados e agendados
-- Cores por estado (rascunho=amarelo, publicado=verde, agendado=azul)
-- Clicar num artigo abre o editor
-- Arrastar para reagendar (actualiza `published_at`)
-
-### 5. Componente `BlogAnalytics`
-
-Dashboard com KPIs do blog:
-- **Cards resumo**: total artigos, publicados, rascunhos, total views, AI score médio
-- **Gráfico de views** por período (últimos 30 dias)
-- **Top 10 artigos** por views
-- **Artigos recentes** sem views (oportunidade de promoção)
-
-### 6. Hooks dedicados
-
-- `useBlogArticles(filters, pagination)` — wrapper de `useAdminSEOEntities` com `entityType: 'blog'` fixo
-- `useBlogStats()` — métricas filtradas por blog
-- `useSaveBlogArticle()` — mutation para criar/actualizar artigo com validação de campos obrigatórios
-- `useDuplicateArticle()` — duplicar artigo existente com slug alterado
-
-### 7. Rota e navegação
-
-- Adicionar rota `/dashboard/blog` em `DashboardCoreRoutes.tsx`
-- Proteger com `ModuleGuard` (módulo `seo-growth`)
-
-## Ficheiros a criar/alterar
-
-| Ficheiro | Acção |
+| Ficheiro | Alteração |
 |---|---|
-| `src/pages/dashboard/blog/index.tsx` | Criar — página principal com tabs |
-| `src/pages/dashboard/blog/BlogArticlesList.tsx` | Criar — tabela avançada de artigos |
-| `src/pages/dashboard/blog/BlogArticleEditor.tsx` | Criar — editor completo de artigos |
-| `src/pages/dashboard/blog/BlogCalendar.tsx` | Criar — calendário editorial |
-| `src/pages/dashboard/blog/BlogAnalytics.tsx` | Criar — dashboard de métricas |
-| `src/hooks/useBlogAdmin.ts` | Criar — hooks dedicados do blog |
-| `src/routes/crm/DashboardCoreRoutes.tsx` | Alterar — adicionar rota `/dashboard/blog` |
+| `src/modules/growth-seo/pages/GlossaryListPage.tsx` | Corrigir canonical, pesquisa, cards com descrição, loading |
 
 ## Critérios de Aceitação
-
-- Lista de artigos com filtros, ordenação, paginação e acções bulk
-- Editor completo com todos os campos SEO, conteúdo, media e agendamento
-- Geração IA integrada no editor
-- Calendário editorial funcional com vista mensal
-- Dashboard com KPIs reais do blog
-- Todos os estados tratados: loading, vazio, erro
-- Responsivo e acessível
+- Canonical URL correcto
+- Pesquisa funciona sobre todos os termos
+- Cards mostram descrição curta
+- Loading visível em todas as páginas
 
