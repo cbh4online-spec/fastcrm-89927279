@@ -1,24 +1,46 @@
 
 
-## Diagnóstico — 404 em `/dashboard/helpdesk/csat`
+## Adicionar Menu Lateral às Páginas do Helpdesk
 
-### Análise
+### Diagnóstico
 
-Todos os ficheiros estão corretos e consistentes:
+As páginas do Helpdesk estão inconsistentes — apenas 2 de 8 usam o `DashboardLayout` (que inclui a sidebar, topbar, auth guard e todos os wrappers do CRM):
 
-1. **Rota registada** — `HelpdeskRoutes.tsx` linha 23: `<Route path="/dashboard/helpdesk/csat" element={<HelpdeskCSAT />} />`
-2. **Ficheiro existe** — `src/pages/dashboard/helpdesk/HelpdeskCSAT.tsx` (185 linhas, importa corretamente `useCSATDashboard`, `CSATCharts`, `CSATWidget`, `CountUp`, `Skeleton`, `TimeAgo`)
-3. **Componentes existem** — `CSATCharts.tsx` (95 linhas) e `CSATWidget.tsx` (47 linhas)
-4. **Hook existe** — `useCSATDashboard.ts` com tipo `CSATPeriod` exportado
-5. **CRMRoutes inclui HelpdeskRoutes** — linha 71
+| Página | Tem `DashboardLayout`? |
+|--------|----------------------|
+| HelpdeskAutomations | Sim |
+| HelpdeskSLAPolicies | Sim |
+| HelpdeskDashboard | **Não** |
+| HelpdeskTicketsList | **Não** |
+| HelpdeskTicketDetail | **Não** |
+| HelpdeskCannedResponses | **Não** |
+| HelpdeskKnowledgeBase | **Não** |
+| HelpdeskCSAT | **Não** |
 
-### Causa
+### Solução
 
-Mesmo problema anterior: o preview foi carregado antes do build terminar. O lazy import não resolveu e o React Router caiu no catch-all `*` → NotFound.
+Envolver as 6 páginas que faltam com `<DashboardLayout>`. Isto é o mesmo padrão já usado em `HelpdeskAutomations` e `HelpdeskSLAPolicies`, e em todas as outras páginas do dashboard (ex: `WeeklyDashboard`).
 
-### Resolução
+### Ficheiros a Editar
 
-**Fazer refresh da página no preview.** Não são necessárias alterações de código.
+1. **`src/pages/dashboard/helpdesk/HelpdeskDashboard.tsx`** — importar `DashboardLayout`, envolver o return
+2. **`src/pages/dashboard/helpdesk/HelpdeskTicketsList.tsx`** — idem
+3. **`src/pages/dashboard/helpdesk/HelpdeskTicketDetail.tsx`** — idem
+4. **`src/pages/dashboard/helpdesk/HelpdeskCannedResponses.tsx`** — idem
+5. **`src/pages/dashboard/helpdesk/HelpdeskKnowledgeBase.tsx`** — idem
+6. **`src/pages/dashboard/helpdesk/HelpdeskCSAT.tsx`** — idem
 
-Se persistir após refresh, posso investigar os logs de compilação para erros silenciosos.
+### Alteração Tipo (repetida em cada ficheiro)
+
+```tsx
+// Adicionar import
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+
+// Envolver o return existente
+return (
+  <DashboardLayout>
+    {/* conteúdo existente */}
+  </DashboardLayout>
+);
+```
 
