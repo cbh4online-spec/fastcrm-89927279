@@ -1,138 +1,133 @@
 
 
-## P1 — Evolução Estratégica do Módulo de Campanhas de Email
+## P2 — Otimização, A/B Testing, IA e Lifecycle Avançado
 
 ### Diagnóstico do Estado Actual
 
-| Área | Existe | Lacuna |
-|------|--------|--------|
-| `marketing_events` | ✅ Tem campaign_id, recipient_id, email, event_type | **Não tem contact_id, lead_id, opportunity_id** |
-| `marketing_recipients` | ✅ Tem contact_id, lead_id | Não liga eventos a timeline do CRM |
-| `campaign_link_clicks` | ✅ Tem contact_id | Não tem lead_id |
-| Revenue Attribution | ✅ `RevenueAttributionPanel` básico (clicks→opps→revenue) | Modelo único (equal share), sem first/last touch, sem janela configurável |
-| Deliverability | ✅ `DeliverabilityDashboard` agregado 30d, `DeliverabilityPanel` por campanha | Sem score por segmento, sem trend, sem engagement decay |
-| CRM Integration | ✅ `ContactJourneyTimeline` (busca por email) | Não integrado na ficha do contacto, sem tab dedicada |
-| Triggers/Automação | ✅ `TriggerBuilder` com opened/clicked/not_opened/bounced → tag/sequence/webhook | Funcional, precisa de ligar a scoring |
-| Dashboard | ✅ KPIs operacionais (sent/opened/clicked) | Sem leads gerados, sem opps influenciadas, sem revenue |
+| Área | Existe | Limitação |
+|------|--------|-----------|
+| A/B Testing | ✅ `campaign_ab_tests` + `AbTestPanel` + `useCampaignAbTest` | Apenas subject A vs B, sem multi-variante, sem conversion/revenue metric |
+| AI Copilot | ✅ `marketing-ai-copilot` (subjects + body gen) + `AISubjectLineGenerator` + `CampaignInsightsPanel` | Sem dados históricos, sem send time, sem benchmarks |
+| Send Time | ✅ `SmartSendTimeCard` (hourly engagement) | Sem segmento, sem dia da semana, sem recomendação aplicável |
+| Lifecycle | ✅ `LifecycleAutomations` (templates estáticos) + `TriggerBuilder` (event→action) | Templates decorativos, sem activação real de jornadas |
+| Benchmarking | ❌ Inexistente | Sem scorecards, sem comparação histórica |
+| Template/CTA ranking | ❌ Inexistente | Sem performance tracking por template ou CTA |
 
-### Plano de Execução — 5 Batches
+### Plano de Execução — 6 Batches
 
 ---
 
-**B1 — Schema: contact_id/lead_id em marketing_events + tabela campaign_attribution**
+**B1 — Schema: Experiments, AI Recommendations, Benchmarks**
 
 Migração SQL:
-- Adicionar `contact_id UUID REFERENCES contacts(id)` e `lead_id UUID REFERENCES leads(id)` a `marketing_events`
-- Criar tabela `campaign_attribution`:
-  - `id`, `workspace_id`, `campaign_id`, `contact_id`, `lead_id` (nullable), `opportunity_id` (nullable)
-  - `attribution_model` TEXT (first_touch, last_touch, assisted, equal_share)
-  - `attribution_type` TEXT (originated, influenced)
-  - `revenue_attributed` NUMERIC, `revenue_influenced` NUMERIC
-  - `attributed_at` TIMESTAMPTZ, `attribution_window_days` INT DEFAULT 30
-  - `event_type` TEXT (click, open, etc.)
-  - `created_at` TIMESTAMPTZ
-  - RLS por workspace_members
+- Criar `campaign_experiments` (id, workspace_id, base_campaign_id, experiment_type, status, winning_variant_id, evaluation_metric, min_sample_size, created_by, created_at, updated_at)
+- Criar `campaign_variants` (id, experiment_id, campaign_id, variant_label, traffic_split, open_rate, click_rate, conversion_rate, revenue_attributed, sample_size, created_at)
+- Criar `ai_campaign_recommendations` (id, workspace_id, campaign_id nullable, recommendation_type, recommendation_data JSONB, reasoning TEXT, status, accepted_at, dismissed_at, created_at)
+- Criar `campaign_benchmarks` (id, workspace_id, entity_type, entity_id, period_days, metrics JSONB, calculated_at)
+- RLS por workspace_members em todas
 
 Código:
-- Actualizar `marketing-webhook` edge function para resolver `contact_id`/`lead_id` a partir do `recipient_id` quando insere `marketing_events`
-- Actualizar tipos em `src/types/marketing.ts` para incluir novos campos em `MarketingEvent`
+- Adicionar tipos em `src/types/marketing.ts`: `CampaignExperiment`, `CampaignVariant`, `AICampaignRecommendation`, `CampaignBenchmark`
 
 ---
 
-**B2 — CRM Attribution: Tab de Marketing na ficha do contacto/lead**
+**B2 — A/B Testing Expandido**
 
-Criar `src/components/contacts/sections/ContactCampaignHistory.tsx`:
-- Query `marketing_recipients` + `marketing_events` filtrado por `contact_id`
-- Mostrar lista de campanhas recebidas com status (sent, opened, clicked, bounced, etc.)
-- Timeline visual de interações de campanha
-- Badge de engagement (activo, passivo, inactivo, bounce)
+Criar `src/hooks/useCampaignExperiments.ts`:
+- CRUD para experiments + variants
+- Lógica de determinação de vencedor com amostra mínima
+- Suporte a métricas: open_rate, click_rate, conversion_rate, revenue_attributed
 
-Criar `src/hooks/useContactCampaignHistory.ts`:
-- Query que junta recipients + events + campaigns por contact_id
+Criar `src/components/marketing/ExperimentPanel.tsx`:
+- Substituir/complementar `AbTestPanel` com suporte multi-variante
+- Tipos: subject, preview_text, from_name, cta, content, template, send_time
+- Split configurável por variante (default 50/50)
+- Visualização de resultados com barras comparativas
+- Botão "Declarar vencedora" (manual) + auto-declare quando amostra atingida
+- Validação: mínimo 100 recipients por variante
 
-Integrar em `ENIContactDetailWithSidebar.tsx`:
-- Adicionar secção "Marketing" no menu lateral
-- Mostrar `ContactCampaignHistory` quando seleccionada
-
-Replicar para leads em `LeadDetail.tsx` (mesma lógica, filtro por lead_id)
-
----
-
-**B3 — Pipeline Attribution + Revenue**
-
-Criar `src/hooks/useCampaignAttribution.ts`:
-- Lógica de attribution configurável:
-  - **First touch**: primeira campanha com interacção antes da criação da opp
-  - **Last touch**: última campanha antes da conversão
-  - **Equal share**: distribuição igual entre campanhas que tocaram o contacto
-- Janela configurável (default 30 dias)
-- Calcular `revenue_attributed` e `revenue_influenced` a partir de opportunities com stage=won
-
-Criar edge function `compute-campaign-attribution`:
-- Corre on-demand ou periodicamente
-- Para cada opp fechada, resolve quais campanhas influenciaram via `marketing_events` + `campaign_link_clicks` dentro da janela
-- Insere/actualiza `campaign_attribution`
-- Calcula: opportunities_created, opportunities_influenced, revenue_attributed, revenue_influenced
-
-Reforçar `RevenueAttributionPanel.tsx`:
-- Usar dados da tabela `campaign_attribution` em vez de cálculo inline
-- Mostrar attributed vs influenced separadamente
-- Adicionar KPIs: leads gerados, opps influenciadas, revenue
-
-Criar secção "Impacto Comercial" no `CampaignDetailDialog.tsx` tab Stats:
-- Leads gerados por esta campanha (contacts criados com source=campaign)
-- Opps influenciadas
-- Revenue atribuída/influenciada
+Integrar no `CampaignDetailDialog.tsx`:
+- Tab "Testes" com `ExperimentPanel`
 
 ---
 
-**B4 — Deliverability Avançada + Segmentação Comportamental**
+**B3 — IA de Otimização com Dados Históricos**
 
-Reforçar `DeliverabilityDashboard.tsx`:
-- Adicionar trend chart (últimos 6 meses, bounce/complaint/unsub por mês)
-- Score de deliverability agregado (0-100)
-- Engagement decay: % de contactos sem abertura nos últimos 30/60/90 dias
-- Health por segmento (query por segment_id → aggregate bounce/complaint rates)
-- Alertas mais granulares com sugestões accionáveis
+Expandir `supabase/functions/marketing-ai-copilot/index.ts`:
+- Novo action `optimize_campaign`: recebe dados históricos (top 10 campanhas por open_rate, click_rate) + campanha actual → sugere melhorias de subject, preview, CTA, send time
+- Novo action `analyze_risk`: analisa body_html para risco de spam (link ratio, image ratio, keywords)
+- Novo action `recommend_segment`: com base em engagement por segmento, sugere melhor segmento
 
-Criar `src/hooks/useEngagementSegments.ts`:
-- Segmentos pré-definidos baseados em comportamento:
-  - `engaged_7d`, `engaged_30d`, `engaged_90d`
-  - `never_opened`, `opened_not_clicked`, `multi_clicker`
-  - `bounced`, `complained`, `unsubscribed`
-  - `cold_90d` (sem abertura há 90+ dias)
-- Cada segmento com contagem e lógica de query
+Criar `src/components/marketing/AIOptimizationPanel.tsx`:
+- Painel com 3 secções: Sugestões de Copy, Risco de Spam, Melhor Segmento
+- Cada sugestão com reasoning + botão Aceitar/Ignorar
+- Grava em `ai_campaign_recommendations`
 
-Criar `src/components/marketing/EngagementSegmentsPanel.tsx`:
-- Lista de segmentos comportamentais com contagem
-- Botão "Usar como segmento" para criar campanha filtrada
-- Preview de contactos por segmento
+Criar `src/hooks/useAIRecommendations.ts`:
+- Query + accept/dismiss mutations para `ai_campaign_recommendations`
 
 ---
 
-**B5 — Dashboard Estratégico + Lifecycle Hooks**
+**B4 — Send Time Optimization + Template/CTA Intelligence**
+
+Expandir `SmartSendTimeCard` → Criar `src/components/marketing/SendTimeOptimizer.tsx`:
+- Análise por dia da semana + hora (heatmap 7×24)
+- Análise por segmento (qual segmento responde melhor a que hora)
+- Recomendação de janela óptima aplicável (botão "Aplicar como horário de envio")
+
+Criar `src/components/marketing/TemplatePerformancePanel.tsx`:
+- Ranking de templates por open_rate, click_rate, conversion_rate, revenue
+- Filtro por período (30d, 90d, 180d)
+- Query: marketing_campaigns agrupadas por template_id → aggregate metrics
+
+Criar `src/components/marketing/CTAPerformancePanel.tsx`:
+- Ranking de links/CTAs por click_rate e revenue influence
+- Query: campaign_link_clicks agrupadas por URL pattern → aggregate metrics
+- Relação CTA × tipo de campanha
+
+---
+
+**B5 — Lifecycle Marketing Avançado**
+
+Reforçar `src/components/marketing/LifecycleAutomations.tsx`:
+- Transformar templates estáticos em jornadas activáveis
+- Cada jornada cria uma sequência real de triggers/campanhas:
+  - Onboarding (novo contacto → welcome series 3 emails)
+  - Reengagement (cold_90d → 2 emails + task)
+  - Win-back (opp perdida → 3 emails)
+  - Upsell (cliente activo → oferta complementar)
+  - Churn prevention (sinais de risco → sequência preventiva)
+- Botão "Activar jornada" que cria triggers via `useCampaignTriggers`
+- Regras de scoring: eventos de campanha actualizam score do contacto via `campaignLifecycleScoring`
+
+Integrar lifecycle no `TriggerBuilder`:
+- Nova acção: `start_journey` (inscrever contacto numa jornada)
+- Mostrar jornadas activas com contagem de contactos inscritos
+
+---
+
+**B6 — Benchmarking, Scorecards e Dashboard de Otimização**
+
+Criar `src/hooks/useCampaignBenchmarks.ts`:
+- Calcula e persiste benchmarks por período (30d, 90d, 180d)
+- Entidades: campaign, template, segment, send_hour, campaign_type
+- Métricas: avg open_rate, click_rate, conversion_rate, bounce_rate, revenue
+
+Criar `src/components/marketing/BenchmarkScorecard.tsx`:
+- Tabela comparativa: melhores/piores campanhas, templates, segmentos
+- Filtro por período e tipo de campanha
+- Badges: 🏆 melhor, ⚠️ pior, 📈 a melhorar
+- Comparação da campanha actual vs benchmark do workspace
 
 Reforçar `MarketingDashboard.tsx`:
-- Nova secção "Impacto Comercial":
-  - Leads gerados (total e por campanha top-5)
-  - Opps influenciadas
-  - Revenue atribuída / influenciada
-  - Campanha com melhor ROI
-- Nova secção "Saúde da Base":
-  - Integrar `DeliverabilityDashboard` inline
-  - Engagement segments summary
-- Gráfico funil: Campanhas → Leads → Opps → Revenue
-
-Reforçar `TriggerBuilder.tsx`:
-- Adicionar acções:
-  - `update_score`: aumentar/diminuir lead/contact score
-  - `create_task`: criar tarefa comercial
-  - `update_lifecycle`: mudar lifecycle stage
-- Adicionar evento `converted` (contacto gerou opp após campanha)
-
-Criar `src/utils/campaignLifecycleScoring.ts`:
-- Função que calcula impacto no score do contacto baseado em eventos de campanha
-- opened = +2, clicked = +5, multi_click = +10, bounced = -10, complained = -20, unsubscribed = -15, converted = +25
+- Nova secção "Otimização":
+  - Top variantes vencedoras de testes
+  - Sugestões IA pendentes (count + link)
+  - Melhor send time
+  - Templates com melhor ROI
+  - Campanhas com potencial de melhoria (abaixo do benchmark)
+  - Alerta de fadiga (segmentos enviados > 3x nos últimos 30d)
+- Visão executiva: "Repetir / Parar / Testar a seguir"
 
 ---
 
@@ -140,39 +135,37 @@ Criar `src/utils/campaignLifecycleScoring.ts`:
 
 | Ficheiro | Acção |
 |----------|-------|
-| `supabase/migrations/...` | Criar — contact_id/lead_id em marketing_events + campaign_attribution |
-| `supabase/functions/marketing-webhook/index.ts` | Alterar — resolver contact_id/lead_id |
-| `supabase/functions/compute-campaign-attribution/index.ts` | Criar — motor de attribution |
+| `supabase/migrations/...` | Criar — experiments, variants, recommendations, benchmarks |
 | `src/types/marketing.ts` | Alterar — novos tipos |
-| `src/hooks/useContactCampaignHistory.ts` | Criar |
-| `src/hooks/useCampaignAttribution.ts` | Criar |
-| `src/hooks/useEngagementSegments.ts` | Criar |
-| `src/components/contacts/sections/ContactCampaignHistory.tsx` | Criar |
-| `src/components/marketing/EngagementSegmentsPanel.tsx` | Criar |
-| `src/components/marketing/RevenueAttributionPanel.tsx` | Alterar — usar campaign_attribution |
-| `src/components/marketing/DeliverabilityDashboard.tsx` | Alterar — trends + score + decay |
-| `src/components/marketing/MarketingDashboard.tsx` | Alterar — secções estratégicas |
-| `src/components/marketing/CampaignDetailDialog.tsx` | Alterar — tab impacto comercial |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Alterar — secção marketing |
-| `src/components/marketing/TriggerBuilder.tsx` | Alterar — novas acções |
-| `src/utils/campaignLifecycleScoring.ts` | Criar |
+| `src/hooks/useCampaignExperiments.ts` | Criar |
+| `src/hooks/useAIRecommendations.ts` | Criar |
+| `src/hooks/useCampaignBenchmarks.ts` | Criar |
+| `src/components/marketing/ExperimentPanel.tsx` | Criar |
+| `src/components/marketing/AIOptimizationPanel.tsx` | Criar |
+| `src/components/marketing/SendTimeOptimizer.tsx` | Criar |
+| `src/components/marketing/TemplatePerformancePanel.tsx` | Criar |
+| `src/components/marketing/CTAPerformancePanel.tsx` | Criar |
+| `src/components/marketing/BenchmarkScorecard.tsx` | Criar |
+| `src/components/marketing/LifecycleAutomations.tsx` | Alterar — jornadas activáveis |
+| `src/components/marketing/MarketingDashboard.tsx` | Alterar — secção otimização |
+| `src/components/marketing/CampaignDetailDialog.tsx` | Alterar — tabs testes + IA |
+| `supabase/functions/marketing-ai-copilot/index.ts` | Alterar — optimize, risk, segment |
 
-### O Que Fica para V2
+### V2 (Diferido)
 
-- A/B testing avançado
-- Optimização de subject/send time por IA
-- Lifecycle sequences automáticas (onboarding, win-back, nurture)
-- Permissões granulares por papel (RBAC dedicado ao módulo marketing)
-- Segmentação comportamental cross-module (funis + campanhas + CRM)
+- Auto-optimização sem intervenção humana (full autopilot)
+- Permissões granulares por papel no módulo marketing
+- Segmentação comportamental cross-module
+- Predictive send (ML por contacto individual)
+- Multi-variate testing (>2 variáveis simultâneas)
 
-### Critérios de Conclusão P1
+### Critérios de Conclusão P2
 
-- ✅ `marketing_events` liga a contact_id e lead_id
-- ✅ Ficha do contacto mostra histórico de campanhas
-- ✅ Tabela `campaign_attribution` com first/last/equal share
-- ✅ Revenue attributed vs influenced por campanha
-- ✅ Dashboard com leads, opps e revenue
-- ✅ Deliverability com trends e engagement decay
-- ✅ Segmentos comportamentais prontos a usar
-- ✅ Triggers alimentam scoring e lifecycle
+- ✅ Experiments multi-tipo com variantes e vencedora
+- ✅ IA recomenda subject, copy, segmento e send time com dados reais
+- ✅ Send time por dia/hora/segmento com heatmap
+- ✅ Ranking de templates e CTAs por performance
+- ✅ Jornadas lifecycle activáveis (não decorativas)
+- ✅ Benchmarks por período com scorecards comparativos
+- ✅ Dashboard com visão executiva de otimização
 
