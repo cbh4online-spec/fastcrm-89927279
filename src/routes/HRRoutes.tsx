@@ -14,6 +14,7 @@ const HRTimeTrackingPage = lazy(() => import("@/pages/dashboard/hr/HRTimeTrackin
 const HRSchedulesPage = lazy(() => import("@/pages/dashboard/hr/HRSchedulesPage"));
 const HRAbsencesPage = lazy(() => import("@/pages/dashboard/hr/HRAbsencesPage"));
 const HRKioskPage = lazy(() => import("@/pages/dashboard/hr/HRKioskPage"));
+const HRSettingsPage = lazy(() => import("@/pages/dashboard/hr/HRSettingsPage"));
 
 // Recruitment pages
 const RecruitmentDashboardPage = lazy(() => import("@/pages/dashboard/hr/recruitment/RecruitmentDashboardPage"));
