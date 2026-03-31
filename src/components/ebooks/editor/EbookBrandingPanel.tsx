@@ -114,21 +114,22 @@ export function EbookBrandingPanel({
             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <FileCheck className="h-3.5 w-3.5 text-muted-foreground" /> Consentimento (RGPD)
             </span>
-            <label className="flex items-center gap-2 cursor-pointer mb-2">
-              <input
-                type="checkbox"
-                checked={consentRequired || false}
-                onChange={(e) => onConsentRequiredChange?.(e.target.checked)}
-                className="rounded border-border"
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={consentRequired || false}
+                  onChange={(e) => onConsentRequiredChange?.(e.target.checked)}
+                  className="rounded border-border"
+                />
+                <span className="text-xs text-muted-foreground">Consentimento obrigatório</span>
+              </label>
+              <Textarea
+                placeholder="Texto de consentimento (ex: Aceito a recolha dos meus dados...)"
+                value={consentText || ""}
+                onChange={(e) => onConsentTextChange?.(e.target.value)}
+                className="text-xs min-h-[60px]"
               />
-              <span className="text-xs text-muted-foreground">Consentimento obrigatório</span>
-            </label>
-            <Textarea
-              placeholder="Texto de consentimento (ex: Aceito a recolha dos meus dados...)"
-              value={consentText || ""}
-              onChange={(e) => onConsentTextChange?.(e.target.value)}
-              className="text-xs min-h-[60px]"
-            />
               <Input
                 placeholder="URL da Política de Privacidade"
                 value={privacyPolicyUrl || ""}
