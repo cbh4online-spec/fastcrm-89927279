@@ -26,6 +26,7 @@ const InterviewsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/Inter
 const HROKRsPage = lazy(() => import("@/pages/dashboard/hr/HROKRsPage"));
 const HRFeedbackPage = lazy(() => import("@/pages/dashboard/hr/HRFeedbackPage"));
 const HRCheckinsPage = lazy(() => import("@/pages/dashboard/hr/HRCheckinsPage"));
+const HRPerformanceReviewsPage = lazy(() => import("@/pages/dashboard/hr/HRPerformanceReviewsPage"));
 
 export function HRRoutes() {
   return (
