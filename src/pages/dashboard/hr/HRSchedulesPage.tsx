@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRSchedules, useHRShifts, useCreateHRShift, useDeleteHRShift, useUpsertSchedule, type HRShift } from "@/hooks/hr/useHRSchedules";
-import { useHREmployees } from "@/hooks/hr/useHREmployees";
+import { useHREmployeesList } from "@/hooks/hr/useCheckins";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
