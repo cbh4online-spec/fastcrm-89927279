@@ -81,7 +81,7 @@ export default function TasksPage() {
     } catch { toast.error("Erro ao atualizar tarefa"); }
   };
 
-  const handleEditSave = async (id: string, updates: { title?: string; due_at?: string | null }) => {
+  const handleEditSave = async (id: string, updates: { title?: string; due_at?: string | null; assigned_to?: string | null }) => {
     try {
       await updateTask.mutateAsync({ id, ...updates });
       toast.success("Tarefa atualizada");

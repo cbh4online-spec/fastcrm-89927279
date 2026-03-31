@@ -6,18 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CalendarIcon, Trash2, UserCircle } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Task } from "@/hooks/useTasks";
 import { TaskPriority, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from "@/types/taskTemplate";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 
 interface EditTaskDialogProps {
   task: Task | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (id: string, updates: { title?: string; due_at?: string | null }) => void;
+  onSave: (id: string, updates: { title?: string; due_at?: string | null; assigned_to?: string | null }) => void;
   onDelete: (id: string) => void;
 }
 
@@ -25,11 +28,14 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const { data: members } = useWorkspaceMembers();
 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDueDate(task.due_at ? new Date(task.due_at) : undefined);
+      setAssignedTo((task as any).assigned_to ?? null);
     }
   }, [task]);
 
@@ -39,6 +45,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
     onSave(task.id, {
       title: title.trim() || task.title,
       due_at: dueDate?.toISOString() ?? null,
+      assigned_to: assignedTo,
     });
     onOpenChange(false);
   };
@@ -78,6 +85,38 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
                 </Button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Responsável</Label>
+            <Select
+              value={assignedTo ?? "__none__"}
+              onValueChange={(v) => setAssignedTo(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sem responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <UserCircle className="h-4 w-4" /> Sem responsável
+                  </span>
+                </SelectItem>
+                {members?.map((m) => (
+                  <SelectItem key={m.user_id} value={m.user_id}>
+                    <span className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={m.profile?.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {(m.profile?.full_name ?? m.profile?.email ?? "?").charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {m.profile?.full_name || m.profile?.email || "Utilizador"}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
