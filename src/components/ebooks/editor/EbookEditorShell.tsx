@@ -92,6 +92,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       setLocalHeaderText((ebook as any).header_text || "");
       setLocalFooterText((ebook as any).footer_text || "");
       setLocalContactPage((ebook as any).contact_page || {});
+      setLocalConsentRequired((ebook as any).consent_required || false);
       setLocalConsentText((ebook as any).consent_text || "");
       setLocalPrivacyPolicyUrl((ebook as any).privacy_policy_url || "");
       setLocalMarketingOptInEnabled((ebook as any).marketing_opt_in_enabled || false);
