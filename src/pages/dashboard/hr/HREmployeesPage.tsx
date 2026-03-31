@@ -112,6 +112,8 @@ export default function HREmployeesPage() {
                 <SelectItem value="active">Activos</SelectItem>
                 <SelectItem value="inactive">Inactivos</SelectItem>
                 <SelectItem value="on_leave">Ausentes</SelectItem>
+                <SelectItem value="terminated">Terminados</SelectItem>
+                <SelectItem value="suspended">Suspensos</SelectItem>
               </SelectContent>
             </Select>
             {departments.length > 0 && (
