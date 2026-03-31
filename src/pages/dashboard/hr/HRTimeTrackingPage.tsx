@@ -414,6 +414,13 @@ export default function HRTimeTrackingPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Face Capture Dialog */}
+        <FaceCaptureDialog
+          open={faceDialogOpen}
+          onOpenChange={setFaceDialogOpen}
+          employees={employees}
+        />
       </DashboardLayout>
     </ModuleGuard>
   );

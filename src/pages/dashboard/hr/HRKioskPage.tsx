@@ -3,11 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useHREmployeesList } from "@/hooks/hr/useCheckins";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, XCircle, Camera, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, Camera, ArrowLeft, QrCode, ScanFace } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FaceCaptureCore } from "@/components/hr/FaceCaptureDialog";
 
 type QRResult = {
   success: boolean;
@@ -23,8 +26,11 @@ export default function HRKioskPage() {
   const [lastResults, setLastResults] = useState<QRResult[]>([]);
   const [scanning, setScanning] = useState(false);
   const [currentResult, setCurrentResult] = useState<QRResult | null>(null);
+  const [activeTab, setActiveTab] = useState("qr");
   const scannerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const { data: employees = [] } = useHREmployeesList();
 
   // Clock
   useEffect(() => {
@@ -32,8 +38,10 @@ export default function HRKioskPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // QR Scanner
+  // QR Scanner — only when QR tab is active
   useEffect(() => {
+    if (activeTab !== "qr") return;
+
     let html5QrCode: any = null;
 
     const startScanner = async () => {
@@ -80,7 +88,19 @@ export default function HRKioskPage() {
         html5QrCode.stop().catch(() => {});
       }
     };
-  }, []);
+  }, [activeTab]);
+
+  const handleFaceResult = (result: any) => {
+    if (!result) return;
+    const qrResult: QRResult = {
+      success: result.success && result.verified,
+      employee_name: result.employee_name,
+      action: result.action,
+      recorded_at: result.recorded_at,
+      error: result.error,
+    };
+    setLastResults(prev => [qrResult, ...prev].slice(0, 5));
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6 relative">
@@ -94,6 +114,7 @@ export default function HRKioskPage() {
         <ArrowLeft className="h-4 w-4 mr-2" />
         Voltar ao RH
       </Button>
+
       {/* Clock */}
       <div className="text-center mb-8">
         <p className="text-7xl font-bold tabular-nums tracking-tight">
@@ -104,49 +125,81 @@ export default function HRKioskPage() {
         </p>
       </div>
 
-      {/* Scanner area */}
-      <div className="relative w-full max-w-md">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Camera className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-400">Terminal de Ponto — QR Code</span>
-            </div>
-            <div id="qr-reader" ref={containerRef} className="w-full rounded-lg overflow-hidden" />
-          </CardContent>
-        </Card>
+      {/* Mode tabs */}
+      <div className="w-full max-w-md">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full bg-gray-900 border border-gray-800">
+            <TabsTrigger value="qr" className="flex-1 gap-2 data-[state=active]:bg-gray-800">
+              <QrCode className="h-4 w-4" /> QR Code
+            </TabsTrigger>
+            <TabsTrigger value="face" className="flex-1 gap-2 data-[state=active]:bg-gray-800">
+              <ScanFace className="h-4 w-4" /> Reconhecimento Facial
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Result overlay */}
-        <AnimatePresence>
-          {currentResult && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute inset-0 flex items-center justify-center bg-gray-900/90 rounded-xl"
-            >
-              <div className="text-center p-8">
-                {currentResult.success ? (
-                  <>
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <p className="text-2xl font-bold">{currentResult.employee_name}</p>
-                    <Badge className="mt-2 text-lg px-4 py-1" variant={currentResult.action === "clock_in" ? "default" : "destructive"}>
-                      {currentResult.action === "clock_in" ? "Entrada" : "Saída"}
-                    </Badge>
-                    <p className="text-sm text-gray-400 mt-2">
-                      {currentResult.recorded_at && format(new Date(currentResult.recorded_at), "HH:mm:ss")}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                    <p className="text-xl font-bold text-red-400">{currentResult.error || "Erro"}</p>
-                  </>
+          {/* QR tab */}
+          <TabsContent value="qr" className="mt-4">
+            <div className="relative">
+              <Card className="bg-gray-900 border-gray-800">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Camera className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm text-gray-400">Terminal de Ponto — QR Code</span>
+                  </div>
+                  <div id="qr-reader" ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+                </CardContent>
+              </Card>
+
+              {/* QR Result overlay */}
+              <AnimatePresence>
+                {currentResult && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="absolute inset-0 flex items-center justify-center bg-gray-900/90 rounded-xl"
+                  >
+                    <div className="text-center p-8">
+                      {currentResult.success ? (
+                        <>
+                          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                          <p className="text-2xl font-bold">{currentResult.employee_name}</p>
+                          <Badge className="mt-2 text-lg px-4 py-1" variant={currentResult.action === "clock_in" ? "default" : "destructive"}>
+                            {currentResult.action === "clock_in" ? "Entrada" : "Saída"}
+                          </Badge>
+                          <p className="text-sm text-gray-400 mt-2">
+                            {currentResult.recorded_at && format(new Date(currentResult.recorded_at), "HH:mm:ss")}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-red-400">{currentResult.error || "Erro"}</p>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
                 )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </AnimatePresence>
+            </div>
+          </TabsContent>
+
+          {/* Face tab */}
+          <TabsContent value="face" className="mt-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <ScanFace className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-400">Terminal de Ponto — Verificação Facial</span>
+                </div>
+                <FaceCaptureCore
+                  employees={employees}
+                  onResult={handleFaceResult}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Recent entries */}
