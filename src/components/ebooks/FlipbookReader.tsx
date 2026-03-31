@@ -38,6 +38,8 @@ interface FlipbookReaderProps {
   protectionEnabled?: boolean;
   watermarkText?: string;
   trackingViewId?: string;
+  ctas?: EbookCta[];
+  contactId?: string;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {

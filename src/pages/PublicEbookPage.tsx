@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, BookOpen, Mail, User, ExternalLink } from "lucide-react";
@@ -6,6 +6,7 @@ import { FlipbookReader } from "@/components/ebooks/FlipbookReader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Helmet } from "react-helmet-async";
+import { useEbookCtas } from "@/hooks/useEbookCtas";
 
 interface EbookChapter {
   id: string;
@@ -36,13 +37,12 @@ interface EbookData {
   global_styles?: Record<string, unknown>;
   protection_enabled?: boolean;
   lead_gate_enabled?: boolean;
+  consent_required?: boolean;
   workspace_id: string;
-  // Consent / RGPD
   consent_text?: string;
   privacy_policy_url?: string;
   marketing_opt_in_enabled?: boolean;
   marketing_opt_in_label?: string;
-  // SEO
   seo_title?: string;
   seo_description?: string;
   og_image_url?: string;
@@ -85,6 +85,7 @@ export default function PublicEbookPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewId, setViewId] = useState<string | null>(null);
+  const [contactId, setContactId] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateName, setGateName] = useState("");
   const [gateEmail, setGateEmail] = useState("");
@@ -92,12 +93,15 @@ export default function PublicEbookPage() {
   const [gateMarketingOptIn, setGateMarketingOptIn] = useState(false);
   const [gateSubmitting, setGateSubmitting] = useState(false);
 
+  // Load CTAs for this ebook
+  const { data: ctas = [] } = useEbookCtas(ebook?.id);
+
   useEffect(() => {
     async function load() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, consent_required, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
@@ -131,26 +135,12 @@ export default function PublicEbookPage() {
   ) {
     const totalPages = eb.chapters.reduce((s, ch) => s + Math.max(1, Math.ceil((ch.content?.length || 0) / 800)), 0) + 2;
 
-    let contactId: string | null = null;
-    if (email?.trim()) {
-      const { data: contactMatch } = await supabase
-        .from("contacts")
-        .select("id")
-        .eq("workspace_id", eb.workspace_id)
-        .eq("email", email.trim())
-        .is("deleted_at", null)
-        .limit(1)
-        .maybeSingle();
-      if (contactMatch) contactId = contactMatch.id;
-    }
-
     const insertPayload: Record<string, unknown> = {
       ebook_id: eb.id,
       workspace_id: eb.workspace_id,
       session_id: sessionId,
       reader_name: name || null,
       reader_email: email || null,
-      contact_id: contactId,
       referrer: document.referrer || null,
       utm_source: searchParams.get("utm_source") || null,
       utm_medium: searchParams.get("utm_medium") || null,
@@ -165,15 +155,49 @@ export default function PublicEbookPage() {
     };
 
     const { data } = await (supabase as any).from("ebook_views").insert(insertPayload).select("id").single();
-    if (data) setViewId(data.id);
+    if (data) {
+      setViewId(data.id);
+      // Invoke lead capture edge function for CRM integration
+      if (email?.trim()) {
+        invokeLeadCapture(eb, data.id, name, email, consentGiven, marketingOptIn);
+      }
+    }
   }
+
+  const invokeLeadCapture = useCallback(async (
+    eb: EbookData, vId: string, name?: string, email?: string,
+    consentGiven?: boolean, marketingOptIn?: boolean,
+  ) => {
+    try {
+      const { data } = await supabase.functions.invoke("ebook-lead-capture", {
+        body: {
+          workspace_id: eb.workspace_id,
+          ebook_id: eb.id,
+          view_id: vId,
+          name: name || "",
+          email: email || "",
+          consent_given: consentGiven || false,
+          marketing_opt_in: marketingOptIn || false,
+          utm_source: searchParams.get("utm_source") || null,
+          utm_medium: searchParams.get("utm_medium") || null,
+          utm_campaign: searchParams.get("utm_campaign") || null,
+          slug: eb.slug || slug,
+        },
+      });
+      if (data?.contact_id) {
+        setContactId(data.contact_id);
+      }
+    } catch (err) {
+      console.warn("[EbookLeadCapture] Error:", err);
+    }
+  }, [searchParams, slug]);
 
   async function handleGateSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!gateEmail.trim() || !gateName.trim() || !ebook) return;
 
     // Check consent required
-    const needsConsent = ebook.consent_text && ebook.consent_text.trim().length > 0;
+    const needsConsent = ebook.consent_required || (ebook.consent_text && ebook.consent_text.trim().length > 0);
     if (needsConsent && !gateConsent) return;
 
     setGateSubmitting(true);
@@ -207,7 +231,7 @@ export default function PublicEbookPage() {
 
   // Lead gate form
   if (gateOpen) {
-    const needsConsent = ebook.consent_text && ebook.consent_text.trim().length > 0;
+    const needsConsent = ebook.consent_required || (ebook.consent_text && ebook.consent_text.trim().length > 0);
     const canSubmit = gateName.trim() && gateEmail.trim() && (!needsConsent || gateConsent);
 
     return (
@@ -262,7 +286,7 @@ export default function PublicEbookPage() {
                     className="rounded border-white/20 mt-0.5"
                   />
                   <span className="text-xs text-white/60 leading-tight">
-                    {ebook.consent_text}
+                    {ebook.consent_text || "Aceito a recolha e tratamento dos meus dados pessoais."}
                     {ebook.privacy_policy_url && (
                       <>
                         {" "}
@@ -336,6 +360,8 @@ export default function PublicEbookPage() {
             ebookId={ebook.id}
             workspaceId={ebook.workspace_id}
             trackingViewId={viewId || undefined}
+            ctas={ctas}
+            contactId={contactId || undefined}
           />
         </div>
       </div>
