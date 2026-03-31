@@ -484,10 +484,12 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onContactPageChange={setLocalContactPage}
           onProtectionChange={(val) => queueSave({ protection_enabled: val })}
           onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
+          consentRequired={localConsentRequired}
           consentText={localConsentText}
           privacyPolicyUrl={localPrivacyPolicyUrl}
           marketingOptInEnabled={localMarketingOptInEnabled}
           marketingOptInLabel={localMarketingOptInLabel}
+          onConsentRequiredChange={setLocalConsentRequired}
           onConsentTextChange={setLocalConsentText}
           onPrivacyPolicyUrlChange={setLocalPrivacyPolicyUrl}
           onMarketingOptInEnabledChange={setLocalMarketingOptInEnabled}
