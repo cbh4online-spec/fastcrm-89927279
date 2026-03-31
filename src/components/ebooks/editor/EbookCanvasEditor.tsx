@@ -45,7 +45,7 @@ interface EbookCanvasEditorProps {
 export function EbookCanvasEditor({
   ebook, activeChapter, useVisualEditor, onToggleEditorMode,
   selectedBlockId, onSelectBlock,
-  onUpdateChapterTitle, onSaveChapters, ensureChapterBlocks,
+  onUpdateChapterTitle, onUpdateChapterContent, onSaveChapters, ensureChapterBlocks,
   onGenerateChapterImageAI, onUploadChapterImage,
   onGenerateChapterContent, onImproveContent, onCondenseContent, onExpandContent,
   onDuplicateChapter, onDeleteChapter, onMoveChapter, onAddChapter,
