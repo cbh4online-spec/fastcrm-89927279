@@ -68,11 +68,24 @@ export function runPreflight(ebook: PreflightEbook, ctas: PreflightCta[] = []): 
     passed: emptyChapters.length === 0,
   });
 
-  if (ebook.lead_gate_enabled) {
+  if (ebook.lead_gate_enabled && ebook.consent_required) {
+    items.push({
+      key: "consent_text",
+      label: "Texto de consentimento configurado (consentimento obrigatório)",
+      severity: "error",
+      passed: !!(ebook.consent_text && ebook.consent_text.trim().length > 0),
+    });
+    items.push({
+      key: "privacy_policy_url",
+      label: "URL da política de privacidade (consentimento obrigatório)",
+      severity: "error",
+      passed: !!(ebook.privacy_policy_url && ebook.privacy_policy_url.trim().length > 0),
+    });
+  } else if (ebook.lead_gate_enabled) {
     items.push({
       key: "consent_text",
       label: "Texto de consentimento configurado (lead gate ativo)",
-      severity: "error",
+      severity: "warning",
       passed: !!(ebook.consent_text && ebook.consent_text.trim().length > 0),
     });
   }
