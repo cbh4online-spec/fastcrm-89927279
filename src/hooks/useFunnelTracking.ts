@@ -111,6 +111,59 @@ export function useFunnelTracking(ctx: TrackingContext | null) {
     contactIdRef.current = id;
   }, []);
 
+  // step_abandoned via beforeunload
+  const currentStepRef = useRef<string | null>(null);
+  const completedStepsRef = useRef(new Set<string>());
+
+  const setCurrentStep = useCallback((stepId: string) => {
+    currentStepRef.current = stepId;
+  }, []);
+
+  const markStepCompleted = useCallback((stepId: string) => {
+    completedStepsRef.current.add(stepId);
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sid = currentStepRef.current;
+      if (sid && !completedStepsRef.current.has(sid) && ctx) {
+        const utms = getUTMs();
+        const body = JSON.stringify({
+          workspace_id: ctx.workspace_id,
+          funnel_id: ctx.funnel_id,
+          step_id: sid,
+          contact_id: contactIdRef.current || null,
+          session_id: sessionId.current,
+          event_type: "step_abandoned",
+          event_value: null,
+          device_type: getDeviceType(),
+          referrer: document.referrer || null,
+          utm_source: utms.utm_source || null,
+          utm_medium: utms.utm_medium || null,
+          utm_campaign: utms.utm_campaign || null,
+          metadata: {},
+        });
+        // Use sendBeacon for reliability on unload
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/funnel_events`;
+        const headers = {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Prefer: "return=minimal",
+        };
+        const blob = new Blob([body], { type: "application/json" });
+        // sendBeacon doesn't support custom headers, use fetch keepalive
+        try {
+          fetch(url, { method: "POST", headers, body: blob, keepalive: true });
+        } catch {
+          // best effort
+        }
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [ctx]);
+
   return {
     trackStepView,
     trackFormStarted,
@@ -120,6 +173,8 @@ export function useFunnelTracking(ctx: TrackingContext | null) {
     trackStepCompleted,
     trackFunnelCompleted,
     setContactId,
+    setCurrentStep,
+    markStepCompleted,
     sessionId: sessionId.current,
   };
 }
