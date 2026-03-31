@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert } from "lucide-react";
+import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert, ScanFace } from "lucide-react";
+import FaceCaptureDialog from "@/components/hr/FaceCaptureDialog";
 import { format, subDays } from "date-fns";
 import { pt } from "date-fns/locale";
 
