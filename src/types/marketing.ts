@@ -229,20 +229,26 @@ export interface CampaignStats {
 // Labels and configs
 export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
   draft: 'Rascunho',
+  in_review: 'Em Revisão',
+  ready_to_send: 'Pronta',
   scheduled: 'Agendada',
   sending: 'A Enviar',
   sent: 'Enviada',
   paused: 'Pausada',
   cancelled: 'Cancelada',
+  failed: 'Falhou',
 };
 
 export const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
+  in_review: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
+  ready_to_send: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
   scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   sending: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
   sent: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   paused: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };
 
 export const RECIPIENT_STATUS_LABELS: Record<RecipientStatus, string> = {
