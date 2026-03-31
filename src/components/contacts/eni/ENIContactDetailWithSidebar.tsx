@@ -248,6 +248,10 @@ export function ENIContactDetailWithSidebar() {
             </div>
           </div>
         );
+      case 'marketing':
+        return (
+          <ContactCampaignHistory contactId={id} />
+        );
       case 'insights':
         return (
           <div className="space-y-6">
