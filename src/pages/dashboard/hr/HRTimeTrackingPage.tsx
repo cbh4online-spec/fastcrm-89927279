@@ -25,6 +25,8 @@ export default function HRTimeTrackingPage() {
   const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
   const clockAction = useClockAction();
+  const { data: activeLaborRules } = useActiveLaborRules();
+  const maxDailyMin = ((activeLaborRules?.rules?.max_daily_hours) || 8) * 60;
 
   // Totals per employee
   const totals = employees.map(emp => {
