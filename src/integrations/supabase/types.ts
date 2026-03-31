@@ -19370,6 +19370,7 @@ export type Database = {
       ebook_cta_events: {
         Row: {
           chapter_id: string | null
+          contact_id: string | null
           created_at: string
           cta_id: string
           ebook_id: string
@@ -19380,6 +19381,7 @@ export type Database = {
         }
         Insert: {
           chapter_id?: string | null
+          contact_id?: string | null
           created_at?: string
           cta_id: string
           ebook_id: string
@@ -19390,6 +19392,7 @@ export type Database = {
         }
         Update: {
           chapter_id?: string | null
+          contact_id?: string | null
           created_at?: string
           cta_id?: string
           ebook_id?: string
@@ -19431,45 +19434,60 @@ export type Database = {
       }
       ebook_ctas: {
         Row: {
+          booking_link: string | null
           chapter_id: string | null
           created_at: string
           cta_type: string
           ebook_id: string
+          form_id: string | null
           id: string
           is_active: boolean
           label: string
           position: string
           sort_order: number
+          style_variant: string | null
+          target_route: string | null
           target_url: string | null
           updated_at: string
+          whatsapp_number: string | null
           workspace_id: string
         }
         Insert: {
+          booking_link?: string | null
           chapter_id?: string | null
           created_at?: string
           cta_type?: string
           ebook_id: string
+          form_id?: string | null
           id?: string
           is_active?: boolean
           label: string
           position?: string
           sort_order?: number
+          style_variant?: string | null
+          target_route?: string | null
           target_url?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
           workspace_id: string
         }
         Update: {
+          booking_link?: string | null
           chapter_id?: string | null
           created_at?: string
           cta_type?: string
           ebook_id?: string
+          form_id?: string | null
           id?: string
           is_active?: boolean
           label?: string
           position?: string
           sort_order?: number
+          style_variant?: string | null
+          target_route?: string | null
           target_url?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -19897,6 +19915,7 @@ export type Database = {
           author_name: string | null
           canonical_url: string | null
           chapters: Json
+          consent_required: boolean | null
           consent_text: string | null
           contact_page: Json | null
           cover_url: string | null
@@ -19933,6 +19952,7 @@ export type Database = {
           author_name?: string | null
           canonical_url?: string | null
           chapters?: Json
+          consent_required?: boolean | null
           consent_text?: string | null
           contact_page?: Json | null
           cover_url?: string | null
@@ -19969,6 +19989,7 @@ export type Database = {
           author_name?: string | null
           canonical_url?: string | null
           chapters?: Json
+          consent_required?: boolean | null
           consent_text?: string | null
           contact_page?: Json | null
           cover_url?: string | null
