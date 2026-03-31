@@ -678,7 +678,6 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
                         </Button>
                       </div>
                     )}
-                    </div>
                   </div>
                 ))}
                 {formFields.length === 0 && (
