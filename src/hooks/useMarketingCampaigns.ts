@@ -17,6 +17,7 @@ function mapCampaign(row: any): MarketingCampaign {
     replyTo: row.reply_to,
     bodyHtml: row.body_html,
     bodyText: row.body_text,
+    designJson: row.design_json,
     templateId: row.template_id,
     segmentId: row.segment_id,
     status: row.status as CampaignStatus,
@@ -34,12 +35,10 @@ function mapCampaign(row: any): MarketingCampaign {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    // AI Insights
     aiInsights: row.ai_insights,
     aiInsightsGeneratedAt: row.ai_insights_generated_at,
     sendHour: row.send_hour,
     linkCount: row.link_count,
-    // Deliverability fields
     sendMode: row.send_mode || 'immediate',
     batchSize: row.batch_size || 100,
     batchIntervalMinutes: row.batch_interval_minutes || 60,
@@ -51,6 +50,14 @@ function mapCampaign(row: any): MarketingCampaign {
     queueTotal: row.queue_total || 0,
     queueSent: row.queue_sent || 0,
     queueFailed: row.queue_failed || 0,
+    // Editorial workflow
+    reviewedAt: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
+    rejectionReason: row.rejection_reason,
+    testSentAt: row.test_sent_at,
+    testSentBy: row.test_sent_by,
   };
 }
 
@@ -120,6 +127,7 @@ export function useCreateCampaign() {
       replyTo?: string;
       bodyHtml: string;
       bodyText?: string;
+      designJson?: Record<string, unknown> | null;
       templateId?: string;
       segmentId?: string;
     }) => {
@@ -139,6 +147,7 @@ export function useCreateCampaign() {
           reply_to: data.replyTo,
           body_html: data.bodyHtml,
           body_text: data.bodyText,
+          design_json: data.designJson as any,
           template_id: data.templateId,
           segment_id: data.segmentId,
           created_by: user.user.id,
@@ -189,6 +198,7 @@ export function useUpdateCampaign() {
       replyTo?: string;
       bodyHtml?: string;
       bodyText?: string;
+      designJson?: Record<string, unknown> | null;
       templateId?: string;
       segmentId?: string;
       status?: CampaignStatus;
@@ -196,6 +206,13 @@ export function useUpdateCampaign() {
       sendMode?: string;
       batchSize?: number;
       batchIntervalMinutes?: number;
+      reviewedAt?: string | null;
+      reviewedBy?: string | null;
+      approvedAt?: string | null;
+      approvedBy?: string | null;
+      rejectionReason?: string | null;
+      testSentAt?: string | null;
+      testSentBy?: string | null;
     }) => {
       const updateData: any = {};
       
@@ -206,6 +223,7 @@ export function useUpdateCampaign() {
       if (data.replyTo !== undefined) updateData.reply_to = data.replyTo;
       if (data.bodyHtml !== undefined) updateData.body_html = data.bodyHtml;
       if (data.bodyText !== undefined) updateData.body_text = data.bodyText;
+      if (data.designJson !== undefined) updateData.design_json = data.designJson;
       if (data.templateId !== undefined) updateData.template_id = data.templateId;
       if (data.segmentId !== undefined) updateData.segment_id = data.segmentId;
       if (data.status !== undefined) updateData.status = data.status;
@@ -213,6 +231,13 @@ export function useUpdateCampaign() {
       if (data.sendMode !== undefined) updateData.send_mode = data.sendMode;
       if (data.batchSize !== undefined) updateData.batch_size = data.batchSize;
       if (data.batchIntervalMinutes !== undefined) updateData.batch_interval_minutes = data.batchIntervalMinutes;
+      if (data.reviewedAt !== undefined) updateData.reviewed_at = data.reviewedAt;
+      if (data.reviewedBy !== undefined) updateData.reviewed_by = data.reviewedBy;
+      if (data.approvedAt !== undefined) updateData.approved_at = data.approvedAt;
+      if (data.approvedBy !== undefined) updateData.approved_by = data.approvedBy;
+      if (data.rejectionReason !== undefined) updateData.rejection_reason = data.rejectionReason;
+      if (data.testSentAt !== undefined) updateData.test_sent_at = data.testSentAt;
+      if (data.testSentBy !== undefined) updateData.test_sent_by = data.testSentBy;
 
       const { data: result, error } = await supabase
         .from('marketing_campaigns')

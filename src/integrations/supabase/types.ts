@@ -31915,6 +31915,8 @@ export type Database = {
           ab_test_id: string | null
           ai_insights: Json | null
           ai_insights_generated_at: string | null
+          approved_at: string | null
+          approved_by: string | null
           batch_interval_minutes: number | null
           batch_size: number | null
           body_html: string
@@ -31937,7 +31939,10 @@ export type Database = {
           queue_failed: number
           queue_sent: number
           queue_total: number
+          rejection_reason: string | null
           reply_to: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           scheduled_at: string | null
           segment_id: string | null
           send_hour: number | null
@@ -31947,8 +31952,11 @@ export type Database = {
           started_at: string | null
           status: string
           subject: string
+          suppressed_count: number | null
           suppression_count: number | null
           template_id: string | null
+          test_sent_at: string | null
+          test_sent_by: string | null
           total_recipients: number | null
           unsubscribed_count: number | null
           updated_at: string
@@ -31960,6 +31968,8 @@ export type Database = {
           ab_test_id?: string | null
           ai_insights?: Json | null
           ai_insights_generated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           batch_interval_minutes?: number | null
           batch_size?: number | null
           body_html: string
@@ -31982,7 +31992,10 @@ export type Database = {
           queue_failed?: number
           queue_sent?: number
           queue_total?: number
+          rejection_reason?: string | null
           reply_to?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
@@ -31992,8 +32005,11 @@ export type Database = {
           started_at?: string | null
           status?: string
           subject: string
+          suppressed_count?: number | null
           suppression_count?: number | null
           template_id?: string | null
+          test_sent_at?: string | null
+          test_sent_by?: string | null
           total_recipients?: number | null
           unsubscribed_count?: number | null
           updated_at?: string
@@ -32005,6 +32021,8 @@ export type Database = {
           ab_test_id?: string | null
           ai_insights?: Json | null
           ai_insights_generated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           batch_interval_minutes?: number | null
           batch_size?: number | null
           body_html?: string
@@ -32027,7 +32045,10 @@ export type Database = {
           queue_failed?: number
           queue_sent?: number
           queue_total?: number
+          rejection_reason?: string | null
           reply_to?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
@@ -32037,8 +32058,11 @@ export type Database = {
           started_at?: string | null
           status?: string
           subject?: string
+          suppressed_count?: number | null
           suppression_count?: number | null
           template_id?: string | null
+          test_sent_at?: string | null
+          test_sent_by?: string | null
           total_recipients?: number | null
           unsubscribed_count?: number | null
           updated_at?: string

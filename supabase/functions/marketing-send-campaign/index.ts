@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { campaignId } = await req.json();
+    const { campaignId, test_only, test_recipients } = await req.json();
 
     if (!campaignId) {
       return new Response(
@@ -78,9 +78,57 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (campaign.status !== "draft") {
+    // TEST SEND MODE
+    if (test_only === true && Array.isArray(test_recipients) && test_recipients.length > 0) {
+      const fromDomain = "m.fastcrm.metodopare.ai";
+      const fromEmail = `news@${fromDomain}`;
+      let testSent = 0;
+      const testErrors: string[] = [];
+
+      for (const recipientEmail of test_recipients.slice(0, 5)) {
+        try {
+          let htmlContent = campaign.body_html || "";
+          htmlContent = htmlContent
+            .replace(/\{\{primeiro_nome\}\}/g, "Teste")
+            .replace(/\{\{nome\}\}/g, "Utilizador Teste")
+            .replace(/\{\{email\}\}/g, recipientEmail)
+            .replace(/\{\{subject\}\}/g, campaign.subject || "");
+
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: `${campaign.from_name || "FastCRM"} <${fromEmail}>`,
+              to: [recipientEmail],
+              subject: `[TESTE] ${campaign.subject}`,
+              html: htmlContent,
+              reply_to: campaign.reply_to || undefined,
+            }),
+          });
+          const result = await response.json();
+          if (response.ok && result.id) {
+            testSent++;
+          } else {
+            testErrors.push(`${recipientEmail}: ${result.message || "Unknown error"}`);
+          }
+        } catch (err) {
+          testErrors.push(`${recipientEmail}: ${err instanceof Error ? err.message : "Unknown error"}`);
+        }
+      }
+
       return new Response(
-        JSON.stringify({ error: "Campaign already sent or in progress" }),
+        JSON.stringify({ success: true, test: true, sent: testSent, errors: testErrors.length > 0 ? testErrors : undefined }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Normal send — check status
+    if (campaign.status !== "draft" && campaign.status !== "ready_to_send") {
+      return new Response(
+        JSON.stringify({ error: "Campaign must be in draft or ready_to_send status" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
