@@ -28,11 +28,14 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const { data: members } = useWorkspaceMembers();
 
   useEffect(() => {
     if (task) {
       setTitle(task.title);
       setDueDate(task.due_at ? new Date(task.due_at) : undefined);
+      setAssignedTo((task as any).assigned_to ?? null);
     }
   }, [task]);
 
