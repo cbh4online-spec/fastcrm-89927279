@@ -20,6 +20,7 @@ const EVENT_LABELS: Record<string, string> = {
   not_opened: 'Não abre',
   not_clicked: 'Não clica',
   bounced: 'Bounce',
+  converted: 'Converte (gera oportunidade)',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -27,6 +28,9 @@ const ACTION_LABELS: Record<string, string> = {
   send_campaign: 'Enviar outra campanha',
   add_tag: 'Adicionar tag',
   webhook: 'Webhook',
+  update_score: 'Atualizar score',
+  create_task: 'Criar tarefa comercial',
+  update_lifecycle: 'Mudar lifecycle stage',
 };
 
 export function TriggerBuilder({ campaignId }: Props) {
