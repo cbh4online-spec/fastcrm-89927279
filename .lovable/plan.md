@@ -1,49 +1,46 @@
 
 
-## Widget de Ponto no Dashboard — Redesign
+## Fundo de Tema Completo — Correcção
 
-### O que muda
+### Diagnóstico
 
-Redesenhar o `ClockInOutButton` para ser um widget completo e "amigável" que mostra:
+Ao alternar entre tema claro e escuro, o fundo não muda de forma total. Isto acontece porque:
 
-1. **Relógio live** (já existe)
-2. **Data** (já existe)
-3. **Temperatura actual** — via API gratuita Open-Meteo (sem API key)
-4. **Localização por texto** — reverse geocoding via API gratuita (nominatim.openstreetmap.org)
-5. **Contagem de tempo em serviço** — timer live desde o clock-in (ex: "2h 34m 12s")
-6. **Botões Iniciar/Terminar** (já existem)
+1. O elemento `html` não tem `bg-background` — apenas o `body` o tem, deixando gaps visíveis em scroll overflows e áreas fora do viewport
+2. O `main` content area no `DashboardLayout` não tem `bg-background` explícito — herda do pai, mas em certas situações de scroll/overflow pode mostrar o fundo original
+3. A TopBar usa `bg-background/80` (80% opacidade com backdrop-blur), o que em transições de tema pode parecer inconsistente
 
-A abordagem é apresentar a localização e temperatura como informação contextual do dia (como um "bom dia, está 18°C em Lisboa") — não como vigilância.
+### Alterações
 
-### Ficheiros
-
-| Acção | Ficheiro |
-|-------|----------|
-| Criar | `src/hooks/useWeatherLocation.ts` — hook que obtém geolocalização, reverse geocode (cidade) e temperatura via Open-Meteo |
-| Editar | `src/components/hr/ClockInOutButton.tsx` — redesenhar widget com layout horizontal, incluir temperatura, cidade, timer de sessão |
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/index.css` | Adicionar `html { @apply bg-background; }` para garantir que todo o viewport tem a cor correcta, mesmo em overscroll |
+| `src/components/layout/DashboardLayout.tsx` | Adicionar `bg-background` ao `main` element (linha 66) para reforçar o fundo na área de conteúdo |
+| `src/components/layout/TopBar.tsx` | Alterar `bg-background/80` para `bg-background` na header (linha 60) para eliminar transparência parcial |
 
 ### Detalhe técnico
 
-**`useWeatherLocation` hook:**
-- `navigator.geolocation.getCurrentPosition()` → lat/lng
-- Reverse geocode: `fetch("https://nominatim.openstreetmap.org/reverse?lat=...&lon=...&format=json")` → cidade
-- Temperatura: `fetch("https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&current_weather=true")` → temp em °C
-- Cache com `react-query` (staleTime 15min)
-- Retorna `{ city, temperature, isLoading }`
+**`src/index.css`** — Dentro de `@layer base`, o bloco `html` actual só tem `scroll-smooth`. Adicionar `bg-background` garante que o fundo do documento inteiro acompanha o tema:
 
-**`ClockInOutButton` redesign:**
-- Layout horizontal em card com 3 zonas:
-  - **Esquerda**: Relógio grande + data + "☀️ 18°C · Lisboa"
-  - **Centro**: Se em serviço → timer live "Em serviço há 2h 34m" com animação pulse
-  - **Direita**: Botão Iniciar/Terminar
-- Timer calculado: `now - activeEntry.clock_in` actualizado a cada segundo
-- Ícone de weather (sol/nuvem/chuva) baseado no weathercode da Open-Meteo
-- Tom amigável: "Bom dia! 18°C em Lisboa" em vez de "Localização: 38.7223, -9.1393"
+```css
+html {
+  @apply scroll-smooth bg-background;
+}
+```
+
+**`DashboardLayout.tsx`** — A `main` tag na linha 66 passa de:
+```
+<main className="flex-1 animate-fade-in p-4 md:p-6 overflow-auto">
+```
+para:
+```
+<main className="flex-1 animate-fade-in p-4 md:p-6 overflow-auto bg-background">
+```
+
+**`TopBar.tsx`** — A header na linha 60 passa de `bg-background/80 backdrop-blur-xl` para `bg-background backdrop-blur-none` (fundo sólido, sem transparência).
 
 ### Critérios de aceitação
-1. Widget mostra temperatura e cidade junto à data
-2. Timer live conta tempo desde clock-in
-3. Botões de iniciar/terminar funcionam com geolocalização
-4. Sem sensação de controlo — informação contextual e amigável
-5. Fallback gracioso se geolocalização/API falhar
+1. Ao alternar entre tema claro e escuro, todo o ecrã muda de cor — sem áreas parciais ou transparentes
+2. Overscroll (bounce em mobile/macOS) mostra a cor correcta do tema
+3. Sem regressão visual nos componentes existentes
 
