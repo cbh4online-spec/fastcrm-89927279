@@ -261,6 +261,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("hr-dashboard",     "Visão Geral",         "/dashboard/hr",               LayoutDashboard, "rh", { moduleSlug: "hr-management" }),
   e("hr-employees",     "Funcionários",        "/dashboard/hr/employees",     Users,        "rh", { moduleSlug: "hr-management" }),
+  e("hr-departments",   "Departamentos",       "/dashboard/hr/departments",   Building2,    "rh", { moduleSlug: "hr-management" }),
+  e("hr-positions",     "Cargos",              "/dashboard/hr/positions",     Briefcase,    "rh", { moduleSlug: "hr-management" }),
   e("hr-time-tracking", "Controlo de Ponto",   "/dashboard/hr/time-tracking", Clock,        "rh", { moduleSlug: "hr-management" }),
   e("hr-schedules",     "Gestão de Turnos",    "/dashboard/hr/schedules",     Calendar,     "rh", { moduleSlug: "hr-management" }),
   e("hr-absences",      "Férias & Ausências",  "/dashboard/hr/absences",      CalendarDays, "rh", { moduleSlug: "hr-management" }),
