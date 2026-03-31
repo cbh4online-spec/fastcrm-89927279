@@ -26,6 +26,7 @@ const InterviewsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/Inter
 const HROKRsPage = lazy(() => import("@/pages/dashboard/hr/HROKRsPage"));
 const HRFeedbackPage = lazy(() => import("@/pages/dashboard/hr/HRFeedbackPage"));
 const HRCheckinsPage = lazy(() => import("@/pages/dashboard/hr/HRCheckinsPage"));
+const HRPerformanceReviewsPage = lazy(() => import("@/pages/dashboard/hr/HRPerformanceReviewsPage"));
 
 export function HRRoutes() {
   return (
@@ -55,6 +56,7 @@ export function HRRoutes() {
       <Route path="/dashboard/hr/okrs" element={<HROKRsPage />} />
       <Route path="/dashboard/hr/feedback" element={<HRFeedbackPage />} />
       <Route path="/dashboard/hr/checkins" element={<HRCheckinsPage />} />
+      <Route path="/dashboard/hr/reviews" element={<HRPerformanceReviewsPage />} />
     </>
   );
 }
