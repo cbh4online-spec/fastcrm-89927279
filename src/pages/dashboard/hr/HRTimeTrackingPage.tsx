@@ -94,7 +94,8 @@ export default function HRTimeTrackingPage() {
                       <div className="flex-1">
                         <p className="text-sm font-medium">{t.full_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {Math.floor(t.totalWorked / 60)}h {t.totalWorked % 60}m / {t.contractedWeek}h/sem
+                          {Math.floor(t.totalWorked / 60)}h {t.totalWorked % 60}m
+                        </p>
                         </p>
                       </div>
                     </div>
