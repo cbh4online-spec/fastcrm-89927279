@@ -3,7 +3,9 @@ import { useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { useHREmployee, useUpdateHREmployee } from "@/hooks/hr/useHREmployees";
+import { useHREmployee, useHREmployees, useUpdateHREmployee } from "@/hooks/hr/useHREmployees";
+import { useHRDepartments } from "@/hooks/hr/useHRDepartments";
+import { useHRJobTitles } from "@/hooks/hr/useHRJobTitles";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
 import { useHRAbsences, useApproveAbsence } from "@/hooks/hr/useHRAbsences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,12 +26,17 @@ const STATUS_MAP: Record<string, { label: string; class: string }> = {
   active: { label: "Activo", class: "bg-green-100 text-green-800" },
   inactive: { label: "Inactivo", class: "bg-gray-100 text-gray-800" },
   on_leave: { label: "Ausente", class: "bg-yellow-100 text-yellow-800" },
+  terminated: { label: "Terminado", class: "bg-red-100 text-red-800" },
+  suspended: { label: "Suspenso", class: "bg-orange-100 text-orange-800" },
 };
 
 export default function HREmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: employee, isLoading } = useHREmployee(id);
   const updateEmployee = useUpdateHREmployee();
+  const { data: departments = [] } = useHRDepartments(true);
+  const { data: positions = [] } = useHRJobTitles(true);
+  const { data: allEmployees = [] } = useHREmployees();
   const { data: sessions = [] } = useHRWorkSessions(id);
   const { data: absences = [] } = useHRAbsences(undefined, id);
   const clockAction = useClockAction();
@@ -53,11 +60,14 @@ export default function HREmployeeDetailPage() {
       full_name: employee.full_name,
       email: employee.email || "",
       phone: employee.phone || "",
-      job_title: employee.job_title || "",
-      department: employee.department || "",
-      contract_type: employee.contract_type,
+      department_id: employee.department_id || "",
+      position_id: employee.position_id || "",
+      manager_id: employee.manager_id || "",
       status: employee.status,
       weekly_hours: String(employee.weekly_hours),
+      contract_type: employee.contract_type || "full_time",
+      start_date: employee.start_date || "",
+      employee_number: employee.employee_number || "",
     });
     setEditMode(true);
   };
@@ -65,8 +75,15 @@ export default function HREmployeeDetailPage() {
   const saveEdit = () => {
     updateEmployee.mutate({
       id: employee.id,
-      ...editForm,
+      full_name: editForm.full_name,
+      department_id: editForm.department_id || null,
+      position_id: editForm.position_id || null,
+      manager_id: editForm.manager_id || null,
+      status: editForm.status,
       weekly_hours: parseFloat(editForm.weekly_hours) || 40,
+      contract_type: editForm.contract_type,
+      start_date: editForm.start_date || null,
+      employee_number: editForm.employee_number || null,
     }, { onSuccess: () => setEditMode(false) });
   };
 
@@ -82,7 +99,12 @@ export default function HREmployeeDetailPage() {
             </Avatar>
             <div>
               <h1 className="text-2xl font-bold">{employee.full_name}</h1>
-              <p className="text-muted-foreground">{employee.job_title} · {employee.department}</p>
+              <p className="text-muted-foreground">
+                {employee.position_name || employee.job_title || "—"} · {employee.department_name || "—"}
+              </p>
+              {employee.manager_name && (
+                <p className="text-xs text-muted-foreground">Manager: {employee.manager_name}</p>
+              )}
             </div>
             <Badge className={`ml-auto ${STATUS_MAP[employee.status]?.class}`}>{STATUS_MAP[employee.status]?.label}</Badge>
           </div>
@@ -112,11 +134,52 @@ export default function HREmployeeDetailPage() {
                   {editMode ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div><Label>Nome</Label><Input value={editForm.full_name} onChange={e => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))} /></div>
-                      <div><Label>Email</Label><Input value={editForm.email} onChange={e => setEditForm((f: any) => ({ ...f, email: e.target.value }))} /></div>
-                      <div><Label>Telefone</Label><Input value={editForm.phone} onChange={e => setEditForm((f: any) => ({ ...f, phone: e.target.value }))} /></div>
-                      <div><Label>Cargo</Label><Input value={editForm.job_title} onChange={e => setEditForm((f: any) => ({ ...f, job_title: e.target.value }))} /></div>
-                      <div><Label>Departamento</Label><Input value={editForm.department} onChange={e => setEditForm((f: any) => ({ ...f, department: e.target.value }))} /></div>
+                      <div><Label>Nº Funcionário</Label><Input value={editForm.employee_number} onChange={e => setEditForm((f: any) => ({ ...f, employee_number: e.target.value }))} /></div>
+                      <div>
+                        <Label>Departamento</Label>
+                        <Select value={editForm.department_id || "none"} onValueChange={v => setEditForm((f: any) => ({ ...f, department_id: v === "none" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Cargo</Label>
+                        <Select value={editForm.position_id || "none"} onValueChange={v => setEditForm((f: any) => ({ ...f, position_id: v === "none" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {positions.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Manager</Label>
+                        <Select value={editForm.manager_id || "none"} onValueChange={v => setEditForm((f: any) => ({ ...f, manager_id: v === "none" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {allEmployees.filter(e => e.id !== employee.id).map(e => (
+                              <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div><Label>Horas Semanais</Label><Input type="number" value={editForm.weekly_hours} onChange={e => setEditForm((f: any) => ({ ...f, weekly_hours: e.target.value }))} /></div>
+                      <div>
+                        <Label>Contrato</Label>
+                        <Select value={editForm.contract_type} onValueChange={v => setEditForm((f: any) => ({ ...f, contract_type: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="full_time">Tempo inteiro</SelectItem>
+                            <SelectItem value="part_time">Part-time</SelectItem>
+                            <SelectItem value="contractor">Prestador</SelectItem>
+                            <SelectItem value="intern">Estagiário</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div>
                         <Label>Estado</Label>
                         <Select value={editForm.status} onValueChange={v => setEditForm((f: any) => ({ ...f, status: v }))}>
@@ -125,16 +188,22 @@ export default function HREmployeeDetailPage() {
                             <SelectItem value="active">Activo</SelectItem>
                             <SelectItem value="inactive">Inactivo</SelectItem>
                             <SelectItem value="on_leave">Ausente</SelectItem>
+                            <SelectItem value="terminated">Terminado</SelectItem>
+                            <SelectItem value="suspended">Suspenso</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                      <div><Label>Data Início</Label><Input type="date" value={editForm.start_date} onChange={e => setEditForm((f: any) => ({ ...f, start_date: e.target.value }))} /></div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div><span className="text-muted-foreground">Email:</span> {employee.email || "—"}</div>
                       <div><span className="text-muted-foreground">Telefone:</span> {employee.phone || "—"}</div>
                       <div><span className="text-muted-foreground">Nº Funcionário:</span> {employee.employee_number || "—"}</div>
-                      <div><span className="text-muted-foreground">Contrato:</span> {employee.contract_type}</div>
+                      <div><span className="text-muted-foreground">Departamento:</span> {employee.department_name || "—"}</div>
+                      <div><span className="text-muted-foreground">Cargo:</span> {employee.position_name || employee.job_title || "—"}</div>
+                      <div><span className="text-muted-foreground">Manager:</span> {employee.manager_name || "—"}</div>
+                      <div><span className="text-muted-foreground">Contrato:</span> {employee.contract_type || "—"}</div>
                       <div><span className="text-muted-foreground">Data Início:</span> {employee.start_date || "—"}</div>
                       <div><span className="text-muted-foreground">Horas Semanais:</span> {employee.weekly_hours}h</div>
                     </div>

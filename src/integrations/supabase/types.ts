@@ -24931,10 +24931,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "hr_departments_head_id_fkey"
+            foreignKeyName: "hr_departments_head_employee_id_fkey"
             columns: ["head_id"]
             isOneToOne: false
-            referencedRelation: "workspace_members"
+            referencedRelation: "hr_employees"
             referencedColumns: ["id"]
           },
           {
@@ -25026,6 +25026,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           contract_type: string | null
+          contract_type_id: string | null
           created_at: string | null
           created_by: string | null
           date_of_birth: string | null
@@ -25060,6 +25061,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           contract_type?: string | null
+          contract_type_id?: string | null
           created_at?: string | null
           created_by?: string | null
           date_of_birth?: string | null
@@ -25094,6 +25096,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           contract_type?: string | null
+          contract_type_id?: string | null
           created_at?: string | null
           created_by?: string | null
           date_of_birth?: string | null
@@ -25126,6 +25129,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_employees_contract_type_id_fkey"
+            columns: ["contract_type_id"]
+            isOneToOne: false
+            referencedRelation: "hr_contract_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_employees_department_id_fkey"
             columns: ["department_id"]
