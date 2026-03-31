@@ -19,6 +19,8 @@ export interface EbookView {
   completed: boolean;
   started_at: string;
   last_activity_at: string;
+  consent_given: boolean;
+  marketing_opt_in: boolean;
 }
 
 export interface EbookPageEvent {
@@ -27,6 +29,17 @@ export interface EbookPageEvent {
   page_number: number;
   event_type: string;
   duration_seconds: number;
+  created_at: string;
+}
+
+export interface EbookCtaEvent {
+  id: string;
+  ebook_id: string;
+  cta_id: string;
+  view_id: string | null;
+  workspace_id: string;
+  chapter_id: string | null;
+  event_type: string;
   created_at: string;
 }
 
@@ -64,9 +77,27 @@ export function useEbookPageEvents(ebookId: string | undefined) {
   });
 }
 
+export function useEbookCtaEvents(ebookId: string | undefined) {
+  return useQuery({
+    queryKey: ["ebook-cta-events", ebookId],
+    queryFn: async () => {
+      if (!ebookId) return [];
+      const { data, error } = await (supabase as any)
+        .from("ebook_cta_events")
+        .select("*")
+        .eq("ebook_id", ebookId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as EbookCtaEvent[];
+    },
+    enabled: !!ebookId,
+  });
+}
+
 export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
   const { data: views, isLoading: viewsLoading } = useEbookViews(ebookId);
   const { data: pageEvents, isLoading: eventsLoading } = useEbookPageEvents(ebookId);
+  const { data: ctaEvents, isLoading: ctaEventsLoading } = useEbookCtaEvents(ebookId);
 
   const totalViews = views?.length || 0;
   const uniqueReaders = new Set(views?.filter(v => v.reader_email).map(v => v.reader_email)).size;
@@ -77,7 +108,31 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
     ? Math.round((views?.reduce((s, v) => s + v.time_on_book_seconds, 0) || 0) / totalViews)
     : 0;
 
-  // Page drop-off: count views per max_page_reached
+  // Lead gate conversion rate
+  const viewsWithEmail = views?.filter(v => v.reader_email).length || 0;
+  const leadGateConversionRate = totalViews > 0 ? Math.round((viewsWithEmail / totalViews) * 100) : 0;
+
+  // Marketing opt-in rate (of those who gave email)
+  const viewsWithOptIn = views?.filter(v => v.marketing_opt_in).length || 0;
+  const marketingOptInRate = viewsWithEmail > 0 ? Math.round((viewsWithOptIn / viewsWithEmail) * 100) : 0;
+
+  // CTA metrics
+  const ctaImpressions = ctaEvents?.filter(e => e.event_type === "cta_impression").length || 0;
+  const ctaClicks = ctaEvents?.filter(e => e.event_type === "cta_click").length || 0;
+  const ctaCtr = ctaImpressions > 0 ? Math.round((ctaClicks / ctaImpressions) * 100) : 0;
+
+  // CTA breakdown by cta_id
+  const ctaBreakdown: Record<string, { impressions: number; clicks: number; ctr: number }> = {};
+  ctaEvents?.forEach(e => {
+    if (!ctaBreakdown[e.cta_id]) ctaBreakdown[e.cta_id] = { impressions: 0, clicks: 0, ctr: 0 };
+    if (e.event_type === "cta_impression") ctaBreakdown[e.cta_id].impressions++;
+    if (e.event_type === "cta_click") ctaBreakdown[e.cta_id].clicks++;
+  });
+  Object.values(ctaBreakdown).forEach(v => {
+    v.ctr = v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 100) : 0;
+  });
+
+  // Page drop-off
   const pageDropOff: Record<number, number> = {};
   views?.forEach(v => {
     for (let i = 0; i <= v.max_page_reached; i++) {
@@ -127,13 +182,14 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
       timeSeconds: v.time_on_book_seconds,
       date: v.started_at,
       completed: v.completed,
+      marketingOptIn: v.marketing_opt_in,
     }))
     .sort((a, b) => (a.isInCrm === b.isInCrm ? 0 : a.isInCrm ? -1 : 1)) || [];
 
   const readersInCrm = identifiedReaders.filter(r => r.isInCrm).length;
 
   return {
-    isLoading: viewsLoading || eventsLoading,
+    isLoading: viewsLoading || eventsLoading || ctaEventsLoading,
     totalViews,
     readersInCrm,
     uniqueReaders,
@@ -141,6 +197,12 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
     completedViews,
     completionRate,
     avgTimeSeconds,
+    leadGateConversionRate,
+    marketingOptInRate,
+    ctaImpressions,
+    ctaClicks,
+    ctaCtr,
+    ctaBreakdown,
     pageDropOff,
     dailyViews,
     devices,
@@ -148,5 +210,6 @@ export function useEbookAnalyticsKPIs(ebookId: string | undefined) {
     identifiedReaders,
     views: views || [],
     pageEvents: pageEvents || [],
+    ctaEvents: ctaEvents || [],
   };
 }
