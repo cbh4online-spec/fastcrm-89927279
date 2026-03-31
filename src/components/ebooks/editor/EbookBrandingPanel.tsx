@@ -16,10 +16,12 @@ interface EbookBrandingPanelProps {
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
   // Consent fields
+  consentRequired?: boolean;
   consentText?: string;
   privacyPolicyUrl?: string;
   marketingOptInEnabled?: boolean;
   marketingOptInLabel?: string;
+  onConsentRequiredChange?: (val: boolean) => void;
   onConsentTextChange?: (val: string) => void;
   onPrivacyPolicyUrlChange?: (val: string) => void;
   onMarketingOptInEnabledChange?: (val: boolean) => void;
