@@ -51,6 +51,8 @@ export default function WeeklyDashboard() {
           hotLeadsCount={briefMetrics?.leads_today ?? 0}
           pendingDecisions={openDecisions.length}
         />
+        {/* Pica Ponto */}
+        <ClockInOutButton />
 
         {/* 2. Assistente de Vendas IA */}
         <PremiumAISection />
