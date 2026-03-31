@@ -38,6 +38,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const updateEbook = useUpdateEbook();
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
+  const { data: ctas = [] } = useEbookCtas(ebookId);
 
   // Centralised persistence
   const {
