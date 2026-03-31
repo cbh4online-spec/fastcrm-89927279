@@ -1,59 +1,60 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useCandidate } from "@/hooks/hr/useCandidates";
-import { useApplications } from "@/hooks/hr/useApplications";
-import { useRecruitmentAI } from "@/hooks/hr/useRecruitmentAI";
+import { useCandidate, useScoreCandidate, useParseCV } from "@/hooks/hr/useCandidates";
+import { useCandidateActivities, useCreateCandidateActivity } from "@/hooks/hr/useCandidateActivities";
+import { useInterviews } from "@/hooks/hr/useInterviews";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Mail, Phone, Linkedin, Globe, Sparkles, FileText, Star } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Mail, Phone, Linkedin, Globe, Sparkles, FileText, Github, MapPin, Calendar, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import Skeleton from "react-loading-skeleton";
 import { toast } from "sonner";
 
 const STAGE_LABELS: Record<string, string> = {
-  new: "Novo", screening: "Triagem", interview: "Entrevista", test: "Teste", offer: "Oferta", hired: "Contratado", rejected: "Rejeitado",
+  new: "Novo", screening: "Triagem", phone_interview: "Telefone",
+  technical_interview: "Técnica", onsite_interview: "Presencial",
+  offer: "Oferta", hired: "Contratado", rejected: "Rejeitado",
+};
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  note: "Nota", email_sent: "Email enviado", email_received: "Email recebido",
+  stage_changed: "Etapa alterada", interview_scheduled: "Entrevista agendada",
+  interview_completed: "Entrevista concluída", offer_sent: "Oferta enviada",
 };
 
 export default function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: candidate, isLoading } = useCandidate(id);
-  const { data: applications } = useApplications();
-  const { summarizeCandidate, generateQuestions, loading: aiLoading } = useRecruitmentAI();
-  const [aiSummary, setAiSummary] = useState<any>(null);
-  const [aiQuestions, setAiQuestions] = useState<any>(null);
+  const { data: activities } = useCandidateActivities(id);
+  const { data: interviews } = useInterviews(id);
+  const scoreCandidate = useScoreCandidate();
+  const parseCV = useParseCV();
+  const createActivity = useCreateCandidateActivity();
+  const [noteText, setNoteText] = useState("");
 
-  const candidateApps = applications?.filter(a => a.candidate_id === id);
-
-  const handleSummarize = async () => {
-    if (!candidate) return;
-    const res = await summarizeCandidate({ full_name: candidate.full_name, email: candidate.email, notes: candidate.notes, tags: candidate.tags });
-    if (res.result) {
-      setAiSummary(res.result);
-      toast.success("Resumo gerado");
-    }
+  const handleScore = () => {
+    if (!id) return;
+    scoreCandidate.mutate(id);
   };
 
-  const handleQuestions = async () => {
-    if (!candidate) return;
-    const res = await generateQuestions(
-      `${candidate.full_name}. Notas: ${candidate.notes || "N/A"}. Tags: ${(candidate.tags || []).join(", ")}`,
-      "Genérico — avaliar competências gerais, motivação e fit cultural"
-    );
-    if (res.result) {
-      setAiQuestions(res.result);
-      toast.success("Perguntas geradas");
-    }
+  const handleAddNote = async () => {
+    if (!noteText.trim() || !id) return;
+    await createActivity.mutateAsync({ candidate_id: id, activity_type: "note", content: noteText });
+    setNoteText("");
+    toast.success("Nota adicionada");
   };
 
   if (isLoading) return <div className="space-y-4"><Skeleton height={200} /><Skeleton height={300} /></div>;
   if (!candidate) return <div className="text-center py-12 text-muted-foreground">Candidato não encontrado</div>;
 
-  const initials = candidate.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = `${candidate.first_name?.[0] || ""}${candidate.last_name?.[0] || ""}`.toUpperCase();
+  const fullName = `${candidate.first_name} ${candidate.last_name}`;
 
   return (
     <div className="space-y-6">
@@ -65,18 +66,20 @@ export default function CandidateDetailPage() {
           <AvatarFallback className="text-lg">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">{candidate.full_name}</h1>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            {candidate.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{candidate.email}</span>}
+          <h1 className="text-2xl font-bold text-foreground">{fullName}</h1>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{candidate.email}</span>
             {candidate.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{candidate.phone}</span>}
+            {candidate.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{candidate.location}</span>}
+            <Badge variant="outline">{STAGE_LABELS[candidate.stage] || candidate.stage}</Badge>
+            {candidate.ai_score != null && (
+              <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> IA {candidate.ai_score}%</Badge>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleSummarize} disabled={aiLoading}>
-            <Sparkles className="h-4 w-4 mr-1" /> Resumo IA
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleQuestions} disabled={aiLoading}>
-            <FileText className="h-4 w-4 mr-1" /> Perguntas IA
+          <Button variant="outline" size="sm" onClick={handleScore} disabled={scoreCandidate.isPending}>
+            <Sparkles className="h-4 w-4 mr-1" /> {scoreCandidate.isPending ? "A calcular..." : "Score IA"}
           </Button>
         </div>
       </div>
@@ -84,8 +87,10 @@ export default function CandidateDetailPage() {
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="applications">Candidaturas ({candidateApps?.length || 0})</TabsTrigger>
-          <TabsTrigger value="ai">Inteligência Artificial</TabsTrigger>
+          <TabsTrigger value="cv">CV Parsed</TabsTrigger>
+          <TabsTrigger value="ai">IA Analysis</TabsTrigger>
+          <TabsTrigger value="activities">Actividades ({activities?.length || 0})</TabsTrigger>
+          <TabsTrigger value="interviews">Entrevistas ({interviews?.length || 0})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -94,58 +99,147 @@ export default function CandidateDetailPage() {
               <CardHeader><CardTitle className="text-base">Informações</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div><span className="text-muted-foreground">Fonte:</span> <Badge variant="outline">{candidate.source}</Badge></div>
+                {candidate.job_posting && <div><span className="text-muted-foreground">Vaga:</span> {candidate.job_posting.title}</div>}
                 {candidate.linkedin_url && (
                   <div className="flex items-center gap-2">
                     <Linkedin className="h-4 w-4 text-muted-foreground" />
-                    <a href={candidate.linkedin_url} target="_blank" rel="noopener" className="text-primary hover:underline">{candidate.linkedin_url}</a>
+                    <a href={candidate.linkedin_url} target="_blank" rel="noopener" className="text-primary hover:underline truncate">{candidate.linkedin_url}</a>
+                  </div>
+                )}
+                {candidate.github_url && (
+                  <div className="flex items-center gap-2">
+                    <Github className="h-4 w-4 text-muted-foreground" />
+                    <a href={candidate.github_url} target="_blank" rel="noopener" className="text-primary hover:underline truncate">{candidate.github_url}</a>
                   </div>
                 )}
                 {candidate.portfolio_url && (
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a href={candidate.portfolio_url} target="_blank" rel="noopener" className="text-primary hover:underline">{candidate.portfolio_url}</a>
+                    <a href={candidate.portfolio_url} target="_blank" rel="noopener" className="text-primary hover:underline truncate">{candidate.portfolio_url}</a>
                   </div>
                 )}
-                {candidate.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {candidate.tags.map(t => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}
-                  </div>
-                )}
-                <div className="text-muted-foreground">Criado em {format(new Date(candidate.created_at), "d MMM yyyy", { locale: pt })}</div>
+                <div className="text-muted-foreground">Candidatura: {format(new Date(candidate.applied_at), "d MMM yyyy", { locale: pt })}</div>
               </CardContent>
             </Card>
-            {candidate.notes && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">Notas</CardTitle></CardHeader>
-                <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{candidate.notes}</p></CardContent>
-              </Card>
-            )}
+
+            {/* Quick note */}
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Adicionar Nota</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} rows={3} placeholder="Escreva uma nota..." />
+                <Button size="sm" onClick={handleAddNote} disabled={!noteText.trim() || createActivity.isPending}>Guardar Nota</Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="applications" className="mt-4">
-          {!candidateApps?.length ? (
-            <Card className="p-8 text-center text-muted-foreground">Sem candidaturas registadas</Card>
+        <TabsContent value="cv" className="mt-4">
+          {candidate.cv_parsed_data ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {candidate.cv_parsed_data.experience?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Experiência</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    {candidate.cv_parsed_data.experience.map((exp: any, i: number) => (
+                      <div key={i} className="border-l-2 border-primary/30 pl-3">
+                        <p className="font-medium text-sm">{exp.title}</p>
+                        <p className="text-sm text-muted-foreground">{exp.company}</p>
+                        <p className="text-xs text-muted-foreground">{exp.start_date} — {exp.end_date || "Presente"}</p>
+                        {exp.description && <p className="text-xs mt-1">{exp.description}</p>}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {candidate.cv_parsed_data.education?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Educação</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {candidate.cv_parsed_data.education.map((edu: any, i: number) => (
+                      <div key={i}>
+                        <p className="font-medium text-sm">{edu.degree} — {edu.field}</p>
+                        <p className="text-sm text-muted-foreground">{edu.institution} ({edu.graduation_year})</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              {candidate.cv_parsed_data.skills?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Competências</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1">
+                      {candidate.cv_parsed_data.skills.map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {candidate.cv_parsed_data.summary && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Resumo</CardTitle></CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground">{candidate.cv_parsed_data.summary}</p></CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <Card className="p-8 text-center text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p>Nenhum CV analisado ainda.</p>
+              <p className="text-sm mt-1">Use a funcionalidade "Parse CV" para extrair dados estruturados.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="ai" className="mt-4">
+          {candidate.ai_analysis ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4" /> Score: {candidate.ai_score}%</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {candidate.ai_analysis.recommendation && <p className="font-medium">{candidate.ai_analysis.recommendation}</p>}
+                  {candidate.ai_analysis.strengths?.length > 0 && (
+                    <div>
+                      <p className="font-medium text-green-600 mb-1">Pontos Fortes:</p>
+                      <ul className="space-y-1">{candidate.ai_analysis.strengths.map((s: string, i: number) => <li key={i}>• {s}</li>)}</ul>
+                    </div>
+                  )}
+                  {candidate.ai_analysis.concerns?.length > 0 && (
+                    <div>
+                      <p className="font-medium text-amber-600 mb-1">Preocupações:</p>
+                      <ul className="space-y-1">{candidate.ai_analysis.concerns.map((s: string, i: number) => <li key={i}>• {s}</li>)}</ul>
+                    </div>
+                  )}
+                  {candidate.ai_analysis.key_matches?.length > 0 && (
+                    <div>
+                      <p className="font-medium mb-1">Matches:</p>
+                      <div className="flex flex-wrap gap-1">{candidate.ai_analysis.key_matches.map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}</div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card className="p-8 text-center text-muted-foreground">
+              <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p>Nenhuma análise IA disponível.</p>
+              <p className="text-sm mt-1">Clique em "Score IA" para gerar uma avaliação automática.</p>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="activities" className="mt-4">
+          {!activities?.length ? (
+            <Card className="p-8 text-center text-muted-foreground">Sem actividades registadas</Card>
           ) : (
             <div className="space-y-3">
-              {candidateApps.map(app => (
-                <Card key={app.id} className="p-4">
-                  <div className="flex items-center justify-between">
+              {activities.map(a => (
+                <Card key={a.id} className="p-4">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-medium">{app.job_opening?.title || "Vaga"}</p>
-                      <p className="text-sm text-muted-foreground">Candidatura: {format(new Date(app.applied_at), "d MMM yyyy", { locale: pt })}</p>
+                      <Badge variant="outline" className="text-xs mb-1">{ACTIVITY_LABELS[a.activity_type] || a.activity_type}</Badge>
+                      {a.content && <p className="text-sm mt-1">{a.content}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge>{STAGE_LABELS[app.stage] || app.stage}</Badge>
-                      {app.rating && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="h-3 w-3 text-amber-500 fill-amber-500" /> {app.rating}
-                        </div>
-                      )}
-                      {app.ai_score != null && (
-                        <Badge variant="outline" className="text-xs">IA: {app.ai_score}%</Badge>
-                      )}
-                    </div>
+                    <span className="text-xs text-muted-foreground">{format(new Date(a.created_at), "d MMM yyyy HH:mm", { locale: pt })}</span>
                   </div>
                 </Card>
               ))}
@@ -153,46 +247,29 @@ export default function CandidateDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="ai" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {aiSummary && (
-              <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4" /> Resumo IA</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <p>{aiSummary.summary}</p>
-                  {aiSummary.key_skills && (
+        <TabsContent value="interviews" className="mt-4">
+          {!interviews?.length ? (
+            <Card className="p-8 text-center text-muted-foreground">Sem entrevistas registadas</Card>
+          ) : (
+            <div className="space-y-3">
+              {interviews.map(i => (
+                <Card key={i.id} className="p-4">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium mb-1">Competências:</p>
-                      <div className="flex flex-wrap gap-1">{aiSummary.key_skills.map((s: string) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}</div>
+                      <p className="font-medium text-sm">{i.interview_type}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> {format(new Date(i.scheduled_at), "d MMM yyyy, HH:mm", { locale: pt })}
+                      </p>
                     </div>
-                  )}
-                  {aiSummary.experience_level && <div><span className="text-muted-foreground">Nível:</span> {aiSummary.experience_level}</div>}
-                  {aiSummary.overall_impression && <div><span className="text-muted-foreground">Impressão:</span> {aiSummary.overall_impression}</div>}
-                </CardContent>
-              </Card>
-            )}
-            {aiQuestions && (
-              <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Perguntas de Entrevista</CardTitle></CardHeader>
-                <CardContent>
-                  <ol className="space-y-3 text-sm list-decimal list-inside">
-                    {(aiQuestions.questions || []).map((q: any, i: number) => (
-                      <li key={i}>
-                        <span className="font-medium">{q.question}</span>
-                        <p className="text-muted-foreground ml-5 mt-0.5 text-xs">Avaliar: {q.what_to_look_for}</p>
-                        <Badge variant="outline" className="ml-5 mt-1 text-xs">{q.category}</Badge>
-                      </li>
-                    ))}
-                  </ol>
-                </CardContent>
-              </Card>
-            )}
-            {!aiSummary && !aiQuestions && (
-              <Card className="p-8 text-center text-muted-foreground col-span-full">
-                Use os botões "Resumo IA" e "Perguntas IA" para gerar conteúdo inteligente.
-              </Card>
-            )}
-          </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={i.status === "scheduled" ? "default" : "secondary"}>{i.status}</Badge>
+                      {i.overall_rating && <Badge variant="outline">{i.overall_rating}/5</Badge>}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

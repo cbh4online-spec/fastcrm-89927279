@@ -1,8 +1,8 @@
 import { useInterviews, useCreateInterview } from "@/hooks/hr/useInterviews";
-import { useApplications } from "@/hooks/hr/useApplications";
+import { useCandidates } from "@/hooks/hr/useCandidates";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -14,30 +14,38 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 
-const TYPE_ICONS: Record<string, any> = { remote: Video, in_person: MapPin, phone: Phone };
-const TYPE_LABELS: Record<string, string> = { remote: "Remota", in_person: "Presencial", phone: "Telefone" };
-const STATUS_LABELS: Record<string, string> = { scheduled: "Agendada", completed: "Concluída", cancelled: "Cancelada" };
+const TYPE_ICONS: Record<string, any> = { video: Video, in_person: MapPin, phone: Phone };
+const TYPE_LABELS: Record<string, string> = {
+  phone_screening: "Telefone", technical: "Técnica", behavioral: "Comportamental", panel: "Painel", onsite: "Presencial",
+};
+const LOCATION_LABELS: Record<string, string> = { video: "Remota", in_person: "Presencial", phone: "Telefone" };
+const STATUS_LABELS: Record<string, string> = { scheduled: "Agendada", completed: "Concluída", cancelled: "Cancelada", no_show: "Não compareceu" };
 
 export default function InterviewsPage() {
   const { data: interviews, isLoading } = useInterviews();
-  const { data: applications } = useApplications();
+  const { data: candidates } = useCandidates();
   const createInterview = useCreateInterview();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
-    application_id: "",
-    interview_type: "remote" as const,
+    candidate_id: "",
+    interview_type: "technical" as const,
     scheduled_at: "",
     duration_minutes: 60,
-    location: "",
-    meeting_url: "",
+    location_type: "video" as const,
+    meeting_link: "",
+    location_address: "",
     notes: "",
   });
 
   const handleCreate = async () => {
-    if (!form.application_id || !form.scheduled_at) { toast.error("Candidatura e data são obrigatórias"); return; }
-    await createInterview.mutateAsync(form);
+    if (!form.candidate_id || !form.scheduled_at) { toast.error("Candidato e data são obrigatórios"); return; }
+    await createInterview.mutateAsync({
+      ...form,
+      job_posting_id: candidates?.find(c => c.id === form.candidate_id)?.job_posting_id || null,
+      interviewer_ids: [],
+    });
     setDialogOpen(false);
-    setForm({ application_id: "", interview_type: "remote", scheduled_at: "", duration_minutes: 60, location: "", meeting_url: "", notes: "" });
+    setForm({ candidate_id: "", interview_type: "technical", scheduled_at: "", duration_minutes: 60, location_type: "video", meeting_link: "", location_address: "", notes: "" });
   };
 
   const upcomingInterviews = interviews?.filter(i => i.status === "scheduled" && new Date(i.scheduled_at) >= new Date()) || [];
@@ -58,12 +66,12 @@ export default function InterviewsPage() {
             <DialogHeader><DialogTitle>Agendar Entrevista</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Candidatura *</Label>
-                <Select value={form.application_id} onValueChange={v => setForm(p => ({ ...p, application_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar candidatura" /></SelectTrigger>
+                <Label>Candidato *</Label>
+                <Select value={form.candidate_id} onValueChange={v => setForm(p => ({ ...p, candidate_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar candidato" /></SelectTrigger>
                   <SelectContent>
-                    {applications?.filter(a => !["hired", "rejected"].includes(a.stage)).map(a => (
-                      <SelectItem key={a.id} value={a.id}>{a.candidate?.full_name} — {a.job_opening?.title}</SelectItem>
+                    {candidates?.filter(c => !["hired", "rejected"].includes(c.stage)).map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name} {c.job_posting ? `— ${c.job_posting.title}` : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -78,9 +86,7 @@ export default function InterviewsPage() {
                   <Select value={form.interview_type} onValueChange={v => setForm(p => ({ ...p, interview_type: v as any }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="remote">Remota</SelectItem>
-                      <SelectItem value="in_person">Presencial</SelectItem>
-                      <SelectItem value="phone">Telefone</SelectItem>
+                      {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -91,15 +97,24 @@ export default function InterviewsPage() {
                   <Input type="number" value={form.duration_minutes} onChange={e => setForm(p => ({ ...p, duration_minutes: Number(e.target.value) }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{form.interview_type === "remote" ? "Link da reunião" : "Localização"}</Label>
-                  <Input
-                    value={form.interview_type === "remote" ? form.meeting_url : form.location}
-                    onChange={e => setForm(p => ({
-                      ...p,
-                      ...(form.interview_type === "remote" ? { meeting_url: e.target.value } : { location: e.target.value }),
-                    }))}
-                  />
+                  <Label>Modalidade</Label>
+                  <Select value={form.location_type} onValueChange={v => setForm(p => ({ ...p, location_type: v as any }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(LOCATION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{form.location_type === "video" ? "Link da reunião" : "Morada"}</Label>
+                <Input
+                  value={form.location_type === "video" ? form.meeting_link : form.location_address}
+                  onChange={e => setForm(p => ({
+                    ...p,
+                    ...(form.location_type === "video" ? { meeting_link: e.target.value } : { location_address: e.target.value }),
+                  }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Notas</Label>
@@ -122,7 +137,7 @@ export default function InterviewsPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Próximas</h2>
               {upcomingInterviews.map(interview => {
-                const Icon = TYPE_ICONS[interview.interview_type] || Calendar;
+                const Icon = TYPE_ICONS[interview.location_type || "video"] || Calendar;
                 return (
                   <Card key={interview.id}>
                     <CardContent className="flex items-center justify-between p-4">
@@ -131,14 +146,14 @@ export default function InterviewsPage() {
                           <Icon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">{interview.application?.candidate?.full_name || "Candidato"}</p>
-                          <p className="text-sm text-muted-foreground">{interview.application?.job_opening?.title || "Vaga"}</p>
+                          <p className="font-medium">{interview.candidate ? `${interview.candidate.first_name} ${interview.candidate.last_name}` : "Candidato"}</p>
+                          <p className="text-sm text-muted-foreground">{interview.job_posting?.title || "Sem vaga"}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{format(new Date(interview.scheduled_at), "d MMM yyyy, HH:mm", { locale: pt })}</p>
                         <div className="flex items-center gap-2 justify-end mt-1">
-                          <Badge variant="outline">{TYPE_LABELS[interview.interview_type]}</Badge>
+                          <Badge variant="outline">{TYPE_LABELS[interview.interview_type] || interview.interview_type}</Badge>
                           <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{interview.duration_minutes}min</span>
                         </div>
                       </div>
@@ -152,7 +167,7 @@ export default function InterviewsPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-muted-foreground">Anteriores</h2>
               {pastInterviews.map(interview => {
-                const Icon = TYPE_ICONS[interview.interview_type] || Calendar;
+                const Icon = TYPE_ICONS[interview.location_type || "video"] || Calendar;
                 return (
                   <Card key={interview.id} className="opacity-60">
                     <CardContent className="flex items-center justify-between p-4">
@@ -161,8 +176,8 @@ export default function InterviewsPage() {
                           <Icon className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="font-medium">{interview.application?.candidate?.full_name || "Candidato"}</p>
-                          <p className="text-sm text-muted-foreground">{interview.application?.job_opening?.title || "Vaga"}</p>
+                          <p className="font-medium">{interview.candidate ? `${interview.candidate.first_name} ${interview.candidate.last_name}` : "Candidato"}</p>
+                          <p className="text-sm text-muted-foreground">{interview.job_posting?.title || "Sem vaga"}</p>
                         </div>
                       </div>
                       <div className="text-right">

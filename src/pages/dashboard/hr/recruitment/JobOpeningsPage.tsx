@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useJobOpenings, useCreateJobOpening, useUpdateJobOpening, useDeleteJobOpening } from "@/hooks/hr/useJobOpenings";
-import type { JobOpening } from "@/hooks/hr/useJobOpenings";
+import { useJobPostings, useCreateJobPosting, useUpdateJobPosting, useDeleteJobPosting } from "@/hooks/hr/useJobPostings";
+import type { JobPosting } from "@/hooks/hr/useJobPostings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,57 +9,56 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Briefcase, MapPin, Users, Sparkles, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Briefcase, MapPin, Users, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useRecruitmentAI } from "@/hooks/hr/useRecruitmentAI";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
-  published: { label: "Publicada", variant: "default" },
-  reviewing: { label: "Em análise", variant: "outline" },
+  active: { label: "Activa", variant: "default" },
   closed: { label: "Fechada", variant: "destructive" },
-  archived: { label: "Arquivada", variant: "secondary" },
+  cancelled: { label: "Cancelada", variant: "outline" },
 };
 
-const JOB_TYPES: Record<string, string> = {
+const EMPLOYMENT_TYPES: Record<string, string> = {
   full_time: "Tempo inteiro",
   part_time: "Part-time",
-  contractor: "Prestador",
+  contract: "Prestador",
   intern: "Estágio",
 };
 
-export default function JobOpeningsPage() {
-  const { data: jobs, isLoading } = useJobOpenings();
-  const createJob = useCreateJobOpening();
-  const updateJob = useUpdateJobOpening();
-  const deleteJob = useDeleteJobOpening();
-  const { generateDescription, loading: aiLoading } = useRecruitmentAI();
+const REMOTE_OPTIONS: Record<string, string> = {
+  office: "Presencial",
+  remote: "Remoto",
+  hybrid: "Híbrido",
+};
+
+export default function JobPostingsPage() {
+  const { data: jobs, isLoading } = useJobPostings();
+  const createJob = useCreateJobPosting();
+  const updateJob = useUpdateJobPosting();
+  const deleteJob = useDeleteJobPosting();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<Partial<JobOpening>>({ title: "", department: "", job_type: "full_time", location: "", status: "draft" });
+  const [form, setForm] = useState<Partial<JobPosting>>({
+    title: "", description: "", employment_type: "full_time", remote_option: "office", location: "", status: "draft",
+    requirements: [], nice_to_have: [],
+  });
+  const [requirementsText, setRequirementsText] = useState("");
+  const [niceToHaveText, setNiceToHaveText] = useState("");
 
   const handleCreate = async () => {
     if (!form.title?.trim()) { toast.error("Título é obrigatório"); return; }
-    await createJob.mutateAsync(form);
+    await createJob.mutateAsync({
+      ...form,
+      requirements: requirementsText.split("\n").map(s => s.trim()).filter(Boolean),
+      nice_to_have: niceToHaveText.split("\n").map(s => s.trim()).filter(Boolean),
+    });
     setDialogOpen(false);
-    setForm({ title: "", department: "", job_type: "full_time", location: "", status: "draft" });
-  };
-
-  const handleAIGenerate = async () => {
-    if (!form.title?.trim()) { toast.error("Insira o título primeiro"); return; }
-    const res = await generateDescription(form.title!, form.department || undefined);
-    if (res.result) {
-      const r = res.result;
-      setForm(prev => ({
-        ...prev,
-        description: r.summary + "\n\n" + (r.responsibilities || []).map((s: string) => `• ${s}`).join("\n"),
-        requirements: (r.requirements || []).map((s: string) => `• ${s}`).join("\n"),
-        benefits: (r.benefits || []).map((s: string) => `• ${s}`).join("\n"),
-      }));
-      toast.success("Descrição gerada por IA");
-    }
+    setForm({ title: "", description: "", employment_type: "full_time", remote_option: "office", location: "", status: "draft" });
+    setRequirementsText("");
+    setNiceToHaveText("");
   };
 
   return (
@@ -74,9 +73,7 @@ export default function JobOpeningsPage() {
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Vaga</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Vaga</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Criar Vaga</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -84,51 +81,55 @@ export default function JobOpeningsPage() {
                   <Input value={form.title || ""} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Frontend Developer" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Departamento</Label>
-                  <Input value={form.department || ""} onChange={e => setForm(p => ({ ...p, department: e.target.value }))} placeholder="Ex: Engenharia" />
+                  <Label>Localização</Label>
+                  <Input value={form.location || ""} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} placeholder="Ex: Lisboa" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select value={form.job_type || "full_time"} onValueChange={v => setForm(p => ({ ...p, job_type: v }))}>
+                  <Label>Tipo de contrato</Label>
+                  <Select value={form.employment_type || "full_time"} onValueChange={v => setForm(p => ({ ...p, employment_type: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(JOB_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      {Object.entries(EMPLOYMENT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Localização</Label>
-                  <Input value={form.location || ""} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} placeholder="Ex: Lisboa / Remoto" />
+                  <Label>Modalidade</Label>
+                  <Select value={form.remote_option || "office"} onValueChange={v => setForm(p => ({ ...p, remote_option: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(REMOTE_OPTIONS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Moeda</Label>
+                  <Input value={form.currency || "EUR"} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Salário mínimo (€)</Label>
+                  <Label>Salário mínimo</Label>
                   <Input type="number" value={form.salary_min || ""} onChange={e => setForm(p => ({ ...p, salary_min: Number(e.target.value) || null }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Salário máximo (€)</Label>
+                  <Label>Salário máximo</Label>
                   <Input type="number" value={form.salary_max || ""} onChange={e => setForm(p => ({ ...p, salary_max: Number(e.target.value) || null }))} />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleAIGenerate} disabled={aiLoading}>
-                  <Sparkles className="h-4 w-4 mr-1" /> {aiLoading ? "A gerar..." : "Gerar com IA"}
-                </Button>
-              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
-                <Textarea value={form.description || ""} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={6} placeholder="Descrição da vaga..." />
+                <Textarea value={form.description || ""} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={5} placeholder="Descrição da vaga..." />
               </div>
               <div className="space-y-2">
-                <Label>Requisitos</Label>
-                <Textarea value={form.requirements || ""} onChange={e => setForm(p => ({ ...p, requirements: e.target.value }))} rows={4} placeholder="Requisitos da vaga..." />
+                <Label>Requisitos (um por linha)</Label>
+                <Textarea value={requirementsText} onChange={e => setRequirementsText(e.target.value)} rows={4} placeholder="Ex: 3+ anos de experiência em React..." />
               </div>
               <div className="space-y-2">
-                <Label>Benefícios</Label>
-                <Textarea value={form.benefits || ""} onChange={e => setForm(p => ({ ...p, benefits: e.target.value }))} rows={3} placeholder="Benefícios oferecidos..." />
+                <Label>Nice to have (um por linha)</Label>
+                <Textarea value={niceToHaveText} onChange={e => setNiceToHaveText(e.target.value)} rows={3} placeholder="Ex: Experiência com TypeScript..." />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
@@ -167,7 +168,7 @@ export default function JobOpeningsPage() {
                           <Eye className="h-4 w-4 mr-2" /> Ver detalhes
                         </DropdownMenuItem>
                         {job.status === "draft" && (
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); updateJob.mutate({ id: job.id, status: "published", published_at: new Date().toISOString() }); }}>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); updateJob.mutate({ id: job.id, status: "active", published_at: new Date().toISOString() }); }}>
                             Publicar
                           </DropdownMenuItem>
                         )}
@@ -181,15 +182,19 @@ export default function JobOpeningsPage() {
                 <CardContent className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={st.variant}>{st.label}</Badge>
-                    {job.job_type && <Badge variant="outline">{JOB_TYPES[job.job_type] || job.job_type}</Badge>}
+                    {job.employment_type && <Badge variant="outline">{EMPLOYMENT_TYPES[job.employment_type] || job.employment_type}</Badge>}
+                    {job.remote_option && <Badge variant="outline">{REMOTE_OPTIONS[job.remote_option] || job.remote_option}</Badge>}
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    {job.department && <div className="flex items-center gap-1"><Users className="h-3 w-3" />{job.department}</div>}
                     {job.location && <div className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</div>}
                   </div>
                   {(job.salary_min || job.salary_max) && (
                     <p className="text-sm font-medium text-foreground">
-                      {job.salary_min && job.salary_max ? `€${job.salary_min.toLocaleString()} - €${job.salary_max.toLocaleString()}` : job.salary_min ? `A partir de €${job.salary_min.toLocaleString()}` : `Até €${job.salary_max!.toLocaleString()}`}
+                      {job.salary_min && job.salary_max
+                        ? `${job.currency || "€"}${job.salary_min.toLocaleString()} - ${job.currency || "€"}${job.salary_max.toLocaleString()}`
+                        : job.salary_min
+                        ? `A partir de ${job.currency || "€"}${job.salary_min.toLocaleString()}`
+                        : `Até ${job.currency || "€"}${job.salary_max!.toLocaleString()}`}
                     </p>
                   )}
                 </CardContent>
