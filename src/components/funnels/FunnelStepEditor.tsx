@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 interface FormFieldConfig {
   id: string;
   label: string;
-  type: "text" | "email" | "phone" | "select" | "textarea";
+  type: "text" | "email" | "phone" | "select" | "textarea" | "checkbox" | "radio" | "hidden" | "consent" | "marketing_opt_in";
   required: boolean;
   placeholder?: string;
   options?: string[];
