@@ -38,7 +38,7 @@ import {
   HeartPulse, Stethoscope, Puzzle, Shield,
   Radio, Search, MapPin,
   ArrowUpDown, Headphones, Clock, Timer,
-  Facebook, LayoutGrid, Award,
+  Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
