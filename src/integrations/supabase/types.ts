@@ -24280,33 +24280,51 @@ export type Database = {
       }
       hr_absence_types: {
         Row: {
+          advance_notice_days: number | null
+          can_carry_over: boolean
+          code: string | null
           color: string | null
           created_at: string | null
+          description: string | null
           id: string
+          is_active: boolean
           max_days_per_year: number | null
           name: string
           paid: boolean | null
           requires_approval: boolean | null
+          updated_at: string
           workspace_id: string
         }
         Insert: {
+          advance_notice_days?: number | null
+          can_carry_over?: boolean
+          code?: string | null
           color?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean
           max_days_per_year?: number | null
           name: string
           paid?: boolean | null
           requires_approval?: boolean | null
+          updated_at?: string
           workspace_id: string
         }
         Update: {
+          advance_notice_days?: number | null
+          can_carry_over?: boolean
+          code?: string | null
           color?: string | null
           created_at?: string | null
+          description?: string | null
           id?: string
+          is_active?: boolean
           max_days_per_year?: number | null
           name?: string
           paid?: boolean | null
           requires_approval?: boolean | null
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [
@@ -24324,13 +24342,17 @@ export type Database = {
           absence_type_id: string | null
           approved_at: string | null
           approved_by: string | null
+          conflict_details: Json | null
+          conflict_detected: boolean
           created_at: string | null
           employee_id: string
           end_date: string
           id: string
           member_id: string | null
+          notes: string | null
           reason: string | null
           rejection_reason: string | null
+          requested_by: string | null
           start_date: string
           status: string | null
           total_days: number | null
@@ -24341,13 +24363,17 @@ export type Database = {
           absence_type_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          conflict_details?: Json | null
+          conflict_detected?: boolean
           created_at?: string | null
           employee_id: string
           end_date: string
           id?: string
           member_id?: string | null
+          notes?: string | null
           reason?: string | null
           rejection_reason?: string | null
+          requested_by?: string | null
           start_date: string
           status?: string | null
           total_days?: number | null
@@ -24358,13 +24384,17 @@ export type Database = {
           absence_type_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          conflict_details?: Json | null
+          conflict_detected?: boolean
           created_at?: string | null
           employee_id?: string
           end_date?: string
           id?: string
           member_id?: string | null
+          notes?: string | null
           reason?: string | null
           rejection_reason?: string | null
+          requested_by?: string | null
           start_date?: string
           status?: string | null
           total_days?: number | null
@@ -25246,6 +25276,111 @@ export type Database = {
           },
           {
             foreignKeyName: "hr_job_titles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_leave_balances: {
+        Row: {
+          available_days: number | null
+          carried_over_days: number
+          created_at: string
+          employee_id: string
+          id: string
+          leave_type_id: string
+          pending_days: number
+          total_days: number
+          updated_at: string
+          used_days: number
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          available_days?: number | null
+          carried_over_days?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          leave_type_id: string
+          pending_days?: number
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          workspace_id: string
+          year: number
+        }
+        Update: {
+          available_days?: number | null
+          carried_over_days?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          leave_type_id?: string
+          pending_days?: number
+          total_days?: number
+          updated_at?: string
+          used_days?: number
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_leave_balances_leave_type_id_fkey"
+            columns: ["leave_type_id"]
+            isOneToOne: false
+            referencedRelation: "hr_absence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_leave_balances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_public_holidays: {
+        Row: {
+          country: string
+          created_at: string
+          date: string
+          id: string
+          is_mandatory: boolean
+          name: string
+          workspace_id: string
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          date: string
+          id?: string
+          is_mandatory?: boolean
+          name: string
+          workspace_id: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_mandatory?: boolean
+          name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_public_holidays_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
