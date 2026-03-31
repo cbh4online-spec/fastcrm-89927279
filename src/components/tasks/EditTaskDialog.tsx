@@ -88,6 +88,38 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
           </div>
 
           <div className="space-y-2">
+            <Label>Responsável</Label>
+            <Select
+              value={assignedTo ?? "__none__"}
+              onValueChange={(v) => setAssignedTo(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sem responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <UserCircle className="h-4 w-4" /> Sem responsável
+                  </span>
+                </SelectItem>
+                {members?.map((m) => (
+                  <SelectItem key={m.user_id} value={m.user_id}>
+                    <span className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={m.profile?.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {(m.profile?.full_name ?? m.profile?.email ?? "?").charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {m.profile?.full_name || m.profile?.email || "Utilizador"}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label>Data Limite</Label>
             <div className="flex gap-2 flex-wrap mb-2">
               {quickDates.map((qd) => (
