@@ -280,6 +280,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("hr-okrs",          "OKRs",                "/dashboard/hr/okrs",          Target,       "rh", { moduleSlug: "hr-management" }),
   e("hr-feedback",      "Feedback",            "/dashboard/hr/feedback",      MessageSquare,"rh", { moduleSlug: "hr-management" }),
   e("hr-checkins",      "Check-ins",           "/dashboard/hr/checkins",      CalendarCheck,"rh", { moduleSlug: "hr-management" }),
+  e("hr-reviews",       "Avaliações",          "/dashboard/hr/reviews",       ClipboardCheck,"rh", { moduleSlug: "hr-management" }),
 
   // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES
