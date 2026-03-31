@@ -17,6 +17,7 @@ function mapCampaign(row: any): MarketingCampaign {
     replyTo: row.reply_to,
     bodyHtml: row.body_html,
     bodyText: row.body_text,
+    designJson: row.design_json,
     templateId: row.template_id,
     segmentId: row.segment_id,
     status: row.status as CampaignStatus,
@@ -34,12 +35,10 @@ function mapCampaign(row: any): MarketingCampaign {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    // AI Insights
     aiInsights: row.ai_insights,
     aiInsightsGeneratedAt: row.ai_insights_generated_at,
     sendHour: row.send_hour,
     linkCount: row.link_count,
-    // Deliverability fields
     sendMode: row.send_mode || 'immediate',
     batchSize: row.batch_size || 100,
     batchIntervalMinutes: row.batch_interval_minutes || 60,
@@ -51,6 +50,14 @@ function mapCampaign(row: any): MarketingCampaign {
     queueTotal: row.queue_total || 0,
     queueSent: row.queue_sent || 0,
     queueFailed: row.queue_failed || 0,
+    // Editorial workflow
+    reviewedAt: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+    approvedAt: row.approved_at,
+    approvedBy: row.approved_by,
+    rejectionReason: row.rejection_reason,
+    testSentAt: row.test_sent_at,
+    testSentBy: row.test_sent_by,
   };
 }
 
