@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, XCircle, Camera } from "lucide-react";
+import { CheckCircle, XCircle, Camera, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type QRResult = {
   success: boolean;
