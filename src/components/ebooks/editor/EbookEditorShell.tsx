@@ -64,6 +64,19 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const [localHeaderText, setLocalHeaderText] = useState("");
   const [localFooterText, setLocalFooterText] = useState("");
   const [localContactPage, setLocalContactPage] = useState<EbookContactPage>({});
+  // Consent local state
+  const [localConsentText, setLocalConsentText] = useState("");
+  const [localPrivacyPolicyUrl, setLocalPrivacyPolicyUrl] = useState("");
+  const [localMarketingOptInEnabled, setLocalMarketingOptInEnabled] = useState(false);
+  const [localMarketingOptInLabel, setLocalMarketingOptInLabel] = useState("");
+  // SEO local state
+  const [localSeoTitle, setLocalSeoTitle] = useState("");
+  const [localSeoDescription, setLocalSeoDescription] = useState("");
+  const [localOgImageUrl, setLocalOgImageUrl] = useState("");
+  const [localCanonicalUrl, setLocalCanonicalUrl] = useState("");
+  const [localNoindex, setLocalNoindex] = useState(false);
+  // Preflight
+  const [showPreflight, setShowPreflight] = useState(false);
   const brandingInitRef = useRef(false);
 
   // Refs
