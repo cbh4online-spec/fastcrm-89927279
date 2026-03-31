@@ -326,6 +326,20 @@ export default function PublicFunnelPage() {
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{step.name}</span>
         </div>
 
+        {/* Dedicated step-type renderers */}
+        {step.step_type === "thankyou" ? (
+          <ThankYouRenderer content={content} onComplete={() => { tracking.markStepCompleted(step.id); tracking.trackFunnelCompleted(); }} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "countdown" ? (
+          <CountdownRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "booking" ? (
+          <BookingRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "upsell" ? (
+          <UpsellRenderer content={content} onCtaClick={(l) => { tracking.trackCtaClicked(step.id, l); tracking.markStepCompleted(step.id); if (!isLast) setCurrentStepIndex(i => i + 1); }} />
+        ) : step.step_type === "downsell" ? (
+          <DownsellRenderer content={content} onCtaClick={(l) => { tracking.trackCtaClicked(step.id, l); tracking.markStepCompleted(step.id); if (!isLast) setCurrentStepIndex(i => i + 1); }} />
+        ) : step.step_type === "bridge" ? (
+          <BridgeRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : (
         <div className="space-y-6">
           {content.headline ? (
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{content.headline}</h1>
@@ -396,7 +410,7 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {/* Form - now using FunnelStepForm */}
+          {/* Form */}
           {hasForm && (
             <FunnelStepForm
               fields={content.form_fields!}
@@ -419,6 +433,7 @@ export default function PublicFunnelPage() {
             </div>
           )}
         </div>
+        )}
 
         {!hasForm && (
           <div className="flex items-center justify-between mt-12">
