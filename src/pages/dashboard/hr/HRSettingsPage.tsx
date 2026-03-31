@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,15 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { z } from "zod";
 import { useHRDepartments, useCreateHRDepartment, useUpdateHRDepartment, useDeleteHRDepartment } from "@/hooks/hr/useHRDepartments";
 import { useHRJobTitles, useCreateHRJobTitle, useUpdateHRJobTitle, useDeleteHRJobTitle } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes, useCreateHRContractType, useUpdateHRContractType, useDeleteHRContractType } from "@/hooks/hr/useHRContractTypes";
 import { LaborRulesTab } from "@/components/hr/settings/LaborRulesTab";
 
-// ─── Generic CRUD Table ──────────────────────────────────────────────────────
+// ─── Shared schema for simple CRUD items ─────────────────────
+
+const crudItemSchema = z.object({
+  name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Máximo 100 caracteres"),
+  description: z.string().max(500, "Máximo 500 caracteres").default(""),
+  department_id: z.string().nullable().default(null),
+});
+
+type CrudItemFormValues = z.infer<typeof crudItemSchema>;
+
+// ─── Generic CRUD Table ──────────────────────────────────────
 
 interface CrudItem {
   id: string;
@@ -37,37 +50,38 @@ interface CrudTableProps {
 function CrudTable({ items, isLoading, onCreate, onUpdate, onDelete, type, departments }: CrudTableProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<CrudItem | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [departmentId, setDepartmentId] = useState<string | null>(null);
+
+  const form = useForm<CrudItemFormValues>({
+    resolver: zodResolver(crudItemSchema),
+    defaultValues: { name: "", description: "", department_id: null },
+  });
 
   const openCreate = () => {
     setEditItem(null);
-    setName("");
-    setDescription("");
-    setDepartmentId(null);
+    form.reset({ name: "", description: "", department_id: null });
     setDialogOpen(true);
   };
 
   const openEdit = (item: CrudItem) => {
     setEditItem(item);
-    setName(item.name);
-    setDescription(item.description || "");
-    setDepartmentId(item.department_id || null);
+    form.reset({
+      name: item.name,
+      description: item.description || "",
+      department_id: item.department_id || null,
+    });
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!name.trim()) return;
+  const onSubmit = (values: CrudItemFormValues) => {
     if (editItem) {
-      const payload: any = { id: editItem.id, name: name.trim() };
-      if (type === "job_title") payload.department_id = departmentId || null;
-      if (type !== "job_title") payload.description = description.trim() || null;
+      const payload: any = { id: editItem.id, name: values.name.trim() };
+      if (type === "job_title") payload.department_id = values.department_id || null;
+      if (type !== "job_title") payload.description = values.description.trim() || null;
       onUpdate(payload);
     } else {
-      const payload: any = { name: name.trim() };
-      if (type === "job_title") payload.department_id = departmentId || null;
-      if (type !== "job_title") payload.description = description.trim() || null;
+      const payload: any = { name: values.name.trim() };
+      if (type === "job_title") payload.department_id = values.department_id || null;
+      if (type !== "job_title") payload.description = values.description.trim() || null;
       onCreate(payload);
     }
     setDialogOpen(false);
@@ -142,43 +156,33 @@ function CrudTable({ items, isLoading, onCreate, onUpdate, onDelete, type, depar
           <DialogHeader>
             <DialogTitle>{editItem ? "Editar" : "Novo"} {labels.singular}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Nome *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={`Nome do ${labels.singular.toLowerCase()}`} />
-            </div>
-            {type === "job_title" && departments && (
-              <div className="space-y-2">
-                <Label>Departamento</Label>
-                <Select value={departmentId || "none"} onValueChange={(v) => setDepartmentId(v === "none" ? null : v)}>
-                  <SelectTrigger><SelectValue placeholder="Sem departamento" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem departamento</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {type !== "job_title" && (
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição opcional" />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!name.trim()}>Guardar</Button>
-          </DialogFooter>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+              <RHFormField name="name" label="Nome" required placeholder={`Nome do ${labels.singular.toLowerCase()}`} />
+              {type === "job_title" && departments && (
+                <RHSelectField
+                  name="department_id"
+                  label="Departamento"
+                  allowNone
+                  noneLabel="Sem departamento"
+                  options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                />
+              )}
+              {type !== "job_title" && (
+                <RHFormField name="description" label="Descrição" placeholder="Descrição opcional" />
+              )}
+              <DialogFooter>
+                <RHFormActions onCancel={() => setDialogOpen(false)} />
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────
 
 export default function HRSettingsPage() {
   const { data: departments, isLoading: loadingDepts } = useHRDepartments();
