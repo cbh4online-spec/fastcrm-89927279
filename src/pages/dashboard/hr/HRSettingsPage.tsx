@@ -198,6 +198,7 @@ export default function HRSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <HRBreadcrumb />
       <div className="flex items-center gap-3">
         <Settings className="h-6 w-6 text-primary" />
         <div>
