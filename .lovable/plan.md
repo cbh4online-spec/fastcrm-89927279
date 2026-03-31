@@ -1,5 +1,3 @@
-
-
 ## Time-Off Management — Comparar e Preencher Lacunas
 
 ### Diagnóstico
@@ -61,3 +59,27 @@ O projecto já tem tabelas base (`hr_absence_types`, `hr_absences`) e hooks (`us
 - Legacy `leave_requests`/`leave_balances` ainda usadas em `LeavePage` — não remover até migração completa
 - Edge functions existentes (`hr-absence-approve`) podem ser chamadas por código antigo — manter activas
 
+## Performance & OKRs — Implementado ✅
+
+### Tabelas Criadas
+- `hr_okrs` — Objectivos com type (company/team/individual), cascata via parent_okr_id
+- `hr_key_results` — Resultados-chave com progress computed (GENERATED ALWAYS AS STORED)
+- `hr_feedback` — Feedback peer-to-peer com privado/anónimo
+- `hr_checkins` — Check-ins 1:1 com mood rating e action items JSONB
+
+### RLS
+- OKRs: leitura workspace, escrita owner/admin + próprio
+- Key Results: via OKR owner
+- Feedback: sender/recipient + non-private para workspace + admins
+- Check-ins: employee + manager + admins
+
+### Hooks
+- `useOKRs.ts` — CRUD + filtros + update KR progress + update status
+- `useFeedback.ts` — CRUD + mark read + tabs received/sent
+- `useCheckins.ts` — CRUD + complete + action items toggle
+- `useCurrentHREmployee` — adicionado a useHREmployees.ts
+
+### Páginas
+- `/dashboard/hr/okrs` — Board com filtros, progress bars, KR inline editing
+- `/dashboard/hr/feedback` — Tabs recebido/enviado, badges não-lido, anónimo
+- `/dashboard/hr/checkins` — Agendamento, mood rating 1-5, action items
