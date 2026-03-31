@@ -4,6 +4,7 @@ import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
 import { useHREmployeesList } from "@/hooks/hr/useCheckins";
+// fix: ensure no stale useHREmployees reference
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
