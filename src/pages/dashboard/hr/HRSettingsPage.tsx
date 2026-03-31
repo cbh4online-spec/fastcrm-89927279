@@ -257,6 +257,10 @@ export default function HRSettingsPage() {
             type="contract_type"
           />
         </TabsContent>
+
+        <TabsContent value="labor_rules">
+          <LaborRulesTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
