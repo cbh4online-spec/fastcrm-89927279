@@ -24670,6 +24670,76 @@ export type Database = {
           },
         ]
       }
+      hr_checkins: {
+        Row: {
+          action_items: Json | null
+          agenda: string | null
+          completed_at: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          manager_id: string
+          mood_rating: number | null
+          notes: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          agenda?: string | null
+          completed_at?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          manager_id: string
+          mood_rating?: number | null
+          notes?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          agenda?: string | null
+          completed_at?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          manager_id?: string
+          mood_rating?: number | null
+          notes?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_checkins_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checkins_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_checkins_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_contract_types: {
         Row: {
           created_at: string
@@ -25035,6 +25105,70 @@ export type Database = {
           },
         ]
       }
+      hr_feedback: {
+        Row: {
+          content: string
+          created_at: string
+          feedback_type: string
+          from_employee_id: string
+          id: string
+          is_anonymous: boolean
+          is_private: boolean
+          read_at: string | null
+          title: string
+          to_employee_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          feedback_type?: string
+          from_employee_id: string
+          id?: string
+          is_anonymous?: boolean
+          is_private?: boolean
+          read_at?: string | null
+          title: string
+          to_employee_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          feedback_type?: string
+          from_employee_id?: string
+          id?: string
+          is_anonymous?: boolean
+          is_private?: boolean
+          read_at?: string | null
+          title?: string
+          to_employee_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_feedback_from_employee_id_fkey"
+            columns: ["from_employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_feedback_to_employee_id_fkey"
+            columns: ["to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_interview_scorecards: {
         Row: {
           created_at: string
@@ -25283,6 +25417,69 @@ export type Database = {
           },
         ]
       }
+      hr_key_results: {
+        Row: {
+          created_at: string
+          current_value: number
+          description: string
+          id: string
+          metric_type: string
+          okr_id: string
+          progress: number | null
+          start_value: number
+          target_value: number
+          unit: string | null
+          updated_at: string
+          weight: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          description: string
+          id?: string
+          metric_type?: string
+          okr_id: string
+          progress?: number | null
+          start_value?: number
+          target_value?: number
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          description?: string
+          id?: string
+          metric_type?: string
+          okr_id?: string
+          progress?: number | null
+          start_value?: number
+          target_value?: number
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_key_results_okr_id_fkey"
+            columns: ["okr_id"]
+            isOneToOne: false
+            referencedRelation: "hr_okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_key_results_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_leave_balances: {
         Row: {
           available_days: number | null
@@ -25343,6 +25540,85 @@ export type Database = {
           },
           {
             foreignKeyName: "hr_leave_balances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_okrs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          employee_id: string
+          end_date: string | null
+          id: string
+          objective: string
+          parent_okr_id: string | null
+          period: string
+          progress: number
+          start_date: string | null
+          status: string
+          type: string
+          updated_at: string
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id: string
+          end_date?: string | null
+          id?: string
+          objective: string
+          parent_okr_id?: string | null
+          period?: string
+          progress?: number
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          workspace_id: string
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id?: string
+          end_date?: string | null
+          id?: string
+          objective?: string
+          parent_okr_id?: string | null
+          period?: string
+          progress?: number
+          start_date?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_okrs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_okrs_parent_okr_id_fkey"
+            columns: ["parent_okr_id"]
+            isOneToOne: false
+            referencedRelation: "hr_okrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_okrs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

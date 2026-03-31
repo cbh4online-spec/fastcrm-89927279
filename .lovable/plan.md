@@ -1,67 +1,85 @@
-
-
-## Performance & OKRs — Plano de Implementação
+## Time-Off Management — Comparar e Preencher Lacunas
 
 ### Diagnóstico
 
-Nenhuma das 4 tabelas do prompt existe (`hr_okrs`, `hr_key_results`, `hr_feedback`, `hr_checkins`). Não há hooks, páginas ou rotas para OKRs/feedback/check-ins. A infraestrutura base (hr_employees, workspaces, workspace_members) está operacional. O padrão RLS do projecto usa `workspace_members` com roles `admin`/`owner`.
+O projecto já tem tabelas base (`hr_absence_types`, `hr_absences`) e hooks (`useHRAbsences`), mas faltam funcionalidades críticas do prompt:
 
----
+| Componente | Existente | Em falta |
+|---|---|---|
+| `hr_absence_types` | nome, cor, paid, requires_approval, max_days | `code`, `description`, `can_carry_over`, `advance_notice_days`, `is_active`, `updated_at` |
+| `hr_absences` | campos base | `requested_by`, `notes`, `conflict_detected`, `conflict_details` |
+| `hr_leave_balances` | Tabela legacy `leave_balances` (user_id based) | Tabela nova ligada a `hr_employees` + `hr_leave_types` com `available_days` computed |
+| `hr_public_holidays` | Não existe | Tabela completa |
+| Edge Function criar pedido | `useCreateAbsence` faz insert directo | Validação de saldo, cálculo dias úteis (excl. feriados), detecção conflitos |
+| Edge Function aprovar | `hr-absence-approve` básico | Gestão atómica de saldos (pending → used) |
+| RLS | `workspace_isolation` genérica | Políticas granulares (employee own, manager, hr_admin) |
+| UI Calendário | `LeaveCalendar` básico (legacy) | Navegação mês, dados do novo schema |
 
-### Plano
+### Plano de Implementação
 
-#### 1. Migração SQL — 4 tabelas + índices + RLS + triggers
+#### 1. Migração SQL
+- **Evoluir `hr_absence_types`**: adicionar `code TEXT`, `description TEXT`, `can_carry_over BOOLEAN`, `advance_notice_days INTEGER`, `is_active BOOLEAN`, `updated_at`, trigger updated_at, constraint unique(workspace_id, code)
+- **Evoluir `hr_absences`**: adicionar `requested_by UUID`, `notes TEXT`, `conflict_detected BOOLEAN`, `conflict_details JSONB`, alterar `total_days` para `DECIMAL(5,2)`
+- **Criar `hr_leave_balances`**: employee_id + leave_type_id + year, total/used/pending/carried_over como DECIMAL, `available_days` computed column, unique constraint
+- **Criar `hr_public_holidays`**: workspace_id, name, date, country, is_mandatory, unique(workspace_id, date)
+- **RLS granular**: políticas separadas para SELECT (employee own + managers) e ALL (admin/owner/hr_admin) nas 4 tabelas
+- **Índices**: employee, year, status, dates, holidays
 
-| Tabela | Campos-chave |
-|---|---|
-| `hr_okrs` | workspace_id, employee_id, type (company/team/individual), parent_okr_id, objective, period, year, start_date, end_date, status, progress, created_by |
-| `hr_key_results` | okr_id, description, metric_type, start_value, target_value, current_value, unit, progress (computed) |
-| `hr_feedback` | workspace_id, from/to_employee_id, feedback_type, title, content, is_private, is_anonymous, read_at |
-| `hr_checkins` | workspace_id, employee_id, manager_id, scheduled_at, completed_at, status, agenda, notes, action_items (JSONB), mood_rating |
+#### 2. Edge Functions
+- **`hr-leave-request-create`**: Validar JWT, calcular dias úteis (excluindo fins-de-semana e feriados), verificar saldo, detectar conflitos de sobreposição, criar pedido, actualizar `pending_days` no balance
+- **`hr-leave-request-approve`**: Validar JWT, verificar permissões, aprovar/rejeitar, mover dias de pending→used (aprovado) ou remover pending (rejeitado)
+- **Manter `hr-absence-approve` e `hr-seed-defaults`** existentes para retrocompatibilidade
 
-- **RLS**: OKRs visíveis no workspace; editáveis pelo próprio + admins/owners. Feedback visível pelo remetente/destinatário + não-privado para workspace. Check-ins visíveis por employee + manager.
-- **Nota**: Usar validation triggers em vez de CHECK constraints para datas (`end_date > start_date`), conforme regras do projecto. `hr_key_results.progress` como computed column STORED.
-- **Índices**: employee, period/year, status, scheduled_at, from/to_employee.
-- **Triggers**: `update_updated_at_column()` em `hr_okrs`, `hr_key_results`, `hr_checkins`.
+#### 3. Hooks (actualizar/criar)
+- **`useHRAbsences.ts`**: Actualizar tipos para incluir novos campos (conflict_detected, notes, requested_by); joins com `hr_leave_types` (via absence_type_id)
+- **`useHRLeaveBalances.ts`** (novo): Query por employee_id + year, join com leave_type; usa nova tabela `hr_leave_balances`
+- **`useHRPublicHolidays.ts`** (novo): CRUD de feriados por workspace
+- **Mutações**: `useCreateLeaveRequest` e `useApproveLeaveRequest` a invocar as novas edge functions
 
-#### 2. Hooks (4 ficheiros novos em `src/hooks/hr/`)
+#### 4. UI
+- **`HRAbsencesPage.tsx`**: Integrar cards de saldo no topo, mostrar conflitos com badge, formulário de pedido usa nova lógica (edge function)
+- **Calendário de ausências**: Substituir `LeaveCalendar` legacy por componente com navegação mensal, feriados assinalados, dados do novo schema
+- **Gestão de feriados**: Secção em HRSettings ou tab dedicada para CRUD de `hr_public_holidays` (com defaults PT)
 
-- **`useOKRs.ts`**: `useOKRs(employeeId?)` com join a `hr_key_results` e `hr_employees`; `useCreateOKR` (insere OKR + key results atómicamente); `useUpdateKeyResultProgress`; `useDeleteOKR`.
-- **`useFeedback.ts`**: `useFeedback(employeeId)` com join a employees; `useCreateFeedback`; `useMarkFeedbackRead`.
-- **`useCheckins.ts`**: `useCheckins(employeeId)` com join a employees; `useCreateCheckin`; `useUpdateCheckin` (completar, adicionar notas/action items).
-
-#### 3. Páginas e Componentes UI (3 páginas novas)
-
-- **`HROKRsPage.tsx`** (`/dashboard/hr/okrs`): Board de OKRs com filtros por tipo/período/status. Cards com progress bars por objective + key results. Dialog para criar/editar OKR com key results inline. Cálculo automático de progresso do OKR a partir dos key results.
-- **`HRFeedbackPage.tsx`** (`/dashboard/hr/feedback`): Lista de feedback recebido/enviado com tabs. Formulário para dar feedback (tipo, destinatário, conteúdo, privado/anónimo). Badge de não-lido.
-- **`HRCheckinsPage.tsx`** (`/dashboard/hr/checkins`): Lista de check-ins (agendados/concluídos). Formulário de criação (employee, data, agenda). Vista de check-in com notas, action items e mood rating.
-
-#### 4. Rotas
-
-Adicionar 3 rotas em `HRRoutes.tsx`:
-- `/dashboard/hr/okrs`
-- `/dashboard/hr/feedback`
-- `/dashboard/hr/checkins`
-
-#### 5. Integração no HR Dashboard
-
-Adicionar widgets resumo no `HRDashboardPage.tsx`: OKRs activos, feedback pendente de leitura, próximos check-ins.
-
----
+#### 5. Limpeza
+- Deprecar hooks legacy (`useLeaveRequests`, `useLeaveBalances`) — manter temporariamente para não partir `LeavePage`
+- Migrar `LeavePage` para usar os novos hooks quando oportuno
 
 ### Critérios de Aceitação
-
-1. OKR progress calcula-se automaticamente a partir dos key results (computed column)
-2. OKRs em cascata (company → team → individual) via `parent_okr_id`
-3. Feedback anónimo esconde `from_employee` na UI
-4. Feedback privado visível apenas por destinatário + admins
-5. Check-ins com mood rating (1-5) e action items JSONB
-6. RLS garante isolamento por workspace e permissões por role
-7. Estados vazios, loading e erro tratados em todas as páginas
+1. Criar pedido calcula dias úteis correctamente (exclui fins-de-semana e feriados)
+2. Saldo insuficiente impede criação do pedido
+3. Conflitos de sobreposição detectados e sinalizados
+4. Aprovação/rejeição actualiza saldos atomicamente
+5. RLS garante que funcionários vêem apenas os seus pedidos; managers/admins vêem todos
+6. Calendário navega entre meses e mostra ausências aprovadas
+7. Feriados PT configuráveis por workspace
 
 ### Riscos
+- Coluna computed `available_days` com `GENERATED ALWAYS AS` — verificar compatibilidade com updates parciais
+- Legacy `leave_requests`/`leave_balances` ainda usadas em `LeavePage` — não remover até migração completa
+- Edge functions existentes (`hr-absence-approve`) podem ser chamadas por código antigo — manter activas
 
-- Computed column `progress` em `hr_key_results` com divisão por zero — protegido com CASE WHEN
-- `parent_okr_id` self-reference pode causar loops — sem validação recursiva nesta fase
-- Roles `hr_admin`/`manager` podem não existir em `workspace_members.role` — usar apenas `admin`/`owner` nas policies, consistente com o resto do projecto
+## Performance & OKRs — Implementado ✅
 
+### Tabelas Criadas
+- `hr_okrs` — Objectivos com type (company/team/individual), cascata via parent_okr_id
+- `hr_key_results` — Resultados-chave com progress computed (GENERATED ALWAYS AS STORED)
+- `hr_feedback` — Feedback peer-to-peer com privado/anónimo
+- `hr_checkins` — Check-ins 1:1 com mood rating e action items JSONB
+
+### RLS
+- OKRs: leitura workspace, escrita owner/admin + próprio
+- Key Results: via OKR owner
+- Feedback: sender/recipient + non-private para workspace + admins
+- Check-ins: employee + manager + admins
+
+### Hooks
+- `useOKRs.ts` — CRUD + filtros + update KR progress + update status
+- `useFeedback.ts` — CRUD + mark read + tabs received/sent
+- `useCheckins.ts` — CRUD + complete + action items toggle
+- `useCurrentHREmployee` — adicionado a useHREmployees.ts
+
+### Páginas
+- `/dashboard/hr/okrs` — Board com filtros, progress bars, KR inline editing
+- `/dashboard/hr/feedback` — Tabs recebido/enviado, badges não-lido, anónimo
+- `/dashboard/hr/checkins` — Agendamento, mood rating 1-5, action items
