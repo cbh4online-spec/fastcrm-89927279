@@ -2,8 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { useCheckins, useCreateCheckin, useUpdateCheckin } from "@/hooks/hr/useCheckins";
-import { useHREmployees } from "@/hooks/hr/useHREmployees";
+import { useCheckins, useCreateCheckin, useUpdateCheckin, useHREmployeesList } from "@/hooks/hr/useCheckins";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,7 @@ export default function HRCheckinsPage() {
 
   const statusFilter = tab === "all" ? undefined : tab;
   const { data: checkins = [], isLoading } = useCheckins(statusFilter);
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const createCheckin = useCreateCheckin();
   const updateCheckin = useUpdateCheckin();
 

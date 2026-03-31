@@ -73,6 +73,27 @@ export function useCreateCheckin() {
   });
 }
 
+export function useHREmployeesList() {
+  const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["hr_employees_list", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace) return [];
+      const { data, error } = await workspaceClient
+        .from("hr_employees")
+        .select("id, full_name, avatar_url")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("status", "active")
+        .order("full_name");
+      if (error) throw error;
+      return (data || []) as { id: string; full_name: string; avatar_url: string | null }[];
+    },
+    enabled: !!currentWorkspace,
+  });
+}
+
 export function useUpdateCheckin() {
   const qc = useQueryClient();
   const { workspaceClient } = useWorkspaceInstance();
