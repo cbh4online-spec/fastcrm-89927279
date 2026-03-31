@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BookOpen, Mail, User } from "lucide-react";
+import { Loader2, BookOpen, Mail, User, ExternalLink } from "lucide-react";
 import { FlipbookReader } from "@/components/ebooks/FlipbookReader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Helmet } from "react-helmet-async";
 
 interface EbookChapter {
   id: string;
@@ -36,6 +37,18 @@ interface EbookData {
   protection_enabled?: boolean;
   lead_gate_enabled?: boolean;
   workspace_id: string;
+  // Consent / RGPD
+  consent_text?: string;
+  privacy_policy_url?: string;
+  marketing_opt_in_enabled?: boolean;
+  marketing_opt_in_label?: string;
+  // SEO
+  seo_title?: string;
+  seo_description?: string;
+  og_image_url?: string;
+  canonical_url?: string;
+  noindex?: boolean;
+  slug?: string;
 }
 
 function getDeviceType(): string {
@@ -55,6 +68,16 @@ function getSessionId(): string {
   return id;
 }
 
+function simpleHash(text: string): string {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export default function PublicEbookPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
@@ -65,6 +88,8 @@ export default function PublicEbookPage() {
   const [gateOpen, setGateOpen] = useState(false);
   const [gateName, setGateName] = useState("");
   const [gateEmail, setGateEmail] = useState("");
+  const [gateConsent, setGateConsent] = useState(false);
+  const [gateMarketingOptIn, setGateMarketingOptIn] = useState(false);
   const [gateSubmitting, setGateSubmitting] = useState(false);
 
   useEffect(() => {
@@ -72,7 +97,7 @@ export default function PublicEbookPage() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, workspace_id")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
@@ -96,15 +121,16 @@ export default function PublicEbookPage() {
       return;
     }
 
-    // Create anonymous view (or returning gated user)
     const prev = previousGate ? JSON.parse(previousGate) : {};
-    createView(ebook, sessionId, prev.name, prev.email);
+    createView(ebook, sessionId, prev.name, prev.email, false, false);
   }, [ebook]);
 
-  async function createView(eb: EbookData, sessionId: string, name?: string, email?: string) {
+  async function createView(
+    eb: EbookData, sessionId: string, name?: string, email?: string,
+    consentGiven: boolean = false, marketingOptIn: boolean = false
+  ) {
     const totalPages = eb.chapters.reduce((s, ch) => s + Math.max(1, Math.ceil((ch.content?.length || 0) / 800)), 0) + 2;
 
-    // Match CRM: procurar contacto pelo email no workspace
     let contactId: string | null = null;
     if (email?.trim()) {
       const { data: contactMatch } = await supabase
@@ -118,7 +144,7 @@ export default function PublicEbookPage() {
       if (contactMatch) contactId = contactMatch.id;
     }
 
-    const { data } = await (supabase as any).from("ebook_views").insert({
+    const insertPayload: Record<string, unknown> = {
       ebook_id: eb.id,
       workspace_id: eb.workspace_id,
       session_id: sessionId,
@@ -131,20 +157,38 @@ export default function PublicEbookPage() {
       utm_campaign: searchParams.get("utm_campaign") || null,
       device_type: getDeviceType(),
       total_pages: totalPages,
-    }).select("id").single();
+      consent_given: consentGiven,
+      consent_text_version: consentGiven && eb.consent_text ? simpleHash(eb.consent_text) : null,
+      marketing_opt_in: marketingOptIn,
+      consent_timestamp: consentGiven ? new Date().toISOString() : null,
+      user_agent_string: navigator.userAgent || null,
+    };
+
+    const { data } = await (supabase as any).from("ebook_views").insert(insertPayload).select("id").single();
     if (data) setViewId(data.id);
   }
 
   async function handleGateSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!gateEmail.trim() || !gateName.trim() || !ebook) return;
+
+    // Check consent required
+    const needsConsent = ebook.consent_text && ebook.consent_text.trim().length > 0;
+    if (needsConsent && !gateConsent) return;
+
     setGateSubmitting(true);
     const sessionId = getSessionId();
     localStorage.setItem(`ebook_gate_${ebook.id}`, JSON.stringify({ name: gateName, email: gateEmail }));
-    await createView(ebook, sessionId, gateName, gateEmail);
+    await createView(ebook, sessionId, gateName, gateEmail, gateConsent, gateMarketingOptIn);
     setGateOpen(false);
     setGateSubmitting(false);
   }
+
+  // SEO meta values with fallbacks
+  const metaTitle = ebook?.seo_title || ebook?.title || "eBook";
+  const metaDescription = ebook?.seo_description || ebook?.subtitle || "";
+  const ogImage = ebook?.og_image_url || ebook?.cover_url || "";
+  const canonicalUrl = ebook?.canonical_url || (ebook?.slug ? `${window.location.origin}/ebook/${ebook.slug}` : "");
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen bg-slate-950">
@@ -163,66 +207,138 @@ export default function PublicEbookPage() {
 
   // Lead gate form
   if (gateOpen) {
+    const needsConsent = ebook.consent_text && ebook.consent_text.trim().length > 0;
+    const canSubmit = gateName.trim() && gateEmail.trim() && (!needsConsent || gateConsent);
+
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4">
-        <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur">
-          <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-white/5 border border-white/10 mx-auto mb-6">
-            <BookOpen className="h-8 w-8 text-white/40" />
+      <>
+        <Helmet>
+          <title>{metaTitle}</title>
+          <meta name="description" content={metaDescription} />
+          {ebook.noindex && <meta name="robots" content="noindex, nofollow" />}
+          <meta property="og:title" content={metaTitle} />
+          <meta property="og:description" content={metaDescription} />
+          {ogImage && <meta property="og:image" content={ogImage} />}
+          <meta property="og:type" content="book" />
+          {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+        </Helmet>
+        <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4">
+          <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur">
+            <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-white/5 border border-white/10 mx-auto mb-6">
+              <BookOpen className="h-8 w-8 text-white/40" />
+            </div>
+            <h2 className="text-xl font-bold text-white text-center mb-1">{ebook.title}</h2>
+            <p className="text-sm text-white/50 text-center mb-6">Insira os seus dados para aceder ao eBook</p>
+            <form onSubmit={handleGateSubmit} className="space-y-3">
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+                <Input
+                  placeholder="O seu nome"
+                  value={gateName}
+                  onChange={e => setGateName(e.target.value)}
+                  required
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                />
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+                <Input
+                  type="email"
+                  placeholder="O seu email"
+                  value={gateEmail}
+                  onChange={e => setGateEmail(e.target.value)}
+                  required
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                />
+              </div>
+
+              {/* RGPD consent checkbox */}
+              {needsConsent && (
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gateConsent}
+                    onChange={e => setGateConsent(e.target.checked)}
+                    className="rounded border-white/20 mt-0.5"
+                  />
+                  <span className="text-xs text-white/60 leading-tight">
+                    {ebook.consent_text}
+                    {ebook.privacy_policy_url && (
+                      <>
+                        {" "}
+                        <a
+                          href={ebook.privacy_policy_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-white/80 hover:text-white inline-flex items-center gap-0.5"
+                        >
+                          Política de Privacidade
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      </>
+                    )}
+                  </span>
+                </label>
+              )}
+
+              {/* Marketing opt-in */}
+              {ebook.marketing_opt_in_enabled && (
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gateMarketingOptIn}
+                    onChange={e => setGateMarketingOptIn(e.target.checked)}
+                    className="rounded border-white/20 mt-0.5"
+                  />
+                  <span className="text-xs text-white/60 leading-tight">
+                    {ebook.marketing_opt_in_label || "Quero receber comunicações e novidades"}
+                  </span>
+                </label>
+              )}
+
+              <Button type="submit" className="w-full" disabled={gateSubmitting || !canSubmit}>
+                {gateSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Aceder ao eBook
+              </Button>
+            </form>
           </div>
-          <h2 className="text-xl font-bold text-white text-center mb-1">{ebook!.title}</h2>
-          <p className="text-sm text-white/50 text-center mb-6">Insira os seus dados para aceder ao eBook</p>
-          <form onSubmit={handleGateSubmit} className="space-y-3">
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-              <Input
-                placeholder="O seu nome"
-                value={gateName}
-                onChange={e => setGateName(e.target.value)}
-                required
-                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-              />
-            </div>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-              <Input
-                type="email"
-                placeholder="O seu email"
-                value={gateEmail}
-                onChange={e => setGateEmail(e.target.value)}
-                required
-                className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={gateSubmitting}>
-              {gateSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Aceder ao eBook
-            </Button>
-          </form>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-[96vw]">
-        <FlipbookReader
-          title={ebook.title}
-          subtitle={ebook.subtitle}
-          author={ebook.author_name}
-          coverUrl={ebook.cover_url}
-          chapters={ebook.chapters}
-          headerText={ebook.header_text}
-          footerText={ebook.footer_text}
-          contactPage={ebook.contact_page}
-          styleTokens={ebook.global_styles}
-          protectionEnabled={ebook.protection_enabled !== false}
-          watermarkText="Documento Protegido"
-          ebookId={ebook.id}
-          workspaceId={ebook.workspace_id}
-          trackingViewId={viewId || undefined}
-        />
+    <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        {ebook.noindex && <meta name="robots" content="noindex, nofollow" />}
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta property="og:type" content="book" />
+        {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+      </Helmet>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-[96vw]">
+          <FlipbookReader
+            title={ebook.title}
+            subtitle={ebook.subtitle}
+            author={ebook.author_name}
+            coverUrl={ebook.cover_url}
+            chapters={ebook.chapters}
+            headerText={ebook.header_text}
+            footerText={ebook.footer_text}
+            contactPage={ebook.contact_page}
+            styleTokens={ebook.global_styles}
+            protectionEnabled={ebook.protection_enabled !== false}
+            watermarkText="Documento Protegido"
+            ebookId={ebook.id}
+            workspaceId={ebook.workspace_id}
+            trackingViewId={viewId || undefined}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

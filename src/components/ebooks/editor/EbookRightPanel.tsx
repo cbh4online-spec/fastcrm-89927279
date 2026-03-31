@@ -5,6 +5,7 @@ import { BlockPropertiesPanel } from "../BlockPropertiesPanel";
 import { EbookEditorNotesPanel } from "../EbookEditorNotesPanel";
 import { EbookBrandingPanel } from "./EbookBrandingPanel";
 import { EbookThemePanel } from "./EbookThemePanel";
+import { EbookCtaPanel } from "./EbookCtaPanel";
 import type { EbookChapter, ContentBlock, EbookContactPage, Ebook } from "@/hooks/useEbooks";
 
 interface EbookRightPanelProps {
@@ -28,6 +29,26 @@ interface EbookRightPanelProps {
   onContactPageChange: (val: EbookContactPage) => void;
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
+  // Consent
+  consentText: string;
+  privacyPolicyUrl: string;
+  marketingOptInEnabled: boolean;
+  marketingOptInLabel: string;
+  onConsentTextChange: (val: string) => void;
+  onPrivacyPolicyUrlChange: (val: string) => void;
+  onMarketingOptInEnabledChange: (val: boolean) => void;
+  onMarketingOptInLabelChange: (val: string) => void;
+  // SEO
+  seoTitle: string;
+  seoDescription: string;
+  ogImageUrl: string;
+  canonicalUrl: string;
+  noindex: boolean;
+  onSeoTitleChange: (val: string) => void;
+  onSeoDescriptionChange: (val: string) => void;
+  onOgImageUrlChange: (val: string) => void;
+  onCanonicalUrlChange: (val: string) => void;
+  onNoindexChange: (val: boolean) => void;
   // Theme
   theme: string;
   headingFont: string;
@@ -50,6 +71,10 @@ export function EbookRightPanel({
   onSaveChapters, onInsertBlock, onUploadImage, onGenerateImageAI,
   localHeaderText, localFooterText, localContactPage, protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange, onProtectionChange, onLeadGateChange,
+  consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
+  onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
+  seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
+  onSeoTitleChange, onSeoDescriptionChange, onOgImageUrlChange, onCanonicalUrlChange, onNoindexChange,
   theme, headingFont, bodyFont, onThemeChange, onHeadingFontChange, onBodyFontChange,
   notes, notesLoading, addNote, updateNote, deleteNote, activeChapterId, onNavigateToChapter,
 }: EbookRightPanelProps) {
@@ -58,7 +83,7 @@ export function EbookRightPanel({
       <TabsList className="w-full rounded-none border-b border-border/40 bg-transparent h-10 p-0 shrink-0">
         {selectedBlockId && useVisualEditor && (
           <TabsTrigger value="props" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full text-primary font-medium">
-            Propriedades
+            Props
           </TabsTrigger>
         )}
         <TabsTrigger value="inserir" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
@@ -69,6 +94,9 @@ export function EbookRightPanel({
         </TabsTrigger>
         <TabsTrigger value="marca" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
           Marca
+        </TabsTrigger>
+        <TabsTrigger value="ctas" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full">
+          CTAs
         </TabsTrigger>
         <TabsTrigger value="notas" className="flex-1 rounded-none text-xs data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary h-full relative">
           Notas
@@ -134,6 +162,33 @@ export function EbookRightPanel({
           onContactPageChange={onContactPageChange}
           onProtectionChange={onProtectionChange}
           onLeadGateChange={onLeadGateChange}
+          consentText={consentText}
+          privacyPolicyUrl={privacyPolicyUrl}
+          marketingOptInEnabled={marketingOptInEnabled}
+          marketingOptInLabel={marketingOptInLabel}
+          onConsentTextChange={onConsentTextChange}
+          onPrivacyPolicyUrlChange={onPrivacyPolicyUrlChange}
+          onMarketingOptInEnabledChange={onMarketingOptInEnabledChange}
+          onMarketingOptInLabelChange={onMarketingOptInLabelChange}
+          seoTitle={seoTitle}
+          seoDescription={seoDescription}
+          ogImageUrl={ogImageUrl}
+          canonicalUrl={canonicalUrl}
+          noindex={noindex}
+          onSeoTitleChange={onSeoTitleChange}
+          onSeoDescriptionChange={onSeoDescriptionChange}
+          onOgImageUrlChange={onOgImageUrlChange}
+          onCanonicalUrlChange={onCanonicalUrlChange}
+          onNoindexChange={onNoindexChange}
+        />
+      </TabsContent>
+
+      {/* Tab: CTAs */}
+      <TabsContent value="ctas" className="flex-1 overflow-hidden mt-0">
+        <EbookCtaPanel
+          ebookId={ebook.id}
+          workspaceId={ebook.workspace_id}
+          chapters={ebook.chapters.map(c => ({ id: c.id, title: c.title }))}
         />
       </TabsContent>
 

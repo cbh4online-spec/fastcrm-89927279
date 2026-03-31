@@ -8,6 +8,8 @@ import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import type { EbookRichEditorHandle } from "../EbookRichEditor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { useEbookPersistence } from "@/hooks/useEbookPersistence";
+import { useEbookCtas } from "@/hooks/useEbookCtas";
+import { runPreflight } from "@/utils/ebookPreflight";
 
 import { EbookEditorHeader } from "./EbookEditorHeader";
 import { EbookChapterSidebar } from "./EbookChapterSidebar";
@@ -15,6 +17,7 @@ import { EbookCanvasEditor } from "./EbookCanvasEditor";
 import { EbookRightPanel } from "./EbookRightPanel";
 import { EbookStatusBar } from "./EbookStatusBar";
 import { EbookPreviewDialog } from "./EbookPreviewDialog";
+import { EbookPreflightDialog } from "./EbookPreflightDialog";
 
 interface EbookEditorShellProps {
   ebookId: string;
@@ -35,6 +38,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const updateEbook = useUpdateEbook();
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
+  const { data: ctas = [] } = useEbookCtas(ebookId);
 
   // Centralised persistence
   const {
@@ -61,6 +65,19 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const [localHeaderText, setLocalHeaderText] = useState("");
   const [localFooterText, setLocalFooterText] = useState("");
   const [localContactPage, setLocalContactPage] = useState<EbookContactPage>({});
+  // Consent local state
+  const [localConsentText, setLocalConsentText] = useState("");
+  const [localPrivacyPolicyUrl, setLocalPrivacyPolicyUrl] = useState("");
+  const [localMarketingOptInEnabled, setLocalMarketingOptInEnabled] = useState(false);
+  const [localMarketingOptInLabel, setLocalMarketingOptInLabel] = useState("");
+  // SEO local state
+  const [localSeoTitle, setLocalSeoTitle] = useState("");
+  const [localSeoDescription, setLocalSeoDescription] = useState("");
+  const [localOgImageUrl, setLocalOgImageUrl] = useState("");
+  const [localCanonicalUrl, setLocalCanonicalUrl] = useState("");
+  const [localNoindex, setLocalNoindex] = useState(false);
+  // Preflight
+  const [showPreflight, setShowPreflight] = useState(false);
   const brandingInitRef = useRef(false);
 
   // Refs
@@ -74,6 +91,15 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       setLocalHeaderText((ebook as any).header_text || "");
       setLocalFooterText((ebook as any).footer_text || "");
       setLocalContactPage((ebook as any).contact_page || {});
+      setLocalConsentText((ebook as any).consent_text || "");
+      setLocalPrivacyPolicyUrl((ebook as any).privacy_policy_url || "");
+      setLocalMarketingOptInEnabled((ebook as any).marketing_opt_in_enabled || false);
+      setLocalMarketingOptInLabel((ebook as any).marketing_opt_in_label || "");
+      setLocalSeoTitle((ebook as any).seo_title || "");
+      setLocalSeoDescription((ebook as any).seo_description || "");
+      setLocalOgImageUrl((ebook as any).og_image_url || "");
+      setLocalCanonicalUrl((ebook as any).canonical_url || "");
+      setLocalNoindex((ebook as any).noindex || false);
       brandingInitRef.current = true;
     }
   }, [ebook]);
@@ -103,8 +129,16 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   // Debounced branding save — via centralised persistence
   useEffect(() => {
     if (!brandingInitRef.current) return;
-    queueSave({ header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage });
-  }, [localHeaderText, localFooterText, localContactPage]);
+    queueSave({
+      header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage,
+      consent_text: localConsentText, privacy_policy_url: localPrivacyPolicyUrl,
+      marketing_opt_in_enabled: localMarketingOptInEnabled, marketing_opt_in_label: localMarketingOptInLabel,
+      seo_title: localSeoTitle, seo_description: localSeoDescription,
+      og_image_url: localOgImageUrl, canonical_url: localCanonicalUrl, noindex: localNoindex,
+    });
+  }, [localHeaderText, localFooterText, localContactPage,
+      localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
+      localSeoTitle, localSeoDescription, localOgImageUrl, localCanonicalUrl, localNoindex]);
 
   // ── Chapter operations — all go through queueSave ──
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
@@ -321,9 +355,25 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
 
   const publishEbook = () => {
     if (!ebook) return;
-    // Force save before publishing
+    // Run preflight
+    const preflightResult = runPreflight(ebook as any, ctas);
+    if (!preflightResult.canPublish || preflightResult.warnings.length > 0) {
+      setShowPreflight(true);
+      return;
+    }
     forceSave();
     updateEbook.mutate({ id: ebookId, status: "published" }, { onSuccess: () => toast.success("eBook publicado!") });
+  };
+
+  const handlePreflightPublish = () => {
+    if (!ebook) return;
+    forceSave();
+    updateEbook.mutate({ id: ebookId, status: "published" }, {
+      onSuccess: () => {
+        toast.success("eBook publicado!");
+        setShowPreflight(false);
+      }
+    });
   };
 
   const handleToggleEditorMode = () => {
@@ -431,6 +481,24 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onContactPageChange={setLocalContactPage}
           onProtectionChange={(val) => queueSave({ protection_enabled: val })}
           onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
+          consentText={localConsentText}
+          privacyPolicyUrl={localPrivacyPolicyUrl}
+          marketingOptInEnabled={localMarketingOptInEnabled}
+          marketingOptInLabel={localMarketingOptInLabel}
+          onConsentTextChange={setLocalConsentText}
+          onPrivacyPolicyUrlChange={setLocalPrivacyPolicyUrl}
+          onMarketingOptInEnabledChange={setLocalMarketingOptInEnabled}
+          onMarketingOptInLabelChange={setLocalMarketingOptInLabel}
+          seoTitle={localSeoTitle}
+          seoDescription={localSeoDescription}
+          ogImageUrl={localOgImageUrl}
+          canonicalUrl={localCanonicalUrl}
+          noindex={localNoindex}
+          onSeoTitleChange={setLocalSeoTitle}
+          onSeoDescriptionChange={setLocalSeoDescription}
+          onOgImageUrlChange={setLocalOgImageUrl}
+          onCanonicalUrlChange={setLocalCanonicalUrl}
+          onNoindexChange={setLocalNoindex}
           theme={(ebook as any).theme || "modern-dark"}
           headingFont={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
           bodyFont={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
@@ -464,6 +532,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
         headerText={localHeaderText || undefined}
         footerText={localFooterText || undefined}
         contactPage={localContactPage}
+      />
+
+      <EbookPreflightDialog
+        open={showPreflight}
+        onOpenChange={setShowPreflight}
+        result={runPreflight(ebook as any, ctas)}
+        onPublish={handlePreflightPublish}
+        publishing={updateEbook.isPending}
       />
     </div>
   );
