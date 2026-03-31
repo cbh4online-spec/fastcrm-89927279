@@ -1,34 +1,41 @@
 
 
-## Correcção — QRCode recebe valor null
+## Adicionar Pica Ponto ao Dashboard Principal
 
 ### Diagnóstico
 
-O `react-qr-code` crasha com `TypeError: Cannot read properties of null (reading 'length')` quando recebe `null` como `value`. Isto acontece em `HREmployeeDetailPage.tsx` linha 241, onde `employee.qr_code_token` pode ser null.
+O componente `ClockInOutButton` existe e funciona correctamente, mas só aparece em:
+- `/dashboard/member` (MemberPanel)
+- `/dashboard/hr/time-clock` (TimeClockPage)
+- `/dashboard/hr/my-time` (MyTimePage)
 
-### Alterações
+**Não está presente** no dashboard principal (`/dashboard` → `WeeklyDashboard.tsx`), que é onde o utilizador passa mais tempo.
+
+### Alteração
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/pages/dashboard/hr/HREmployeeDetailPage.tsx` | Envolver o `<QRCode>` numa condição: só renderizar se `employee.qr_code_token` não for null. Mostrar mensagem alternativa quando não existe token. |
-| `src/components/security/SecurityQRCode.tsx` | Guardar contra `url` null/undefined nos dois locais onde `<QRCode value={url}>` é usado |
-| `src/components/products/ProductBarcodeQRSection.tsx` | Guardar contra `qrValue` null |
+| `src/pages/WeeklyDashboard.tsx` | Importar e adicionar `ClockInOutButton` logo após o `PremiumDashboardHeader`, antes da secção de IA. Posição estratégica: é a primeira acção do dia. |
 
 ### Detalhe
 
-Em cada local, a correcção é simples:
+Inserir o componente entre o header executivo (linha 52) e a secção de IA (linha 55):
 
 ```tsx
-// Antes
-<QRCode value={employee.qr_code_token} size={250} />
+import { ClockInOutButton } from "@/components/hr/ClockInOutButton";
 
-// Depois
-{employee.qr_code_token ? (
-  <QRCode value={employee.qr_code_token} size={250} />
-) : (
-  <p className="text-muted-foreground">Nenhum token QR atribuído</p>
-)}
+// No JSX, após PremiumDashboardHeader:
+<ClockInOutButton />
+
+{/* 2. Assistente de Vendas IA */}
+<PremiumAISection />
 ```
 
-Aplicar o mesmo padrão defensivo (`value || ""` ou condicional) nos outros ficheiros que usam `<QRCode>` para prevenir recorrência.
+O componente já é autónomo — trata do estado (clock in/out), relógio em tempo real e meteorologia internamente. Não requer props.
+
+### Critérios de aceitação
+1. Widget de pica ponto visível no dashboard principal (`/dashboard`)
+2. Funcionalidade de clock in/out operacional
+3. Sem duplicação — mantém-se nos outros locais existentes
+4. Responsivo em mobile
 
