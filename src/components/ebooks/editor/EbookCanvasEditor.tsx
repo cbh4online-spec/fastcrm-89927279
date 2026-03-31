@@ -22,6 +22,7 @@ interface EbookCanvasEditorProps {
   selectedBlockId: string | null;
   onSelectBlock: (id: string | null) => void;
   onUpdateChapterTitle: (chapterId: string, title: string) => void;
+  onUpdateChapterContent: (chapterId: string, content: string) => void;
   onSaveChapters: (chapters: EbookChapter[]) => void;
   ensureChapterBlocks: (ch: EbookChapter) => EbookChapter;
   onGenerateChapterImageAI: () => void;
