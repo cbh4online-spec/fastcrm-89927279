@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useHRDepartments, useCreateHRDepartment, useUpdateHRDepartment, useDeleteHRDepartment } from "@/hooks/hr/useHRDepartments";
 import { useHRJobTitles, useCreateHRJobTitle, useUpdateHRJobTitle, useDeleteHRJobTitle } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes, useCreateHRContractType, useUpdateHRContractType, useDeleteHRContractType } from "@/hooks/hr/useHRContractTypes";
+import { LaborRulesTab } from "@/components/hr/settings/LaborRulesTab";
 
 // ─── Generic CRUD Table ──────────────────────────────────────────────────────
 
