@@ -18,6 +18,8 @@ const statusColors: Record<string, string> = {
 
 export default function C2CModerationPage() {
   const { queue, isLoading, reviewItem, pendingCount } = useC2CModeration();
+  const [rejectReasonMap, setRejectReasonMap] = useState<Record<string, string>>({});
+  const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
 
   const pending = queue.filter((q: any) => q.status === "pending");
   const reviewed = queue.filter((q: any) => q.status !== "pending");
