@@ -85,6 +85,13 @@ export const ROLE_DEFAULT_VIEWS: Record<WorkspaceRole, RoleViewConfig> = {
     opportunityColumns: ["title", "value", "stage", "lead", "status", "expected_close_date"],
     description: "Vista de agência com acesso total",
   },
+  hr: {
+    entity: "contacts",
+    mode: "table",
+    contactColumns: ["name", "email", "company"],
+    opportunityColumns: ["title", "value", "stage", "status"],
+    description: "Vista limitada para utilizadores de RH",
+  },
 };
 
 export const CONTACT_COLUMNS = [
