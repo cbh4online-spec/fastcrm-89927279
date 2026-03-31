@@ -1,196 +1,291 @@
 
 
-## Plano de Melhoria do Módulo RH — Reaproveitamento do Stack Existente
+## Evolução do Módulo de eBooks — Diagnóstico e Plano
 
-### Diagnóstico
+### Diagnóstico Técnico
 
-O módulo RH tem **~15 páginas e ~22 hooks** mas não utiliza nenhuma das bibliotecas core do projecto:
-- **0 formulários** com `react-hook-form` + `zod` (tudo `useState` manual, sem validação inline)
-- **0 tabelas** com `DataTable` / `@tanstack/react-table` (tudo `<Table>` estático, sem sorting/filtros/paginação)
-- **0 calendários** com `FullCalendar` (existe `FullCalendarAgenda` usado noutros módulos)
-- **0 uploads** com `FileUpload` / `react-dropzone` (existe `FileUpload` reutilizável)
-- **0 drag-and-drop** no Kanban de recrutamento (Kanban existe mas é estático; `@dnd-kit` usado em Leads e Helpdesk)
+| Problema | Evidência |
+|----------|-----------|
+| **EbookEditor monolítico** | 1052 linhas, ~20 useState, mistura header/sidebar/canvas/branding/notas/preview/status bar |
+| **Geração IA 100% frontend** | `EbookWizard.tsx` (775 linhas) orquestra outline → chapters → cover → images sequencialmente no browser, sem retry, sem resume, perde tudo se a tab fechar |
+| **Chapters como JSON** | `ebooks.chapters` é `jsonb[]` — impossível queries por capítulo, sem analytics granular, sem versionamento |
+| **Autosave frágil** | Debounce de 800ms em branding, mas `saveChapters()` chama `updateEbook.mutate` diretamente sem dirty-checking, sem fila, sem status real |
+| **Estados editoriais limitados** | Apenas `draft | published | archived` — falta `generating`, `ready_for_review`, `generation_failed` |
+| **Sem versionamento** | Zero histórico de alterações |
+| **Edge function monolítica** | `ebook-ai-assist` faz outline + chapter + improve + condense + expand + image — sem separação de responsabilidades |
 
-Componentes reutilizáveis **já existem** no projecto: `DataTable`, `FileUpload`, `FullCalendarAgenda`, padrões `@dnd-kit` em `LeadsKanbanDnD` e `TicketKanbanBoard`.
+### Arquitectura-Alvo
 
----
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    EbookEditorShell                      │
+│  ┌──────────┬──────────────────┬──────────────────────┐  │
+│  │ Chapter  │                  │  Right Panel (Tabs)  │  │
+│  │ Sidebar  │  EbookCanvas     │  - Insert            │  │
+│  │          │  Editor          │  - Style/Theme       │  │
+│  │          │  (visual/classic)│  - Branding          │  │
+│  │          │                  │  - AI Actions         │  │
+│  │          │                  │  - Notes              │  │
+│  └──────────┴──────────────────┴──────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  EbookStatusBar (dirty/saving/saved/failed + stats)│  │
+│  └────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 
-### Decisões Técnicas
-
-| Decisão | Escolha |
-|---------|---------|
-| Schemas zod | 1 ficheiro por entidade em `src/schemas/hr/` |
-| Form components | 5 wrappers RHF em `src/components/hr/form/` |
-| Tabelas HR | Reutilizar `DataTable` existente, definir `columns` por entidade |
-| Calendário HR | Reutilizar `FullCalendarAgenda`, criar adapter para eventos HR |
-| Uploads HR | Reutilizar `FileUpload` existente |
-| Kanban DnD | Adaptar padrão `@dnd-kit` de `LeadsKanbanDnD` |
-| Exportação | Reutilizar `exceljs` + `jspdf` já instalados |
-
----
-
-## P0 — Formulários Robustos (react-hook-form + zod)
-
-### Componentes reutilizáveis a criar
-
-**`src/components/hr/form/`**:
-- `RHFormField.tsx` — wrapper `<FormField>` + `<Input>` com erro inline
-- `RHSelectField.tsx` — wrapper `<FormField>` + `<Select>` 
-- `RHDateField.tsx` — wrapper `<FormField>` + `<Input type="date">`
-- `RHTextareaField.tsx` — wrapper `<FormField>` + `<Textarea>`
-- `RHFormActions.tsx` — barra de acções padronizada (Cancelar / Guardar com loading)
-
-### Schemas a criar
-
-**`src/schemas/hr/`**:
-- `employeeSchema.ts` — nome obrigatório, horas > 0, contrato válido, datas coerentes
-- `departmentSchema.ts` — nome obrigatório, min 2 chars
-- `positionSchema.ts` — nome obrigatório, salary_min < salary_max
-- `leaveRequestSchema.ts` — employee + tipo + datas obrigatórias, start ≤ end
-- `jobOpeningSchema.ts` — título obrigatório, salary_min < salary_max
-- `candidateSchema.ts` — nome + apelido + email válido obrigatórios
-- `onboardingTemplateSchema.ts` — template + employee obrigatórios
-
-### Páginas a migrar
-
-| Página | Ficheiro | Impacto |
-|--------|----------|---------|
-| Funcionários (edit) | `HREmployeesPage.tsx` | Dialog edit → RHF |
-| Departamentos | `HRDepartmentsPage.tsx` | Dialog create/edit → RHF |
-| Cargos | `HRPositionsPage.tsx` | Dialog create/edit → RHF |
-| Ausências | `HRAbsencesPage.tsx` | Dialog create → RHF |
-| Vagas | `JobOpeningsPage.tsx` | Dialog create → RHF |
-| Candidatos | `CandidatesPage.tsx` | Dialog create → RHF |
-| Onboarding | `HROnboardingPage.tsx` | Dialog start → RHF |
-| Configurações | `HRSettingsPage.tsx` | CrudTable → RHF |
-
-**Total P0**: ~8 schemas + 5 componentes form + 8 páginas migradas
+┌─────────────────────────┐     ┌───────────────────────┐
+│  EbookWizard (frontend) │────►│  ebook-generate (EF)  │
+│  Inicia job + polling   │◄────│  Orquestra etapas     │
+│                         │     │  Persiste progresso   │
+└─────────────────────────┘     └───────────────────────┘
+        ▲                              │
+        │ polling/realtime             ▼
+        │                    ┌───────────────────┐
+        └────────────────────│ ebook_generation  │
+                             │ _jobs (tabela)    │
+                             └───────────────────┘
+```
 
 ---
 
-## P1 — Tabelas, Calendário, Uploads, Exportação
+## P0 — Crítico: Estabilizar Editor + Geração IA
 
-### P1.1 — Tabelas com DataTable
+### P0.1 — Refatorar EbookEditor (1052→~200 linhas no shell)
 
-Substituir `<Table>` manual por `<DataTable>` (já existente) com colunas tipadas:
+**Componentes a extrair:**
 
-| Página | Columns file |
-|--------|-------------|
-| Funcionários | `src/components/hr/columns/employeeColumns.tsx` |
-| Departamentos | `src/components/hr/columns/departmentColumns.tsx` |
-| Candidatos | `src/components/hr/columns/candidateColumns.tsx` |
-| Entrevistas | `src/components/hr/columns/interviewColumns.tsx` |
-| Ausências | `src/components/hr/columns/absenceColumns.tsx` |
-| Sessões Ponto | `src/components/hr/columns/timeEntryColumns.tsx` |
-| Vagas | `src/components/hr/columns/jobColumns.tsx` |
+| Componente | Responsabilidade | Linhas aprox. |
+|-----------|------------------|---------------|
+| `EbookEditorShell.tsx` | Layout 3-colunas, state management central, dirty tracking | ~200 |
+| `EbookEditorHeader.tsx` | Title edit, status badge, settings dropdown, preview/publish buttons | ~100 |
+| `EbookChapterSidebar.tsx` | Lista de capítulos, drag-drop, add/remove | ~120 |
+| `EbookCanvasEditor.tsx` | Switch visual/clássico, chapter toolbar, AI actions dropdown | ~180 |
+| `EbookBrandingPanel.tsx` | Tab "Marca": header/footer, contactos, proteção, lead gate | ~120 |
+| `EbookThemePanel.tsx` | Tab "Estilo": theme selector, typography | ~80 |
+| `EbookAIActionsPanel.tsx` | Dropdown IA (gerar, melhorar, condensar, expandir) | ~80 |
+| `EbookPreviewDialog.tsx` | Dialog fullscreen FlipbookReader | ~30 |
+| `EbookStatusBar.tsx` | Footer: chapters count, words, progress, save status | ~40 |
 
-Cada ficheiro define `ColumnDef[]` com sorting, badges, acções. O `DataTable` já suporta pesquisa global, paginação, seleção e visibilidade de colunas.
+**Ficheiro principal** `EbookEditor.tsx` passa a ser re-export de `EbookEditorShell` para backward-compatibility.
 
-### P1.2 — Calendário HR
+### P0.2 — Persistência Robusta
 
-Criar `src/components/hr/HRCalendarView.tsx` que reutiliza `FullCalendarAgenda`:
-- Adapter que converte turnos, ausências, entrevistas e check-ins em `CalendarEvent[]`
-- Cores por tipo (turno=azul, ausência=vermelho, entrevista=púrpura, check-in=verde)
-- Filtros por colaborador e departamento
-- Integrar em: `HRSchedulesPage`, `HRAbsencesPage`, `InterviewsPage`, `HRCheckinsPage`
+**Criar** `src/hooks/useEbookPersistence.ts`:
+- `isDirty: boolean` — compara snapshot vs estado actual
+- `saveStatus: 'idle' | 'saving' | 'saved' | 'failed'`
+- `lastSavedAt: Date | null`
+- `queueSave(updates)` — debounce 1.5s, merge updates pendentes
+- `forceSave()` — save imediato
+- Recuperação local: `localStorage` com `ebook:{id}:draft` como fallback
+- `beforeunload` warning quando dirty
+- Centraliza **todos** os saves (chapters, branding, theme, metadata)
+- Substitui os múltiplos `updateEbook.mutate()` dispersos
 
-### P1.3 — Uploads HR
+### P0.3 — Geração IA Server-Side
 
-Reutilizar `FileUpload` existente em:
-- `CandidateDetailPage` — upload de CV (accept: pdf, doc)
-- `HREmployeeDetailPage` — documentos do colaborador
-- `HRAbsencesPage` — anexo justificativo
-- `HROnboardingPage` — documentos de onboarding
+**Nova tabela** `ebook_generation_jobs`:
+```sql
+CREATE TABLE ebook_generation_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL,
+  ebook_id UUID REFERENCES ebooks(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, running, completed, failed, cancelled
+  current_step TEXT, -- generate_outline, create_ebook, generate_chapters, generate_cover, generate_images, finalize
+  steps_completed TEXT[] DEFAULT '{}',
+  total_steps INTEGER DEFAULT 6,
+  progress INTEGER DEFAULT 0,
+  config JSONB NOT NULL, -- prompt, tone, audience, chapterCount, imageStyle, etc
+  result JSONB, -- outline, chapter contents, image urls
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  created_by UUID,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-### P1.4 — Exportação
+**Nova edge function** `ebook-generate/index.ts`:
+- Recebe `job_id`, executa etapas sequencialmente
+- Actualiza `ebook_generation_jobs` entre cada etapa
+- Em caso de erro: marca etapa como failed, permite retry
+- Reutiliza lógica existente de `ebook-ai-assist` (que se mantém para acções individuais no editor)
 
-Criar `src/utils/hrExportUtils.ts`:
-- `exportEmployeesExcel/PDF`
-- `exportAbsencesExcel/PDF`
-- `exportAttendanceExcel/PDF`
-- `exportCandidatesExcel/PDF`
-- `exportInterviewsExcel/PDF`
+**Frontend** `EbookWizard.tsx`:
+- `handleGenerate()` passa a: criar job → chamar edge function → polling via `useQuery` com refetch a cada 2s
+- Mostra progresso real a partir da tabela
+- Permite fechar e voltar — job continua no backend
 
-Reutiliza `exceljs` (já em `excelUtils.ts`) e `jspdf` + `jspdf-autotable`. Adicionar botões de export nas páginas relevantes.
+### P0.4 — Estados Editoriais
 
-**Total P1**: ~7 column files + 1 calendar adapter + 4 upload integrations + 1 export utils + ~10 páginas alteradas
+**Migração** para expandir o enum de status:
+```sql
+ALTER TABLE ebooks 
+  DROP CONSTRAINT IF EXISTS ebooks_status_check;
+-- Add new statuses via text (já é text, verificar)
+```
+
+Actualizar `Ebook` interface:
+```typescript
+status: "draft" | "generating" | "ready_for_review" | "published" | "archived" | "generation_failed";
+```
+
+Actualizar `EbooksList.tsx` com badges e filtros por estado.
+
+---
+
+## P1 — Alto Impacto: Modelo de Dados + Robustez Editorial
+
+### P1.1 — Normalizar Modelo de Dados
+
+**Nova tabela** `ebook_chapters`:
+```sql
+CREATE TABLE ebook_chapters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ebook_id UUID REFERENCES ebooks(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  content TEXT DEFAULT '',
+  cover_image TEXT,
+  layout_key TEXT,
+  blocks JSONB DEFAULT '[]',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  word_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Migração progressiva**:
+1. Criar tabela `ebook_chapters`
+2. Criar hook `useEbookChapters.ts` que lê de `ebook_chapters` com fallback para `ebooks.chapters` JSON
+3. Migrar dados existentes via edge function de migração one-shot
+4. Editor passa a usar `ebook_chapters` nativamente
+5. Manter `ebooks.chapters` como cache/fallback temporário
+
+Tabelas `ebook_assets` e `ebook_pages` já existem — reaproveitar.
+
+### P1.2 — Versionamento
+
+**Nova tabela** `ebook_versions`:
+```sql
+CREATE TABLE ebook_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ebook_id UUID REFERENCES ebooks(id) ON DELETE CASCADE,
+  version_number INTEGER NOT NULL,
+  snapshot JSONB NOT NULL, -- full ebook state
+  change_summary TEXT,
+  is_published_version BOOLEAN DEFAULT false,
+  created_by UUID,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+- Auto-snapshot antes de publicar
+- Manual snapshot via botão "Guardar versão"
+- Rollback carrega snapshot → escreve no ebook
+- Hook `useEbookVersions.ts`
+
+### P1.3 — Melhorar Fluxo de Criação
+
+- Score de completude no editor: título ✓, capítulos ✓, conteúdo ✓, capa ✓, branding ✓
+- Checklist visual na sidebar ou header
+- Quick-start: "eBook Lead Magnet", "Guia Técnico", "Playbook Comercial" — presets que preenchem wizard
+- Sem nova UI complexa — reaproveitar `EbookWizard` com presets
+
+### P1.4 — Reforçar Leitor Público
+
+- Analytics de drop-off: `ebook_read_events` com `chapter_id` + `page_number` + `time_spent`
+- CTAs contextuais por capítulo (campo `cta_text` + `cta_url` em `ebook_chapters`)
+- Dashboard de analytics por eBook: pages read, time spent, completion rate, lead conversions
+- Heatmap simples (bar chart de tempo por capítulo) usando `recharts`
 
 ---
 
 ## P2 — Evolução e Diferenciação
 
-### P2.1 — Kanban DnD (Recrutamento)
+### P2.1 — Colaboração Editorial
+- `ebook_comments` tabela (block_id, chapter_id, content, status: open/resolved)
+- Painel de comentários no editor
+- Status de review: pending_review → approved → needs_changes
+- Locking por capítulo (optimistic, campo `locked_by` + `locked_at`)
 
-Refactoring de `CandidateKanban.tsx`:
-- Adicionar `@dnd-kit/core` + `@dnd-kit/sortable` (padrão de `LeadsKanbanDnD`)
-- Drag entre colunas persiste `stage` via `useUpdateCandidate`
-- Cards com score IA, vaga, fonte
-- Filtros por vaga, score, origem
+### P2.2 — Exportação Multi-Formato
+- PDF editorial via `jspdf` + `jspdf-autotable` (já instalados)
+- Flipbook web (já existe)
+- Botão "Exportar PDF" no editor e na lista
 
-### P2.2 — Onboarding Template Builder
-
-Novo `OnboardingTaskReorder.tsx`:
-- `@dnd-kit/sortable` para reordenar tarefas dentro de categorias
-- Persistir `sort_order` no backend
-- Feedback visual de arrasto
-
-### P2.3 — Analytics HR
-
-Melhorar `HRDashboardPage` com `recharts`:
-- Headcount por departamento (bar chart)
-- Tendência de ausências (line chart)
-- Pipeline de recrutamento (funnel)
-- Taxa de pontualidade (gauge)
-
-**Total P2**: 2 componentes DnD + 4 charts + 1 página dashboard
+### P2.3 — Biblioteca Premium
+- Templates por indústria (marketing, SaaS, educação, coaching)
+- Blocos premium reutilizáveis (testimonial, stats, timeline)
+- Sistema de layout com `ebook_templates` já existente — expandir catálogo
 
 ---
 
-### Ficheiros por prioridade (resumo)
+### Ficheiros a Criar
 
-**Criar** (~25 ficheiros):
-- `src/schemas/hr/` — 7 schemas
-- `src/components/hr/form/` — 5 componentes
-- `src/components/hr/columns/` — 7 column definitions
-- `src/components/hr/HRCalendarView.tsx`
-- `src/utils/hrExportUtils.ts`
-- `src/components/hr/OnboardingTaskReorder.tsx`
+| Ficheiro | Prioridade |
+|----------|-----------|
+| `src/components/ebooks/editor/EbookEditorShell.tsx` | P0 |
+| `src/components/ebooks/editor/EbookEditorHeader.tsx` | P0 |
+| `src/components/ebooks/editor/EbookChapterSidebar.tsx` | P0 |
+| `src/components/ebooks/editor/EbookCanvasEditor.tsx` | P0 |
+| `src/components/ebooks/editor/EbookBrandingPanel.tsx` | P0 |
+| `src/components/ebooks/editor/EbookThemePanel.tsx` | P0 |
+| `src/components/ebooks/editor/EbookAIActionsPanel.tsx` | P0 |
+| `src/components/ebooks/editor/EbookPreviewDialog.tsx` | P0 |
+| `src/components/ebooks/editor/EbookStatusBar.tsx` | P0 |
+| `src/hooks/useEbookPersistence.ts` | P0 |
+| `src/hooks/useEbookGenerationJob.ts` | P0 |
+| `supabase/functions/ebook-generate/index.ts` | P0 |
+| `src/hooks/useEbookChapters.ts` | P1 |
+| `src/hooks/useEbookVersions.ts` | P1 |
+| `src/components/ebooks/EbookCompletenessScore.tsx` | P1 |
+| `src/components/ebooks/EbookAnalyticsDashboard.tsx` | P1 |
+| `src/components/ebooks/EbookComments.tsx` | P2 |
+| `src/utils/ebookPdfExport.ts` | P2 |
 
-**Alterar** (~15 ficheiros):
-- 8 páginas HR (P0 — forms)
-- 7 páginas HR (P1 — tabelas + calendário + uploads)
-- 3 componentes (P2 — kanban + dashboard)
+### Ficheiros a Alterar
+
+| Ficheiro | Prioridade |
+|----------|-----------|
+| `src/components/ebooks/EbookEditor.tsx` | P0 (re-export shell) |
+| `src/components/ebooks/EbookWizard.tsx` | P0 (polling instead of orchestration) |
+| `src/hooks/useEbooks.ts` | P0 (new statuses) |
+| `src/components/ebooks/EbooksList.tsx` | P0 (status badges + filters) |
+| `supabase/functions/ebook-ai-assist/index.ts` | P0 (minor — keep for individual actions) |
 
 ### V1 vs V2
 
 | V1 (este plano) | V2 (futuro) |
 |------------------|-------------|
-| Forms com zod | Multi-step wizard para onboarding |
-| DataTable em todas as listas | Virtualização para >1000 rows |
-| FullCalendar básico | Drag-and-drop de turnos no calendário |
-| Upload de ficheiros | Gestão documental com versionamento |
-| Export Excel/PDF básico | Templates de relatório personalizáveis |
-| Kanban DnD simples | Automações de pipeline |
-| Charts básicos dashboard | Dashboards customizáveis por utilizador |
+| Editor modular (10 componentes) | Editor colaborativo real-time |
+| Autosave centralizado com dirty state | Conflict resolution multi-user |
+| Geração IA server-side com retry | Pipeline de geração com queue |
+| Estados editoriais expandidos | Workflow editorial customizável |
+| `ebook_chapters` normalizado | `ebook_blocks` normalizado |
+| Versionamento com snapshots | Diff visual entre versões |
+| Analytics básico (recharts) | Heatmap de leitura real |
+| Export PDF básico | Export multi-formato premium |
+| Comentários simples | Review workflow com aprovações |
+
+### Ordem de Implementação
+
+1. **Batch 1**: P0.1 — Refatorar editor em 10 componentes
+2. **Batch 2**: P0.2 — Hook de persistência + status bar real
+3. **Batch 3**: P0.3 — Tabela jobs + edge function + wizard polling
+4. **Batch 4**: P0.4 — Estados editoriais + lista actualizada
+5. **Batch 5**: P1.1 — Tabela chapters + hook + migração
+6. **Batch 6**: P1.2-P1.4 — Versionamento + completude + analytics
+7. **Batch 7**: P2 — Colaboração + export + biblioteca
 
 ### Critérios de Aceitação
 
-1. Todos os formulários HR validados com zod, erros inline visíveis
-2. Submit bloqueado em formulários inválidos
-3. Todas as tabelas com sorting, pesquisa e paginação funcionais
-4. Calendário mostra turnos + ausências + entrevistas com cores distintas
-5. Upload funcional com drag-and-drop e validação de tipo/tamanho
-6. Export Excel e PDF gera ficheiros correctos com dados filtrados
-7. Kanban de recrutamento permite arrastar candidatos entre fases
-8. Reorder de tarefas de onboarding persiste a ordem
-9. Zero regressões em funcionalidades existentes
-
-### Ordem de Implementação Sugerida
-
-Dado o volume, recomendo implementar **por batches**:
-1. **Batch 1**: Schemas + form components (fundação P0)
-2. **Batch 2**: Migração dos 8 formulários (P0 completo)
-3. **Batch 3**: Column definitions + migração tabelas (P1.1)
-4. **Batch 4**: Calendário + Uploads + Exportação (P1.2-P1.4)
-5. **Batch 5**: Kanban DnD + Onboarding reorder + Analytics (P2)
+1. EbookEditor principal < 200 linhas, todos os sub-componentes funcionais
+2. Save status visível (saving/saved/failed) e dirty warning ao sair
+3. Geração IA continua no backend mesmo se fechar o browser
+4. Geração falhada pode ser retomada
+5. 6 estados editoriais funcionais com transições correctas
+6. Capítulos em tabela separada com queries eficientes
+7. Pelo menos 1 versão guardada automaticamente antes de publicar
+8. Analytics de leitura com dados por capítulo
+9. Zero regressões na experiência actual
 
