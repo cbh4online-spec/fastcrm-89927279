@@ -129,12 +129,13 @@ export default function PublicFunnelPage() {
     load();
   }, [slug, isPreview, searchParams]);
 
-  // Track step_view + legacy stats
+  // Track step_view + legacy stats + step_abandoned
   useEffect(() => {
     if (!funnel?.workspace_id || steps.length === 0) return;
     const step = steps[currentStepIndex];
     if (!step) return;
     tracking.trackStepView(step.id);
+    tracking.setCurrentStep(step.id);
     // Legacy dual-write
     const today = new Date().toISOString().split("T")[0];
     supabase.from("funnel_step_stats").insert({
