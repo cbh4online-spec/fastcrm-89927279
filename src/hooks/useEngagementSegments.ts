@@ -40,7 +40,7 @@ export function useEngagementSegments() {
       const byEmail = new Map<string, typeof recipients[0]>();
       recipients.forEach(r => {
         const existing = byEmail.get(r.email);
-        if (!existing || new Date(r.sent_at || r.created_at!) > new Date(existing.sent_at || existing.created_at!)) {
+        if (!existing || new Date(r.sent_at || '') > new Date(existing.sent_at || '')) {
           byEmail.set(r.email, r);
         }
       });
