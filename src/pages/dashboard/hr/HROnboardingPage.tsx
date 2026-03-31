@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
