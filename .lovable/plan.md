@@ -1,242 +1,213 @@
 
 
-## eBook Module — Compliance, Conversão, SEO, Quality Gate, Governança e Assets
+## eBook Funil Comercial Completo — Plano de Implementação
 
-### 1. Diagnóstico das Lacunas Actuais
+### Diagnóstico
 
-| Área | Estado actual | Lacuna |
-|------|--------------|--------|
-| **Lead Gate** | Formulário básico (nome+email), sem consentimento | Sem checkbox RGPD, sem texto configurável, sem registo de consentimento |
-| **CTAs** | Inexistente | Sem tabelas, sem tracking, sem UI |
-| **SEO** | Sem metadados | Sem og:tags, meta title/description, canonical, noindex |
-| **Preflight** | Inexistente | Publicação directa sem validação |
-| **Permissões** | Sem controlo granular | Qualquer membro do workspace pode tudo |
-| **Assets** | Tabela `ebook_assets` existe mas sem UI | Sem picker, sem alt text, sem compressão integrada, sem limpeza de órfãos |
-| **Analytics** | Views, drop-off, devices, sources | Sem métricas de conversão, CTA, lead gate rate, opt-in |
+| Área | Existe | Falta |
+|------|--------|-------|
+| Lead Gate básico (nome+email) | ✅ | — |
+| Consentimento RGPD | ✅ Parcial (consent_text, privacy_policy_url, marketing_opt_in) | `consent_required` flag explícita; campo `captured_name`/`captured_email` dedicados na view |
+| CRM Contact creation/match | ❌ Só faz lookup — nunca cria contacto | Criar contacto se não existir; atualizar se existir; emitir eventos |
+| CTA rendering no leitor | ❌ Tabelas e CRUD existem, mas nenhum CTA é renderizado no FlipbookReader | Componente CTA no leitor; tracking de impressões e cliques |
+| Automações comerciais | ❌ | Kernel events; tags; tarefas; timeline |
+| Analytics de conversão (funil) | ✅ Parcial (lead gate rate, opt-in rate, CTA CTR) | Funil visual; ranking CTA; conversão por origem/campanha; dashboard 3 secções |
+| Scoring/Segmentação | ❌ | Diferido para V2 |
+| Permissões granulares | ❌ | Diferido para V2 |
 
 ---
 
-### 2. Plano de Batches (V1 vs V2)
+### Priorização (V1 vs V2)
 
-Dada a dimensão, proponho dividir em **V1 (funcional core)** e **V2 (refinamento)**:
-
-**V1 — 5 Batches sequenciais:**
+**V1 — Esta implementação (6 batches):**
 
 | Batch | Conteúdo |
 |-------|----------|
-| **B1** | Schema: migração para campos SEO, consent, CTAs |
-| **B2** | Lead Gate com compliance + SEO no leitor público |
-| **B3** | CTA system (config no editor + tracking no leitor) |
-| **B4** | Preflight check antes de publicar |
-| **B5** | Analytics expandidas (conversão, CTA, lead gate) |
+| B1 | Schema: campos `consent_required`, CTA extras (`whatsapp_number`, `booking_link`, `style_variant`, `target_route`, `form_id`), `contact_id` em `ebook_cta_events` |
+| B2 | Lead Gate → CRM: criar/atualizar contacto, emitir kernel events, gravar tags |
+| B3 | CTA rendering no FlipbookReader + tracking de impressões/cliques |
+| B4 | Automações comerciais (tags, eventos kernel, timeline) |
+| B5 | Analytics dashboard 3 secções (Consumo, Captação, Conversão) + funil visual |
+| B6 | Validações e preflight updates |
 
 **V2 — Diferido:**
-
-| Item | Razão |
-|------|-------|
-| Permissões granulares (5 roles) | Requer infra de roles por módulo — complexo |
-| Asset picker / biblioteca reutilizável | UX significativa, pode ser feito depois |
-| Limpeza automática de assets órfãos | Background job, sem impacto funcional imediato |
-| Schema.org structured data | Valor incremental |
+- Scoring por comportamento e segmentação
+- Permissões granulares (ebook_editor, ebook_analyst, etc.)
+- Remarketing por comportamento
+- CTA tipo formulário embebido
+- Nurture automático por eBook
 
 ---
 
-### 3. B1 — Migração de Schema
+### B1 — Migração de Schema
 
-**Campos novos na tabela `ebooks`:**
+**Campos a adicionar na tabela `ebooks`:**
 ```
-privacy_policy_url    TEXT
-consent_text          TEXT
-marketing_opt_in_enabled  BOOLEAN DEFAULT false
-marketing_opt_in_label    TEXT
-seo_title             TEXT
-seo_description       TEXT
-og_image_url          TEXT
-canonical_url         TEXT
-noindex               BOOLEAN DEFAULT false
+consent_required  BOOLEAN DEFAULT false
 ```
 
-**Campos novos na tabela `ebook_views`:**
+**Campos a adicionar na tabela `ebook_ctas`:**
 ```
-consent_given         BOOLEAN DEFAULT false
-consent_text_version  TEXT
-marketing_opt_in      BOOLEAN DEFAULT false
-consent_timestamp     TIMESTAMPTZ
-ip_address            TEXT
-user_agent            TEXT
-```
-
-**Tabela nova `ebook_ctas`:**
-```
-id            UUID PK
-ebook_id      UUID FK → ebooks
-chapter_id    TEXT (nullable, referência lógica)
-workspace_id  UUID FK → workspaces
-label         TEXT NOT NULL
-cta_type      TEXT NOT NULL (link, whatsapp, form, schedule, contact, internal)
-target_url    TEXT
-position      TEXT DEFAULT 'end' (end, inline, after_chapter)
-is_active     BOOLEAN DEFAULT true
-sort_order    INT DEFAULT 0
-created_at    TIMESTAMPTZ
-updated_at    TIMESTAMPTZ
+whatsapp_number   TEXT
+booking_link      TEXT
+target_route      TEXT
+form_id           TEXT
+style_variant     TEXT DEFAULT 'default'
 ```
 
-**Tabela nova `ebook_cta_events`:**
+**Campo a adicionar na tabela `ebook_cta_events`:**
 ```
-id            UUID PK
-ebook_id      UUID FK → ebooks
-cta_id        UUID FK → ebook_ctas
-view_id       UUID FK → ebook_views (nullable)
-workspace_id  UUID FK → workspaces
-chapter_id    TEXT (nullable)
-event_type    TEXT NOT NULL (cta_impression, cta_click, cta_conversion)
-created_at    TIMESTAMPTZ
+contact_id        UUID (nullable, FK → contacts)
 ```
-
-**RLS:** Ambas as tabelas com política por workspace_id (mesmo padrão de ebook_views).
 
 ---
 
-### 4. B2 — Lead Gate com Compliance + SEO
+### B2 — Lead Gate → CRM Integration
 
-**Editor (`EbookBrandingPanel`):**
-- Secção "Consentimento" quando lead_gate_enabled:
-  - Input: `consent_text` (texto do checkbox)
-  - Input: `privacy_policy_url` (link)
-  - Toggle: `marketing_opt_in_enabled`
-  - Input: `marketing_opt_in_label`
-- Secção "SEO e Partilha":
-  - Input: `seo_title`, `seo_description`
-  - Input: `og_image_url` (ou usar cover_url como fallback)
-  - Input: `canonical_url`
-  - Toggle: `noindex`
+**Edge Function `ebook-lead-capture`** — chamada pelo `PublicEbookPage` após submit do lead gate:
 
-**Leitor público (`PublicEbookPage`):**
-- Lead gate form expandido:
-  - Checkbox obrigatório de consentimento com texto configurável
-  - Link para política de privacidade
-  - Checkbox opcional de marketing opt-in
-- Ao submeter: gravar `consent_given`, `consent_text_version` (hash do texto), `marketing_opt_in`, `consent_timestamp`, `user_agent`
-- Meta tags dinâmicas: `<title>`, `<meta description>`, `og:title/description/image`, canonical, robots noindex
+```text
+Input: workspace_id, ebook_id, view_id, name, email, consent_given,
+       marketing_opt_in, utm_source, utm_medium, utm_campaign, slug
 
-**Ficheiros:**
+Lógica:
+1. Procurar contacto por email no workspace
+2. Se existe → atualizar (source tags, marketing_opt_in)
+3. Se não existe → criar contacto (first_name, email, source="ebook", source_detail=slug)
+4. Associar contact_id ao ebook_view
+5. Aplicar tag "ebook:<slug>"
+6. Se utm_campaign → aplicar tag "campaign:<utm_campaign>"
+7. Se marketing_opt_in → aplicar tag "marketing_opt_in"
+8. Emitir kernel events:
+   - ebook.lead_captured
+   - ebook.contact_created (se novo)
+   - ebook.contact_matched (se existente)
+   - ebook.marketing_opt_in (se aplicável)
+9. Retornar contact_id
+```
+
+**Alterações no `PublicEbookPage.tsx`:**
+- Após `createView`, invocar `ebook-lead-capture` via `supabase.functions.invoke`
+- Actualizar o `view_id` com o `contact_id` retornado
+
+---
+
+### B3 — CTA Rendering no Leitor
+
+**Criar `src/components/ebooks/EbookCtaOverlay.tsx`:**
+- Componente que recebe lista de CTAs activos e posição actual
+- Renderiza CTA final na última página (antes da página de contacto)
+- Renderiza CTA inline/after_chapter quando a página corresponde
+- Tipos suportados: link externo, WhatsApp (abre `wa.me`), booking, contacto, internal
+- Style variants: `default`, `prominent`, `subtle`
+- Ao entrar em viewport: `trackCtaEvent(cta_impression)`
+- Ao clicar: `trackCtaEvent(cta_click)` + abrir destino
+
+**Alterações no `FlipbookReader.tsx`:**
+- Aceitar prop `ctas: EbookCta[]`
+- Integrar `EbookCtaOverlay` nas páginas relevantes
+- Passar `viewId` e `workspaceId` para tracking
+
+**Alterações no `PublicEbookPage.tsx`:**
+- Carregar CTAs via `useEbookCtas` (query pública, já existe)
+- Passar CTAs ao `FlipbookReader`
+
+---
+
+### B4 — Automações Comerciais
+
+**Na Edge Function `ebook-lead-capture`:**
+- Já cobre: criar contacto, tags, kernel events
+
+**Evento de leitura concluída** — no `EbookReadTracker.tsx`:
+- Quando `completed` passa a `true`:
+  - Invocar edge function ou emitir kernel event `ebook.read_completed`
+  - (V2: criar tarefa para comercial)
+
+**Evento de CTA click** — no `EbookCtaOverlay`:
+- Emitir kernel event `ebook.cta_click` via `trackCtaEvent`
+- Kernel processa: atualiza score, timeline
+
+**Kernel Events a criar:**
+- `ebook.lead_captured` (entity: contact)
+- `ebook.contact_created` (entity: contact)
+- `ebook.contact_matched` (entity: contact)
+- `ebook.marketing_opt_in` (entity: contact)
+- `ebook.read_completed` (entity: ebook_view)
+- `ebook.cta_click` (entity: ebook_cta)
+- `ebook.cta_impression` (entity: ebook_cta)
+
+---
+
+### B5 — Analytics Dashboard 3 Secções
+
+**Reestruturar `EbookAnalytics.tsx` em 3 tabs/secções:**
+
+**1. Consumo:**
+- Views, unique readers, tempo médio, conclusão, drop-off
+- Gráfico diário, dispositivos, fontes (já existe)
+
+**2. Captação:**
+- Leads captados (views com email)
+- Consentimentos dados
+- Opt-in marketing
+- Contactos criados (novos) vs já existentes no CRM
+- Lead gate conversion rate
+
+**3. Conversão:**
+- CTA impressions, clicks, CTR
+- Ranking de CTAs (tabela com label, impressões, cliques, CTR)
+- Conversão por origem (utm_source × CTA clicks)
+- Melhor campanha
+- Funil visual: Views → Gated Leads → Consentidos → CRM → CTA Clicks
+
+**Novo hook `useEbookConversionKPIs`** — agrega dados de `ebook_views` + `ebook_cta_events` para métricas de captação e conversão separadas.
+
+---
+
+### B6 — Validações e Preflight
+
+**Actualizar `ebookPreflight.ts`:**
+- Nova validação: se `consent_required=true`, exigir `consent_text` não vazio
+- Nova validação: se `consent_required=true`, exigir `privacy_policy_url` não vazio
+- Manter validações existentes
+
+**Actualizar `EbookCtaPanel.tsx`:**
+- Validar URL obrigatório para tipos `link`, `whatsapp`, `booking`, `internal`
+- Mostrar warning visual se CTA activo sem URL válido
+- Adicionar campos extras (whatsapp_number, booking_link) consoante tipo
+
+---
+
+### Ficheiros a Criar/Alterar
+
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/ebooks/editor/EbookBrandingPanel.tsx` | Adicionar secções Consentimento + SEO |
-| `src/components/ebooks/editor/EbookEditorShell.tsx` | Passar novos campos ao BrandingPanel e queueSave |
-| `src/pages/PublicEbookPage.tsx` | Expandir lead gate, adicionar meta tags, gravar consent |
-| `src/hooks/useEbooks.ts` | Expandir tipo Ebook e updateEbook |
+| `supabase/migrations/...` | **Criar** — adicionar campos schema |
+| `supabase/functions/ebook-lead-capture/index.ts` | **Criar** — CRM integration |
+| `src/components/ebooks/EbookCtaOverlay.tsx` | **Criar** — rendering de CTAs no leitor |
+| `src/hooks/useEbookConversionKPIs.ts` | **Criar** — métricas de captação e conversão |
+| `src/pages/PublicEbookPage.tsx` | **Alterar** — invocar lead-capture, passar CTAs ao reader |
+| `src/components/ebooks/FlipbookReader.tsx` | **Alterar** — aceitar e renderizar CTAs |
+| `src/components/ebooks/EbookAnalytics.tsx` | **Alterar** — reestruturar em 3 secções + funil |
+| `src/components/ebooks/EbookReadTracker.tsx` | **Alterar** — emitir evento read_completed |
+| `src/components/ebooks/editor/EbookCtaPanel.tsx` | **Alterar** — campos extras por tipo, validação |
+| `src/utils/ebookPreflight.ts` | **Alterar** — validação consent_required |
+| `src/hooks/useEbookCtas.ts` | **Alterar** — campos extras no tipo |
 
 ---
 
-### 5. B3 — CTA System
+### Confirmação V1
 
-**Editor:**
-- Novo painel/secção "CTAs" no editor
-- Lista de CTAs por ebook, com CRUD inline
-- Selecção de tipo, label, URL, posição (final / após capítulo X)
-- Toggle activo/inactivo
-
-**Leitor público:**
-- Renderizar CTA final após última página (antes da página de contacto)
-- Renderizar CTA por capítulo se configurado
-- Ao ver CTA: insert `cta_impression`
-- Ao clicar: insert `cta_click`
-
-**Ficheiros:**
-| Ficheiro | Acção |
-|----------|-------|
-| `src/hooks/useEbookCtas.ts` | Criar — CRUD de CTAs |
-| `src/components/ebooks/editor/EbookCtaPanel.tsx` | Criar — UI de gestão |
-| `src/components/ebooks/EbookCtaButton.tsx` | Criar — componente de CTA no leitor |
-| `src/pages/PublicEbookPage.tsx` | Carregar e renderizar CTAs |
-| `src/components/ebooks/FlipbookReader.tsx` | Integrar CTA nas páginas |
-
----
-
-### 6. B4 — Preflight Check
-
-**Lógica (função pura, não edge function):**
-```typescript
-function runPreflight(ebook: Ebook, ctas: EbookCta[]): PreflightResult {
-  // Erros bloqueantes:
-  // - título vazio
-  // - slug inválido/vazio
-  // - 0 capítulos
-  // - capítulos vazios (< 50 chars)
-  // - lead_gate activo sem consent_text
-  // - CTAs activos com target_url vazio
-  
-  // Warnings:
-  // - sem capa
-  // - sem SEO configurado
-  // - capítulos curtos (< 200 chars)
-  // - sem página de contacto quando CTA tipo "contact"
-  // - imagens referenciadas inexistentes
-}
-```
-
-**UI:**
-- Dialog "Verificação pré-publicação" com lista de ✅ / ❌ / ⚠️
-- Score de completude (percentagem)
-- Botão "Publicar" bloqueado se houver erros
-- Botão "Publicar mesmo assim" se só houver warnings (com confirmação)
-
-**Ficheiros:**
-| Ficheiro | Acção |
-|----------|-------|
-| `src/utils/ebookPreflight.ts` | Criar — lógica de validação |
-| `src/components/ebooks/editor/EbookPreflightDialog.tsx` | Criar — UI do preflight |
-| `src/components/ebooks/editor/EbookEditorHeader.tsx` | Integrar botão de preflight antes de publicar |
-
----
-
-### 7. B5 — Analytics Expandidas
-
-**Novas métricas no `useEbookAnalyticsKPIs`:**
-- Lead gate conversion rate: `(views com email / total views) * 100`
-- Marketing opt-in rate: `(views com marketing_opt_in / views com email) * 100`
-- CTR por CTA: `(clicks / impressions) * 100`
-- Abandono por capítulo (já parcialmente existe via pageDropOff)
-- Melhor CTA por ebook
-- Readers-to-leads rate, leads-to-CRM rate
-
-**UI (`EbookAnalytics.tsx`):**
-- Secção "Conversão" com KPI cards
-- Tabela de CTAs com CTR e clicks
-- Gráfico de funil: Views → Leads → CRM → Conversão CTA
-
-**Ficheiros:**
-| Ficheiro | Acção |
-|----------|-------|
-| `src/hooks/useEbookAnalytics.ts` | Expandir KPIs com CTA events e consent data |
-| `src/components/ebooks/EbookAnalytics.tsx` | Adicionar secções de conversão e CTAs |
-
----
-
-### 8. Resumo de Impacto
-
-| Área | Impacto |
-|------|---------|
-| **Leitor público** | Lead gate com RGPD, meta tags SEO, CTAs renderizados e trackados |
-| **Editor** | Novos painéis: Consentimento, SEO, CTAs, Preflight |
-| **Analytics** | Métricas de conversão, CTA performance, lead gate rate |
-| **Permissões** | Diferido para V2 (requer infra transversal) |
-| **Base de dados** | ~10 campos novos em ebooks, ~6 em ebook_views, 2 tabelas novas |
-
-### 9. Confirmação V1
-
-Após implementação dos 5 batches, o módulo terá:
-- ✅ Lead gate com consentimento RGPD
-- ✅ CTA tracking e configuração
-- ✅ Analytics de conversão
-- ✅ SEO público configurável
-- ✅ Preflight check antes de publicar
+Após implementação, o módulo conseguirá:
+- ✅ Capturar lead (nome + email)
+- ✅ Recolher consentimento RGPD com texto configurável
+- ✅ Criar ou atualizar contacto no CRM automaticamente
+- ✅ Registar origem e campanha (UTM)
+- ✅ Mostrar CTA relevante (final, por capítulo, WhatsApp, booking, link)
+- ✅ Medir clique em CTA
+- ✅ Disparar eventos kernel para automação
+- ✅ Medir conversão no dashboard (funil visual)
+- ⏳ Segmentar contactos por comportamento (V2)
 - ⏳ Permissões granulares (V2)
-- ⏳ Gestão de assets com picker (V2)
-
-### 10. Ordem de Implementação
-
-Recomendo começar por **B1 (migração)** e depois **B2 (lead gate + SEO)**, pois são os mais impactantes para compliance e distribuição. Posso avançar com todos os 5 batches sequencialmente.
 
