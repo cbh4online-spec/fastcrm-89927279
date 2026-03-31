@@ -100,7 +100,7 @@ export function SecurityQRCode({ entityType, entityId, label, sublabel, baseUrl,
           <div ref={printRef}>
             <div className="qr-card">
               <span className="type">{entityLabels[entityType] || entityType}</span>
-              <QRCode value={url} size={qrSize} level="M" />
+              <QRCode value={url || ""} size={qrSize} level="M" />
               <h3>{label}</h3>
               {sublabel && <p>{sublabel}</p>}
               <p className="id">{entityId.slice(0, 8)}</p>
