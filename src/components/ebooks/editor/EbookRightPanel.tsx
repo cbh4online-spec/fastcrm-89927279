@@ -164,10 +164,12 @@ export function EbookRightPanel({
           onContactPageChange={onContactPageChange}
           onProtectionChange={onProtectionChange}
           onLeadGateChange={onLeadGateChange}
+          consentRequired={consentRequired}
           consentText={consentText}
           privacyPolicyUrl={privacyPolicyUrl}
           marketingOptInEnabled={marketingOptInEnabled}
           marketingOptInLabel={marketingOptInLabel}
+          onConsentRequiredChange={onConsentRequiredChange}
           onConsentTextChange={onConsentTextChange}
           onPrivacyPolicyUrlChange={onPrivacyPolicyUrlChange}
           onMarketingOptInEnabledChange={onMarketingOptInEnabledChange}
