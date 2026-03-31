@@ -252,10 +252,10 @@ export default function HRTimeTrackingPage() {
                       <AvatarFallback>{emp.full_name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium flex-1 truncate">{emp.full_name}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => clockAction.mutate({ employee_id: emp.id, entry_type: "clock_in", method: "manual" })} disabled={clockAction.isPending}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => setManualClockDialog({ employeeId: emp.id, employeeName: emp.full_name, type: "clock_in" })} disabled={clockAction.isPending}>
                       <LogIn className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => clockAction.mutate({ employee_id: emp.id, entry_type: "clock_out", method: "manual" })} disabled={clockAction.isPending}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => setManualClockDialog({ employeeId: emp.id, employeeName: emp.full_name, type: "clock_out" })} disabled={clockAction.isPending}>
                       <LogOut className="h-4 w-4" />
                     </Button>
                   </div>
