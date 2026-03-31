@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   GraduationCap,
   Link2,
+  Mail,
 } from 'lucide-react';
 import { MenuSection } from '@/types/entity';
 
