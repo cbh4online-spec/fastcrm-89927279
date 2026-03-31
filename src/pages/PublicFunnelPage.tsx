@@ -1,13 +1,31 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase as _supabase } from "@/integrations/supabase/client";
 const supabase = _supabase as any;
 import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Star, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FunnelStepForm, type FormFieldConfig } from "@/components/funnels/FunnelStepForm";
+import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 import type { Json } from "@/integrations/supabase/types";
+
+interface FunnelData {
+  id: string;
+  name: string;
+  slug: string;
+  workspace_id?: string;
+  seo_title?: string;
+  seo_description?: string;
+  og_image_url?: string;
+  canonical_url?: string;
+  noindex?: boolean;
+  consent_required?: boolean;
+  consent_text?: string;
+  consent_text_version?: string;
+  privacy_policy_url?: string;
+  marketing_opt_in_enabled?: boolean;
+  marketing_opt_in_label?: string;
+}
 
 interface FunnelStep {
   id: string;
@@ -15,15 +33,6 @@ interface FunnelStep {
   step_type: string;
   sort_order: number;
   content: Json | null;
-}
-
-interface FormFieldConfig {
-  id: string;
-  label: string;
-  type: "text" | "email" | "phone" | "select" | "textarea";
-  required: boolean;
-  placeholder?: string;
-  options?: string[];
 }
 
 interface StepContent {
@@ -52,59 +61,31 @@ function getImages(content: StepContent): string[] {
 }
 
 const STEP_TYPE_ICONS: Record<string, string> = {
-  page: "🏠",
-  optin: "📋",
-  checkout: "💳",
-  thankyou: "✅",
-  upsell: "🚀",
-  testimonials: "⭐",
-  video: "🎬",
-  downsell: "📉",
-  order_bump: "🎁",
-  squeeze: "🔒",
-  webinar: "🎥",
-  sales_letter: "📝",
-  application: "📄",
-  booking: "📅",
-  bridge: "🌉",
-  countdown: "⏰",
-  tripwire: "⚡",
-  membership: "🔑",
-  custom: "🧩",
+  page: "🏠", optin: "📋", checkout: "💳", thankyou: "✅", upsell: "🚀",
+  testimonials: "⭐", video: "🎬", downsell: "📉", order_bump: "🎁",
+  squeeze: "🔒", webinar: "🎥", sales_letter: "📝", application: "📄",
+  booking: "📅", bridge: "🌉", countdown: "⏰", tripwire: "⚡",
+  membership: "🔑", custom: "🧩",
 };
 
 function ImageGallery({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0);
-
   if (images.length === 0) return null;
-  if (images.length === 1) {
-    return <img src={images[0]} alt="" className="w-full rounded-xl object-cover max-h-96" />;
-  }
-
+  if (images.length === 1) return <img src={images[0]} alt="" className="w-full rounded-xl object-cover max-h-96" />;
   return (
     <div className="relative">
       <img src={images[current]} alt="" className="w-full rounded-xl object-cover max-h-96" />
       <div className="absolute inset-0 flex items-center justify-between px-2">
-        <button
-          onClick={() => setCurrent(i => (i - 1 + images.length) % images.length)}
-          className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition"
-        >
+        <button onClick={() => setCurrent(i => (i - 1 + images.length) % images.length)} className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition">
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <button
-          onClick={() => setCurrent(i => (i + 1) % images.length)}
-          className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition"
-        >
+        <button onClick={() => setCurrent(i => (i + 1) % images.length)} className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition">
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
       <div className="flex justify-center gap-1.5 mt-3">
         {images.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className={`h-2 rounded-full transition-all ${i === current ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
-          />
+          <button key={i} onClick={() => setCurrent(i)} className={`h-2 rounded-full transition-all ${i === current ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`} />
         ))}
       </div>
     </div>
@@ -116,21 +97,21 @@ export default function PublicFunnelPage() {
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get("preview") === "true";
 
-  const [funnel, setFunnel] = useState<{ id: string; name: string; slug: string; workspace_id?: string } | null>(null);
+  const [funnel, setFunnel] = useState<FunnelData | null>(null);
   const [steps, setSteps] = useState<FunnelStep[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [formSubmitting, setFormSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const trackedSteps = useState<Set<string>>(() => new Set())[0];
+
+  const tracking = useFunnelTracking(
+    funnel ? { workspace_id: funnel.workspace_id || "", funnel_id: funnel.id } : null
+  );
 
   useEffect(() => {
     async function load() {
       if (!slug) { setError("Funil não encontrado"); setLoading(false); return; }
-      let query = supabase.from("funnels").select("id, name, slug, workspace_id").eq("slug", slug);
+      let query = supabase.from("funnels").select("id, name, slug, workspace_id, seo_title, seo_description, og_image_url, canonical_url, noindex, consent_required, consent_text, consent_text_version, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label").eq("slug", slug);
       if (!isPreview) query = query.eq("is_published", true);
       const { data: f, error: fErr } = await query.maybeSingle();
       if (fErr || !f) { setError("Funil não encontrado ou não publicado"); setLoading(false); return; }
@@ -144,122 +125,128 @@ export default function PublicFunnelPage() {
     load();
   }, [slug, isPreview, searchParams]);
 
-  // Track page_view for each step
+  // Track step_view + legacy stats
   useEffect(() => {
     if (!funnel?.workspace_id || steps.length === 0) return;
     const step = steps[currentStepIndex];
-    if (!step || trackedSteps.has(step.id)) return;
-    trackedSteps.add(step.id);
+    if (!step) return;
+    tracking.trackStepView(step.id);
+    // Legacy dual-write
     const today = new Date().toISOString().split("T")[0];
     supabase.from("funnel_step_stats").insert({
-      step_id: step.id,
-      workspace_id: funnel.workspace_id,
-      event_type: "page_view",
-      event_date: today,
-      count: 1,
+      step_id: step.id, workspace_id: funnel.workspace_id, event_type: "page_view", event_date: today, count: 1,
     }).then(() => {});
-  }, [funnel, steps, currentStepIndex, trackedSteps]);
+  }, [funnel, steps, currentStepIndex]);
 
   useEffect(() => {
-    setFormData({});
     setFormSubmitted(false);
   }, [currentStepIndex]);
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!funnel || !steps[currentStepIndex]) return;
-
+  const handleFormSubmit = async (formData: Record<string, unknown>) => {
+    if (!funnel || !steps[currentStepIndex]) throw new Error("No funnel");
     const step = steps[currentStepIndex];
     const content = parseContent(step.content);
+    const utms = new URLSearchParams(window.location.search);
 
-    const missingFields = (content.form_fields || [])
-      .filter(f => f.required && !formData[f.id]?.trim())
-      .map(f => f.label);
+    const consentGiven = !!(formData.__consent || formData.consent);
+    const marketingOptIn = !!(formData.__marketing_opt_in || formData.marketing_opt_in);
 
-    if (missingFields.length > 0) return;
+    // Clean internal fields
+    const cleanData = { ...formData };
+    delete cleanData.__consent;
+    delete cleanData.__marketing_opt_in;
+    delete cleanData.__hp;
 
-    setFormSubmitting(true);
-    try {
-      const { error } = await supabase.from("funnel_submissions").insert({
-        funnel_id: funnel.id,
-        step_id: step.id,
-        data: formData as unknown as Json,
-        source_url: window.location.href,
-      });
+    const submissionId = crypto.randomUUID();
 
-      if (error) throw error;
+    // Insert submission
+    const { error: subErr } = await supabase.from("funnel_submissions").insert({
+      id: submissionId,
+      funnel_id: funnel.id,
+      step_id: step.id,
+      workspace_id: funnel.workspace_id,
+      data: cleanData,
+      source_url: window.location.href,
+      consent_given: consentGiven,
+      consent_timestamp: consentGiven ? new Date().toISOString() : null,
+      consent_text_version: funnel.consent_text_version || null,
+      marketing_opt_in: marketingOptIn,
+      utm_source: utms.get("utm_source") || null,
+      utm_medium: utms.get("utm_medium") || null,
+      utm_campaign: utms.get("utm_campaign") || null,
+      referrer: document.referrer || null,
+      device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
+      session_id: tracking.sessionId,
+    });
 
-      // Track optin event
-      if (funnel.workspace_id) {
-        const today = new Date().toISOString().split("T")[0];
-        supabase.from("funnel_step_stats").insert({
-          step_id: step.id,
+    if (subErr) throw subErr;
+
+    // Track events
+    tracking.trackFormSuccess(step.id);
+
+    // Legacy optin stats
+    if (funnel.workspace_id) {
+      const today = new Date().toISOString().split("T")[0];
+      supabase.from("funnel_step_stats").insert({
+        step_id: step.id, workspace_id: funnel.workspace_id, event_type: "optin", event_date: today, count: 1,
+      }).then(() => {});
+    }
+
+    // CRM lead capture via edge function
+    const fields = content.form_fields || [];
+    const emailField = fields.find(f => f.type === "email");
+    const nameField = fields.find(f => f.type === "text" || f.label?.toLowerCase().includes("nome"));
+    const recipientEmail = emailField ? String(cleanData[emailField.id] || "").trim() : null;
+    const recipientName = nameField ? String(cleanData[nameField.id] || "").trim() : undefined;
+
+    if (recipientEmail) {
+      supabase.functions.invoke("funnel-lead-capture", {
+        body: {
           workspace_id: funnel.workspace_id,
-          event_type: "optin",
-          event_date: today,
-          count: 1,
-        }).then(() => {});
-      }
-
-      // Send transactional emails to the lead
-      const fields = content.form_fields || [];
-      const emailField = fields.find((f: any) => f.type === 'email');
-      const nameField = fields.find((f: any) => f.type === 'text' || f.label?.toLowerCase().includes('nome'));
-      const recipientEmail = emailField ? formData[emailField.id]?.trim() : null;
-      const recipientName = nameField ? formData[nameField.id]?.trim() : undefined;
-
-      if (recipientEmail) {
-        const submissionId = crypto.randomUUID();
-        const templateData = {
-          name: recipientName,
-          funnelName: funnel.name,
-        };
-
-        // Thank you email
-        supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName: 'funnel-registration-thanks',
-            recipientEmail,
-            idempotencyKey: `funnel-thanks-${submissionId}`,
-            templateData,
-          },
-        }).catch(console.error);
-
-        // Meeting & trial invite email
-        supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName: 'funnel-meeting-trial-invite',
-            recipientEmail,
-            idempotencyKey: `funnel-meeting-${submissionId}`,
-            templateData,
-          },
-        }).catch(console.error);
-
-        // Enroll lead in nurture sequence (first nurture email in 2 days)
-        supabase.from('funnel_nurture_queue').insert({
-          submission_id: submissionId,
           funnel_id: funnel.id,
-          workspace_id: funnel.workspace_id,
-          recipient_email: recipientEmail,
-          recipient_name: recipientName || null,
-          funnel_name: funnel.name,
-          current_step: 0,
-          status: 'pending',
-        }).then(({ error: nurtureError }) => {
-          if (nurtureError) console.error('Nurture queue insert error:', nurtureError);
-        });
-      }
+          step_id: step.id,
+          submission_id: submissionId,
+          name: recipientName,
+          email: recipientEmail,
+          consent_given: consentGiven,
+          marketing_opt_in: marketingOptIn,
+          utm_source: utms.get("utm_source"),
+          utm_medium: utms.get("utm_medium"),
+          utm_campaign: utms.get("utm_campaign"),
+          slug: funnel.slug,
+          step_type: step.step_type,
+        },
+      }).then((res: any) => {
+        if (res.data?.contact_id) {
+          tracking.setContactId(res.data.contact_id);
+        }
+      }).catch(console.error);
 
-      setFormSubmitted(true);
+      // Transactional emails
+      const templateData = { name: recipientName, funnelName: funnel.name };
+      supabase.functions.invoke("send-transactional-email", {
+        body: { templateName: "funnel-registration-thanks", recipientEmail, idempotencyKey: `funnel-thanks-${submissionId}`, templateData },
+      }).catch(console.error);
 
-      const isLast = currentStepIndex >= steps.length - 1;
-      if (!isLast) {
-        setTimeout(() => setCurrentStepIndex(i => i + 1), 1500);
-      }
-    } catch (err) {
-      console.error("Submission error:", err);
-    } finally {
-      setFormSubmitting(false);
+      supabase.functions.invoke("send-transactional-email", {
+        body: { templateName: "funnel-meeting-trial-invite", recipientEmail, idempotencyKey: `funnel-meeting-${submissionId}`, templateData },
+      }).catch(console.error);
+
+      // Nurture queue
+      supabase.from("funnel_nurture_queue").insert({
+        submission_id: submissionId, funnel_id: funnel.id, workspace_id: funnel.workspace_id,
+        recipient_email: recipientEmail, recipient_name: recipientName || null,
+        funnel_name: funnel.name, current_step: 0, status: "pending",
+      }).then(() => {});
+    }
+
+    setFormSubmitted(true);
+    const isLast = currentStepIndex >= steps.length - 1;
+    if (isLast) {
+      tracking.trackFunnelCompleted();
+    } else {
+      tracking.trackStepCompleted(step.id);
+      setTimeout(() => setCurrentStepIndex(i => i + 1), 1500);
     }
   };
 
@@ -296,8 +283,22 @@ export default function PublicFunnelPage() {
   const hasForm = (step.step_type === "optin" || step.step_type === "application" || step.step_type === "squeeze") && content.form_fields && content.form_fields.length > 0;
   const stepImages = getImages(content);
 
+  const seoTitle = funnel.seo_title || funnel.name;
+  const seoDescription = funnel.seo_description || `${funnel.name} — ${step.name}`;
+
   return (
     <div className="min-h-screen bg-background">
+      {/* SEO */}
+      <Helmet>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        {funnel.og_image_url && <meta property="og:image" content={funnel.og_image_url} />}
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        {funnel.canonical_url && <link rel="canonical" href={funnel.canonical_url} />}
+        {funnel.noindex && <meta name="robots" content="noindex, nofollow" />}
+      </Helmet>
+
       {isPreview && (
         <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-medium">
           ⚡ Modo Preview — Esta página não está visível publicamente
@@ -325,16 +326,14 @@ export default function PublicFunnelPage() {
           )}
 
           {content.subheadline && <p className="text-lg text-muted-foreground">{content.subheadline}</p>}
-
           {stepImages.length > 0 && <ImageGallery images={stepImages} />}
-
           {content.body && (
             <div className="prose prose-sm max-w-none text-foreground/80">
               <p className="whitespace-pre-wrap">{content.body}</p>
             </div>
           )}
 
-          {/* Testimonials Section */}
+          {/* Testimonials */}
           {step.step_type === "testimonials" && content.testimonials && content.testimonials.length > 0 && (
             <div className="space-y-4">
               {content.testimonials.map((t) => (
@@ -350,9 +349,7 @@ export default function PublicFunnelPage() {
                       <img src={t.avatar_url} alt={t.name} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">
-                          {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                        </span>
+                        <span className="text-xs font-bold text-primary">{t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}</span>
                       </div>
                     )}
                     <div>
@@ -365,7 +362,7 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {/* Video Section (video & webinar) */}
+          {/* Video */}
           {(step.step_type === "video" || step.step_type === "webinar") && content.video?.url && (
             <div className="space-y-3">
               {content.video.caption && (
@@ -377,72 +374,35 @@ export default function PublicFunnelPage() {
                 {content.video.url.includes("youtube.com") || content.video.url.includes("youtu.be") ? (
                   <iframe
                     src={`https://www.youtube.com/embed/${content.video.url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1] || ""}${content.video.autoplay ? "?autoplay=1" : ""}${content.video.muted ? "&mute=1" : ""}${content.video.loop ? "&loop=1" : ""}`}
-                    className="w-full aspect-video"
-                    allowFullScreen
-                    allow="autoplay; encrypted-media"
+                    className="w-full aspect-video" allowFullScreen allow="autoplay; encrypted-media"
                   />
                 ) : content.video.url.includes("vimeo.com") ? (
                   <iframe
                     src={`https://player.vimeo.com/video/${content.video.url.match(/vimeo\.com\/(\d+)/)?.[1] || ""}${content.video.autoplay ? "?autoplay=1" : ""}${content.video.muted ? "&muted=1" : ""}`}
-                    className="w-full aspect-video"
-                    allowFullScreen
+                    className="w-full aspect-video" allowFullScreen
                   />
                 ) : (
-                  <video
-                    src={content.video.url}
-                    controls
-                    autoPlay={content.video.autoplay}
-                    loop={content.video.loop}
-                    muted={content.video.muted}
-                    poster={content.video.poster_url}
-                    className="w-full aspect-video"
-                  />
+                  <video src={content.video.url} controls autoPlay={content.video.autoplay} loop={content.video.loop} muted={content.video.muted} poster={content.video.poster_url} className="w-full aspect-video" />
                 )}
               </div>
             </div>
           )}
 
-          {hasForm && !formSubmitted && (
-            <form onSubmit={handleFormSubmit} className="space-y-4 bg-muted/30 border rounded-xl p-6">
-              {content.form_fields!.map((field) => (
-                <div key={field.id} className="space-y-1.5">
-                  <Label className="text-sm">
-                    {field.label}
-                    {field.required && <span className="text-destructive ml-0.5">*</span>}
-                  </Label>
-                  {field.type === "textarea" ? (
-                    <Textarea
-                      value={formData[field.id] || ""}
-                      onChange={(e) => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
-                      placeholder={field.placeholder}
-                      required={field.required}
-                      rows={3}
-                    />
-                  ) : (
-                    <Input
-                      type={field.type === "phone" ? "tel" : field.type}
-                      value={formData[field.id] || ""}
-                      onChange={(e) => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
-                      placeholder={field.placeholder}
-                      required={field.required}
-                    />
-                  )}
-                </div>
-              ))}
-              <Button type="submit" className="w-full" size="lg" disabled={formSubmitting}
-                style={content.cta_color ? { backgroundColor: content.cta_color } : undefined}>
-                {formSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {content.cta_text || "Enviar"}
-              </Button>
-            </form>
-          )}
-
-          {hasForm && formSubmitted && (
-            <div className="text-center py-8 space-y-3 bg-muted/30 border rounded-xl p-6">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-              <h3 className="text-lg font-semibold">Enviado com sucesso!</h3>
-              <p className="text-sm text-muted-foreground">Obrigado pelo seu interesse.</p>
-            </div>
+          {/* Form - now using FunnelStepForm */}
+          {hasForm && (
+            <FunnelStepForm
+              fields={content.form_fields!}
+              ctaText={content.cta_text}
+              ctaColor={content.cta_color}
+              consentRequired={funnel.consent_required}
+              consentText={funnel.consent_text}
+              privacyPolicyUrl={funnel.privacy_policy_url}
+              marketingOptInEnabled={funnel.marketing_opt_in_enabled}
+              marketingOptInLabel={funnel.marketing_opt_in_label}
+              onSubmit={handleFormSubmit}
+              onFormStarted={() => tracking.trackFormStarted(step.id)}
+              submitted={formSubmitted}
+            />
           )}
 
           {!content.headline && !content.subheadline && !content.body && !hasForm && stepImages.length === 0 && (
@@ -455,22 +415,22 @@ export default function PublicFunnelPage() {
         {!hasForm && (
           <div className="flex items-center justify-between mt-12">
             {!isFirst ? (
-              <Button variant="ghost" onClick={() => setCurrentStepIndex(i => i - 1)}>
+              <Button variant="ghost" onClick={() => { tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i - 1); }}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
               </Button>
             ) : <div />}
             {content.cta_url ? (
-              <Button asChild size="lg">
+              <Button asChild size="lg" onClick={() => tracking.trackCtaClicked(step.id, content.cta_text)}>
                 <a href={content.cta_url} target="_blank" rel="noopener noreferrer">
                   {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
                 </a>
               </Button>
             ) : !isLast ? (
-              <Button size="lg" onClick={() => setCurrentStepIndex(i => i + 1)}>
+              <Button size="lg" onClick={() => { tracking.trackCtaClicked(step.id, content.cta_text); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i + 1); }}>
                 {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button size="lg" disabled={!content.cta_text}>
+              <Button size="lg" onClick={() => tracking.trackFunnelCompleted()} disabled={!content.cta_text}>
                 {content.cta_text || "Concluído ✅"}
               </Button>
             )}

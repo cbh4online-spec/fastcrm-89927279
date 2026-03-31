@@ -20,6 +20,19 @@ export interface Funnel {
   updated_at: string;
   vertical_id: string | null;
   type: string;
+  // SEO
+  seo_title: string | null;
+  seo_description: string | null;
+  og_image_url: string | null;
+  canonical_url: string | null;
+  noindex: boolean;
+  // Consent
+  consent_required: boolean;
+  consent_text: string | null;
+  consent_text_version: string | null;
+  privacy_policy_url: string | null;
+  marketing_opt_in_enabled: boolean;
+  marketing_opt_in_label: string | null;
 }
 
 export interface FunnelStep {
