@@ -288,6 +288,9 @@ export default function PublicFunnelPage() {
   const hasForm = (step.step_type === "optin" || step.step_type === "application" || step.step_type === "squeeze") && content.form_fields && content.form_fields.length > 0;
   const stepImages = getImages(content);
 
+  // Step types with dedicated renderers
+  const DEDICATED_TYPES = ["thankyou", "countdown", "booking", "upsell", "downsell", "bridge"];
+
   const seoTitle = funnel.seo_title || funnel.name;
   const seoDescription = funnel.seo_description || `${funnel.name} — ${step.name}`;
 
