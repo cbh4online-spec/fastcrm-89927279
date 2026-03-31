@@ -141,12 +141,35 @@ Deno.serve(async (req) => {
         .update({ pending_days: Number(balance.pending_days) + businessDays })
         .eq("id", balance.id);
     } else {
+      // Determine base vacation days from active labor rules
+      let baseTotalDays = 0;
+
+      const { data: absType } = await adminClient
+        .from("hr_absence_types")
+        .select("code")
+        .eq("id", absence_type_id)
+        .maybeSingle();
+
+      const absCode = (absType?.code || "").toLowerCase();
+      const isVacation = ["fer", "ferias", "vac", "vacation"].includes(absCode);
+
+      if (isVacation) {
+        const { data: laborRule } = await adminClient
+          .from("hr_country_labor_rules")
+          .select("rules")
+          .eq("workspace_id", workspace_id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        baseTotalDays = (laborRule?.rules as any)?.annual_vacation_days || 22;
+      }
+
       await adminClient.from("hr_leave_balances").insert({
         workspace_id,
         employee_id,
         leave_type_id: absence_type_id,
         year,
-        total_days: 0,
+        total_days: baseTotalDays,
         used_days: 0,
         pending_days: businessDays,
         carried_over_days: 0,

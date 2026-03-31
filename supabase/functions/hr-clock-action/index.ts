@@ -41,6 +41,9 @@ serve(async (req) => {
       .eq("session_date", today)
       .single();
 
+    let overtime_alert: { exceeded: boolean; overtime_minutes: number; max_daily_minutes: number; worked_minutes: number } | null = null;
+    let employee_name: string | null = null;
+
     if (entry_type === "clock_in") {
       if (!existing) {
         await supabase.from("hr_work_sessions").insert({
@@ -62,10 +65,44 @@ serve(async (req) => {
           status: "complete",
           updated_at: now.toISOString()
         }).eq("id", existing.id);
+
+        // Fetch active labor rules to check daily limit
+        const { data: laborRule } = await supabase
+          .from("hr_country_labor_rules")
+          .select("rules")
+          .eq("workspace_id", workspace_id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        const maxDailyHours = (laborRule?.rules as any)?.max_daily_hours || 8;
+        const maxDailyMin = maxDailyHours * 60;
+        const overtimeMin = Math.max(0, workedMin - maxDailyMin);
+
+        if (overtimeMin > 0) {
+          // Get employee name for the alert
+          const { data: emp } = await supabase
+            .from("hr_employees")
+            .select("full_name")
+            .eq("id", employee_id)
+            .maybeSingle();
+          employee_name = emp?.full_name || null;
+        }
+
+        overtime_alert = {
+          exceeded: overtimeMin > 0,
+          overtime_minutes: overtimeMin,
+          max_daily_minutes: maxDailyMin,
+          worked_minutes: workedMin,
+        };
       }
     }
 
-    return new Response(JSON.stringify({ success: true, recorded_at: now.toISOString() }), {
+    return new Response(JSON.stringify({
+      success: true,
+      recorded_at: now.toISOString(),
+      overtime_alert,
+      employee_name,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (err) {

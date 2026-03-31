@@ -4,6 +4,7 @@ import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
 import { useHREmployeesList } from "@/hooks/hr/useCheckins";
+import { useActiveLaborRules } from "@/hooks/hr/useHRLaborRules";
 // fix: ensure no stale useHREmployees reference
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,8 @@ export default function HRTimeTrackingPage() {
   const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
   const clockAction = useClockAction();
+  const { data: activeLaborRules } = useActiveLaborRules();
+  const maxDailyMin = ((activeLaborRules?.rules?.max_daily_hours) || 8) * 60;
 
   // Totals per employee
   const totals = employees.map(emp => {
@@ -132,7 +135,16 @@ export default function HRTimeTrackingPage() {
                       <TableCell>{s.clock_in_at ? format(new Date(s.clock_in_at), "HH:mm") : "—"}</TableCell>
                       <TableCell>{s.clock_out_at ? format(new Date(s.clock_out_at), "HH:mm") : "—"}</TableCell>
                       <TableCell>{s.worked_minutes != null ? `${Math.floor(s.worked_minutes / 60)}h ${s.worked_minutes % 60}m` : "—"}</TableCell>
-                      <TableCell><Badge variant={s.status === "complete" ? "default" : "secondary"}>{s.status === "complete" ? "Completo" : "Incompleto"}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant={s.status === "complete" ? "default" : "secondary"}>{s.status === "complete" ? "Completo" : "Incompleto"}</Badge>
+                          {s.status === "complete" && s.worked_minutes != null && s.worked_minutes > maxDailyMin && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              Overtime +{Math.floor((s.worked_minutes - maxDailyMin) / 60)}h {(s.worked_minutes - maxDailyMin) % 60}m
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

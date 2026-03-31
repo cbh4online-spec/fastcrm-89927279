@@ -57,10 +57,20 @@ export function useClockAction() {
       if (res.error) throw res.error;
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Registo efetuado");
       queryClient.invalidateQueries({ queryKey: ["hr-work-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["hr-time-entries"] });
+
+      // Show overtime alert if returned from clock-out
+      if (data?.overtime_alert?.exceeded) {
+        const mins = data.overtime_alert.overtime_minutes;
+        const name = data.employee_name || "Funcionário";
+        const hours = Math.floor(mins / 60);
+        const remainMins = mins % 60;
+        const timeStr = hours > 0 ? `${hours}h ${remainMins}m` : `${remainMins}m`;
+        toast.warning(`⚠️ ${name} excedeu o limite diário em ${timeStr}`);
+      }
     },
     onError: () => toast.error("Erro ao registar"),
   });
