@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText } from "lucide-react";
+import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useHRDepartments, useCreateHRDepartment, useUpdateHRDepartment, useDeleteHRDepartment } from "@/hooks/hr/useHRDepartments";
 import { useHRJobTitles, useCreateHRJobTitle, useUpdateHRJobTitle, useDeleteHRJobTitle } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes, useCreateHRContractType, useUpdateHRContractType, useDeleteHRContractType } from "@/hooks/hr/useHRContractTypes";
+import { LaborRulesTab } from "@/components/hr/settings/LaborRulesTab";
 
 // ─── Generic CRUD Table ──────────────────────────────────────────────────────
 
@@ -218,6 +219,9 @@ export default function HRSettingsPage() {
           <TabsTrigger value="contract_types" className="gap-1.5">
             <FileText className="h-4 w-4" /> Contratos
           </TabsTrigger>
+          <TabsTrigger value="labor_rules" className="gap-1.5">
+            <Scale className="h-4 w-4" /> Legislação
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="departments">
@@ -252,6 +256,10 @@ export default function HRSettingsPage() {
             onDelete={(id) => deleteContract.mutate(id)}
             type="contract_type"
           />
+        </TabsContent>
+
+        <TabsContent value="labor_rules">
+          <LaborRulesTab />
         </TabsContent>
       </Tabs>
     </div>
