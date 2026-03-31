@@ -54,6 +54,9 @@ export function MemberPanel() {
             isLoading={isLoading}
           />
 
+          {/* Clock In/Out */}
+          <ClockInOutButton />
+
           {/* 2. AI Priorities */}
           <AIPriorities
             priorities={priorities}
