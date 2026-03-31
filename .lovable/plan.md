@@ -1,81 +1,49 @@
 
 
-## Funcionários = Utilizadores do Workspace (com perfil HR)
+## Widget de Ponto no Dashboard — Redesign
 
-### Diagnóstico
+### O que muda
 
-Actualmente, `hr_employees` é uma tabela independente — os funcionários são registos avulsos sem ligação aos utilizadores reais do sistema. O pedido é que **os funcionários sejam os próprios membros do workspace**, com a possibilidade de existirem utilizadores que só tenham acesso ao módulo de RH.
+Redesenhar o `ClockInOutButton` para ser um widget completo e "amigável" que mostra:
 
-### Decisões de Produto
+1. **Relógio live** (já existe)
+2. **Data** (já existe)
+3. **Temperatura actual** — via API gratuita Open-Meteo (sem API key)
+4. **Localização por texto** — reverse geocoding via API gratuita (nominatim.openstreetmap.org)
+5. **Contagem de tempo em serviço** — timer live desde o clock-in (ex: "2h 34m 12s")
+6. **Botões Iniciar/Terminar** (já existem)
 
-1. **Funcionários = `workspace_members`** — A página de funcionários mostra os membros do workspace, não uma tabela separada
-2. **Dados HR como extensão** — Criar tabela `hr_employee_profiles` que estende `workspace_members` com campos específicos de RH (cargo, departamento, contrato, etc.)
-3. **Nova role: `hr`** — Adicionar ao enum `workspace_role` para utilizadores que só acedem ao módulo de RH (ponto, férias, os seus dados)
-4. **Eliminar `hr_employees`** — Migrar referências (time entries, shifts, absences) para usar `workspace_members.user_id` em vez de `hr_employees.id`
+A abordagem é apresentar a localização e temperatura como informação contextual do dia (como um "bom dia, está 18°C em Lisboa") — não como vigilância.
 
-### Estrutura Técnica
+### Ficheiros
 
-**1. Migração SQL**
+| Acção | Ficheiro |
+|-------|----------|
+| Criar | `src/hooks/useWeatherLocation.ts` — hook que obtém geolocalização, reverse geocode (cidade) e temperatura via Open-Meteo |
+| Editar | `src/components/hr/ClockInOutButton.tsx` — redesenhar widget com layout horizontal, incluir temperatura, cidade, timer de sessão |
 
-```text
-workspace_members (existente)          hr_employee_profiles (nova)
-┌──────────────────────┐              ┌──────────────────────────┐
-│ id (uuid)            │              │ id (uuid)                │
-│ workspace_id         │◄─────────────│ member_id (FK)           │
-│ user_id              │              │ workspace_id (FK)        │
-│ role (enum + 'hr')   │              │ job_title                │
-│ created_at           │              │ department               │
-└──────────────────────┘              │ employee_number          │
-                                      │ contract_type            │
-profiles (existente)                  │ start_date / end_date    │
-┌──────────────────────┐              │ status (active/inactive) │
-│ user_id              │              │ weekly_hours             │
-│ full_name            │              │ qr_code_token            │
-│ email                │              │ notes                    │
-│ avatar_url           │              └──────────────────────────┘
-└──────────────────────┘
-```
+### Detalhe técnico
 
-- `ALTER TYPE workspace_role ADD VALUE 'hr'`
-- Criar `hr_employee_profiles` com FK para `workspace_members(id)`
-- Migrar dados de `hr_employees` existentes (se houver) para o novo modelo
-- Actualizar FKs das tabelas dependentes (`hr_time_entries`, `hr_daily_summaries`, `hr_shift_assignments`, `hr_absences`) de `employee_id → hr_employees` para `member_id → workspace_members`
-- RLS: membros podem ver perfis HR do seu workspace; apenas admin/owner podem editar
+**`useWeatherLocation` hook:**
+- `navigator.geolocation.getCurrentPosition()` → lat/lng
+- Reverse geocode: `fetch("https://nominatim.openstreetmap.org/reverse?lat=...&lon=...&format=json")` → cidade
+- Temperatura: `fetch("https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&current_weather=true")` → temp em °C
+- Cache com `react-query` (staleTime 15min)
+- Retorna `{ city, temperature, isLoading }`
 
-**2. Frontend — Refactor de Hooks**
+**`ClockInOutButton` redesign:**
+- Layout horizontal em card com 3 zonas:
+  - **Esquerda**: Relógio grande + data + "☀️ 18°C · Lisboa"
+  - **Centro**: Se em serviço → timer live "Em serviço há 2h 34m" com animação pulse
+  - **Direita**: Botão Iniciar/Terminar
+- Timer calculado: `now - activeEntry.clock_in` actualizado a cada segundo
+- Ícone de weather (sol/nuvem/chuva) baseado no weathercode da Open-Meteo
+- Tom amigável: "Bom dia! 18°C em Lisboa" em vez de "Localização: 38.7223, -9.1393"
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/hooks/hr/useHREmployees.ts` | Refazer: query `workspace_members` + JOIN `hr_employee_profiles` + `profiles` |
-| `src/hooks/hr/useHREmployees.ts` | `useCreateHREmployee` → cria `hr_employee_profiles` para membro existente OU convida novo utilizador com role `hr` |
-| `src/hooks/useTimeEntries.ts` | Já usa `user_id` — sem alteração necessária |
-
-**3. Frontend — Página de Funcionários**
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/pages/dashboard/hr/HREmployeesPage.tsx` | Reformular: listar membros do workspace com dados HR. Formulário "Novo Funcionário" passa a convidar/adicionar membro com role `hr` e criar perfil HR |
-| `src/contexts/WorkspaceContext.tsx` | Adicionar `"hr"` ao tipo `WorkspaceRole` |
-| `src/components/settings/sections/WorkspaceSettings.tsx` | Adicionar `hr: "Recursos Humanos"` aos labels e cores de role |
-| `src/hooks/useWorkspaceMembers.ts` | Incluir `hr` no filtro de `useAgentMembers` se necessário |
-
-**4. Frontend — Navegação para role `hr`**
-
-- Utilizadores com role `hr` vêem apenas: Dashboard, O Meu Ponto, O Meu Perfil HR
-- Restringir sidebar para role `hr` via `menu_permissions` ou lógica no manifest
-
-### Critérios de Aceitação
-
-1. Página de Funcionários mostra membros do workspace com dados HR
-2. Adicionar funcionário = convidar utilizador com role `hr` + criar perfil HR
-3. Utilizadores com role `hr` acedem ao sistema e vêem apenas módulos HR
-4. Clock-in/out funciona com `user_id` (sem alteração)
-5. Dados HR (cargo, departamento, contrato) editáveis no perfil do funcionário
-6. Tabelas dependentes (turnos, ausências) migradas para o novo modelo
-
-### Riscos
-
-- **Migração de FKs**: As tabelas `hr_time_entries`, `hr_daily_summaries`, `hr_shift_assignments`, `hr_absences` referenciam `hr_employees(id)` — precisam ser migradas para `workspace_members(id)`
-- **Dados existentes**: Se houver registos em `hr_employees`, precisam de ser mapeados a membros existentes ou novos
-- **Role `hr` nas RLS**: Verificar que políticas existentes não excluem a nova role
+### Critérios de aceitação
+1. Widget mostra temperatura e cidade junto à data
+2. Timer live conta tempo desde clock-in
+3. Botões de iniciar/terminar funcionam com geolocalização
+4. Sem sensação de controlo — informação contextual e amigável
+5. Fallback gracioso se geolocalização/API falhar
 
