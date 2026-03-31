@@ -1,5 +1,6 @@
 import { useMemberPanel } from '@/hooks/useMemberPanel';
 import { DayOverview } from './DayOverview';
+import { ClockInOutButton } from '@/components/hr/ClockInOutButton';
 import { AIPriorities } from './AIPriorities';
 import { TodayMeetings } from './TodayMeetings';
 import { OpportunitiesDeals } from './OpportunitiesDeals';
