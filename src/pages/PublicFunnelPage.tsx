@@ -7,6 +7,10 @@ import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Star, Pla
 import { Button } from "@/components/ui/button";
 import { FunnelStepForm, type FormFieldConfig } from "@/components/funnels/FunnelStepForm";
 import { useFunnelTracking } from "@/hooks/useFunnelTracking";
+import {
+  ThankYouRenderer, CountdownRenderer, BookingRenderer,
+  UpsellRenderer, DownsellRenderer, BridgeRenderer,
+} from "@/components/funnels/step-renderers";
 import type { Json } from "@/integrations/supabase/types";
 
 interface FunnelData {
