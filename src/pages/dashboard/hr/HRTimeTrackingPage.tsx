@@ -359,6 +359,54 @@ export default function HRTimeTrackingPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Manual Clock Dialog */}
+        <Dialog open={!!manualClockDialog} onOpenChange={(open) => { if (!open) { setManualClockDialog(null); setManualNotes(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {manualClockDialog?.type === "clock_in" ? <LogIn className="h-5 w-5 text-green-600" /> : <LogOut className="h-5 w-5 text-red-600" />}
+                Registo Manual — {manualClockDialog?.type === "clock_in" ? "Entrada" : "Saída"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-sm"><span className="font-medium">Colaborador:</span> {manualClockDialog?.employeeName}</p>
+                <p className="text-sm"><span className="font-medium">Acção:</span> {manualClockDialog?.type === "clock_in" ? "Registar Entrada" : "Registar Saída"}</p>
+                <p className="text-sm"><span className="font-medium">Data/Hora:</span> {format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt })}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Justificação <span className="text-destructive">*</span></label>
+                <Textarea
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  placeholder="Indique o motivo do registo manual (mín. 5 caracteres)..."
+                  rows={3}
+                />
+                {manualNotes.length > 0 && manualNotes.trim().length < 5 && (
+                  <p className="text-xs text-destructive mt-1">A justificação deve ter pelo menos 5 caracteres.</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setManualClockDialog(null); setManualNotes(""); }}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={manualNotes.trim().length < 5 || clockAction.isPending}
+                onClick={() => {
+                  if (!manualClockDialog) return;
+                  clockAction.mutate(
+                    { employee_id: manualClockDialog.employeeId, entry_type: manualClockDialog.type, method: "manual", notes: manualNotes.trim() },
+                    { onSuccess: () => { setManualClockDialog(null); setManualNotes(""); } }
+                  );
+                }}
+              >
+                {clockAction.isPending ? "A registar..." : "Confirmar Registo"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
     </ModuleGuard>
   );
