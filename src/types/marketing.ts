@@ -57,7 +57,7 @@ export interface MarketingTemplate {
   updatedAt: string;
 }
 
-export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled';
+export type CampaignStatus = 'draft' | 'in_review' | 'ready_to_send' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled' | 'failed';
 
 export interface MarketingCampaign {
   id: string;
@@ -69,6 +69,7 @@ export interface MarketingCampaign {
   replyTo?: string;
   bodyHtml: string;
   bodyText?: string;
+  designJson?: Record<string, unknown> | null;
   templateId?: string;
   segmentId?: string;
   status: CampaignStatus;
@@ -103,6 +104,14 @@ export interface MarketingCampaign {
   queueTotal?: number;
   queueSent?: number;
   queueFailed?: number;
+  // Editorial workflow
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  rejectionReason?: string | null;
+  testSentAt?: string | null;
+  testSentBy?: string | null;
   // Computed
   segment?: MarketingSegment;
   template?: MarketingTemplate;
