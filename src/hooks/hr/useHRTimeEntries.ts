@@ -72,7 +72,10 @@ export function useClockAction() {
         toast.warning(`⚠️ ${name} excedeu o limite diário em ${timeStr}`);
       }
     },
-    onError: () => toast.error("Erro ao registar"),
+    onError: (error: any) => {
+      const msg = error?.message || error?.context?.body?.error || "Erro ao registar";
+      toast.error(msg);
+    },
   });
 }
 
