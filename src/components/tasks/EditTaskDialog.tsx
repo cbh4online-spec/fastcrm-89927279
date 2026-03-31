@@ -45,6 +45,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, onDelete }: E
     onSave(task.id, {
       title: title.trim() || task.title,
       due_at: dueDate?.toISOString() ?? null,
+      assigned_to: assignedTo,
     });
     onOpenChange(false);
   };
