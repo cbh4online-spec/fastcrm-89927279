@@ -192,7 +192,7 @@ export function EbookCanvasEditor({
                 <EbookRichEditor
                   ref={richEditorRef}
                   value={activeChapter.content || ""}
-                  onChange={(val) => onUpdateChapterTitle(activeChapter.id, val)}
+                  onChange={(val) => onUpdateChapterContent(activeChapter.id, val)}
                   placeholder="Escreva o conteúdo deste capítulo. Use a barra lateral para inserir blocos."
                 />
               </div>
