@@ -8,6 +8,8 @@ import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import type { EbookRichEditorHandle } from "../EbookRichEditor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { useEbookPersistence } from "@/hooks/useEbookPersistence";
+import { useEbookCtas } from "@/hooks/useEbookCtas";
+import { runPreflight } from "@/utils/ebookPreflight";
 
 import { EbookEditorHeader } from "./EbookEditorHeader";
 import { EbookChapterSidebar } from "./EbookChapterSidebar";
@@ -15,6 +17,7 @@ import { EbookCanvasEditor } from "./EbookCanvasEditor";
 import { EbookRightPanel } from "./EbookRightPanel";
 import { EbookStatusBar } from "./EbookStatusBar";
 import { EbookPreviewDialog } from "./EbookPreviewDialog";
+import { EbookPreflightDialog } from "./EbookPreflightDialog";
 
 interface EbookEditorShellProps {
   ebookId: string;
