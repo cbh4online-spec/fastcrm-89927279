@@ -3,75 +3,76 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
-export type JobOpening = {
+export type JobPosting = {
   id: string;
   workspace_id: string;
   title: string;
-  department: string | null;
-  job_type: string;
+  description: string;
+  department_id: string | null;
+  employment_type: string;
   location: string | null;
+  remote_option: string;
   salary_min: number | null;
   salary_max: number | null;
-  description: string | null;
-  requirements: string | null;
-  benefits: string | null;
-  status: "draft" | "published" | "reviewing" | "closed" | "archived";
-  positions_count: number;
-  created_by: string | null;
+  currency: string;
+  requirements: string[];
+  nice_to_have: string[];
+  status: "draft" | "active" | "closed" | "cancelled";
   published_at: string | null;
-  closed_at: string | null;
+  closes_at: string | null;
+  slug: string | null;
+  public_url: string | null;
   created_at: string;
   updated_at: string;
-  // joined counts
-  applications_count?: number;
+  created_by: string | null;
 };
 
-export function useJobOpenings(statusFilter?: string) {
+export function useJobPostings(statusFilter?: string) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["hr-job-openings", wsId, statusFilter],
+    queryKey: ["hr-job-postings", wsId, statusFilter],
     queryFn: async () => {
       let q = supabase
-        .from("hr_job_openings" as any)
+        .from("hr_job_postings" as any)
         .select("*")
         .eq("workspace_id", wsId!)
         .order("created_at", { ascending: false });
       if (statusFilter) q = q.eq("status", statusFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return data as unknown as JobOpening[];
+      return data as unknown as JobPosting[];
     },
     enabled: !!wsId,
   });
 }
 
-export function useJobOpening(id: string | undefined) {
+export function useJobPosting(id: string | undefined) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["hr-job-opening", wsId, id],
+    queryKey: ["hr-job-posting", wsId, id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_job_openings" as any)
+        .from("hr_job_postings" as any)
         .select("*")
         .eq("id", id!)
         .single();
       if (error) throw error;
-      return data as unknown as JobOpening;
+      return data as unknown as JobPosting;
     },
     enabled: !!wsId && !!id,
   });
 }
 
-export function useCreateJobOpening() {
+export function useCreateJobPosting() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
-    mutationFn: async (values: Partial<JobOpening>) => {
+    mutationFn: async (values: Partial<JobPosting>) => {
       const { data, error } = await supabase
-        .from("hr_job_openings" as any)
+        .from("hr_job_postings" as any)
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();
@@ -80,21 +81,21 @@ export function useCreateJobOpening() {
     },
     onSuccess: () => {
       toast.success("Vaga criada");
-      qc.invalidateQueries({ queryKey: ["hr-job-openings", wsId] });
+      qc.invalidateQueries({ queryKey: ["hr-job-postings", wsId] });
     },
     onError: () => toast.error("Erro ao criar vaga"),
   });
 }
 
-export function useUpdateJobOpening() {
+export function useUpdateJobPosting() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
-    mutationFn: async ({ id, ...values }: Partial<JobOpening> & { id: string }) => {
+    mutationFn: async ({ id, ...values }: Partial<JobPosting> & { id: string }) => {
       const { data, error } = await supabase
-        .from("hr_job_openings" as any)
-        .update({ ...values, updated_at: new Date().toISOString() })
+        .from("hr_job_postings" as any)
+        .update(values)
         .eq("id", id)
         .select()
         .single();
@@ -103,25 +104,25 @@ export function useUpdateJobOpening() {
     },
     onSuccess: () => {
       toast.success("Vaga atualizada");
-      qc.invalidateQueries({ queryKey: ["hr-job-openings", wsId] });
-      qc.invalidateQueries({ queryKey: ["hr-job-opening"] });
+      qc.invalidateQueries({ queryKey: ["hr-job-postings", wsId] });
+      qc.invalidateQueries({ queryKey: ["hr-job-posting"] });
     },
     onError: () => toast.error("Erro ao atualizar vaga"),
   });
 }
 
-export function useDeleteJobOpening() {
+export function useDeleteJobPosting() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("hr_job_openings" as any).delete().eq("id", id);
+      const { error } = await supabase.from("hr_job_postings" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Vaga eliminada");
-      qc.invalidateQueries({ queryKey: ["hr-job-openings", wsId] });
+      qc.invalidateQueries({ queryKey: ["hr-job-postings", wsId] });
     },
     onError: () => toast.error("Erro ao eliminar vaga"),
   });

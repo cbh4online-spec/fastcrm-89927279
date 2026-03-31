@@ -24432,175 +24432,47 @@ export type Database = {
           },
         ]
       }
-      hr_application_stages: {
+      hr_candidate_activities: {
         Row: {
-          color: string | null
-          created_at: string
+          activity_type: string
+          candidate_id: string
+          content: string | null
+          created_at: string | null
+          created_by: string | null
           id: string
-          is_terminal: boolean | null
-          name: string
-          slug: string
-          sort_order: number
+          metadata: Json | null
           workspace_id: string
         }
         Insert: {
-          color?: string | null
-          created_at?: string
+          activity_type: string
+          candidate_id: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
           id?: string
-          is_terminal?: boolean | null
-          name: string
-          slug: string
-          sort_order?: number
+          metadata?: Json | null
           workspace_id: string
         }
         Update: {
-          color?: string | null
-          created_at?: string
-          id?: string
-          is_terminal?: boolean | null
-          name?: string
-          slug?: string
-          sort_order?: number
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hr_application_stages_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hr_applications: {
-        Row: {
-          ai_score: number | null
-          ai_score_reasoning: string | null
-          applied_at: string
-          candidate_id: string
-          created_at: string
-          id: string
-          job_opening_id: string
-          moved_at: string | null
-          rating: number | null
-          rejection_reason: string | null
-          stage: Database["public"]["Enums"]["hr_application_stage"]
-          stage_id: string | null
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          ai_score?: number | null
-          ai_score_reasoning?: string | null
-          applied_at?: string
-          candidate_id: string
-          created_at?: string
-          id?: string
-          job_opening_id: string
-          moved_at?: string | null
-          rating?: number | null
-          rejection_reason?: string | null
-          stage?: Database["public"]["Enums"]["hr_application_stage"]
-          stage_id?: string | null
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          ai_score?: number | null
-          ai_score_reasoning?: string | null
-          applied_at?: string
+          activity_type?: string
           candidate_id?: string
-          created_at?: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
           id?: string
-          job_opening_id?: string
-          moved_at?: string | null
-          rating?: number | null
-          rejection_reason?: string | null
-          stage?: Database["public"]["Enums"]["hr_application_stage"]
-          stage_id?: string | null
-          updated_at?: string
+          metadata?: Json | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "hr_applications_candidate_id_fkey"
+            foreignKeyName: "hr_candidate_activities_candidate_id_fkey"
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "hr_candidates"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "hr_applications_job_opening_id_fkey"
-            columns: ["job_opening_id"]
-            isOneToOne: false
-            referencedRelation: "hr_job_openings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_applications_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "hr_application_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_applications_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hr_candidate_notes: {
-        Row: {
-          application_id: string | null
-          author_id: string | null
-          candidate_id: string
-          content: string
-          created_at: string
-          id: string
-          note_type: string | null
-          workspace_id: string
-        }
-        Insert: {
-          application_id?: string | null
-          author_id?: string | null
-          candidate_id: string
-          content: string
-          created_at?: string
-          id?: string
-          note_type?: string | null
-          workspace_id: string
-        }
-        Update: {
-          application_id?: string | null
-          author_id?: string | null
-          candidate_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          note_type?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hr_candidate_notes_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "hr_applications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_candidate_notes_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "hr_candidates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_candidate_notes_workspace_id_fkey"
+            foreignKeyName: "hr_candidate_activities_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -24610,57 +24482,94 @@ export type Database = {
       }
       hr_candidates: {
         Row: {
+          ai_analysis: Json | null
+          ai_score: number | null
+          applied_at: string | null
           avatar_url: string | null
-          cover_letter: string | null
-          created_at: string
-          cv_path: string | null
-          email: string | null
-          full_name: string
+          cover_letter_url: string | null
+          created_at: string | null
+          cv_parsed_data: Json | null
+          cv_url: string | null
+          email: string
+          first_name: string
+          github_url: string | null
           id: string
+          job_posting_id: string | null
+          last_name: string
           linkedin_url: string | null
-          notes: string | null
+          location: string | null
           phone: string | null
           portfolio_url: string | null
+          referrer_id: string | null
+          rejection_reason: string | null
           source: string | null
-          tags: string[] | null
-          updated_at: string
+          stage: string | null
+          status: string | null
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
+          ai_analysis?: Json | null
+          ai_score?: number | null
+          applied_at?: string | null
           avatar_url?: string | null
-          cover_letter?: string | null
-          created_at?: string
-          cv_path?: string | null
-          email?: string | null
-          full_name: string
+          cover_letter_url?: string | null
+          created_at?: string | null
+          cv_parsed_data?: Json | null
+          cv_url?: string | null
+          email: string
+          first_name: string
+          github_url?: string | null
           id?: string
+          job_posting_id?: string | null
+          last_name: string
           linkedin_url?: string | null
-          notes?: string | null
+          location?: string | null
           phone?: string | null
           portfolio_url?: string | null
+          referrer_id?: string | null
+          rejection_reason?: string | null
           source?: string | null
-          tags?: string[] | null
-          updated_at?: string
+          stage?: string | null
+          status?: string | null
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
+          ai_analysis?: Json | null
+          ai_score?: number | null
+          applied_at?: string | null
           avatar_url?: string | null
-          cover_letter?: string | null
-          created_at?: string
-          cv_path?: string | null
-          email?: string | null
-          full_name?: string
+          cover_letter_url?: string | null
+          created_at?: string | null
+          cv_parsed_data?: Json | null
+          cv_url?: string | null
+          email?: string
+          first_name?: string
+          github_url?: string | null
           id?: string
+          job_posting_id?: string | null
+          last_name?: string
           linkedin_url?: string | null
-          notes?: string | null
+          location?: string | null
           phone?: string | null
           portfolio_url?: string | null
+          referrer_id?: string | null
+          rejection_reason?: string | null
           source?: string | null
-          tags?: string[] | null
-          updated_at?: string
+          stage?: string | null
+          status?: string | null
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_candidates_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "hr_job_postings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_candidates_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -25169,112 +25078,80 @@ export type Database = {
           },
         ]
       }
-      hr_interview_scorecards: {
-        Row: {
-          created_at: string
-          criteria: Json | null
-          feedback: string | null
-          id: string
-          interview_id: string
-          interviewer_id: string | null
-          overall_rating: number | null
-          recommendation: string | null
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          criteria?: Json | null
-          feedback?: string | null
-          id?: string
-          interview_id: string
-          interviewer_id?: string | null
-          overall_rating?: number | null
-          recommendation?: string | null
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          criteria?: Json | null
-          feedback?: string | null
-          id?: string
-          interview_id?: string
-          interviewer_id?: string | null
-          overall_rating?: number | null
-          recommendation?: string | null
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hr_interview_scorecards_interview_id_fkey"
-            columns: ["interview_id"]
-            isOneToOne: false
-            referencedRelation: "hr_interviews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_interview_scorecards_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       hr_interviews: {
         Row: {
-          application_id: string
-          created_at: string
+          candidate_id: string
+          created_at: string | null
           duration_minutes: number | null
+          feedback: Json | null
           id: string
-          interview_type: Database["public"]["Enums"]["hr_interview_type"]
-          interviewer_ids: string[] | null
-          location: string | null
-          meeting_url: string | null
+          interview_type: string
+          interviewer_ids: string[]
+          job_posting_id: string | null
+          location_address: string | null
+          location_type: string | null
+          meeting_link: string | null
           notes: string | null
+          overall_rating: number | null
+          recommendation: string | null
           scheduled_at: string
           status: string | null
-          updated_at: string
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
-          application_id: string
-          created_at?: string
+          candidate_id: string
+          created_at?: string | null
           duration_minutes?: number | null
+          feedback?: Json | null
           id?: string
-          interview_type?: Database["public"]["Enums"]["hr_interview_type"]
-          interviewer_ids?: string[] | null
-          location?: string | null
-          meeting_url?: string | null
+          interview_type?: string
+          interviewer_ids?: string[]
+          job_posting_id?: string | null
+          location_address?: string | null
+          location_type?: string | null
+          meeting_link?: string | null
           notes?: string | null
+          overall_rating?: number | null
+          recommendation?: string | null
           scheduled_at: string
           status?: string | null
-          updated_at?: string
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
-          application_id?: string
-          created_at?: string
+          candidate_id?: string
+          created_at?: string | null
           duration_minutes?: number | null
+          feedback?: Json | null
           id?: string
-          interview_type?: Database["public"]["Enums"]["hr_interview_type"]
-          interviewer_ids?: string[] | null
-          location?: string | null
-          meeting_url?: string | null
+          interview_type?: string
+          interviewer_ids?: string[]
+          job_posting_id?: string | null
+          location_address?: string | null
+          location_type?: string | null
+          meeting_link?: string | null
           notes?: string | null
+          overall_rating?: number | null
+          recommendation?: string | null
           scheduled_at?: string
           status?: string | null
-          updated_at?: string
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "hr_interviews_application_id_fkey"
-            columns: ["application_id"]
+            foreignKeyName: "hr_interviews_candidate_id_fkey"
+            columns: ["candidate_id"]
             isOneToOne: false
-            referencedRelation: "hr_applications"
+            referencedRelation: "hr_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_interviews_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "hr_job_postings"
             referencedColumns: ["id"]
           },
           {
@@ -25286,70 +25163,86 @@ export type Database = {
           },
         ]
       }
-      hr_job_openings: {
+      hr_job_postings: {
         Row: {
-          benefits: string | null
-          closed_at: string | null
-          created_at: string
+          closes_at: string | null
+          created_at: string | null
           created_by: string | null
-          department: string | null
-          description: string | null
+          currency: string | null
+          department_id: string | null
+          description: string
+          employment_type: string | null
           id: string
-          job_type: string | null
           location: string | null
-          positions_count: number | null
+          nice_to_have: string[] | null
+          public_url: string | null
           published_at: string | null
-          requirements: string | null
+          remote_option: string | null
+          requirements: string[] | null
           salary_max: number | null
           salary_min: number | null
-          status: Database["public"]["Enums"]["hr_job_status"]
+          slug: string | null
+          status: string | null
           title: string
-          updated_at: string
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
-          benefits?: string | null
-          closed_at?: string | null
-          created_at?: string
+          closes_at?: string | null
+          created_at?: string | null
           created_by?: string | null
-          department?: string | null
-          description?: string | null
+          currency?: string | null
+          department_id?: string | null
+          description?: string
+          employment_type?: string | null
           id?: string
-          job_type?: string | null
           location?: string | null
-          positions_count?: number | null
+          nice_to_have?: string[] | null
+          public_url?: string | null
           published_at?: string | null
-          requirements?: string | null
+          remote_option?: string | null
+          requirements?: string[] | null
           salary_max?: number | null
           salary_min?: number | null
-          status?: Database["public"]["Enums"]["hr_job_status"]
+          slug?: string | null
+          status?: string | null
           title: string
-          updated_at?: string
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
-          benefits?: string | null
-          closed_at?: string | null
-          created_at?: string
+          closes_at?: string | null
+          created_at?: string | null
           created_by?: string | null
-          department?: string | null
-          description?: string | null
+          currency?: string | null
+          department_id?: string | null
+          description?: string
+          employment_type?: string | null
           id?: string
-          job_type?: string | null
           location?: string | null
-          positions_count?: number | null
+          nice_to_have?: string[] | null
+          public_url?: string | null
           published_at?: string | null
-          requirements?: string | null
+          remote_option?: string | null
+          requirements?: string[] | null
           salary_max?: number | null
           salary_min?: number | null
-          status?: Database["public"]["Enums"]["hr_job_status"]
+          slug?: string | null
+          status?: string | null
           title?: string
-          updated_at?: string
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "hr_job_openings_workspace_id_fkey"
+            foreignKeyName: "hr_job_postings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "hr_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_job_postings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -25657,67 +25550,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hr_public_holidays_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hr_recruitment_emails: {
-        Row: {
-          application_id: string | null
-          body: string
-          candidate_id: string
-          created_at: string
-          email_type: string
-          generated_by_ai: boolean | null
-          id: string
-          sent_at: string | null
-          subject: string
-          workspace_id: string
-        }
-        Insert: {
-          application_id?: string | null
-          body: string
-          candidate_id: string
-          created_at?: string
-          email_type?: string
-          generated_by_ai?: boolean | null
-          id?: string
-          sent_at?: string | null
-          subject: string
-          workspace_id: string
-        }
-        Update: {
-          application_id?: string | null
-          body?: string
-          candidate_id?: string
-          created_at?: string
-          email_type?: string
-          generated_by_ai?: boolean | null
-          id?: string
-          sent_at?: string | null
-          subject?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hr_recruitment_emails_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "hr_applications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_recruitment_emails_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "hr_candidates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hr_recruitment_emails_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -57193,16 +57025,6 @@ export type Database = {
         | "quarterly"
         | "semiannual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
-      hr_application_stage:
-        | "new"
-        | "screening"
-        | "interview"
-        | "test"
-        | "offer"
-        | "hired"
-        | "rejected"
-      hr_interview_type: "in_person" | "remote" | "phone"
-      hr_job_status: "draft" | "published" | "reviewing" | "closed" | "archived"
       integration_mode: "embed" | "redirect" | "headless"
       job_status:
         | "pending"
@@ -57704,17 +57526,6 @@ export const Constants = {
         "semiannual",
       ],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
-      hr_application_stage: [
-        "new",
-        "screening",
-        "interview",
-        "test",
-        "offer",
-        "hired",
-        "rejected",
-      ],
-      hr_interview_type: ["in_person", "remote", "phone"],
-      hr_job_status: ["draft", "published", "reviewing", "closed", "archived"],
       integration_mode: ["embed", "redirect", "headless"],
       job_status: [
         "pending",
