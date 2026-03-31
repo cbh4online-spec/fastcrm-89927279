@@ -15,7 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert } from "lucide-react";
+import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert, ScanFace } from "lucide-react";
+import FaceCaptureDialog from "@/components/hr/FaceCaptureDialog";
 import { format, subDays } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -35,6 +36,7 @@ export default function HRTimeTrackingPage() {
   const [resolveNotes, setResolveNotes] = useState("");
   const [manualClockDialog, setManualClockDialog] = useState<{ employeeId: string; employeeName: string; type: "clock_in" | "clock_out" } | null>(null);
   const [manualNotes, setManualNotes] = useState("");
+  const [faceDialogOpen, setFaceDialogOpen] = useState(false);
 
   const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
@@ -243,7 +245,12 @@ export default function HRTimeTrackingPage() {
 
           {/* Quick clock actions */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Registar Ponto</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Registar Ponto</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setFaceDialogOpen(true)}>
+                <ScanFace className="h-4 w-4 mr-2" /> Verificação Facial
+              </Button>
+            </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {employees.map(emp => (
@@ -407,6 +414,13 @@ export default function HRTimeTrackingPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Face Capture Dialog */}
+        <FaceCaptureDialog
+          open={faceDialogOpen}
+          onOpenChange={setFaceDialogOpen}
+          employees={employees}
+        />
       </DashboardLayout>
     </ModuleGuard>
   );
