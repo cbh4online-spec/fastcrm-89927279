@@ -39,7 +39,7 @@ export default function HRCheckinsPage() {
 
   const statusFilter = tab === "all" ? undefined : tab;
   const { data: checkins = [], isLoading } = useCheckins(statusFilter);
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const createCheckin = useCreateCheckin();
   const updateCheckin = useUpdateCheckin();
 
