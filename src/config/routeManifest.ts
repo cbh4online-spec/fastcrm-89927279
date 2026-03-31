@@ -38,7 +38,7 @@ import {
   HeartPulse, Stethoscope, Puzzle, Shield,
   Radio, Search, MapPin,
   ArrowUpDown, Headphones, Clock, Timer,
-  Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video,
+  Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -273,11 +273,10 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("hr-recruitment-candidates","Candidatos",                "/dashboard/hr/recruitment/candidates",   Users,      "rh", { moduleSlug: "hr-management" }),
   e("hr-recruitment-candidate", "Ficha do Candidato",        "/dashboard/hr/recruitment/candidates/:id", Users,    "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
   e("hr-recruitment-interviews","Entrevistas",               "/dashboard/hr/recruitment/interviews",   Video,      "rh", { moduleSlug: "hr-management" }),
-  // Legacy routes (hidden but functional)
-  e("hr-time-clock",    "Controlo de Ponto (legacy)", "/dashboard/hr/time-clock", Clock,     "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
-  e("hr-session-time",  "Tempo no Sistema",    "/dashboard/hr/session-time",  Timer,        "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
-  e("hr-leave",         "Férias & Ausências (legacy)", "/dashboard/hr/leave", CalendarDays,  "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
-  e("hr-my-time",       "Meu Registo",         "/dashboard/hr/my-time",       Activity,     "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
+  // Performance & OKRs
+  e("hr-okrs",          "OKRs",                "/dashboard/hr/okrs",          Target,       "rh", { moduleSlug: "hr-management" }),
+  e("hr-feedback",      "Feedback",            "/dashboard/hr/feedback",      MessageSquare,"rh", { moduleSlug: "hr-management" }),
+  e("hr-checkins",      "Check-ins",           "/dashboard/hr/checkins",      CalendarCheck,"rh", { moduleSlug: "hr-management" }),
 
   // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES
