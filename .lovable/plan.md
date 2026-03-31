@@ -1,46 +1,59 @@
 
 
-## Fundo de Tema Completo — Correcção
+## Tabelas de Configuração HR — Departamentos, Cargos e Tipos de Contrato
 
 ### Diagnóstico
 
-Ao alternar entre tema claro e escuro, o fundo não muda de forma total. Isto acontece porque:
+Actualmente, os campos **Cargo**, **Departamento** e **Tipo de Contrato** no perfil HR são texto livre ou valores hardcoded no frontend. Isto impede consistência, reutilização e gestão centralizada. É necessário criar tabelas de referência e uma página de configuração.
 
-1. O elemento `html` não tem `bg-background` — apenas o `body` o tem, deixando gaps visíveis em scroll overflows e áreas fora do viewport
-2. O `main` content area no `DashboardLayout` não tem `bg-background` explícito — herda do pai, mas em certas situações de scroll/overflow pode mostrar o fundo original
-3. A TopBar usa `bg-background/80` (80% opacidade com backdrop-blur), o que em transições de tema pode parecer inconsistente
+### Estrutura
 
-### Alterações
+**1. Migração SQL — 3 tabelas de referência**
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/index.css` | Adicionar `html { @apply bg-background; }` para garantir que todo o viewport tem a cor correcta, mesmo em overscroll |
-| `src/components/layout/DashboardLayout.tsx` | Adicionar `bg-background` ao `main` element (linha 66) para reforçar o fundo na área de conteúdo |
-| `src/components/layout/TopBar.tsx` | Alterar `bg-background/80` para `bg-background` na header (linha 60) para eliminar transparência parcial |
+| Tabela | Campos |
+|--------|--------|
+| `hr_departments` | id, workspace_id, name, description, is_active, created_at |
+| `hr_job_titles` | id, workspace_id, name, department_id (FK opcional), is_active, created_at |
+| `hr_contract_types` | id, workspace_id, name, description, is_active, created_at |
 
-### Detalhe técnico
+- RLS: membros do workspace podem ler; admin/owner podem gerir
+- Seed de valores por defeito nos contract_types: Tempo inteiro, Part-time, Prestador, Estagiário
 
-**`src/index.css`** — Dentro de `@layer base`, o bloco `html` actual só tem `scroll-smooth`. Adicionar `bg-background` garante que o fundo do documento inteiro acompanha o tema:
+**2. Hooks CRUD**
 
-```css
-html {
-  @apply scroll-smooth bg-background;
-}
+| Ficheiro | Conteúdo |
+|----------|----------|
+| `src/hooks/hr/useHRDepartments.ts` | CRUD para `hr_departments` |
+| `src/hooks/hr/useHRJobTitles.ts` | CRUD para `hr_job_titles` |
+| `src/hooks/hr/useHRContractTypes.ts` | CRUD para `hr_contract_types` |
+
+**3. Página de Configuração HR**
+
+| Ficheiro | Conteúdo |
+|----------|----------|
+| `src/pages/dashboard/hr/HRSettingsPage.tsx` | Página com 3 tabs (Departamentos, Cargos, Contratos). Cada tab: tabela CRUD com inline add/edit/delete e toggle activo/inactivo |
+
+**4. Rota no manifesto**
+
+Adicionar em `routeManifest.ts`:
+```
+e("hr-settings", "Configurações RH", "/dashboard/hr/settings", Settings, "rh", { moduleSlug: "hr-management" })
 ```
 
-**`DashboardLayout.tsx`** — A `main` tag na linha 66 passa de:
-```
-<main className="flex-1 animate-fade-in p-4 md:p-6 overflow-auto">
-```
-para:
-```
-<main className="flex-1 animate-fade-in p-4 md:p-6 overflow-auto bg-background">
-```
+Registar rota lazy em `routes.legacy.ts` ou onde as rotas HR estão definidas.
 
-**`TopBar.tsx`** — A header na linha 60 passa de `bg-background/80 backdrop-blur-xl` para `bg-background backdrop-blur-none` (fundo sólido, sem transparência).
+**5. Actualizar formulário do perfil HR**
+
+Em `HREmployeesPage.tsx`, substituir os inputs de texto livre e selects hardcoded por selects populados a partir das tabelas de referência:
+- **Departamento** → Select com dados de `hr_departments`
+- **Cargo** → Select com dados de `hr_job_titles` (filtrado pelo departamento seleccionado, se aplicável)
+- **Contrato** → Select com dados de `hr_contract_types`
 
 ### Critérios de aceitação
-1. Ao alternar entre tema claro e escuro, todo o ecrã muda de cor — sem áreas parciais ou transparentes
-2. Overscroll (bounce em mobile/macOS) mostra a cor correcta do tema
-3. Sem regressão visual nos componentes existentes
+
+1. Página "Configurações RH" acessível no menu lateral com gestão de departamentos, cargos e contratos
+2. Formulário de perfil HR usa selects populados a partir das tabelas
+3. Valores activos/inactivos controlam visibilidade nos selects
+4. CRUD completo com validação (nome obrigatório, sem duplicados por workspace)
+5. RLS correcta — leitura para todos os membros, escrita apenas admin/owner
 
