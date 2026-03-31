@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
-import { useHREmployees } from "@/hooks/hr/useHREmployees";
+import { useHREmployeesList } from "@/hooks/hr/useCheckins";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export default function HRTimeTrackingPage() {
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [employeeFilter, setEmployeeFilter] = useState<string | undefined>();
 
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
   const clockAction = useClockAction();
 
@@ -28,8 +28,7 @@ export default function HRTimeTrackingPage() {
   const totals = employees.map(emp => {
     const empSessions = sessions.filter(s => s.employee_id === emp.id);
     const totalWorked = empSessions.reduce((a, s) => a + (s.worked_minutes || 0), 0);
-    const contractedWeek = emp.weekly_hours;
-    return { ...emp, totalWorked, contractedWeek };
+    return { ...emp, totalWorked };
   }).filter(e => e.totalWorked > 0);
 
   return (
@@ -95,7 +94,7 @@ export default function HRTimeTrackingPage() {
                       <div className="flex-1">
                         <p className="text-sm font-medium">{t.full_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {Math.floor(t.totalWorked / 60)}h {t.totalWorked % 60}m / {t.contractedWeek}h/sem
+                          {Math.floor(t.totalWorked / 60)}h {t.totalWorked % 60}m
                         </p>
                       </div>
                     </div>
