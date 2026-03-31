@@ -355,9 +355,25 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
 
   const publishEbook = () => {
     if (!ebook) return;
-    // Force save before publishing
+    // Run preflight
+    const preflightResult = runPreflight(ebook as any, ctas);
+    if (!preflightResult.canPublish || preflightResult.warnings.length > 0) {
+      setShowPreflight(true);
+      return;
+    }
     forceSave();
     updateEbook.mutate({ id: ebookId, status: "published" }, { onSuccess: () => toast.success("eBook publicado!") });
+  };
+
+  const handlePreflightPublish = () => {
+    if (!ebook) return;
+    forceSave();
+    updateEbook.mutate({ id: ebookId, status: "published" }, {
+      onSuccess: () => {
+        toast.success("eBook publicado!");
+        setShowPreflight(false);
+      }
+    });
   };
 
   const handleToggleEditorMode = () => {
