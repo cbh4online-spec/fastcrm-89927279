@@ -245,7 +245,12 @@ export default function HRTimeTrackingPage() {
 
           {/* Quick clock actions */}
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Registar Ponto</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Registar Ponto</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setFaceDialogOpen(true)}>
+                <ScanFace className="h-4 w-4 mr-2" /> Verificação Facial
+              </Button>
+            </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {employees.map(emp => (
