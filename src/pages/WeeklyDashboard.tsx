@@ -21,6 +21,7 @@ import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptivePr
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Lightbulb, Target } from "lucide-react";
 import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
+import { ClockInOutButton } from "@/components/hr/ClockInOutButton";
 
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
