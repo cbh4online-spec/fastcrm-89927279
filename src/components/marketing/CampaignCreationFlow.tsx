@@ -59,7 +59,7 @@ export function CampaignCreationFlow({
       await createCampaign.mutateAsync({
         ...metadata,
         bodyHtml: savedDesign.html,
-        designJson: savedDesign.design as Record<string, unknown>,
+        designJson: savedDesign.design as unknown as Record<string, unknown>,
       });
       
       // Reset and close
