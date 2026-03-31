@@ -33,6 +33,8 @@ export default function HRTimeTrackingPage() {
   const [showResolved, setShowResolved] = useState(false);
   const [resolveDialog, setResolveDialog] = useState<{ id: string; description: string | null } | null>(null);
   const [resolveNotes, setResolveNotes] = useState("");
+  const [manualClockDialog, setManualClockDialog] = useState<{ employeeId: string; employeeName: string; type: "clock_in" | "clock_out" } | null>(null);
+  const [manualNotes, setManualNotes] = useState("");
 
   const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
@@ -250,10 +252,10 @@ export default function HRTimeTrackingPage() {
                       <AvatarFallback>{emp.full_name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium flex-1 truncate">{emp.full_name}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => clockAction.mutate({ employee_id: emp.id, entry_type: "clock_in", method: "manual" })} disabled={clockAction.isPending}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => setManualClockDialog({ employeeId: emp.id, employeeName: emp.full_name, type: "clock_in" })} disabled={clockAction.isPending}>
                       <LogIn className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => clockAction.mutate({ employee_id: emp.id, entry_type: "clock_out", method: "manual" })} disabled={clockAction.isPending}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => setManualClockDialog({ employeeId: emp.id, employeeName: emp.full_name, type: "clock_out" })} disabled={clockAction.isPending}>
                       <LogOut className="h-4 w-4" />
                     </Button>
                   </div>
@@ -353,6 +355,54 @@ export default function HRTimeTrackingPage() {
               </Button>
               <Button onClick={handleResolve} disabled={resolveAnomaly.isPending}>
                 {resolveAnomaly.isPending ? "A resolver..." : "Confirmar Resolução"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Manual Clock Dialog */}
+        <Dialog open={!!manualClockDialog} onOpenChange={(open) => { if (!open) { setManualClockDialog(null); setManualNotes(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {manualClockDialog?.type === "clock_in" ? <LogIn className="h-5 w-5 text-green-600" /> : <LogOut className="h-5 w-5 text-red-600" />}
+                Registo Manual — {manualClockDialog?.type === "clock_in" ? "Entrada" : "Saída"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-sm"><span className="font-medium">Colaborador:</span> {manualClockDialog?.employeeName}</p>
+                <p className="text-sm"><span className="font-medium">Acção:</span> {manualClockDialog?.type === "clock_in" ? "Registar Entrada" : "Registar Saída"}</p>
+                <p className="text-sm"><span className="font-medium">Data/Hora:</span> {format(new Date(), "dd/MM/yyyy HH:mm", { locale: pt })}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Justificação <span className="text-destructive">*</span></label>
+                <Textarea
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  placeholder="Indique o motivo do registo manual (mín. 5 caracteres)..."
+                  rows={3}
+                />
+                {manualNotes.length > 0 && manualNotes.trim().length < 5 && (
+                  <p className="text-xs text-destructive mt-1">A justificação deve ter pelo menos 5 caracteres.</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setManualClockDialog(null); setManualNotes(""); }}>
+                Cancelar
+              </Button>
+              <Button
+                disabled={manualNotes.trim().length < 5 || clockAction.isPending}
+                onClick={() => {
+                  if (!manualClockDialog) return;
+                  clockAction.mutate(
+                    { employee_id: manualClockDialog.employeeId, entry_type: manualClockDialog.type, method: "manual", notes: manualNotes.trim() },
+                    { onSuccess: () => { setManualClockDialog(null); setManualNotes(""); } }
+                  );
+                }}
+              >
+                {clockAction.isPending ? "A registar..." : "Confirmar Registo"}
               </Button>
             </DialogFooter>
           </DialogContent>
