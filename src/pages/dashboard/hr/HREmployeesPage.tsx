@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHREmployees, useUpdateHREmployee, type HREmployee } from "@/hooks/hr/useHREmployees";
+import { HREmployeeAvatarUpload } from "@/components/hr/HREmployeeAvatarUpload";
 import { useHRDepartments } from "@/hooks/hr/useHRDepartments";
 import { useHRJobTitles } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes } from "@/hooks/hr/useHRContractTypes";
@@ -203,7 +204,20 @@ export default function HREmployeesPage() {
           {/* Edit HR Profile Dialog */}
           <Dialog open={!!editEmployee} onOpenChange={() => setEditEmployee(null)}>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Editar — {editEmployee?.full_name}</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Editar — {editEmployee?.full_name}</DialogTitle>
+              </DialogHeader>
+              {editEmployee && (
+                <div className="flex justify-center py-2">
+                  <HREmployeeAvatarUpload
+                    employeeId={editEmployee.id}
+                    workspaceId={editEmployee.workspace_id}
+                    currentAvatarUrl={editEmployee.avatar_url}
+                    fallbackInitial={editEmployee.full_name.charAt(0)}
+                    size="lg"
+                  />
+                </div>
+              )}
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto">
                   <div className="grid grid-cols-2 gap-4">
