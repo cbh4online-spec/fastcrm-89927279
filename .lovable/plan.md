@@ -1,47 +1,35 @@
 
 
-## Correção: Botões de Tipo/Modo na criação de reunião
+## Adicionar Clock-In/Out ao Dashboard (MemberPanel)
 
-### Diagnóstico
+### O que muda
 
-O `useEffect` de reset do formulário (linha 154-200) tem `defaultDate` nas dependências. Como `defaultDate` tem valor por defeito `new Date()` (linha 106), cada re-render do componente pai cria um novo objecto Date, disparando o useEffect e fazendo reset ao formulário — o que reverte `category` para `'client'` e `mode` para `'online'` imediatamente após o click.
+Integrar o componente `ClockInOutButton` existente (`src/components/hr/ClockInOutButton.tsx`) no `MemberPanel`, posicionado entre o `DayOverview` e as `AIPriorities`. O relógio já funciona com `useTimeEntries` — basta importar e renderizar.
 
-### Correção
+Melhoria adicional: o `ClockInOutButton` actual não actualiza o relógio em tempo real (renderiza `new Date()` apenas uma vez). Adicionar um `useEffect` com `setInterval` de 1 segundo para o relógio ser live.
 
-**Ficheiro**: `src/components/meetings/MeetingCreateModal.tsx`
+### Ficheiros
 
-1. Remover `defaultDate` do array de dependências do `useEffect` — usar `useRef` para guardar o valor de `defaultDate` no momento da abertura do modal, evitando re-triggers.
+| Acção | Ficheiro |
+|-------|----------|
+| Editar | `src/components/member-panel/MemberPanel.tsx` — importar e renderizar `ClockInOutButton` após `DayOverview` |
+| Editar | `src/components/hr/ClockInOutButton.tsx` — adicionar `useState` + `setInterval` para relógio live; traduzir botões para PT ("Iniciar Trabalho" / "Terminar Trabalho") |
 
-Alternativa mais simples: manter `defaultDate` no efeito mas comparar apenas quando `open` muda de `false` para `true` (usar ref para tracking do estado anterior de `open`).
+### Detalhe técnico
 
-**Abordagem escolhida**: Usar um `useRef` para capturar `defaultDate` e remover da dep array, já que o reset só deve acontecer quando `open` muda ou `meeting` muda — não quando a data por defeito flutua.
+**MemberPanel.tsx**: Adicionar `import { ClockInOutButton }` e colocar `<ClockInOutButton />` logo após o bloco `<DayOverview />`.
 
-```tsx
-// Guardar defaultDate em ref para evitar re-triggers
-const defaultDateRef = useRef(defaultDate);
-useEffect(() => {
-  defaultDateRef.current = defaultDate;
-}, [defaultDate]);
+**ClockInOutButton.tsx**:
+- `const [now, setNow] = useState(new Date())` + `useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, [])`
+- Usar `now` em vez de `new Date()` nos `format()`
+- Renomear "Clock In" → "Iniciar Trabalho", "Clock Out" → "Terminar Trabalho"
+- "Em serviço desde" já está em PT ✓
 
-// No useEffect de reset, usar defaultDateRef.current e remover defaultDate das deps
-useEffect(() => {
-  if (open) {
-    if (meeting) { /* ... existing reset with meeting data ... */ }
-    else {
-      form.reset({
-        ...defaults,
-        start_date: defaultDateRef.current,
-        start_time: format(defaultDateRef.current, 'HH:mm'),
-      });
-    }
-  }
-}, [open, meeting, form]); // sem defaultDate
-```
+### Critérios de aceitação
 
-### Critérios de Aceitação
-
-1. Clicar em "Interna" ou "Híbrida" alterna visualmente e persiste a seleção
-2. Clicar em "Presencial", "Telefone" ou "WhatsApp" alterna e persiste
-3. O formulário submete com os valores corretos de category e mode
-4. Reset funciona correctamente ao reabrir o modal
+1. Dashboard mostra widget de ponto com relógio a correr em tempo real
+2. Botão "Iniciar Trabalho" regista clock-in com geolocalização
+3. Após clock-in, mostra hora de entrada e botão "Terminar Trabalho"
+4. Botão "Terminar Trabalho" regista clock-out
+5. Toast de confirmação em PT
 
