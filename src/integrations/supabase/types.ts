@@ -19367,6 +19367,78 @@ export type Database = {
           },
         ]
       }
+      ebook_generation_jobs: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          current_step: string | null
+          ebook_id: string | null
+          error_message: string | null
+          error_step: string | null
+          id: string
+          progress: number | null
+          result: Json | null
+          retry_count: number | null
+          status: string
+          steps_completed: string[] | null
+          total_steps: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: string | null
+          ebook_id?: string | null
+          error_message?: string | null
+          error_step?: string | null
+          id?: string
+          progress?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          status?: string
+          steps_completed?: string[] | null
+          total_steps?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: string | null
+          ebook_id?: string | null
+          error_message?: string | null
+          error_step?: string | null
+          id?: string
+          progress?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          status?: string
+          steps_completed?: string[] | null
+          total_steps?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_generation_jobs_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_generation_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebook_notes: {
         Row: {
           created_at: string | null
