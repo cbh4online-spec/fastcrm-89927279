@@ -30,10 +30,12 @@ interface EbookRightPanelProps {
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
   // Consent
+  consentRequired: boolean;
   consentText: string;
   privacyPolicyUrl: string;
   marketingOptInEnabled: boolean;
   marketingOptInLabel: string;
+  onConsentRequiredChange: (val: boolean) => void;
   onConsentTextChange: (val: string) => void;
   onPrivacyPolicyUrlChange: (val: string) => void;
   onMarketingOptInEnabledChange: (val: boolean) => void;
@@ -71,8 +73,8 @@ export function EbookRightPanel({
   onSaveChapters, onInsertBlock, onUploadImage, onGenerateImageAI,
   localHeaderText, localFooterText, localContactPage, protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange, onProtectionChange, onLeadGateChange,
-  consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
-  onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
+  consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
+  onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
   onSeoTitleChange, onSeoDescriptionChange, onOgImageUrlChange, onCanonicalUrlChange, onNoindexChange,
   theme, headingFont, bodyFont, onThemeChange, onHeadingFontChange, onBodyFontChange,
@@ -162,10 +164,12 @@ export function EbookRightPanel({
           onContactPageChange={onContactPageChange}
           onProtectionChange={onProtectionChange}
           onLeadGateChange={onLeadGateChange}
+          consentRequired={consentRequired}
           consentText={consentText}
           privacyPolicyUrl={privacyPolicyUrl}
           marketingOptInEnabled={marketingOptInEnabled}
           marketingOptInLabel={marketingOptInLabel}
+          onConsentRequiredChange={onConsentRequiredChange}
           onConsentTextChange={onConsentTextChange}
           onPrivacyPolicyUrlChange={onPrivacyPolicyUrlChange}
           onMarketingOptInEnabledChange={onMarketingOptInEnabledChange}

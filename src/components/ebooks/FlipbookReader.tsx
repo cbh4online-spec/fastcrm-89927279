@@ -11,6 +11,8 @@ import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { EbookReadTracker } from "./EbookReadTracker";
 import { FlipbookZoomLens } from "./FlipbookZoomLens";
+import { EbookCtaOverlay } from "./EbookCtaOverlay";
+import type { EbookCta } from "@/hooks/useEbookCtas";
 
 interface EbookChapter {
   id: string;
@@ -36,6 +38,8 @@ interface FlipbookReaderProps {
   protectionEnabled?: boolean;
   watermarkText?: string;
   trackingViewId?: string;
+  ctas?: EbookCta[];
+  contactId?: string;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
@@ -248,7 +252,7 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText, trackingViewId }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText, trackingViewId, ctas = [], contactId }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
@@ -601,6 +605,20 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
           />
         )}
 
+
+        {/* CTA Overlay — end position, shown near last pages */}
+        {ctas.length > 0 && ebookId && workspaceId && currentPage >= pages.length - 3 && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-md">
+            <EbookCtaOverlay
+              ctas={ctas}
+              position="end"
+              ebookId={ebookId}
+              workspaceId={workspaceId}
+              viewId={trackingViewId}
+              contactId={contactId}
+            />
+          </div>
+        )}
 
         {/* Read tracking */}
         {trackingViewId && ebookId && workspaceId && (

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 interface EbookReadTrackerProps {
   ebookId: string;
@@ -42,6 +43,7 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
   }, [currentPage, ebookId, workspaceId, viewId]);
 
   // Heartbeat every 30s
+  const completedEmittedRef = useRef(false);
   const sendHeartbeat = useCallback(() => {
     const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
     const completed = maxPageRef.current >= totalPages - 1;
@@ -53,7 +55,24 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
       completed,
       last_activity_at: new Date().toISOString(),
     }).eq("id", viewId).then(() => {});
-  }, [viewId, totalPages]);
+
+    // Emit kernel event when read completed (once)
+    if (completed && !completedEmittedRef.current) {
+      completedEmittedRef.current = true;
+      emitKernelEvent({
+        workspace_id: workspaceId,
+        type: "ebook.read_completed",
+        entity_kind: "ebook_view",
+        entity_id: viewId,
+        source_module: "ebooks",
+        payload: {
+          ebook_id: ebookId,
+          pages_viewed: pagesViewedSet.current.size,
+          time_on_book_seconds: elapsed,
+        },
+      });
+    }
+  }, [viewId, totalPages, workspaceId, ebookId]);
 
   useEffect(() => {
     heartbeatRef.current = setInterval(sendHeartbeat, 30000);

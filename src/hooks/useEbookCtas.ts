@@ -97,6 +97,7 @@ export async function trackCtaEvent(params: {
   workspace_id: string;
   chapter_id?: string;
   event_type: "cta_impression" | "cta_click" | "cta_conversion";
+  contact_id?: string;
 }) {
   await (supabase as any).from("ebook_cta_events").insert({
     ebook_id: params.ebook_id,
@@ -105,5 +106,6 @@ export async function trackCtaEvent(params: {
     workspace_id: params.workspace_id,
     chapter_id: params.chapter_id || null,
     event_type: params.event_type,
+    contact_id: params.contact_id || null,
   });
 }

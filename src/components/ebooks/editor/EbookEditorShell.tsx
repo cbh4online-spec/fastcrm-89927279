@@ -66,6 +66,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const [localFooterText, setLocalFooterText] = useState("");
   const [localContactPage, setLocalContactPage] = useState<EbookContactPage>({});
   // Consent local state
+  const [localConsentRequired, setLocalConsentRequired] = useState(false);
   const [localConsentText, setLocalConsentText] = useState("");
   const [localPrivacyPolicyUrl, setLocalPrivacyPolicyUrl] = useState("");
   const [localMarketingOptInEnabled, setLocalMarketingOptInEnabled] = useState(false);
@@ -91,6 +92,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       setLocalHeaderText((ebook as any).header_text || "");
       setLocalFooterText((ebook as any).footer_text || "");
       setLocalContactPage((ebook as any).contact_page || {});
+      setLocalConsentRequired((ebook as any).consent_required || false);
       setLocalConsentText((ebook as any).consent_text || "");
       setLocalPrivacyPolicyUrl((ebook as any).privacy_policy_url || "");
       setLocalMarketingOptInEnabled((ebook as any).marketing_opt_in_enabled || false);
@@ -131,13 +133,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
     if (!brandingInitRef.current) return;
     queueSave({
       header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage,
+      consent_required: localConsentRequired,
       consent_text: localConsentText, privacy_policy_url: localPrivacyPolicyUrl,
       marketing_opt_in_enabled: localMarketingOptInEnabled, marketing_opt_in_label: localMarketingOptInLabel,
       seo_title: localSeoTitle, seo_description: localSeoDescription,
       og_image_url: localOgImageUrl, canonical_url: localCanonicalUrl, noindex: localNoindex,
     });
   }, [localHeaderText, localFooterText, localContactPage,
-      localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
+      localConsentRequired, localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
       localSeoTitle, localSeoDescription, localOgImageUrl, localCanonicalUrl, localNoindex]);
 
   // ── Chapter operations — all go through queueSave ──
@@ -481,10 +484,12 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onContactPageChange={setLocalContactPage}
           onProtectionChange={(val) => queueSave({ protection_enabled: val })}
           onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
+          consentRequired={localConsentRequired}
           consentText={localConsentText}
           privacyPolicyUrl={localPrivacyPolicyUrl}
           marketingOptInEnabled={localMarketingOptInEnabled}
           marketingOptInLabel={localMarketingOptInLabel}
+          onConsentRequiredChange={setLocalConsentRequired}
           onConsentTextChange={setLocalConsentText}
           onPrivacyPolicyUrlChange={setLocalPrivacyPolicyUrl}
           onMarketingOptInEnabledChange={setLocalMarketingOptInEnabled}

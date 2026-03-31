@@ -85,6 +85,7 @@ export interface Ebook {
   template_id?: string | null;
   global_styles?: Record<string, unknown> | null;
   lead_gate_enabled?: boolean;
+  consent_required?: boolean;
   // Consent / RGPD
   privacy_policy_url?: string | null;
   consent_text?: string | null;
@@ -172,7 +173,7 @@ export function useCreateEbook() {
 export function useUpdateEbook() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Pick<Ebook, "title" | "subtitle" | "description" | "author_name" | "cover_url" | "chapters" | "status" | "slug" | "pdf_storage_path" | "header_text" | "footer_text" | "contact_page" | "template_id" | "global_styles" | "lead_gate_enabled" | "privacy_policy_url" | "consent_text" | "marketing_opt_in_enabled" | "marketing_opt_in_label" | "seo_title" | "seo_description" | "og_image_url" | "canonical_url" | "noindex">>) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Pick<Ebook, "title" | "subtitle" | "description" | "author_name" | "cover_url" | "chapters" | "status" | "slug" | "pdf_storage_path" | "header_text" | "footer_text" | "contact_page" | "template_id" | "global_styles" | "lead_gate_enabled" | "consent_required" | "privacy_policy_url" | "consent_text" | "marketing_opt_in_enabled" | "marketing_opt_in_label" | "seo_title" | "seo_description" | "og_image_url" | "canonical_url" | "noindex">>) => {
       const { data, error } = await (supabase as any).from("ebooks").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
       if (error) throw error;
       return data as Ebook;
