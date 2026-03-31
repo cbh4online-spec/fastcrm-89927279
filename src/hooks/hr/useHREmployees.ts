@@ -46,7 +46,6 @@ export function useHREmployees(statusFilter?: string) {
         .from("hr_employees")
         .select(`
           *,
-          profiles:user_id(full_name, email, avatar_url),
           hr_departments!hr_employees_department_id_fkey(id, name),
           hr_job_titles:position_id(id, name),
           manager:manager_id(id, full_name)
@@ -67,12 +66,12 @@ export function useHREmployees(statusFilter?: string) {
         workspace_id: e.workspace_id,
         user_id: e.user_id,
         employee_number: e.employee_number,
-        full_name: e.full_name || e.profiles?.full_name || "Sem nome",
+        full_name: e.full_name || "Sem nome",
         first_name: e.first_name,
         last_name: e.last_name,
-        email: e.email || e.profiles?.email || null,
+        email: e.email || null,
         phone: e.phone,
-        avatar_url: e.profiles?.avatar_url || null,
+        avatar_url: e.avatar_url || null,
         department_id: e.department_id,
         department_name: e.hr_departments?.name || null,
         position_id: e.position_id,
@@ -106,7 +105,6 @@ export function useHREmployee(employeeId: string | undefined) {
         .from("hr_employees")
         .select(`
           *,
-          profiles:user_id(full_name, email, avatar_url),
           hr_departments!hr_employees_department_id_fkey(id, name),
           hr_job_titles:position_id(id, name),
           manager:manager_id(id, full_name)
@@ -122,12 +120,12 @@ export function useHREmployee(employeeId: string | undefined) {
         workspace_id: e.workspace_id,
         user_id: e.user_id,
         employee_number: e.employee_number,
-        full_name: e.full_name || e.profiles?.full_name || "Sem nome",
+        full_name: e.full_name || "Sem nome",
         first_name: e.first_name,
         last_name: e.last_name,
-        email: e.email || e.profiles?.email || null,
+        email: e.email || null,
         phone: e.phone,
-        avatar_url: e.profiles?.avatar_url || null,
+        avatar_url: e.avatar_url || null,
         department_id: e.department_id,
         department_name: e.hr_departments?.name || null,
         position_id: e.position_id,
