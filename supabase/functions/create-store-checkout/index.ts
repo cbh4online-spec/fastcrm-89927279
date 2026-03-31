@@ -583,6 +583,27 @@ Deno.serve(async (req) => {
             });
 
             logStep("Created marketplace_order", { sellerId, gross, commission, net });
+
+            // Emit kernel event (non-blocking)
+            const kernelUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/kernel-ingest-event`;
+            fetch(kernelUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                workspace_id: workspaceId,
+                type: "MARKETPLACE.ORDER_CREATED",
+                entity_kind: "marketplace_order",
+                entity_id: orderId,
+                actor_type: "system",
+                source_module: "marketplace",
+                payload: { seller_id: sellerId, gross, commission, net },
+                schema_version: 1,
+                occurred_at: new Date().toISOString(),
+              }),
+            }).catch(() => {});
           }
         }
       } catch (mkErr) {

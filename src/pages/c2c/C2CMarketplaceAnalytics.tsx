@@ -1,12 +1,13 @@
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useMarketplaceKPIs, useWeeklyTrends, useTopListings } from "@/hooks/useMarketplaceAnalytics";
+import { useMarketplaceKPIs, useWeeklyTrends, useTopListings, useTopSellers } from "@/hooks/useMarketplaceAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { Eye, ShoppingBag, TrendingUp, DollarSign, Package, BarChart3, ArrowLeft } from "lucide-react";
+import { Eye, ShoppingBag, TrendingUp, DollarSign, Package, BarChart3, ArrowLeft, Wallet, Percent, PieChart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function KPICard({ icon: Icon, label, value, sub, color }: {
   icon: any; label: string; value: string | number; sub?: string; color: string;
@@ -37,6 +38,7 @@ export default function C2CMarketplaceAnalytics() {
   const { data: kpis, isLoading: kpisLoading } = useMarketplaceKPIs(workspaceId);
   const { data: trends = [], isLoading: trendsLoading } = useWeeklyTrends(workspaceId);
   const { data: topListings = [], isLoading: topLoading } = useTopListings(workspaceId);
+  const { data: topSellers = [], isLoading: sellersLoading } = useTopSellers(workspaceId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,18 +56,25 @@ export default function C2CMarketplaceAnalytics() {
 
         {/* KPIs */}
         {kpisLoading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
           </div>
         ) : kpis ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KPICard icon={Package} label="Anúncios Ativos" value={kpis.activeListings} color="bg-primary/10 text-primary" />
-            <KPICard icon={ShoppingBag} label="Vendidos" value={kpis.soldListings} color="bg-green-500/10 text-green-500" />
-            <KPICard icon={Eye} label="Visualizações" value={kpis.totalViews.toLocaleString("pt-PT")} color="bg-blue-500/10 text-blue-500" />
-            <KPICard icon={TrendingUp} label="Encomendas" value={kpis.totalOrders} sub="Este mês" color="bg-amber-500/10 text-amber-500" />
-            <KPICard icon={DollarSign} label="Receita Mensal" value={`€${kpis.monthRevenue.toLocaleString("pt-PT", { minimumFractionDigits: 0 })}`} color="bg-emerald-500/10 text-emerald-500" />
-            <KPICard icon={BarChart3} label="Taxa Conversão" value={`${kpis.conversionRate}%`} sub="Views → Ofertas" color="bg-purple-500/10 text-purple-500" />
-          </div>
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              <KPICard icon={Package} label="Anúncios Ativos" value={kpis.activeListings} color="bg-primary/10 text-primary" />
+              <KPICard icon={ShoppingBag} label="Vendidos" value={kpis.soldListings} color="bg-green-500/10 text-green-500" />
+              <KPICard icon={Eye} label="Visualizações" value={kpis.totalViews.toLocaleString("pt-PT")} color="bg-blue-500/10 text-blue-500" />
+              <KPICard icon={TrendingUp} label="Encomendas" value={kpis.totalOrders} sub="Pagas" color="bg-amber-500/10 text-amber-500" />
+              <KPICard icon={BarChart3} label="Taxa Conversão" value={`${kpis.conversionRate}%`} sub="Views → Ofertas" color="bg-purple-500/10 text-purple-500" />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard icon={DollarSign} label="GMV C2C" value={`€${kpis.gmv.toLocaleString("pt-PT", { minimumFractionDigits: 2 })}`} sub="Volume bruto" color="bg-emerald-500/10 text-emerald-500" />
+              <KPICard icon={Percent} label="Comissão Total" value={`€${kpis.totalCommission.toLocaleString("pt-PT", { minimumFractionDigits: 2 })}`} color="bg-orange-500/10 text-orange-500" />
+              <KPICard icon={Wallet} label="Payout Pendente" value={`€${kpis.payoutPending.toLocaleString("pt-PT", { minimumFractionDigits: 2 })}`} color="bg-amber-500/10 text-amber-500" />
+              <KPICard icon={PieChart} label="Share C2C" value={`${kpis.c2cShare}%`} sub="vs Store própria" color="bg-indigo-500/10 text-indigo-500" />
+            </div>
+          </>
         ) : null}
 
         {/* Trends Chart */}
@@ -99,54 +108,98 @@ export default function C2CMarketplaceAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Top Listings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
-              Top Anúncios (mais vistos)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {topLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
-              </div>
-            ) : topListings.length > 0 ? (
-              <div className="space-y-2">
-                {topListings.map((listing, i) => (
-                  <div
-                    key={listing.id}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/dashboard/c2c/${listing.id}`)}
-                  >
-                    <span className="text-sm font-bold text-muted-foreground w-6">#{i + 1}</span>
-                    {listing.photos?.[0] ? (
-                      <img src={listing.photos[0]} alt="" className="w-10 h-10 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                        <Package className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Sellers */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Top Sellers (por GMV)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sellersLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
+                </div>
+              ) : topSellers.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Seller</TableHead>
+                      <TableHead className="text-right">GMV</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Vendas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {topSellers.map((s, i) => (
+                      <TableRow key={s.seller_id}>
+                        <TableCell className="font-bold text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="font-medium">{s.display_name}</TableCell>
+                        <TableCell className="text-right">€{s.gmv.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">€{s.commission.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{s.orders}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">Sem dados de sellers</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Listings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                Top Anúncios (mais vistos)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {topLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+                </div>
+              ) : topListings.length > 0 ? (
+                <div className="space-y-2">
+                  {topListings.map((listing, i) => (
+                    <div
+                      key={listing.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/dashboard/c2c/${listing.id}`)}
+                    >
+                      <span className="text-sm font-bold text-muted-foreground w-6">#{i + 1}</span>
+                      {listing.photos?.[0] ? (
+                        <img src={listing.photos[0]} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{listing.title}</p>
+                        <p className="text-xs text-muted-foreground">€{listing.price.toFixed(0)}</p>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{listing.title}</p>
-                      <p className="text-xs text-muted-foreground">€{listing.price.toFixed(0)}</p>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Eye className="h-3.5 w-3.5" />
+                        {listing.views_count}
+                      </div>
+                      <Badge variant={listing.status === "active" ? "default" : "secondary"} className="text-[10px]">
+                        {listing.status === "active" ? "Ativo" : listing.status === "sold" ? "Vendido" : listing.status}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Eye className="h-3.5 w-3.5" />
-                      {listing.views_count}
-                    </div>
-                    <Badge variant={listing.status === "active" ? "default" : "secondary"} className="text-[10px]">
-                      {listing.status === "active" ? "Ativo" : listing.status === "sold" ? "Vendido" : listing.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum anúncio encontrado</p>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum anúncio encontrado</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -174,6 +174,36 @@ function SellerDetailDialog({
                 </Button>
               </div>
 
+              {/* Risk flags */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Flags de Risco</p>
+                <div className="flex gap-2 flex-wrap">
+                  {(seller as any).suspected_fraud && <Badge variant="destructive" className="text-[10px]">⚠ Fraude Suspeita</Badge>}
+                  {(seller as any).dispute_open && <Badge variant="destructive" className="text-[10px]">⚠ Disputa Aberta</Badge>}
+                  {(seller as any).excessive_cancellations && <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">Cancelamentos Excessivos</Badge>}
+                  {!(seller as any).suspected_fraud && !(seller as any).dispute_open && !(seller as any).excessive_cancellations && (
+                    <span className="text-xs text-muted-foreground">Sem flags de risco</span>
+                  )}
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
+                    updateDetails.mutate({ sellerId: seller.id, updates: { suspected_fraud: !(seller as any).suspected_fraud } as any });
+                  }}>
+                    {(seller as any).suspected_fraud ? "Remover" : "Marcar"} Fraude
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
+                    updateDetails.mutate({ sellerId: seller.id, updates: { dispute_open: !(seller as any).dispute_open } as any });
+                  }}>
+                    {(seller as any).dispute_open ? "Fechar" : "Abrir"} Disputa
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
+                    updateDetails.mutate({ sellerId: seller.id, updates: { excessive_cancellations: !(seller as any).excessive_cancellations } as any });
+                  }}>
+                    {(seller as any).excessive_cancellations ? "Remover" : "Marcar"} Cancelamentos
+                  </Button>
+                </div>
+              </div>
+
               {/* Status actions */}
               <div className="flex gap-2 flex-wrap">
                 {seller.status === "pending" && (
@@ -187,9 +217,17 @@ function SellerDetailDialog({
                   </>
                 )}
                 {seller.status === "approved" && (
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => { onSuspend(seller); onClose(); }}>
-                    <Ban className="h-3 w-3" /> Suspender
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => { onSuspend(seller); onClose(); }}>
+                      <Ban className="h-3 w-3" /> Suspender
+                    </Button>
+                    <Button size="sm" variant="destructive" className="gap-1" onClick={() => {
+                      updateDetails.mutate({ sellerId: seller.id, updates: { status: "blocked" } as any });
+                      onClose();
+                    }}>
+                      <Ban className="h-3 w-3" /> Bloquear
+                    </Button>
+                  </>
                 )}
                 {(seller.status === "rejected" || seller.status === "suspended") && (
                   <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleReactivate(); onClose(); }}>
@@ -470,7 +508,22 @@ export default function C2CSellersAdmin() {
     suspended: sellers.filter((s) => s.status === "suspended").length,
   };
 
-  const handleApprove = (seller: C2CSeller) => updateStatus.mutate({ sellerId: seller.id, status: "approved" });
+  const handleApprove = (seller: C2CSeller) => {
+    updateStatus.mutate({ sellerId: seller.id, status: "approved" });
+    // Emit kernel event for seller approval
+    import("@/lib/kernelEmitter").then(({ emitKernelEvent }) => {
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "MARKETPLACE.SELLER_APPROVED",
+          entity_kind: "seller",
+          entity_id: seller.id,
+          source_module: "marketplace",
+          payload: { display_name: seller.display_name },
+        });
+      }
+    });
+  };
   const handleReject = () => {
     if (!rejectDialog) return;
     updateStatus.mutate({ sellerId: rejectDialog.id, status: "rejected", rejectionReason });

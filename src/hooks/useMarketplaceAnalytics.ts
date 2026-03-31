@@ -10,6 +10,10 @@ export interface MarketplaceKPIs {
   totalOrders: number;
   monthRevenue: number;
   conversionRate: number;
+  gmv: number;
+  totalCommission: number;
+  payoutPending: number;
+  c2cShare: number;
 }
 
 export interface WeeklyTrend {
@@ -25,6 +29,14 @@ export interface TopListing {
   views_count: number;
   photos: string[];
   status: string;
+}
+
+export interface TopSeller {
+  seller_id: string;
+  display_name: string;
+  gmv: number;
+  orders: number;
+  commission: number;
 }
 
 export function useMarketplaceKPIs(workspaceId: string | undefined) {
@@ -44,21 +56,42 @@ export function useMarketplaceKPIs(workspaceId: string | undefined) {
       const sold = listings.filter((l: any) => l.status === "sold").length;
       const totalViews = listings.reduce((s: number, l: any) => s + (l.views_count || 0), 0);
 
-      // Fetch orders this month
+      // Fetch marketplace_orders for GMV + commission
+      const { data: mkOrders = [] } = await sb
+        .from("marketplace_orders")
+        .select("id, gross_amount, commission_amount, net_amount, status, created_at")
+        .eq("workspace_id", workspaceId);
+
+      const paidOrders = (mkOrders || []).filter((o: any) => o.status === "paid");
+      const gmv = paidOrders.reduce((s: number, o: any) => s + Number(o.gross_amount || 0), 0);
+      const totalCommission = paidOrders.reduce((s: number, o: any) => s + Number(o.commission_amount || 0), 0);
+
+      // Month revenue from marketplace_orders
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
+      const monthOrders = paidOrders.filter((o: any) => new Date(o.created_at) >= startOfMonth);
+      const monthRevenue = monthOrders.reduce((s: number, o: any) => s + Number(o.gross_amount || 0), 0);
 
-      const { data: orders = [], error: oErr } = await sb
-        .from("c2c_orders")
-        .select("id, total_amount, created_at")
+      // Payout pending
+      const { data: payouts = [] } = await sb
+        .from("marketplace_payouts")
+        .select("amount, status")
         .eq("workspace_id", workspaceId)
-        .gte("created_at", startOfMonth.toISOString());
-      if (oErr) console.warn("Orders query error:", oErr);
+        .in("status", ["requested", "approved"]);
+      const payoutPending = (payouts || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
 
-      const monthRevenue = (orders || []).reduce((s: number, o: any) => s + (o.total_amount || 0), 0);
+      // C2C share: compare marketplace_orders vs total store_orders
+      const { count: totalStoreOrders } = await sb
+        .from("store_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId);
 
-      // Fetch offers count for conversion
+      const c2cShare = (totalStoreOrders || 0) > 0
+        ? ((mkOrders || []).length / (totalStoreOrders || 1)) * 100
+        : 0;
+
+      // Offers count for conversion
       const { count: offersCount } = await sb
         .from("c2c_offers")
         .select("id", { count: "exact", head: true })
@@ -70,9 +103,13 @@ export function useMarketplaceKPIs(workspaceId: string | undefined) {
         activeListings: active,
         soldListings: sold,
         totalViews,
-        totalOrders: (orders || []).length,
+        totalOrders: paidOrders.length,
         monthRevenue,
         conversionRate: Math.round(conversionRate * 100) / 100,
+        gmv,
+        totalCommission,
+        payoutPending,
+        c2cShare: Math.round(c2cShare * 100) / 100,
       } as MarketplaceKPIs;
     },
     enabled: !!workspaceId,
@@ -96,7 +133,7 @@ export function useWeeklyTrends(workspaceId: string | undefined) {
         .gte("created_at", twelveWeeksAgo.toISOString());
 
       const { data: orders = [] } = await sb
-        .from("c2c_orders")
+        .from("marketplace_orders")
         .select("created_at")
         .eq("workspace_id", workspaceId)
         .gte("created_at", twelveWeeksAgo.toISOString());
@@ -143,6 +180,52 @@ export function useTopListings(workspaceId: string | undefined) {
         .limit(10);
       if (error) throw error;
       return data as TopListing[];
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+export function useTopSellers(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["marketplace-top-sellers", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+
+      const { data: mkOrders = [] } = await sb
+        .from("marketplace_orders")
+        .select("seller_id, gross_amount, commission_amount, status")
+        .eq("workspace_id", workspaceId)
+        .eq("status", "paid");
+
+      // Get all sellers
+      const sellerIds = [...new Set((mkOrders || []).map((o: any) => o.seller_id))];
+      if (sellerIds.length === 0) return [];
+
+      const { data: sellers = [] } = await sb
+        .from("c2c_sellers")
+        .select("id, display_name")
+        .in("id", sellerIds);
+
+      const sellerMap = new Map((sellers || []).map((s: any) => [s.id, s.display_name]));
+
+      // Aggregate by seller
+      const agg = new Map<string, { gmv: number; orders: number; commission: number }>();
+      for (const o of mkOrders || []) {
+        const prev = agg.get(o.seller_id) || { gmv: 0, orders: 0, commission: 0 };
+        prev.gmv += Number(o.gross_amount || 0);
+        prev.commission += Number(o.commission_amount || 0);
+        prev.orders++;
+        agg.set(o.seller_id, prev);
+      }
+
+      return [...agg.entries()]
+        .map(([seller_id, stats]) => ({
+          seller_id,
+          display_name: sellerMap.get(seller_id) || seller_id.slice(0, 8),
+          ...stats,
+        }))
+        .sort((a, b) => b.gmv - a.gmv)
+        .slice(0, 10) as TopSeller[];
     },
     enabled: !!workspaceId,
   });

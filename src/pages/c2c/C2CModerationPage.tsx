@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useC2CModeration } from "@/hooks/useC2CModeration";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -16,6 +18,8 @@ const statusColors: Record<string, string> = {
 
 export default function C2CModerationPage() {
   const { queue, isLoading, reviewItem, pendingCount } = useC2CModeration();
+  const [rejectReasonMap, setRejectReasonMap] = useState<Record<string, string>>({});
+  const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
 
   const pending = queue.filter((q: any) => q.status === "pending");
   const reviewed = queue.filter((q: any) => q.status !== "pending");
@@ -67,23 +71,51 @@ export default function C2CModerationPage() {
                         {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: pt })}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-600 border-green-200 hover:bg-green-50"
-                        onClick={() => reviewItem.mutate({ id: item.id, action: "none", status: "approved" })}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Aprovar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive border-destructive/20 hover:bg-destructive/5"
-                        onClick={() => reviewItem.mutate({ id: item.id, action: "removed", status: "rejected" })}
-                      >
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeitar
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600 border-green-200 hover:bg-green-50"
+                          onClick={() => reviewItem.mutate({ id: item.id, action: "none", status: "approved" })}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Aprovar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive border-destructive/20 hover:bg-destructive/5"
+                          onClick={() => setShowRejectInput(showRejectInput === item.id ? null : item.id)}
+                        >
+                          <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeitar
+                        </Button>
+                      </div>
+                      {showRejectInput === item.id && (
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            placeholder="Motivo da rejeição..."
+                            value={rejectReasonMap[item.id] || ""}
+                            onChange={(e) => setRejectReasonMap(prev => ({ ...prev, [item.id]: e.target.value }))}
+                            className="h-8 text-sm"
+                          />
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 text-xs shrink-0"
+                            onClick={() => {
+                              reviewItem.mutate({
+                                id: item.id,
+                                action: "removed",
+                                status: "rejected",
+                                notes: rejectReasonMap[item.id] || "Rejeitado sem motivo",
+                              } as any);
+                              setShowRejectInput(null);
+                            }}
+                          >
+                            Confirmar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
