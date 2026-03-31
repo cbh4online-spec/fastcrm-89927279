@@ -533,6 +533,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
         footerText={localFooterText || undefined}
         contactPage={localContactPage}
       />
+
+      <EbookPreflightDialog
+        open={showPreflight}
+        onOpenChange={setShowPreflight}
+        result={runPreflight(ebook as any, ctas)}
+        onPublish={handlePreflightPublish}
+        publishing={updateEbook.isPending}
+      />
     </div>
   );
 }
