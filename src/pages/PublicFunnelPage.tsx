@@ -246,6 +246,7 @@ export default function PublicFunnelPage() {
     }
 
     setFormSubmitted(true);
+    tracking.markStepCompleted(step.id);
     const isLast = currentStepIndex >= steps.length - 1;
     if (isLast) {
       tracking.trackFunnelCompleted();
