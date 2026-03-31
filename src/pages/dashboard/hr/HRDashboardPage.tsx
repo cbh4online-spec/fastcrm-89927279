@@ -259,6 +259,7 @@ export default function HRDashboardPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           {/* Header */}
           <div>

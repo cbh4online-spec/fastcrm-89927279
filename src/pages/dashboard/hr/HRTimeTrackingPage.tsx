@@ -35,6 +35,7 @@ export default function HRTimeTrackingPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">Controlo de Ponto</h1>

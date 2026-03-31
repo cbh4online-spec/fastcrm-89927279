@@ -49,6 +49,7 @@ export default function HRSchedulesPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
