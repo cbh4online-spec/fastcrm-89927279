@@ -126,6 +126,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       }
     }
   }, [activeJob?.status]);
+  const { getCost, balance } = useCreditWallet();
 
   const outlineCost = getCost("ebook_generate_full") || 15;
   const chapterCost = getCost("ebook_generate_chapter") || 3;
