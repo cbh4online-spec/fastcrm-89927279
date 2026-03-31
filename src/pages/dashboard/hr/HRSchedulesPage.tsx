@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRSchedules, useHRShifts, useCreateHRShift, useDeleteHRShift, useUpsertSchedule, type HRShift } from "@/hooks/hr/useHRSchedules";
-import { useHREmployees } from "@/hooks/hr/useHREmployees";
+import { useHREmployeesList } from "@/hooks/hr/useCheckins";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ export default function HRSchedulesPage() {
   const [newShift, setNewShift] = useState({ name: "", start_time: "09:00", end_time: "18:00", color: "#6366f1" });
   const [scheduleForm, setScheduleForm] = useState({ employee_id: "", shift_id: "", schedule_date: "" });
 
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const { data: shifts = [] } = useHRShifts();
   const { data: schedules = [] } = useHRSchedules(weekDate);
   const createShift = useCreateHRShift();
