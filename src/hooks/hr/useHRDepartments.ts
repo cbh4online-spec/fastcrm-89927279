@@ -47,7 +47,7 @@ export function useCreateHRDepartment() {
 export function useUpdateHRDepartment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...values }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
+    mutationFn: async ({ id, ...values }: { id: string; name?: string; description?: string; is_active?: boolean; parent_department_id?: string | null; head_id?: string | null }) => {
       const { error } = await supabase
         .from("hr_departments")
         .update(values)
