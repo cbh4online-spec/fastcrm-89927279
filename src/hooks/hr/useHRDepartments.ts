@@ -14,7 +14,7 @@ export function useHRDepartments(onlyActive = false) {
     queryFn: async () => {
       let q = supabase
         .from("hr_departments")
-        .select("*")
+        .select("*, head:hr_employees(id, full_name), parent:hr_departments(id, name)")
         .eq("workspace_id", wsId!)
         .order("name");
       if (onlyActive) q = q.eq("is_active", true);
