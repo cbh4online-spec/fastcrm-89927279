@@ -24934,7 +24934,7 @@ export type Database = {
             foreignKeyName: "hr_departments_head_id_fkey"
             columns: ["head_id"]
             isOneToOne: false
-            referencedRelation: "hr_employees"
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
