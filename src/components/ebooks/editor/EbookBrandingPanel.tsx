@@ -44,8 +44,8 @@ export function EbookBrandingPanel({
   protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange,
   onProtectionChange, onLeadGateChange,
-  consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
-  onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
+  consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
+  onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
   onSeoTitleChange, onSeoDescriptionChange, onOgImageUrlChange, onCanonicalUrlChange, onNoindexChange,
 }: EbookBrandingPanelProps) {
