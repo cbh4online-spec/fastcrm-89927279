@@ -30,7 +30,7 @@ export function useCreateHRDepartment() {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
-    mutationFn: async (values: { name: string; description?: string }) => {
+    mutationFn: async (values: { name: string; description?: string; parent_department_id?: string | null; head_id?: string | null }) => {
       const { error } = await supabase
         .from("hr_departments")
         .insert({ ...values, workspace_id: wsId! });
