@@ -94,10 +94,13 @@ export default function HREmployeeDetailPage() {
         <HRBreadcrumb />
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={employee.avatar_url || undefined} />
-              <AvatarFallback className="text-xl">{employee.full_name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <HREmployeeAvatarUpload
+              employeeId={employee.id}
+              workspaceId={employee.workspace_id}
+              currentAvatarUrl={employee.avatar_url}
+              fallbackInitial={employee.full_name.charAt(0)}
+              size="lg"
+            />
             <div>
               <h1 className="text-2xl font-bold">{employee.full_name}</h1>
               <p className="text-muted-foreground">
