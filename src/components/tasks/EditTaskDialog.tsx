@@ -20,7 +20,7 @@ interface EditTaskDialogProps {
   task: Task | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (id: string, updates: { title?: string; due_at?: string | null }) => void;
+  onSave: (id: string, updates: { title?: string; due_at?: string | null; assigned_to?: string | null }) => void;
   onDelete: (id: string) => void;
 }
 
