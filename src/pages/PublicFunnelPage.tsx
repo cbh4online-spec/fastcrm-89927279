@@ -435,10 +435,10 @@ export default function PublicFunnelPage() {
         </div>
         )}
 
-        {!hasForm && (
+        {!hasForm && !DEDICATED_TYPES.includes(step.step_type) && (
           <div className="flex items-center justify-between mt-12">
             {!isFirst ? (
-              <Button variant="ghost" onClick={() => { tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i - 1); }}>
+              <Button variant="ghost" onClick={() => { tracking.markStepCompleted(step.id); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i - 1); }}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
               </Button>
             ) : <div />}
@@ -449,11 +449,11 @@ export default function PublicFunnelPage() {
                 </a>
               </Button>
             ) : !isLast ? (
-              <Button size="lg" onClick={() => { tracking.trackCtaClicked(step.id, content.cta_text); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i + 1); }}>
+              <Button size="lg" onClick={() => { tracking.trackCtaClicked(step.id, content.cta_text); tracking.markStepCompleted(step.id); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i + 1); }}>
                 {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button size="lg" onClick={() => tracking.trackFunnelCompleted()} disabled={!content.cta_text}>
+              <Button size="lg" onClick={() => { tracking.markStepCompleted(step.id); tracking.trackFunnelCompleted(); }} disabled={!content.cta_text}>
                 {content.cta_text || "Concluído ✅"}
               </Button>
             )}
