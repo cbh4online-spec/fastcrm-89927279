@@ -104,7 +104,7 @@ export function useOnboardings(statusFilter?: string) {
         .order("created_at", { ascending: false });
 
       if (statusFilter && statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
+        query = query.eq("status", statusFilter as "pending" | "in_progress" | "completed" | "cancelled");
       }
 
       const { data, error } = await query;
