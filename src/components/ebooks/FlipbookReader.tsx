@@ -11,6 +11,8 @@ import { AnimatedHandCursor } from "./AnimatedHandCursor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
 import { EbookReadTracker } from "./EbookReadTracker";
 import { FlipbookZoomLens } from "./FlipbookZoomLens";
+import { EbookCtaOverlay } from "./EbookCtaOverlay";
+import type { EbookCta } from "@/hooks/useEbookCtas";
 
 interface EbookChapter {
   id: string;
