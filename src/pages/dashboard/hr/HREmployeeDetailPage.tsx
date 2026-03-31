@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHREmployee, useHREmployees, useUpdateHREmployee } from "@/hooks/hr/useHREmployees";
+import { HREmployeeAvatarUpload } from "@/components/hr/HREmployeeAvatarUpload";
 import { useHRDepartments } from "@/hooks/hr/useHRDepartments";
 import { useHRJobTitles } from "@/hooks/hr/useHRJobTitles";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
