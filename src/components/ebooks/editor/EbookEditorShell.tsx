@@ -140,7 +140,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       og_image_url: localOgImageUrl, canonical_url: localCanonicalUrl, noindex: localNoindex,
     });
   }, [localHeaderText, localFooterText, localContactPage,
-      localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
+      localConsentRequired, localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
       localSeoTitle, localSeoDescription, localOgImageUrl, localCanonicalUrl, localNoindex]);
 
   // ── Chapter operations — all go through queueSave ──
