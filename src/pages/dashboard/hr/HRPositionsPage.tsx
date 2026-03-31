@@ -98,9 +98,9 @@ export default function HRPositionsPage() {
           </div>
 
           <KPIGrid columns={3}>
-            <KPICard title="Total" value={jobTitles?.length ?? 0} icon={Briefcase} />
-            <KPICard title="Ativos" value={activeJobs} icon={Briefcase} />
-            <KPICard title="Inativos" value={(jobTitles?.length ?? 0) - activeJobs} icon={Briefcase} />
+            <KPICard title="Total" value={jobTitles?.length ?? 0} icon={<Briefcase className="h-5 w-5" />} />
+            <KPICard title="Ativos" value={activeJobs} icon={<Briefcase className="h-5 w-5" />} />
+            <KPICard title="Inativos" value={(jobTitles?.length ?? 0) - activeJobs} icon={<Briefcase className="h-5 w-5" />} />
           </KPIGrid>
 
           <Card>

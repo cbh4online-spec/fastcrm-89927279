@@ -91,9 +91,9 @@ export default function HRDepartmentsPage() {
           </div>
 
           <KPIGrid columns={3}>
-            <KPICard title="Total" value={departments?.length ?? 0} icon={Building2} />
-            <KPICard title="Ativos" value={activeDepts} icon={Building2} />
-            <KPICard title="Inativos" value={(departments?.length ?? 0) - activeDepts} icon={Building2} />
+            <KPICard title="Total" value={departments?.length ?? 0} icon={<Building2 className="h-5 w-5" />} />
+            <KPICard title="Ativos" value={activeDepts} icon={<Building2 className="h-5 w-5" />} />
+            <KPICard title="Inativos" value={(departments?.length ?? 0) - activeDepts} icon={<Building2 className="h-5 w-5" />} />
           </KPIGrid>
 
           <Card>
