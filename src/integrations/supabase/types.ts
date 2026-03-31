@@ -19367,6 +19367,128 @@ export type Database = {
           },
         ]
       }
+      ebook_cta_events: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          cta_id: string
+          ebook_id: string
+          event_type: string
+          id: string
+          view_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          cta_id: string
+          ebook_id: string
+          event_type: string
+          id?: string
+          view_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          cta_id?: string
+          ebook_id?: string
+          event_type?: string
+          id?: string
+          view_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_cta_events_cta_id_fkey"
+            columns: ["cta_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_ctas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_cta_events_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_cta_events_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_views"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_cta_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ebook_ctas: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          cta_type: string
+          ebook_id: string
+          id: string
+          is_active: boolean
+          label: string
+          position: string
+          sort_order: number
+          target_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          cta_type?: string
+          ebook_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          position?: string
+          sort_order?: number
+          target_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          cta_type?: string
+          ebook_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          position?: string
+          sort_order?: number
+          target_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_ctas_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ebook_ctas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebook_generation_jobs: {
         Row: {
           config: Json
@@ -19671,12 +19793,17 @@ export type Database = {
       ebook_views: {
         Row: {
           completed: boolean
+          consent_given: boolean
+          consent_text_version: string | null
+          consent_timestamp: string | null
           contact_id: string | null
           country: string | null
           device_type: string | null
           ebook_id: string
           id: string
+          ip_address: string | null
           last_activity_at: string
+          marketing_opt_in: boolean
           max_page_reached: number
           pages_viewed: number
           reader_email: string | null
@@ -19686,6 +19813,7 @@ export type Database = {
           started_at: string
           time_on_book_seconds: number
           total_pages: number
+          user_agent_string: string | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
@@ -19693,12 +19821,17 @@ export type Database = {
         }
         Insert: {
           completed?: boolean
+          consent_given?: boolean
+          consent_text_version?: string | null
+          consent_timestamp?: string | null
           contact_id?: string | null
           country?: string | null
           device_type?: string | null
           ebook_id: string
           id?: string
+          ip_address?: string | null
           last_activity_at?: string
+          marketing_opt_in?: boolean
           max_page_reached?: number
           pages_viewed?: number
           reader_email?: string | null
@@ -19708,6 +19841,7 @@ export type Database = {
           started_at?: string
           time_on_book_seconds?: number
           total_pages?: number
+          user_agent_string?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -19715,12 +19849,17 @@ export type Database = {
         }
         Update: {
           completed?: boolean
+          consent_given?: boolean
+          consent_text_version?: string | null
+          consent_timestamp?: string | null
           contact_id?: string | null
           country?: string | null
           device_type?: string | null
           ebook_id?: string
           id?: string
+          ip_address?: string | null
           last_activity_at?: string
+          marketing_opt_in?: boolean
           max_page_reached?: number
           pages_viewed?: number
           reader_email?: string | null
@@ -19730,6 +19869,7 @@ export type Database = {
           started_at?: string
           time_on_book_seconds?: number
           total_pages?: number
+          user_agent_string?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -19755,7 +19895,9 @@ export type Database = {
       ebooks: {
         Row: {
           author_name: string | null
+          canonical_url: string | null
           chapters: Json
+          consent_text: string | null
           contact_page: Json | null
           cover_url: string | null
           created_at: string
@@ -19768,9 +19910,16 @@ export type Database = {
           image_keywords: string[] | null
           image_style: string | null
           lead_gate_enabled: boolean
+          marketing_opt_in_enabled: boolean
+          marketing_opt_in_label: string | null
           metadata: Json | null
+          noindex: boolean
+          og_image_url: string | null
           pdf_storage_path: string | null
+          privacy_policy_url: string | null
           protection_enabled: boolean
+          seo_description: string | null
+          seo_title: string | null
           slug: string | null
           status: string
           subtitle: string | null
@@ -19782,7 +19931,9 @@ export type Database = {
         }
         Insert: {
           author_name?: string | null
+          canonical_url?: string | null
           chapters?: Json
+          consent_text?: string | null
           contact_page?: Json | null
           cover_url?: string | null
           created_at?: string
@@ -19795,9 +19946,16 @@ export type Database = {
           image_keywords?: string[] | null
           image_style?: string | null
           lead_gate_enabled?: boolean
+          marketing_opt_in_enabled?: boolean
+          marketing_opt_in_label?: string | null
           metadata?: Json | null
+          noindex?: boolean
+          og_image_url?: string | null
           pdf_storage_path?: string | null
+          privacy_policy_url?: string | null
           protection_enabled?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null
@@ -19809,7 +19967,9 @@ export type Database = {
         }
         Update: {
           author_name?: string | null
+          canonical_url?: string | null
           chapters?: Json
+          consent_text?: string | null
           contact_page?: Json | null
           cover_url?: string | null
           created_at?: string
@@ -19822,9 +19982,16 @@ export type Database = {
           image_keywords?: string[] | null
           image_style?: string | null
           lead_gate_enabled?: boolean
+          marketing_opt_in_enabled?: boolean
+          marketing_opt_in_label?: string | null
           metadata?: Json | null
+          noindex?: boolean
+          og_image_url?: string | null
           pdf_storage_path?: string | null
+          privacy_policy_url?: string | null
           protection_enabled?: boolean
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null
