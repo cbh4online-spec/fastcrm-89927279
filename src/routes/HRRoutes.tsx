@@ -1,12 +1,7 @@
 import { lazy } from "react";
 import { Route } from "react-router-dom";
 
-const TimeClockPage = lazy(() => import("@/pages/dashboard/hr/TimeClockPage"));
-const SessionTimePage = lazy(() => import("@/pages/dashboard/hr/SessionTimePage"));
-const LeavePage = lazy(() => import("@/pages/dashboard/hr/LeavePage"));
-const MyTimePage = lazy(() => import("@/pages/dashboard/hr/MyTimePage"));
-
-// New HR module pages
+// HR module pages
 const HRDashboardPage = lazy(() => import("@/pages/dashboard/hr/HRDashboardPage"));
 const HREmployeesPage = lazy(() => import("@/pages/dashboard/hr/HREmployeesPage"));
 const HREmployeeDetailPage = lazy(() => import("@/pages/dashboard/hr/HREmployeeDetailPage"));
