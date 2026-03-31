@@ -255,18 +255,41 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       </div>
 
       {/* Generating overlay */}
-      {generating && (
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+      {(generating || genFailed) && (
+        <Card className={cn("border-primary/30 bg-gradient-to-br from-primary/5 to-background", genFailed && "border-destructive/30")}>
           <CardContent className="py-12 text-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg text-foreground">A gerar o seu eBook...</h3>
-              <p className="text-sm text-muted-foreground">{genStatus}</p>
-            </div>
-            <div className="max-w-md mx-auto">
-              <Progress value={genProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">{genProgress}%</p>
-            </div>
+            {genFailed ? (
+              <>
+                <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg text-foreground">Erro na geração</h3>
+                  <p className="text-sm text-muted-foreground">{activeJob?.error_message || "Erro desconhecido"}</p>
+                  {activeJob?.error_step && (
+                    <p className="text-xs text-muted-foreground">Falhou no passo: {getStepLabel(activeJob.error_step)}</p>
+                  )}
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+                  <Button onClick={handleRetry} className="bg-gradient-to-r from-primary to-primary/80">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Retomar geração
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg text-foreground">A gerar o seu eBook...</h3>
+                  <p className="text-sm text-muted-foreground">{genStatus}</p>
+                </div>
+                <div className="max-w-md mx-auto">
+                  <Progress value={genProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-1">{genProgress}%</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Pode fechar esta janela — a geração continuará em segundo plano.</p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
