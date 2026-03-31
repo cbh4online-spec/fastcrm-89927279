@@ -47,7 +47,7 @@ export function useCreateHRJobTitle() {
 export function useUpdateHRJobTitle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...values }: { id: string; name?: string; department_id?: string | null; is_active?: boolean }) => {
+    mutationFn: async ({ id, ...values }: { id: string; name?: string; department_id?: string | null; is_active?: boolean; description?: string; level?: string | null; salary_min?: number | null; salary_max?: number | null; currency?: string }) => {
       const { error } = await supabase
         .from("hr_job_titles")
         .update(values)
