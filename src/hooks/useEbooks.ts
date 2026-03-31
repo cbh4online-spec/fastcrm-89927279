@@ -78,7 +78,7 @@ export interface Ebook {
   metadata?: Record<string, unknown>;
   pdf_storage_path?: string | null;
   slug?: string | null;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "generating" | "ready_for_review" | "published" | "archived" | "generation_failed";
   header_text?: string | null;
   footer_text?: string | null;
   contact_page?: EbookContactPage | null;

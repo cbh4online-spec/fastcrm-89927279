@@ -7,12 +7,13 @@ import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import type { EbookRichEditorHandle } from "../EbookRichEditor";
 import { useEbookNotes } from "@/hooks/useEbookNotes";
+import { useEbookPersistence } from "@/hooks/useEbookPersistence";
 
 import { EbookEditorHeader } from "./EbookEditorHeader";
 import { EbookChapterSidebar } from "./EbookChapterSidebar";
 import { EbookCanvasEditor } from "./EbookCanvasEditor";
 import { EbookRightPanel } from "./EbookRightPanel";
-import { EbookStatusBar, type SaveStatus } from "./EbookStatusBar";
+import { EbookStatusBar } from "./EbookStatusBar";
 import { EbookPreviewDialog } from "./EbookPreviewDialog";
 
 interface EbookEditorShellProps {
@@ -35,6 +36,12 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const { canAfford, getCost, consumeCredits } = useCreditWallet();
   const { notes, isLoading: notesLoading, addNote, updateNote, deleteNote } = useEbookNotes(ebookId, ebook?.workspace_id);
 
+  // Centralised persistence
+  const {
+    isDirty, saveStatus, lastSavedAt,
+    queueSave, forceSave, retrySave,
+  } = useEbookPersistence({ ebookId });
+
   // Core state
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -45,8 +52,6 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const [generatingChapterImgAI, setGeneratingChapterImgAI] = useState(false);
   const [showPresentation, setShowPresentation] = useState(false);
   const [useVisualEditor, setUseVisualEditor] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   // Drag state
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -95,27 +100,16 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
     }
   }, [(ebook as any)?.global_styles?.headingFont, (ebook as any)?.global_styles?.bodyFont]);
 
-  // Debounced branding save
+  // Debounced branding save — via centralised persistence
   useEffect(() => {
     if (!brandingInitRef.current) return;
-    setSaveStatus('saving');
-    const timer = setTimeout(() => {
-      updateEbook.mutate(
-        { id: ebookId, header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage } as any,
-        { onSuccess: () => { setSaveStatus('saved'); setLastSavedAt(new Date()); }, onError: () => setSaveStatus('failed') }
-      );
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [localHeaderText, localFooterText, localContactPage, ebookId]);
+    queueSave({ header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage });
+  }, [localHeaderText, localFooterText, localContactPage]);
 
-  // ── Chapter operations ──
+  // ── Chapter operations — all go through queueSave ──
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
-    setSaveStatus('saving');
-    updateEbook.mutate(
-      { id: ebookId, chapters },
-      { onSuccess: () => { setSaveStatus('saved'); setLastSavedAt(new Date()); }, onError: () => setSaveStatus('failed') }
-    );
-  }, [ebookId, updateEbook]);
+    queueSave({ chapters });
+  }, [queueSave]);
 
   const migrateContentToBlocks = useCallback((content: string): ContentBlock[] => {
     if (!content || content.trim() === '') return [];
@@ -327,6 +321,8 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
 
   const publishEbook = () => {
     if (!ebook) return;
+    // Force save before publishing
+    forceSave();
     updateEbook.mutate({ id: ebookId, status: "published" }, { onSuccess: () => toast.success("eBook publicado!") });
   };
 
@@ -359,8 +355,8 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
 
       <EbookEditorHeader
         ebook={ebook}
-        onBack={onBack}
-        onUpdateTitle={(title) => updateEbook.mutate({ id: ebookId, title })}
+        onBack={() => { if (isDirty) forceSave(); onBack(); }}
+        onUpdateTitle={(title) => queueSave({ title } as any)}
         onGenerateCoverAI={generateCoverAI}
         onUploadCover={() => coverInputRef.current?.click()}
         onPreview={() => setShowPresentation(true)}
@@ -433,14 +429,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onHeaderTextChange={setLocalHeaderText}
           onFooterTextChange={setLocalFooterText}
           onContactPageChange={setLocalContactPage}
-          onProtectionChange={(val) => updateEbook.mutate({ id: ebookId, ...(({ protection_enabled: val }) as any) })}
-          onLeadGateChange={(val) => updateEbook.mutate({ id: ebookId, lead_gate_enabled: val } as any)}
+          onProtectionChange={(val) => queueSave({ protection_enabled: val })}
+          onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
           theme={(ebook as any).theme || "modern-dark"}
           headingFont={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
           bodyFont={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
-          onThemeChange={(theme) => updateEbook.mutate({ id: ebookId, theme } as any)}
-          onHeadingFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), headingFont: val }; updateEbook.mutate({ id: ebookId, global_styles: gs } as any); }}
-          onBodyFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), bodyFont: val }; updateEbook.mutate({ id: ebookId, global_styles: gs } as any); }}
+          onThemeChange={(theme) => queueSave({ theme })}
+          onHeadingFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), headingFont: val }; queueSave({ global_styles: gs }); }}
+          onBodyFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), bodyFont: val }; queueSave({ global_styles: gs }); }}
           notes={notes}
           notesLoading={notesLoading}
           addNote={addNote}
@@ -457,6 +453,8 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
         progress={progress}
         saveStatus={saveStatus}
         lastSavedAt={lastSavedAt}
+        isDirty={isDirty}
+        onRetry={retrySave}
       />
 
       <EbookPreviewDialog

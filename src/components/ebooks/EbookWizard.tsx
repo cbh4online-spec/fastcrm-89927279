@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,13 +17,14 @@ import { useCreateEbook } from "@/hooks/useEbooks";
 import { supabase } from "@/integrations/supabase/client";
 import { buildChaptersFromTemplate, countContentSlots, CONTENT_LAYOUT_KEYS, getStructuralLayouts, getPageImageType } from "./utils/templateToChapters";
 import { LAYOUT_LABELS } from "@/types/ebook-templates";
+import { useStartEbookGeneration, useEbookGenerationJob, useRetryEbookGeneration, getStepLabel } from "@/hooks/useEbookGenerationJob";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EbookTemplate } from "@/types/ebook-templates";
 import {
   Sparkles, ArrowLeft, ArrowRight, Loader2, Minus, Plus,
   BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid,
-  Target, ListChecks, X
+  Target, ListChecks, X, AlertCircle, RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -102,13 +103,30 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const [generateImages, setGenerateImages] = useState(true);
   const [imageLayout, setImageLayout] = useState<ImageLayoutConfig>(DEFAULT_IMAGE_LAYOUT);
 
-  // Generation state
-  const [generating, setGenerating] = useState(false);
-  const [genProgress, setGenProgress] = useState(0);
-  const [genStatus, setGenStatus] = useState("");
+  // Generation state — async job-based
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const { data: activeJob } = useEbookGenerationJob(activeJobId);
+  const startGeneration = useStartEbookGeneration();
+  const retryGeneration = useRetryEbookGeneration();
 
-  const { canAfford, getCost, consumeCredits, balance } = useCreditWallet();
-  const createEbook = useCreateEbook();
+  const generating = activeJob?.status === "queued" || activeJob?.status === "running";
+  const genProgress = activeJob?.progress || 0;
+  const genStatus = activeJob ? getStepLabel(activeJob.current_step) : "";
+  const genFailed = activeJob?.status === "failed";
+
+  // Auto-navigate on completion
+  const completedRef = useRef(false);
+  useEffect(() => {
+    if (activeJob?.status === "completed" && !completedRef.current) {
+      completedRef.current = true;
+      const ebookId = (activeJob.result as any)?.ebook_id || activeJob.ebook_id;
+      if (ebookId) {
+        toast.success("eBook gerado com sucesso! 🎉");
+        setTimeout(() => onComplete(ebookId), 600);
+      }
+    }
+  }, [activeJob?.status]);
+  const { getCost, balance } = useCreditWallet();
 
   const outlineCost = getCost("ebook_generate_full") || 15;
   const chapterCost = getCost("ebook_generate_chapter") || 3;
@@ -159,191 +177,37 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       return;
     }
 
-    setGenerating(true);
-    setGenProgress(0);
-    setGenStatus("A gerar estrutura...");
-
     try {
-      await consumeCredits.mutateAsync({ actionKey: "ebook_generate_full", idempotencyKey: `wizard-${Date.now()}` });
-
-      const { data: outlineData, error: outlineErr } = await supabase.functions.invoke("ebook-ai-assist", {
-        body: {
-          action: "generate_outline",
-          title: prompt.trim(),
-          chapterCount,
-          tone,
-          audience: AUDIENCES.find(a => a.id === audience)?.label || undefined,
-          objective: OBJECTIVES.find(o => o.id === objective)?.label || undefined,
-          depth: DEPTHS.find(d => d.id === depth)?.label || undefined,
-          specialElements: specialElements.map(id => SPECIAL_ELEMENTS.find(e => e.id === id)?.label).filter(Boolean),
-          contentKeywords,
-        },
+      const result = await startGeneration.mutateAsync({
+        prompt: prompt.trim(),
+        chapterCount,
+        tone,
+        mode,
+        audience: AUDIENCES.find(a => a.id === audience)?.label,
+        objective: OBJECTIVES.find(o => o.id === objective)?.label,
+        depth: DEPTHS.find(d => d.id === depth)?.label,
+        specialElements: specialElements.map(id => SPECIAL_ELEMENTS.find(e => e.id === id)?.label).filter(Boolean) as string[],
+        contentKeywords,
+        theme,
+        imageStyle,
+        imageKeywords,
+        generateImages,
+        templateId: selectedTemplateId || undefined,
+        templateStyles: selectedTemplate?.style_tokens ? { ...selectedTemplate.style_tokens } : undefined,
       });
-      if (outlineErr) throw outlineErr;
-      if (outlineData?.error) throw new Error(outlineData.error);
 
-      const result = outlineData?.result;
-      if (!result) throw new Error("Sem resultado do outline");
-
-      const aiChapters = (result.chapters || []).map((ch: any, i: number) => ({
-        id: `ch-${i}`,
-        title: ch.title,
-        description: ch.description,
-        content: "",
-        sections: ch.sections || [],
-      }));
-
-      setGenProgress(15);
-
-      // Build chapters from template structure if a template is selected
-      const chapters = (selectedTemplate && selectedTemplate.page_layouts?.length > 0)
-        ? buildChaptersFromTemplate(selectedTemplate, aiChapters, {
-            title: result.title || prompt.trim(),
-            subtitle: result.subtitle,
-            authorName: result.author_name,
-          })
-        : aiChapters;
-
-      const createPayload: any = {
-        title: result.title || prompt.trim(),
-        subtitle: result.subtitle,
-        chapters,
-      };
-      if (selectedTemplateId && selectedTemplate) {
-        createPayload.template_id = selectedTemplateId;
-        createPayload.global_styles = selectedTemplate.style_tokens;
-      }
-      const ebook = await createEbook.mutateAsync(createPayload);
-      await (supabase as any).from("ebooks").update({
-        theme, image_style: imageStyle, image_keywords: imageKeywords
-      }).eq("id", ebook.id);
-
-      setGenProgress(20);
-
-      if (mode === "generate") {
-        // Only generate content for AI chapters (not structural template pages)
-        const contentChapters = chapters.map((ch, idx) => ({ ch, idx }))
-          .filter(({ ch }) => !ch.layout_key || ["chapter_intro_large", "chapter_intro_minimal", "rich_text", "text_image_split", "three_column_highlights"].includes(ch.layout_key as string));
-        
-        for (let j = 0; j < contentChapters.length; j++) {
-          const { ch, idx } = contentChapters[j];
-          setGenStatus(`A escrever capítulo ${j + 1}/${contentChapters.length}: ${ch.title}`);
-
-          if (!canAfford("ebook_generate_chapter")) {
-            toast.warning(`Créditos insuficientes. Gerados ${j} de ${contentChapters.length} capítulos.`);
-            break;
-          }
-
-          await consumeCredits.mutateAsync({
-            actionKey: "ebook_generate_chapter",
-            referenceType: "ebook",
-            referenceId: ebook.id,
-          });
-
-          const { data: chData, error: chErr } = await supabase.functions.invoke("ebook-ai-assist", {
-            body: { action: "generate_chapter", title: result.title, chapterTitle: ch.title, chapterContext: ch.description || "", tone },
-          });
-
-          if (!chErr && chData?.content) {
-            chapters[idx] = { ...chapters[idx], content: chData.content };
-          }
-
-          const contentProgress = 20 + ((j + 1) / contentChapters.length) * (generateImages ? 50 : 75);
-          setGenProgress(Math.round(contentProgress));
-        }
-
-        await (supabase as any).from("ebooks").update({
-          chapters,
-          updated_at: new Date().toISOString(),
-        }).eq("id", ebook.id);
-      }
-
-      setGenStatus("A gerar capa...");
-      if (canAfford("ebook_generate_cover")) {
-        await consumeCredits.mutateAsync({
-          actionKey: "ebook_generate_cover",
-          referenceType: "ebook",
-          referenceId: ebook.id,
-        });
-
-        const styleInfo = IMAGE_STYLES.find(s => s.id === imageStyle);
-        const coverPrompt = `Create a professional eBook cover image for "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. No text in image.`;
-        const { data: coverData } = await supabase.functions.invoke("ebook-ai-assist", {
-          body: { action: "generate_image", imagePrompt: coverPrompt, ebookId: ebook.id, target: "cover" },
-        });
-        if (coverData?.url) {
-          await (supabase as any).from("ebooks").update({ cover_url: coverData.url }).eq("id", ebook.id);
-        }
-      }
-      setGenProgress(generateImages ? 80 : 95);
-
-      if (generateImages) {
-        // Build list of chapters that need images, respecting per-type config
-        const imageJobs: { chapterIdx: number; imgType: keyof ImageLayoutConfig; imgNum: number }[] = [];
-        for (let i = 0; i < chapters.length; i++) {
-          const pageType = getPageImageType(chapters[i].layout_key as string | undefined);
-          if (!pageType) continue; // structural page without images
-          const cfg = imageLayout[pageType];
-          if (cfg.count <= 0) continue;
-          for (let n = 0; n < cfg.count; n++) {
-            imageJobs.push({ chapterIdx: i, imgType: pageType, imgNum: n });
-          }
-        }
-
-        for (let j = 0; j < imageJobs.length; j++) {
-          const { chapterIdx, imgType, imgNum } = imageJobs[j];
-          const ch = chapters[chapterIdx];
-          const cfg = imageLayout[imgType];
-          setGenStatus(`A gerar imagem ${j + 1}/${imageJobs.length}...`);
-
-          if (!canAfford("ebook_generate_chapter_image")) {
-            toast.warning(`Créditos insuficientes para imagens. Geradas ${j} de ${imageJobs.length}.`);
-            break;
-          }
-
-          await consumeCredits.mutateAsync({
-            actionKey: "ebook_generate_chapter_image",
-            referenceType: "ebook",
-            referenceId: ebook.id,
-          });
-
-          const styleInfo = IMAGE_STYLES.find(s => s.id === imageStyle);
-          const aspectHint = cfg.aspectPreset ? ASPECT_TO_PROMPT[cfg.aspectPreset] : SIZE_TO_ASPECT[cfg.size];
-          const posHint = cfg.position;
-          const customHint = cfg.customPrompt ? `. Additional style: ${cfg.customPrompt}` : "";
-          const bgHint = cfg.asBackground ? " This image will be used as a page background, make it atmospheric and not too busy." : "";
-          const imgPrompt = `Create an atmospheric illustration for "${ch.title}" from book "${result.title}". Style: ${styleInfo?.prompt || "editorial"}. ${imageKeywords.join(", ")}. Format: ${aspectHint}. Position context: ${posHint}${customHint}${bgHint}. No text.`;
-
-          const { data: imgData } = await supabase.functions.invoke("ebook-ai-assist", {
-            body: { action: "generate_image", imagePrompt: imgPrompt, ebookId: ebook.id, target: `chapter-${ch.id}${imgNum > 0 ? `-${imgNum}` : ""}` },
-          });
-          if (imgData?.url) {
-            // For first image, set as cover_image; for additional images, append to extra_images array
-            if (imgNum === 0) {
-              chapters[chapterIdx] = { ...chapters[chapterIdx], cover_image: imgData.url, imageSize: cfg.size, imagePosition: cfg.position };
-            } else {
-              const existing = (chapters[chapterIdx] as any).extra_images || [];
-              chapters[chapterIdx] = { ...chapters[chapterIdx], extra_images: [...existing, imgData.url] } as any;
-            }
-          }
-
-          setGenProgress(80 + ((j + 1) / imageJobs.length) * 18);
-        }
-
-        await (supabase as any).from("ebooks").update({
-          chapters,
-          updated_at: new Date().toISOString(),
-        }).eq("id", ebook.id);
-      }
-
-      setGenProgress(100);
-      setGenStatus("Concluído!");
-      toast.success("eBook gerado com sucesso! 🎉");
-
-      setTimeout(() => onComplete(ebook.id), 800);
+      setActiveJobId(result.jobId);
     } catch (e: any) {
-      toast.error("Erro: " + e.message);
-      setGenerating(false);
+      toast.error("Erro ao iniciar geração: " + e.message);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!activeJobId) return;
+    try {
+      await retryGeneration.mutateAsync(activeJobId);
+    } catch (e: any) {
+      toast.error("Erro ao retomar: " + e.message);
     }
   };
 
@@ -391,24 +255,47 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       </div>
 
       {/* Generating overlay */}
-      {generating && (
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+      {(generating || genFailed) && (
+        <Card className={cn("border-primary/30 bg-gradient-to-br from-primary/5 to-background", genFailed && "border-destructive/30")}>
           <CardContent className="py-12 text-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-            <div className="space-y-2">
-              <h3 className="font-semibold text-lg text-foreground">A gerar o seu eBook...</h3>
-              <p className="text-sm text-muted-foreground">{genStatus}</p>
-            </div>
-            <div className="max-w-md mx-auto">
-              <Progress value={genProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">{genProgress}%</p>
-            </div>
+            {genFailed ? (
+              <>
+                <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg text-foreground">Erro na geração</h3>
+                  <p className="text-sm text-muted-foreground">{activeJob?.error_message || "Erro desconhecido"}</p>
+                  {activeJob?.error_step && (
+                    <p className="text-xs text-muted-foreground">Falhou no passo: {getStepLabel(activeJob.error_step)}</p>
+                  )}
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+                  <Button onClick={handleRetry} className="bg-gradient-to-r from-primary to-primary/80">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Retomar geração
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg text-foreground">A gerar o seu eBook...</h3>
+                  <p className="text-sm text-muted-foreground">{genStatus}</p>
+                </div>
+                <div className="max-w-md mx-auto">
+                  <Progress value={genProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-1">{genProgress}%</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Pode fechar esta janela — a geração continuará em segundo plano.</p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Steps content */}
-      {!generating && (
+      {!generating && !genFailed && (
         <AnimatePresence mode="wait">
           <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
             <Card>
@@ -745,7 +632,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       )}
 
       {/* Footer navigation */}
-      {!generating && (
+      {!generating && !genFailed && (
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />

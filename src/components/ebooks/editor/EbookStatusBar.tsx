@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertCircle, Loader2, Clock } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Clock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
@@ -10,9 +10,10 @@ interface EbookStatusBarProps {
   saveStatus: SaveStatus;
   lastSavedAt?: Date | null;
   isDirty?: boolean;
+  onRetry?: () => void;
 }
 
-export function EbookStatusBar({ chaptersCount, totalWords, progress, saveStatus, lastSavedAt, isDirty }: EbookStatusBarProps) {
+export function EbookStatusBar({ chaptersCount, totalWords, progress, saveStatus, lastSavedAt, isDirty, onRetry }: EbookStatusBarProps) {
   const statusConfig = {
     idle: { icon: Clock, text: "Pronto", className: "text-muted-foreground" },
     saving: { icon: Loader2, text: "A guardar…", className: "text-amber-500" },
@@ -40,6 +41,15 @@ export function EbookStatusBar({ chaptersCount, totalWords, progress, saveStatus
         <StatusIcon className={cn("h-3 w-3", saveStatus === 'saving' && "animate-spin")} />
         {statusText}
       </span>
+      {saveStatus === 'failed' && onRetry && (
+        <button
+          onClick={onRetry}
+          className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Tentar novamente
+        </button>
+      )}
       {lastSavedAt && saveStatus === 'saved' && (
         <span className="text-muted-foreground/50">
           {lastSavedAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
