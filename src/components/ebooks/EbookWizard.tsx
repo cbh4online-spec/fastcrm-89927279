@@ -24,7 +24,7 @@ import type { EbookTemplate } from "@/types/ebook-templates";
 import {
   Sparkles, ArrowLeft, ArrowRight, Loader2, Minus, Plus,
   BookOpen, Palette, ImageIcon, Coins, Wand2, LayoutGrid,
-  Target, ListChecks, X
+  Target, ListChecks, X, AlertCircle, RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
