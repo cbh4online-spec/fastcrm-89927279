@@ -46,7 +46,6 @@ export function useHREmployees(statusFilter?: string) {
         .from("hr_employees")
         .select(`
           *,
-          profiles:user_id(full_name, email, avatar_url),
           hr_departments!hr_employees_department_id_fkey(id, name),
           hr_job_titles:position_id(id, name),
           manager:manager_id(id, full_name)
