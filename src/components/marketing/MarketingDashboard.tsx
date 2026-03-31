@@ -9,7 +9,10 @@ import {
   MousePointer, 
   Eye,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  DollarSign,
+  Target,
+  TrendingUp,
 } from 'lucide-react';
 import { useMarketingUsage } from '@/hooks/useMarketingSettings';
 import { useMarketingCampaigns } from '@/hooks/useMarketingCampaigns';
@@ -24,6 +27,9 @@ import { DynamicSegmentsPanel } from './DynamicSegmentsPanel';
 import { CampaignAdvisorBanner } from './CampaignAdvisorBanner';
 import { HealthScoreCard } from './HealthScoreCard';
 import { SmartSendTimeCard } from './SmartSendTimeCard';
+import { EngagementSegmentsPanel } from './EngagementSegmentsPanel';
+import { RevenueAttributionPanel } from './RevenueAttributionPanel';
+import { useCampaignAttribution } from '@/hooks/useCampaignAttribution';
 
 interface MarketingDashboardProps {
   onCreateCampaign?: () => void;
