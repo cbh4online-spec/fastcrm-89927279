@@ -1,262 +1,98 @@
 
 
-## Funis Comerciais Maduros — Plano de Implementação
+## Diagnóstico: P0 já está implementado
 
-### Diagnóstico
+Após revisão completa do código actual, **todos os itens P0 que pedes já foram implementados** no batch anterior. Aqui está a confirmação item a item:
 
-| Área | Estado | Lacuna |
-|------|--------|--------|
-| Formulários públicos | useState manual, sem validação, select renderiza como `<Input>` | Sem zod, sem react-hook-form, sem campo select real, sem checkbox/radio/consent |
-| Consentimento | Inexistente | Sem campos, sem UI, sem registo |
-| CRM loop | Inexistente — submit só insere em `funnel_submissions` | Não cria contacto, não aplica tags, não regista origem |
-| Tracking | Apenas `page_view` e `optin` via `funnel_step_stats` (agregado diário) | Sem eventos granulares, sem sessão, sem device, sem UTM, sem CTA tracking |
-| SEO | Inexistente | Sem meta tags, sem og:image, sem noindex |
-| Analytics | Agregação por step_stats, sem funil de conversão, sem captação | Sem secções separadas, sem funil visual |
-| Preflight | Inexistente | Publicação directa sem validação |
-| Anti-spam | Inexistente | Sem honeypot, sem rate limit |
+### P0.1 — Formulários Robustos ✅ Já existe
 
-### Priorização V1 (P0+P1) vs V2 (P2)
+| Requisito | Estado | Ficheiro |
+|-----------|--------|----------|
+| react-hook-form + zod + @hookform/resolvers | ✅ | `FunnelStepForm.tsx` L1-4 |
+| Schema dinâmico por step | ✅ | `buildSchema()` L37-81 |
+| Validação email, phone, required | ✅ | L58-68 |
+| Select real (shadcn) | ✅ | L246-268 |
+| Checkbox, Radio, Consent, Marketing opt-in | ✅ | L165-243 |
+| Hidden fields | ✅ | L159-161 |
+| Honeypot anti-spam | ✅ | L77-78, L153-156 |
+| Erro por campo | ✅ | Cada campo tem `{error && <p>...}` |
+| Estados idle/submitting/success/error | ✅ | L111, L134, L341-343 |
+| Editor com tipos + opções para select/radio | ✅ | `FunnelStepEditor.tsx` L612-680 |
 
-**V1 — 6 Batches:**
+### P0.2 — Consentimento e Compliance ✅ Já existe
 
-| Batch | Conteúdo |
-|-------|----------|
-| B1 | Schema: campos SEO+consent em `funnels`, campos compliance em `funnel_submissions`, tabela `funnel_events` |
-| B2 | Formulários robustos: react-hook-form + zod, select real, consent/marketing_opt_in, honeypot |
-| B3 | Edge Function `funnel-lead-capture`: CRM create/update, tags, kernel events |
-| B4 | Tracking granular: `funnel_events` com step_view, form_started, form_submit, cta_click, step_completed |
-| B5 | Analytics 3 secções (Consumo, Captação, Conversão) + funil visual + SEO no leitor público |
-| B6 | Preflight check antes de publicar |
+| Requisito | Estado | Ficheiro |
+|-----------|--------|----------|
+| consent_required, consent_text, privacy_policy_url | ✅ | Schema migração + `FunnelSettingsTab.tsx` L39-44 |
+| Checkbox obrigatório no form | ✅ | `FunnelStepForm.tsx` L144, L306-324 |
+| Marketing opt-in opcional | ✅ | L328-339 |
+| Guardar consent_given, consent_timestamp, marketing_opt_in | ✅ | `PublicFunnelPage.tsx` L163-180 |
+| UTMs, referrer, device_type, session_id | ✅ | L163-180 |
+| Configuração no editor | ✅ | `FunnelSettingsTab.tsx` L39-97 |
 
-**V2 — Diferido:**
-- Scoring por comportamento
-- Segmentação avançada
-- A/B testing
-- Permissões granulares por módulo
-- Turnstile / challenge anti-bot
+### P0.3 — CRM Loop ✅ Já existe
 
----
+| Requisito | Estado | Ficheiro |
+|-----------|--------|----------|
+| Edge Function funnel-lead-capture | ✅ | `supabase/functions/funnel-lead-capture/index.ts` |
+| Lookup contacto por email | ✅ | L45-50 |
+| Criar se não existir | ✅ | L77-100 |
+| Atualizar se existir | ✅ | L62-75 |
+| Tags (funnel:slug, step:type, campaign:utm) | ✅ | L56-60 |
+| Activity logs (lead_captured, contact_created) | ✅ | L112-139 |
+| Invocação após submit | ✅ | `PublicFunnelPage.tsx` L202-223 |
 
-### B1 — Migração de Schema
+### P0.4 — Tracking ✅ Já existe
 
-**Campos novos na tabela `funnels`:**
-```
-seo_title             TEXT
-seo_description       TEXT
-og_image_url          TEXT
-canonical_url         TEXT
-noindex               BOOLEAN DEFAULT false
-consent_required      BOOLEAN DEFAULT false
-consent_text          TEXT
-consent_text_version  TEXT
-privacy_policy_url    TEXT
-marketing_opt_in_enabled  BOOLEAN DEFAULT false
-marketing_opt_in_label    TEXT
-```
+| Requisito | Estado | Ficheiro |
+|-----------|--------|----------|
+| Tabela funnel_events | ✅ | Migração aplicada |
+| step_view (dedup por sessão) | ✅ | `useFunnelTracking.ts` L69-76 |
+| form_started | ✅ | L78-81 |
+| form_submit_success/failed | ✅ | L83-92 |
+| cta_clicked | ✅ | L94-98 |
+| step_completed, funnel_completed | ✅ | L100-108 |
+| session_id anónimo | ✅ | L6-14 |
+| contact_id quando identificado | ✅ | L110-112 |
+| device_type, referrer, UTMs | ✅ | L42-64 |
 
-**Campos novos na tabela `funnel_submissions`:**
-```
-contact_id            UUID (nullable, FK → contacts)
-consent_given         BOOLEAN DEFAULT false
-consent_timestamp     TIMESTAMPTZ
-consent_text_version  TEXT
-marketing_opt_in      BOOLEAN DEFAULT false
-utm_source            TEXT
-utm_medium            TEXT
-utm_campaign          TEXT
-referrer              TEXT
-device_type           TEXT
-session_id            TEXT
-```
+### P0.5 — SEO ✅ Já existe
 
-**Tabela nova `funnel_events`:**
-```
-id              UUID PK
-workspace_id    UUID FK → workspaces
-funnel_id       UUID FK → funnels
-step_id         UUID (nullable) FK → funnel_steps
-contact_id      UUID (nullable)
-session_id      TEXT
-event_type      TEXT NOT NULL
-event_value     TEXT
-device_type     TEXT
-referrer        TEXT
-utm_source      TEXT
-utm_medium      TEXT
-utm_campaign    TEXT
-metadata        JSONB DEFAULT '{}'
-created_at      TIMESTAMPTZ DEFAULT now()
-```
+| Requisito | Estado | Ficheiro |
+|-----------|--------|----------|
+| seo_title, seo_description, og_image_url, canonical_url, noindex | ✅ | Schema + `FunnelSettingsTab.tsx` |
+| react-helmet-async no funil público | ✅ | `PublicFunnelPage.tsx` L292-300 |
 
-**RLS:**
-- `funnel_events`: anon/authenticated INSERT com `WITH CHECK (true)`; SELECT para membros do workspace
-- `funnel_submissions`: adicionar campos sem alterar políticas existentes
+### P1 — Analytics + Preflight ✅ Já existe
+
+| Requisito | Estado |
+|-----------|--------|
+| Dashboard 3 secções (Consumo, Captação, Conversão) | ✅ `FunnelAnalyticsTab.tsx` |
+| Funil de conversão visual | ✅ L237-263 |
+| KPIs hook (useFunnelConversionKPIs) | ✅ |
+| Preflight check (funnelPreflight.ts) | ✅ |
+| FunnelPreflightDialog | ✅ |
 
 ---
 
-### B2 — Formulários Robustos
+### Conclusão
 
-**Refactoring do `PublicFunnelPage.tsx`:**
+**Não há código a escrever para P0.** Toda a base operacional — formulários com zod, consentimento RGPD, CRM via edge function, tracking granular com 8 event types, SEO com Helmet, analytics em 3 secções e preflight — já está implementada e funcional.
 
-Extrair formulário para componente dedicado `FunnelStepForm.tsx`:
-- Usar `react-hook-form` + `@hookform/resolvers/zod`
-- Schema zod dinâmico gerado a partir de `form_fields[]`
-- Campo `select` com `<Select>` real (shadcn)
-- Campo `checkbox` e `radio` com componentes reais
-- Campos especiais: `consent` (checkbox obrigatório se `consent_required`), `marketing_opt_in`
-- Honeypot field invisível (anti-spam básico)
-- Estados: idle → submitting → success → error
-- Validação email com regex, phone com padrão internacional
-- Erros por campo inline
+### O que falta para P1/P2 (ainda não implementado):
 
-**Tipos de campo suportados no runtime:**
-text, email, phone, textarea, select, checkbox, radio, hidden, consent, marketing_opt_in
+| Item | Prioridade |
+|------|-----------|
+| `step_abandoned` (via beforeunload) | P1 |
+| Ranking de CTAs na tab Conversão | P1 |
+| Conversão por origem/UTM (breakdown) | P1 |
+| Runtime diferenciado por step_type (booking, countdown, bridge, etc.) | P1 |
+| A/B testing | P2 |
+| Scoring por comportamento | P2 |
+| Segmentação | P2 |
+| Permissões granulares | P2 |
 
-**Editor (`FunnelStepEditor.tsx`):**
-- Adicionar tipos checkbox, radio, consent, marketing_opt_in, hidden ao select de tipo
-- Quando tipo=select, mostrar editor de opções (já existe `options[]` no interface mas não tem UI de edição)
+### Recomendação
 
----
-
-### B3 — Edge Function `funnel-lead-capture`
-
-Baseada no padrão `ebook-lead-capture`:
-
-```
-Input: workspace_id, funnel_id, step_id, name, email, consent_given,
-       marketing_opt_in, utm_source, utm_medium, utm_campaign, slug,
-       step_type, form_data
-
-Lógica:
-1. Lookup contacto por email no workspace
-2. Se existe → update tags, updated_at
-3. Se não existe → create (name, email, source="funnel", lead_source="funnel")
-4. Aplicar tags: funnel:<slug>, step:<step_type>
-5. Se utm_campaign → tag campaign:<utm_campaign>
-6. Se marketing_opt_in → tag marketing_opt_in
-7. Update funnel_submissions.contact_id
-8. Update ebook_views referência (se aplicável)
-9. Insert activity_logs: funnel.lead_captured
-10. Se contacto novo → activity_logs: funnel.contact_created
-11. Se contacto existente → activity_logs: funnel.contact_matched
-12. Retornar { contact_id, is_new }
-```
-
-**Alteração no `PublicFunnelPage.tsx`:**
-- Após submit do formulário, invocar `funnel-lead-capture`
-- Gravar `contact_id` retornado para tracking subsequente
-
----
-
-### B4 — Tracking Granular
-
-**Criar `useFunnelTracking.ts`:**
-
-Hook que gere sessão anónima (`sessionStorage`) e envia eventos para `funnel_events`:
-
-Eventos:
-- `step_view` — ao entrar no step (dedup por sessão)
-- `form_started` — ao focar primeiro campo do form
-- `form_submit_success` — após submit com sucesso
-- `form_submit_failed` — após submit com erro
-- `cta_clicked` — ao clicar CTA (externo ou navegação)
-- `step_completed` — ao sair do step com sucesso
-- `funnel_completed` — ao completar último step
-- `step_abandoned` — via `beforeunload` ou navegação para fora
-
-Metadata automática: device_type, referrer, UTMs (do URL), session_id.
-
-**Integração no `PublicFunnelPage.tsx`:**
-- Substituir tracking actual (`funnel_step_stats.insert`) pelo novo hook
-- Manter compatibilidade com `funnel_step_stats` para analytics existentes (write dual)
-
----
-
-### B5 — SEO + Analytics
-
-**SEO no leitor público:**
-- Instalar `react-helmet-async` (já no projecto para ebooks)
-- No `PublicFunnelPage`, injectar `<Helmet>` com title, meta description, og:tags, canonical, robots
-- Fallback: usar `funnel.name` se SEO fields estiverem vazios
-
-**Editor de SEO:**
-- Adicionar secção "SEO" no `FunnelSettingsTab.tsx`: seo_title, seo_description, og_image_url, canonical_url, noindex
-
-**Analytics — Reestruturar `FunnelAnalyticsTab.tsx` em 3 secções:**
-
-1. **Consumo**: views por step, unique visitors, tempo (do tracking existente), drop-off
-2. **Captação**: leads captados, consentimentos, opt-in marketing, contactos criados vs existentes, lead gate rate
-3. **Conversão**: CTA clicks, CTR por step, funil visual (views → leads → consentidos → CRM → CTA clicks)
-
-**Novo hook `useFunnelConversionKPIs.ts`:**
-- Query `funnel_events` agrupado por event_type
-- Query `funnel_submissions` com contact_id para métricas CRM
-- Cálculos de taxas
-
----
-
-### B6 — Preflight Check
-
-**Criar `src/utils/funnelPreflight.ts`:**
-
-Validações bloqueantes:
-- slug vazio ou inválido
-- 0 steps
-- step com form_fields vazio em optin/squeeze/application
-- consent_required=true sem consent_text
-- consent_required=true sem privacy_policy_url
-- CTA activo sem URL válido
-
-Validações warning:
-- sem SEO configurado
-- steps sem conteúdo (headline vazio)
-- sem capa/og_image
-- form fields sem validação adequada
-
-**Criar `FunnelPreflightDialog.tsx`:**
-- Lista de ✅ / ❌ / ⚠️
-- Score de completude
-- Bloqueia publish se erros críticos
-- Permite publish com warnings (com confirmação)
-
-**Integrar no `FunnelSettingsTab.tsx`:**
-- Botão "Verificar antes de publicar" antes do toggle is_published
-
----
-
-### Ficheiros a Criar/Alterar
-
-| Ficheiro | Acção |
-|----------|-------|
-| `supabase/migrations/...` | Criar — schema B1 |
-| `supabase/functions/funnel-lead-capture/index.ts` | Criar — CRM integration |
-| `src/components/funnels/FunnelStepForm.tsx` | Criar — formulário robusto com zod |
-| `src/hooks/useFunnelTracking.ts` | Criar — tracking granular |
-| `src/hooks/useFunnelConversionKPIs.ts` | Criar — métricas de conversão |
-| `src/utils/funnelPreflight.ts` | Criar — validação pré-publicação |
-| `src/components/funnels/FunnelPreflightDialog.tsx` | Criar — UI do preflight |
-| `src/pages/PublicFunnelPage.tsx` | Alterar — formulário extraído, SEO, tracking, lead-capture |
-| `src/components/funnels/FunnelStepEditor.tsx` | Alterar — novos tipos de campo, opções de select |
-| `src/components/funnels/tabs/FunnelAnalyticsTab.tsx` | Alterar — 3 secções + funil visual |
-| `src/components/funnels/tabs/FunnelSettingsTab.tsx` | Alterar — SEO + consent + preflight |
-| `src/hooks/useFunnels.ts` | Alterar — expandir tipo Funnel com novos campos |
-
----
-
-### Confirmação V1
-
-Após implementação:
-- ✅ Formulários robustos com zod + react-hook-form
-- ✅ Select correctamente implementado
-- ✅ Consentimento e compliance (consent_required, RGPD checkboxes)
-- ✅ Criação/atualização de contacto no CRM via edge function
-- ✅ Tracking de step e conversão (10 event types)
-- ✅ CTA tracking (cta_clicked)
-- ✅ SEO público do funil (meta tags, OG, canonical)
-- ✅ Analytics 3 secções com funil visual
-- ✅ Preflight antes de publicar
-- ✅ Honeypot anti-spam básico
-- ⏳ Scoring por comportamento (V2)
-- ⏳ Permissões granulares (V2)
-- ⏳ A/B testing (V2)
+Se quiseres avançar, posso implementar os itens P1 em falta (step_abandoned, ranking CTA, breakdown por UTM e runtime por step_type). Caso contrário, recomendo **testar o fluxo completo** num funil real para validar que tudo funciona de ponta a ponta antes de avançar.
 
