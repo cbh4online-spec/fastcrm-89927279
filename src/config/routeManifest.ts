@@ -38,7 +38,7 @@ import {
   HeartPulse, Stethoscope, Puzzle, Shield,
   Radio, Search, MapPin,
   ArrowUpDown, Headphones, Clock, Timer,
-  Facebook, LayoutGrid, Award,
+  Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -265,6 +265,13 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("hr-schedules",     "Gestão de Turnos",    "/dashboard/hr/schedules",     Calendar,     "rh", { moduleSlug: "hr-management" }),
   e("hr-absences",      "Férias & Ausências",  "/dashboard/hr/absences",      CalendarDays, "rh", { moduleSlug: "hr-management" }),
   e("hr-kiosk",         "Terminal QR",         "/dashboard/hr/kiosk",         Activity,     "rh", { moduleSlug: "hr-management" }),
+  // Recruitment
+  e("hr-recruitment",           "Recrutamento",              "/dashboard/hr/recruitment",              UserSearch, "rh", { moduleSlug: "hr-management" }),
+  e("hr-recruitment-jobs",      "Vagas",                     "/dashboard/hr/recruitment/jobs",         Briefcase,  "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
+  e("hr-recruitment-job-detail","Detalhe da Vaga",           "/dashboard/hr/recruitment/jobs/:id",     Briefcase,  "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
+  e("hr-recruitment-candidates","Candidatos",                "/dashboard/hr/recruitment/candidates",   Users,      "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
+  e("hr-recruitment-candidate", "Ficha do Candidato",        "/dashboard/hr/recruitment/candidates/:id", Users,    "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
+  e("hr-recruitment-interviews","Entrevistas",               "/dashboard/hr/recruitment/interviews",   Video,      "rh", { moduleSlug: "hr-management", visibleInSidebar: false }),
   // Legacy routes (hidden but functional)
   e("hr-time-clock",    "Controlo de Ponto (legacy)", "/dashboard/hr/time-clock", Clock,     "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
   e("hr-session-time",  "Tempo no Sistema",    "/dashboard/hr/session-time",  Timer,        "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),

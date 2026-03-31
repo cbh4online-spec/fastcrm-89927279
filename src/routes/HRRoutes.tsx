@@ -15,6 +15,14 @@ const HRSchedulesPage = lazy(() => import("@/pages/dashboard/hr/HRSchedulesPage"
 const HRAbsencesPage = lazy(() => import("@/pages/dashboard/hr/HRAbsencesPage"));
 const HRKioskPage = lazy(() => import("@/pages/dashboard/hr/HRKioskPage"));
 
+// Recruitment pages
+const RecruitmentDashboardPage = lazy(() => import("@/pages/dashboard/hr/recruitment/RecruitmentDashboardPage"));
+const JobOpeningsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/JobOpeningsPage"));
+const JobOpeningDetailPage = lazy(() => import("@/pages/dashboard/hr/recruitment/JobOpeningDetailPage"));
+const CandidatesPage = lazy(() => import("@/pages/dashboard/hr/recruitment/CandidatesPage"));
+const CandidateDetailPage = lazy(() => import("@/pages/dashboard/hr/recruitment/CandidateDetailPage"));
+const InterviewsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/InterviewsPage"));
+
 export function HRRoutes() {
   return (
     <>
@@ -32,6 +40,14 @@ export function HRRoutes() {
       <Route path="/dashboard/hr/schedules" element={<HRSchedulesPage />} />
       <Route path="/dashboard/hr/absences" element={<HRAbsencesPage />} />
       <Route path="/dashboard/hr/kiosk" element={<HRKioskPage />} />
+
+      {/* Recruitment routes */}
+      <Route path="/dashboard/hr/recruitment" element={<RecruitmentDashboardPage />} />
+      <Route path="/dashboard/hr/recruitment/jobs" element={<JobOpeningsPage />} />
+      <Route path="/dashboard/hr/recruitment/jobs/:id" element={<JobOpeningDetailPage />} />
+      <Route path="/dashboard/hr/recruitment/candidates" element={<CandidatesPage />} />
+      <Route path="/dashboard/hr/recruitment/candidates/:id" element={<CandidateDetailPage />} />
+      <Route path="/dashboard/hr/recruitment/interviews" element={<InterviewsPage />} />
     </>
   );
 }
