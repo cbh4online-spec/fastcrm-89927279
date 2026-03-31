@@ -193,7 +193,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
         imageKeywords,
         generateImages,
         templateId: selectedTemplateId || undefined,
-        templateStyles: selectedTemplate?.style_tokens || undefined,
+        templateStyles: selectedTemplate?.style_tokens ? { ...selectedTemplate.style_tokens } : undefined,
       });
 
       setActiveJobId(result.jobId);
