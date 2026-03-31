@@ -56,6 +56,7 @@ export function HRRoutes() {
       <Route path="/dashboard/hr/okrs" element={<HROKRsPage />} />
       <Route path="/dashboard/hr/feedback" element={<HRFeedbackPage />} />
       <Route path="/dashboard/hr/checkins" element={<HRCheckinsPage />} />
+      <Route path="/dashboard/hr/reviews" element={<HRPerformanceReviewsPage />} />
     </>
   );
 }

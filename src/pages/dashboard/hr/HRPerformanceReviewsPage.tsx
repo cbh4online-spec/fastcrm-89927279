@@ -18,7 +18,7 @@ import {
   Plus, Star, Sparkles, ChevronDown, ChevronRight, Users, Award,
   CheckCircle2, Clock, MessageSquare, Trash2, Calendar,
 } from "lucide-react";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   useReviewCycles, useCreateReviewCycle, usePerformanceReviews,
   useReviewCycleStats, useSubmitSelfReview, useSubmitManagerReview,

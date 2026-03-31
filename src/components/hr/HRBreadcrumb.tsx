@@ -19,6 +19,7 @@ const HR_ROUTE_LABELS: Record<string, string> = {
   "/dashboard/hr/okrs": "OKRs",
   "/dashboard/hr/feedback": "Feedback",
   "/dashboard/hr/checkins": "Check-ins",
+  "/dashboard/hr/reviews": "Avaliações de Desempenho",
 };
 
 export function HRBreadcrumb() {
