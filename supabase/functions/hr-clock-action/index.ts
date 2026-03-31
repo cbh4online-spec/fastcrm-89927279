@@ -36,7 +36,7 @@ serve(async (req) => {
     // 2. Upsert work session
     const { data: existing } = await supabase
       .from("hr_work_sessions")
-      .select("id, clock_in_at")
+      .select("id, clock_in_at, break_minutes")
       .eq("employee_id", employee_id)
       .eq("session_date", today)
       .single();
@@ -50,8 +50,17 @@ serve(async (req) => {
       }
     } else if (entry_type === "clock_out") {
       if (existing) {
+        const clockInTime = new Date(existing.clock_in_at).getTime();
+        const totalMin = Math.round((now.getTime() - clockInTime) / 60000);
+        const breakMin = existing.break_minutes || 0;
+        const workedMin = Math.max(0, totalMin - breakMin);
+
         await supabase.from("hr_work_sessions").update({
-          clock_out_at: now.toISOString(), status: "complete", updated_at: now.toISOString()
+          clock_out_at: now.toISOString(),
+          total_minutes: totalMin,
+          worked_minutes: workedMin,
+          status: "complete",
+          updated_at: now.toISOString()
         }).eq("id", existing.id);
       }
     }
