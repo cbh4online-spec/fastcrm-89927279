@@ -7,3 +7,5 @@ export { EbookThemePanel } from "./EbookThemePanel";
 export { EbookPreviewDialog } from "./EbookPreviewDialog";
 export { EbookStatusBar } from "./EbookStatusBar";
 export { EbookRightPanel } from "./EbookRightPanel";
+export { EbookCtaPanel } from "./EbookCtaPanel";
+export { EbookPreflightDialog } from "./EbookPreflightDialog";
