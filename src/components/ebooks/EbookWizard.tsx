@@ -632,7 +632,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       )}
 
       {/* Footer navigation */}
-      {!generating && (
+      {!generating && !genFailed && (
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
