@@ -18,6 +18,7 @@ type QRResult = {
 };
 
 export default function HRKioskPage() {
+  const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [lastResults, setLastResults] = useState<QRResult[]>([]);
   const [scanning, setScanning] = useState(false);
