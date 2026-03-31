@@ -24328,6 +24328,7 @@ export type Database = {
           employee_id: string
           end_date: string
           id: string
+          member_id: string | null
           reason: string | null
           rejection_reason: string | null
           start_date: string
@@ -24344,6 +24345,7 @@ export type Database = {
           employee_id: string
           end_date: string
           id?: string
+          member_id?: string | null
           reason?: string | null
           rejection_reason?: string | null
           start_date: string
@@ -24360,6 +24362,7 @@ export type Database = {
           employee_id?: string
           end_date?: string
           id?: string
+          member_id?: string | null
           reason?: string | null
           rejection_reason?: string | null
           start_date?: string
@@ -24381,6 +24384,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_absences_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -24623,6 +24633,75 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hr_candidates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_employee_profiles: {
+        Row: {
+          contract_type: string | null
+          created_at: string | null
+          department: string | null
+          employee_number: string | null
+          end_date: string | null
+          id: string
+          job_title: string | null
+          member_id: string
+          notes: string | null
+          qr_code_token: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+          weekly_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          contract_type?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          end_date?: string | null
+          id?: string
+          job_title?: string | null
+          member_id: string
+          notes?: string | null
+          qr_code_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weekly_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          contract_type?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          end_date?: string | null
+          id?: string
+          job_title?: string | null
+          member_id?: string
+          notes?: string | null
+          qr_code_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weekly_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_employee_profiles_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employee_profiles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -24957,6 +25036,7 @@ export type Database = {
           custom_start_time: string | null
           employee_id: string
           id: string
+          member_id: string | null
           notes: string | null
           schedule_date: string
           shift_id: string | null
@@ -24969,6 +25049,7 @@ export type Database = {
           custom_start_time?: string | null
           employee_id: string
           id?: string
+          member_id?: string | null
           notes?: string | null
           schedule_date: string
           shift_id?: string | null
@@ -24981,6 +25062,7 @@ export type Database = {
           custom_start_time?: string | null
           employee_id?: string
           id?: string
+          member_id?: string | null
           notes?: string | null
           schedule_date?: string
           shift_id?: string | null
@@ -24993,6 +25075,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_schedules_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -25061,6 +25150,7 @@ export type Database = {
           id: string
           location_lat: number | null
           location_lng: number | null
+          member_id: string | null
           method: string | null
           notes: string | null
           recorded_at: string
@@ -25074,6 +25164,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          member_id?: string | null
           method?: string | null
           notes?: string | null
           recorded_at?: string
@@ -25087,6 +25178,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          member_id?: string | null
           method?: string | null
           notes?: string | null
           recorded_at?: string
@@ -25098,6 +25190,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_time_entries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -25117,6 +25216,7 @@ export type Database = {
           created_at: string | null
           employee_id: string
           id: string
+          member_id: string | null
           notes: string | null
           session_date: string
           status: string | null
@@ -25132,6 +25232,7 @@ export type Database = {
           created_at?: string | null
           employee_id: string
           id?: string
+          member_id?: string | null
           notes?: string | null
           session_date: string
           status?: string | null
@@ -25147,6 +25248,7 @@ export type Database = {
           created_at?: string | null
           employee_id?: string
           id?: string
+          member_id?: string | null
           notes?: string | null
           session_date?: string
           status?: string | null
@@ -25161,6 +25263,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_work_sessions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_members"
             referencedColumns: ["id"]
           },
           {
@@ -56559,7 +56668,7 @@ export type Database = {
         | "closed"
       ticket_type: "support" | "commercial" | "technical"
       time_entry_status: "active" | "completed" | "edited" | "flagged"
-      workspace_role: "owner" | "admin" | "agent" | "viewer" | "agency"
+      workspace_role: "owner" | "admin" | "agent" | "viewer" | "agency" | "hr"
       workspace_status: "active" | "suspended" | "inactive" | "pending"
     }
     CompositeTypes: {
@@ -57091,7 +57200,7 @@ export const Constants = {
       ],
       ticket_type: ["support", "commercial", "technical"],
       time_entry_status: ["active", "completed", "edited", "flagged"],
-      workspace_role: ["owner", "admin", "agent", "viewer", "agency"],
+      workspace_role: ["owner", "admin", "agent", "viewer", "agency", "hr"],
       workspace_status: ["active", "suspended", "inactive", "pending"],
     },
   },
