@@ -21,12 +21,15 @@ const STATUS_MAP: Record<string, { label: string; class: string }> = {
   active: { label: "Activo", class: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
   inactive: { label: "Inactivo", class: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" },
   on_leave: { label: "Ausente", class: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+  terminated: { label: "Terminado", class: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
+  suspended: { label: "Suspenso", class: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" },
 };
 
 const CONTRACT_MAP: Record<string, string> = {
   full_time: "Tempo inteiro",
   part_time: "Part-time",
   contractor: "Prestador",
+  contract: "Prestador",
   intern: "Estagiário",
 };
 
