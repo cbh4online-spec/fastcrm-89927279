@@ -266,6 +266,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("hr-absences",      "Férias & Ausências",  "/dashboard/hr/absences",      CalendarDays, "rh", { moduleSlug: "hr-management" }),
   e("hr-kiosk",         "Terminal QR",         "/dashboard/hr/kiosk",         Activity,     "rh", { moduleSlug: "hr-management" }),
   e("hr-settings",      "Configurações RH",   "/dashboard/hr/settings",      Settings,     "rh", { moduleSlug: "hr-management" }),
+  e("hr-onboarding",    "Onboarding",          "/dashboard/hr/onboarding",    UserCheck,    "rh", { moduleSlug: "hr-management" }),
   // Recruitment
   e("hr-recruitment",           "Recrutamento",              "/dashboard/hr/recruitment",              UserSearch, "rh", { moduleSlug: "hr-management" }),
   e("hr-recruitment-jobs",      "Vagas",                     "/dashboard/hr/recruitment/jobs",         Briefcase,  "rh", { moduleSlug: "hr-management" }),

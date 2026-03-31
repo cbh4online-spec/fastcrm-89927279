@@ -10,6 +10,7 @@ const HRSchedulesPage = lazy(() => import("@/pages/dashboard/hr/HRSchedulesPage"
 const HRAbsencesPage = lazy(() => import("@/pages/dashboard/hr/HRAbsencesPage"));
 const HRKioskPage = lazy(() => import("@/pages/dashboard/hr/HRKioskPage"));
 const HRSettingsPage = lazy(() => import("@/pages/dashboard/hr/HRSettingsPage"));
+const HROnboardingPage = lazy(() => import("@/pages/dashboard/hr/HROnboardingPage"));
 
 // Recruitment pages
 const RecruitmentDashboardPage = lazy(() => import("@/pages/dashboard/hr/recruitment/RecruitmentDashboardPage"));
@@ -36,6 +37,7 @@ export function HRRoutes() {
       <Route path="/dashboard/hr/absences" element={<HRAbsencesPage />} />
       <Route path="/dashboard/hr/kiosk" element={<HRKioskPage />} />
       <Route path="/dashboard/hr/settings" element={<HRSettingsPage />} />
+      <Route path="/dashboard/hr/onboarding" element={<HROnboardingPage />} />
 
       {/* Recruitment routes */}
       <Route path="/dashboard/hr/recruitment" element={<RecruitmentDashboardPage />} />

@@ -25519,6 +25519,325 @@ export type Database = {
           },
         ]
       }
+      hr_onboarding_feedback: {
+        Row: {
+          buddy_comments: string | null
+          buddy_rating: number | null
+          created_at: string
+          due_date: string
+          employee_comments: string | null
+          employee_rating: number | null
+          feedback_type: Database["public"]["Enums"]["hr_onboarding_feedback_type"]
+          id: string
+          manager_comments: string | null
+          manager_rating: number | null
+          onboarding_id: string
+          submitted_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buddy_comments?: string | null
+          buddy_rating?: number | null
+          created_at?: string
+          due_date: string
+          employee_comments?: string | null
+          employee_rating?: number | null
+          feedback_type: Database["public"]["Enums"]["hr_onboarding_feedback_type"]
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          onboarding_id: string
+          submitted_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buddy_comments?: string | null
+          buddy_rating?: number | null
+          created_at?: string
+          due_date?: string
+          employee_comments?: string | null
+          employee_rating?: number | null
+          feedback_type?: Database["public"]["Enums"]["hr_onboarding_feedback_type"]
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          onboarding_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_feedback_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboardings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboarding_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboarding_task_templates: {
+        Row: {
+          assigned_to_role: string | null
+          category: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          created_at: string
+          description: string | null
+          due_days: number
+          id: string
+          is_required: boolean
+          sort_order: number
+          template_id: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to_role?: string | null
+          category?: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          created_at?: string
+          description?: string | null
+          due_days?: number
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          template_id: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to_role?: string | null
+          category?: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          created_at?: string
+          description?: string | null
+          due_days?: number
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          template_id?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_task_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboarding_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboarding_task_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboarding_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_completed: boolean
+          is_required: boolean
+          notes: string | null
+          onboarding_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          is_required?: boolean
+          notes?: string | null
+          onboarding_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["hr_onboarding_task_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+          is_required?: boolean
+          notes?: string | null
+          onboarding_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_tasks_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboardings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboarding_tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboarding_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboardings: {
+        Row: {
+          buddy_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          expected_end_date: string | null
+          id: string
+          notes: string | null
+          progress: number
+          start_date: string
+          status: Database["public"]["Enums"]["hr_onboarding_status"]
+          template_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buddy_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          expected_end_date?: string | null
+          id?: string
+          notes?: string | null
+          progress?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["hr_onboarding_status"]
+          template_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buddy_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          expected_end_date?: string | null
+          id?: string
+          notes?: string | null
+          progress?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["hr_onboarding_status"]
+          template_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboardings_buddy_id_fkey"
+            columns: ["buddy_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboardings_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboardings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboarding_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_onboardings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_public_holidays: {
         Row: {
           country: string
@@ -57025,6 +57344,13 @@ export type Database = {
         | "quarterly"
         | "semiannual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
+      hr_onboarding_feedback_type: "30_days" | "60_days" | "90_days"
+      hr_onboarding_status:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      hr_onboarding_task_category: "hr" | "it" | "manager" | "team" | "self"
       integration_mode: "embed" | "redirect" | "headless"
       job_status:
         | "pending"
@@ -57526,6 +57852,14 @@ export const Constants = {
         "semiannual",
       ],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
+      hr_onboarding_feedback_type: ["30_days", "60_days", "90_days"],
+      hr_onboarding_status: [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      hr_onboarding_task_category: ["hr", "it", "manager", "team", "self"],
       integration_mode: ["embed", "redirect", "headless"],
       job_status: [
         "pending",
