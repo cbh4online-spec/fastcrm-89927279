@@ -127,6 +127,7 @@ export function useCreateCampaign() {
       replyTo?: string;
       bodyHtml: string;
       bodyText?: string;
+      designJson?: Record<string, unknown> | null;
       templateId?: string;
       segmentId?: string;
     }) => {
@@ -146,6 +147,7 @@ export function useCreateCampaign() {
           reply_to: data.replyTo,
           body_html: data.bodyHtml,
           body_text: data.bodyText,
+          design_json: data.designJson as any,
           template_id: data.templateId,
           segment_id: data.segmentId,
           created_by: user.user.id,
