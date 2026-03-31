@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHRAbsences, useHRAbsenceTypes, useCreateLeaveRequest, useApproveLeaveRequest, useSeedAbsenceDefaults } from "@/hooks/hr/useHRAbsences";
 import { useHREmployees } from "@/hooks/hr/useHREmployees";
 import { useHRLeaveBalances } from "@/hooks/hr/useHRLeaveBalances";
