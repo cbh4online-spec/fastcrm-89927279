@@ -508,7 +508,22 @@ export default function C2CSellersAdmin() {
     suspended: sellers.filter((s) => s.status === "suspended").length,
   };
 
-  const handleApprove = (seller: C2CSeller) => updateStatus.mutate({ sellerId: seller.id, status: "approved" });
+  const handleApprove = (seller: C2CSeller) => {
+    updateStatus.mutate({ sellerId: seller.id, status: "approved" });
+    // Emit kernel event for seller approval
+    import("@/lib/kernelEmitter").then(({ emitKernelEvent }) => {
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "MARKETPLACE.SELLER_APPROVED",
+          entity_kind: "seller",
+          entity_id: seller.id,
+          source_module: "marketplace",
+          payload: { display_name: seller.display_name },
+        });
+      }
+    });
+  };
   const handleReject = () => {
     if (!rejectDialog) return;
     updateStatus.mutate({ sellerId: rejectDialog.id, status: "rejected", rejectionReason });
