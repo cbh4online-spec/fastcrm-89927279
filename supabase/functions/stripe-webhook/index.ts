@@ -402,6 +402,27 @@ async function handleStoreOrderCompleted(
           netAmount: mko.net_amount,
           newBalance,
         });
+
+        // Emit kernel event (non-blocking)
+        const kernelUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/kernel-ingest-event`;
+        fetch(kernelUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            type: "MARKETPLACE.WALLET_UPDATED",
+            entity_kind: "wallet_entry",
+            entity_id: mko.id,
+            actor_type: "system",
+            source_module: "marketplace",
+            payload: { seller_id: mko.seller_id, net_amount: mko.net_amount, new_balance: newBalance },
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+          }),
+        }).catch(() => {});
       }
     }
   } catch (walletErr) {
