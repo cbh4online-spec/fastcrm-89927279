@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // Find the recipient by resend_id
     const { data: recipient, error: recipientError } = await supabase
       .from("marketing_recipients")
-      .select("id, campaign_id, email, workspace_id")
+      .select("id, campaign_id, email, workspace_id, contact_id, lead_id")
       .eq("resend_id", resendId)
       .single();
 
