@@ -24432,6 +24432,63 @@ export type Database = {
           },
         ]
       }
+      hr_calibration_sessions: {
+        Row: {
+          created_at: string
+          decisions: Json | null
+          id: string
+          name: string
+          notes: string | null
+          participants: Json | null
+          review_cycle_id: string
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          decisions?: Json | null
+          id?: string
+          name: string
+          notes?: string | null
+          participants?: Json | null
+          review_cycle_id: string
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          decisions?: Json | null
+          id?: string
+          name?: string
+          notes?: string | null
+          participants?: Json | null
+          review_cycle_id?: string
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_calibration_sessions_review_cycle_id_fkey"
+            columns: ["review_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "hr_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_calibration_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_candidate_activities: {
         Row: {
           activity_type: string
@@ -24642,6 +24699,50 @@ export type Database = {
           },
           {
             foreignKeyName: "hr_checkins_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_competencies: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          level: string | null
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string | null
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string | null
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_competencies_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -25838,6 +25939,199 @@ export type Database = {
           },
         ]
       }
+      hr_peer_reviews: {
+        Row: {
+          areas_improvement: string | null
+          comments: string | null
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          rating: number | null
+          review_id: string
+          reviewee_id: string
+          reviewer_id: string
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          areas_improvement?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          rating?: number | null
+          review_id: string
+          reviewee_id: string
+          reviewer_id: string
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          areas_improvement?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          rating?: number | null
+          review_id?: string
+          reviewee_id?: string
+          reviewer_id?: string
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_peer_reviews_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "hr_performance_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_peer_reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_peer_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_peer_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_performance_reviews: {
+        Row: {
+          ai_analysis: Json | null
+          ai_suggested_rating: number | null
+          created_at: string
+          employee_id: string
+          final_comments: string | null
+          final_rating: number | null
+          id: string
+          manager_areas_improvement: string | null
+          manager_comments: string | null
+          manager_id: string | null
+          manager_rating: number | null
+          manager_strengths: string | null
+          manager_submitted_at: string | null
+          promotion_recommended: boolean | null
+          review_cycle_id: string
+          salary_adjustment_percentage: number | null
+          salary_adjustment_recommended: boolean | null
+          self_achievements: Json | null
+          self_challenges: string | null
+          self_comments: string | null
+          self_rating: number | null
+          self_submitted_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_suggested_rating?: number | null
+          created_at?: string
+          employee_id: string
+          final_comments?: string | null
+          final_rating?: number | null
+          id?: string
+          manager_areas_improvement?: string | null
+          manager_comments?: string | null
+          manager_id?: string | null
+          manager_rating?: number | null
+          manager_strengths?: string | null
+          manager_submitted_at?: string | null
+          promotion_recommended?: boolean | null
+          review_cycle_id: string
+          salary_adjustment_percentage?: number | null
+          salary_adjustment_recommended?: boolean | null
+          self_achievements?: Json | null
+          self_challenges?: string | null
+          self_comments?: string | null
+          self_rating?: number | null
+          self_submitted_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_suggested_rating?: number | null
+          created_at?: string
+          employee_id?: string
+          final_comments?: string | null
+          final_rating?: number | null
+          id?: string
+          manager_areas_improvement?: string | null
+          manager_comments?: string | null
+          manager_id?: string | null
+          manager_rating?: number | null
+          manager_strengths?: string | null
+          manager_submitted_at?: string | null
+          promotion_recommended?: boolean | null
+          review_cycle_id?: string
+          salary_adjustment_percentage?: number | null
+          salary_adjustment_recommended?: boolean | null
+          self_achievements?: Json | null
+          self_challenges?: string | null
+          self_comments?: string | null
+          self_rating?: number | null
+          self_submitted_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_performance_reviews_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_performance_reviews_review_cycle_id_fkey"
+            columns: ["review_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "hr_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_performance_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_public_holidays: {
         Row: {
           country: string
@@ -25869,6 +26163,178 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hr_public_holidays_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_review_activities: {
+        Row: {
+          activity_type: string
+          actor_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          review_id: string
+          workspace_id: string
+        }
+        Insert: {
+          activity_type: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          review_id: string
+          workspace_id: string
+        }
+        Update: {
+          activity_type?: string
+          actor_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          review_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_review_activities_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_review_activities_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "hr_performance_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_review_activities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_review_competency_ratings: {
+        Row: {
+          comments: string | null
+          competency_id: string
+          created_at: string
+          final_rating: number | null
+          id: string
+          manager_rating: number | null
+          peer_avg_rating: number | null
+          review_id: string
+          self_rating: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          comments?: string | null
+          competency_id: string
+          created_at?: string
+          final_rating?: number | null
+          id?: string
+          manager_rating?: number | null
+          peer_avg_rating?: number | null
+          review_id: string
+          self_rating?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          comments?: string | null
+          competency_id?: string
+          created_at?: string
+          final_rating?: number | null
+          id?: string
+          manager_rating?: number | null
+          peer_avg_rating?: number | null
+          review_id?: string
+          self_rating?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_review_competency_ratings_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "hr_competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_review_competency_ratings_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "hr_performance_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_review_competency_ratings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_review_cycles: {
+        Row: {
+          calibration_deadline: string | null
+          created_at: string
+          cycle_type: string
+          final_deadline: string | null
+          id: string
+          manager_review_deadline: string | null
+          name: string
+          self_review_deadline: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          calibration_deadline?: string | null
+          created_at?: string
+          cycle_type?: string
+          final_deadline?: string | null
+          id?: string
+          manager_review_deadline?: string | null
+          name: string
+          self_review_deadline?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+          year: number
+        }
+        Update: {
+          calibration_deadline?: string | null
+          created_at?: string
+          cycle_type?: string
+          final_deadline?: string | null
+          id?: string
+          manager_review_deadline?: string | null
+          name?: string
+          self_review_deadline?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_review_cycles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
