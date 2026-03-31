@@ -140,11 +140,56 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
         </Card>
       </div>
 
+      {/* Commercial Impact */}
+      {commercialImpact && (commercialImpact.revenueAttributed > 0 || commercialImpact.opportunitiesInfluenced > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-green-500" />
+              Impacto Comercial
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-bold">{commercialImpact.leadsGenerated}</div>
+                <div className="text-xs text-muted-foreground">Leads Gerados</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-bold flex items-center justify-center gap-1">
+                  <Target className="h-4 w-4 text-blue-500" />
+                  {commercialImpact.opportunitiesInfluenced}
+                </div>
+                <div className="text-xs text-muted-foreground">Opps Influenciadas</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-bold text-green-600">
+                  €{commercialImpact.revenueAttributed.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Receita Atribuída</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <div className="text-2xl font-bold text-emerald-500">
+                  €{commercialImpact.revenueInfluenced.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Receita Influenciada</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Revenue Attribution Chart */}
+      <RevenueAttributionPanel />
+
       {/* AI & Segments Row */}
       <div className="grid gap-4 md:grid-cols-2">
         <ReengagementCard />
         <DynamicSegmentsPanel />
       </div>
+
+      {/* Engagement Segments */}
+      <EngagementSegmentsPanel />
 
       {/* Recent Campaigns */}
       <Card>
