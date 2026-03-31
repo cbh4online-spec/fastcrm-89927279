@@ -5,6 +5,8 @@ import { Route } from "react-router-dom";
 const HRDashboardPage = lazy(() => import("@/pages/dashboard/hr/HRDashboardPage"));
 const HREmployeesPage = lazy(() => import("@/pages/dashboard/hr/HREmployeesPage"));
 const HREmployeeDetailPage = lazy(() => import("@/pages/dashboard/hr/HREmployeeDetailPage"));
+const HRDepartmentsPage = lazy(() => import("@/pages/dashboard/hr/HRDepartmentsPage"));
+const HRPositionsPage = lazy(() => import("@/pages/dashboard/hr/HRPositionsPage"));
 const HRTimeTrackingPage = lazy(() => import("@/pages/dashboard/hr/HRTimeTrackingPage"));
 const HRSchedulesPage = lazy(() => import("@/pages/dashboard/hr/HRSchedulesPage"));
 const HRAbsencesPage = lazy(() => import("@/pages/dashboard/hr/HRAbsencesPage"));
