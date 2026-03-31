@@ -7,6 +7,10 @@ import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Star, Pla
 import { Button } from "@/components/ui/button";
 import { FunnelStepForm, type FormFieldConfig } from "@/components/funnels/FunnelStepForm";
 import { useFunnelTracking } from "@/hooks/useFunnelTracking";
+import {
+  ThankYouRenderer, CountdownRenderer, BookingRenderer,
+  UpsellRenderer, DownsellRenderer, BridgeRenderer,
+} from "@/components/funnels/step-renderers";
 import type { Json } from "@/integrations/supabase/types";
 
 interface FunnelData {
@@ -125,12 +129,13 @@ export default function PublicFunnelPage() {
     load();
   }, [slug, isPreview, searchParams]);
 
-  // Track step_view + legacy stats
+  // Track step_view + legacy stats + step_abandoned
   useEffect(() => {
     if (!funnel?.workspace_id || steps.length === 0) return;
     const step = steps[currentStepIndex];
     if (!step) return;
     tracking.trackStepView(step.id);
+    tracking.setCurrentStep(step.id);
     // Legacy dual-write
     const today = new Date().toISOString().split("T")[0];
     supabase.from("funnel_step_stats").insert({
@@ -241,6 +246,7 @@ export default function PublicFunnelPage() {
     }
 
     setFormSubmitted(true);
+    tracking.markStepCompleted(step.id);
     const isLast = currentStepIndex >= steps.length - 1;
     if (isLast) {
       tracking.trackFunnelCompleted();
@@ -283,6 +289,9 @@ export default function PublicFunnelPage() {
   const hasForm = (step.step_type === "optin" || step.step_type === "application" || step.step_type === "squeeze") && content.form_fields && content.form_fields.length > 0;
   const stepImages = getImages(content);
 
+  // Step types with dedicated renderers
+  const DEDICATED_TYPES = ["thankyou", "countdown", "booking", "upsell", "downsell", "bridge"];
+
   const seoTitle = funnel.seo_title || funnel.name;
   const seoDescription = funnel.seo_description || `${funnel.name} — ${step.name}`;
 
@@ -318,6 +327,20 @@ export default function PublicFunnelPage() {
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{step.name}</span>
         </div>
 
+        {/* Dedicated step-type renderers */}
+        {step.step_type === "thankyou" ? (
+          <ThankYouRenderer content={content} onComplete={() => { tracking.markStepCompleted(step.id); tracking.trackFunnelCompleted(); }} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "countdown" ? (
+          <CountdownRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "booking" ? (
+          <BookingRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : step.step_type === "upsell" ? (
+          <UpsellRenderer content={content} onCtaClick={(l) => { tracking.trackCtaClicked(step.id, l); tracking.markStepCompleted(step.id); if (!isLast) setCurrentStepIndex(i => i + 1); }} />
+        ) : step.step_type === "downsell" ? (
+          <DownsellRenderer content={content} onCtaClick={(l) => { tracking.trackCtaClicked(step.id, l); tracking.markStepCompleted(step.id); if (!isLast) setCurrentStepIndex(i => i + 1); }} />
+        ) : step.step_type === "bridge" ? (
+          <BridgeRenderer content={content} onCtaClick={(l) => tracking.trackCtaClicked(step.id, l)} />
+        ) : (
         <div className="space-y-6">
           {content.headline ? (
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{content.headline}</h1>
@@ -388,7 +411,7 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {/* Form - now using FunnelStepForm */}
+          {/* Form */}
           {hasForm && (
             <FunnelStepForm
               fields={content.form_fields!}
@@ -411,11 +434,12 @@ export default function PublicFunnelPage() {
             </div>
           )}
         </div>
+        )}
 
-        {!hasForm && (
+        {!hasForm && !DEDICATED_TYPES.includes(step.step_type) && (
           <div className="flex items-center justify-between mt-12">
             {!isFirst ? (
-              <Button variant="ghost" onClick={() => { tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i - 1); }}>
+              <Button variant="ghost" onClick={() => { tracking.markStepCompleted(step.id); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i - 1); }}>
                 <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
               </Button>
             ) : <div />}
@@ -426,11 +450,11 @@ export default function PublicFunnelPage() {
                 </a>
               </Button>
             ) : !isLast ? (
-              <Button size="lg" onClick={() => { tracking.trackCtaClicked(step.id, content.cta_text); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i + 1); }}>
+              <Button size="lg" onClick={() => { tracking.trackCtaClicked(step.id, content.cta_text); tracking.markStepCompleted(step.id); tracking.trackStepCompleted(step.id); setCurrentStepIndex(i => i + 1); }}>
                 {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button size="lg" onClick={() => tracking.trackFunnelCompleted()} disabled={!content.cta_text}>
+              <Button size="lg" onClick={() => { tracking.markStepCompleted(step.id); tracking.trackFunnelCompleted(); }} disabled={!content.cta_text}>
                 {content.cta_text || "Concluído ✅"}
               </Button>
             )}
