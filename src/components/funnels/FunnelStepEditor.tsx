@@ -617,6 +617,11 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
                             <SelectItem value="phone">Telefone</SelectItem>
                             <SelectItem value="textarea">Texto longo</SelectItem>
                             <SelectItem value="select">Seleção</SelectItem>
+                            <SelectItem value="checkbox">Checkbox</SelectItem>
+                            <SelectItem value="radio">Radio</SelectItem>
+                            <SelectItem value="hidden">Oculto</SelectItem>
+                            <SelectItem value="consent">Consentimento</SelectItem>
+                            <SelectItem value="marketing_opt_in">Marketing Opt-in</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -633,6 +638,46 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
+                    </div>
+                    {/* Options editor for select and radio */}
+                    {(field.type === "select" || field.type === "radio") && (
+                      <div className="mt-2 pl-7 space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Opções</Label>
+                        {(field.options || []).map((opt, oi) => (
+                          <div key={oi} className="flex items-center gap-1.5">
+                            <Input
+                              value={opt}
+                              onChange={(e) => {
+                                const newOpts = [...(field.options || [])];
+                                newOpts[oi] = e.target.value;
+                                updateFormField(index, { options: newOpts });
+                              }}
+                              className="h-7 text-xs flex-1"
+                              placeholder={`Opção ${oi + 1}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => {
+                                const newOpts = (field.options || []).filter((_, i) => i !== oi);
+                                updateFormField(index, { options: newOpts });
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => updateFormField(index, { options: [...(field.options || []), ""] })}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Adicionar opção
+                        </Button>
+                      </div>
+                    )}
                     </div>
                   </div>
                 ))}
