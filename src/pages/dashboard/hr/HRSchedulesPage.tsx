@@ -22,7 +22,7 @@ export default function HRSchedulesPage() {
   const [newShift, setNewShift] = useState({ name: "", start_time: "09:00", end_time: "18:00", color: "#6366f1" });
   const [scheduleForm, setScheduleForm] = useState({ employee_id: "", shift_id: "", schedule_date: "" });
 
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const { data: shifts = [] } = useHRShifts();
   const { data: schedules = [] } = useHRSchedules(weekDate);
   const createShift = useCreateHRShift();
