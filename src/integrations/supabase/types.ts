@@ -9158,6 +9158,8 @@ export type Database = {
           commission_rate: number | null
           created_at: string
           display_name: string
+          dispute_open: boolean | null
+          excessive_cancellations: boolean | null
           iban: string | null
           id: string
           is_verified: boolean | null
@@ -9172,6 +9174,7 @@ export type Database = {
           status: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id: string | null
           stripe_account_status: string | null
+          suspected_fraud: boolean | null
           tier: string | null
           total_revenue: number | null
           total_reviews: number | null
@@ -9198,6 +9201,8 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           display_name: string
+          dispute_open?: boolean | null
+          excessive_cancellations?: boolean | null
           iban?: string | null
           id?: string
           is_verified?: boolean | null
@@ -9212,6 +9217,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          suspected_fraud?: boolean | null
           tier?: string | null
           total_revenue?: number | null
           total_reviews?: number | null
@@ -9238,6 +9244,8 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string
           display_name?: string
+          dispute_open?: boolean | null
+          excessive_cancellations?: boolean | null
           iban?: string | null
           id?: string
           is_verified?: boolean | null
@@ -9252,6 +9260,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id?: string | null
           stripe_account_status?: string | null
+          suspected_fraud?: boolean | null
           tier?: string | null
           total_revenue?: number | null
           total_reviews?: number | null
@@ -30004,6 +30013,66 @@ export type Database = {
           },
           {
             foreignKeyName: "marketplace_orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_payouts: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          notes: string | null
+          payout_method: string | null
+          processed_at: string | null
+          requested_at: string | null
+          seller_id: string
+          status: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: string | null
+          payout_method?: string | null
+          processed_at?: string | null
+          requested_at?: string | null
+          seller_id: string
+          status?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: string | null
+          payout_method?: string | null
+          processed_at?: string | null
+          requested_at?: string | null
+          seller_id?: string
+          status?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_payouts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_payouts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
