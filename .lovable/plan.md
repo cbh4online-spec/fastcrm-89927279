@@ -1,71 +1,43 @@
 
 
-## Integrar Regras de Legislação nos Módulos HR
+## Melhorar Edge Function `hr-clock-action` — Cenários Edge
 
-### Contexto
-As regras laborais estão armazenadas em `hr_country_labor_rules` mas não são consumidas pelos módulos de ponto e ausências. Precisamos de duas integrações concretas.
+### Diagnóstico
 
-### Integração 1 — Alerta de horas diárias máximas no clock-out
+A função actual tem 3 lacunas:
 
-**Edge function `hr-clock-action`** — No clock-out, após calcular `workedMin`, consultar `hr_country_labor_rules` do workspace activo e comparar com `max_daily_hours`. Retornar um campo `overtime_alert` na resposta com os minutos excedidos.
+1. **Clock-in duplicado** — Se já existe sessão aberta (sem clock_out), um novo clock_in é silenciosamente ignorado (não cria sessão mas também não avisa o utilizador).
+2. **Clock-out sem sessão** — Se não existe sessão aberta, o clock_out insere o time_entry mas não faz nada com a sessão, sem feedback ao utilizador.
+3. **Break sem sessão activa** — Não há validação para break_start/break_end sem sessão aberta.
 
-**Frontend `useClockAction`** — Ler o campo `overtime_alert` do response e mostrar um toast de aviso amarelo quando excedido (ex: "⚠️ Jorge Cardoso excedeu o limite diário em 45 min").
+### Solução
 
-**Frontend `HRTimeTrackingPage`** — Na tabela de sessões, mostrar badge "Overtime" a vermelho quando `worked_minutes > max_daily_hours * 60`. Usar o hook `useActiveLaborRules()` para obter o limite.
+Adicionar **validações de estado** antes de inserir o time_entry, retornando erros 400 claros:
 
-### Integração 2 — Saldo base de férias dinâmico
+| Cenário | Validação | Resposta |
+|---|---|---|
+| `clock_in` com sessão aberta | Sessão existe e `clock_out_at IS NULL` | 400 — "Já existe uma sessão aberta. Faça clock-out primeiro." |
+| `clock_out` sem sessão aberta | Não existe sessão hoje ou `clock_out_at` já preenchido | 400 — "Nenhuma sessão aberta para terminar." |
+| `break_start`/`break_end` sem sessão aberta | Mesma verificação | 400 — "Nenhuma sessão aberta para registar pausa." |
 
-**Edge function `hr-leave-request-create`** — Quando não existe `hr_leave_balances` para o funcionário/tipo/ano (linha 143-154), em vez de criar com `total_days: 0`, consultar `hr_country_labor_rules` activa e usar `annual_vacation_days` como `total_days` (se o tipo de ausência for de férias, i.e. código "ferias" ou "FER").
+### Implementação — 1 ficheiro
 
-**Frontend** — No hook `useHRLeaveBalances`, o saldo já virá correcto do backend. Sem alterações necessárias no frontend para esta parte.
+**`supabase/functions/hr-clock-action/index.ts`**
 
-### Ficheiros a alterar
+1. Mover a query de sessão existente para **antes** da inserção do time_entry
+2. Adicionar bloco de validação por `entry_type`:
+   - `clock_in`: rejeitar se existe sessão com `clock_out_at IS NULL`
+   - `clock_out`: rejeitar se não existe sessão ou já tem `clock_out_at`
+   - `break_start`/`break_end`: rejeitar se não existe sessão aberta
+3. Só inserir o `hr_time_entries` **após** validação passar
+4. Melhorar a query de sessão existente para filtrar `clock_out_at` is null (sessão aberta)
 
-| Ficheiro | Alteração |
-|---|---|
-| `supabase/functions/hr-clock-action/index.ts` | Consultar regras activas no clock-out, calcular overtime, incluir `overtime_alert` no response |
-| `supabase/functions/hr-leave-request-create/index.ts` | Usar `annual_vacation_days` das regras activas como saldo base quando se cria balance novo |
-| `src/hooks/hr/useHRTimeEntries.ts` | No `onSuccess` de `useClockAction`, mostrar toast de alerta se `overtime_alert` |
-| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Consumir `useActiveLaborRules()`, mostrar badge Overtime nas sessões que excedem limite |
-
-### Detalhes técnicos
-
-**hr-clock-action** — bloco a adicionar após o update da sessão (linha ~64):
-```typescript
-// Fetch active labor rules
-const { data: laborRule } = await supabase
-  .from("hr_country_labor_rules")
-  .select("rules")
-  .eq("workspace_id", workspace_id)
-  .eq("is_active", true)
-  .maybeSingle();
-
-const maxDailyMin = (laborRule?.rules?.max_daily_hours || 8) * 60;
-const overtimeMin = Math.max(0, workedMin - maxDailyMin);
-// Include in response
-```
-
-**hr-leave-request-create** — no bloco `else` (linha 143):
-```typescript
-// Fetch active labor rules for vacation days
-const { data: laborRule } = await adminClient
-  .from("hr_country_labor_rules")
-  .select("rules")
-  .eq("workspace_id", workspace_id)
-  .eq("is_active", true)
-  .maybeSingle();
-
-const absType = await adminClient.from("hr_absence_types")
-  .select("code").eq("id", absence_type_id).single();
-
-const isVacation = ["FER","ferias","VAC"].includes(absType?.data?.code || "");
-const baseDays = isVacation ? (laborRule?.rules?.annual_vacation_days || 22) : 0;
-```
+**Frontend `useClockAction`** — Actualizar `onError` para mostrar a mensagem de erro do backend (já existe toast genérico, melhorar para mostrar `error.message` ou o body do response).
 
 ### Critérios de aceitação
-1. Clock-out retorna `overtime_alert` com minutos excedidos quando aplicável
-2. Toast amarelo aparece no frontend ao fazer clock-out com overtime
-3. Tabela de sessões mostra badge "Overtime" nas sessões que excedem limite
-4. Novo pedido de férias cria saldo com `total_days` = dias de férias do país activo (22 para PT)
-5. Regras são lidas da tabela `hr_country_labor_rules` — não hardcoded
+1. Clock-in com sessão aberta retorna 400 com mensagem clara
+2. Clock-out sem sessão aberta retorna 400 com mensagem clara
+3. Break sem sessão aberta retorna 400
+4. Fluxo normal clock-in → clock-out continua a funcionar
+5. Frontend mostra mensagem de erro específica do backend
 
