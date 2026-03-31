@@ -190,7 +190,7 @@ export function ProductBarcodeQRSection({
               ref={qrRef}
               className="bg-white p-2 rounded-lg border flex-shrink-0"
             >
-              <QRCode value={qrValue} size={96} level="M" />
+              <QRCode value={qrValue || ""} size={96} level="M" />
             </div>
 
           <div className="space-y-2 flex-1 min-w-0">
