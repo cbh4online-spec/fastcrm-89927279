@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -150,6 +150,12 @@ export function MeetingCreateModal({
         },
   });
 
+  // Keep defaultDate in a ref to avoid re-triggering the reset effect
+  const defaultDateRef = useRef(defaultDate);
+  useEffect(() => {
+    defaultDateRef.current = defaultDate;
+  }, [defaultDate]);
+
   // Reset form when modal opens with different meeting data
   useEffect(() => {
     if (open) {
@@ -186,8 +192,8 @@ export function MeetingCreateModal({
           description: '',
           category: 'client',
           mode: 'online',
-          start_date: defaultDate,
-          start_time: format(defaultDate, 'HH:mm'),
+          start_date: defaultDateRef.current,
+          start_time: format(defaultDateRef.current, 'HH:mm'),
           duration: 60,
           location: '',
           meeting_url: '',
@@ -197,7 +203,8 @@ export function MeetingCreateModal({
         setEntityValue({ contactId: null, companyId: null, leadId: null });
       }
     }
-  }, [open, meeting, defaultDate, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, meeting, form]);
 
   const selectedCategory = form.watch('category');
   const selectedMode = form.watch('mode');
