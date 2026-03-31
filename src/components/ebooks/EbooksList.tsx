@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, BookOpen, Trash2, ExternalLink, Loader2, Sparkles, FileText, PenLine, BookMarked, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { EbookAnalytics } from "./EbookAnalytics";
 
 interface EbooksListProps {
