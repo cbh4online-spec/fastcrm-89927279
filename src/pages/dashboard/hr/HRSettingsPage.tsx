@@ -219,6 +219,9 @@ export default function HRSettingsPage() {
           <TabsTrigger value="contract_types" className="gap-1.5">
             <FileText className="h-4 w-4" /> Contratos
           </TabsTrigger>
+          <TabsTrigger value="labor_rules" className="gap-1.5">
+            <Scale className="h-4 w-4" /> Legislação
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="departments">
