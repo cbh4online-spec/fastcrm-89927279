@@ -103,13 +103,29 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
   const [generateImages, setGenerateImages] = useState(true);
   const [imageLayout, setImageLayout] = useState<ImageLayoutConfig>(DEFAULT_IMAGE_LAYOUT);
 
-  // Generation state
-  const [generating, setGenerating] = useState(false);
-  const [genProgress, setGenProgress] = useState(0);
-  const [genStatus, setGenStatus] = useState("");
+  // Generation state — async job-based
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const { data: activeJob } = useEbookGenerationJob(activeJobId);
+  const startGeneration = useStartEbookGeneration();
+  const retryGeneration = useRetryEbookGeneration();
 
-  const { canAfford, getCost, consumeCredits, balance } = useCreditWallet();
-  const createEbook = useCreateEbook();
+  const generating = activeJob?.status === "queued" || activeJob?.status === "running";
+  const genProgress = activeJob?.progress || 0;
+  const genStatus = activeJob ? getStepLabel(activeJob.current_step) : "";
+  const genFailed = activeJob?.status === "failed";
+
+  // Auto-navigate on completion
+  const completedRef = useRef(false);
+  useEffect(() => {
+    if (activeJob?.status === "completed" && !completedRef.current) {
+      completedRef.current = true;
+      const ebookId = (activeJob.result as any)?.ebook_id || activeJob.ebook_id;
+      if (ebookId) {
+        toast.success("eBook gerado com sucesso! 🎉");
+        setTimeout(() => onComplete(ebookId), 600);
+      }
+    }
+  }, [activeJob?.status]);
 
   const outlineCost = getCost("ebook_generate_full") || 15;
   const chapterCost = getCost("ebook_generate_chapter") || 3;
