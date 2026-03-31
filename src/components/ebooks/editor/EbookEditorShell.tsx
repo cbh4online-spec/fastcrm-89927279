@@ -395,6 +395,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           selectedBlockId={selectedBlockId}
           onSelectBlock={setSelectedBlockId}
           onUpdateChapterTitle={(id, title) => updateChapter(id, "title", title)}
+          onUpdateChapterContent={(id, content) => updateChapter(id, "content", content)}
           onSaveChapters={saveChapters}
           ensureChapterBlocks={ensureChapterBlocks}
           onGenerateChapterImageAI={generateChapterImageAI}
