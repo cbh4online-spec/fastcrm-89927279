@@ -1,21 +1,23 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useCandidates, useCreateCandidate, useDeleteCandidate } from "@/hooks/hr/useCandidates";
 import type { Candidate, CandidateStage } from "@/hooks/hr/useCandidates";
 import { useJobPostings } from "@/hooks/hr/useJobPostings";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHFormActions } from "@/components/hr/form";
+import { candidateSchema, type CandidateFormValues } from "@/schemas/hr/candidateSchema";
 import { Plus, Search, Trash2, ExternalLink, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { toast } from "sonner";
 
 const STAGE_LABELS: Record<CandidateStage, string> = {
   new: "Novo", screening: "Triagem", phone_interview: "Telefone",
@@ -31,8 +33,12 @@ export default function CandidatesPage() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState<Partial<Candidate>>({
-    first_name: "", last_name: "", email: "", phone: "", source: "manual", job_posting_id: null,
+
+  const form = useForm<CandidateFormValues>({
+    resolver: zodResolver(candidateSchema),
+    defaultValues: {
+      first_name: "", last_name: "", email: "", phone: "", source: "manual", job_posting_id: null, linkedin_url: "",
+    },
   });
 
   const filtered = candidates?.filter(c =>
@@ -40,12 +46,10 @@ export default function CandidatesPage() {
     c.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreate = async () => {
-    if (!form.first_name?.trim() || !form.last_name?.trim()) { toast.error("Nome e apelido são obrigatórios"); return; }
-    if (!form.email?.trim()) { toast.error("Email é obrigatório"); return; }
-    await createCandidate.mutateAsync(form);
+  const onSubmit = async (values: CandidateFormValues) => {
+    await createCandidate.mutateAsync(values);
     setDialogOpen(false);
-    setForm({ first_name: "", last_name: "", email: "", phone: "", source: "manual", job_posting_id: null });
+    form.reset();
   };
 
   return (
@@ -55,54 +59,37 @@ export default function CandidatesPage() {
           <h1 className="text-2xl font-bold text-foreground">Candidatos</h1>
           <p className="text-muted-foreground">Base de dados de candidatos</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) form.reset(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Candidato</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Adicionar Candidato</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input value={form.first_name || ""} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <RHFormField name="first_name" label="Nome" required />
+                  <RHFormField name="last_name" label="Apelido" required />
                 </div>
-                <div className="space-y-2">
-                  <Label>Apelido *</Label>
-                  <Input value={form.last_name || ""} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-4">
+                  <RHFormField name="email" label="Email" type="email" required />
+                  <RHFormField name="phone" label="Telefone" />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input type="email" value={form.email || ""} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-4">
+                  <RHFormField name="linkedin_url" label="LinkedIn" placeholder="https://linkedin.com/in/..." />
+                  <RHSelectField
+                    name="job_posting_id"
+                    label="Vaga"
+                    allowNone
+                    noneLabel="Sem vaga"
+                    options={jobs?.map(j => ({ value: j.id, label: j.title })) || []}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={form.phone || ""} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>LinkedIn</Label>
-                  <Input value={form.linkedin_url || ""} onChange={e => setForm(p => ({ ...p, linkedin_url: e.target.value }))} placeholder="https://linkedin.com/in/..." />
-                </div>
-                <div className="space-y-2">
-                  <Label>Vaga</Label>
-                  <Select value={form.job_posting_id || "none"} onValueChange={v => setForm(p => ({ ...p, job_posting_id: v === "none" ? null : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Sem vaga" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem vaga</SelectItem>
-                      {jobs?.map(j => <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleCreate} disabled={createCandidate.isPending}>Criar</Button>
-              </div>
-            </div>
+                <DialogFooter>
+                  <RHFormActions onCancel={() => setDialogOpen(false)} isSubmitting={createCandidate.isPending} submitLabel="Criar" />
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>

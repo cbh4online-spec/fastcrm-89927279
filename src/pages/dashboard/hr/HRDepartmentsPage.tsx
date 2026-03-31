@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
@@ -8,24 +10,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { departmentSchema, type DepartmentFormValues } from "@/schemas/hr/departmentSchema";
 import { Building2, Plus, Pencil, Trash2, Users, Search } from "lucide-react";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
-
-interface DeptForm {
-  name: string;
-  description: string;
-  parent_department_id: string | null;
-  head_id: string | null;
-}
-
-const emptyForm: DeptForm = { name: "", description: "", parent_department_id: null, head_id: null };
 
 export default function HRDepartmentsPage() {
   const { data: departments, isLoading } = useHRDepartments();
@@ -36,9 +29,13 @@ export default function HRDepartmentsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<DeptForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; headcount: number } | null>(null);
+
+  const form = useForm<DepartmentFormValues>({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: { name: "", description: "", parent_department_id: null, head_id: null },
+  });
 
   const filtered = departments?.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase())
@@ -47,10 +44,15 @@ export default function HRDepartmentsPage() {
   const activeDepts = departments?.filter((d) => d.is_active).length ?? 0;
   const totalHeadcount = departments?.reduce((sum, d) => sum + d.headcount, 0) ?? 0;
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
+  const openCreate = () => {
+    setEditId(null);
+    form.reset({ name: "", description: "", parent_department_id: null, head_id: null });
+    setDialogOpen(true);
+  };
+
   const openEdit = (d: any) => {
     setEditId(d.id);
-    setForm({
+    form.reset({
       name: d.name,
       description: d.description || "",
       parent_department_id: d.parent_department_id || null,
@@ -59,13 +61,12 @@ export default function HRDepartmentsPage() {
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!form.name.trim()) return;
+  const onSubmit = (values: DepartmentFormValues) => {
     const payload = {
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      parent_department_id: form.parent_department_id,
-      head_id: form.head_id,
+      name: values.name.trim(),
+      description: values.description.trim() || null,
+      parent_department_id: values.parent_department_id,
+      head_id: values.head_id,
     };
     if (editId) {
       updateDept.mutate({ id: editId, ...payload });
@@ -183,44 +184,32 @@ export default function HRDepartmentsPage() {
             <DialogHeader>
               <DialogTitle>{editId ? "Editar" : "Novo"} Departamento</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome do departamento" />
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição opcional" rows={3} />
-              </div>
-              <div className="space-y-2">
-                <Label>Departamento Pai</Label>
-                <Select value={form.parent_department_id || "none"} onValueChange={(v) => setForm({ ...form, parent_department_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {departments?.filter((d) => d.id !== editId).map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Responsável</Label>
-                <Select value={form.head_id || "none"} onValueChange={(v) => setForm({ ...form, head_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={!form.name.trim()}>Guardar</Button>
-            </DialogFooter>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                <RHFormField name="name" label="Nome" required placeholder="Nome do departamento" />
+                <RHTextareaField name="description" label="Descrição" placeholder="Descrição opcional" rows={3} />
+                <RHSelectField
+                  name="parent_department_id"
+                  label="Departamento Pai"
+                  allowNone
+                  noneLabel="Nenhum"
+                  options={departments?.filter((d) => d.id !== editId).map((d) => ({ value: d.id, label: d.name })) || []}
+                />
+                <RHSelectField
+                  name="head_id"
+                  label="Responsável"
+                  allowNone
+                  noneLabel="Nenhum"
+                  options={employees.map((emp) => ({ value: emp.id, label: emp.full_name }))}
+                />
+                <DialogFooter>
+                  <RHFormActions
+                    onCancel={() => setDialogOpen(false)}
+                    isSubmitting={createDept.isPending || updateDept.isPending}
+                  />
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
 
