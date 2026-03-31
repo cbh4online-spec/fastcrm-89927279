@@ -12,15 +12,24 @@ export function useHRDepartments(onlyActive = false) {
     queryKey: [KEY, wsId, onlyActive],
     enabled: !!wsId,
     queryFn: async () => {
+      // Use simple select first to avoid silent failures from relational joins
+      // when referenced tables (hr_employees) have no matching rows
       let q = supabase
         .from("hr_departments")
-        .select("*, head:hr_employees(id, full_name), parent:hr_departments(id, name)")
+        .select("*")
         .eq("workspace_id", wsId!)
         .order("name");
       if (onlyActive) q = q.eq("is_active", true);
       const { data, error } = await q;
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("[useHRDepartments] query error:", error);
+        throw error;
+      }
+      return (data ?? []).map((dept: any) => ({
+        ...dept,
+        head: null,
+        parent: null,
+      }));
     },
   });
 }
