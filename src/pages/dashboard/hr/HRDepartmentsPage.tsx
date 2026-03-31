@@ -74,7 +74,7 @@ export default function HRDepartmentsPage() {
   };
 
   return (
-    <ModuleGuard moduleSlug="hr-management">
+    <ModuleGuard moduleSlug="hr-management" moduleName="Gestão de RH">
       <DashboardLayout>
         <HRBreadcrumb />
 
