@@ -1,43 +1,39 @@
 
 
-## Melhorar Edge Function `hr-clock-action` — Cenários Edge
+## Activar Módulo HR no Workspace
 
-### Diagnóstico
+### Abordagem
 
-A função actual tem 3 lacunas:
+Inserir directamente um registo na tabela `workspace_modules` para activar o módulo `hr-management` no workspace actual. Isto é equivalente a clicar "Instalar" no Marketplace.
 
-1. **Clock-in duplicado** — Se já existe sessão aberta (sem clock_out), um novo clock_in é silenciosamente ignorado (não cria sessão mas também não avisa o utilizador).
-2. **Clock-out sem sessão** — Se não existe sessão aberta, o clock_out insere o time_entry mas não faz nada com a sessão, sem feedback ao utilizador.
-3. **Break sem sessão activa** — Não há validação para break_start/break_end sem sessão aberta.
+### Implementação
 
-### Solução
+**1 migração SQL:**
 
-Adicionar **validações de estado** antes de inserir o time_entry, retornando erros 400 claros:
+```sql
+-- Activate hr-management module for the workspace
+INSERT INTO workspace_modules (workspace_id, module_id, status, subscribed_at, current_period_start)
+SELECT 
+  wm.id AS workspace_id,
+  mm.id AS module_id,
+  'active',
+  now(),
+  now()
+FROM workspaces wm
+CROSS JOIN marketplace_modules mm
+WHERE mm.slug = 'hr-management'
+  AND NOT EXISTS (
+    SELECT 1 FROM workspace_modules wmod 
+    WHERE wmod.workspace_id = wm.id AND wmod.module_id = mm.id
+  )
+LIMIT 1;
+```
 
-| Cenário | Validação | Resposta |
-|---|---|---|
-| `clock_in` com sessão aberta | Sessão existe e `clock_out_at IS NULL` | 400 — "Já existe uma sessão aberta. Faça clock-out primeiro." |
-| `clock_out` sem sessão aberta | Não existe sessão hoje ou `clock_out_at` já preenchido | 400 — "Nenhuma sessão aberta para terminar." |
-| `break_start`/`break_end` sem sessão aberta | Mesma verificação | 400 — "Nenhuma sessão aberta para registar pausa." |
+Isto activa o módulo para o primeiro workspace existente. O `ModuleGuard` verifica `workspace_modules` com status `active` ou `trial`, pelo que o acesso ficará imediatamente disponível.
 
-### Implementação — 1 ficheiro
+Após a activação, basta navegar a `/dashboard/hr/time-tracking` no preview para testar o clock-in/clock-out do Jorge Cardoso.
 
-**`supabase/functions/hr-clock-action/index.ts`**
+### Alternativa
 
-1. Mover a query de sessão existente para **antes** da inserção do time_entry
-2. Adicionar bloco de validação por `entry_type`:
-   - `clock_in`: rejeitar se existe sessão com `clock_out_at IS NULL`
-   - `clock_out`: rejeitar se não existe sessão ou já tem `clock_out_at`
-   - `break_start`/`break_end`: rejeitar se não existe sessão aberta
-3. Só inserir o `hr_time_entries` **após** validação passar
-4. Melhorar a query de sessão existente para filtrar `clock_out_at` is null (sessão aberta)
-
-**Frontend `useClockAction`** — Actualizar `onError` para mostrar a mensagem de erro do backend (já existe toast genérico, melhorar para mostrar `error.message` ou o body do response).
-
-### Critérios de aceitação
-1. Clock-in com sessão aberta retorna 400 com mensagem clara
-2. Clock-out sem sessão aberta retorna 400 com mensagem clara
-3. Break sem sessão aberta retorna 400
-4. Fluxo normal clock-in → clock-out continua a funcionar
-5. Frontend mostra mensagem de erro específica do backend
+Se preferir activar manualmente: navegar a `/dashboard/marketplace` no preview, procurar "Recursos Humanos" e clicar Instalar/Activar.
 
