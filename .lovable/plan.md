@@ -1,98 +1,83 @@
 
 
-## Substituição Completa do Módulo de Recrutamento & ATS
+## Fase 5: Onboarding de Colaboradores — Plano de Implementação
 
 ### Diagnóstico
 
-O módulo actual usa uma arquitectura diferente do guia:
+- Nenhuma tabela `hr_onboarding*` existe na BD
+- Nenhum hook, página ou edge function de onboarding HR existe
+- `hr_employees` tem `position_id`, `department_id`, `manager_id` — necessários para buddy matching
+- **Nota**: O guia referencia `hr_positions` mas essa tabela não existe no schema actual. O buddy match usará `job_title` e `department` em vez disso.
+- A rota `/dashboard/hr/onboarding` não existe no `HRRoutes.tsx`
 
-| Actual | Guia (novo) |
+---
+
+### Plano (5 passos)
+
+#### 1. Migração SQL — 5 tabelas novas
+
+| Tabela | Finalidade |
 |---|---|
-| `hr_job_openings` | `hr_job_postings` (+ slug, requirements[], nice_to_have[], remote_option, employment_type) |
-| `hr_candidates` (full_name, sem stage) + `hr_applications` (stage separado) | `hr_candidates` (first_name/last_name, stage directo, cv_parsed_data, ai_score, ai_analysis) |
-| `hr_interviews` (via application_id) + `hr_interview_scorecards` | `hr_interviews` (via candidate_id, interviewer_ids[], feedback JSONB, recommendation) |
-| `hr_candidate_notes`, `hr_email_templates` | `hr_candidate_activities` (activity log unificado) |
-| Edge function: `hr-recruitment-ai` (multipurpose) | 2 edge functions: `hr-cv-parse-ai`, `hr-candidate-score-ai` |
+| `hr_onboarding_templates` | Templates de onboarding por workspace |
+| `hr_onboarding_task_templates` | Tarefas modelo (category, assigned_to_role, due_days) |
+| `hr_onboardings` | Instâncias activas (employee, buddy, progress, status) |
+| `hr_onboarding_tasks` | Tarefas concretas por onboarding |
+| `hr_onboarding_feedback` | Checkpoints 30-60-90 dias |
 
-**Impacto**: 6 tabelas antigas a dropar, 4 novas a criar. ~10 ficheiros a reescrever. `HRDashboardPage` usa `useCandidates` — necessita actualização.
+Inclui: índices, triggers (`updated_at`, `calculate_onboarding_progress`), RLS (templates → HR only, onboardings → employee/buddy/manager/HR, tasks → assigned + HR, feedback → participantes).
 
----
+**Adaptações ao guia**: Usar validation triggers em vez de CHECK constraints para datas. Remover referência a `hr_positions` (tabela inexistente) — `position_id` fica nullable sem FK.
 
-### Plano (7 passos)
+#### 2. Edge Functions (2 novas)
 
-#### 1. Migração SQL — Drop old + Create new
+- **`hr-buddy-match-ai`**: Recebe `new_employee_id` + `workspace_id`, busca funcionários activos, usa Lovable AI (gemini-2.5-pro, sem API key externa) para encontrar top 3 matches com score + reasoning.
+- **`hr-onboarding-start`**: Recebe `employee_id`, `template_id`, `buddy_id`, `start_date`. Cria instância de onboarding, gera tarefas a partir do template com datas calculadas, cria checkpoints de feedback (30/60/90).
 
-**Drop** (com CASCADE):
-- `hr_email_templates`, `hr_candidate_notes`, `hr_interview_scorecards`, `hr_interviews`, `hr_applications`, `hr_pipeline_stages`, `hr_job_openings`
-- Dropar enum `hr_application_stage`, `hr_interview_type`
-- **Manter** `hr_candidates` mas fazer ALTER para nova estrutura (rename full_name → split, add campos)
+#### 3. Hooks React (1 ficheiro)
 
-**Create**:
-- `hr_job_postings` — com slug, requirements TEXT[], nice_to_have TEXT[], employment_type, remote_option, salary_min/max, currency, published_at, closes_at, public_url. Validation triggers em vez de CHECK para datas.
-- **ALTER** `hr_candidates` — adicionar first_name, last_name, job_posting_id, stage (com valores do guia), cv_parsed_data JSONB, ai_score, ai_analysis JSONB, status, location, github_url, source, referrer_id, cover_letter_url. Drop full_name, cv_path, cover_letter, tags, notes.
-- `hr_interviews` — nova estrutura com candidate_id, job_posting_id, interview_type (enum), interviewer_ids UUID[], location_type, meeting_link, feedback JSONB, overall_rating, recommendation.
-- `hr_candidate_activities` — activity_type enum, content, metadata JSONB, created_by.
+**`src/hooks/hr/useOnboarding.ts`**:
+- `useOnboarding(employeeId)` — query onboarding activo com tasks e buddy
+- `useOnboardings(workspaceId)` — listar todos os onboardings do workspace
+- `useOnboardingTemplates(workspaceId)` — CRUD de templates
+- `useStartOnboarding()` — mutation que invoca `hr-onboarding-start`
+- `useBuddyMatch()` — mutation que invoca `hr-buddy-match-ai`
+- `useUpdateOnboardingTask()` — marcar tarefa como completa
+- `useSubmitOnboardingFeedback()` — submeter feedback de checkpoint
 
-**RLS**: Conforme guia — job postings activos públicos, candidatos só HR/managers, entrevistas para envolvidos + HR, activities como candidatos.
+#### 4. Página e Componentes
 
-**Índices + Triggers**: Conforme guia.
+**`src/pages/dashboard/hr/HROnboardingPage.tsx`**:
+- **Tabs**: Onboardings Activos | Templates | Arquivo
+- **Tab Activos**: Lista de onboardings com progress bar, employee avatar, buddy, status, dias restantes. Expandir para ver checklist de tarefas.
+- **Tab Templates**: CRUD de templates com task templates inline (add/edit/remove/reorder).
+- **Dialog "Iniciar Onboarding"**: Seleccionar employee → seleccionar template → botão "Sugerir Buddy" (invoca IA) → mostrar top 3 matches com score → confirmar → criar.
+- **Detalhe inline**: Checklist de tarefas agrupadas por categoria (HR, IT, Manager, Team, Self), com toggle de conclusão. Secção de feedback 30-60-90 com formulários de satisfação (1-5 estrelas + comentários).
 
-#### 2. Edge Functions (2 novas, remover 1 antiga)
+#### 5. Rotas e Navegação
 
-- **`hr-cv-parse-ai`**: Recebe candidate_id + cv_text, usa Lovable AI (gemini-2.5-pro) para extrair dados estruturados do CV, actualiza hr_candidates com cv_parsed_data.
-- **`hr-candidate-score-ai`**: Recebe candidate_id, lê candidato + job_posting, usa IA para gerar score 0-100 + analysis, actualiza hr_candidates.
-- **Remover** `hr-recruitment-ai` (substituído pelas 2 novas + hooks locais para descrições/emails).
-
-#### 3. Hooks (reescrever 4 ficheiros)
-
-- **`useJobPostings.ts`** (renomear de useJobOpenings): CRUD completo para hr_job_postings com filtros por status.
-- **`useCandidates.ts`**: Reescrever — first_name/last_name, join a hr_job_postings, `useParseCV` (invoca hr-cv-parse-ai), `useScoreCandidate` (invoca hr-candidate-score-ai), `useUpdateCandidateStage`.
-- **`useInterviews.ts`**: Reescrever — via candidate_id, join a hr_candidates + hr_job_postings.
-- **`useCandidateActivities.ts`** (novo): CRUD para hr_candidate_activities.
-- **Apagar**: `useApplications.ts`, `useRecruitmentAI.ts`.
-
-#### 4. Componentes
-
-- **Reescrever `CandidateKanban.tsx`**: Baseado em candidates com stage directo (sem applications). Drag & drop entre stages do guia (new, screening, phone_interview, technical_interview, onsite_interview, offer, hired, rejected).
-- **Novo `CandidatePipeline.tsx`**: Versão compacta para embeds.
-
-#### 5. Páginas (reescrever 6 ficheiros)
-
-- **`JobOpeningsPage.tsx` → `JobPostingsPage.tsx`**: Usar useJobPostings, mostrar employment_type, remote_option, salary range.
-- **`JobOpeningDetailPage.tsx` → `JobPostingDetailPage.tsx`**: Kanban com candidates directos, sem applications.
-- **`CandidatesPage.tsx`**: Adaptar para first_name/last_name, stage directo, ai_score badge, botão Parse CV.
-- **`CandidateDetailPage.tsx`**: Tabs com perfil, CV parsed, AI analysis, activities log, entrevistas.
-- **`InterviewsPage.tsx`**: Adaptar para nova estrutura (interviewer_ids, feedback, recommendation).
-- **`RecruitmentDashboardPage.tsx`**: Actualizar KPIs — usar candidates com stage em vez de applications.
-
-#### 6. Rotas e Dashboard
-
-- Actualizar `HRRoutes.tsx` com novos imports (lazy).
-- Actualizar `HRDashboardPage.tsx` — substituir `useCandidates` import pela nova versão.
-- Actualizar `routeManifest.ts` se necessário (nomes de rotas mantêm-se).
-
-#### 7. Limpeza
-
-- Apagar ficheiros obsoletos: `useApplications.ts`, `useRecruitmentAI.ts`, `hr-recruitment-ai/`.
-- Verificar zero referências a tabelas/hooks removidos.
+- Adicionar rota `/dashboard/hr/onboarding` ao `HRRoutes.tsx`
+- Adicionar link na sidebar/navigation do HR (se gerido por `routeManifest.ts`)
 
 ---
+
+### Ficheiros a criar/alterar
+
+| Ficheiro | Acção |
+|---|---|
+| Migração SQL | Criar (5 tabelas + RLS + triggers + índices) |
+| `supabase/functions/hr-buddy-match-ai/index.ts` | Criar |
+| `supabase/functions/hr-onboarding-start/index.ts` | Criar |
+| `src/hooks/hr/useOnboarding.ts` | Criar |
+| `src/pages/dashboard/hr/HROnboardingPage.tsx` | Criar |
+| `src/routes/HRRoutes.tsx` | Adicionar rota onboarding |
 
 ### Critérios de Aceitação
 
-1. Candidatos têm stage directo (sem tabela applications intermediária)
-2. CV parsing via edge function dedicada extrai dados estruturados
-3. AI scoring via edge function dedicada com score 0-100 + analysis
-4. Pipeline Kanban com 8 stages do guia, drag & drop funcional
-5. Activity log regista todas as acções (notas, emails, mudanças de stage)
-6. Entrevistas com feedback JSONB e recommendation
-7. Job postings com slug, requirements[], salary range
-8. RLS conforme guia (públicos para activos, HR para candidatos)
-9. Aplicação compila sem erros, zero referências a tabelas/hooks antigos
-
-### Riscos
-
-- **Dados existentes**: Se houver candidatos/vagas na BD actual, serão perdidos com o DROP. Migração de dados não está incluída.
-- **HRDashboardPage**: Usa `useCandidates` — necessita actualização para nova interface (first_name/last_name).
-- **Scope grande**: ~15 ficheiros a criar/reescrever + migração complexa. Execução em múltiplas iterações.
+1. Templates CRUD funcional com tarefas modelo
+2. Iniciar onboarding gera tarefas com datas calculadas automaticamente
+3. Buddy match via IA retorna top 3 com score e reasoning
+4. Progress bar actualiza automaticamente ao completar tarefas (trigger BD)
+5. Feedback 30-60-90 com formulários de satisfação para employee/manager/buddy
+6. RLS garante isolamento por workspace e visibilidade correcta por role
+7. Layout responsivo com estados vazios e loading
 
