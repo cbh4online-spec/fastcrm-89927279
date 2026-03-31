@@ -24675,32 +24675,124 @@ export type Database = {
           },
         ]
       }
+      hr_contracts: {
+        Row: {
+          contract_type: string
+          created_at: string | null
+          currency: string | null
+          document_url: string | null
+          employee_id: string
+          end_date: string | null
+          hours_per_week: number | null
+          id: string
+          is_active: boolean | null
+          salary: number
+          salary_frequency: string | null
+          signed_at: string | null
+          start_date: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contract_type?: string
+          created_at?: string | null
+          currency?: string | null
+          document_url?: string | null
+          employee_id: string
+          end_date?: string | null
+          hours_per_week?: number | null
+          id?: string
+          is_active?: boolean | null
+          salary?: number
+          salary_frequency?: string | null
+          signed_at?: string | null
+          start_date: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contract_type?: string
+          created_at?: string | null
+          currency?: string | null
+          document_url?: string | null
+          employee_id?: string
+          end_date?: string | null
+          hours_per_week?: number | null
+          id?: string
+          is_active?: boolean | null
+          salary?: number
+          salary_frequency?: string | null
+          signed_at?: string | null
+          start_date?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_departments: {
         Row: {
           created_at: string
           description: string | null
+          head_id: string | null
           id: string
           is_active: boolean
           name: string
+          parent_department_id: string | null
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          head_id?: string | null
           id?: string
           is_active?: boolean
           name: string
+          parent_department_id?: string | null
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          head_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
+          parent_department_id?: string | null
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_departments_head_id_fkey"
+            columns: ["head_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_departments_parent_department_id_fkey"
+            columns: ["parent_department_id"]
+            isOneToOne: false
+            referencedRelation: "hr_departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_departments_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -24784,63 +24876,126 @@ export type Database = {
           avatar_url: string | null
           contract_type: string | null
           created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
           department: string | null
+          department_id: string | null
           email: string | null
           employee_number: string | null
+          employment_status: string | null
+          employment_type: string | null
           end_date: string | null
+          first_name: string | null
           full_name: string
+          hire_date: string | null
           id: string
           job_title: string | null
+          last_name: string | null
+          manager_id: string | null
           notes: string | null
           phone: string | null
+          position_id: string | null
           qr_code_token: string | null
+          remote_status: string | null
           start_date: string | null
           status: string | null
+          termination_date: string | null
           updated_at: string | null
+          user_id: string | null
           weekly_hours: number | null
+          work_location: string | null
           workspace_id: string
         }
         Insert: {
           avatar_url?: string | null
           contract_type?: string | null
           created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
           department?: string | null
+          department_id?: string | null
           email?: string | null
           employee_number?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
           end_date?: string | null
+          first_name?: string | null
           full_name: string
+          hire_date?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
+          manager_id?: string | null
           notes?: string | null
           phone?: string | null
+          position_id?: string | null
           qr_code_token?: string | null
+          remote_status?: string | null
           start_date?: string | null
           status?: string | null
+          termination_date?: string | null
           updated_at?: string | null
+          user_id?: string | null
           weekly_hours?: number | null
+          work_location?: string | null
           workspace_id: string
         }
         Update: {
           avatar_url?: string | null
           contract_type?: string | null
           created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
           department?: string | null
+          department_id?: string | null
           email?: string | null
           employee_number?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
           end_date?: string | null
+          first_name?: string | null
           full_name?: string
+          hire_date?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
+          manager_id?: string | null
           notes?: string | null
           phone?: string | null
+          position_id?: string | null
           qr_code_token?: string | null
+          remote_status?: string | null
           start_date?: string | null
           status?: string | null
+          termination_date?: string | null
           updated_at?: string | null
+          user_id?: string | null
           weekly_hours?: number | null
+          work_location?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "hr_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employees_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "hr_job_titles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_employees_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -25041,26 +25196,44 @@ export type Database = {
       hr_job_titles: {
         Row: {
           created_at: string
+          currency: string | null
           department_id: string | null
+          description: string | null
           id: string
           is_active: boolean
+          level: string | null
           name: string
+          salary_max: number | null
+          salary_min: number | null
+          updated_at: string | null
           workspace_id: string
         }
         Insert: {
           created_at?: string
+          currency?: string | null
           department_id?: string | null
+          description?: string | null
           id?: string
           is_active?: boolean
+          level?: string | null
           name: string
+          salary_max?: number | null
+          salary_min?: number | null
+          updated_at?: string | null
           workspace_id: string
         }
         Update: {
           created_at?: string
+          currency?: string | null
           department_id?: string | null
+          description?: string | null
           id?: string
           is_active?: boolean
+          level?: string | null
           name?: string
+          salary_max?: number | null
+          salary_min?: number | null
+          updated_at?: string | null
           workspace_id?: string
         }
         Relationships: [

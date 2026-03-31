@@ -14,7 +14,7 @@ export function useHRDepartments(onlyActive = false) {
     queryFn: async () => {
       let q = supabase
         .from("hr_departments")
-        .select("*")
+        .select("*, head:hr_employees(id, full_name), parent:hr_departments(id, name)")
         .eq("workspace_id", wsId!)
         .order("name");
       if (onlyActive) q = q.eq("is_active", true);
@@ -30,7 +30,7 @@ export function useCreateHRDepartment() {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
-    mutationFn: async (values: { name: string; description?: string }) => {
+    mutationFn: async (values: { name: string; description?: string; parent_department_id?: string | null; head_id?: string | null }) => {
       const { error } = await supabase
         .from("hr_departments")
         .insert({ ...values, workspace_id: wsId! });
@@ -47,7 +47,7 @@ export function useCreateHRDepartment() {
 export function useUpdateHRDepartment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...values }: { id: string; name?: string; description?: string; is_active?: boolean }) => {
+    mutationFn: async ({ id, ...values }: { id: string; name?: string; description?: string; is_active?: boolean; parent_department_id?: string | null; head_id?: string | null }) => {
       const { error } = await supabase
         .from("hr_departments")
         .update(values)
