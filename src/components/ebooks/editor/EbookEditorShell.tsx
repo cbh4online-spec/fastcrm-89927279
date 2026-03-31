@@ -66,6 +66,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const [localFooterText, setLocalFooterText] = useState("");
   const [localContactPage, setLocalContactPage] = useState<EbookContactPage>({});
   // Consent local state
+  const [localConsentRequired, setLocalConsentRequired] = useState(false);
   const [localConsentText, setLocalConsentText] = useState("");
   const [localPrivacyPolicyUrl, setLocalPrivacyPolicyUrl] = useState("");
   const [localMarketingOptInEnabled, setLocalMarketingOptInEnabled] = useState(false);
