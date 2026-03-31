@@ -96,7 +96,6 @@ export default function HRTimeTrackingPage() {
                         <p className="text-xs text-muted-foreground">
                           {Math.floor(t.totalWorked / 60)}h {t.totalWorked % 60}m
                         </p>
-                        </p>
                       </div>
                     </div>
                   ))}
