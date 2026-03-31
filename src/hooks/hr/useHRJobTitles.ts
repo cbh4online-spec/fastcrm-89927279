@@ -30,7 +30,7 @@ export function useCreateHRJobTitle() {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useMutation({
-    mutationFn: async (values: { name: string; department_id?: string | null }) => {
+    mutationFn: async (values: { name: string; department_id?: string | null; description?: string; level?: string | null; salary_min?: number | null; salary_max?: number | null; currency?: string }) => {
       const { error } = await supabase
         .from("hr_job_titles")
         .insert({ ...values, workspace_id: wsId! });
