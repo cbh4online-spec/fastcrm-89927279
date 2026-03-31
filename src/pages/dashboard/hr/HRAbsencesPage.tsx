@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
-import { useHRAbsences, useHRAbsenceTypes, useCreateAbsence, useApproveAbsence, useSeedAbsenceDefaults } from "@/hooks/hr/useHRAbsences";
+import { useHRAbsences, useHRAbsenceTypes, useCreateLeaveRequest, useApproveLeaveRequest, useSeedAbsenceDefaults } from "@/hooks/hr/useHRAbsences";
 import { useHREmployees } from "@/hooks/hr/useHREmployees";
+import { useHRLeaveBalances } from "@/hooks/hr/useHRLeaveBalances";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, AlertTriangle, CalendarDays } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -30,29 +32,44 @@ export default function HRAbsencesPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [form, setForm] = useState({ employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" });
 
+  const { currentWorkspace } = useWorkspace();
   const statusFilter = tab === "all" ? undefined : tab;
   const { data: absences = [], isLoading } = useHRAbsences(statusFilter);
   const { data: absenceTypes = [] } = useHRAbsenceTypes();
   const { data: employees = [] } = useHREmployees("active");
-  const createAbsence = useCreateAbsence();
-  const approveAbsence = useApproveAbsence();
+  const { data: balances = [] } = useHRLeaveBalances();
+  const createRequest = useCreateLeaveRequest();
+  const approveRequest = useApproveLeaveRequest();
   const seedDefaults = useSeedAbsenceDefaults();
 
   const pendingCount = absences.filter(a => a.status === "pending").length;
 
   const handleCreate = () => {
-    if (!form.employee_id || !form.absence_type_id || !form.start_date || !form.end_date) return;
-    createAbsence.mutate(form, {
-      onSuccess: () => { setDialogOpen(false); setForm({ employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" }); }
-    });
+    if (!form.employee_id || !form.absence_type_id || !form.start_date || !form.end_date || !currentWorkspace) return;
+    createRequest.mutate(
+      { workspace_id: currentWorkspace.id, ...form },
+      { onSuccess: () => { setDialogOpen(false); setForm({ employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" }); } }
+    );
   };
 
   const handleReject = () => {
     if (!rejectId) return;
-    approveAbsence.mutate({ absence_id: rejectId, action: "rejected", rejection_reason: rejectReason }, {
+    approveRequest.mutate({ absence_id: rejectId, action: "rejected", rejection_reason: rejectReason }, {
       onSuccess: () => { setRejectId(null); setRejectReason(""); }
     });
   };
+
+  // Group balances by leave type for summary cards
+  const balanceSummary = balances.reduce((acc, b) => {
+    const typeName = (b as any).hr_absence_types?.name || "Outro";
+    const color = (b as any).hr_absence_types?.color || "#888";
+    if (!acc[typeName]) acc[typeName] = { total: 0, used: 0, pending: 0, available: 0, color };
+    acc[typeName].total += Number(b.total_days);
+    acc[typeName].used += Number(b.used_days);
+    acc[typeName].pending += Number(b.pending_days);
+    acc[typeName].available += Number(b.available_days);
+    return acc;
+  }, {} as Record<string, { total: number; used: number; pending: number; available: number; color: string }>);
 
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
@@ -61,7 +78,7 @@ export default function HRAbsencesPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Férias & Ausências</h1>
-              <p className="text-muted-foreground">Gestão de pedidos de ausência</p>
+              <p className="text-muted-foreground">Gestão de pedidos de ausência com validação de saldo</p>
             </div>
             <div className="flex gap-2">
               {absenceTypes.length === 0 && (
@@ -95,12 +112,34 @@ export default function HRAbsencesPage() {
                       <div><Label>Data Fim</Label><Input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} /></div>
                     </div>
                     <div><Label>Motivo (opcional)</Label><Textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} /></div>
-                    <Button onClick={handleCreate} disabled={createAbsence.isPending} className="w-full">Submeter Pedido</Button>
+                    <Button onClick={handleCreate} disabled={createRequest.isPending} className="w-full">
+                      {createRequest.isPending ? "A submeter..." : "Submeter Pedido"}
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </div>
           </div>
+
+          {/* Balance summary cards */}
+          {Object.keys(balanceSummary).length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(balanceSummary).map(([type, s]) => (
+                <Card key={type}>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="text-sm font-medium">{type}</span>
+                    </div>
+                    <div className="text-2xl font-bold">{s.available.toFixed(1)}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {s.used.toFixed(0)} usados · {s.pending.toFixed(0)} pendentes · {s.total.toFixed(0)} total
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
@@ -141,7 +180,14 @@ export default function HRAbsencesPage() {
                             <Badge style={{ backgroundColor: a.hr_absence_types?.color }} className="text-white text-xs">{a.hr_absence_types?.name}</Badge>
                           </TableCell>
                           <TableCell className="text-sm">{a.start_date} → {a.end_date}</TableCell>
-                          <TableCell>{a.total_days}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {a.total_days}
+                              {a.conflict_detected && (
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant={a.status === "approved" ? "default" : a.status === "pending" ? "secondary" : "destructive"}>
                               {STATUS_LABELS[a.status] || a.status}
@@ -150,7 +196,7 @@ export default function HRAbsencesPage() {
                           <TableCell>
                             {a.status === "pending" && (
                               <div className="flex gap-1">
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => approveAbsence.mutate({ absence_id: a.id, action: "approved" })}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => approveRequest.mutate({ absence_id: a.id, action: "approved" })}>
                                   <Check className="h-4 w-4" />
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600" onClick={() => setRejectId(a.id)}>
@@ -177,7 +223,7 @@ export default function HRAbsencesPage() {
               <DialogHeader><DialogTitle>Rejeitar Pedido</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <div><Label>Motivo da rejeição</Label><Textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Indique o motivo..." /></div>
-                <Button onClick={handleReject} variant="destructive" className="w-full" disabled={approveAbsence.isPending}>Rejeitar</Button>
+                <Button onClick={handleReject} variant="destructive" className="w-full" disabled={approveRequest.isPending}>Rejeitar</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -190,7 +236,7 @@ export default function HRAbsencesPage() {
                 <div className="flex flex-wrap gap-2">
                   {absenceTypes.map(t => (
                     <Badge key={t.id} style={{ backgroundColor: t.color }} className="text-white">
-                      {t.name} {t.paid ? "(paga)" : "(não paga)"}
+                      {t.name} {t.paid ? "(paga)" : "(não paga)"} {t.can_carry_over && "· transitável"}
                     </Badge>
                   ))}
                 </div>
