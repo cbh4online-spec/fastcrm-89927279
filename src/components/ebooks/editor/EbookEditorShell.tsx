@@ -481,6 +481,24 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onContactPageChange={setLocalContactPage}
           onProtectionChange={(val) => queueSave({ protection_enabled: val })}
           onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
+          consentText={localConsentText}
+          privacyPolicyUrl={localPrivacyPolicyUrl}
+          marketingOptInEnabled={localMarketingOptInEnabled}
+          marketingOptInLabel={localMarketingOptInLabel}
+          onConsentTextChange={setLocalConsentText}
+          onPrivacyPolicyUrlChange={setLocalPrivacyPolicyUrl}
+          onMarketingOptInEnabledChange={setLocalMarketingOptInEnabled}
+          onMarketingOptInLabelChange={setLocalMarketingOptInLabel}
+          seoTitle={localSeoTitle}
+          seoDescription={localSeoDescription}
+          ogImageUrl={localOgImageUrl}
+          canonicalUrl={localCanonicalUrl}
+          noindex={localNoindex}
+          onSeoTitleChange={setLocalSeoTitle}
+          onSeoDescriptionChange={setLocalSeoDescription}
+          onOgImageUrlChange={setLocalOgImageUrl}
+          onCanonicalUrlChange={setLocalCanonicalUrl}
+          onNoindexChange={setLocalNoindex}
           theme={(ebook as any).theme || "modern-dark"}
           headingFont={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
           bodyFont={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
