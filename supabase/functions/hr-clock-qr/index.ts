@@ -23,24 +23,40 @@ serve(async (req) => {
       });
     }
 
-    const { data: employee, error } = await supabase
-      .from("hr_employees")
-      .select("id, workspace_id, full_name, status")
+    // Look up the HR profile by QR token
+    const { data: hrProfile, error } = await supabase
+      .from("hr_employee_profiles")
+      .select("id, member_id, workspace_id, status")
       .eq("qr_code_token", qr_token)
       .eq("status", "active")
       .single();
 
-    if (error || !employee) {
+    if (error || !hrProfile) {
       return new Response(JSON.stringify({ error: "Funcionário não encontrado" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
+    // Get member info for the name
+    const { data: member } = await supabase
+      .from("workspace_members")
+      .select("user_id")
+      .eq("id", hrProfile.member_id)
+      .single();
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", member?.user_id)
+      .single();
+
+    const employeeName = profile?.full_name || "Funcionário";
+
     const today = new Date().toISOString().split("T")[0];
     const { data: session } = await supabase
       .from("hr_work_sessions")
       .select("clock_in_at, clock_out_at")
-      .eq("employee_id", employee.id)
+      .eq("member_id", hrProfile.member_id)
       .eq("session_date", today)
       .single();
 
@@ -50,24 +66,34 @@ serve(async (req) => {
     const now = new Date();
 
     await supabase.from("hr_time_entries").insert({
-      workspace_id: employee.workspace_id, employee_id: employee.id,
-      entry_type, method: "qr", recorded_at: now.toISOString()
+      workspace_id: hrProfile.workspace_id,
+      employee_id: hrProfile.member_id, // legacy column
+      member_id: hrProfile.member_id,
+      entry_type,
+      method: "qr",
+      recorded_at: now.toISOString()
     });
 
     if (entry_type === "clock_in") {
       await supabase.from("hr_work_sessions").upsert({
-        workspace_id: employee.workspace_id, employee_id: employee.id,
-        session_date: today, clock_in_at: now.toISOString(), status: "incomplete"
+        workspace_id: hrProfile.workspace_id,
+        employee_id: hrProfile.member_id,
+        member_id: hrProfile.member_id,
+        session_date: today,
+        clock_in_at: now.toISOString(),
+        status: "incomplete"
       }, { onConflict: "employee_id,session_date" });
     } else {
       await supabase.from("hr_work_sessions").update({
-        clock_out_at: now.toISOString(), status: "complete", updated_at: now.toISOString()
-      }).eq("employee_id", employee.id).eq("session_date", today);
+        clock_out_at: now.toISOString(),
+        status: "complete",
+        updated_at: now.toISOString()
+      }).eq("member_id", hrProfile.member_id).eq("session_date", today);
     }
 
     return new Response(JSON.stringify({
       success: true,
-      employee_name: employee.full_name,
+      employee_name: employeeName,
       action: entry_type,
       recorded_at: now.toISOString()
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

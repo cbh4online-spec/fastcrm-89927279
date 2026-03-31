@@ -68,6 +68,7 @@ const roleLabels: Record<WorkspaceRole, string> = {
   agent: "Agente",
   viewer: "Visualizador",
   agency: "Agência",
+  hr: "Recursos Humanos",
 };
 
 const roleColors: Record<WorkspaceRole, string> = {
@@ -76,6 +77,7 @@ const roleColors: Record<WorkspaceRole, string> = {
   agent: "bg-emerald-500 text-white",
   viewer: "bg-muted text-muted-foreground",
   agency: "bg-amber-500 text-white",
+  hr: "bg-purple-500 text-white",
 };
 
 const editableRoles: WorkspaceRole[] = ["admin", "agent", "viewer"];
