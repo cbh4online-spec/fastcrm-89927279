@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, XCircle, Camera } from "lucide-react";
+import { CheckCircle, XCircle, Camera, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type QRResult = {
   success: boolean;
@@ -16,6 +18,7 @@ type QRResult = {
 };
 
 export default function HRKioskPage() {
+  const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [lastResults, setLastResults] = useState<QRResult[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -80,7 +83,17 @@ export default function HRKioskPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6 relative">
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 left-4 text-gray-400 hover:text-white hover:bg-gray-800"
+        onClick={() => navigate("/dashboard/hr")}
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar ao RH
+      </Button>
       {/* Clock */}
       <div className="text-center mb-8">
         <p className="text-7xl font-bold tabular-nums tracking-tight">
