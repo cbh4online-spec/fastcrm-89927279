@@ -156,6 +156,8 @@ export interface MarketingEvent {
   workspaceId: string;
   campaignId?: string;
   recipientId?: string;
+  contactId?: string;
+  leadId?: string;
   eventType: EventType;
   email?: string;
   linkUrl?: string;
@@ -165,6 +167,46 @@ export interface MarketingEvent {
   occurredAt: string;
   createdAt: string;
 }
+
+export type AttributionModel = 'first_touch' | 'last_touch' | 'equal_share';
+export type AttributionType = 'originated' | 'influenced';
+
+export interface CampaignAttribution {
+  id: string;
+  workspaceId: string;
+  campaignId: string;
+  contactId?: string;
+  leadId?: string;
+  opportunityId?: string;
+  attributionModel: AttributionModel;
+  attributionType: AttributionType;
+  revenueAttributed: number;
+  revenueInfluenced: number;
+  eventType?: string;
+  attributedAt: string;
+  attributionWindowDays: number;
+  createdAt: string;
+}
+
+export interface CampaignCommercialImpact {
+  leadsGenerated: number;
+  opportunitiesInfluenced: number;
+  opportunitiesOriginated: number;
+  revenueAttributed: number;
+  revenueInfluenced: number;
+  roi?: number;
+}
+
+// Lifecycle scoring constants
+export const CAMPAIGN_SCORING = {
+  opened: 2,
+  clicked: 5,
+  multi_click: 10,
+  bounced: -10,
+  complained: -20,
+  unsubscribed: -15,
+  converted: 25,
+} as const;
 
 export type SubscriptionStatus = 'subscribed' | 'unsubscribed' | 'bounced' | 'complained';
 

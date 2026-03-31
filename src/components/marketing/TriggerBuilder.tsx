@@ -20,6 +20,7 @@ const EVENT_LABELS: Record<string, string> = {
   not_opened: 'Não abre',
   not_clicked: 'Não clica',
   bounced: 'Bounce',
+  converted: 'Converte (gera oportunidade)',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -27,6 +28,9 @@ const ACTION_LABELS: Record<string, string> = {
   send_campaign: 'Enviar outra campanha',
   add_tag: 'Adicionar tag',
   webhook: 'Webhook',
+  update_score: 'Atualizar score',
+  create_task: 'Criar tarefa comercial',
+  update_lifecycle: 'Mudar lifecycle stage',
 };
 
 export function TriggerBuilder({ campaignId }: Props) {
@@ -108,7 +112,10 @@ export function TriggerBuilder({ campaignId }: Props) {
                   <Label>
                     {actionType === 'add_tag' ? 'Nome da tag' :
                      actionType === 'send_campaign' ? 'ID da campanha' :
-                     actionType === 'webhook' ? 'URL do webhook' : 'Valor'}
+                     actionType === 'webhook' ? 'URL do webhook' :
+                     actionType === 'update_score' ? 'Pontos (ex: +5 ou -10)' :
+                     actionType === 'create_task' ? 'Descrição da tarefa' :
+                     actionType === 'update_lifecycle' ? 'Novo stage (ex: qualified, customer)' : 'Valor'}
                   </Label>
                   <Input value={actionValue} onChange={(e) => setActionValue(e.target.value)} />
                 </div>

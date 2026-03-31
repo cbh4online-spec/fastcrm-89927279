@@ -63,7 +63,8 @@ export interface EntityDetailConfig {
 // Entity menu sections
 export type MenuSection = 
   | 'overview' 
-  | 'insights' 
+  | 'insights'
+  | 'marketing'
   | 'timeline' 
   | 'communication'
   | 'activity'

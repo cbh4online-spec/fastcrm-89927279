@@ -9923,6 +9923,93 @@ export type Database = {
           },
         ]
       }
+      campaign_attribution: {
+        Row: {
+          attributed_at: string | null
+          attribution_model: string
+          attribution_type: string
+          attribution_window_days: number | null
+          campaign_id: string
+          contact_id: string | null
+          created_at: string
+          event_type: string | null
+          id: string
+          lead_id: string | null
+          opportunity_id: string | null
+          revenue_attributed: number | null
+          revenue_influenced: number | null
+          workspace_id: string
+        }
+        Insert: {
+          attributed_at?: string | null
+          attribution_model?: string
+          attribution_type?: string
+          attribution_window_days?: number | null
+          campaign_id: string
+          contact_id?: string | null
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          revenue_attributed?: number | null
+          revenue_influenced?: number | null
+          workspace_id: string
+        }
+        Update: {
+          attributed_at?: string | null
+          attribution_model?: string
+          attribution_type?: string
+          attribution_window_days?: number | null
+          campaign_id?: string
+          contact_id?: string | null
+          created_at?: string
+          event_type?: string | null
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          revenue_attributed?: number | null
+          revenue_influenced?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_attribution_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_attribution_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_attribution_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_attribution_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_attribution_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_landing_pages: {
         Row: {
           campaign_id: string | null
@@ -10005,6 +10092,7 @@ export type Database = {
           contact_id: string | null
           id: string
           ip_hash: string | null
+          lead_id: string | null
           link_label: string | null
           link_position: number | null
           link_url: string
@@ -10018,6 +10106,7 @@ export type Database = {
           contact_id?: string | null
           id?: string
           ip_hash?: string | null
+          lead_id?: string | null
           link_label?: string | null
           link_position?: number | null
           link_url: string
@@ -10031,6 +10120,7 @@ export type Database = {
           contact_id?: string | null
           id?: string
           ip_hash?: string | null
+          lead_id?: string | null
           link_label?: string | null
           link_position?: number | null
           link_url?: string
@@ -10044,6 +10134,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_link_clicks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -32097,11 +32194,13 @@ export type Database = {
       marketing_events: {
         Row: {
           campaign_id: string | null
+          contact_id: string | null
           created_at: string
           email: string | null
           event_type: string
           id: string
           ip_address: string | null
+          lead_id: string | null
           link_url: string | null
           metadata: Json | null
           occurred_at: string
@@ -32111,11 +32210,13 @@ export type Database = {
         }
         Insert: {
           campaign_id?: string | null
+          contact_id?: string | null
           created_at?: string
           email?: string | null
           event_type: string
           id?: string
           ip_address?: string | null
+          lead_id?: string | null
           link_url?: string | null
           metadata?: Json | null
           occurred_at?: string
@@ -32125,11 +32226,13 @@ export type Database = {
         }
         Update: {
           campaign_id?: string | null
+          contact_id?: string | null
           created_at?: string
           email?: string | null
           event_type?: string
           id?: string
           ip_address?: string | null
+          lead_id?: string | null
           link_url?: string | null
           metadata?: Json | null
           occurred_at?: string
@@ -32143,6 +32246,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {

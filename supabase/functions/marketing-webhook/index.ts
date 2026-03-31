@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     // Find the recipient by resend_id
     const { data: recipient, error: recipientError } = await supabase
       .from("marketing_recipients")
-      .select("id, campaign_id, email, workspace_id")
+      .select("id, campaign_id, email, workspace_id, contact_id, lead_id")
       .eq("resend_id", resendId)
       .single();
 
@@ -99,11 +99,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert event record (non-blocking)
+    // Insert event record with contact_id/lead_id resolution
     supabase.from("marketing_events").insert({
       workspace_id: recipient.workspace_id,
       campaign_id: recipient.campaign_id,
       recipient_id: recipient.id,
+      contact_id: recipient.contact_id || null,
+      lead_id: recipient.lead_id || null,
       event_type: mappedEventType,
       email: recipient.email,
       link_url: payload.data.click?.link || null,
