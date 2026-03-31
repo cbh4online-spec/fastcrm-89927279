@@ -23367,6 +23367,82 @@ export type Database = {
           },
         ]
       }
+      funnel_events: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          device_type: string | null
+          event_type: string
+          event_value: string | null
+          funnel_id: string
+          id: string
+          metadata: Json | null
+          referrer: string | null
+          session_id: string | null
+          step_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          event_type: string
+          event_value?: string | null
+          funnel_id: string
+          id?: string
+          metadata?: Json | null
+          referrer?: string | null
+          session_id?: string | null
+          step_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          event_type?: string
+          event_value?: string | null
+          funnel_id?: string
+          id?: string
+          metadata?: Json | null
+          referrer?: string | null
+          session_id?: string | null
+          step_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_events_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_nurture_queue: {
         Row: {
           created_at: string
@@ -23644,6 +23720,91 @@ export type Database = {
           },
         ]
       }
+      funnel_submissions: {
+        Row: {
+          consent_given: boolean | null
+          consent_text_version: string | null
+          consent_timestamp: string | null
+          contact_id: string | null
+          created_at: string | null
+          data: Json | null
+          device_type: string | null
+          funnel_id: string
+          id: string
+          marketing_opt_in: boolean | null
+          referrer: string | null
+          session_id: string | null
+          source_url: string | null
+          step_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          consent_given?: boolean | null
+          consent_text_version?: string | null
+          consent_timestamp?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          device_type?: string | null
+          funnel_id: string
+          id?: string
+          marketing_opt_in?: boolean | null
+          referrer?: string | null
+          session_id?: string | null
+          source_url?: string | null
+          step_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          consent_given?: boolean | null
+          consent_text_version?: string | null
+          consent_timestamp?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          data?: Json | null
+          device_type?: string | null
+          funnel_id?: string
+          id?: string
+          marketing_opt_in?: boolean | null
+          referrer?: string | null
+          session_id?: string | null
+          source_url?: string | null
+          step_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_submissions_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_tracking_events: {
         Row: {
           access_token: string | null
@@ -23755,6 +23916,10 @@ export type Database = {
       funnels: {
         Row: {
           body_tracking_code: string | null
+          canonical_url: string | null
+          consent_required: boolean | null
+          consent_text: string | null
+          consent_text_version: string | null
           created_at: string
           created_by: string
           domain: string | null
@@ -23762,9 +23927,16 @@ export type Database = {
           head_tracking_code: string | null
           id: string
           is_published: boolean | null
+          marketing_opt_in_enabled: boolean | null
+          marketing_opt_in_label: string | null
           name: string
+          noindex: boolean | null
+          og_image_url: string | null
           path: string | null
+          privacy_policy_url: string | null
           published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
           slug: string
           type: string
           updated_at: string
@@ -23773,6 +23945,10 @@ export type Database = {
         }
         Insert: {
           body_tracking_code?: string | null
+          canonical_url?: string | null
+          consent_required?: boolean | null
+          consent_text?: string | null
+          consent_text_version?: string | null
           created_at?: string
           created_by: string
           domain?: string | null
@@ -23780,9 +23956,16 @@ export type Database = {
           head_tracking_code?: string | null
           id?: string
           is_published?: boolean | null
+          marketing_opt_in_enabled?: boolean | null
+          marketing_opt_in_label?: string | null
           name: string
+          noindex?: boolean | null
+          og_image_url?: string | null
           path?: string | null
+          privacy_policy_url?: string | null
           published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug: string
           type?: string
           updated_at?: string
@@ -23791,6 +23974,10 @@ export type Database = {
         }
         Update: {
           body_tracking_code?: string | null
+          canonical_url?: string | null
+          consent_required?: boolean | null
+          consent_text?: string | null
+          consent_text_version?: string | null
           created_at?: string
           created_by?: string
           domain?: string | null
@@ -23798,9 +23985,16 @@ export type Database = {
           head_tracking_code?: string | null
           id?: string
           is_published?: boolean | null
+          marketing_opt_in_enabled?: boolean | null
+          marketing_opt_in_label?: string | null
           name?: string
+          noindex?: boolean | null
+          og_image_url?: string | null
           path?: string | null
+          privacy_policy_url?: string | null
           published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string
           type?: string
           updated_at?: string
