@@ -20,7 +20,7 @@ export default function HRTimeTrackingPage() {
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [employeeFilter, setEmployeeFilter] = useState<string | undefined>();
 
-  const { data: employees = [] } = useHREmployees("active");
+  const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
   const clockAction = useClockAction();
 
@@ -28,8 +28,7 @@ export default function HRTimeTrackingPage() {
   const totals = employees.map(emp => {
     const empSessions = sessions.filter(s => s.employee_id === emp.id);
     const totalWorked = empSessions.reduce((a, s) => a + (s.worked_minutes || 0), 0);
-    const contractedWeek = emp.weekly_hours;
-    return { ...emp, totalWorked, contractedWeek };
+    return { ...emp, totalWorked };
   }).filter(e => e.totalWorked > 0);
 
   return (
