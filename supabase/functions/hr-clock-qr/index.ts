@@ -38,19 +38,24 @@ serve(async (req) => {
     }
 
     const employeeName = employee.full_name || "Funcionário";
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const todayStart = `${today}T00:00:00.000Z`;
 
-    const { data: session } = await supabase
-      .from("hr_work_sessions")
-      .select("clock_in_at, clock_out_at")
+    // Determine entry_type based on last time entry today
+    const { data: lastEntry } = await supabase
+      .from("hr_time_entries")
+      .select("entry_type")
       .eq("employee_id", employee.id)
-      .eq("session_date", today)
+      .gte("recorded_at", todayStart)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    let entry_type = "clock_in";
-    if (session?.clock_in_at && !session?.clock_out_at) entry_type = "clock_out";
-
-    const now = new Date();
+    const lastType = lastEntry?.entry_type;
+    const entry_type = (!lastType || lastType === "clock_out" || lastType === "break_end")
+      ? "clock_in"
+      : "clock_out";
 
     await supabase.from("hr_time_entries").insert({
       workspace_id: employee.workspace_id,
@@ -61,21 +66,29 @@ serve(async (req) => {
       recorded_at: now.toISOString()
     });
 
-    if (entry_type === "clock_in") {
-      await supabase.from("hr_work_sessions").upsert({
+    // Manage work session for the day
+    const { data: session } = await supabase
+      .from("hr_work_sessions")
+      .select("id")
+      .eq("employee_id", employee.id)
+      .eq("session_date", today)
+      .maybeSingle();
+
+    if (entry_type === "clock_in" && !session) {
+      await supabase.from("hr_work_sessions").insert({
         workspace_id: employee.workspace_id,
         employee_id: employee.id,
         member_id: employee.id,
         session_date: today,
         clock_in_at: now.toISOString(),
         status: "incomplete"
-      }, { onConflict: "employee_id,session_date" });
-    } else {
+      });
+    } else if (entry_type === "clock_out" && session) {
       await supabase.from("hr_work_sessions").update({
         clock_out_at: now.toISOString(),
         status: "complete",
         updated_at: now.toISOString()
-      }).eq("employee_id", employee.id).eq("session_date", today);
+      }).eq("id", session.id);
     }
 
     return new Response(JSON.stringify({
