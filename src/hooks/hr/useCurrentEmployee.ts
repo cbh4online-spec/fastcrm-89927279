@@ -19,7 +19,7 @@ export function useCurrentEmployee() {
         .eq("status", "active")
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; full_name: string } | null;
+      return data as unknown as { id: string; full_name: string } | null;
     },
     enabled: !!wsId && !!user?.id,
   });
