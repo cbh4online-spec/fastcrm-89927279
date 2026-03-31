@@ -197,6 +197,7 @@ export function useUpdateHREmployee() {
       full_name?: string;
       email?: string | null;
       phone?: string | null;
+      avatar_url?: string | null;
       department_id?: string | null;
       position_id?: string | null;
       manager_id?: string | null;
