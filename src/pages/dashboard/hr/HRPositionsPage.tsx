@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
@@ -8,25 +10,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { positionSchema, type PositionFormValues } from "@/schemas/hr/positionSchema";
 import { Briefcase, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
-
-interface JobForm {
-  name: string;
-  description: string;
-  department_id: string | null;
-  level: string;
-  salary_min: string;
-  salary_max: string;
-  currency: string;
-}
-
-const emptyForm: JobForm = { name: "", description: "", department_id: null, level: "", salary_min: "", salary_max: "", currency: "EUR" };
 
 export default function HRPositionsPage() {
   const { data: jobTitles, isLoading } = useHRJobTitles();
@@ -37,8 +27,12 @@ export default function HRPositionsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<JobForm>(emptyForm);
   const [search, setSearch] = useState("");
+
+  const form = useForm<PositionFormValues>({
+    resolver: zodResolver(positionSchema),
+    defaultValues: { name: "", description: "", department_id: null, level: "", salary_min: null, salary_max: null, currency: "EUR" },
+  });
 
   const filtered = jobTitles?.filter((j) =>
     j.name.toLowerCase().includes(search.toLowerCase())
@@ -46,31 +40,35 @@ export default function HRPositionsPage() {
 
   const activeJobs = jobTitles?.filter((j) => j.is_active).length ?? 0;
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
+  const openCreate = () => {
+    setEditId(null);
+    form.reset({ name: "", description: "", department_id: null, level: "", salary_min: null, salary_max: null, currency: "EUR" });
+    setDialogOpen(true);
+  };
+
   const openEdit = (j: any) => {
     setEditId(j.id);
-    setForm({
+    form.reset({
       name: j.name,
       description: j.description || "",
       department_id: j.department_id || null,
       level: j.level || "",
-      salary_min: j.salary_min?.toString() || "",
-      salary_max: j.salary_max?.toString() || "",
+      salary_min: j.salary_min ?? null,
+      salary_max: j.salary_max ?? null,
       currency: j.currency || "EUR",
     });
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!form.name.trim()) return;
+  const onSubmit = (values: PositionFormValues) => {
     const payload = {
-      name: form.name.trim(),
-      description: form.description.trim() || undefined,
-      department_id: form.department_id,
-      level: form.level.trim() || null,
-      salary_min: form.salary_min ? Number(form.salary_min) : null,
-      salary_max: form.salary_max ? Number(form.salary_max) : null,
-      currency: form.currency,
+      name: values.name.trim(),
+      description: values.description.trim() || undefined,
+      department_id: values.department_id,
+      level: values.level.trim() || null,
+      salary_min: values.salary_min,
+      salary_max: values.salary_max,
+      currency: values.currency,
     };
     if (editId) {
       updateJob.mutate({ id: editId, ...payload });
@@ -164,57 +162,39 @@ export default function HRPositionsPage() {
             <DialogHeader>
               <DialogTitle>{editId ? "Editar" : "Novo"} Cargo</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome do cargo" />
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descrição das funções" rows={3} />
-              </div>
-              <div className="space-y-2">
-                <Label>Departamento</Label>
-                <Select value={form.department_id || "none"} onValueChange={(v) => setForm({ ...form, department_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="Sem departamento" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem departamento</SelectItem>
-                    {departments?.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Nível</Label>
-                <Input value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Ex: Junior, Senior, Lead" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label>Salário Mín.</Label>
-                  <Input type="number" value={form.salary_min} onChange={(e) => setForm({ ...form, salary_min: e.target.value })} placeholder="0" />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                <RHFormField name="name" label="Nome" required placeholder="Nome do cargo" />
+                <RHTextareaField name="description" label="Descrição" placeholder="Descrição das funções" rows={3} />
+                <RHSelectField
+                  name="department_id"
+                  label="Departamento"
+                  allowNone
+                  noneLabel="Sem departamento"
+                  options={departments?.map((d) => ({ value: d.id, label: d.name })) || []}
+                />
+                <RHFormField name="level" label="Nível" placeholder="Ex: Junior, Senior, Lead" />
+                <div className="grid grid-cols-3 gap-3">
+                  <RHFormField name="salary_min" label="Salário Mín." type="number" placeholder="0" />
+                  <RHFormField name="salary_max" label="Salário Máx." type="number" placeholder="0" />
+                  <RHSelectField
+                    name="currency"
+                    label="Moeda"
+                    options={[
+                      { value: "EUR", label: "EUR" },
+                      { value: "USD", label: "USD" },
+                      { value: "GBP", label: "GBP" },
+                    ]}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>Salário Máx.</Label>
-                  <Input type="number" value={form.salary_max} onChange={(e) => setForm({ ...form, salary_max: e.target.value })} placeholder="0" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Moeda</Label>
-                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={!form.name.trim()}>Guardar</Button>
-            </DialogFooter>
+                <DialogFooter>
+                  <RHFormActions
+                    onCancel={() => setDialogOpen(false)}
+                    isSubmitting={createJob.isPending || updateJob.isPending}
+                  />
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </DashboardLayout>

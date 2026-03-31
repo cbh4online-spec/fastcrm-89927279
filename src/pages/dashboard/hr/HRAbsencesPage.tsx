@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
@@ -9,15 +11,16 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, X, AlertTriangle, CalendarDays } from "lucide-react";
+import { Form } from "@/components/ui/form";
+import { RHSelectField, RHDateField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { leaveRequestSchema, type LeaveRequestFormValues } from "@/schemas/hr/leaveRequestSchema";
+import { Plus, Check, X, AlertTriangle } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -31,7 +34,6 @@ export default function HRAbsencesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [form, setForm] = useState({ employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" });
 
   const { currentWorkspace } = useWorkspace();
   const statusFilter = tab === "all" ? undefined : tab;
@@ -45,11 +47,21 @@ export default function HRAbsencesPage() {
 
   const pendingCount = absences.filter(a => a.status === "pending").length;
 
-  const handleCreate = () => {
-    if (!form.employee_id || !form.absence_type_id || !form.start_date || !form.end_date || !currentWorkspace) return;
+  const form = useForm<LeaveRequestFormValues>({
+    resolver: zodResolver(leaveRequestSchema),
+    defaultValues: { employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" },
+  });
+
+  const onSubmitRequest = (values: LeaveRequestFormValues) => {
+    if (!currentWorkspace) return;
     createRequest.mutate(
-      { workspace_id: currentWorkspace.id, ...form },
-      { onSuccess: () => { setDialogOpen(false); setForm({ employee_id: "", absence_type_id: "", start_date: "", end_date: "", reason: "" }); } }
+      { workspace_id: currentWorkspace.id, ...values },
+      {
+        onSuccess: () => {
+          setDialogOpen(false);
+          form.reset();
+        },
+      }
     );
   };
 
@@ -88,36 +100,42 @@ export default function HRAbsencesPage() {
                   Inicializar Tipos
                 </Button>
               )}
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) form.reset(); }}>
                 <DialogTrigger asChild>
                   <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Pedido</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Novo Pedido de Ausência</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Funcionário</Label>
-                      <Select value={form.employee_id} onValueChange={v => setForm(f => ({ ...f, employee_id: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                        <SelectContent>{employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Tipo de Ausência</Label>
-                      <Select value={form.absence_type_id} onValueChange={v => setForm(f => ({ ...f, absence_type_id: v }))}>
-                        <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                        <SelectContent>{absenceTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label>Data Início</Label><Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} /></div>
-                      <div><Label>Data Fim</Label><Input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} /></div>
-                    </div>
-                    <div><Label>Motivo (opcional)</Label><Textarea value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} /></div>
-                    <Button onClick={handleCreate} disabled={createRequest.isPending} className="w-full">
-                      {createRequest.isPending ? "A submeter..." : "Submeter Pedido"}
-                    </Button>
-                  </div>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmitRequest)} className="space-y-4">
+                      <RHSelectField
+                        name="employee_id"
+                        label="Funcionário"
+                        required
+                        placeholder="Selecionar"
+                        options={employees.map(e => ({ value: e.id, label: e.full_name }))}
+                      />
+                      <RHSelectField
+                        name="absence_type_id"
+                        label="Tipo de Ausência"
+                        required
+                        placeholder="Selecionar"
+                        options={absenceTypes.map(t => ({ value: t.id, label: t.name }))}
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <RHDateField name="start_date" label="Data Início" required />
+                        <RHDateField name="end_date" label="Data Fim" required />
+                      </div>
+                      <RHTextareaField name="reason" label="Motivo (opcional)" />
+                      <RHFormActions
+                        onCancel={() => setDialogOpen(false)}
+                        isSubmitting={createRequest.isPending}
+                        submitLabel="Submeter Pedido"
+                        submittingLabel="A submeter..."
+                        fullWidth
+                      />
+                    </form>
+                  </Form>
                 </DialogContent>
               </Dialog>
             </div>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
@@ -9,13 +11,13 @@ import { useHRContractTypes } from "@/hooks/hr/useHRContractTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHDateField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { employeeSchema, type EmployeeFormValues } from "@/schemas/hr/employeeSchema";
 import { Eye, QrCode, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -47,16 +49,19 @@ export default function HREmployeesPage() {
   const { data: contractTypes = [] } = useHRContractTypes(true);
   const updateEmployee = useUpdateHREmployee();
 
-  const [form, setForm] = useState({
-    department_id: "" as string | null,
-    position_id: "" as string | null,
-    manager_id: "" as string | null,
-    employee_number: "",
-    contract_type: "full_time",
-    start_date: "",
-    weekly_hours: "40",
-    notes: "",
-    status: "active",
+  const form = useForm<EmployeeFormValues>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: {
+      department_id: null,
+      position_id: null,
+      manager_id: null,
+      employee_number: "",
+      contract_type: "full_time",
+      start_date: "",
+      weekly_hours: 40,
+      notes: "",
+      status: "active",
+    },
   });
 
   const filtered = deptFilter
@@ -64,33 +69,33 @@ export default function HREmployeesPage() {
     : employees;
 
   const openEdit = (emp: HREmployee) => {
-    setForm({
+    form.reset({
       department_id: emp.department_id || null,
       position_id: emp.position_id || null,
       manager_id: emp.manager_id || null,
       employee_number: emp.employee_number || "",
-      contract_type: emp.contract_type || "full_time",
+      contract_type: (emp.contract_type as EmployeeFormValues["contract_type"]) || "full_time",
       start_date: emp.start_date || "",
-      weekly_hours: String(emp.weekly_hours || 40),
+      weekly_hours: emp.weekly_hours || 40,
       notes: emp.notes || "",
-      status: emp.status || "active",
+      status: (emp.status as EmployeeFormValues["status"]) || "active",
     });
     setEditEmployee(emp);
   };
 
-  const handleSave = () => {
+  const onSubmit = (values: EmployeeFormValues) => {
     if (!editEmployee) return;
     updateEmployee.mutate({
       id: editEmployee.id,
-      department_id: form.department_id || null,
-      position_id: form.position_id || null,
-      manager_id: form.manager_id || null,
-      employee_number: form.employee_number || null,
-      contract_type: form.contract_type,
-      start_date: form.start_date || null,
-      weekly_hours: parseFloat(form.weekly_hours) || 40,
-      notes: form.notes || null,
-      status: form.status,
+      department_id: values.department_id || null,
+      position_id: values.position_id || null,
+      manager_id: values.manager_id || null,
+      employee_number: values.employee_number || null,
+      contract_type: values.contract_type,
+      start_date: values.start_date || null,
+      weekly_hours: values.weekly_hours,
+      notes: values.notes || null,
+      status: values.status,
     }, {
       onSuccess: () => setEditEmployee(null),
     });
@@ -199,80 +204,70 @@ export default function HREmployeesPage() {
           <Dialog open={!!editEmployee} onOpenChange={() => setEditEmployee(null)}>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Editar — {editEmployee?.full_name}</DialogTitle></DialogHeader>
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Departamento</Label>
-                    <Select value={form.department_id || "none"} onValueChange={v => setForm(f => ({ ...f, department_id: v === "none" ? null : v }))}>
-                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    <RHSelectField
+                      name="department_id"
+                      label="Departamento"
+                      allowNone
+                      noneLabel="Nenhum"
+                      options={departments.map(d => ({ value: d.id, label: d.name }))}
+                    />
+                    <RHSelectField
+                      name="position_id"
+                      label="Cargo"
+                      allowNone
+                      noneLabel="Nenhum"
+                      options={positions.map(p => ({ value: p.id, label: p.name }))}
+                    />
                   </div>
-                  <div>
-                    <Label>Cargo</Label>
-                    <Select value={form.position_id || "none"} onValueChange={v => setForm(f => ({ ...f, position_id: v === "none" ? null : v }))}>
-                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {positions.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <RHSelectField
+                      name="manager_id"
+                      label="Manager"
+                      allowNone
+                      noneLabel="Nenhum"
+                      options={employees.filter(e => e.id !== editEmployee?.id).map(e => ({ value: e.id, label: e.full_name }))}
+                    />
+                    <RHFormField name="employee_number" label="Nº Funcionário" />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Manager</Label>
-                    <Select value={form.manager_id || "none"} onValueChange={v => setForm(f => ({ ...f, manager_id: v === "none" ? null : v }))}>
-                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {employees.filter(e => e.id !== editEmployee?.id).map(e => (
-                          <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <RHSelectField
+                      name="contract_type"
+                      label="Tipo de Contrato"
+                      options={[
+                        { value: "full_time", label: "Tempo inteiro" },
+                        { value: "part_time", label: "Part-time" },
+                        { value: "contractor", label: "Prestador" },
+                        { value: "intern", label: "Estagiário" },
+                      ]}
+                    />
+                    <RHDateField name="start_date" label="Data Início" />
                   </div>
-                  <div><Label>Nº Funcionário</Label><Input value={form.employee_number} onChange={e => setForm(f => ({ ...f, employee_number: e.target.value }))} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tipo de Contrato</Label>
-                    <Select value={form.contract_type} onValueChange={v => setForm(f => ({ ...f, contract_type: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full_time">Tempo inteiro</SelectItem>
-                        <SelectItem value="part_time">Part-time</SelectItem>
-                        <SelectItem value="contractor">Prestador</SelectItem>
-                        <SelectItem value="intern">Estagiário</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <RHFormField name="weekly_hours" label="Horas Semanais" type="number" required />
+                    <RHSelectField
+                      name="status"
+                      label="Estado"
+                      options={[
+                        { value: "active", label: "Activo" },
+                        { value: "inactive", label: "Inactivo" },
+                        { value: "on_leave", label: "Ausente" },
+                        { value: "terminated", label: "Terminado" },
+                        { value: "suspended", label: "Suspenso" },
+                      ]}
+                    />
                   </div>
-                  <div><Label>Data Início</Label><Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Horas Semanais</Label><Input type="number" value={form.weekly_hours} onChange={e => setForm(f => ({ ...f, weekly_hours: e.target.value }))} /></div>
-                  <div>
-                    <Label>Estado</Label>
-                    <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                        <SelectItem value="on_leave">Ausente</SelectItem>
-                        <SelectItem value="terminated">Terminado</SelectItem>
-                        <SelectItem value="suspended">Suspenso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div><Label>Notas</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                <Button onClick={handleSave} disabled={updateEmployee.isPending} className="w-full">
-                  {updateEmployee.isPending ? "A guardar..." : "Guardar"}
-                </Button>
-              </div>
+                  <RHTextareaField name="notes" label="Notas" />
+                  <DialogFooter>
+                    <RHFormActions
+                      onCancel={() => setEditEmployee(null)}
+                      isSubmitting={updateEmployee.isPending}
+                    />
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
 

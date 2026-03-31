@@ -1,18 +1,18 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useJobPostings, useCreateJobPosting, useUpdateJobPosting, useDeleteJobPosting } from "@/hooks/hr/useJobPostings";
 import type { JobPosting } from "@/hooks/hr/useJobPostings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Plus, Briefcase, MapPin, Users, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Form } from "@/components/ui/form";
+import { RHFormField, RHSelectField, RHTextareaField, RHFormActions } from "@/components/hr/form";
+import { jobOpeningSchema, type JobOpeningFormValues } from "@/schemas/hr/jobOpeningSchema";
+import { Plus, Briefcase, MapPin, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -41,24 +41,32 @@ export default function JobPostingsPage() {
   const deleteJob = useDeleteJobPosting();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<Partial<JobPosting>>({
-    title: "", description: "", employment_type: "full_time", remote_option: "office", location: "", status: "draft",
-    requirements: [], nice_to_have: [],
-  });
-  const [requirementsText, setRequirementsText] = useState("");
-  const [niceToHaveText, setNiceToHaveText] = useState("");
 
-  const handleCreate = async () => {
-    if (!form.title?.trim()) { toast.error("Título é obrigatório"); return; }
+  const form = useForm<JobOpeningFormValues>({
+    resolver: zodResolver(jobOpeningSchema),
+    defaultValues: {
+      title: "", description: "", employment_type: "full_time", remote_option: "office",
+      location: "", currency: "EUR", salary_min: null, salary_max: null,
+      requirements_text: "", nice_to_have_text: "",
+    },
+  });
+
+  const onSubmit = async (values: JobOpeningFormValues) => {
     await createJob.mutateAsync({
-      ...form,
-      requirements: requirementsText.split("\n").map(s => s.trim()).filter(Boolean),
-      nice_to_have: niceToHaveText.split("\n").map(s => s.trim()).filter(Boolean),
+      title: values.title,
+      description: values.description,
+      employment_type: values.employment_type,
+      remote_option: values.remote_option,
+      location: values.location,
+      currency: values.currency,
+      salary_min: values.salary_min,
+      salary_max: values.salary_max,
+      requirements: values.requirements_text.split("\n").map(s => s.trim()).filter(Boolean),
+      nice_to_have: values.nice_to_have_text.split("\n").map(s => s.trim()).filter(Boolean),
+      status: "draft",
     });
     setDialogOpen(false);
-    setForm({ title: "", description: "", employment_type: "full_time", remote_option: "office", location: "", status: "draft" });
-    setRequirementsText("");
-    setNiceToHaveText("");
+    form.reset();
   };
 
   return (
@@ -68,74 +76,43 @@ export default function JobPostingsPage() {
           <h1 className="text-2xl font-bold text-foreground">Vagas</h1>
           <p className="text-muted-foreground">Gestão de vagas abertas e processos de recrutamento</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) form.reset(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Vaga</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Criar Vaga</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Título *</Label>
-                  <Input value={form.title || ""} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Frontend Developer" />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <RHFormField name="title" label="Título" required placeholder="Ex: Frontend Developer" />
+                  <RHFormField name="location" label="Localização" placeholder="Ex: Lisboa" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Localização</Label>
-                  <Input value={form.location || ""} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} placeholder="Ex: Lisboa" />
+                <div className="grid grid-cols-3 gap-4">
+                  <RHSelectField
+                    name="employment_type"
+                    label="Tipo de contrato"
+                    options={Object.entries(EMPLOYMENT_TYPES).map(([k, v]) => ({ value: k, label: v }))}
+                  />
+                  <RHSelectField
+                    name="remote_option"
+                    label="Modalidade"
+                    options={Object.entries(REMOTE_OPTIONS).map(([k, v]) => ({ value: k, label: v }))}
+                  />
+                  <RHFormField name="currency" label="Moeda" />
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo de contrato</Label>
-                  <Select value={form.employment_type || "full_time"} onValueChange={v => setForm(p => ({ ...p, employment_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(EMPLOYMENT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <RHFormField name="salary_min" label="Salário mínimo" type="number" />
+                  <RHFormField name="salary_max" label="Salário máximo" type="number" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Modalidade</Label>
-                  <Select value={form.remote_option || "office"} onValueChange={v => setForm(p => ({ ...p, remote_option: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(REMOTE_OPTIONS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Moeda</Label>
-                  <Input value={form.currency || "EUR"} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Salário mínimo</Label>
-                  <Input type="number" value={form.salary_min || ""} onChange={e => setForm(p => ({ ...p, salary_min: Number(e.target.value) || null }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Salário máximo</Label>
-                  <Input type="number" value={form.salary_max || ""} onChange={e => setForm(p => ({ ...p, salary_max: Number(e.target.value) || null }))} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea value={form.description || ""} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={5} placeholder="Descrição da vaga..." />
-              </div>
-              <div className="space-y-2">
-                <Label>Requisitos (um por linha)</Label>
-                <Textarea value={requirementsText} onChange={e => setRequirementsText(e.target.value)} rows={4} placeholder="Ex: 3+ anos de experiência em React..." />
-              </div>
-              <div className="space-y-2">
-                <Label>Nice to have (um por linha)</Label>
-                <Textarea value={niceToHaveText} onChange={e => setNiceToHaveText(e.target.value)} rows={3} placeholder="Ex: Experiência com TypeScript..." />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleCreate} disabled={createJob.isPending}>Criar Vaga</Button>
-              </div>
-            </div>
+                <RHTextareaField name="description" label="Descrição" rows={5} placeholder="Descrição da vaga..." />
+                <RHTextareaField name="requirements_text" label="Requisitos (um por linha)" rows={4} placeholder="Ex: 3+ anos de experiência em React..." />
+                <RHTextareaField name="nice_to_have_text" label="Nice to have (um por linha)" rows={3} placeholder="Ex: Experiência com TypeScript..." />
+                <DialogFooter>
+                  <RHFormActions onCancel={() => setDialogOpen(false)} isSubmitting={createJob.isPending} submitLabel="Criar Vaga" />
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
