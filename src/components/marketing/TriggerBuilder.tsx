@@ -112,7 +112,10 @@ export function TriggerBuilder({ campaignId }: Props) {
                   <Label>
                     {actionType === 'add_tag' ? 'Nome da tag' :
                      actionType === 'send_campaign' ? 'ID da campanha' :
-                     actionType === 'webhook' ? 'URL do webhook' : 'Valor'}
+                     actionType === 'webhook' ? 'URL do webhook' :
+                     actionType === 'update_score' ? 'Pontos (ex: +5 ou -10)' :
+                     actionType === 'create_task' ? 'Descrição da tarefa' :
+                     actionType === 'update_lifecycle' ? 'Novo stage (ex: qualified, customer)' : 'Valor'}
                   </Label>
                   <Input value={actionValue} onChange={(e) => setActionValue(e.target.value)} />
                 </div>

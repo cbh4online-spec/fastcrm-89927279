@@ -67,6 +67,7 @@ import { ContactStudentJourneySection } from "@/components/contacts/sections/Con
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 import { ContactScoresCard } from "./sections/ContactScoresCard";
+import { ContactCampaignHistory } from "../sections/ContactCampaignHistory";
 import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
 import { ContactPreferencesSection } from "./sections/ContactPreferencesSection";
 import { ContactAuditSection } from "./sections/ContactAuditSection";
