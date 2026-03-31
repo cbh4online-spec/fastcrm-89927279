@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, subDays } from "date-fns";
-import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon, Brain, Loader2, Lightbulb, AlertTriangle, DollarSign, Coins, MousePointerClick, ShieldCheck, Mail } from "lucide-react";
+import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon, Brain, Loader2, Lightbulb, AlertTriangle, DollarSign, Coins, MousePointerClick, ShieldCheck, Mail, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFunnelSteps, useFunnelStepStats } from "@/hooks/useFunnels";
 import { useFunnelConversionKPIs } from "@/hooks/useFunnelConversionKPIs";
+import { useFunnelCtaRanking, useFunnelUtmBreakdown } from "@/hooks/useFunnelAnalyticsData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAIGate } from "@/hooks/useAIGate";
 import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
-  ResponsiveContainer, PieChart, Pie, Cell
+  ResponsiveContainer,
 } from "recharts";
 
 interface Props {
@@ -40,6 +41,8 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
   const { data: steps = [] } = useFunnelSteps(funnelId);
   const { data: rawStats = [] } = useFunnelStepStats(funnelId, dateFrom, dateTo);
   const { data: kpis } = useFunnelConversionKPIs(funnelId, dateFrom, dateTo);
+  const { data: ctaRanking = [] } = useFunnelCtaRanking(funnelId, dateFrom, dateTo);
+  const { data: utmBreakdown = [] } = useFunnelUtmBreakdown(funnelId, dateFrom, dateTo);
 
   const analyzeWithAI = async () => {
     if (showUpgrade) { triggerNoCreditsDialog({ actionLabel: "Analisar funil com IA" }); return; }
@@ -68,7 +71,6 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
 
   const totalViews = steps.reduce((sum, s) => sum + getStat(s.id, "page_view"), 0);
   const totalOptins = steps.reduce((sum, s) => sum + getStat(s.id, "optin"), 0);
-  const totalSales = steps.reduce((sum, s) => sum + getStat(s.id, "sale"), 0);
   const totalRevenue = steps.reduce((sum, s) => sum + getStat(s.id, "sale_amount"), 0);
 
   const funnelData = steps.map((step) => ({
@@ -78,7 +80,7 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
     sales: getStat(step.id, "sale"),
   }));
 
-  // Conversion funnel visualization using kpis + legacy
+  // Conversion funnel
   const conversionStages = [
     { name: "Visitantes", value: kpis?.step_views || totalViews },
     { name: "Form Starts", value: kpis?.form_starts || 0 },
@@ -208,6 +210,28 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
               </CardContent>
             </Card>
           </div>
+
+          {/* UTM Breakdown */}
+          {utmBreakdown.length > 0 && (
+            <Card className="border-border/50">
+              <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Globe className="h-4 w-4 text-primary" />Conversão por Origem (UTM)</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  <div className="grid grid-cols-4 text-xs font-medium text-muted-foreground pb-2 border-b">
+                    <span>Origem</span><span className="text-right">Sessões</span><span className="text-right">Leads</span><span className="text-right">Conv. %</span>
+                  </div>
+                  {utmBreakdown.slice(0, 10).map((row) => (
+                    <div key={row.source} className="grid grid-cols-4 text-sm py-1.5 border-b border-border/30">
+                      <span className="font-medium truncate">{row.source}</span>
+                      <span className="text-right text-muted-foreground">{row.sessions}</span>
+                      <span className="text-right text-muted-foreground">{row.leads}</span>
+                      <span className="text-right font-medium">{row.conversion_rate.toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* CONVERSÃO */}
@@ -261,6 +285,28 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* CTA Ranking */}
+          {ctaRanking.length > 0 && (
+            <Card className="border-border/50">
+              <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><MousePointerClick className="h-4 w-4 text-primary" />Ranking de CTAs por Step</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  <div className="grid grid-cols-4 text-xs font-medium text-muted-foreground pb-2 border-b">
+                    <span>Step</span><span className="text-right">Views</span><span className="text-right">Clicks</span><span className="text-right">CTR</span>
+                  </div>
+                  {ctaRanking.map((row) => (
+                    <div key={row.step_id} className="grid grid-cols-4 text-sm py-1.5 border-b border-border/30">
+                      <span className="font-medium truncate">{row.step_name}</span>
+                      <span className="text-right text-muted-foreground">{row.views}</span>
+                      <span className="text-right text-muted-foreground">{row.clicks}</span>
+                      <span className="text-right font-medium">{row.ctr.toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
