@@ -1,134 +1,81 @@
 
 
-## Módulo de Recrutamento — Extensão do RH
+## Funcionários = Utilizadores do Workspace (com perfil HR)
 
 ### Diagnóstico
 
-O módulo de RH actual cobre gestão de funcionários, ponto, turnos e ausências. Não existe qualquer funcionalidade de recrutamento. Esta é uma oportunidade de diferenciação significativa, especialmente com IA integrada.
+Actualmente, `hr_employees` é uma tabela independente — os funcionários são registos avulsos sem ligação aos utilizadores reais do sistema. O pedido é que **os funcionários sejam os próprios membros do workspace**, com a possibilidade de existirem utilizadores que só tenham acesso ao módulo de RH.
 
-### Funcionalidades do Sub-Módulo de Recrutamento
+### Decisões de Produto
 
-**1. Vagas (Job Openings)**
-- Criar/editar vagas com título, departamento, tipo (full-time, part-time, estágio), localização, salário, descrição
-- Estados: rascunho → publicada → em análise → fechada → arquivada
-- Geração automática de descrição de vaga por IA (tom, requisitos, benefícios a partir do contexto do workspace)
-
-**2. Pipeline de Candidatos (Kanban)**
-- Board visual com fases configuráveis: Novo → Triagem → Entrevista → Teste → Oferta → Contratado / Rejeitado
-- Drag & drop entre fases
-- Filtros por vaga, fase, rating, fonte
-
-**3. Ficha de Candidato**
-- Dados pessoais, CV (upload), carta de motivação, links (LinkedIn, portfolio)
-- Timeline de interacções (notas, emails, entrevistas)
-- Rating/scoring (1-5 estrelas + notas)
-- Tags e campos customizados
-
-**4. IA Diferenciadora**
-- **Triagem automática de CVs**: análise de CV vs requisitos da vaga → score de adequação + justificação
-- **Geração de perguntas de entrevista**: baseadas no perfil do candidato e requisitos da vaga
-- **Resumo de candidato**: síntese automática de CV, notas e entrevistas
-- **Sugestão de rejeição/avanço**: recomendação com base no pipeline e scoring
-- **Geração de email**: templates de resposta personalizados (convite entrevista, rejeição, oferta)
-
-**5. Entrevistas**
-- Agendar entrevistas com data, hora, tipo (presencial/remoto), entrevistadores
-- Scorecard de entrevista (critérios configuráveis + nota + feedback)
-- Resumo automático por IA do feedback dos entrevistadores
-
-**6. Portal de Candidatura (público)**
-- Página pública com vagas abertas (sem autenticação)
-- Formulário de candidatura com upload de CV
-- Confirmação automática por email
-
-**7. Dashboard de Recrutamento**
-- KPIs: vagas abertas, candidaturas recebidas, time-to-hire, taxa de conversão por fase
-- Funil visual de candidatos
-- Top fontes de recrutamento
-
-**8. Conversão Candidato → Funcionário**
-- Ao marcar candidato como "Contratado", criar automaticamente registo em `hr_employees`
+1. **Funcionários = `workspace_members`** — A página de funcionários mostra os membros do workspace, não uma tabela separada
+2. **Dados HR como extensão** — Criar tabela `hr_employee_profiles` que estende `workspace_members` com campos específicos de RH (cargo, departamento, contrato, etc.)
+3. **Nova role: `hr`** — Adicionar ao enum `workspace_role` para utilizadores que só acedem ao módulo de RH (ponto, férias, os seus dados)
+4. **Eliminar `hr_employees`** — Migrar referências (time entries, shifts, absences) para usar `workspace_members.user_id` em vez de `hr_employees.id`
 
 ### Estrutura Técnica
 
-**Tabelas (migração):**
+**1. Migração SQL**
 
-| Tabela | Finalidade |
-|--------|-----------|
-| `hr_job_openings` | Vagas (título, dept, tipo, descrição, salário, estado, created_by) |
-| `hr_candidates` | Candidatos (nome, email, tel, linkedin, portfolio, cv_path, source, notes) |
-| `hr_applications` | Candidatura = candidato + vaga + fase + rating + scoring_ai |
-| `hr_application_stages` | Fases configuráveis por workspace |
-| `hr_interviews` | Entrevistas agendadas (data, tipo, entrevistadores) |
-| `hr_interview_scorecards` | Avaliações de entrevista (critérios, notas, feedback) |
-| `hr_candidate_notes` | Notas/timeline do candidato |
-| `hr_recruitment_emails` | Emails enviados/gerados por IA |
+```text
+workspace_members (existente)          hr_employee_profiles (nova)
+┌──────────────────────┐              ┌──────────────────────────┐
+│ id (uuid)            │              │ id (uuid)                │
+│ workspace_id         │◄─────────────│ member_id (FK)           │
+│ user_id              │              │ workspace_id (FK)        │
+│ role (enum + 'hr')   │              │ job_title                │
+│ created_at           │              │ department               │
+└──────────────────────┘              │ employee_number          │
+                                      │ contract_type            │
+profiles (existente)                  │ start_date / end_date    │
+┌──────────────────────┐              │ status (active/inactive) │
+│ user_id              │              │ weekly_hours             │
+│ full_name            │              │ qr_code_token            │
+│ email                │              │ notes                    │
+│ avatar_url           │              └──────────────────────────┘
+└──────────────────────┘
+```
 
-**Edge Functions:**
-- `hr-recruitment-ai` — Triagem de CV, geração de perguntas, resumos, sugestões, emails (via Lovable AI)
+- `ALTER TYPE workspace_role ADD VALUE 'hr'`
+- Criar `hr_employee_profiles` com FK para `workspace_members(id)`
+- Migrar dados de `hr_employees` existentes (se houver) para o novo modelo
+- Actualizar FKs das tabelas dependentes (`hr_time_entries`, `hr_daily_summaries`, `hr_shift_assignments`, `hr_absences`) de `employee_id → hr_employees` para `member_id → workspace_members`
+- RLS: membros podem ver perfis HR do seu workspace; apenas admin/owner podem editar
 
-**Páginas:**
+**2. Frontend — Refactor de Hooks**
 
-| Rota | Página |
-|------|--------|
-| `/dashboard/hr/recruitment` | Dashboard de Recrutamento |
-| `/dashboard/hr/recruitment/jobs` | Lista de Vagas |
-| `/dashboard/hr/recruitment/jobs/:id` | Detalhe de Vaga + Pipeline Kanban |
-| `/dashboard/hr/recruitment/candidates` | Lista de Candidatos |
-| `/dashboard/hr/recruitment/candidates/:id` | Ficha de Candidato |
-| `/dashboard/hr/recruitment/interviews` | Agenda de Entrevistas |
-| `/apply/:workspaceSlug` | Portal Público de Candidatura |
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/hooks/hr/useHREmployees.ts` | Refazer: query `workspace_members` + JOIN `hr_employee_profiles` + `profiles` |
+| `src/hooks/hr/useHREmployees.ts` | `useCreateHREmployee` → cria `hr_employee_profiles` para membro existente OU convida novo utilizador com role `hr` |
+| `src/hooks/useTimeEntries.ts` | Já usa `user_id` — sem alteração necessária |
 
-**Componentes principais:**
-- `RecruitmentDashboard` — KPIs + funil
-- `JobOpeningForm` — Criar/editar vaga (com geração IA de descrição)
-- `CandidateKanban` — Pipeline visual drag & drop
-- `CandidateDetail` — Ficha completa + timeline + IA
-- `InterviewScheduler` — Agendar + scorecards
-- `CVScreeningPanel` — Resultado da triagem IA
-- `RecruitmentEmailComposer` — Geração de emails por IA
+**3. Frontend — Página de Funcionários**
 
-**Hooks:**
-- `useJobOpenings`, `useCandidates`, `useApplications`, `useInterviews`
-- `useRecruitmentAI` (triagem, perguntas, resumos, emails)
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/pages/dashboard/hr/HREmployeesPage.tsx` | Reformular: listar membros do workspace com dados HR. Formulário "Novo Funcionário" passa a convidar/adicionar membro com role `hr` e criar perfil HR |
+| `src/contexts/WorkspaceContext.tsx` | Adicionar `"hr"` ao tipo `WorkspaceRole` |
+| `src/components/settings/sections/WorkspaceSettings.tsx` | Adicionar `hr: "Recursos Humanos"` aos labels e cores de role |
+| `src/hooks/useWorkspaceMembers.ts` | Incluir `hr` no filtro de `useAgentMembers` se necessário |
 
-### Plano de Implementação (faseado)
+**4. Frontend — Navegação para role `hr`**
 
-**Fase 1 — Base de Dados + CRUD**
-1. Migração SQL: criar 8 tabelas com RLS
-2. Hooks CRUD para vagas, candidatos, candidaturas
-3. Páginas de listagem e formulários
-4. Rotas no `HRRoutes.tsx` e `routeManifest.ts`
-
-**Fase 2 — Pipeline Kanban + Entrevistas**
-5. Componente Kanban com drag & drop (`@hello-pangea/dnd` já disponível)
-6. Fases configuráveis por workspace
-7. Agendamento de entrevistas + scorecards
-
-**Fase 3 — IA**
-8. Edge Function `hr-recruitment-ai` com Lovable AI
-9. Triagem automática de CVs (score + justificação)
-10. Geração de perguntas de entrevista
-11. Resumo de candidato
-12. Geração de emails
-
-**Fase 4 — Portal Público + Dashboard**
-13. Página pública de candidatura
-14. Dashboard com KPIs e funil
-15. Conversão candidato → funcionário
+- Utilizadores com role `hr` vêem apenas: Dashboard, O Meu Ponto, O Meu Perfil HR
+- Restringir sidebar para role `hr` via `menu_permissions` ou lógica no manifest
 
 ### Critérios de Aceitação
-1. Criar vaga com geração IA de descrição funcional
-2. Pipeline Kanban com drag & drop entre fases
-3. Upload de CV com triagem automática por IA
-4. Agendar entrevista com scorecard
-5. Gerar email personalizado por IA
-6. Dashboard com métricas reais
-7. Portal público aceita candidaturas
-8. Candidato contratado converte-se em funcionário
+
+1. Página de Funcionários mostra membros do workspace com dados HR
+2. Adicionar funcionário = convidar utilizador com role `hr` + criar perfil HR
+3. Utilizadores com role `hr` acedem ao sistema e vêem apenas módulos HR
+4. Clock-in/out funciona com `user_id` (sem alteração)
+5. Dados HR (cargo, departamento, contrato) editáveis no perfil do funcionário
+6. Tabelas dependentes (turnos, ausências) migradas para o novo modelo
 
 ### Riscos
-- Volume de trabalho elevado — implementar por fases é essencial
-- Upload de CV requer storage bucket configurado
-- Portal público necessita rota fora do `ModuleGuard`
+
+- **Migração de FKs**: As tabelas `hr_time_entries`, `hr_daily_summaries`, `hr_shift_assignments`, `hr_absences` referenciam `hr_employees(id)` — precisam ser migradas para `workspace_members(id)`
+- **Dados existentes**: Se houver registos em `hr_employees`, precisam de ser mapeados a membros existentes ou novos
+- **Role `hr` nas RLS**: Verificar que políticas existentes não excluem a nova role
 
