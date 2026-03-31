@@ -83,7 +83,17 @@ export default function HRKioskPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6 relative">
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 left-4 text-gray-400 hover:text-white hover:bg-gray-800"
+        onClick={() => navigate("/dashboard/hr")}
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Voltar ao RH
+      </Button>
       {/* Clock */}
       <div className="text-center mb-8">
         <p className="text-7xl font-bold tabular-nums tracking-tight">
