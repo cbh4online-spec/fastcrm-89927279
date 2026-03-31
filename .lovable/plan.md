@@ -1,37 +1,41 @@
 
 
-## Diagnóstico — Erro Reportado
+## Atribuição de Responsável nas Tarefas — Plano
 
-### O que foi reportado
-- Runtime error em `supabase/functions/hr-face-verify/index.ts` (line 0, col 0)
-- `has_blank_screen: true`
+### Diagnóstico
 
-### Análise
+- A tabela `tasks` já tem o campo `assigned_to` (UUID, nullable)
+- O hook `useUpdateTask` já suporta `assigned_to` e emite evento `TASK.ASSIGNED`
+- O `EditTaskDialog` **não** expõe este campo — só edita título e data
+- O `handleEditSave` no `TasksPage.tsx` só passa `title` e `due_at`
+- O projecto já tem `useWorkspaceMembers()` com perfis (nome, email, avatar) — usado em 27+ ficheiros
+- Também já existe `useAgentMembers()` para subconjuntos
 
-O ficheiro `hr-face-verify/index.ts` é uma **edge function backend** — não pode causar um blank screen no frontend. O código da função está correcto:
-- CORS headers presentes
-- Validação de inputs
-- Error handling adequado
-- Lógica de face verification + attendance funcional
+### Plano
 
-A atribuição do erro é provavelmente incorrecta. Possíveis causas reais do blank screen:
+**1. Alterar `EditTaskDialog.tsx`**
+- Adicionar estado `assignedTo` (inicializado a partir de `task.assigned_to`)
+- Adicionar secção "Responsável" com dropdown/combobox dos workspace members
+- Usar `useWorkspaceMembers()` para listar opções
+- Mostrar avatar + nome, com opção "Sem responsável"
+- Incluir `assigned_to` no `onSave`
 
-1. **Erro transitório de build/deploy** — as últimas alterações (Batches 1-3 do eBook) envolveram múltiplos ficheiros. Pode haver um erro transitório que já se resolveu.
-2. **Edge function `ebook-generate` sem entrada no `config.toml`** — a função foi criada mas não adicionada ao config.toml com `verify_jwt = false`. Isto pode causar falhas no deploy do bundle de edge functions, embora não devesse causar blank screen no frontend.
+**2. Alterar interface `EditTaskDialogProps`**
+- Expandir tipo de `onSave` para incluir `assigned_to?: string | null`
 
-### Plano de Correção
+**3. Alterar `TasksPage.tsx`**
+- Actualizar `handleEditSave` para passar `assigned_to` ao `updateTask.mutateAsync`
 
-**1. Adicionar `ebook-generate` ao `config.toml`**
-- Adicionar `[functions.ebook-generate]` com `verify_jwt = false` (a função é invocada pelo frontend via `supabase.functions.invoke` com bearer token, mas a validação JWT interna não é feita — segue o padrão do projecto)
+### Ficheiros a alterar
 
-**2. Verificar se o blank screen persiste**
-- Se persistir após esta correcção, investigar erros de importação ou TypeScript nos componentes recentemente alterados (EbookEditorShell, EbookWizard, EbooksList)
-
-### Ficheiro a alterar
 | Ficheiro | Alteração |
 |----------|-----------|
-| `supabase/config.toml` | Adicionar `[functions.ebook-generate]` com `verify_jwt = false` |
+| `src/components/tasks/EditTaskDialog.tsx` | Adicionar campo de atribuição com combobox de workspace members |
+| `src/pages/TasksPage.tsx` | Expandir `handleEditSave` para incluir `assigned_to` |
 
-### Risco
-Mínimo — é uma adição de configuração, sem impacto no código existente.
+### UX
+- Select com avatar + nome do membro
+- Opção "Sem responsável" para limpar atribuição
+- Posicionado entre Prioridade e Data Limite no dialog
+- Consistente com o padrão usado em `EntityOwnerSelector` e `AgentAssignDropdown`
 
