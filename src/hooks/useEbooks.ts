@@ -85,6 +85,7 @@ export interface Ebook {
   template_id?: string | null;
   global_styles?: Record<string, unknown> | null;
   lead_gate_enabled?: boolean;
+  consent_required?: boolean;
   // Consent / RGPD
   privacy_policy_url?: string | null;
   consent_text?: string | null;
