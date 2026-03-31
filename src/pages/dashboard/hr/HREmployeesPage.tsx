@@ -77,8 +77,13 @@ export default function HREmployeesPage() {
     setEditEmployee(emp);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!editEmployee) return;
+    // Also sync to hr_employees table
+    try {
+      const { workspaceClient } = await import("@/contexts/WorkspaceInstanceContext").then(() => ({})) as any;
+      // We'll do the hr_employees update via the mutation's onSuccess
+    } catch {}
     createProfile.mutate({
       member_id: editEmployee.id,
       job_title: form.job_title || null,
@@ -90,7 +95,29 @@ export default function HREmployeesPage() {
       weekly_hours: parseFloat(form.weekly_hours) || 40,
       notes: form.notes || null,
     } as any, {
-      onSuccess: () => setEditEmployee(null),
+      onSuccess: async () => {
+        // Sync key fields to hr_employees
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          await supabase
+            .from("hr_employees")
+            .update({
+              job_title: form.job_title || null,
+              department: form.department || null,
+              employee_number: form.employee_number || null,
+              contract_type: form.contract_type,
+              start_date: form.start_date || null,
+              status: form.status,
+              weekly_hours: parseFloat(form.weekly_hours) || 40,
+              notes: form.notes || null,
+            })
+            .eq("user_id", editEmployee.user_id)
+            .eq("workspace_id", editEmployee.workspace_id);
+        } catch (e) {
+          console.warn("hr_employees sync failed", e);
+        }
+        setEditEmployee(null);
+      },
     });
   };
 
