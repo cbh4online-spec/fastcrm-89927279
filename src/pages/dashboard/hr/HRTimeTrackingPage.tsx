@@ -33,6 +33,8 @@ export default function HRTimeTrackingPage() {
   const [showResolved, setShowResolved] = useState(false);
   const [resolveDialog, setResolveDialog] = useState<{ id: string; description: string | null } | null>(null);
   const [resolveNotes, setResolveNotes] = useState("");
+  const [manualClockDialog, setManualClockDialog] = useState<{ employeeId: string; employeeName: string; type: "clock_in" | "clock_out" } | null>(null);
+  const [manualNotes, setManualNotes] = useState("");
 
   const { data: employees = [] } = useHREmployeesList();
   const { data: sessions = [], isLoading } = useHRWorkSessions(employeeFilter, startDate, endDate);
