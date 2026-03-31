@@ -1,275 +1,256 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
 
-export type HREmployeeProfile = {
-  id: string;
-  member_id: string;
-  workspace_id: string;
-  job_title: string | null;
-  department: string | null;
-  employee_number: string | null;
-  contract_type: string;
-  start_date: string | null;
-  end_date: string | null;
-  status: string;
-  weekly_hours: number;
-  qr_code_token: string;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-};
+const KEY = "hr-employees";
 
-// Combined type for display: workspace member + profile data + HR profile
 export type HREmployee = {
-  id: string; // workspace_member id
-  member_id: string; // same as id
-  user_id: string;
+  id: string;
   workspace_id: string;
-  role: string;
-  full_name: string;
-  email: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  // HR profile fields
-  hr_profile_id: string | null;
-  job_title: string | null;
-  department: string | null;
+  user_id: string | null;
   employee_number: string | null;
-  contract_type: string;
+  full_name: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  position_id: string | null;
+  position_name: string | null;
+  manager_id: string | null;
+  manager_name: string | null;
+  contract_type: string | null;
+  contract_type_id: string | null;
+  contract_type_name: string | null;
   start_date: string | null;
   end_date: string | null;
   status: string;
-  weekly_hours: number;
+  weekly_hours: number | null;
   qr_code_token: string | null;
   notes: string | null;
+  job_title: string | null;
 };
 
 export function useHREmployees(statusFilter?: string) {
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
   const wsId = currentWorkspace?.id;
-  
+
   return useQuery({
-    queryKey: ["hr-employees", wsId, statusFilter],
+    queryKey: [KEY, wsId, statusFilter],
+    enabled: !!wsId,
     queryFn: async () => {
-      if (!wsId) return [];
+      let q = supabase
+        .from("hr_employees")
+        .select(`
+          *,
+          profiles:user_id(full_name, email, avatar_url),
+          hr_departments!hr_employees_department_id_fkey(id, name),
+          hr_job_titles:position_id(id, name),
+          manager:manager_id(id, full_name)
+        `)
+        .eq("workspace_id", wsId!)
+        .order("full_name");
 
-      // Get all workspace members
-      const { data: members, error: membersError } = await workspaceClient
-        .from("workspace_members")
-        .select("*")
-        .eq("workspace_id", wsId)
-        .order("created_at", { ascending: true });
+      if (statusFilter) q = q.eq("status", statusFilter);
 
-      if (membersError) throw membersError;
-
-      // Get profiles for members
-      const userIds = members.map((m: any) => m.user_id);
-      const { data: profiles } = await workspaceClient
-        .from("profiles")
-        .select("user_id, full_name, email, avatar_url")
-        .in("user_id", userIds);
-
-      const profileMap = new Map(profiles?.map((p: any) => [p.user_id, p]));
-
-      // Get HR profiles
-      const memberIds = members.map((m: any) => m.id);
-      const { data: hrProfiles } = await supabase
-        .from("hr_employee_profiles" as any)
-        .select("*")
-        .in("member_id", memberIds);
-
-      const hrMap = new Map((hrProfiles as any[] || []).map((hp: any) => [hp.member_id, hp]));
-
-      // Combine
-      let result: HREmployee[] = members.map((m: any) => {
-        const profile = profileMap.get(m.user_id);
-        const hrProfile = hrMap.get(m.id);
-        return {
-          id: m.id,
-          member_id: m.id,
-          user_id: m.user_id,
-          workspace_id: m.workspace_id,
-          role: m.role,
-          full_name: profile?.full_name || "Sem nome",
-          email: profile?.email || null,
-          avatar_url: profile?.avatar_url || null,
-          phone: null,
-          hr_profile_id: hrProfile?.id || null,
-          job_title: hrProfile?.job_title || null,
-          department: hrProfile?.department || null,
-          employee_number: hrProfile?.employee_number || null,
-          contract_type: hrProfile?.contract_type || "full_time",
-          start_date: hrProfile?.start_date || null,
-          end_date: hrProfile?.end_date || null,
-          status: hrProfile?.status || "active",
-          weekly_hours: hrProfile?.weekly_hours || 40,
-          qr_code_token: hrProfile?.qr_code_token || null,
-          notes: hrProfile?.notes || null,
-        };
-      });
-
-      if (statusFilter) {
-        result = result.filter(e => e.status === statusFilter);
+      const { data, error } = await q;
+      if (error) {
+        console.error("[useHREmployees] query error:", error);
+        throw error;
       }
 
-      return result;
+      return (data ?? []).map((e: any) => ({
+        id: e.id,
+        workspace_id: e.workspace_id,
+        user_id: e.user_id,
+        employee_number: e.employee_number,
+        full_name: e.full_name || e.profiles?.full_name || "Sem nome",
+        first_name: e.first_name,
+        last_name: e.last_name,
+        email: e.email || e.profiles?.email || null,
+        phone: e.phone,
+        avatar_url: e.profiles?.avatar_url || null,
+        department_id: e.department_id,
+        department_name: e.hr_departments?.name || null,
+        position_id: e.position_id,
+        position_name: e.hr_job_titles?.name || null,
+        manager_id: e.manager_id,
+        manager_name: e.manager?.full_name || null,
+        contract_type: e.contract_type,
+        contract_type_id: e.contract_type_id,
+        contract_type_name: null, // will be enriched if needed
+        start_date: e.start_date,
+        end_date: e.end_date,
+        status: e.status || "active",
+        weekly_hours: e.weekly_hours ?? 40,
+        qr_code_token: e.qr_code_token,
+        notes: e.notes,
+        job_title: e.job_title || e.hr_job_titles?.name || null,
+      })) as HREmployee[];
     },
-    enabled: !!wsId,
   });
 }
 
-export function useHREmployee(memberId: string | undefined) {
+export function useHREmployee(employeeId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
   const wsId = currentWorkspace?.id;
-  
-  return useQuery({
-    queryKey: ["hr-employee", wsId, memberId],
-    queryFn: async () => {
-      if (!memberId) throw new Error("No member ID");
 
-      const { data: member, error } = await workspaceClient
-        .from("workspace_members")
-        .select("*")
-        .eq("id", memberId)
+  return useQuery({
+    queryKey: ["hr-employee", wsId, employeeId],
+    enabled: !!wsId && !!employeeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_employees")
+        .select(`
+          *,
+          profiles:user_id(full_name, email, avatar_url),
+          hr_departments!hr_employees_department_id_fkey(id, name),
+          hr_job_titles:position_id(id, name),
+          manager:manager_id(id, full_name)
+        `)
+        .eq("id", employeeId!)
         .single();
 
       if (error) throw error;
 
-      const { data: profile } = await workspaceClient
-        .from("profiles")
-        .select("user_id, full_name, email, avatar_url")
-        .eq("user_id", member.user_id)
-        .single();
-
-      const { data: hrProfile } = await supabase
-        .from("hr_employee_profiles" as any)
-        .select("*")
-        .eq("member_id", memberId)
-        .maybeSingle();
-
-      const hp = hrProfile as any;
-
+      const e = data as any;
       return {
-        id: member.id,
-        member_id: member.id,
-        user_id: member.user_id,
-        workspace_id: member.workspace_id,
-        role: member.role,
-        full_name: profile?.full_name || "Sem nome",
-        email: profile?.email || null,
-        avatar_url: profile?.avatar_url || null,
-        phone: null,
-        hr_profile_id: hp?.id || null,
-        job_title: hp?.job_title || null,
-        department: hp?.department || null,
-        employee_number: hp?.employee_number || null,
-        contract_type: hp?.contract_type || "full_time",
-        start_date: hp?.start_date || null,
-        end_date: hp?.end_date || null,
-        status: hp?.status || "active",
-        weekly_hours: hp?.weekly_hours || 40,
-        qr_code_token: hp?.qr_code_token || null,
-        notes: hp?.notes || null,
+        id: e.id,
+        workspace_id: e.workspace_id,
+        user_id: e.user_id,
+        employee_number: e.employee_number,
+        full_name: e.full_name || e.profiles?.full_name || "Sem nome",
+        first_name: e.first_name,
+        last_name: e.last_name,
+        email: e.email || e.profiles?.email || null,
+        phone: e.phone,
+        avatar_url: e.profiles?.avatar_url || null,
+        department_id: e.department_id,
+        department_name: e.hr_departments?.name || null,
+        position_id: e.position_id,
+        position_name: e.hr_job_titles?.name || null,
+        manager_id: e.manager_id,
+        manager_name: e.manager?.full_name || null,
+        contract_type: e.contract_type,
+        contract_type_id: e.contract_type_id,
+        contract_type_name: null,
+        start_date: e.start_date,
+        end_date: e.end_date,
+        status: e.status || "active",
+        weekly_hours: e.weekly_hours ?? 40,
+        qr_code_token: e.qr_code_token,
+        notes: e.notes,
+        job_title: e.job_title || e.hr_job_titles?.name || null,
       } as HREmployee;
     },
-    enabled: !!wsId && !!memberId,
   });
 }
 
-export function useCreateHREmployeeProfile() {
-  const queryClient = useQueryClient();
+export function useCreateHREmployee() {
+  const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
-  
+
   return useMutation({
-    mutationFn: async (values: { member_id: string } & Partial<HREmployeeProfile>) => {
-      const { data, error } = await supabase
-        .from("hr_employee_profiles" as any)
-        .upsert({
-          member_id: values.member_id,
-          workspace_id: wsId,
-          job_title: values.job_title || null,
-          department: values.department || null,
-          employee_number: values.employee_number || null,
-          contract_type: values.contract_type || "full_time",
-          start_date: values.start_date || null,
-          end_date: values.end_date || null,
+    mutationFn: async (values: {
+      full_name: string;
+      email?: string | null;
+      phone?: string | null;
+      department_id?: string | null;
+      position_id?: string | null;
+      manager_id?: string | null;
+      contract_type?: string | null;
+      contract_type_id?: string | null;
+      employee_number?: string | null;
+      start_date?: string | null;
+      end_date?: string | null;
+      status?: string;
+      weekly_hours?: number;
+      notes?: string | null;
+      job_title?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("hr_employees")
+        .insert({
+          ...values,
+          workspace_id: wsId!,
           status: values.status || "active",
           weekly_hours: values.weekly_hours || 40,
-          notes: values.notes || null,
-        }, { onConflict: "member_id" })
-        .select()
-        .single();
+        });
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
-      toast.success("Perfil HR atualizado");
-      queryClient.invalidateQueries({ queryKey: ["hr-employees", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employee"] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      toast.success("Funcionário criado");
     },
-    onError: () => toast.error("Erro ao guardar perfil HR"),
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
-export function useUpdateHREmployeeProfile() {
-  const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
-  const wsId = currentWorkspace?.id;
-  
+export function useUpdateHREmployee() {
+  const qc = useQueryClient();
+
   return useMutation({
-    mutationFn: async ({ member_id, ...values }: { member_id: string } & Partial<HREmployeeProfile>) => {
-      const { data, error } = await supabase
-        .from("hr_employee_profiles" as any)
-        .update({ ...values, updated_at: new Date().toISOString() })
-        .eq("member_id", member_id)
-        .select()
-        .single();
+    mutationFn: async ({ id, ...values }: {
+      id: string;
+      full_name?: string;
+      email?: string | null;
+      phone?: string | null;
+      department_id?: string | null;
+      position_id?: string | null;
+      manager_id?: string | null;
+      contract_type?: string | null;
+      contract_type_id?: string | null;
+      employee_number?: string | null;
+      start_date?: string | null;
+      end_date?: string | null;
+      status?: string;
+      weekly_hours?: number;
+      notes?: string | null;
+      job_title?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("hr_employees")
+        .update(values)
+        .eq("id", id);
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
-      toast.success("Perfil HR atualizado");
-      queryClient.invalidateQueries({ queryKey: ["hr-employees", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["hr-employee"] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["hr-employee"] });
+      toast.success("Funcionário atualizado");
     },
-    onError: () => toast.error("Erro ao atualizar perfil HR"),
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
-// Keep backward compatibility aliases
-export const useCreateHREmployee = useCreateHREmployeeProfile;
-export const useUpdateHREmployee = useUpdateHREmployeeProfile;
+// Keep backward compat aliases
+export const useCreateHREmployeeProfile = useCreateHREmployee;
+export const useUpdateHREmployeeProfile = useUpdateHREmployee;
 
 export function useDeleteHREmployee() {
-  const queryClient = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
-  const wsId = currentWorkspace?.id;
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (memberId: string) => {
-      // Only delete the HR profile, not the workspace member
+    mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("hr_employee_profiles" as any)
+        .from("hr_employees")
         .delete()
-        .eq("member_id", memberId);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Perfil HR removido");
-      queryClient.invalidateQueries({ queryKey: ["hr-employees", wsId] });
+      qc.invalidateQueries({ queryKey: [KEY] });
+      toast.success("Funcionário removido");
     },
-    onError: () => toast.error("Erro ao remover perfil HR"),
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
 export function useCurrentHREmployee() {
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
     queryKey: ["hr-current-employee", currentWorkspace?.id],
@@ -278,7 +259,7 @@ export function useCurrentHREmployee() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await workspaceClient
+      const { data, error } = await supabase
         .from("hr_employees")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)

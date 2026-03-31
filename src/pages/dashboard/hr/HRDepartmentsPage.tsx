@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Building2, Plus, Pencil, Trash2, Users, Search } from "lucide-react";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 
@@ -28,7 +29,7 @@ const emptyForm: DeptForm = { name: "", description: "", parent_department_id: n
 
 export default function HRDepartmentsPage() {
   const { data: departments, isLoading } = useHRDepartments();
-  const { data: employees } = useHREmployees();
+  const { data: employees = [] } = useHREmployees();
   const createDept = useCreateHRDepartment();
   const updateDept = useUpdateHRDepartment();
   const deleteDept = useDeleteHRDepartment();
@@ -37,13 +38,14 @@ export default function HRDepartmentsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<DeptForm>(emptyForm);
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; headcount: number } | null>(null);
 
   const filtered = departments?.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const activeDepts = departments?.filter((d) => d.is_active).length ?? 0;
-  const totalEmployeesInDepts = departments?.length ?? 0;
+  const totalHeadcount = departments?.reduce((sum, d) => sum + d.headcount, 0) ?? 0;
 
   const openCreate = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (d: any) => {
@@ -73,6 +75,17 @@ export default function HRDepartmentsPage() {
     setDialogOpen(false);
   };
 
+  const handleDeleteClick = (d: any) => {
+    setDeleteTarget({ id: d.id, name: d.name, headcount: d.headcount });
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteDept.mutate(deleteTarget.id);
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Gestão de RH">
       <DashboardLayout>
@@ -93,7 +106,7 @@ export default function HRDepartmentsPage() {
           <KPIGrid columns={3}>
             <KPICard title="Total" value={departments?.length ?? 0} icon={<Building2 className="h-5 w-5" />} />
             <KPICard title="Ativos" value={activeDepts} icon={<Building2 className="h-5 w-5" />} />
-            <KPICard title="Inativos" value={(departments?.length ?? 0) - activeDepts} icon={<Building2 className="h-5 w-5" />} />
+            <KPICard title="Colaboradores" value={totalHeadcount} icon={<Users className="h-5 w-5" />} />
           </KPIGrid>
 
           <Card>
@@ -124,6 +137,7 @@ export default function HRDepartmentsPage() {
                       <TableHead>Descrição</TableHead>
                       <TableHead>Responsável</TableHead>
                       <TableHead>Dep. Pai</TableHead>
+                      <TableHead className="text-center">Colaboradores</TableHead>
                       <TableHead className="w-24 text-center">Estado</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
@@ -133,8 +147,11 @@ export default function HRDepartmentsPage() {
                       <TableRow key={d.id}>
                         <TableCell className="font-medium">{d.name}</TableCell>
                         <TableCell className="text-muted-foreground">{d.description || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{(d as any).head?.full_name || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{(d as any).parent?.name || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{d.head?.full_name || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{d.parent?.name || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">{d.headcount}</Badge>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Switch
                             checked={d.is_active}
@@ -146,7 +163,7 @@ export default function HRDepartmentsPage() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(d)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => deleteDept.mutate(d.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(d)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -160,6 +177,7 @@ export default function HRDepartmentsPage() {
           </Card>
         </div>
 
+        {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -192,7 +210,7 @@ export default function HRDepartmentsPage() {
                   <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {employees?.map((emp) => (
+                    {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>{emp.full_name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -205,6 +223,26 @@ export default function HRDepartmentsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar departamento "{deleteTarget?.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteTarget?.headcount && deleteTarget.headcount > 0
+                  ? `Este departamento tem ${deleteTarget.headcount} colaborador(es) associado(s). Ao eliminar, os colaboradores ficarão sem departamento atribuído.`
+                  : "Esta ação não pode ser desfeita."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DashboardLayout>
     </ModuleGuard>
   );

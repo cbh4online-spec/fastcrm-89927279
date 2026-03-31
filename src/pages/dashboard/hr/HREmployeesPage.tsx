@@ -2,7 +2,10 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { useHREmployees, useCreateHREmployeeProfile, useDeleteHREmployee, type HREmployee } from "@/hooks/hr/useHREmployees";
+import { useHREmployees, useUpdateHREmployee, type HREmployee } from "@/hooks/hr/useHREmployees";
+import { useHRDepartments } from "@/hooks/hr/useHRDepartments";
+import { useHRJobTitles } from "@/hooks/hr/useHRJobTitles";
+import { useHRContractTypes } from "@/hooks/hr/useHRContractTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -13,10 +16,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Eye, QrCode, UserCog } from "lucide-react";
+import { Eye, QrCode, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import QRCode from "react-qr-code";
-import { toast } from "sonner";
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   active: { label: "Activo", class: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
@@ -34,39 +36,38 @@ const CONTRACT_MAP: Record<string, string> = {
   intern: "Estagiário",
 };
 
-const ROLE_MAP: Record<string, string> = {
-  owner: "Proprietário",
-  admin: "Administrador",
-  agent: "Agente",
-  viewer: "Visualizador",
-  agency: "Agência",
-  hr: "RH",
-};
-
 export default function HREmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [deptFilter, setDeptFilter] = useState("");
   const [editEmployee, setEditEmployee] = useState<HREmployee | null>(null);
   const [qrEmployee, setQrEmployee] = useState<HREmployee | null>(null);
   const { data: employees = [], isLoading } = useHREmployees(statusFilter);
-  const createProfile = useCreateHREmployeeProfile();
+  const { data: departments = [] } = useHRDepartments(true);
+  const { data: positions = [] } = useHRJobTitles(true);
+  const { data: contractTypes = [] } = useHRContractTypes(true);
+  const updateEmployee = useUpdateHREmployee();
 
-  // HR profile edit form
   const [form, setForm] = useState({
-    job_title: "", department: "", employee_number: "", contract_type: "full_time",
-    start_date: "", weekly_hours: "40", notes: "", status: "active",
+    department_id: "" as string | null,
+    position_id: "" as string | null,
+    manager_id: "" as string | null,
+    employee_number: "",
+    contract_type: "full_time",
+    start_date: "",
+    weekly_hours: "40",
+    notes: "",
+    status: "active",
   });
 
   const filtered = deptFilter
-    ? employees.filter(e => e.department?.toLowerCase().includes(deptFilter.toLowerCase()))
+    ? employees.filter(e => e.department_id === deptFilter)
     : employees;
-
-  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
 
   const openEdit = (emp: HREmployee) => {
     setForm({
-      job_title: emp.job_title || "",
-      department: emp.department || "",
+      department_id: emp.department_id || null,
+      position_id: emp.position_id || null,
+      manager_id: emp.manager_id || null,
       employee_number: emp.employee_number || "",
       contract_type: emp.contract_type || "full_time",
       start_date: emp.start_date || "",
@@ -77,47 +78,21 @@ export default function HREmployeesPage() {
     setEditEmployee(emp);
   };
 
-  const handleSaveProfile = async () => {
+  const handleSave = () => {
     if (!editEmployee) return;
-    // Also sync to hr_employees table
-    try {
-      const { workspaceClient } = await import("@/contexts/WorkspaceInstanceContext").then(() => ({})) as any;
-      // We'll do the hr_employees update via the mutation's onSuccess
-    } catch {}
-    createProfile.mutate({
-      member_id: editEmployee.id,
-      job_title: form.job_title || null,
-      department: form.department || null,
+    updateEmployee.mutate({
+      id: editEmployee.id,
+      department_id: form.department_id || null,
+      position_id: form.position_id || null,
+      manager_id: form.manager_id || null,
       employee_number: form.employee_number || null,
       contract_type: form.contract_type,
       start_date: form.start_date || null,
-      status: form.status,
       weekly_hours: parseFloat(form.weekly_hours) || 40,
       notes: form.notes || null,
-    } as any, {
-      onSuccess: async () => {
-        // Sync key fields to hr_employees
-        try {
-          const { supabase } = await import("@/integrations/supabase/client");
-          await supabase
-            .from("hr_employees")
-            .update({
-              job_title: form.job_title || null,
-              department: form.department || null,
-              employee_number: form.employee_number || null,
-              contract_type: form.contract_type,
-              start_date: form.start_date || null,
-              status: form.status,
-              weekly_hours: parseFloat(form.weekly_hours) || 40,
-              notes: form.notes || null,
-            })
-            .eq("user_id", editEmployee.user_id)
-            .eq("workspace_id", editEmployee.workspace_id);
-        } catch (e) {
-          console.warn("hr_employees sync failed", e);
-        }
-        setEditEmployee(null);
-      },
+      status: form.status,
+    }, {
+      onSuccess: () => setEditEmployee(null),
     });
   };
 
@@ -129,7 +104,7 @@ export default function HREmployeesPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Funcionários</h1>
-              <p className="text-muted-foreground">Membros do workspace com perfil de recursos humanos</p>
+              <p className="text-muted-foreground">Gestão de colaboradores</p>
             </div>
           </div>
 
@@ -150,7 +125,7 @@ export default function HREmployeesPage() {
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="Departamento" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {departments.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
+                  {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}
@@ -162,9 +137,10 @@ export default function HREmployeesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Nº</TableHead>
                     <TableHead>Cargo</TableHead>
                     <TableHead>Departamento</TableHead>
+                    <TableHead>Manager</TableHead>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Ações</TableHead>
@@ -172,9 +148,9 @@ export default function HREmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center">A carregar...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center">A carregar...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Sem funcionários</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem funcionários</TableCell></TableRow>
                   ) : filtered.map(emp => (
                     <TableRow key={emp.id}>
                       <TableCell>
@@ -189,12 +165,11 @@ export default function HREmployeesPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{ROLE_MAP[emp.role] || emp.role}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">{emp.job_title || "—"}</TableCell>
-                      <TableCell className="text-sm">{emp.department || "—"}</TableCell>
-                      <TableCell className="text-sm">{CONTRACT_MAP[emp.contract_type] || emp.contract_type}</TableCell>
+                      <TableCell className="text-sm">{emp.employee_number || "—"}</TableCell>
+                      <TableCell className="text-sm">{emp.position_name || emp.job_title || "—"}</TableCell>
+                      <TableCell className="text-sm">{emp.department_name || "—"}</TableCell>
+                      <TableCell className="text-sm">{emp.manager_name || "—"}</TableCell>
+                      <TableCell className="text-sm">{CONTRACT_MAP[emp.contract_type || ""] || emp.contract_type || "—"}</TableCell>
                       <TableCell>
                         <Badge className={STATUS_MAP[emp.status]?.class || ""}>{STATUS_MAP[emp.status]?.label || emp.status}</Badge>
                       </TableCell>
@@ -223,14 +198,46 @@ export default function HREmployeesPage() {
           {/* Edit HR Profile Dialog */}
           <Dialog open={!!editEmployee} onOpenChange={() => setEditEmployee(null)}>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Perfil HR — {editEmployee?.full_name}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Editar — {editEmployee?.full_name}</DialogTitle></DialogHeader>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Cargo</Label><Input value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} /></div>
-                  <div><Label>Departamento</Label><Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} /></div>
+                  <div>
+                    <Label>Departamento</Label>
+                    <Select value={form.department_id || "none"} onValueChange={v => setForm(f => ({ ...f, department_id: v === "none" ? null : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Cargo</Label>
+                    <Select value={form.position_id || "none"} onValueChange={v => setForm(f => ({ ...f, position_id: v === "none" ? null : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {positions.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Manager</Label>
+                    <Select value={form.manager_id || "none"} onValueChange={v => setForm(f => ({ ...f, manager_id: v === "none" ? null : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {employees.filter(e => e.id !== editEmployee?.id).map(e => (
+                          <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div><Label>Nº Funcionário</Label><Input value={form.employee_number} onChange={e => setForm(f => ({ ...f, employee_number: e.target.value }))} /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Tipo de Contrato</Label>
                     <Select value={form.contract_type} onValueChange={v => setForm(f => ({ ...f, contract_type: v }))}>
@@ -243,27 +250,27 @@ export default function HREmployeesPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div><Label>Data Início</Label><Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Data Início</Label><Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} /></div>
                   <div><Label>Horas Semanais</Label><Input type="number" value={form.weekly_hours} onChange={e => setForm(f => ({ ...f, weekly_hours: e.target.value }))} /></div>
-                </div>
-                <div>
-                  <Label>Estado</Label>
-                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Activo</SelectItem>
-                      <SelectItem value="inactive">Inactivo</SelectItem>
-                      <SelectItem value="on_leave">Ausente</SelectItem>
-                      <SelectItem value="terminated">Terminado</SelectItem>
-                      <SelectItem value="suspended">Suspenso</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <Label>Estado</Label>
+                    <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                        <SelectItem value="on_leave">Ausente</SelectItem>
+                        <SelectItem value="terminated">Terminado</SelectItem>
+                        <SelectItem value="suspended">Suspenso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div><Label>Notas</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                <Button onClick={handleSaveProfile} disabled={createProfile.isPending} className="w-full">
-                  {createProfile.isPending ? "A guardar..." : "Guardar Perfil HR"}
+                <Button onClick={handleSave} disabled={updateEmployee.isPending} className="w-full">
+                  {updateEmployee.isPending ? "A guardar..." : "Guardar"}
                 </Button>
               </div>
             </DialogContent>

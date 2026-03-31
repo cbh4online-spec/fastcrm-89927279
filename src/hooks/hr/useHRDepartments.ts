@@ -5,6 +5,21 @@ import { toast } from "sonner";
 
 const KEY = "hr-departments";
 
+export type HRDepartment = {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string | null;
+  parent_department_id: string | null;
+  head_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  head: { id: string; full_name: string } | null;
+  parent: { id: string; name: string } | null;
+  headcount: number;
+};
+
 export function useHRDepartments(onlyActive = false) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
@@ -12,11 +27,14 @@ export function useHRDepartments(onlyActive = false) {
     queryKey: [KEY, wsId, onlyActive],
     enabled: !!wsId,
     queryFn: async () => {
-      // Use simple select first to avoid silent failures from relational joins
-      // when referenced tables (hr_employees) have no matching rows
+      // Fetch departments with head and parent joins
       let q = supabase
         .from("hr_departments")
-        .select("*")
+        .select(`
+          *,
+          head:head_id(id, full_name),
+          parent:parent_department_id(id, name)
+        `)
         .eq("workspace_id", wsId!)
         .order("name");
       if (onlyActive) q = q.eq("is_active", true);
@@ -25,11 +43,25 @@ export function useHRDepartments(onlyActive = false) {
         console.error("[useHRDepartments] query error:", error);
         throw error;
       }
+
+      // Fetch headcount per department
+      const { data: employees } = await supabase
+        .from("hr_employees")
+        .select("department_id")
+        .eq("workspace_id", wsId!)
+        .not("department_id", "is", null);
+
+      const countMap = new Map<string, number>();
+      (employees ?? []).forEach((e: any) => {
+        countMap.set(e.department_id, (countMap.get(e.department_id) || 0) + 1);
+      });
+
       return (data ?? []).map((dept: any) => ({
         ...dept,
-        head: null,
-        parent: null,
-      }));
+        head: dept.head || null,
+        parent: dept.parent || null,
+        headcount: countMap.get(dept.id) || 0,
+      })) as HRDepartment[];
     },
   });
 }
