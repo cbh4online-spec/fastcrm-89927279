@@ -6,56 +6,47 @@ import { toast } from "sonner";
 export type Interview = {
   id: string;
   workspace_id: string;
-  application_id: string;
-  interview_type: "in_person" | "remote" | "phone";
+  candidate_id: string;
+  job_posting_id: string | null;
+  interview_type: "phone_screening" | "technical" | "behavioral" | "panel" | "onsite";
   scheduled_at: string;
   duration_minutes: number;
-  location: string | null;
-  meeting_url: string | null;
   interviewer_ids: string[];
-  notes: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  application?: {
-    id: string;
-    candidate: {
-      id: string;
-      full_name: string;
-      email: string | null;
-    };
-    job_opening: {
-      id: string;
-      title: string;
-    };
-  };
-};
-
-export type InterviewScorecard = {
-  id: string;
-  workspace_id: string;
-  interview_id: string;
-  interviewer_id: string | null;
-  criteria: Array<{ name: string; score: number; notes?: string }>;
+  location_type: "in_person" | "video" | "phone" | null;
+  meeting_link: string | null;
+  location_address: string | null;
+  status: "scheduled" | "completed" | "cancelled" | "no_show";
+  feedback: any;
   overall_rating: number | null;
-  feedback: string | null;
   recommendation: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
+  // joined
+  candidate?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  job_posting?: {
+    id: string;
+    title: string;
+  } | null;
 };
 
-export function useInterviews(applicationId?: string) {
+export function useInterviews(candidateId?: string) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["hr-interviews", wsId, applicationId],
+    queryKey: ["hr-interviews", wsId, candidateId],
     queryFn: async () => {
       let q = supabase
         .from("hr_interviews" as any)
-        .select("*, application:hr_applications!application_id(id, candidate:hr_candidates!candidate_id(id, full_name, email), job_opening:hr_job_openings!job_opening_id(id, title))")
+        .select("*, candidate:hr_candidates!candidate_id(id, first_name, last_name, email), job_posting:hr_job_postings!job_posting_id(id, title)")
         .eq("workspace_id", wsId!)
         .order("scheduled_at", { ascending: true });
-      if (applicationId) q = q.eq("application_id", applicationId);
+      if (candidateId) q = q.eq("candidate_id", candidateId);
       const { data, error } = await q;
       if (error) throw error;
       return data as unknown as Interview[];
@@ -94,7 +85,7 @@ export function useUpdateInterview() {
     mutationFn: async ({ id, ...values }: Partial<Interview> & { id: string }) => {
       const { data, error } = await supabase
         .from("hr_interviews" as any)
-        .update({ ...values, updated_at: new Date().toISOString() })
+        .update(values)
         .eq("id", id)
         .select()
         .single();
@@ -106,45 +97,5 @@ export function useUpdateInterview() {
       qc.invalidateQueries({ queryKey: ["hr-interviews", wsId] });
     },
     onError: () => toast.error("Erro ao atualizar entrevista"),
-  });
-}
-
-export function useInterviewScorecards(interviewId: string | undefined) {
-  const { currentWorkspace } = useWorkspace();
-  const wsId = currentWorkspace?.id;
-  return useQuery({
-    queryKey: ["hr-interview-scorecards", wsId, interviewId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("hr_interview_scorecards" as any)
-        .select("*")
-        .eq("interview_id", interviewId!)
-        .order("created_at");
-      if (error) throw error;
-      return data as unknown as InterviewScorecard[];
-    },
-    enabled: !!wsId && !!interviewId,
-  });
-}
-
-export function useCreateScorecard() {
-  const qc = useQueryClient();
-  const { currentWorkspace } = useWorkspace();
-  const wsId = currentWorkspace?.id;
-  return useMutation({
-    mutationFn: async (values: Partial<InterviewScorecard>) => {
-      const { data, error } = await supabase
-        .from("hr_interview_scorecards" as any)
-        .insert({ ...values, workspace_id: wsId })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Avaliação guardada");
-      qc.invalidateQueries({ queryKey: ["hr-interview-scorecards"] });
-    },
-    onError: () => toast.error("Erro ao guardar avaliação"),
   });
 }
