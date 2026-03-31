@@ -214,6 +214,12 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'O registo aparecerá quando campos forem editados.',
     suggestion: 'Edite campos para ver o histórico.',
   },
+  marketing: {
+    icon: Mail,
+    title: 'Sem campanhas',
+    description: 'Este contacto ainda não recebeu campanhas de marketing.',
+    suggestion: 'Envie uma campanha para ver o histórico aqui.',
+  },
 };
 
 export function EntityEmptyState({
