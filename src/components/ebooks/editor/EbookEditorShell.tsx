@@ -128,8 +128,16 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   // Debounced branding save — via centralised persistence
   useEffect(() => {
     if (!brandingInitRef.current) return;
-    queueSave({ header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage });
-  }, [localHeaderText, localFooterText, localContactPage]);
+    queueSave({
+      header_text: localHeaderText, footer_text: localFooterText, contact_page: localContactPage,
+      consent_text: localConsentText, privacy_policy_url: localPrivacyPolicyUrl,
+      marketing_opt_in_enabled: localMarketingOptInEnabled, marketing_opt_in_label: localMarketingOptInLabel,
+      seo_title: localSeoTitle, seo_description: localSeoDescription,
+      og_image_url: localOgImageUrl, canonical_url: localCanonicalUrl, noindex: localNoindex,
+    });
+  }, [localHeaderText, localFooterText, localContactPage,
+      localConsentText, localPrivacyPolicyUrl, localMarketingOptInEnabled, localMarketingOptInLabel,
+      localSeoTitle, localSeoDescription, localOgImageUrl, localCanonicalUrl, localNoindex]);
 
   // ── Chapter operations — all go through queueSave ──
   const saveChapters = useCallback((chapters: EbookChapter[]) => {
