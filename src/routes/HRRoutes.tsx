@@ -34,6 +34,8 @@ export function HRRoutes() {
       <Route path="/dashboard/hr" element={<HRDashboardPage />} />
       <Route path="/dashboard/hr/employees" element={<HREmployeesPage />} />
       <Route path="/dashboard/hr/employees/:id" element={<HREmployeeDetailPage />} />
+      <Route path="/dashboard/hr/departments" element={<HRDepartmentsPage />} />
+      <Route path="/dashboard/hr/positions" element={<HRPositionsPage />} />
       <Route path="/dashboard/hr/time-tracking" element={<HRTimeTrackingPage />} />
       <Route path="/dashboard/hr/schedules" element={<HRSchedulesPage />} />
       <Route path="/dashboard/hr/absences" element={<HRAbsencesPage />} />
