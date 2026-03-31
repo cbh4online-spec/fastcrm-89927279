@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Timer } from "lucide-react";
-import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { LogIn, LogOut, Timer, AlertTriangle } from "lucide-react";
+import { useCurrentEmployee } from "@/hooks/hr/useCurrentEmployee";
+import { useClockAction, useHRWorkSessions } from "@/hooks/hr/useHRTimeEntries";
 import { useWeatherLocation, getWeatherIcon } from "@/hooks/useWeatherLocation";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -21,9 +22,18 @@ function getGreeting(hour: number) {
 }
 
 export function ClockInOutButton() {
-  const { activeEntry, clockIn, clockOut } = useTimeEntries();
+  const { employeeId, isLoading: empLoading, hasEmployee } = useCurrentEmployee();
+  const clockAction = useClockAction();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
   const { city, temperature, weatherCode, isLoading: weatherLoading } = useWeatherLocation();
-  const isActive = !!activeEntry;
+
+  // Find active session (no clock_out_at)
+  const activeSession = useMemo(
+    () => sessions.find((s) => s.clock_in_at && !s.clock_out_at),
+    [sessions]
+  );
+  const isActive = !!activeSession;
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -32,9 +42,9 @@ export function ClockInOutButton() {
   }, []);
 
   const sessionMs = useMemo(() => {
-    if (!activeEntry) return 0;
-    return now.getTime() - new Date(activeEntry.clock_in).getTime();
-  }, [now, activeEntry]);
+    if (!activeSession?.clock_in_at) return 0;
+    return now.getTime() - new Date(activeSession.clock_in_at).getTime();
+  }, [now, activeSession]);
 
   const greeting = getGreeting(now.getHours());
   const weatherIcon = getWeatherIcon(weatherCode);
@@ -43,6 +53,18 @@ export function ClockInOutButton() {
     : city
       ? `📍 ${city}`
       : null;
+
+  // If user has no employee profile
+  if (!empLoading && !hasEmployee) {
+    return (
+      <div className="flex items-center gap-3 p-5 rounded-xl border bg-card shadow-sm">
+        <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+        <p className="text-sm text-muted-foreground">
+          O seu perfil de colaborador ainda não está configurado. Contacte o administrador de RH.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-5 rounded-xl border bg-card shadow-sm">
@@ -88,8 +110,14 @@ export function ClockInOutButton() {
             size="lg"
             variant="destructive"
             className="gap-2"
-            onClick={() => clockOut.mutate(activeEntry!.id)}
-            disabled={clockOut.isPending}
+            onClick={() =>
+              clockAction.mutate({
+                employee_id: employeeId!,
+                entry_type: "clock_out",
+                method: "app",
+              })
+            }
+            disabled={clockAction.isPending}
           >
             <LogOut className="h-5 w-5" />
             Terminar
@@ -98,8 +126,14 @@ export function ClockInOutButton() {
           <Button
             size="lg"
             className="gap-2"
-            onClick={() => clockIn.mutate()}
-            disabled={clockIn.isPending}
+            onClick={() =>
+              clockAction.mutate({
+                employee_id: employeeId!,
+                entry_type: "clock_in",
+                method: "app",
+              })
+            }
+            disabled={clockAction.isPending || empLoading}
           >
             <LogIn className="h-5 w-5" />
             Iniciar Trabalho
