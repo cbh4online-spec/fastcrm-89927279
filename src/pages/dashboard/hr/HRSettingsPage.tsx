@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,6 +198,7 @@ export default function HRSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <HRBreadcrumb />
       <div className="flex items-center gap-3">
         <Settings className="h-6 w-6 text-primary" />
         <div>

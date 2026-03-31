@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHREmployees, useCreateHREmployeeProfile, useDeleteHREmployee, type HREmployee } from "@/hooks/hr/useHREmployees";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -96,6 +97,7 @@ export default function HREmployeesPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>

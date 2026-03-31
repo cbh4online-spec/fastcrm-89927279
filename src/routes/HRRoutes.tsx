@@ -5,6 +5,8 @@ import { Route } from "react-router-dom";
 const HRDashboardPage = lazy(() => import("@/pages/dashboard/hr/HRDashboardPage"));
 const HREmployeesPage = lazy(() => import("@/pages/dashboard/hr/HREmployeesPage"));
 const HREmployeeDetailPage = lazy(() => import("@/pages/dashboard/hr/HREmployeeDetailPage"));
+const HRDepartmentsPage = lazy(() => import("@/pages/dashboard/hr/HRDepartmentsPage"));
+const HRPositionsPage = lazy(() => import("@/pages/dashboard/hr/HRPositionsPage"));
 const HRTimeTrackingPage = lazy(() => import("@/pages/dashboard/hr/HRTimeTrackingPage"));
 const HRSchedulesPage = lazy(() => import("@/pages/dashboard/hr/HRSchedulesPage"));
 const HRAbsencesPage = lazy(() => import("@/pages/dashboard/hr/HRAbsencesPage"));
@@ -32,6 +34,8 @@ export function HRRoutes() {
       <Route path="/dashboard/hr" element={<HRDashboardPage />} />
       <Route path="/dashboard/hr/employees" element={<HREmployeesPage />} />
       <Route path="/dashboard/hr/employees/:id" element={<HREmployeeDetailPage />} />
+      <Route path="/dashboard/hr/departments" element={<HRDepartmentsPage />} />
+      <Route path="/dashboard/hr/positions" element={<HRPositionsPage />} />
       <Route path="/dashboard/hr/time-tracking" element={<HRTimeTrackingPage />} />
       <Route path="/dashboard/hr/schedules" element={<HRSchedulesPage />} />
       <Route path="/dashboard/hr/absences" element={<HRAbsencesPage />} />

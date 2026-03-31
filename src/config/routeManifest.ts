@@ -104,7 +104,7 @@ export const NAV_GROUPS: NavGroupMeta[] = [
   { key: "vendas",        label: "Vendas",        icon: TrendingUp,      order: 6, collapsible: true },
   { key: "compras",          label: "Compras",          icon: ShoppingCart,    order: 7,  collapsible: true },
   { key: "suporte",          label: "Suporte",          icon: Headphones,      order: 8,  collapsible: true },
-  { key: "rh",               label: "RH",               icon: Clock,           order: 9,  collapsible: true },
+  { key: "rh",               label: "People Operations",    icon: Clock,           order: 9,  collapsible: true },
   { key: "loja-online",      label: "Loja Online",      icon: ShoppingBag,     order: 10, collapsible: true },
   { key: "marketplace-c2c",  label: "Marketplace C2C",  icon: Store,           order: 11, collapsible: true },
   { key: "portal-b2b",       label: "Portal B2B",       icon: Building2,       order: 12, collapsible: true },
@@ -261,6 +261,8 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("hr-dashboard",     "Visão Geral",         "/dashboard/hr",               LayoutDashboard, "rh", { moduleSlug: "hr-management" }),
   e("hr-employees",     "Funcionários",        "/dashboard/hr/employees",     Users,        "rh", { moduleSlug: "hr-management" }),
+  e("hr-departments",   "Departamentos",       "/dashboard/hr/departments",   Building2,    "rh", { moduleSlug: "hr-management" }),
+  e("hr-positions",     "Cargos",              "/dashboard/hr/positions",     Briefcase,    "rh", { moduleSlug: "hr-management" }),
   e("hr-time-tracking", "Controlo de Ponto",   "/dashboard/hr/time-tracking", Clock,        "rh", { moduleSlug: "hr-management" }),
   e("hr-schedules",     "Gestão de Turnos",    "/dashboard/hr/schedules",     Calendar,     "rh", { moduleSlug: "hr-management" }),
   e("hr-absences",      "Férias & Ausências",  "/dashboard/hr/absences",      CalendarDays, "rh", { moduleSlug: "hr-management" }),

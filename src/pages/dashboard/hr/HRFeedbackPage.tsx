@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useFeedback, useCreateFeedback, useMarkFeedbackRead } from "@/hooks/hr/useFeedback";
 import { useHREmployees, useCurrentHREmployee } from "@/hooks/hr/useHREmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +67,7 @@ export default function HRFeedbackPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>

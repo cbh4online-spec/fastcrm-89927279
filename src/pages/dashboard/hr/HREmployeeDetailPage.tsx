@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useHREmployee, useUpdateHREmployee } from "@/hooks/hr/useHREmployees";
 import { useHRWorkSessions, useClockAction } from "@/hooks/hr/useHRTimeEntries";
 import { useHRAbsences, useApproveAbsence } from "@/hooks/hr/useHRAbsences";
@@ -72,6 +73,7 @@ export default function HREmployeeDetailPage() {
   return (
     <ModuleGuard moduleSlug="hr-management" moduleName="Recursos Humanos">
       <DashboardLayout>
+        <HRBreadcrumb />
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
