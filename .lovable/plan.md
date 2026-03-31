@@ -1,62 +1,45 @@
 
 
-## Fase 5: Onboarding de Colaboradores — Plano de Implementação
+## Fase 6: Navegação & Integração Final — Plano
 
 ### Diagnóstico
 
-- Nenhuma tabela `hr_onboarding*` existe na BD
-- Nenhum hook, página ou edge function de onboarding HR existe
-- `hr_employees` tem `position_id`, `department_id`, `manager_id` — necessários para buddy matching
-- **Nota**: O guia referencia `hr_positions` mas essa tabela não existe no schema actual. O buddy match usará `job_title` e `department` em vez disso.
-- A rota `/dashboard/hr/onboarding` não existe no `HRRoutes.tsx`
+Comparação do guia `06-navigation-integration-prompt.md` com o estado actual:
+
+| Requisito do guia | Estado |
+|---|---|
+| Sidebar HR com 8 entradas | ✅ Existe via `routeManifest.ts` (grupo "rh", 15+ entradas) |
+| Rotas HR configuradas | ✅ `HRRoutes.tsx` com todas as rotas |
+| HR Dashboard com KPIs | ✅ `HRDashboardPage.tsx` com 6 KPIs, calendário, quick actions |
+| Página Departamentos dedicada | ❌ Está embutida como tab no `HRSettingsPage` |
+| Página Cargos dedicada | ❌ Está embutida como tab no `HRSettingsPage` |
+| Breadcrumbs HR | ❌ Não existe |
+| Roles hr_admin/manager | ⚠️ A verificar — constraint actual em `workspace_members.role` |
+| Label grupo "People Operations" | ❌ Actualmente é "RH" |
+
+**Conclusão**: A maior parte já está implementada. Faltam 3 componentes: breadcrumbs, páginas dedicadas para departamentos/cargos, e label do grupo.
 
 ---
 
-### Plano (5 passos)
+### Plano (4 passos)
 
-#### 1. Migração SQL — 5 tabelas novas
+#### 1. Breadcrumbs HR
+- Criar `src/components/hr/HRBreadcrumb.tsx` — componente que mostra `Dashboard > People Operations > [Página actual]`
+- Usa `useLocation()` com mapa de rotas HR para labels
+- Integrar no topo de todas as páginas HR (via layout wrapper ou import directo)
 
-| Tabela | Finalidade |
-|---|---|
-| `hr_onboarding_templates` | Templates de onboarding por workspace |
-| `hr_onboarding_task_templates` | Tarefas modelo (category, assigned_to_role, due_days) |
-| `hr_onboardings` | Instâncias activas (employee, buddy, progress, status) |
-| `hr_onboarding_tasks` | Tarefas concretas por onboarding |
-| `hr_onboarding_feedback` | Checkpoints 30-60-90 dias |
+#### 2. Páginas dedicadas — Departamentos e Cargos
+- Criar `src/pages/dashboard/hr/HRDepartmentsPage.tsx` — CRUD de departamentos (extrair lógica existente do `HRSettingsPage`)
+- Criar `src/pages/dashboard/hr/HRPositionsPage.tsx` — CRUD de cargos/job titles (extrair lógica existente do `HRSettingsPage`)
+- Adicionar rotas no `HRRoutes.tsx`
+- Adicionar entradas no `routeManifest.ts`
 
-Inclui: índices, triggers (`updated_at`, `calculate_onboarding_progress`), RLS (templates → HR only, onboardings → employee/buddy/manager/HR, tasks → assigned + HR, feedback → participantes).
+#### 3. Actualizar Route Manifest
+- Renomear label do grupo "RH" → "People Operations"
+- Adicionar entradas `hr-departments` e `hr-positions`
 
-**Adaptações ao guia**: Usar validation triggers em vez de CHECK constraints para datas. Remover referência a `hr_positions` (tabela inexistente) — `position_id` fica nullable sem FK.
-
-#### 2. Edge Functions (2 novas)
-
-- **`hr-buddy-match-ai`**: Recebe `new_employee_id` + `workspace_id`, busca funcionários activos, usa Lovable AI (gemini-2.5-pro, sem API key externa) para encontrar top 3 matches com score + reasoning.
-- **`hr-onboarding-start`**: Recebe `employee_id`, `template_id`, `buddy_id`, `start_date`. Cria instância de onboarding, gera tarefas a partir do template com datas calculadas, cria checkpoints de feedback (30/60/90).
-
-#### 3. Hooks React (1 ficheiro)
-
-**`src/hooks/hr/useOnboarding.ts`**:
-- `useOnboarding(employeeId)` — query onboarding activo com tasks e buddy
-- `useOnboardings(workspaceId)` — listar todos os onboardings do workspace
-- `useOnboardingTemplates(workspaceId)` — CRUD de templates
-- `useStartOnboarding()` — mutation que invoca `hr-onboarding-start`
-- `useBuddyMatch()` — mutation que invoca `hr-buddy-match-ai`
-- `useUpdateOnboardingTask()` — marcar tarefa como completa
-- `useSubmitOnboardingFeedback()` — submeter feedback de checkpoint
-
-#### 4. Página e Componentes
-
-**`src/pages/dashboard/hr/HROnboardingPage.tsx`**:
-- **Tabs**: Onboardings Activos | Templates | Arquivo
-- **Tab Activos**: Lista de onboardings com progress bar, employee avatar, buddy, status, dias restantes. Expandir para ver checklist de tarefas.
-- **Tab Templates**: CRUD de templates com task templates inline (add/edit/remove/reorder).
-- **Dialog "Iniciar Onboarding"**: Seleccionar employee → seleccionar template → botão "Sugerir Buddy" (invoca IA) → mostrar top 3 matches com score → confirmar → criar.
-- **Detalhe inline**: Checklist de tarefas agrupadas por categoria (HR, IT, Manager, Team, Self), com toggle de conclusão. Secção de feedback 30-60-90 com formulários de satisfação (1-5 estrelas + comentários).
-
-#### 5. Rotas e Navegação
-
-- Adicionar rota `/dashboard/hr/onboarding` ao `HRRoutes.tsx`
-- Adicionar link na sidebar/navigation do HR (se gerido por `routeManifest.ts`)
+#### 4. Integrar Breadcrumbs nas páginas HR
+- Importar `HRBreadcrumb` nas páginas HR existentes (dashboard, employees, time-tracking, absences, etc.)
 
 ---
 
@@ -64,20 +47,16 @@ Inclui: índices, triggers (`updated_at`, `calculate_onboarding_progress`), RLS 
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Criar (5 tabelas + RLS + triggers + índices) |
-| `supabase/functions/hr-buddy-match-ai/index.ts` | Criar |
-| `supabase/functions/hr-onboarding-start/index.ts` | Criar |
-| `src/hooks/hr/useOnboarding.ts` | Criar |
-| `src/pages/dashboard/hr/HROnboardingPage.tsx` | Criar |
-| `src/routes/HRRoutes.tsx` | Adicionar rota onboarding |
+| `src/components/hr/HRBreadcrumb.tsx` | Criar |
+| `src/pages/dashboard/hr/HRDepartmentsPage.tsx` | Criar |
+| `src/pages/dashboard/hr/HRPositionsPage.tsx` | Criar |
+| `src/routes/HRRoutes.tsx` | Adicionar 2 rotas |
+| `src/config/routeManifest.ts` | Renomear grupo + 2 entradas novas |
+| Páginas HR existentes (~12 ficheiros) | Adicionar `<HRBreadcrumb />` |
 
 ### Critérios de Aceitação
-
-1. Templates CRUD funcional com tarefas modelo
-2. Iniciar onboarding gera tarefas com datas calculadas automaticamente
-3. Buddy match via IA retorna top 3 com score e reasoning
-4. Progress bar actualiza automaticamente ao completar tarefas (trigger BD)
-5. Feedback 30-60-90 com formulários de satisfação para employee/manager/buddy
-6. RLS garante isolamento por workspace e visibilidade correcta por role
-7. Layout responsivo com estados vazios e loading
+1. Breadcrumbs visíveis em todas as páginas HR com navegação funcional
+2. Departamentos e Cargos com páginas dedicadas e CRUD completo
+3. Grupo "People Operations" na sidebar
+4. Todas as rotas HR acessíveis e sem erros
 
