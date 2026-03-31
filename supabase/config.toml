@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.instagram-oauth-callback]
 verify_jwt = false
+
+[functions.ebook-generate]
+verify_jwt = false
