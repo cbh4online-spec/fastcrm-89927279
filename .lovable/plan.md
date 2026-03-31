@@ -1,30 +1,22 @@
 
 
-## Diagnóstico: Turnos não aparecem
+## Correcção: `useHREmployees is not defined` em HRTimeTrackingPage
 
-### Problema
-Mesmo padrão dos check-ins e controlo de ponto: `HRSchedulesPage` usa `useHREmployees("active")` que retorna IDs de `workspace_members`. Mas `hr_schedules.employee_id` é FK para `hr_employees`.
+### Diagnóstico
+O ficheiro `HRTimeTrackingPage.tsx` que vejo no código-fonte parece correcto (usa `useHREmployeesList`), mas o runtime ainda reporta `useHREmployees is not defined` na linha 42. Isto indica que a edição anterior pode não ter sido aplicada completamente, ou existe uma referência residual a `useHREmployees` que não aparece no ficheiro actual.
 
-Consequências:
-- A grelha semanal mostra funcionários com IDs de `workspace_members`
-- Ao atribuir turno, o `employee_id` enviado não existe em `hr_employees` → FK violation
-- O `.find()` na grelha nunca faz match entre `schedules[].employee_id` (de `hr_employees`) e `emp.id` (de `workspace_members`)
-
-As tabelas `hr_shifts` e `hr_schedules` **existem** na base de dados e as políticas RLS estão correctas.
-
-### Solução (1 passo)
-
-Substituir `useHREmployees("active")` por `useHREmployeesList` (já criado em `useCheckins.ts`) na página `HRSchedulesPage.tsx`.
+### Solução
+Reescrever o ficheiro `HRTimeTrackingPage.tsx` para garantir que:
+1. O import é `useHREmployeesList` de `@/hooks/hr/useCheckins`
+2. Não existe nenhuma referência a `useHREmployees` no ficheiro
+3. Forçar refresh do módulo
 
 ### Ficheiro a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/pages/dashboard/hr/HRSchedulesPage.tsx` | Trocar import para `useHREmployeesList` de `useCheckins.ts` |
+| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Reescrever para eliminar qualquer referência residual a `useHREmployees` |
 
-### Critérios de Aceitação
-1. Tipos de turno podem ser criados e aparecem na lista
-2. Funcionários aparecem na grelha semanal com IDs correctos
-3. Atribuir turno funciona sem erro FK
-4. Turnos atribuídos aparecem na grelha com badge colorido
+### Critério de Aceitação
+- Página de Controlo de Ponto carrega sem erro
 
