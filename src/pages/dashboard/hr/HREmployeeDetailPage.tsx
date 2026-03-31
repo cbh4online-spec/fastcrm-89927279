@@ -238,8 +238,14 @@ export default function HREmployeeDetailPage() {
               <Card>
                 <CardHeader><CardTitle>QR Code de Ponto</CardTitle></CardHeader>
                 <CardContent className="flex flex-col items-center gap-4 py-8">
-                  <QRCode value={employee.qr_code_token} size={250} />
-                  <p className="text-sm text-muted-foreground">Token: {employee.qr_code_token}</p>
+                  {employee.qr_code_token ? (
+                    <>
+                      <QRCode value={employee.qr_code_token} size={250} />
+                      <p className="text-sm text-muted-foreground">Token: {employee.qr_code_token}</p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">Nenhum token QR atribuído</p>
+                  )}
                   <Button variant="outline" onClick={() => {
                     const svg = document.querySelector("svg[xmlns]");
                     if (svg) {

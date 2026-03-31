@@ -139,7 +139,7 @@ export function SecurityQRCode({ entityType, entityId, label, sublabel, baseUrl,
                   {entityLabels[entityType]}
                 </span>
               </div>
-              <QRCode value={url} size={200} level="M" />
+              <QRCode value={url || ""} size={200} level="M" />
               <h3 className="mt-3 font-semibold text-sm">{label}</h3>
               {sublabel && <p className="text-xs text-muted-foreground">{sublabel}</p>}
               <p className="text-[9px] text-muted-foreground font-mono mt-2">{entityId.slice(0, 8)}</p>
