@@ -55,7 +55,14 @@ export default function HRAbsencesPage() {
   const onSubmitRequest = (values: LeaveRequestFormValues) => {
     if (!currentWorkspace) return;
     createRequest.mutate(
-      { workspace_id: currentWorkspace.id, ...values },
+      {
+        workspace_id: currentWorkspace.id,
+        employee_id: values.employee_id,
+        absence_type_id: values.absence_type_id,
+        start_date: values.start_date,
+        end_date: values.end_date,
+        reason: values.reason,
+      },
       {
         onSuccess: () => {
           setDialogOpen(false);
