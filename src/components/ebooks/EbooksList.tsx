@@ -125,15 +125,21 @@ export function EbooksList({ onSelectEbook, onOpenWizard }: EbooksListProps) {
                     </div>
                     <div className="absolute top-3 right-3">
                       <Badge
-                        className={
-                          ebook.status === "published"
-                            ? "bg-emerald-500/90 text-white border-0 text-xs"
-                            : ebook.status === "archived"
-                            ? "bg-muted text-muted-foreground border-0 text-xs"
-                            : "bg-amber-500/90 text-white border-0 text-xs"
-                        }
+                        className={cn(
+                          "text-xs border-0",
+                          ebook.status === "published" ? "bg-emerald-500/90 text-white" :
+                          ebook.status === "generating" ? "bg-blue-500/90 text-white" :
+                          ebook.status === "ready_for_review" ? "bg-violet-500/90 text-white" :
+                          ebook.status === "generation_failed" ? "bg-destructive/90 text-white" :
+                          ebook.status === "archived" ? "bg-muted text-muted-foreground" :
+                          "bg-amber-500/90 text-white"
+                        )}
                       >
-                        {ebook.status === "published" ? "Publicado" : ebook.status === "archived" ? "Arquivado" : "Rascunho"}
+                        {ebook.status === "published" ? "Publicado" :
+                         ebook.status === "generating" ? "A gerar…" :
+                         ebook.status === "ready_for_review" ? "Em revisão" :
+                         ebook.status === "generation_failed" ? "Erro" :
+                         ebook.status === "archived" ? "Arquivado" : "Rascunho"}
                       </Badge>
                     </div>
                   </div>
