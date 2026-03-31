@@ -606,6 +606,20 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
         )}
 
 
+        {/* CTA Overlay — end position, shown near last pages */}
+        {ctas.length > 0 && ebookId && workspaceId && currentPage >= pages.length - 3 && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-md">
+            <EbookCtaOverlay
+              ctas={ctas}
+              position="end"
+              ebookId={ebookId}
+              workspaceId={workspaceId}
+              viewId={trackingViewId}
+              contactId={contactId}
+            />
+          </div>
+        )}
+
         {/* Read tracking */}
         {trackingViewId && ebookId && workspaceId && (
           <EbookReadTracker
