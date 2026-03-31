@@ -90,6 +90,15 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       setLocalHeaderText((ebook as any).header_text || "");
       setLocalFooterText((ebook as any).footer_text || "");
       setLocalContactPage((ebook as any).contact_page || {});
+      setLocalConsentText((ebook as any).consent_text || "");
+      setLocalPrivacyPolicyUrl((ebook as any).privacy_policy_url || "");
+      setLocalMarketingOptInEnabled((ebook as any).marketing_opt_in_enabled || false);
+      setLocalMarketingOptInLabel((ebook as any).marketing_opt_in_label || "");
+      setLocalSeoTitle((ebook as any).seo_title || "");
+      setLocalSeoDescription((ebook as any).seo_description || "");
+      setLocalOgImageUrl((ebook as any).og_image_url || "");
+      setLocalCanonicalUrl((ebook as any).canonical_url || "");
+      setLocalNoindex((ebook as any).noindex || false);
       brandingInitRef.current = true;
     }
   }, [ebook]);
