@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
+import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { useOKRs, useCreateOKR, useUpdateKeyResultProgress, useUpdateOKRStatus, useDeleteOKR, type HROKR } from "@/hooks/hr/useOKRs";
 import { useHREmployees } from "@/hooks/hr/useHREmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
