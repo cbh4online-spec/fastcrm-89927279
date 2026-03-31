@@ -19,7 +19,9 @@ interface PreflightEbook {
   chapters?: { id: string; title: string; content?: string }[];
   cover_url?: string | null;
   lead_gate_enabled?: boolean;
+  consent_required?: boolean;
   consent_text?: string | null;
+  privacy_policy_url?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
   contact_page?: { email?: string; phone?: string; website?: string } | null;
