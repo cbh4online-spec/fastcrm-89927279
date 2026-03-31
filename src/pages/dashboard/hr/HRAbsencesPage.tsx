@@ -184,7 +184,7 @@ export default function HRAbsencesPage() {
                             <div className="flex items-center gap-1">
                               {a.total_days}
                               {a.conflict_detected && (
-                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" title="Conflito de sobreposição detectado" />
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                               )}
                             </div>
                           </TableCell>
