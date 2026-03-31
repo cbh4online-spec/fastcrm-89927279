@@ -24,6 +24,11 @@ const CandidatesPage = lazy(() => import("@/pages/dashboard/hr/recruitment/Candi
 const CandidateDetailPage = lazy(() => import("@/pages/dashboard/hr/recruitment/CandidateDetailPage"));
 const InterviewsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/InterviewsPage"));
 
+// Performance & OKRs pages
+const HROKRsPage = lazy(() => import("@/pages/dashboard/hr/HROKRsPage"));
+const HRFeedbackPage = lazy(() => import("@/pages/dashboard/hr/HRFeedbackPage"));
+const HRCheckinsPage = lazy(() => import("@/pages/dashboard/hr/HRCheckinsPage"));
+
 export function HRRoutes() {
   return (
     <>
@@ -50,6 +55,11 @@ export function HRRoutes() {
       <Route path="/dashboard/hr/recruitment/candidates" element={<CandidatesPage />} />
       <Route path="/dashboard/hr/recruitment/candidates/:id" element={<CandidateDetailPage />} />
       <Route path="/dashboard/hr/recruitment/interviews" element={<InterviewsPage />} />
+
+      {/* Performance & OKRs routes */}
+      <Route path="/dashboard/hr/okrs" element={<HROKRsPage />} />
+      <Route path="/dashboard/hr/feedback" element={<HRFeedbackPage />} />
+      <Route path="/dashboard/hr/checkins" element={<HRCheckinsPage />} />
     </>
   );
 }

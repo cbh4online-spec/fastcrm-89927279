@@ -266,3 +266,28 @@ export function useDeleteHREmployee() {
     onError: () => toast.error("Erro ao remover perfil HR"),
   });
 }
+
+export function useCurrentHREmployee() {
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useQuery({
+    queryKey: ["hr-current-employee", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace) return null;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await workspaceClient
+        .from("hr_employees")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as { id: string; full_name: string; user_id: string } | null;
+    },
+    enabled: !!currentWorkspace,
+  });
+}
