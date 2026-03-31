@@ -24432,6 +24432,86 @@ export type Database = {
           },
         ]
       }
+      hr_attendance_anomalies: {
+        Row: {
+          anomaly_date: string
+          anomaly_type: string
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          schedule_id: string | null
+          session_id: string | null
+          severity: string
+          workspace_id: string
+        }
+        Insert: {
+          anomaly_date: string
+          anomaly_type: string
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          schedule_id?: string | null
+          session_id?: string | null
+          severity?: string
+          workspace_id: string
+        }
+        Update: {
+          anomaly_date?: string
+          anomaly_type?: string
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          schedule_id?: string | null
+          session_id?: string | null
+          severity?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_attendance_anomalies_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_anomalies_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "hr_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_anomalies_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "hr_work_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_anomalies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_calibration_sessions: {
         Row: {
           created_at: string
