@@ -259,10 +259,17 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   // RH (Recursos Humanos)
   // ══════════════════════════════════════════════════════════════
-  e("hr-time-clock",    "Controlo de Ponto",   "/dashboard/hr/time-clock",    Clock,        "rh", { moduleSlug: "hr-time-tracking" }),
-  e("hr-session-time",  "Tempo no Sistema",    "/dashboard/hr/session-time",  Timer,        "rh", { moduleSlug: "hr-time-tracking" }),
-  e("hr-leave",         "Férias & Ausências",  "/dashboard/hr/leave",         CalendarDays, "rh", { moduleSlug: "hr-time-tracking" }),
-  e("hr-my-time",       "Meu Registo",         "/dashboard/hr/my-time",       Activity,     "rh", { moduleSlug: "hr-time-tracking" }),
+  e("hr-dashboard",     "Visão Geral",         "/dashboard/hr",               LayoutDashboard, "rh", { moduleSlug: "hr-management" }),
+  e("hr-employees",     "Funcionários",        "/dashboard/hr/employees",     Users,        "rh", { moduleSlug: "hr-management" }),
+  e("hr-time-tracking", "Controlo de Ponto",   "/dashboard/hr/time-tracking", Clock,        "rh", { moduleSlug: "hr-management" }),
+  e("hr-schedules",     "Gestão de Turnos",    "/dashboard/hr/schedules",     Calendar,     "rh", { moduleSlug: "hr-management" }),
+  e("hr-absences",      "Férias & Ausências",  "/dashboard/hr/absences",      CalendarDays, "rh", { moduleSlug: "hr-management" }),
+  e("hr-kiosk",         "Terminal QR",         "/dashboard/hr/kiosk",         Activity,     "rh", { moduleSlug: "hr-management" }),
+  // Legacy routes (hidden but functional)
+  e("hr-time-clock",    "Controlo de Ponto (legacy)", "/dashboard/hr/time-clock", Clock,     "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
+  e("hr-session-time",  "Tempo no Sistema",    "/dashboard/hr/session-time",  Timer,        "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
+  e("hr-leave",         "Férias & Ausências (legacy)", "/dashboard/hr/leave", CalendarDays,  "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
+  e("hr-my-time",       "Meu Registo",         "/dashboard/hr/my-time",       Activity,     "rh", { moduleSlug: "hr-time-tracking", visibleInSidebar: false }),
 
   // ══════════════════════════════════════════════════════════════
   // OPERAÇÕES

@@ -74,7 +74,8 @@ export const moduleNavRegistry: ModuleNavEntry[] = [
   { slug: "imo-ai", label: "IMO AI", icon: Home, href: "/dashboard/imo", order: 100 },
 
   // HR
-  { slug: "hr-time-tracking", label: "Controlo de Ponto", icon: Package, href: "/dashboard/hr/time-clock", order: 105 },
+  { slug: "hr-management", label: "Recursos Humanos", icon: Package, href: "/dashboard/hr", order: 105 },
+  { slug: "hr-time-tracking", label: "Controlo de Ponto (legacy)", icon: Package, href: "/dashboard/hr/time-clock", order: 106 },
 
   // Integrations
   { slug: "zapier-integration", label: "Zapier", icon: Zap, href: "/dashboard/integrations/zapier", order: 110 },

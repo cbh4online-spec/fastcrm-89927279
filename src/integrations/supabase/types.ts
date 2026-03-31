@@ -24278,6 +24278,413 @@ export type Database = {
           },
         ]
       }
+      hr_absence_types: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          max_days_per_year: number | null
+          name: string
+          paid: boolean | null
+          requires_approval: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          max_days_per_year?: number | null
+          name: string
+          paid?: boolean | null
+          requires_approval?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          max_days_per_year?: number | null
+          name?: string
+          paid?: boolean | null
+          requires_approval?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_absence_types_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_absences: {
+        Row: {
+          absence_type_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          reason: string | null
+          rejection_reason: string | null
+          start_date: string
+          status: string | null
+          total_days: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          absence_type_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date: string
+          status?: string | null
+          total_days?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          absence_type_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          start_date?: string
+          status?: string | null
+          total_days?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_absences_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "hr_absence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_absences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_absences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_employees: {
+        Row: {
+          avatar_url: string | null
+          contract_type: string | null
+          created_at: string | null
+          department: string | null
+          email: string | null
+          employee_number: string | null
+          end_date: string | null
+          full_name: string
+          id: string
+          job_title: string | null
+          notes: string | null
+          phone: string | null
+          qr_code_token: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+          weekly_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_number?: string | null
+          end_date?: string | null
+          full_name: string
+          id?: string
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          qr_code_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weekly_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_number?: string | null
+          end_date?: string | null
+          full_name?: string
+          id?: string
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          qr_code_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weekly_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_employees_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_schedules: {
+        Row: {
+          created_at: string | null
+          custom_end_time: string | null
+          custom_start_time: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          schedule_date: string
+          shift_id: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_end_time?: string | null
+          custom_start_time?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          schedule_date: string
+          shift_id?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_end_time?: string | null
+          custom_start_time?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          schedule_date?: string
+          shift_id?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_schedules_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "hr_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_schedules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_shifts: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          end_time: string
+          id: string
+          name: string
+          start_time: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time: string
+          id?: string
+          name: string
+          start_time: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          name?: string
+          start_time?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_shifts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_time_entries: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          employee_id: string
+          entry_type: string
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          method: string | null
+          notes: string | null
+          recorded_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          employee_id: string
+          entry_type: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          method?: string | null
+          notes?: string | null
+          recorded_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string
+          entry_type?: string
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          method?: string | null
+          notes?: string | null
+          recorded_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_time_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_work_sessions: {
+        Row: {
+          break_minutes: number | null
+          clock_in_at: string | null
+          clock_out_at: string | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          session_date: string
+          status: string | null
+          total_minutes: number | null
+          updated_at: string | null
+          worked_minutes: number | null
+          workspace_id: string
+        }
+        Insert: {
+          break_minutes?: number | null
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          session_date: string
+          status?: string | null
+          total_minutes?: number | null
+          updated_at?: string | null
+          worked_minutes?: number | null
+          workspace_id: string
+        }
+        Update: {
+          break_minutes?: number | null
+          clock_in_at?: string | null
+          clock_out_at?: string | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          session_date?: string
+          status?: string | null
+          total_minutes?: number | null
+          updated_at?: string | null
+          worked_minutes?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_work_sessions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_work_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ig_ai_media_insights: {
         Row: {
           analyzed_at: string | null
