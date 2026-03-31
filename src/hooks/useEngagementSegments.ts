@@ -62,7 +62,7 @@ export function useEngagementSegments() {
         return sentDate < ninetyDaysAgo && !r.opened_at;
       }).length;
 
-      return [
+      const segments: EngagementSegment[] = [
         { id: 'engaged_7d', label: 'Engajados 7d', description: 'Abriram nos últimos 7 dias', count: engaged7d, icon: 'zap', severity: 'success' },
         { id: 'engaged_30d', label: 'Engajados 30d', description: 'Abriram nos últimos 30 dias', count: engaged30d, icon: 'activity', severity: 'success' },
         { id: 'never_opened', label: 'Nunca abriu', description: 'Receberam mas nunca abriram', count: neverOpened, icon: 'eye-off', severity: 'warning' },
@@ -71,7 +71,8 @@ export function useEngagementSegments() {
         { id: 'complained', label: 'Complaint', description: 'Marcaram como spam', count: complained, icon: 'shield-alert', severity: 'danger' },
         { id: 'unsubscribed', label: 'Cancelaram', description: 'Cancelaram subscrição', count: unsubscribed, icon: 'user-minus', severity: 'warning' },
         { id: 'cold_90d', label: 'Frios 90d+', description: 'Sem abertura há mais de 90 dias', count: cold90d, icon: 'snowflake', severity: 'warning' },
-      ].filter(s => s.count > 0 || ['engaged_7d', 'engaged_30d', 'never_opened'].includes(s.id));
+      ];
+      return segments.filter(s => s.count > 0 || ['engaged_7d', 'engaged_30d', 'never_opened'].includes(s.id));
     },
     enabled: !!currentWorkspace?.id,
   });
