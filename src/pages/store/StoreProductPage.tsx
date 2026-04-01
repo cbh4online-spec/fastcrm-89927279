@@ -198,44 +198,17 @@ export default function StoreProductPage() {
   return (
     <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
     <>
-      <Helmet>
-        <title>{product.name} | {storeName}</title>
-        <meta name="description" content={product.short_description || product.name} />
-        <link rel="canonical" href={`${getPublicBaseUrl()}/store/${wsSlug}/product/${product.id}`} />
-        <meta property="og:title" content={product.name} />
-        <meta property="og:description" content={product.short_description || product.name} />
-        <meta property="og:type" content="product" />
-        <meta property="og:url" content={`${getPublicBaseUrl()}/store/${wsSlug}/product/${product.id}`} />
-        <meta property="og:site_name" content={storeName} />
-        {images[primaryIndex] && <meta property="og:image" content={images[primaryIndex]} />}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={product.name} />
-        <meta name="twitter:description" content={product.short_description || product.name} />
-        {images[primaryIndex] && <meta name="twitter:image" content={images[primaryIndex]} />}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            "name": product.name,
-            "description": product.short_description || product.name,
-            ...(images[primaryIndex] ? { "image": images[primaryIndex] } : {}),
-            ...(product.sku ? { "sku": product.sku } : {}),
-            "offers": {
-              "@type": "Offer",
-              "price": (pricing?.price ?? product.base_price).toFixed(2),
-              "priceCurrency": product.currency || "EUR",
-              "availability": isOutOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-            },
-            ...(reviewCount > 0 ? {
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": reviewAvg.toFixed(1),
-                "reviewCount": reviewCount,
-              }
-            } : {}),
-          })}
-        </script>
-      </Helmet>
+      <ProductSeoHead
+        product={product}
+        storeName={storeName}
+        wsSlug={wsSlug}
+        pricing={pricing}
+        reviewAvg={reviewAvg}
+        reviewCount={reviewCount}
+        images={images}
+        primaryIndex={primaryIndex}
+        isOutOfStock={isOutOfStock}
+      />
 
       <div className="min-h-screen bg-background">
         <StoreHeader workspaceSlug={wsSlug} />
