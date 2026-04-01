@@ -24,7 +24,9 @@ export const LEADS_SELECT_COLUMNS = `
 
 export const ACTIVITIES_SELECT_COLUMNS = `
   id, workspace_id, entity_type, entity_id, activity_type,
-  title, description, metadata, created_at, created_by
+  title, description, metadata, created_at, performed_by,
+  updated_at, company_id, contact_id, lead_id, opportunity_id,
+  conversation_id, automation_rule_id
 `;
 
 export const CHANGE_EVENTS_SELECT_COLUMNS = `
