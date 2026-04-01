@@ -16,6 +16,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/comp
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
+import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
 import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
 import { useStaleConversationDetector } from "@/hooks/useStaleConversationDetector";
 import { useInboxHotkeys } from "@/hooks/useInboxHotkeys";

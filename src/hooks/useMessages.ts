@@ -186,6 +186,89 @@ export function useSendMessage() {
         } as Message;
       }
 
+      // For WhatsApp via Evolution QR (not GHL)
+      if (conversation.channel === "whatsapp" && !isGHLConversation) {
+        const recipientPhone =
+          (channelMeta?.phone as string) ||
+          (lead as any)?.phone ||
+          conversation.external_thread_id ||
+          "";
+
+        if (!recipientPhone) {
+          throw new Error("Número de telefone não encontrado para esta conversa");
+        }
+
+        const { data, error } = await mainClient.functions.invoke("whatsapp-evolution-send", {
+          body: { workspaceId: currentWorkspace.id, phone: recipientPhone, message: content },
+        });
+
+        if (error) {
+          let errorMsg = "Falha ao enviar mensagem WhatsApp";
+          try {
+            const ctx = (error as any)?.context;
+            if (ctx?.json) {
+              const body = await ctx.json();
+              errorMsg = body?.error || errorMsg;
+            } else if (data?.error) {
+              errorMsg = data.error;
+            } else {
+              errorMsg = error.message || errorMsg;
+            }
+          } catch {
+            errorMsg = data?.error || error.message || errorMsg;
+          }
+          throw new Error(errorMsg);
+        }
+        if (data?.error) throw new Error(data.error);
+
+        // Persist the outbound message locally
+        const { data: savedMsg, error: saveErr } = await workspaceClient
+          .from("messages")
+          .insert({
+            conversation_id: conversationId,
+            workspace_id: currentWorkspace.id,
+            direction: "outbound" as const,
+            content,
+            attachments: [] as unknown as Record<string, never>[],
+            sender_id: user.id,
+            sent_at: new Date().toISOString(),
+            delivered_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (saveErr) {
+          console.warn("[useSendMessage] WhatsApp msg sent but local save failed:", saveErr.message);
+        }
+
+        // Update conversation preview
+        await workspaceClient
+          .from("conversations")
+          .update({
+            last_message_at: new Date().toISOString(),
+            last_message_preview: content.substring(0, 100),
+            last_message_direction: "outbound",
+          })
+          .eq("id", conversationId);
+
+        return {
+          id: savedMsg?.id || crypto.randomUUID(),
+          conversation_id: conversationId,
+          workspace_id: currentWorkspace.id,
+          direction: "outbound" as MessageDirection,
+          content,
+          attachments: [],
+          sender_id: user.id,
+          sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          read_at: null,
+          created_at: new Date().toISOString(),
+          email_subject: null,
+          email_message_id: null,
+          email_in_reply_to: null,
+        } as Message;
+      }
+
       // For Instagram, use the edge function to send via Instagram API
       if (conversation.channel === "instagram") {
         const { data, error } = await mainClient.functions.invoke("instagram-send-message", {
