@@ -1,98 +1,75 @@
 
 
-# Plano: Dual Health Model — Connection State + Sync Health
+# Plano: WhatsApp QR Recovery Flow
 
-## A. Causa Raiz
+## Diagnóstico
 
-O campo `status` mistura estado de conexão com saúde de sincronização. Uma sessão Evolution API pode estar `open` (connected) mas com sync de histórico suspenso no dispositivo móvel. O sistema actual mostra "Conectado" verde, o que é enganador.
+O sistema já tem health-check (`whatsapp-qr-status`) e resync (`whatsapp-qr-sync`) com inferência de sync health. Faltam:
 
-## B. Alterações Necessárias
+1. **DB** — campos de recovery state (`recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`)
+2. **Soft reconnect** — edge function que faz restart da sessão sem destruir a instância (preserva conversas)
+3. **Repair required** — estado explícito quando recovery falha repetidamente
+4. **UI recovery actions** — botões contextuais de Resync / Reconnect / Clean Re-pair quando sync não é active
+5. **Hook mutations** — `useReconnectWhatsAppQR` no frontend
 
-### 1. Migration SQL — Adicionar campos de sync health
-
-Novas colunas em `whatsapp_qr_connections`:
-- `sync_health` TEXT DEFAULT 'unknown' — valores: active, delayed, suspended, degraded, failed, unknown
-- `last_sync_at` TIMESTAMPTZ
-- `last_successful_sync_at` TIMESTAMPTZ
-- `sync_issue_reason` TEXT
-- `last_health_check_at` TIMESTAMPTZ
-- `last_inbound_message_at` TIMESTAMPTZ
-- `last_outbound_message_at` TIMESTAMPTZ
-
-CHECK constraint para `sync_health` com os 6 valores permitidos.
-
-### 2. Edge Function: `whatsapp-qr-status` — Refactor
-
-Após verificar `connectionState` e `fetchInstances`, adicionar lógica de inferência de sync health:
-- Se connected + última mensagem inbound recente (< 5 min) → `active`
-- Se connected + sem mensagens inbound há > 30 min mas instância recente → `delayed`
-- Se connected + sem mensagens inbound há > 2h → `suspended`
-- Se connected mas sem dados para inferir → `unknown`
-- Se disconnected → `failed`
-
-Consultar tabela `messages` para verificar última actividade inbound/outbound do workspace.
-
-Persistir `sync_health`, `last_health_check_at`, `sync_issue_reason` no upsert.
-
-Retornar ambos os campos na resposta:
-```json
-{
-  "connection_state": "connected",
-  "sync_health": "suspended",
-  "sync_issue_reason": "Sem mensagens inbound há mais de 2 horas",
-  "last_health_check_at": "..."
-}
-```
-
-### 3. Edge Function: `whatsapp-qr-sync` — Mesmo refactor
-
-Aplicar a mesma lógica de inferência de sync health.
-
-### 4. Edge Function: `whatsapp-evolution-webhook` — Update
-
-Ao receber mensagem inbound, actualizar `last_inbound_message_at` e `sync_health = 'active'` na tabela.
-
-### 5. Hook: `useWhatsAppQRConnection` — Expor novos campos
-
-Adicionar `sync_health`, `last_health_check_at`, `sync_issue_reason`, `last_inbound_message_at`, `last_outbound_message_at` ao type `WhatsAppQRConnection`.
-
-### 6. UI: `WhatsAppConnectionCard.tsx` — Dual badges
-
-Refactor para mostrar:
-- Badge 1: Connection State (Conectado/Desconectado/etc.)
-- Badge 2: Sync Health (Ativo/Suspenso/Degradado/Desconhecido/Falhou)
-
-Lógica de cores:
-- Verde: connected + active
-- Âmbar: connected + (delayed | suspended | degraded | unknown)
-- Vermelho: disconnected | failed
-
-Mostrar `sync_issue_reason` quando disponível.
-Mostrar `last_health_check_at` formatado.
-
-### 7. UI: `WhatsAppConfigPanel.tsx` — Mesma lógica dual
-
-Adicionar segunda linha com sync health badge e info contextual.
-
-## C. Ficheiros a Criar/Alterar
+## Ficheiros a Criar/Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| Migration SQL | CRIAR — novos campos sync health |
-| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR — inferir sync health |
-| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR — inferir sync health |
-| `supabase/functions/whatsapp-evolution-inbound/index.ts` | EDITAR — update last_inbound_message_at + sync_health |
-| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR — novos campos no type |
-| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR — dual badges |
-| `src/components/settings/WhatsAppConfigPanel.tsx` | EDITAR — dual badges |
+| Migration SQL | CRIAR — `recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`, `last_reconnect_at` |
+| `supabase/functions/whatsapp-qr-reconnect/index.ts` | CRIAR — soft reconnect via Evolution API (restart session, re-fetch state) |
+| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR — persistir recovery_state, escalate logic |
+| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR — persistir recovery_state |
+| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR — tipo + mutation `useReconnectWhatsAppQR` |
+| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR — recovery actions contextuais |
+| `src/components/settings/WhatsAppConfigPanel.tsx` | EDITAR — recovery info + actions |
 
-## D. Critérios de Aceitação
+## Detalhes Técnicos
 
-1. DB tem `sync_health` separado de `status`
-2. Backend infere sync health com base em actividade real
-3. UI mostra dois badges distintos (conexão + sincronização)
-4. "Connected + Sync Suspended" é um estado visível e claro
-5. Verde só quando ambos saudáveis
-6. Unknown não é mostrado como saudável
-7. Refresh health actualiza ambos os campos
+### 1. Migration — Recovery columns
+```sql
+ALTER TABLE whatsapp_qr_connections
+  ADD COLUMN recovery_state text NOT NULL DEFAULT 'none',
+  ADD COLUMN recovery_attempt_count integer NOT NULL DEFAULT 0,
+  ADD COLUMN recovery_last_attempt_at timestamptz,
+  ADD COLUMN last_reconnect_at timestamptz;
+-- CHECK: recovery_state IN ('none','checking','resyncing','reconnecting','repair_required','repaired','failed')
+```
+
+### 2. Edge Function: `whatsapp-qr-reconnect`
+- Busca instância do DB
+- Chama Evolution API `POST /instance/restart/{instanceName}` (soft restart)
+- Se restart falhar, tenta `GET /instance/connect/{instanceName}` (re-connect)
+- Re-avalia connection state + sync health
+- Se 3+ tentativas falhadas → marca `recovery_state = 'repair_required'`
+- Incrementa `recovery_attempt_count`
+- Persiste tudo no DB
+- Logs estruturados
+
+### 3. Refactor `whatsapp-qr-sync` e `whatsapp-qr-status`
+- Após inferir sync health, determinar recovery_state:
+  - Se `sync_health = active` → `recovery_state = 'none'`, reset counter
+  - Se `sync_health = delayed/degraded` e `recovery_attempt_count < 3` → manter `recovery_state` actual
+  - Se `sync_health = suspended/failed` e `recovery_attempt_count >= 3` → `recovery_state = 'repair_required'`
+
+### 4. Hook — `useReconnectWhatsAppQR`
+Nova mutation que chama `whatsapp-qr-reconnect`. Tipo `WhatsAppQRConnection` recebe `recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`.
+
+### 5. UI — Recovery actions contextuais
+Quando `sync_health !== 'active'` e `isConnected`:
+- Botão "Resincronizar" (chama sync existente)
+- Botão "Reconectar" (chama reconnect novo)
+- Se `recovery_state === 'repair_required'`: warning prominente + botão "Iniciar nova ligação" (disconnect + QR dialog)
+- Disable duplicados enquanto mutation está pending
+- Mostrar `recovery_state` e `recovery_attempt_count` na info area
+
+## Critérios de Aceitação
+
+1. DB tem `recovery_state` separado de `status` e `sync_health`
+2. Soft reconnect tenta preservar instância antes de destruir
+3. Após 3 falhas, `repair_required` é explícito
+4. UI mostra acções de recovery contextuais
+5. Clean re-pair só é sugerido quando recovery falha
+6. Conversas não são destruídas em soft reconnect
+7. Logs estruturados para todo o fluxo de recovery
 
