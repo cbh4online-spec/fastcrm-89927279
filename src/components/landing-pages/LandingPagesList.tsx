@@ -20,7 +20,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateLandingPageDialog } from "./CreateLandingPageDialog";
 import { LandingPageBuilder } from "./LandingPageBuilder";
 import { VerticalTemplateBuilder } from "./VerticalTemplateBuilder";
-import { MCPGenerateDialog } from "@/components/marketing/mcp/MCPGenerateDialog";
+import { FigmaMCPGenerateDialog } from "./FigmaMCPGenerateDialog";
 import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
@@ -108,7 +108,7 @@ export function LandingPagesList() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setMcpGenerateOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
-            Gerar via MCP
+            Gerar via Figma MCP
           </Button>
           <Button variant="outline" onClick={() => setBuilderMode("new")}>
             <Sparkles className="h-4 w-4 mr-2" />
@@ -431,12 +431,11 @@ export function LandingPagesList() {
       </AlertDialog>
 
       {currentWorkspace && (
-        <MCPGenerateDialog
+        <FigmaMCPGenerateDialog
           open={mcpGenerateOpen}
           onOpenChange={setMcpGenerateOpen}
           workspaceId={currentWorkspace.id}
-          defaultTarget="page"
-          onGenerated={(_, id) => setEditingPageId(id)}
+          onGenerated={(id) => setEditingPageId(id)}
         />
       )}
     </div>
