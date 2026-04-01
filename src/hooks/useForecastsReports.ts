@@ -325,7 +325,7 @@ export function useProductConsumption() {
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*, products(*)')
+        .select(FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const { data: products } = await supabase
