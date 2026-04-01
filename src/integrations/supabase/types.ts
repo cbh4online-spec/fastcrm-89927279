@@ -32536,6 +32536,66 @@ export type Database = {
           },
         ]
       }
+      marketing_mcp_imports: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          external_reference_id: string | null
+          external_reference_name: string | null
+          id: string
+          import_type: string
+          imported_payload_json: Json | null
+          normalized_payload_json: Json | null
+          provider_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          external_reference_id?: string | null
+          external_reference_name?: string | null
+          id?: string
+          import_type: string
+          imported_payload_json?: Json | null
+          normalized_payload_json?: Json | null
+          provider_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          external_reference_id?: string | null
+          external_reference_name?: string | null
+          id?: string
+          import_type?: string
+          imported_payload_json?: Json | null
+          normalized_payload_json?: Json | null
+          provider_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_mcp_imports_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_mcp_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_mcp_imports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_mcp_providers: {
         Row: {
           auth_type: string
