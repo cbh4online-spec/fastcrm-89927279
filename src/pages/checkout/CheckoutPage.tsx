@@ -11,8 +11,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 
-const sb = supabase as any;
-
 export default function CheckoutPage() {
   const { funnelSlug } = useParams();
   const [searchParams] = useSearchParams();
@@ -29,11 +27,11 @@ export default function CheckoutPage() {
 
   async function loadFunnel() {
     try {
-      const { data: funnelData } = await sb.from("checkout_funnels").select("*").eq("slug", funnelSlug).eq("is_active", true).single();
+      const { data: funnelData } = await (supabase as any).from("checkout_funnels").select("*").eq("slug", funnelSlug).eq("is_active", true).single();
       if (!funnelData) { toast.error("Checkout não encontrado"); return; }
       setFunnel(funnelData);
 
-      const { data: bumpData } = await sb.from("checkout_order_bumps")
+      const { data: bumpData } = await (supabase as any).from("checkout_order_bumps")
         .select("*, offer:checkout_offers(*)")
         .eq("funnel_id", funnelData.id)
         .eq("is_active", true)
@@ -56,6 +54,7 @@ export default function CheckoutPage() {
 
   async function handleSubmit(formData: CheckoutFormData) {
     if (!funnel) return;
+    if (subtotal <= 0) { toast.error("O total deve ser superior a zero"); return; }
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke("checkout-create-session", {
@@ -134,6 +133,8 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               )}
+
+              <TrustBadges />
             </div>
 
             <div className="lg:col-span-2">

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js";
 
 export const checkoutStep1Schema = z.object({
-  name: z.string().trim().min(1, "Preencha o nome"),
+  name: z.string().trim().min(1, "Preencha o nome").max(100, "Nome demasiado longo"),
   phone: z
     .string()
     .trim()
@@ -11,7 +11,7 @@ export const checkoutStep1Schema = z.object({
 });
 
 export const checkoutStep2Schema = z.object({
-  email: z.string().trim().min(1, "Preencha o email").email("Email inválido"),
+  email: z.string().trim().min(1, "Preencha o email").email("Email inválido").max(255, "Email demasiado longo"),
 });
 
 export type CheckoutStep1Data = z.infer<typeof checkoutStep1Schema>;
