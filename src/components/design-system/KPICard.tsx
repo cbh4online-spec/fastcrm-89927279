@@ -128,7 +128,7 @@ const compactVariantStyles = {
   destructive: "bg-destructive/10 text-destructive",
 };
 
-export function CompactKPI({
+export const CompactKPI = memo(function CompactKPI({
   label,
   value,
   icon,
