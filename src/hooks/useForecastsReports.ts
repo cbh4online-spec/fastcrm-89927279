@@ -189,7 +189,7 @@ export function useChurnAnalysis() {
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*')
+        .select(FORECAST_CONTACT_PRODUCTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
