@@ -1,99 +1,125 @@
 
 
-## Fase P1 — Forecast Comercial por Pipeline/Owner/Período + Propostas Integradas no Ciclo de Venda
+# Auditoria de Performance — FastCRM
 
-### Diagnóstico
+## Resumo Executivo
 
-| Área | Estado Actual | Gap |
-|------|---------------|-----|
-| **Forecast comercial** | `useSalesPerformance` calcula `dealForecast` apenas por stage (sem filtro por pipeline/owner/período). `useRevenueForecast` é agregado global. `ForecastCenterPage` foca simulação operacional, não forecast comercial | Não existe **vista de forecast comercial filtrável** por pipeline, owner e período — peça fundamental para gestão de vendas |
-| **Propostas no deal** | `useProposals(opportunityId)` já suporta filtro por oportunidade. `CreateProposalDialog` já aceita `opportunity_id`. Mas **OpportunityDetailPage não tem tab de propostas** — propostas são geridas apenas em `/proposals` | Falta integração visual: tab "Propostas" no detalhe da oportunidade + CTA "Criar Proposta" contextual |
-| **Pipeline/Owner no forecast** | `useSalesPerformance` já faz fetch de `opportunities` com `owner_id` e `pipeline_stages` | Dados existem mas não são segmentáveis — o forecast é calculado em bloco |
+O projecto tem **~200+ páginas**, rotas bem organizadas com lazy loading, mas apresenta lacunas significativas em virtualização, selectividade de queries, memoização de componentes e controlo de bundle. Abaixo o diagnóstico por pilar.
 
 ---
 
-### Âmbito
+## 1. LAZY LOADING — Estado: BOM (com ressalvas)
 
-**P1 inclui:**
-1. **Forecast Comercial Dashboard** — nova página `/dashboard/sales-forecast` com forecast filtrável por pipeline, owner e período
-2. **Tab "Propostas" no detalhe da oportunidade** — reutilizando `useProposals(opportunityId)` e componentes existentes
-3. **Hook `useSalesForecast`** — forecast segmentado (pipeline × owner × período) com weighted pipeline value
+**Positivo:** Todas as ~30 route files usam `lazy(() => import(...))` consistentemente. O `Suspense` wrapper está no `CRMRoutesV2`.
 
-**P1 NÃO inclui:**
-- Alterações ao `ForecastCenterPage` (simulação — mantém-se separado)
-- Alterações ao `useRevenueForecast` / edge function `compute-revenue-forecast`
-- Alterações à base de dados
-- Won→Invoice handoff (P2)
-- Renewal/expansion logic (P3)
+**Problemas identificados:**
+- Componentes pesados importados estaticamente dentro de páginas (FullCalendar, Nivo charts, TipTap editor, @react-pdf/renderer, exceljs) — não são lazy-loaded no ponto de uso
+- `@faker-js/faker` está nas **dependencies** (não devDependencies) — potencialmente incluído no bundle de produção (~2MB)
 
 ---
 
-### Ficheiros a Criar
+## 2. QUERIES SEM SELECT EXPLÍCITO — Estado: CRÍTICO
 
-| Ficheiro | Conteúdo |
-|----------|----------|
-| `src/hooks/useSalesForecast.ts` | Hook que reutiliza dados de `opportunities` + `pipeline_stages` + `profiles` para gerar forecast segmentado. Aceita filtros: `pipelineId`, `ownerId`, `period` (month/quarter/year). Retorna: weighted pipeline por stage, forecast por owner, forecast por período, totais |
-| `src/pages/SalesForecastPage.tsx` | Página com DashboardLayout. Header + filtros (pipeline selector, owner selector, period selector). Compõe 4 secções: KPI strip, forecast por stage (bar chart horizontal weighted), forecast por owner (tabela com valor ponderado, deals, win rate), forecast temporal (line chart mês a mês) |
-| `src/components/sales-forecast/ForecastKPIStrip.tsx` | Strip com: Pipeline Total, Weighted Forecast, Best Case, Deals Ativos, Avg Win Rate |
-| `src/components/sales-forecast/ForecastByStageChart.tsx` | Bar chart horizontal (reutiliza padrão do `DealForecastChart`) filtrado por pipeline/owner |
-| `src/components/sales-forecast/ForecastByOwnerTable.tsx` | Tabela: Owner, Deals, Pipeline Value, Weighted Value, Win Rate, Avg Cycle |
-| `src/components/sales-forecast/ForecastTrendChart.tsx` | Line chart com forecast acumulado por mês (últimos 6 meses) — deals expected_close_date × weighted value |
-| `src/components/opportunities/detail/OpportunityProposalsTab.tsx` | Tab que lista propostas da oportunidade via `useProposals(opportunityId)`. Mostra: título, valor, estado, data, CTA "Criar Proposta" que abre `CreateProposalDialog` pré-preenchido |
+**365 ficheiros** usam `.select("*")` — isto significa que quase todas as queries do projecto puxam todas as colunas.
 
-### Ficheiros a Modificar
+**Impacto:** Transferência de dados desnecessários, especialmente em tabelas com campos JSONB, text longo ou muitas colunas.
 
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/components/opportunities/OpportunityDetailPage.tsx` | Adicionar tab "Propostas" com badge de contagem. Importar `OpportunityProposalsTab` e `CreateProposalDialog` |
-| `src/routes/` (ficheiro de rotas relevante) | Adicionar rota `/dashboard/sales-forecast` → `SalesForecastPage` |
+**Piores casos (tabelas grandes com select \*):**
+- `companies`, `contacts`, `leads` — tabelas core com dezenas de colunas
+- `crm_activities` — alto volume
+- `opportunities` — usado em Kanban + listas
+- `proposals`, `invoices` — com campos de texto longo
 
-### Sem alterações a
-- Base de dados / migrações
-- `useSalesPerformance.ts` (mantém-se para ReportsSales)
-- `useRevenueForecast.ts` (mantém-se para Revenue module)
-- `ForecastCenterPage.tsx` (simulação — separado)
-- `ProposalsList.tsx` (lista global — mantém-se)
-- Edge functions
+**Recomendação:** Priorizar as 10-15 queries de listagem mais usadas (contacts, companies, opportunities, leads, activities) e substituir `.select("*")` por colunas explícitas.
 
 ---
 
-### Detalhes Técnicos
+## 3. VIRTUALIZAÇÃO — Estado: CRÍTICO
 
-**`useSalesForecast` — lógica core:**
-- Query `opportunities` com `stage_id, owner_id, value, status, expected_close_date, pipeline_id` + join stages para `probability`
-- Filtros: `pipeline_id`, `owner_id`, período (filtra por `expected_close_date` ou `created_at`)
-- Weighted value = `value × (stage.probability / 100)` por oportunidade ativa
-- Agrupamentos: por stage, por owner, por mês de expected_close_date
-- Reutiliza `workspaceClient` do `WorkspaceInstanceContext`
+**`@tanstack/react-virtual` está instalado (v3.13.23) mas tem ZERO utilizações no código.**
 
-**`OpportunityProposalsTab`:**
-- Usa `useProposals(opportunityId)` (já suporta filtro)
-- Lista cards compactos: título, badge status, valor, data criação, link para detalhe
-- Empty state: "Sem propostas para este negócio" + CTA "Criar Proposta"
-- CTA abre `CreateProposalDialog` com `opportunityId` pré-preenchido (já suportado pela prop existente)
+**Listas não virtualizadas identificadas:**
+- `SmartContactsTable` — pode ter centenas/milhares de registos
+- `SmartCompaniesTable` — idem
+- `OpportunityTableView` — lista de oportunidades
+- `ProposalsList` — paginação client-side, mas sem virtualização
+- Kanban columns (`OpportunityKanbanColumn`) — cards renderizados todos
+- Activity logs, entity notes, ticket lists, lead lists
 
-**Selectors de filtro na `SalesForecastPage`:**
-- Pipeline: `usePipelines()` (já existe em `useOpportunitiesEnhanced`)
-- Owner: extraído dos membros via `useWorkspaceMembers()`
-- Período: select com "Este mês", "Este trimestre", "Este ano", "Últimos 6 meses"
+**Impacto:** Com 200+ registos, o DOM fica pesado, scrolling lento, re-renders caros.
 
 ---
 
-### Riscos
+## 4. BUNDLE SIZE — Estado: RISCO ELEVADO
 
-| Risco | Mitigação |
+**Dependências pesadas (estimativas gzip):**
+| Lib | Tamanho estimado | Lazy? |
+|-----|-----------------|-------|
+| `@faker-js/faker` | ~500KB-2MB | NÃO (nem devia estar em prod) |
+| `@nivo/*` (7 packages) | ~200KB+ | Provavelmente não |
+| `@fullcalendar/*` (5 packages) | ~150KB+ | Provavelmente não |
+| `@tiptap/*` (13 extensions) | ~100KB+ | Provavelmente não |
+| `@react-pdf/renderer` | ~200KB+ | Provavelmente não |
+| `@sentry/react` | ~50KB | OK (init condicional) |
+| `exceljs` | ~300KB | Provavelmente não |
+| `@react-google-maps/api` | ~50KB | Provavelmente não |
+
+**`import * as LucideIcons`** encontrado em 3 ficheiros — importa TODOS os ícones (~200KB) em vez de ícones individuais.
+
+---
+
+## 5. MEMOIZAÇÃO DE COMPONENTES — Estado: FRACO
+
+Apenas **5 componentes** em todo o projecto usam `React.memo` (todos em flow/diagram nodes). Nenhum componente de lista (cards, rows, table cells) está memoizado.
+
+**Candidatos prioritários a memo:**
+- Cards de Kanban (OpportunityKanbanColumn items)
+- Rows de tabela (contacts, companies, leads, opportunities)
+- Cards de dashboard (KPI widgets)
+- Items de timeline/activity
+
+---
+
+## 6. QUERY CACHING — Estado: RAZOÁVEL
+
+- **112 ficheiros** definem `staleTime` — boa cobertura
+- Apenas **6 ficheiros** usam `refetchOnWindowFocus: false` — queries pesadas de analytics/dashboards deviam ter isto
+- Muitas queries operacionais sem `staleTime` definido (default 0 = sempre stale)
+
+---
+
+## Plano de Remediação (por prioridade)
+
+### P0 — Impacto imediato
+1. **Mover `@faker-js/faker` para devDependencies** — elimina potencialmente ~500KB+ do bundle
+2. **Corrigir `import * as LucideIcons`** nos 3 ficheiros — elimina ~200KB
+3. **Adicionar virtualização** às tabelas core (contacts, companies, opportunities) — `@tanstack/react-virtual` já está instalado
+
+### P1 — Alto impacto
+4. **Dynamic import de libs pesadas** — exceljs, @react-pdf/renderer, @nivo/*, @fullcalendar/*, @tiptap/* — carregar apenas quando o utilizador acede à funcionalidade
+5. **Substituir `.select("*")` por colunas explícitas** nas 15 queries mais frequentes (contacts list, companies list, opportunities, leads, activities)
+6. **Adicionar `React.memo`** a componentes de lista repetidos (kanban cards, table rows, dashboard cards)
+
+### P2 — Optimização contínua
+7. **Adicionar `refetchOnWindowFocus: false`** a todas as queries de analytics/dashboards/KPIs
+8. **Definir `staleTime` default** no QueryClient (ex: 30s) para evitar queries sem cache
+9. **Auditar barrel files** em pastas grandes e eliminar re-exports desnecessários
+10. **Correr `npx vite-bundle-visualizer`** para confirmar tamanhos reais e identificar chunks inesperados
+
+### Ficheiros-chave a alterar
+| Acção | Ficheiros |
 |-------|-----------|
-| Performance com muitas oportunidades | `staleTime: 5min`, query limitada ao workspace |
-| Tab de propostas no deal detalhe pode sobrecarregar tabs | Usar badge count, só renderizar conteúdo quando tab activa |
-| Forecast por owner pode revelar dados sensíveis | Respeitar RLS existente — workspace-scoped |
+| faker → devDeps | `package.json` |
+| LucideIcons wildcard | `PublicBioPage.tsx`, `ProductCard.tsx`, `POSProductSelector.tsx` |
+| Virtualização | `SmartContactsTable.tsx`, `SmartCompaniesTable.tsx`, `OpportunityTableView.tsx` |
+| select("*") → explícito | ~15 hooks prioritários (useActivities, useOpportunitiesEnhanced, useCompanyDuplicates, etc.) |
+| React.memo | Kanban cards, table row components, KPI cards |
 
-### Critérios de Aceitação
-- `/dashboard/sales-forecast` mostra forecast segmentável por pipeline, owner e período
-- KPIs reflectem weighted pipeline, total pipeline, best case, deals, avg win rate
-- Chart de forecast por stage mostra valor total vs weighted por stage
-- Tabela por owner mostra métricas individuais
-- Chart temporal mostra evolução do forecast por mês
-- Detalhe de oportunidade tem tab "Propostas" com contagem
-- CTA "Criar Proposta" no detalhe da oportunidade abre dialog pré-preenchido
-- Nenhuma funcionalidade existente quebrada
+---
+
+## Métricas de Sucesso
+- Bundle principal < 250KB gzip
+- LCP < 2.5s no dashboard principal
+- Listas de 500+ registos com scroll fluido (60fps)
+- Queries de listagem transferem < 50% dos bytes actuais
 
