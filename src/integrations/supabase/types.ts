@@ -54696,6 +54696,68 @@ export type Database = {
           },
         ]
       }
+      whatsapp_qr_connections: {
+        Row: {
+          connected_at: string | null
+          created_at: string
+          disconnected_at: string | null
+          id: string
+          instance_name: string
+          last_error: string | null
+          last_seen_at: string | null
+          metadata_json: Json | null
+          phone_number: string | null
+          provider: string
+          qr_code: string | null
+          qr_updated_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          instance_name: string
+          last_error?: string | null
+          last_seen_at?: string | null
+          metadata_json?: Json | null
+          phone_number?: string | null
+          provider?: string
+          qr_code?: string | null
+          qr_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          instance_name?: string
+          last_error?: string | null
+          last_seen_at?: string | null
+          metadata_json?: Json | null
+          phone_number?: string | null
+          provider?: string
+          qr_code?: string | null
+          qr_updated_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_qr_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_settings: {
         Row: {
           ai_persona: string | null

@@ -2,136 +2,140 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonRes(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { workspaceId, userId } = await req.json();
-    if (!workspaceId || !userId) {
-      return new Response(
-        JSON.stringify({ error: "Missing workspaceId or userId" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!workspaceId || !userId) return jsonRes({ error: "Missing workspaceId or userId" }, 400);
 
     const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
     const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-
     if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "Evolution API not configured. Please add EVOLUTION_API_URL and EVOLUTION_API_KEY secrets." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonRes({ error: "Evolution API not configured. Add EVOLUTION_API_URL and EVOLUTION_API_KEY secrets." }, 500);
     }
 
-    // Auto-prefix https:// if missing, but reject non-HTTP schemes like postgresql://
+    // Sanitize URL — extract origin only
     let finalUrl = EVOLUTION_API_URL.trim();
     if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
       if (finalUrl.includes("://")) {
-        // Has a scheme but not HTTP — reject (e.g. postgresql://)
-        console.error(`EVOLUTION_API_URL has invalid scheme. Value starts with: "${finalUrl.substring(0, 15)}...". Expected https://`);
-        return new Response(
-          JSON.stringify({ error: "EVOLUTION_API_URL is misconfigured — it must be an HTTP(S) URL (e.g. https://your-evolution-api.example.com), not a database connection string." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.error(`[WHATSAPP_QR] INVALID_URL scheme="${finalUrl.substring(0, 15)}"`);
+        return jsonRes({ error: "EVOLUTION_API_URL must be an HTTP(S) URL." }, 500);
       }
-      // No scheme at all — auto-add https://
       finalUrl = `https://${finalUrl}`;
-      console.log("Auto-prefixed https:// to EVOLUTION_API_URL");
     }
+    const baseUrl = new URL(finalUrl).origin;
 
+    // Deterministic instance name
     const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
-    const parsedUrl = new URL(finalUrl);
-    const baseUrl = parsedUrl.origin; // apenas scheme + host, sem paths
+    console.log(`[WHATSAPP_QR] START workspace=${workspaceId} instance=${instanceName}`);
 
-    console.log(`[v2] Evolution API URL: ${baseUrl.substring(0, 60)}...`);
-    console.log(`Instance name: ${instanceName}`);
+    // Supabase admin client for DB ops
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Try to create instance
+    // Upsert status → creating_instance
+    await adminClient.from("whatsapp_qr_connections").upsert(
+      {
+        workspace_id: workspaceId,
+        instance_name: instanceName,
+        status: "creating_instance",
+        last_error: null,
+        qr_code: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "workspace_id" }
+    );
+
+    // 1. Create instance (idempotent)
     let instanceCreated = false;
     try {
       const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: EVOLUTION_API_KEY,
-        },
-        body: JSON.stringify({
-          instanceName,
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS",
-        }),
+        headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
+        body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
       });
       const createText = await createRes.text();
-      console.log(`Create instance response (${createRes.status}):`, createText.substring(0, 200));
+      console.log(`[WHATSAPP_QR] CREATE status=${createRes.status} body=${createText.substring(0, 200)}`);
 
       if (createRes.status === 401) {
-        return new Response(
-          JSON.stringify({ error: "EVOLUTION_API_KEY inválida — verifique a configuração do secret." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        await adminClient.from("whatsapp_qr_connections").update({
+          status: "error", last_error: "EVOLUTION_API_KEY inválida",
+        }).eq("workspace_id", workspaceId);
+        return jsonRes({ error: "EVOLUTION_API_KEY inválida — verifique a configuração." }, 401);
       }
 
-      // 2xx = created, 409/403 "already in use" = already exists — all OK to proceed
+      // 2xx created, 409/403 already exists — all OK
       instanceCreated = createRes.ok || createRes.status === 409 || createRes.status === 403;
     } catch (e) {
-      console.log("Create instance failed:", e.message);
+      console.error(`[WHATSAPP_QR] CREATE_FAILED error=${e.message}`);
     }
 
     if (!instanceCreated) {
-      return new Response(
-        JSON.stringify({ error: "Falha ao criar instância na Evolution API. Verifique os logs." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      await adminClient.from("whatsapp_qr_connections").update({
+        status: "error", last_error: "Falha ao criar instância na Evolution API",
+      }).eq("workspace_id", workspaceId);
+      return jsonRes({ error: "Falha ao criar instância na Evolution API." }, 500);
     }
 
-    // Connect and get QR code
+    console.log(`[WHATSAPP_QR] INSTANCE_READY instance=${instanceName}`);
+
+    // 2. Connect and get QR
     const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
       method: "GET",
       headers: { apikey: EVOLUTION_API_KEY },
     });
-
     const connectData = await connectRes.json();
 
     if (!connectRes.ok) {
-      console.error("Evolution connect error:", connectData);
-      return new Response(
-        JSON.stringify({ error: connectData?.message || "Failed to connect instance" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error(`[WHATSAPP_QR] CONNECT_FAILED status=${connectRes.status}`, connectData);
+      await adminClient.from("whatsapp_qr_connections").update({
+        status: "error", last_error: connectData?.message || "Failed to connect instance",
+      }).eq("workspace_id", workspaceId);
+      return jsonRes({ error: connectData?.message || "Failed to connect instance" }, 500);
     }
 
-    // The QR code may come as base64 or as a code string
     const qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code || null;
 
     if (!qrcode) {
-      // Instance might already be connected
+      // Already connected
       if (connectData?.instance?.state === "open") {
-        return new Response(
-          JSON.stringify({ alreadyConnected: true, instanceName }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.log(`[WHATSAPP_QR] ALREADY_CONNECTED instance=${instanceName}`);
+        await adminClient.from("whatsapp_qr_connections").update({
+          status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
+        }).eq("workspace_id", workspaceId);
+        return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
       }
-      return new Response(
-        JSON.stringify({ error: "QR code not available. Try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      await adminClient.from("whatsapp_qr_connections").update({
+        status: "error", last_error: "QR code not available",
+      }).eq("workspace_id", workspaceId);
+      return jsonRes({ error: "QR code not available. Try again." }, 500);
     }
 
-    return new Response(
-      JSON.stringify({ qrcode, instanceName }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Save QR to DB
+    console.log(`[WHATSAPP_QR] QR_GENERATED instance=${instanceName}`);
+    await adminClient.from("whatsapp_qr_connections").update({
+      status: "qr_pending",
+      qr_code: qrcode,
+      qr_updated_at: new Date().toISOString(),
+      last_error: null,
+    }).eq("workspace_id", workspaceId);
+
+    return jsonRes({ qrcode, instanceName, status: "qr_pending" });
   } catch (error) {
-    console.error("Error in whatsapp-qr-connect:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("[WHATSAPP_QR] UNHANDLED_ERROR", error);
+    return jsonRes({ error: "Internal server error" }, 500);
   }
 });
