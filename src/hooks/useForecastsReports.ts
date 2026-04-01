@@ -124,7 +124,7 @@ export function useRevenueMetrics() {
 
       const { data: opportunities } = await supabase
         .from('opportunities')
-        .select('*')
+        .select(FORECAST_OPPORTUNITIES_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
