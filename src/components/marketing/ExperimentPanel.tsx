@@ -74,7 +74,7 @@ export function ExperimentPanel({ campaignId }: Props) {
                   <Select value={expType} onValueChange={(v) => setExpType(v as ExperimentType)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(EXPERIMENT_TYPE_LABELS).map(([k, v]) => (
+                      {(Object.entries(EXPERIMENT_TYPE_LABELS) as [ExperimentType, string][]).map(([k, v]) => (
                         <SelectItem key={k} value={k}>{v}</SelectItem>
                       ))}
                     </SelectContent>
