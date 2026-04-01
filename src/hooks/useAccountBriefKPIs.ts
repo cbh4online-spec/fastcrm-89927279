@@ -38,7 +38,7 @@ export function useAccountBriefKPIs() {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("account_brief_kpi_snapshots")
-        .select("*")
+        .select(KPI_SNAPSHOTS_SELECT_COLUMNS)
         .eq("workspace_id", workspaceId)
         .order("snapshot_date", { ascending: false })
         .limit(50);
