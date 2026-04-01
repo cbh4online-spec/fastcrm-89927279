@@ -72,6 +72,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
     { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
     { id: "integrations-autopilot-monitor", show: shouldShow("integrations-autopilot-monitor") },
     { id: "integrations-video", show: shouldShow("integrations-video") },
+    { id: "integrations-mcp", show: shouldShow("integrations-mcp") },
     { id: "integrations-api", show: shouldShow("integrations-api") },
     { id: "integrations-external", show: shouldShow("integrations-external") },
     { id: "integrations-variables", show: shouldShow("integrations-variables") },
