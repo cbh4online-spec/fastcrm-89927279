@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRequestId } from "@/lib/requestId";
+import { LEADS_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export type LeadType = "person" | "company";
 export type LeadStatus = "new" | "in_progress" | "completed";
