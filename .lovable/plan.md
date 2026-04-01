@@ -1,97 +1,88 @@
 
 
-# Plano: WhatsApp QR Backend — Correções Finais
+# Diagnóstico: Persistência e Sincronização WhatsApp QR — Já Implementado
 
-## A. Diagnóstico
+## A. Estado Actual
 
-**Estado actual:** A integração está **funcional** — instance creation, QR generation, polling, status sync, disconnect, e send estão todos implementados e a funcionar.
+A camada de persistência e sincronização **já está completamente implementada** e funcional:
 
-**DB actual:** `status=connected`, `phone_number=null` — o número não está a ser extraído da Evolution API.
+### DB — `whatsapp_qr_connections`
+- 15 colunas correctas (id, workspace_id, instance_name, provider, status, qr_code, qr_updated_at, phone_number, connected_at, disconnected_at, last_seen_at, last_error, metadata_json, created_at, updated_at)
+- `UNIQUE(workspace_id)` — uma conexão por workspace ✓
+- `CHECK` constraint com os 10 statuses ✓
+- `INDEX` em status ✓
+- FK para workspaces com CASCADE ✓
+- RLS com 3 políticas (SELECT, INSERT, UPDATE) escopadas por workspace_members ✓
+- Dados actuais: `status=connected`, `phone_number=351925990747` ✓
 
-**Problemas identificados:**
+### Edge Functions (6 implementadas)
+| Função | Responsabilidade |
+|---|---|
+| `whatsapp-qr-connect` | Criar/reutilizar instância, gerar QR, persistir estado |
+| `whatsapp-qr-status` | Verificar estado na Evolution API, reconciliar DB |
+| `whatsapp-qr-sync` | Sincronização forçada Evolution → DB |
+| `whatsapp-qr-disconnect` | Logout + delete instância + persistir desconexão |
+| `whatsapp-evolution-webhook` | Receber eventos `connection.update` da Evolution API |
+| `whatsapp-evolution-send` | Enviar mensagens via Evolution API |
 
-### 1. Phone number null quando conectado (Bug principal)
-A função `fetchInstances` da Evolution API provavelmente retorna o `owner` num campo diferente do esperado. O código tenta `instance?.instance?.owner || instance?.owner` mas o campo pode ser `instance?.instance?.profilePictureUrl` ou o número pode estar em `instance?.instance?.profileName` ou noutro formato. O `catch {}` vazio silencia o erro.
-
-**Fix:** Adicionar logging ao bloco de fetch de phone number nas funções `whatsapp-qr-status` e `whatsapp-qr-sync` para diagnosticar o formato real. Tentar paths alternativos (`instance?.instance?.wuid`, `instance?.instance?.profileName`, `instance?.number`).
-
-### 2. Sem webhook de estado da Evolution API
-Não existe endpoint para receber webhooks da Evolution API. O sistema depende exclusivamente de polling, o que funciona mas adiciona latência de ~4s.
-
-**Fix:** Criar edge function `whatsapp-evolution-webhook` para receber eventos `CONNECTION_UPDATE` da Evolution API e actualizar o estado em tempo real.
+### Lógica de Reconciliação — Implementada
+- `mapEvolutionState()` em status, sync e webhook (open→connected, close→disconnected, connecting→waiting_for_scan)
+- Phone number extraído via múltiplos paths (ownerJid, instance.owner, wuid, owner, number)
+- Sync bidireccional com `whatsapp_connections` para compatibilidade com inbox
+- Upsert com `onConflict: "workspace_id"` em todas as funções
+- Logging estruturado com `[WHATSAPP_QR]` prefix
 
 ---
 
-## B. Ficheiros a Criar/Alterar
+## B. Lacunas Menores Identificadas
 
-| Ficheiro | Acção | Descrição |
-|---|---|---|
-| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR | Adicionar logging ao fetch de phone number, testar paths alternativos |
-| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR | Mesmo fix de phone number + logging |
-| `supabase/functions/whatsapp-evolution-webhook/index.ts` | CRIAR | Webhook receiver para eventos da Evolution API |
+Apenas **2 melhorias incrementais** faltam:
+
+### 1. Coluna `external_instance_id` ausente
+O pedido especifica esta coluna mas não existe na tabela. Na prática, o `instance_name` determinístico (`ws_{workspaceId}`) serve como identificador externo. A coluna seria útil apenas se a Evolution API devolvesse um ID interno diferente do nome.
+
+**Recomendação:** Adicionar como coluna nullable para futura referência, sem impacto funcional.
+
+### 2. Index em `instance_name` ausente
+O webhook faz `SELECT ... WHERE instance_name = ?`. Sem index, esta query faz full scan (actualmente irrelevante com poucos registos, mas necessário para escala).
+
+**Recomendação:** Adicionar index.
 
 ---
 
-## C. Detalhes Técnicos
+## C. Plano de Implementação
 
-### Fix do Phone Number (status + sync)
-```typescript
-// Substituir o bloco try/catch silencioso por:
-try {
-  const infoRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
-    method: "GET",
-    headers: { apikey: EVOLUTION_API_KEY },
-  });
-  const infoData = await infoRes.json();
-  console.log(`[WHATSAPP_QR] FETCH_INSTANCES raw=${JSON.stringify(infoData).substring(0, 500)}`);
-  const instance = Array.isArray(infoData) ? infoData[0] : infoData;
-  // Try multiple known Evolution API response paths
-  phoneNumber = instance?.instance?.owner 
-    || instance?.instance?.wuid?.split("@")?.[0]
-    || instance?.owner
-    || instance?.number
-    || null;
-  if (phoneNumber && phoneNumber.includes("@")) {
-    phoneNumber = phoneNumber.split("@")[0];
-  }
-  console.log(`[WHATSAPP_QR] PHONE_EXTRACTED phone=${phoneNumber}`);
-} catch (e) {
-  console.warn(`[WHATSAPP_QR] FETCH_INSTANCES_FAILED error=${e.message}`);
-}
+### Migration SQL
+```sql
+-- Add external_instance_id column
+ALTER TABLE public.whatsapp_qr_connections
+  ADD COLUMN IF NOT EXISTS external_instance_id text;
+
+-- Add index on instance_name for webhook lookups
+CREATE INDEX IF NOT EXISTS idx_whatsapp_qr_connections_instance_name
+  ON public.whatsapp_qr_connections (instance_name);
 ```
 
-### Webhook Receiver (nova edge function)
-- Recebe POST da Evolution API com eventos `CONNECTION_UPDATE`
-- Valida `WEBHOOK_SECRET` se configurado
-- Mapeia estado Evolution → FastCRM
-- Actualiza `whatsapp_qr_connections` e `whatsapp_connections`
-- Logs estruturados com workspace_id, instance_name, status
+### Edge Functions — Sem alterações necessárias
+Todas as responsabilidades listadas no pedido já estão cobertas:
+- `ensureWorkspaceWhatsAppInstance` → `whatsapp-qr-connect` (cria ou reutiliza)
+- `getWorkspaceWhatsAppStatus` → `whatsapp-qr-status` (verifica + reconcilia)
+- `syncWorkspaceWhatsAppStatus` → `whatsapp-qr-sync` (força sync)
+- `disconnectWorkspaceWhatsApp` → `whatsapp-qr-disconnect` (logout + delete + persist)
+- `mapEvolutionStateToFastCRMState` → `mapEvolutionState()` em 3 funções
+- Webhook receiver → `whatsapp-evolution-webhook`
 
-### Configurar webhook na Evolution API
-Após deploy, configurar o webhook da Evolution API para apontar para:
-`https://<SUPABASE_URL>/functions/v1/whatsapp-evolution-webhook`
-
----
-
-## D. O que já está bem implementado (não alterar)
-
-- ✅ 4 edge functions: connect, status, sync, disconnect
-- ✅ Edge function send com auth + workspace membership
-- ✅ Instance name determinístico (`ws_{workspaceId}`)
-- ✅ DB table `whatsapp_qr_connections` com todos os statuses
-- ✅ Polling automático no hook (5s para estados transitórios)
-- ✅ UI card com 10 estados granulares
-- ✅ QR Dialog com countdown + polling + auto-close
-- ✅ CORS manual em todas as funções
-- ✅ URL sanitization em todas as funções
-- ✅ Sync bidireccional com `whatsapp_connections` para inbox
+### Opcionalmente: Persistir `external_instance_id` no connect
+Após criar a instância na Evolution API, extrair o ID da resposta e guardar na nova coluna. Mínima alteração em `whatsapp-qr-connect`.
 
 ---
 
-## E. Critérios de Aceitação
+## D. Critérios de Aceitação
 
-1. Phone number extraído correctamente quando conectado
-2. Logs visíveis para debug do formato da resposta fetchInstances
-3. Webhook receiver deployed e funcional (opcional — polling já funciona)
-4. Sem regressão nos fluxos existentes
+1. ✅ Uma conexão por workspace (UNIQUE constraint)
+2. ✅ DB persiste QR, status, phone, timestamps, erros
+3. ✅ Estado local sincronizado com Evolution API (polling + webhook)
+4. ✅ Lifecycle completo: create → QR → scan → connected → disconnect
+5. ⬜ Index em `instance_name` para lookups do webhook (a adicionar)
+6. ⬜ Coluna `external_instance_id` (a adicionar, opcional)
 
