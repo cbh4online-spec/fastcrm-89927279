@@ -64,7 +64,7 @@ function TrendIcon({ trend }: { trend: TrendDirection }) {
   }
 }
 
-export function KPICard({
+export const KPICard = memo(function KPICard({
   label,
   value,
   format,
