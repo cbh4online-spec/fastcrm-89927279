@@ -54705,13 +54705,20 @@ export type Database = {
           id: string
           instance_name: string
           last_error: string | null
+          last_health_check_at: string | null
+          last_inbound_message_at: string | null
+          last_outbound_message_at: string | null
           last_seen_at: string | null
+          last_successful_sync_at: string | null
+          last_sync_at: string | null
           metadata_json: Json | null
           phone_number: string | null
           provider: string
           qr_code: string | null
           qr_updated_at: string | null
           status: string
+          sync_health: string
+          sync_issue_reason: string | null
           updated_at: string
           workspace_id: string
         }
@@ -54723,13 +54730,20 @@ export type Database = {
           id?: string
           instance_name: string
           last_error?: string | null
+          last_health_check_at?: string | null
+          last_inbound_message_at?: string | null
+          last_outbound_message_at?: string | null
           last_seen_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_at?: string | null
           metadata_json?: Json | null
           phone_number?: string | null
           provider?: string
           qr_code?: string | null
           qr_updated_at?: string | null
           status?: string
+          sync_health?: string
+          sync_issue_reason?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -54741,13 +54755,20 @@ export type Database = {
           id?: string
           instance_name?: string
           last_error?: string | null
+          last_health_check_at?: string | null
+          last_inbound_message_at?: string | null
+          last_outbound_message_at?: string | null
           last_seen_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_at?: string | null
           metadata_json?: Json | null
           phone_number?: string | null
           provider?: string
           qr_code?: string | null
           qr_updated_at?: string | null
           status?: string
+          sync_health?: string
+          sync_issue_reason?: string | null
           updated_at?: string
           workspace_id?: string
         }
