@@ -1,18 +1,31 @@
 
 
-# Corrigir EVOLUTION_API_URL (re-atualização)
+# Corrigir duplicação de path na Evolution API URL
 
 ## Diagnóstico
-Os logs mais recentes (15:08:10Z) confirmam que a edge function `whatsapp-qr-connect` ainda lê `https://test123456789` como valor de `EVOLUTION_API_URL`. A atualização anterior não surtiu efeito.
+Os logs confirmam que o `EVOLUTION_API_URL` contém um sufixo de caminho (provavelmente `/instance/create`), resultando em URLs duplicados como:
+- `POST /instance/create/instance/create` (404)
+- `GET /instance/create/instance/connect/ws_...` (404)
+
+O URL truncado nos logs (`https://evolution-api-production-e886.up.railway.app/instanc...`) confirma que o secret tem mais do que apenas o domínio base.
 
 ## Solução
-1. **Re-atualizar o secret** `EVOLUTION_API_URL` com o valor correto:
-   ```
-   https://evolution-api-production-e886.up.railway.app
-   ```
-2. **Re-deploy da edge function** `whatsapp-qr-connect` para garantir que o novo valor é carregado.
-3. **Testar** com `curl_edge_functions` para confirmar que o URL correto é utilizado.
+Duas abordagens complementares:
+
+### 1. Corrigir o código (defensivo)
+Na edge function `whatsapp-qr-connect/index.ts`, após construir `baseUrl`, extrair apenas a origin (scheme + host) para garantir que nunca há paths indesejados:
+
+```typescript
+// Linha 49 — substituir
+const baseUrl = finalUrl.replace(/\/$/, "");
+// por
+const parsedUrl = new URL(finalUrl);
+const baseUrl = parsedUrl.origin; // apenas scheme + host, sem paths
+```
+
+### 2. Re-atualizar o secret (corretivo)
+Atualizar `EVOLUTION_API_URL` para conter apenas o domínio base sem qualquer path.
 
 ## Ficheiros alterados
-Nenhum — apenas atualização de secret runtime e re-deploy.
+- `supabase/functions/whatsapp-qr-connect/index.ts` — sanitizar URL para usar apenas origin
 
