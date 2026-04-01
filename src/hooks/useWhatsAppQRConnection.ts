@@ -8,11 +8,20 @@ export type WhatsAppQRStatus =
   | "creating_instance"
   | "qr_pending"
   | "waiting_for_scan"
+  | "authenticating"
   | "connected"
   | "disconnected"
   | "qr_expired"
   | "reconnecting"
   | "error";
+
+const TRANSITIONAL_STATUSES: WhatsAppQRStatus[] = [
+  "creating_instance",
+  "qr_pending",
+  "waiting_for_scan",
+  "authenticating",
+  "reconnecting",
+];
 
 export interface WhatsAppQRConnection {
   id: string;
@@ -50,7 +59,13 @@ export function useWhatsAppQRConnection() {
       return data as unknown as WhatsAppQRConnection | null;
     },
     enabled: !!currentWorkspace,
-    refetchInterval: false,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status as WhatsAppQRStatus | undefined;
+      if (status && TRANSITIONAL_STATUSES.includes(status)) {
+        return 5000;
+      }
+      return false;
+    },
   });
 }
 
