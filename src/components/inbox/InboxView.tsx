@@ -164,6 +164,41 @@ export function InboxView() {
               <TooltipContent><p>Barra lateral</p></TooltipContent>
             </Tooltip>
             <ComposeButton />
+            {/* WhatsApp connection indicator */}
+            {whatsappConnection && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={cn(
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium",
+                    whatsappConnection.status === "connected"
+                      ? "bg-green-500/10 text-green-600"
+                      : whatsappConnection.status === "reconnecting"
+                        ? "bg-amber-500/10 text-amber-600"
+                        : "bg-destructive/10 text-destructive"
+                  )}>
+                    <span className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      whatsappConnection.status === "connected"
+                        ? "bg-green-500"
+                        : whatsappConnection.status === "reconnecting"
+                          ? "bg-amber-500 animate-pulse"
+                          : "bg-destructive"
+                    )} />
+                    <Phone className="w-3 h-3" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    WhatsApp: {whatsappConnection.status === "connected"
+                      ? "Conectado"
+                      : whatsappConnection.status === "reconnecting"
+                        ? "A reconectar..."
+                        : "Desconectado"}
+                    {whatsappConnection.phone_number && ` (${whatsappConnection.phone_number})`}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
 
           {/* Center: Search (columns mode) or Metrics */}
