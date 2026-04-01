@@ -388,7 +388,7 @@ export function useCohortAnalysis() {
 
       const { data: contacts } = await supabase
         .from('contacts')
-        .select('*')
+        .select(FORECAST_CONTACTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const { data: contactProducts } = await supabase
