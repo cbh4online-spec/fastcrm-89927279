@@ -1,59 +1,45 @@
 
 
-# React.memo nos Componentes de Lista Repetidos
+# Ativar Funcionalidade de Quem Está Online
 
-## Componentes a memoizar
+## Abordagem
 
-| Componente | Ficheiro | Já tem memo? | Renderizado em loop? |
-|------------|----------|-------------|---------------------|
-| `OpportunityCard` | `opportunities/OpportunityCard.tsx` | Não | Sim (Kanban column .map) |
-| `OpportunityKanbanColumn` | `opportunities/OpportunityKanbanColumn.tsx` | Não | Sim (stages .map) |
-| `KPICard` (store) | `store/analytics/KPICard.tsx` | Não | Sim (cards .map) |
-| `KPICard` (design-system) | `design-system/KPICard.tsx` | Não | Sim (cards .map) |
-| `KPICard` (kpis) | `kpis/KPICard.tsx` | Não | Sim (cards .map) |
-| `KPICardWithChart` | `dashboard/KPICardWithChart.tsx` | Não | Sim |
-| `TicketKanban` card | `tickets/TicketKanban.tsx` | Não | Sim (inline JSX em .map) |
-| Activity timeline item | `opportunities/detail/OpportunityActivityTimeline.tsx` | Não | Sim (inline JSX em .map) |
-| `SmartCompanyRow` | `companies/SmartCompanyRow.tsx` | **Sim** (já adicionado) | — |
+Usar **Supabase Realtime Presence** para rastrear utilizadores online no workspace em tempo real, sem necessidade de novas tabelas.
 
-## Plano de implementação
+## Implementação
 
-### 1. Wrap directo com `React.memo` (componentes já exportados como funções)
+### 1. Hook `useOnlinePresence` (Novo)
+**Ficheiro:** `src/hooks/useOnlinePresence.ts`
 
-Padrão: converter `export function X(...)` para `export const X = memo(function X(...))` com import de `memo` do React.
+- Subscrever canal Realtime Presence com `workspace:{id}` como channel name
+- Fazer `track()` com `user_id`, `full_name`, `avatar_url` ao montar
+- Escutar `sync` events para manter lista de utilizadores online
+- Retornar `{ onlineUsers, onlineCount }`
+- Cleanup: `untrack()` + `unsubscribe()` ao desmontar
 
-**Ficheiros:**
-- `src/components/opportunities/OpportunityCard.tsx`
-- `src/components/opportunities/OpportunityKanbanColumn.tsx`
-- `src/components/store/analytics/KPICard.tsx`
-- `src/components/design-system/KPICard.tsx`
-- `src/components/kpis/KPICard.tsx`
-- `src/components/dashboard/KPICardWithChart.tsx`
+### 2. Componente `OnlineUsersIndicator` (Novo)
+**Ficheiro:** `src/components/layout/OnlineUsersIndicator.tsx`
 
-### 2. Extrair componentes inline para memo (JSX dentro de .map)
+- Mostrar ícone `Users` + count de utilizadores online (estilo similar ao `ContextScoreIndicator`)
+- Tooltip ou dropdown com avatares dos utilizadores online
+- Dot verde animado para indicar "live"
+- Click abre popover com lista completa (nome + avatar + role)
 
-**TicketKanban** (`tickets/TicketKanban.tsx`):
-- Extrair o `<Card>` dentro do `.map()` para um componente `TicketKanbanCard` com `React.memo`
-- Props: `ticket`, `onTicketClick`
+### 3. Integrar no TopBar
+**Ficheiro:** `src/components/layout/TopBar.tsx`
 
-**OpportunityActivityTimeline** (`opportunities/detail/OpportunityActivityTimeline.tsx`):
-- Extrair o `<div>` da activity dentro do `.map()` para um componente `ActivityTimelineItem` com `React.memo`
-- Props: `activity`, `getInitials`
+- Adicionar `<OnlineUsersIndicator />` entre `LanguageSelector` e `TopBarCreditsBadge`
 
-### Ficheiros alterados (8 ficheiros)
+### Ficheiros a criar/alterar
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `OpportunityCard.tsx` | Wrap com memo |
-| `OpportunityKanbanColumn.tsx` | Wrap com memo |
-| `store/analytics/KPICard.tsx` | Wrap com memo |
-| `design-system/KPICard.tsx` | Wrap com memo |
-| `kpis/KPICard.tsx` | Wrap com memo |
-| `dashboard/KPICardWithChart.tsx` | Wrap com memo |
-| `tickets/TicketKanban.tsx` | Extrair `TicketKanbanCard` com memo |
-| `OpportunityActivityTimeline.tsx` | Extrair `ActivityTimelineItem` com memo |
+| `src/hooks/useOnlinePresence.ts` | **Novo** — hook Realtime Presence |
+| `src/components/layout/OnlineUsersIndicator.tsx` | **Novo** — indicador visual com popover |
+| `src/components/layout/TopBar.tsx` | Adicionar `OnlineUsersIndicator` |
 
-### Nota
-- `OpportunityCard` usa `motion.div` (framer-motion) — `memo` funciona normalmente à volta do componente inteiro, o framer-motion anima via style não via re-render.
-- `SmartCompanyRow` já tem memo aplicado na sessão anterior — sem alteração necessária.
+### Notas técnicas
+- Realtime Presence não requer tabelas nem migrações — funciona via canais WebSocket
+- Sem RLS concerns — Presence usa channels, não tabelas
+- Presença é automaticamente removida quando o utilizador fecha o browser
 
