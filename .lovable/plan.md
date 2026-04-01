@@ -1,22 +1,18 @@
 
 
-# Corrigir EVOLUTION_API_URL
+# Corrigir EVOLUTION_API_URL (re-atualização)
 
-## Problema
-O secret `EVOLUTION_API_URL` contém um valor placeholder inválido, causando falha DNS na edge function `whatsapp-qr-connect`.
+## Diagnóstico
+Os logs mais recentes (15:08:10Z) confirmam que a edge function `whatsapp-qr-connect` ainda lê `https://test123456789` como valor de `EVOLUTION_API_URL`. A atualização anterior não surtiu efeito.
 
 ## Solução
-Atualizar o secret `EVOLUTION_API_URL` com o valor correcto:
-
-```
-https://evolution-api-production-e886.up.railway.app
-```
-
-**Sem `/webhook`** — a edge function já constrói os endpoints necessários (e.g. `/instance/create`, `/instance/connect/{name}`).
-
-## Validação
-Após atualizar o secret, testar a edge function `whatsapp-qr-connect` para confirmar que a ligação à Evolution API funciona.
+1. **Re-atualizar o secret** `EVOLUTION_API_URL` com o valor correto:
+   ```
+   https://evolution-api-production-e886.up.railway.app
+   ```
+2. **Re-deploy da edge function** `whatsapp-qr-connect` para garantir que o novo valor é carregado.
+3. **Testar** com `curl_edge_functions` para confirmar que o URL correto é utilizado.
 
 ## Ficheiros alterados
-Nenhum ficheiro de código precisa de alteração — apenas o valor do secret runtime.
+Nenhum — apenas atualização de secret runtime e re-deploy.
 
