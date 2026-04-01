@@ -125,6 +125,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         )}
 
         <LanguageSelector />
+        <OnlineUsersIndicator />
         <TopBarCreditsBadge />
         <ContextScoreIndicator />
         <HelpSupportDropdown />
