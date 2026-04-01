@@ -72,6 +72,8 @@ import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
 import { ContactPreferencesSection } from "./sections/ContactPreferencesSection";
 import { ContactAuditSection } from "./sections/ContactAuditSection";
 import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
+import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
+import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
@@ -643,8 +645,10 @@ export function ENIContactDetailWithSidebar() {
           <ScrollArea className="h-full">
             <div className="p-6 pt-4 max-w-4xl">
               {activeSection === 'overview' && (
-                <div className="mb-4">
+                <div className="mb-4 space-y-4">
                   <EntityHighlightsGrid entityType="contact" entity={contact as any} />
+                  <CommercialSummaryCard entityType="contact" entityId={contact.id} />
+                  <CommercialRiskSignals entityType="contact" entityId={contact.id} />
                 </div>
               )}
               {renderSectionContent()}

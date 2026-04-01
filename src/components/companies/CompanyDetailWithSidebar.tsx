@@ -90,6 +90,8 @@ import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
+import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
+import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -609,8 +611,10 @@ export function CompanyDetailWithSidebar() {
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
               {activeSection === 'overview' && (
-                <div className="mb-6">
+                <div className="mb-6 space-y-4">
                   <EntityHighlightsGrid entityType="company" entity={company as any} />
+                  <CommercialSummaryCard entityType="company" entityId={company.id} />
+                  <CommercialRiskSignals entityType="company" entityId={company.id} />
                 </div>
               )}
               {renderSectionContent()}
