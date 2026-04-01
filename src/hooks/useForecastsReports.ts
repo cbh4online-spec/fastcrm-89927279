@@ -39,7 +39,7 @@ export function useExecutiveKPIs() {
       // Fetch opportunities for revenue
       const { data: opportunities } = await supabase
         .from('opportunities')
-        .select('*')
+        .select(FORECAST_OPPORTUNITIES_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Fetch contacts for journey analysis
