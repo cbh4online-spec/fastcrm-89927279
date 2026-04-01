@@ -1054,7 +1054,7 @@ export function FunnelsList() {
       </AlertDialog>
 
       {currentWorkspace && (
-        <MCPGenerateDialog
+        <FigmaMCPGenerateDialog
           open={mcpGenerateOpen}
           onOpenChange={setMcpGenerateOpen}
           workspaceId={currentWorkspace.id}

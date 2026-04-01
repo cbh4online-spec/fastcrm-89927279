@@ -22,7 +22,7 @@ export function SalesMarketingRoutes() {
       <Route path="/dashboard/ebooks/templates" element={<EbookTemplateGalleryPage />} />
       <Route path="/dashboard/ebooks/templates/admin" element={<EbookTemplatesAdminPage />} />
       <Route path="/dashboard/bio" element={<BioOS />} />
-      <Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
+      <Route path="/dashboard/landing-pages" element={<LandingPages />} />
       <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
       <Route path="/dashboard/marketing" element={<Marketing />} />
       <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
