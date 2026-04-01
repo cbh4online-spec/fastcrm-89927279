@@ -42,6 +42,7 @@ export function LandingPagesList() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [mcpGenerateOpen, setMcpGenerateOpen] = useState(false);
 
   const handleCopyShareLink = (type: string, slug: string) => {
     const url = getShareUrl(type, slug);
