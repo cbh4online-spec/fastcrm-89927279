@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { COMPANY_AUDIT_LOG_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export interface CompanyAuditLogEntry {
   id: string;
@@ -22,7 +23,7 @@ export function useCompanyAuditLog(companyId: string | undefined) {
 
       const { data, error } = await workspaceClient
         .from("companies_audit_log")
-        .select("*")
+        .select(COMPANY_AUDIT_LOG_SELECT_COLUMNS)
         .eq("company_id", companyId)
         .order("changed_at", { ascending: false })
         .limit(100);

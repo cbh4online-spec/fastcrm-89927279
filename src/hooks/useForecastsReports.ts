@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMemo } from "react";
 import {
+  FORECAST_OPPORTUNITIES_SELECT,
+  FORECAST_CONTACTS_SELECT,
+  FORECAST_CONTACT_PRODUCTS_SELECT,
+  FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT,
+  FORECAST_PRODUCTS_SELECT,
+} from "@/hooks/constants/selectColumns";
+import {
   ExecutiveKPIs,
   RevenueMetrics,
   ChurnMetrics,
@@ -26,19 +33,19 @@ export function useExecutiveKPIs() {
       // Fetch contact products (purchased products)
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*, products(*)')
+        .select(FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Fetch opportunities for revenue
       const { data: opportunities } = await supabase
         .from('opportunities')
-        .select('*')
+        .select(FORECAST_OPPORTUNITIES_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Fetch contacts for journey analysis
       const { data: contacts } = await supabase
         .from('contacts')
-        .select('*')
+        .select(FORECAST_CONTACTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
@@ -117,7 +124,7 @@ export function useRevenueMetrics() {
 
       const { data: opportunities } = await supabase
         .from('opportunities')
-        .select('*')
+        .select(FORECAST_OPPORTUNITIES_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
@@ -177,12 +184,12 @@ export function useChurnAnalysis() {
 
       const { data: contacts } = await supabase
         .from('contacts')
-        .select('*')
+        .select(FORECAST_CONTACTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*')
+        .select(FORECAST_CONTACT_PRODUCTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
@@ -267,7 +274,7 @@ export function useConsumptionForecast() {
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*, products(*)')
+        .select(FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT)
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
@@ -318,12 +325,12 @@ export function useProductConsumption() {
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*, products(*)')
+        .select(FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const { data: products } = await supabase
         .from('products')
-        .select('*')
+        .select(FORECAST_PRODUCTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Group by product
@@ -381,12 +388,12 @@ export function useCohortAnalysis() {
 
       const { data: contacts } = await supabase
         .from('contacts')
-        .select('*')
+        .select(FORECAST_CONTACTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*')
+        .select(FORECAST_CONTACT_PRODUCTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Group contacts by month of creation

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { supabase } from "@/integrations/supabase/client";
 import { generateRequestId } from "@/lib/requestId";
+import { LEADS_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export type LeadType = "person" | "company";
 export type LeadStatus = "new" | "in_progress" | "completed";
@@ -156,7 +157,7 @@ export function useLeads(filters?: { status?: LeadStatus; search?: string }) {
 
       let query = workspaceClient
         .from("leads")
-        .select("*")
+        .select(LEADS_SELECT_COLUMNS)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
 
@@ -190,7 +191,7 @@ export function useLead(id: string | undefined) {
 
       const { data, error } = await workspaceClient
         .from("leads")
-        .select("*")
+        .select(LEADS_SELECT_COLUMNS)
         .eq("id", id)
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();

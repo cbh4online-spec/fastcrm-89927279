@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { KPI_SNAPSHOTS_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export interface ABKpiSnapshot {
   metric_key: string;
@@ -37,7 +38,7 @@ export function useAccountBriefKPIs() {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("account_brief_kpi_snapshots")
-        .select("*")
+        .select(KPI_SNAPSHOTS_SELECT_COLUMNS)
         .eq("workspace_id", workspaceId)
         .order("snapshot_date", { ascending: false })
         .limit(50);
@@ -62,7 +63,7 @@ export function useAccountBriefKPIs() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { data, error } = await supabase
         .from("account_brief_kpi_snapshots")
-        .select("*")
+        .select(KPI_SNAPSHOTS_SELECT_COLUMNS)
         .eq("workspace_id", workspaceId)
         .gte("snapshot_date", thirtyDaysAgo.toISOString().split("T")[0])
         .order("snapshot_date", { ascending: true });

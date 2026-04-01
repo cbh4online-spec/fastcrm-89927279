@@ -84,7 +84,7 @@ export function useCompanyDuplicateCheck(
 
       const { data: companies, error } = await supabase
         .from("companies")
-        .select("*")
+        .select("id, name, email, website, tax_id, workspace_id")
         .eq("workspace_id", currentWorkspace.id);
 
       if (error) throw error;

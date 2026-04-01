@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { LEAD_AUDIT_LOG_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export interface LeadAuditLogEntry {
   id: string;
@@ -22,7 +23,7 @@ export function useLeadAuditLog(leadId: string | undefined) {
 
       const { data, error } = await workspaceClient
         .from("leads_audit_log" as any)
-        .select("*")
+        .select(LEAD_AUDIT_LOG_SELECT_COLUMNS)
         .eq("lead_id", leadId)
         .order("changed_at", { ascending: false })
         .limit(100);
