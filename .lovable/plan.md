@@ -1,55 +1,111 @@
 
 
-# Enviar WhatsApp via Evolution API (QR) em vez de GHL
+# Plano: WhatsApp QR Integration — Diagnóstico e Correcção Completa
 
-## Problema
+## A. Diagnóstico (Root Cause)
 
-O diálogo "Nova Mensagem WhatsApp" (screenshot) mostra "Integração GHL activa" e envia mensagens via GoHighLevel (`ghl-send-message`). O sistema deveria usar a Evolution API (QR) como motor de envio de WhatsApp — consistente com a integração QR que acabámos de refactorizar.
+**Estado actual da DB:** `status = waiting_for_scan`, `phone_number = null`, `connected_at` stale de sessão anterior.
 
-## Alterações necessárias
+**Problema principal:** A Evolution API reporta estado `connecting` (mapeado para `waiting_for_scan`), o que significa que a instância existe mas não tem sessão WhatsApp activa. O QR foi gerado anteriormente mas nunca foi lido, ou a sessão expirou.
 
-### 1. Nova Edge Function: `whatsapp-evolution-send`
+**Problemas identificados no código:**
 
-Criar `supabase/functions/whatsapp-evolution-send/index.ts`:
-- Recebe `{ workspaceId, phone, message }` 
-- Valida JWT + pertença ao workspace
-- Consulta `whatsapp_qr_connections` para obter `instance_name` e verificar `status === 'connected'`
-- Chama Evolution API: `POST /message/sendText/{instanceName}` com body `{ number, text }`
-- Retorna sucesso/erro com CORS headers
+1. **UI incompleta** — `WhatsAppConnectionCard` só renderiza badges para `connected`, `disconnected` e `error`. Estados como `waiting_for_scan`, `qr_pending`, `reconnecting`, `creating_instance` caem no bloco "não configurado" e mostram o botão "Conectar via QR", dando a impressão de desconexão.
 
-### 2. Novo Diálogo: `QuickEvolutionWhatsAppDialog.tsx`
+2. **Sem polling automático no card** — O hook `useWhatsAppQRConnection` faz `refetchInterval: false`. Quando o estado muda na Evolution API (ex: scan → connected), a UI não actualiza sem refresh manual.
 
-Criar componente dedicado (baseado na estrutura do `QuickGHLChannelDialog`) que:
-- Usa `useWhatsAppQRConnection()` para verificar se há conexão activa (em vez de `useWorkspaceGHLConfig`)
-- Mostra "WhatsApp (Evolution QR) conectado" quando `status === 'connected'`
-- Mostra aviso + botão "Ir para Definições" quando não conectado
-- Envia mensagem via `supabase.functions.invoke("whatsapp-evolution-send")`
-- Cria lead + conversa + mensagem outbound (reutilizando `composeHelpers`)
+3. **Status `authenticating` ausente** — O CHECK constraint na DB não inclui `authenticating`. Necessário adicionar.
 
-### 3. Alterar `ComposeButton.tsx`
+4. **Sem botão Disconnect/Reconnect** no card quando conectado.
 
-- Importar `QuickEvolutionWhatsAppDialog` e `useWhatsAppQRConnection`
-- No canal WhatsApp: verificar `whatsappQRConnection?.status === 'connected'` em vez de `isGHLConfigured`
-- Ao clicar WhatsApp: abrir `QuickEvolutionWhatsAppDialog` em vez de `QuickGHLChannelDialog`
-- Manter GHL para SMS e Facebook (sem alteração)
+5. **`whatsapp-evolution-send` usa `corsHeaders` importados do SDK** — Contradiz o padrão do projecto (definição manual). Pode causar erro de bundling.
 
-### 4. Ficheiros afectados
+6. **`whatsapp-evolution-send` usa `getClaims`** — Método não standard; deve usar `getUser()`.
 
-| Ficheiro | Acção |
-|----------|-------|
-| `supabase/functions/whatsapp-evolution-send/index.ts` | CRIAR |
-| `src/components/inbox/QuickEvolutionWhatsAppDialog.tsx` | CRIAR |
-| `src/components/inbox/ComposeButton.tsx` | EDITAR — WhatsApp usa Evolution |
+---
 
-### 5. Formato do número na Evolution API
+## B. Ficheiros a Criar/Alterar
 
-A Evolution API espera número no formato `5511999999999` (código do país + número, sem `+`). A normalização strip `+` e caracteres não numéricos antes de enviar.
+| Ficheiro | Acção | Descrição |
+|---|---|---|
+| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR | Renderizar todos os estados, adicionar Disconnect/Reconnect, mostrar last_seen, last_error |
+| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR | Adicionar polling automático em estados transitórios, adicionar `authenticating` ao tipo |
+| `supabase/functions/whatsapp-evolution-send/index.ts` | EDITAR | Corrigir CORS para padrão manual, usar `getUser()` em vez de `getClaims` |
+| DB migration | CRIAR | Adicionar `authenticating` ao CHECK constraint |
 
-## Critérios de aceitação
+---
 
-- Clicar "WhatsApp" na Inbox abre o diálogo com "WhatsApp (Evolution QR) conectado"
-- Mensagem é enviada via Evolution API `/message/sendText`
-- Se não houver conexão QR activa, mostra aviso com link para Settings
-- Lead, conversa e mensagem são criados no FastCRM
-- SMS e Facebook continuam via GHL (sem regressão)
+## C. Database Migration
+
+```sql
+ALTER TABLE public.whatsapp_qr_connections
+  DROP CONSTRAINT whatsapp_qr_connections_status_check;
+
+ALTER TABLE public.whatsapp_qr_connections
+  ADD CONSTRAINT whatsapp_qr_connections_status_check CHECK (
+    status IN ('not_configured','creating_instance','qr_pending','waiting_for_scan','authenticating','connected','disconnected','qr_expired','reconnecting','error')
+  );
+```
+
+---
+
+## D. Hook: `useWhatsAppQRConnection.ts`
+
+Alterações:
+- Adicionar `authenticating` ao tipo `WhatsAppQRStatus`
+- Activar `refetchInterval` dinâmico: 5s para estados transitórios (`qr_pending`, `waiting_for_scan`, `creating_instance`, `authenticating`, `reconnecting`), false para estados finais
+- Isto garante que a UI actualiza automaticamente quando o utilizador lê o QR
+
+---
+
+## E. Card: `WhatsAppConnectionCard.tsx`
+
+Refactor completo para renderizar todos os estados:
+
+- **`not_configured`** — Botão "Conectar via QR Code" + Sync
+- **`creating_instance`** — Spinner + "A criar instância..."
+- **`qr_pending` / `waiting_for_scan`** — Badge amarelo "A aguardar scan" + Botão "Abrir QR Code" + Sync
+- **`authenticating`** — Badge azul "A autenticar..." + Spinner
+- **`connected`** — Badge verde "Conectado" + Info (número, data, last_seen) + Botões Disconnect + Sync
+- **`disconnected`** — Badge cinza + Botão "Reconectar" + "Conectar via QR"
+- **`qr_expired`** — Badge laranja + Botão "Gerar novo QR"
+- **`reconnecting`** — Badge azul + Spinner
+- **`error`** — Badge vermelho + mensagem de erro + Botão retry
+
+Acções sempre visíveis: Sync (refresh), Disconnect (quando connected).
+
+---
+
+## F. Edge Function: `whatsapp-evolution-send`
+
+- Substituir import `corsHeaders` do SDK por definição manual (padrão do projecto)
+- Substituir `getClaims` por `getUser()` para validação de JWT
+- Manter toda a lógica de envio e validação
+
+---
+
+## G. Critérios de Aceitação
+
+1. Card mostra estado correcto para todos os 10 statuses
+2. Polling automático actualiza UI quando estado muda (ex: scan → connected)
+3. Botão Disconnect disponível quando conectado
+4. Botão Sync disponível em todos os estados
+5. Mensagens de erro visíveis quando relevantes
+6. `whatsapp-evolution-send` funciona sem erros de bundling
+7. Sem regressão nos fluxos existentes (QR dialog, inbox compose)
+
+---
+
+## H. Observabilidade
+
+Os logs estruturados já existem em todas as edge functions (`[WHATSAPP_QR]` prefix com workspace_id, instance_name, status). Não é necessário adicionar mais — a cobertura é adequada.
+
+---
+
+## I. Notas Railway
+
+- Secrets `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` já estão configurados ✓
+- Todas as edge functions já sanitizam o URL da Evolution API ✓
+- Instance name determinístico (`ws_{workspaceId}`) já implementado ✓
+- Sem dependência de filesystem local ✓
 
