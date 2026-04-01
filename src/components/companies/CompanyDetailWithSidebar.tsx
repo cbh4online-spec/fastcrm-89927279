@@ -609,8 +609,10 @@ export function CompanyDetailWithSidebar() {
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
               {activeSection === 'overview' && (
-                <div className="mb-6">
+                <div className="mb-6 space-y-4">
                   <EntityHighlightsGrid entityType="company" entity={company as any} />
+                  <CommercialSummaryCard entityType="company" entityId={company.id} />
+                  <CommercialRiskSignals entityType="company" entityId={company.id} />
                 </div>
               )}
               {renderSectionContent()}
