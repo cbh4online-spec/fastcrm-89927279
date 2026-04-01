@@ -120,6 +120,8 @@ export function CampaignDetailDialog({
               <TabsTrigger value="activity">Actividade</TabsTrigger>
               <TabsTrigger value="recipients">Destinatários</TabsTrigger>
               <TabsTrigger value="automation">Automação</TabsTrigger>
+              <TabsTrigger value="experiments">Testes A/B</TabsTrigger>
+              <TabsTrigger value="ai">IA</TabsTrigger>
               <TabsTrigger value="content">Conteúdo</TabsTrigger>
             </TabsList>
 
