@@ -378,6 +378,10 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
               </div>
             </TabsContent>
 
+            <TabsContent value="proposals" className="mt-4">
+              <OpportunityProposalsTab opportunityId={opportunity.id} />
+            </TabsContent>
+
             <TabsContent value="comments" className="mt-4">
               <OpportunityCommentsTab opportunityId={opportunity.id} />
             </TabsContent>
