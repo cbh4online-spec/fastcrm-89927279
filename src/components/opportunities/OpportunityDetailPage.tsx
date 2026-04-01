@@ -179,6 +179,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     keycontact: "bg-teal-500",
     partner: "bg-indigo-500",
     comments: "bg-violet-500",
+    proposals: "bg-sky-500",
   };
 
   const tabDot = (key: string) => (
