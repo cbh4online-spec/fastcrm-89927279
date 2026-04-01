@@ -1052,6 +1052,16 @@ export function FunnelsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {currentWorkspace && (
+        <MCPGenerateDialog
+          open={mcpGenerateOpen}
+          onOpenChange={setMcpGenerateOpen}
+          workspaceId={currentWorkspace.id}
+          defaultTarget="funnel"
+          onGenerated={(_, id) => setEditingFunnelId(id)}
+        />
+      )}
     </div>
   );
 }
