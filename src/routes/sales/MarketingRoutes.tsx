@@ -8,6 +8,7 @@ const EbooksPage = lazy(() => import("@/pages/EbooksPage"));
 const EbookTemplateGalleryPage = lazy(() => import("@/pages/EbookTemplateGalleryPage"));
 const EbookTemplatesAdminPage = lazy(() => import("@/pages/EbookTemplatesAdminPage"));
 const BioOS = lazy(() => import("@/pages/BioOS"));
+const LandingPages = lazy(() => import("@/pages/LandingPages"));
 const FormStudioPage = lazy(() => import("@/pages/FormStudioPage"));
 const Marketing = lazy(() => import("@/pages/Marketing"));
 const CustomerLifecyclePage = lazy(() => import("@/pages/CustomerLifecyclePage"));
