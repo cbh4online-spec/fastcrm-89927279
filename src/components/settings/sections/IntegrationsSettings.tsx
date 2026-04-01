@@ -15,6 +15,7 @@ import {
   Settings,
   Video,
   Phone,
+  Blocks,
 } from "lucide-react";
 import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
@@ -25,6 +26,8 @@ import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useWorkspaceVideoConfig } from "@/hooks/useWorkspaceVideoConfig";
 import { useWhatsAppConnection } from "@/hooks/useWhatsAppConnection";
+import { MCPProvidersPanel } from "@/components/marketing/mcp/MCPProvidersPanel";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const integrations = [
@@ -51,6 +54,7 @@ interface IntegrationsSettingsProps {
 
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
   const { isSuperAdmin } = useUserRole();
+  const { currentWorkspace } = useWorkspace();
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { isZoomConfigured, isGoogleMeetConnected } = useWorkspaceVideoConfig();
@@ -68,6 +72,7 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
     { id: "integrations-ghl", show: shouldShow("integrations-ghl") },
     { id: "integrations-autopilot-monitor", show: shouldShow("integrations-autopilot-monitor") },
     { id: "integrations-video", show: shouldShow("integrations-video") },
+    { id: "integrations-mcp", show: shouldShow("integrations-mcp") },
     { id: "integrations-api", show: shouldShow("integrations-api") },
     { id: "integrations-external", show: shouldShow("integrations-external") },
     { id: "integrations-variables", show: shouldShow("integrations-variables") },
@@ -132,6 +137,20 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
           icon={<Video className="h-5 w-5" />}
         >
           <WorkspaceVideoSettings />
+        </SettingsSection>
+      )}
+
+      {shouldShow("integrations-mcp") && (
+        <SettingsSection
+          title="Integrações MCP"
+          description="Gerir providers MCP (Figma, etc.) para importar design systems e componentes"
+          icon={<Blocks className="h-5 w-5" />}
+        >
+          {currentWorkspace?.id ? (
+            <MCPProvidersPanel workspaceId={currentWorkspace.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Selecione um workspace para gerir integrações MCP.</p>
+          )}
         </SettingsSection>
       )}
 
