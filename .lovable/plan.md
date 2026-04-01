@@ -1,26 +1,24 @@
 
 
-# Plano: WhatsApp QR Integration — Diagnóstico e Correcção Completa
+# Plano: WhatsApp QR Backend — Correções Finais
 
-## A. Diagnóstico (Root Cause)
+## A. Diagnóstico
 
-**Estado actual da DB:** `status = waiting_for_scan`, `phone_number = null`, `connected_at` stale de sessão anterior.
+**Estado actual:** A integração está **funcional** — instance creation, QR generation, polling, status sync, disconnect, e send estão todos implementados e a funcionar.
 
-**Problema principal:** A Evolution API reporta estado `connecting` (mapeado para `waiting_for_scan`), o que significa que a instância existe mas não tem sessão WhatsApp activa. O QR foi gerado anteriormente mas nunca foi lido, ou a sessão expirou.
+**DB actual:** `status=connected`, `phone_number=null` — o número não está a ser extraído da Evolution API.
 
-**Problemas identificados no código:**
+**Problemas identificados:**
 
-1. **UI incompleta** — `WhatsAppConnectionCard` só renderiza badges para `connected`, `disconnected` e `error`. Estados como `waiting_for_scan`, `qr_pending`, `reconnecting`, `creating_instance` caem no bloco "não configurado" e mostram o botão "Conectar via QR", dando a impressão de desconexão.
+### 1. Phone number null quando conectado (Bug principal)
+A função `fetchInstances` da Evolution API provavelmente retorna o `owner` num campo diferente do esperado. O código tenta `instance?.instance?.owner || instance?.owner` mas o campo pode ser `instance?.instance?.profilePictureUrl` ou o número pode estar em `instance?.instance?.profileName` ou noutro formato. O `catch {}` vazio silencia o erro.
 
-2. **Sem polling automático no card** — O hook `useWhatsAppQRConnection` faz `refetchInterval: false`. Quando o estado muda na Evolution API (ex: scan → connected), a UI não actualiza sem refresh manual.
+**Fix:** Adicionar logging ao bloco de fetch de phone number nas funções `whatsapp-qr-status` e `whatsapp-qr-sync` para diagnosticar o formato real. Tentar paths alternativos (`instance?.instance?.wuid`, `instance?.instance?.profileName`, `instance?.number`).
 
-3. **Status `authenticating` ausente** — O CHECK constraint na DB não inclui `authenticating`. Necessário adicionar.
+### 2. Sem webhook de estado da Evolution API
+Não existe endpoint para receber webhooks da Evolution API. O sistema depende exclusivamente de polling, o que funciona mas adiciona latência de ~4s.
 
-4. **Sem botão Disconnect/Reconnect** no card quando conectado.
-
-5. **`whatsapp-evolution-send` usa `corsHeaders` importados do SDK** — Contradiz o padrão do projecto (definição manual). Pode causar erro de bundling.
-
-6. **`whatsapp-evolution-send` usa `getClaims`** — Método não standard; deve usar `getUser()`.
+**Fix:** Criar edge function `whatsapp-evolution-webhook` para receber eventos `CONNECTION_UPDATE` da Evolution API e actualizar o estado em tempo real.
 
 ---
 
@@ -28,84 +26,72 @@
 
 | Ficheiro | Acção | Descrição |
 |---|---|---|
-| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR | Renderizar todos os estados, adicionar Disconnect/Reconnect, mostrar last_seen, last_error |
-| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR | Adicionar polling automático em estados transitórios, adicionar `authenticating` ao tipo |
-| `supabase/functions/whatsapp-evolution-send/index.ts` | EDITAR | Corrigir CORS para padrão manual, usar `getUser()` em vez de `getClaims` |
-| DB migration | CRIAR | Adicionar `authenticating` ao CHECK constraint |
+| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR | Adicionar logging ao fetch de phone number, testar paths alternativos |
+| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR | Mesmo fix de phone number + logging |
+| `supabase/functions/whatsapp-evolution-webhook/index.ts` | CRIAR | Webhook receiver para eventos da Evolution API |
 
 ---
 
-## C. Database Migration
+## C. Detalhes Técnicos
 
-```sql
-ALTER TABLE public.whatsapp_qr_connections
-  DROP CONSTRAINT whatsapp_qr_connections_status_check;
-
-ALTER TABLE public.whatsapp_qr_connections
-  ADD CONSTRAINT whatsapp_qr_connections_status_check CHECK (
-    status IN ('not_configured','creating_instance','qr_pending','waiting_for_scan','authenticating','connected','disconnected','qr_expired','reconnecting','error')
-  );
+### Fix do Phone Number (status + sync)
+```typescript
+// Substituir o bloco try/catch silencioso por:
+try {
+  const infoRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+    method: "GET",
+    headers: { apikey: EVOLUTION_API_KEY },
+  });
+  const infoData = await infoRes.json();
+  console.log(`[WHATSAPP_QR] FETCH_INSTANCES raw=${JSON.stringify(infoData).substring(0, 500)}`);
+  const instance = Array.isArray(infoData) ? infoData[0] : infoData;
+  // Try multiple known Evolution API response paths
+  phoneNumber = instance?.instance?.owner 
+    || instance?.instance?.wuid?.split("@")?.[0]
+    || instance?.owner
+    || instance?.number
+    || null;
+  if (phoneNumber && phoneNumber.includes("@")) {
+    phoneNumber = phoneNumber.split("@")[0];
+  }
+  console.log(`[WHATSAPP_QR] PHONE_EXTRACTED phone=${phoneNumber}`);
+} catch (e) {
+  console.warn(`[WHATSAPP_QR] FETCH_INSTANCES_FAILED error=${e.message}`);
+}
 ```
 
----
+### Webhook Receiver (nova edge function)
+- Recebe POST da Evolution API com eventos `CONNECTION_UPDATE`
+- Valida `WEBHOOK_SECRET` se configurado
+- Mapeia estado Evolution → FastCRM
+- Actualiza `whatsapp_qr_connections` e `whatsapp_connections`
+- Logs estruturados com workspace_id, instance_name, status
 
-## D. Hook: `useWhatsAppQRConnection.ts`
-
-Alterações:
-- Adicionar `authenticating` ao tipo `WhatsAppQRStatus`
-- Activar `refetchInterval` dinâmico: 5s para estados transitórios (`qr_pending`, `waiting_for_scan`, `creating_instance`, `authenticating`, `reconnecting`), false para estados finais
-- Isto garante que a UI actualiza automaticamente quando o utilizador lê o QR
-
----
-
-## E. Card: `WhatsAppConnectionCard.tsx`
-
-Refactor completo para renderizar todos os estados:
-
-- **`not_configured`** — Botão "Conectar via QR Code" + Sync
-- **`creating_instance`** — Spinner + "A criar instância..."
-- **`qr_pending` / `waiting_for_scan`** — Badge amarelo "A aguardar scan" + Botão "Abrir QR Code" + Sync
-- **`authenticating`** — Badge azul "A autenticar..." + Spinner
-- **`connected`** — Badge verde "Conectado" + Info (número, data, last_seen) + Botões Disconnect + Sync
-- **`disconnected`** — Badge cinza + Botão "Reconectar" + "Conectar via QR"
-- **`qr_expired`** — Badge laranja + Botão "Gerar novo QR"
-- **`reconnecting`** — Badge azul + Spinner
-- **`error`** — Badge vermelho + mensagem de erro + Botão retry
-
-Acções sempre visíveis: Sync (refresh), Disconnect (quando connected).
+### Configurar webhook na Evolution API
+Após deploy, configurar o webhook da Evolution API para apontar para:
+`https://<SUPABASE_URL>/functions/v1/whatsapp-evolution-webhook`
 
 ---
 
-## F. Edge Function: `whatsapp-evolution-send`
+## D. O que já está bem implementado (não alterar)
 
-- Substituir import `corsHeaders` do SDK por definição manual (padrão do projecto)
-- Substituir `getClaims` por `getUser()` para validação de JWT
-- Manter toda a lógica de envio e validação
-
----
-
-## G. Critérios de Aceitação
-
-1. Card mostra estado correcto para todos os 10 statuses
-2. Polling automático actualiza UI quando estado muda (ex: scan → connected)
-3. Botão Disconnect disponível quando conectado
-4. Botão Sync disponível em todos os estados
-5. Mensagens de erro visíveis quando relevantes
-6. `whatsapp-evolution-send` funciona sem erros de bundling
-7. Sem regressão nos fluxos existentes (QR dialog, inbox compose)
+- ✅ 4 edge functions: connect, status, sync, disconnect
+- ✅ Edge function send com auth + workspace membership
+- ✅ Instance name determinístico (`ws_{workspaceId}`)
+- ✅ DB table `whatsapp_qr_connections` com todos os statuses
+- ✅ Polling automático no hook (5s para estados transitórios)
+- ✅ UI card com 10 estados granulares
+- ✅ QR Dialog com countdown + polling + auto-close
+- ✅ CORS manual em todas as funções
+- ✅ URL sanitization em todas as funções
+- ✅ Sync bidireccional com `whatsapp_connections` para inbox
 
 ---
 
-## H. Observabilidade
+## E. Critérios de Aceitação
 
-Os logs estruturados já existem em todas as edge functions (`[WHATSAPP_QR]` prefix com workspace_id, instance_name, status). Não é necessário adicionar mais — a cobertura é adequada.
-
----
-
-## I. Notas Railway
-
-- Secrets `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` já estão configurados ✓
-- Todas as edge functions já sanitizam o URL da Evolution API ✓
-- Instance name determinístico (`ws_{workspaceId}`) já implementado ✓
-- Sem dependência de filesystem local ✓
+1. Phone number extraído correctamente quando conectado
+2. Logs visíveis para debug do formato da resposta fetchInstances
+3. Webhook receiver deployed e funcional (opcional — polling já funciona)
+4. Sem regressão nos fluxos existentes
 
