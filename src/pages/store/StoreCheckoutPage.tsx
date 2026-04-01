@@ -5,6 +5,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingBag, CheckCircle2, ChevronRight } from "lucide-react";
+import { TrustBadges } from "@/components/checkout/TrustBadges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
