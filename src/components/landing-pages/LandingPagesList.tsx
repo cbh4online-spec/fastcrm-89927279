@@ -431,12 +431,11 @@ export function LandingPagesList() {
       </AlertDialog>
 
       {currentWorkspace && (
-        <MCPGenerateDialog
+        <FigmaMCPGenerateDialog
           open={mcpGenerateOpen}
           onOpenChange={setMcpGenerateOpen}
           workspaceId={currentWorkspace.id}
-          defaultTarget="page"
-          onGenerated={(_, id) => setEditingPageId(id)}
+          onGenerated={(id) => setEditingPageId(id)}
         />
       )}
     </div>
