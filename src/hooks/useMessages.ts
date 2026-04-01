@@ -125,7 +125,7 @@ export function useSendMessage() {
       // Get conversation to check channel and email details
       const { data: conversation, error: convError } = await workspaceClient
         .from("conversations")
-        .select("channel, channel_metadata, lead:leads(email, ghl_contact_id)")
+        .select("channel, channel_metadata, external_thread_id, lead:leads(email, ghl_contact_id, phone)")
         .eq("id", conversationId)
         .single();
 
