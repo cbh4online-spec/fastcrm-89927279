@@ -266,6 +266,10 @@ export function FunnelsList() {
                 <Sparkles className="h-4 w-4 mr-2" />
                 Novo Template AIDA
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMcpGenerateOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Gerar via MCP
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
