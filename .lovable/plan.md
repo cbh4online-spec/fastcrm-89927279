@@ -1,75 +1,143 @@
 
 
-# Plano: WhatsApp QR Recovery Flow
+# Plano: MCP Integration Layer para Marketing Module
 
 ## Diagnóstico
 
-O sistema já tem health-check (`whatsapp-qr-status`) e resync (`whatsapp-qr-sync`) com inferência de sync health. Faltam:
+O Marketing module actual tem tabs (Dashboard, Campanhas, Segmentos, Templates, Landing Pages, Multi-Canal, Automações, Analytics, Eventos, Pipeline, Definições). Já existe um AI Funnel Builder, Landing Page Builder, e Template Library. Não existe qualquer infra de MCP. O Figma MCP não está nos conectores nativos do Lovable — terá de ser implementado como provider custom via Edge Functions.
 
-1. **DB** — campos de recovery state (`recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`)
-2. **Soft reconnect** — edge function que faz restart da sessão sem destruir a instância (preserva conversas)
-3. **Repair required** — estado explícito quando recovery falha repetidamente
-4. **UI recovery actions** — botões contextuais de Resync / Reconnect / Clean Re-pair quando sync não é active
-5. **Hook mutations** — `useReconnectWhatsAppQR` no frontend
+## Decisões de Produto
+
+- MCP Providers são configurações geridas pelo workspace admin dentro de Marketing > Definições
+- Figma MCP é o primeiro adapter — ligação via Server URL + token
+- A arquitectura é extensível para futuros providers (Git, CMS, etc.)
+- O contexto MCP importado é normalizado em "Marketing Blocks" reutilizáveis
+- A geração de páginas/funis pode usar MCP context como input adicional ao AI builder existente
+
+## Arquitectura
+
+```text
+┌─────────────────────────────────────┐
+│  Marketing UI (Tab: Integrações MCP)│
+│  ├── Provider List + CRUD          │
+│  ├── Connection Test / Health      │
+│  ├── Workflow Bindings             │
+│  └── Import Browser                │
+├─────────────────────────────────────┤
+│  Hook: useMarketingMCP()           │
+│  ├── providers CRUD (react-query)  │
+│  ├── test/health mutations         │
+│  └── import mutation               │
+├─────────────────────────────────────┤
+│  Edge Function: marketing-mcp      │
+│  ├── /providers — CRUD             │
+│  ├── /test — connection test       │
+│  ├── /health — health check        │
+│  ├── /import — fetch + normalize   │
+│  └── /generate — MCP-aware gen     │
+├─────────────────────────────────────┤
+│  DB Tables                         │
+│  ├── marketing_mcp_providers       │
+│  ├── marketing_mcp_workflow_binds  │
+│  └── marketing_mcp_imports         │
+└─────────────────────────────────────┘
+```
 
 ## Ficheiros a Criar/Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| Migration SQL | CRIAR — `recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`, `last_reconnect_at` |
-| `supabase/functions/whatsapp-qr-reconnect/index.ts` | CRIAR — soft reconnect via Evolution API (restart session, re-fetch state) |
-| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR — persistir recovery_state, escalate logic |
-| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR — persistir recovery_state |
-| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR — tipo + mutation `useReconnectWhatsAppQR` |
-| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR — recovery actions contextuais |
-| `src/components/settings/WhatsAppConfigPanel.tsx` | EDITAR — recovery info + actions |
+| Migration SQL | CRIAR — 3 tabelas + RLS |
+| `supabase/functions/marketing-mcp/index.ts` | CRIAR — edge function multi-action |
+| `src/hooks/useMarketingMCP.ts` | CRIAR — hook com queries + mutations |
+| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | CRIAR — lista + CRUD de providers |
+| `src/components/marketing/mcp/MCPProviderDialog.tsx` | CRIAR — dialog criar/editar provider |
+| `src/components/marketing/mcp/MCPWorkflowBindings.tsx` | CRIAR — bindings workflow → provider |
+| `src/components/marketing/mcp/MCPImportBrowser.tsx` | CRIAR — browser de imports MCP |
+| `src/components/marketing/mcp/MCPIntegrationsTab.tsx` | CRIAR — tab container |
+| `src/pages/Marketing.tsx` | EDITAR — adicionar tab "Integrações MCP" |
 
 ## Detalhes Técnicos
 
-### 1. Migration — Recovery columns
-```sql
-ALTER TABLE whatsapp_qr_connections
-  ADD COLUMN recovery_state text NOT NULL DEFAULT 'none',
-  ADD COLUMN recovery_attempt_count integer NOT NULL DEFAULT 0,
-  ADD COLUMN recovery_last_attempt_at timestamptz,
-  ADD COLUMN last_reconnect_at timestamptz;
--- CHECK: recovery_state IN ('none','checking','resyncing','reconnecting','repair_required','repaired','failed')
-```
+### 1. Migration SQL — 3 tabelas
 
-### 2. Edge Function: `whatsapp-qr-reconnect`
-- Busca instância do DB
-- Chama Evolution API `POST /instance/restart/{instanceName}` (soft restart)
-- Se restart falhar, tenta `GET /instance/connect/{instanceName}` (re-connect)
-- Re-avalia connection state + sync health
-- Se 3+ tentativas falhadas → marca `recovery_state = 'repair_required'`
-- Incrementa `recovery_attempt_count`
-- Persiste tudo no DB
-- Logs estruturados
+**marketing_mcp_providers**: id, workspace_id, provider_key (figma, git, etc.), provider_name, provider_type, server_url, auth_type (bearer, api_key, oauth), is_enabled, is_default_for_pages, is_default_for_funnels, connection_status (unknown, connected, error), last_health_check_at, last_error, metadata_json (jsonb), created_at, updated_at.
 
-### 3. Refactor `whatsapp-qr-sync` e `whatsapp-qr-status`
-- Após inferir sync health, determinar recovery_state:
-  - Se `sync_health = active` → `recovery_state = 'none'`, reset counter
-  - Se `sync_health = delayed/degraded` e `recovery_attempt_count < 3` → manter `recovery_state` actual
-  - Se `sync_health = suspended/failed` e `recovery_attempt_count >= 3` → `recovery_state = 'repair_required'`
+**marketing_mcp_workflow_bindings**: id, workspace_id, workflow_type (landing_page, funnel, campaign, template, section_library), provider_id FK, config_json, created_at, updated_at. UNIQUE(workspace_id, workflow_type).
 
-### 4. Hook — `useReconnectWhatsAppQR`
-Nova mutation que chama `whatsapp-qr-reconnect`. Tipo `WhatsAppQRConnection` recebe `recovery_state`, `recovery_attempt_count`, `recovery_last_attempt_at`.
+**marketing_mcp_imports**: id, workspace_id, provider_id FK, import_type (design_system, page_frame, section, component, tokens), external_reference_id, external_reference_name, status (pending, processing, completed, failed), imported_payload_json, normalized_payload_json, created_at, updated_at.
 
-### 5. UI — Recovery actions contextuais
-Quando `sync_health !== 'active'` e `isConnected`:
-- Botão "Resincronizar" (chama sync existente)
-- Botão "Reconectar" (chama reconnect novo)
-- Se `recovery_state === 'repair_required'`: warning prominente + botão "Iniciar nova ligação" (disconnect + QR dialog)
-- Disable duplicados enquanto mutation está pending
-- Mostrar `recovery_state` e `recovery_attempt_count` na info area
+RLS: todas as tabelas escopadas por workspace_id via workspace_members.
+
+### 2. Edge Function: `marketing-mcp`
+
+Endpoint unificado com `action` no body:
+
+- **list_providers** — SELECT por workspace
+- **create_provider** — INSERT com validação zod
+- **update_provider** — UPDATE
+- **delete_provider** — soft disable
+- **test_connection** — faz HTTP request ao server_url do provider (MCP initialize/list_tools), retorna resultado
+- **health_check** — igual a test mas persiste resultado no DB
+- **import_context** — chama MCP server, busca contexto (ex: Figma frames), normaliza em blocos marketing, persiste em marketing_mcp_imports
+- **list_imports** — SELECT imports do workspace
+- **generate_from_mcp** — usa import normalizado como context para AI (via ai-router) gerar HTML/structure de página/funnel
+
+Para Figma MCP adapter:
+- Chama o servidor MCP Figma via HTTP (Streamable HTTP transport)
+- Headers: `Accept: application/json, text/event-stream`, `Content-Type: application/json`
+- Usa tools como `get_file`, `get_file_nodes`, `get_team_styles` se disponíveis
+- Normaliza resposta em blocos: sections, tokens, layout hierarchy
+
+Auth: JWT + workspace_members validation. CORS headers manuais (padrão do projecto).
+
+### 3. Hook: `useMarketingMCP`
+
+- `useMarketingMCPProviders(workspaceId)` — react-query GET
+- `useCreateMCPProvider()` — mutation
+- `useUpdateMCPProvider()` — mutation
+- `useTestMCPConnection()` — mutation
+- `useHealthCheckMCP()` — mutation
+- `useImportFromMCP()` — mutation
+- `useMarketingMCPImports(workspaceId)` — react-query GET
+
+### 4. UI — Tab "Integrações MCP" no Marketing
+
+Nova tab no Marketing.tsx com ícone `Blocks`:
+
+**MCPProvidersPanel**: tabela de providers com status badges, botões Test/Enable/Disable/Edit/Delete. Card de "Adicionar Provider" com presets (Figma, Custom MCP).
+
+**MCPProviderDialog**: formulário com campos: nome, tipo (select: figma, git, custom), server URL, auth type, credentials (token field masked). Botão "Testar Conexão" inline.
+
+**MCPWorkflowBindings**: cards por workflow type (Landing Pages, Funis, Templates, Secções) com dropdown de provider assignado.
+
+**MCPImportBrowser**: lista de imports anteriores com status. Botão "Nova Importação" que abre wizard: escolher provider → inserir referência (ex: Figma file URL) → import → ver resultado normalizado.
+
+### 5. Integração com Builders Existentes
+
+No `LandingPageBuilder` e `AIFunnelBuilder`, adicionar opção "Usar contexto MCP" que:
+- Lista imports normalizados disponíveis
+- Permite seleccionar um como base/referência
+- Passa como context ao prompt de geração AI
+
+Isto é uma extensão futura — nesta fase, a infra de import e normalização fica pronta, e a tab MCP fica operacional.
+
+### 6. Segurança
+
+- Credenciais MCP encriptadas no campo metadata_json (não em plaintext — na edge function, usar `pgcrypto` ou armazenar via secrets quando possível)
+- RLS em todas as tabelas por workspace_id
+- Edge function valida JWT + workspace membership
+- Inputs validados com zod
 
 ## Critérios de Aceitação
 
-1. DB tem `recovery_state` separado de `status` e `sync_health`
-2. Soft reconnect tenta preservar instância antes de destruir
-3. Após 3 falhas, `repair_required` é explícito
-4. UI mostra acções de recovery contextuais
-5. Clean re-pair só é sugerido quando recovery falha
-6. Conversas não são destruídas em soft reconnect
-7. Logs estruturados para todo o fluxo de recovery
+1. DB tem 3 tabelas com RLS por workspace
+2. Admin pode criar/editar/eliminar MCP providers
+3. Admin pode testar conexão ao servidor MCP
+4. Admin pode atribuir providers a workflows (landing pages, funis, etc.)
+5. Sistema pode importar contexto de um MCP server (Figma como primeiro)
+6. Imports são normalizados em blocos marketing reutilizáveis
+7. Tab "Integrações MCP" visível e funcional no Marketing
+8. Arquitectura extensível para novos providers
+9. Logs estruturados em todas as operações MCP
 
