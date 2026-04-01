@@ -15,6 +15,7 @@ import {
   Settings,
   Video,
   Phone,
+  Blocks,
 } from "lucide-react";
 import { Activity } from "lucide-react";
 import { WorkspaceStripeSettings } from "./WorkspaceStripeSettings";
