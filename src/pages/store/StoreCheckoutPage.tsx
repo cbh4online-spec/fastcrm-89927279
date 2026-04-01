@@ -4,32 +4,19 @@ import { Helmet } from "react-helmet-async";
 import { StoreHeader } from "@/components/store/StoreHeader";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Lock, Package, ShoppingBag, Loader2, User, Phone, Mail, ChevronRight, CheckCircle2, Ticket, X, Truck, Gift, AlertTriangle } from "lucide-react";
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { ArrowLeft, ShoppingBag, CheckCircle2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { StoreGiftCardBalance } from "@/components/store/StoreGiftCardBalance";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
-import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js";
-import isEmail from "validator/es/lib/isEmail";
 import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
-import { toMoney, moneySub, moneyAdd, moneyMul, moneyMin, moneyMax, moneyToNumber, formatMoney } from "@/lib/money";
-
-interface CTTShippingOption {
-  id: string;
-  name: string;
-  price: number;
-  estimate: string;
-  maxWeight: number;
-}
+import { CheckoutLeadStep } from "@/components/store/checkout/CheckoutLeadStep";
+import { CheckoutPaymentStep } from "@/components/store/checkout/CheckoutPaymentStep";
+import { CheckoutSummaryCard } from "@/components/store/checkout/CheckoutSummaryCard";
+import { useCheckoutForm } from "@/components/store/checkout/useCheckoutForm";
+import { useCheckoutPricing } from "@/components/store/checkout/useCheckoutPricing";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -39,264 +26,31 @@ export default function StoreCheckoutPage() {
   const { workspaceId: wsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: storeSettings } = usePublicStoreSettings(wsId || "");
   const storeName = storeSettings?.store_name || "Loja";
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number; max_discount_amount?: number | null; category_ids?: string[] | null } | null>(null);
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [selectedShippingId, setSelectedShippingId] = useState<string>("");
-  const [appliedGiftCard, setAppliedGiftCard] = useState<{ id: string; code: string; current_balance: number } | null>(null);
-  const [cttOptions, setCttOptions] = useState<CTTShippingOption[]>([]);
-  const [shippingLoading, setShippingLoading] = useState(false);
-  const [totalWeight, setTotalWeight] = useState<number>(0);
-  const [overWeight, setOverWeight] = useState(false);
 
-  // Fetch product weights and calculate total cart weight
-  useEffect(() => {
-    if (items.length === 0) return;
-    const fetchWeights = async () => {
-      const productIds = items.map(i => i.productId);
-      const { data } = await supabase
-        .from("products")
-        .select("id, weight")
-        .in("id", productIds);
-      
-      const weightMap = new Map<string, number>();
-      (data || []).forEach((p: any) => {
-        weightMap.set(p.id, p.weight ? Number(p.weight) : 0.5);
-      });
-      
-      const total = items.reduce((sum, item) => {
-        const w = weightMap.get(item.productId) || 0.5;
-        return sum + w * item.quantity;
-      }, 0);
-      setTotalWeight(Math.round(total * 1000) / 1000);
-    };
-    fetchWeights();
-  }, [items]);
-
-  // Fetch CTT shipping options when weight changes
-  useEffect(() => {
-    if (totalWeight <= 0) return;
-    const fetchShipping = async () => {
-      setShippingLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("calculate-shipping", {
-          body: { totalWeightKg: totalWeight },
-        });
-        if (!error && data?.success) {
-          setCttOptions(data.options || []);
-          setOverWeight(data.overWeight || false);
-          // Auto-select first option
-          if (data.options?.length > 0 && !selectedShippingId) {
-            setSelectedShippingId(data.options[0].id);
-          }
-        }
-      } catch {
-        // fallback: no shipping options
-      } finally {
-        setShippingLoading(false);
-      }
-    };
-    fetchShipping();
-  }, [totalWeight]);
-
-  // Lead capture state
-  const sessionId = useMemo(() => crypto.randomUUID(), []);
-  const [contactId, setContactId] = useState<string | null>(null);
-  const emailCapturedRef = useRef(false);
-
-  const captureLead = useCallback(async (data: { name: string; phone: string; email?: string }) => {
-    try {
-      const { data: result, error } = await supabase.functions.invoke("store-capture-lead", {
-        body: {
-          workspaceId: wsId,
-          sessionId,
-          name: data.name,
-          phone: data.phone,
-          email: data.email || undefined,
-          cartItems: items.map((item) => ({
-            productId: item.productId,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-        },
-      });
-      if (!error && result?.contactId) {
-        setContactId(result.contactId);
-      }
-    } catch {
-      // Non-blocking — don't interrupt checkout flow
-    }
-  }, [wsId, sessionId, items]);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-  });
-
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const isStep1Valid = () => {
-    if (!formData.name.trim() || !formData.phone.trim()) return false;
-    return isValidPhoneNumber(formData.phone, "PT");
-  };
-
-  const handleStep1Continue = (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: Record<string, string> = {};
-    if (!formData.name.trim()) errors.name = "Preencha o nome";
-    if (!formData.phone.trim()) {
-      errors.phone = "Preencha o telefone";
-    } else if (!isValidPhoneNumber(formData.phone, "PT")) {
-      errors.phone = "Número de telefone inválido";
-    }
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
-    // Normalize phone
-    try {
-      const parsed = parsePhoneNumber(formData.phone, "PT");
-      if (parsed) setFormData((p) => ({ ...p, phone: parsed.formatInternational() }));
-    } catch {}
-
-    captureLead({ name: formData.name, phone: formData.phone });
-    trackEvent("begin_checkout", { workspaceSlug: wsSlug, subtotal, itemCount: items.length });
-    setStep(2);
-  };
-
-  const handleEmailBlur = () => {
-    if (formData.email.trim() && !emailCapturedRef.current) {
-      emailCapturedRef.current = true;
-      captureLead({ name: formData.name, phone: formData.phone, email: formData.email });
-    }
-  };
-
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setCouponLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("store_coupons")
-        .select("id, code, discount_type, discount_value, min_order_amount, max_uses, used_count, valid_until, is_active, single_use_per_customer, category_ids, max_discount_amount")
-        .eq("code", couponCode.toUpperCase().trim())
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-
-      if (error || !data) {
-        toast.error("Cupão inválido");
-        return;
-      }
-      if (data.max_uses && (data.used_count ?? 0) >= data.max_uses) {
-        toast.error("Cupão esgotado");
-        return;
-      }
-      if (data.valid_until && new Date(data.valid_until) < new Date()) {
-        toast.error("Cupão expirado");
-        return;
-      }
-      if (data.min_order_amount && subtotal < data.min_order_amount) {
-        toast.error(`Encomenda mínima de €${Number(data.min_order_amount).toFixed(2)}`);
-        return;
-      }
-
-      // Check single use per customer
-      if (data.single_use_per_customer && formData.email) {
-        const { data: usageData } = await supabase
-          .from("store_coupon_usage")
-          .select("id")
-          .eq("coupon_id", data.id)
-          .eq("customer_email", formData.email.toLowerCase().trim())
-          .limit(1)
-          .maybeSingle();
-
-        if (usageData) {
-          toast.error("Já utilizou este cupão anteriormente");
-          return;
-        }
-      }
-
-      // Check category restriction
-      if (data.category_ids && data.category_ids.length > 0) {
-        const cartCategories = items.map((item) => (item as any).category).filter(Boolean);
-        const hasMatchingCategory = cartCategories.some((cat: string) => data.category_ids!.includes(cat));
-        if (!hasMatchingCategory && cartCategories.length > 0) {
-          toast.error("Cupão válido apenas para categorias específicas");
-          return;
-        }
-      }
-
-      setAppliedCoupon({
-        code: data.code,
-        discount_type: data.discount_type,
-        discount_value: data.discount_value,
-        max_discount_amount: data.max_discount_amount,
-        category_ids: data.category_ids,
-      });
-      setCouponCode("");
-      toast.success("Cupão aplicado!");
-      trackEvent("apply_coupon", { workspaceSlug: wsSlug, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value });
-    } finally {
-      setCouponLoading(false);
-    }
-  };
-
-  const discountAmount = appliedCoupon
-    ? (() => {
-        const sub = toMoney(subtotal);
-        let discount = appliedCoupon.discount_type === "percentage"
-          ? moneyMul(sub, appliedCoupon.discount_value / 100)
-          : moneyMin(appliedCoupon.discount_value, sub);
-        if (appliedCoupon.discount_type === "percentage" && appliedCoupon.max_discount_amount) {
-          discount = moneyMin(discount, appliedCoupon.max_discount_amount);
-        }
-        return moneyToNumber(discount);
-      })()
-    : 0;
-
-  const selectedCttOption = cttOptions.find((o) => o.id === selectedShippingId);
-  const effectiveShippingCost = selectedCttOption?.price ?? 0;
-  const giftCardAmount = appliedGiftCard
-    ? moneyToNumber(moneyMin(appliedGiftCard.current_balance, moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost)))
-    : 0;
-  const finalTotal = moneyToNumber(moneyMax(0, moneySub(moneyAdd(moneySub(subtotal, discountAmount), effectiveShippingCost), giftCardAmount)));
+  const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
+  const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: Record<string, string> = {};
-    if (!formData.email.trim()) {
-      errors.email = "Preencha o email";
-    } else if (!isEmail(formData.email)) {
-      errors.email = "Email inválido";
-    }
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    if (!form.validateStep2()) return;
 
-    trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: finalTotal, itemCount: items.length, currency: items[0]?.currency });
-    setIsProcessing(true);
+    trackEvent("checkout_submit", { workspaceSlug: wsSlug, subtotal, total: pricing.finalTotal, itemCount: items.length, currency: items[0]?.currency });
+    form.setIsProcessing(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-store-checkout", {
         body: {
           workspaceId: wsId,
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            name: item.name,
-            price: item.price,
-          })),
-          customerName: formData.name,
-          customerEmail: formData.email,
-          customerPhone: formData.phone || undefined,
-          contactId: contactId || undefined,
-          couponCode: appliedCoupon?.code || undefined,
-          giftCardCode: appliedGiftCard?.code || undefined,
-          shippingMethodId: selectedShippingId || undefined,
-          shippingCost: effectiveShippingCost,
-          shippingMethodName: selectedCttOption?.name || undefined,
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, name: item.name, price: item.price })),
+          customerName: form.formData.name,
+          customerEmail: form.formData.email,
+          customerPhone: form.formData.phone || undefined,
+          contactId: form.contactId || undefined,
+          couponCode: pricing.appliedCoupon?.code || undefined,
+          giftCardCode: pricing.appliedGiftCard?.code || undefined,
+          shippingMethodId: pricing.selectedShippingId || undefined,
+          shippingCost: pricing.effectiveShippingCost,
+          shippingMethodName: pricing.selectedCttOption?.name || undefined,
           abandonedCartId: abandonedCartId || undefined,
           successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
           cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
@@ -310,7 +64,7 @@ export default function StoreCheckoutPage() {
         clearCart();
         window.location.href = `/store/${wsSlug}/success`;
       } else if (data?.url) {
-        trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: finalTotal });
+        trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: pricing.finalTotal });
         clearCart();
         window.location.href = data.url;
       } else {
@@ -320,7 +74,7 @@ export default function StoreCheckoutPage() {
       const message = err instanceof Error ? err.message : "Erro ao criar checkout";
       toast.error(message);
       try { Sentry.captureException(err); } catch {}
-      setIsProcessing(false);
+      form.setIsProcessing(false);
     }
   };
 
@@ -333,10 +87,7 @@ export default function StoreCheckoutPage() {
           <h2 className="text-xl font-semibold mb-2">Carrinho vazio</h2>
           <p className="text-muted-foreground mb-4">Adicione produtos antes de finalizar.</p>
           <Link to={`/store/${wsSlug}`}>
-            <Button variant="outline" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar à Loja
-            </Button>
+            <Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Voltar à Loja</Button>
           </Link>
         </div>
       </div>
@@ -347,6 +98,7 @@ export default function StoreCheckoutPage() {
     <>
       <Helmet>
         <title>Checkout | {storeName}</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -354,291 +106,72 @@ export default function StoreCheckoutPage() {
 
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Link to={`/store/${wsSlug}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar à Loja
+            <ArrowLeft className="h-4 w-4" /> Voltar à Loja
           </Link>
 
           {/* Step indicator */}
           <div className="flex items-center gap-3 mb-8">
-            <div className={cn(
-              "flex items-center gap-2 text-sm font-medium",
-              step === 1 ? "text-primary" : "text-muted-foreground"
-            )}>
-              {step > 1 ? (
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-              ) : (
-                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>
-              )}
-              <button type="button" onClick={() => step === 2 && setStep(1)} className={step === 2 ? "hover:underline cursor-pointer" : ""}>
-                Dados pessoais
-              </button>
+            <div className={cn("flex items-center gap-2 text-sm font-medium", form.step === 1 ? "text-primary" : "text-muted-foreground")}>
+              {form.step > 1 ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</span>}
+              <button type="button" onClick={() => form.step === 2 && form.setStep(1)} className={form.step === 2 ? "hover:underline cursor-pointer" : ""}>Dados pessoais</button>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <div className={cn(
-              "flex items-center gap-2 text-sm font-medium",
-              step === 2 ? "text-primary" : "text-muted-foreground"
-            )}>
-              <span className={cn(
-                "h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold",
-                step === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>2</span>
+            <div className={cn("flex items-center gap-2 text-sm font-medium", form.step === 2 ? "text-primary" : "text-muted-foreground")}>
+              <span className={cn("h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold", form.step === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</span>
               Pagamento
             </div>
           </div>
 
           <div className="grid md:grid-cols-5 gap-8">
-            {/* Step content */}
             <div className="md:col-span-3">
-              {step === 1 ? (
-                <form onSubmit={handleStep1Continue} className="space-y-6">
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">Identificação</h2>
-                    <p className="text-sm text-muted-foreground">Precisamos do seu contacto para atualizações da encomenda</p>
-                    <div className="grid gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="flex items-center gap-1.5">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          Nome completo *
-                        </Label>
-                        <Input
-                          id="name"
-                          placeholder="O seu nome completo"
-                          value={formData.name}
-                          onChange={(e) => { setFormData(p => ({ ...p, name: e.target.value })); setFieldErrors(p => ({ ...p, name: "" })); }}
-                          required
-                          autoFocus
-                          className={fieldErrors.name ? "border-destructive" : ""}
-                        />
-                        {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                          Telefone *
-                        </Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="+351 912 345 678"
-                          value={formData.phone}
-                          onChange={(e) => { setFormData(p => ({ ...p, phone: e.target.value })); setFieldErrors(p => ({ ...p, phone: "" })); }}
-                          required
-                          className={fieldErrors.phone ? "border-destructive" : ""}
-                        />
-                        {fieldErrors.phone ? (
-                          <p className="text-xs text-destructive">{fieldErrors.phone}</p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button type="submit" size="lg" className="w-full gap-2" disabled={!isStep1Valid()}>
-                    Continuar
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </form>
+              {form.step === 1 ? (
+                <CheckoutLeadStep
+                  formData={form.formData}
+                  fieldErrors={form.fieldErrors}
+                  isStep1Valid={form.isStep1Valid}
+                  onFieldChange={form.updateField}
+                  onSubmit={form.handleStep1Continue}
+                />
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Summary of step 1 data */}
-                  <div className="border rounded-lg p-4 bg-muted/30 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">Os seus dados</h3>
-                      <button type="button" onClick={() => setStep(1)} className="text-xs text-primary hover:underline">Editar</button>
-                    </div>
-                    <p className="text-sm">{formData.name}</p>
-                    <p className="text-sm text-muted-foreground">{formData.phone}</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h2 className="text-lg font-semibold">Email para recibo</h2>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        Email *
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="o-seu@email.com"
-                        value={formData.email}
-                        onChange={(e) => {
-                          setFormData(p => ({ ...p, email: e.target.value }));
-                          setFieldErrors(p => ({ ...p, email: "" }));
-                          emailCapturedRef.current = false;
-                        }}
-                        onBlur={handleEmailBlur}
-                        required
-                        autoFocus
-                        className={fieldErrors.email ? "border-destructive" : ""}
-                      />
-                      {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
-                  </div>
-                  </div>
-
-                  {/* CTT Shipping method selection */}
-                  <div className="space-y-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                      <Truck className="h-5 w-5" /> Método de Envio
-                    </h2>
-                    {totalWeight > 0 && (
-                      <p className="text-xs text-muted-foreground">Peso total: {totalWeight >= 1 ? `${totalWeight.toFixed(2)} kg` : `${Math.round(totalWeight * 1000)} g`}</p>
-                    )}
-                    {shippingLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        A calcular portes...
-                      </div>
-                    ) : overWeight ? (
-                      <div className="flex items-center gap-2 text-sm text-amber-600 border border-amber-200 rounded-lg p-3 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
-                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                        <span>Peso excede 10kg. Contacte-nos para orçamento de envio personalizado.</span>
-                      </div>
-                    ) : cttOptions.length > 0 ? (
-                      <RadioGroup value={selectedShippingId} onValueChange={setSelectedShippingId}>
-                        {cttOptions.map((option) => (
-                          <div key={option.id} className={cn(
-                            "flex items-center justify-between border rounded-lg p-3 cursor-pointer transition-colors",
-                            selectedShippingId === option.id ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
-                          )} onClick={() => setSelectedShippingId(option.id)}>
-                            <div className="flex items-center gap-3">
-                              <RadioGroupItem value={option.id} />
-                              <div>
-                                <p className="text-sm font-medium">{option.name}</p>
-                                <p className="text-xs text-muted-foreground">{option.estimate}</p>
-                              </div>
-                            </div>
-                            <span className="text-sm font-medium">€{option.price.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Nenhuma opção de envio disponível.</p>
-                    )}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full gap-2"
-                    disabled={isProcessing || !formData.email.trim()}
-                  >
-                    {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    {isProcessing ? "A redirecionar para o Stripe..." : "Pagar com Stripe"}
-                  </Button>
-
-                  <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                    <Lock className="h-3 w-3" />
-                    Pagamento seguro processado pelo Stripe
-                  </p>
-                </form>
+                <CheckoutPaymentStep
+                  formData={form.formData}
+                  fieldErrors={form.fieldErrors}
+                  isProcessing={form.isProcessing}
+                  onFieldChange={form.handleEmailChange}
+                  onEmailBlur={form.handleEmailBlur}
+                  onStepBack={() => form.setStep(1)}
+                  onSubmit={handleSubmit}
+                  totalWeight={pricing.totalWeight}
+                  shippingLoading={pricing.shippingLoading}
+                  overWeight={pricing.overWeight}
+                  cttOptions={pricing.cttOptions}
+                  selectedShippingId={pricing.selectedShippingId}
+                  onSelectShipping={pricing.setSelectedShippingId}
+                />
               )}
             </div>
 
-            {/* Order Summary */}
             <div className="md:col-span-2">
-              <div className="border rounded-xl p-5 space-y-4 sticky top-24">
-                <h2 className="font-semibold">Resumo da encomenda</h2>
-                <div className="space-y-3">
-                  {items.map((item) => (
-                    <div key={item.productId} className="flex gap-3">
-                      <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                        {item.image ? (
-                          <img src={item.image} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center">
-                            <Package className="h-6 w-6 text-muted-foreground/30" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium line-clamp-1">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
-                      </div>
-                      <p className="text-sm font-medium">€{formatMoney(item.price * item.quantity)}</p>
-                    </div>
-                  ))}
-                </div>
-                <Separator />
-
-                {/* Coupon */}
-                {step === 2 && (
-                  <div className="space-y-2">
-                    {appliedCoupon ? (
-                      <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Ticket className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-700 dark:text-green-400">{appliedCoupon.code}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            -{appliedCoupon.discount_type === "percentage" ? `${appliedCoupon.discount_value}%` : `€${appliedCoupon.discount_value.toFixed(2)}`}
-                          </Badge>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAppliedCoupon(null)}>
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Código de cupão"
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          className="text-sm"
-                        />
-                        <Button variant="outline" size="sm" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()}>
-                          Aplicar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Gift Card */}
-                {step === 2 && (
-                  <div className="space-y-2">
-                    <StoreGiftCardBalance
-                      workspaceId={wsSlug}
-                      appliedGiftCard={appliedGiftCard}
-                      onApply={(gc) => { setAppliedGiftCard(gc); trackEvent("apply_gift_card", { workspaceSlug: wsSlug, giftCardCode: gc?.code }); }}
-                      onRemove={() => setAppliedGiftCard(null)}
-                    />
-                  </div>
-                )}
-
-                {(appliedCoupon || effectiveShippingCost > 0 || appliedGiftCard) && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal</span>
-                      <span>€{formatMoney(subtotal)}</span>
-                    </div>
-                    {appliedCoupon && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Desconto</span>
-                        <span>-€{formatMoney(discountAmount)}</span>
-                      </div>
-                    )}
-                    {appliedGiftCard && giftCardAmount > 0 && (
-                      <div className="flex justify-between text-sm text-purple-600">
-                        <span>Gift Card</span>
-                        <span>-€{formatMoney(giftCardAmount)}</span>
-                      </div>
-                    )}
-                    {effectiveShippingCost > 0 && selectedCttOption && (
-                      <div className="flex justify-between text-sm">
-                        <span>Envio ({selectedCttOption.name})</span>
-                        <span>€{formatMoney(effectiveShippingCost)}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <Separator />
-                <div className="flex justify-between items-center font-semibold text-lg">
-                  <span>Total</span>
-                  <span className="text-primary">€{formatMoney(finalTotal)}</span>
-                </div>
-              </div>
+              <CheckoutSummaryCard
+                items={items}
+                subtotal={subtotal}
+                step={form.step}
+                wsSlug={wsSlug}
+                couponCode={pricing.couponCode}
+                onCouponCodeChange={pricing.setCouponCode}
+                appliedCoupon={pricing.appliedCoupon}
+                onApplyCoupon={pricing.handleApplyCoupon}
+                onRemoveCoupon={() => pricing.setAppliedCoupon(null)}
+                couponLoading={pricing.couponLoading}
+                discountAmount={pricing.discountAmount}
+                appliedGiftCard={pricing.appliedGiftCard}
+                onApplyGiftCard={pricing.setAppliedGiftCard}
+                onRemoveGiftCard={() => pricing.setAppliedGiftCard(null)}
+                giftCardAmount={pricing.giftCardAmount}
+                effectiveShippingCost={pricing.effectiveShippingCost}
+                selectedCttOptionName={pricing.selectedCttOption?.name}
+                finalTotal={pricing.finalTotal}
+              />
             </div>
           </div>
         </div>
