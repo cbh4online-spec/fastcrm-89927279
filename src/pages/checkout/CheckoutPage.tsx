@@ -31,7 +31,7 @@ export default function CheckoutPage() {
       if (!funnelData) { toast.error("Checkout não encontrado"); return; }
       setFunnel(funnelData);
 
-      const { data: bumpData } = await sb.from("checkout_order_bumps")
+      const { data: bumpData } = await supabase.from("checkout_order_bumps" as any)
         .select("*, offer:checkout_offers(*)")
         .eq("funnel_id", funnelData.id)
         .eq("is_active", true)
