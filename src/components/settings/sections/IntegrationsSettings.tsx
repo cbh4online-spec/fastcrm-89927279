@@ -26,6 +26,8 @@ import { useWorkspaceStripeConfig } from "@/hooks/useWorkspaceStripeConfig";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useWorkspaceVideoConfig } from "@/hooks/useWorkspaceVideoConfig";
 import { useWhatsAppConnection } from "@/hooks/useWhatsAppConnection";
+import { MCPProvidersPanel } from "@/components/marketing/mcp/MCPProvidersPanel";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const integrations = [
