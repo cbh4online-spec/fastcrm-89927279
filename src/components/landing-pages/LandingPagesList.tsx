@@ -20,9 +20,11 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateLandingPageDialog } from "./CreateLandingPageDialog";
 import { LandingPageBuilder } from "./LandingPageBuilder";
 import { VerticalTemplateBuilder } from "./VerticalTemplateBuilder";
+import { MCPGenerateDialog } from "@/components/marketing/mcp/MCPGenerateDialog";
 import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
+import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 
 export function LandingPagesList() {

@@ -19,9 +19,12 @@ import {
   Loader2,
   Eye,
   RefreshCw,
+  FileText,
+  Layers,
 } from "lucide-react";
 import { useMCPImports, useMCPImportDetail, type NormalizedPayload } from "@/hooks/useMarketingMCP";
 import { MCPImportResult } from "./MCPImportResult";
+import { MCPGenerateDialog } from "./MCPGenerateDialog";
 
 const STATUS_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   pending: { icon: Clock, color: "text-yellow-600", label: "Pendente" },
@@ -46,6 +49,8 @@ export function MCPImportHistory({ workspaceId }: MCPImportHistoryProps) {
   const { data: imports, isLoading, refetch } = useMCPImports(workspaceId);
   const [detailId, setDetailId] = useState<string | null>(null);
   const { data: detailRecord } = useMCPImportDetail(workspaceId, detailId || undefined);
+  const [generateImportId, setGenerateImportId] = useState<string | null>(null);
+  const [generateTarget, setGenerateTarget] = useState<"page" | "funnel">("page");
 
   if (isLoading) {
     return (
@@ -129,7 +134,7 @@ export function MCPImportHistory({ workspaceId }: MCPImportHistoryProps) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Badge
                         variant="secondary"
                         className={`${statusCfg.color} bg-transparent border-0`}
@@ -138,13 +143,41 @@ export function MCPImportHistory({ workspaceId }: MCPImportHistoryProps) {
                         {statusCfg.label}
                       </Badge>
                       {record.status === "completed" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDetailId(record.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setDetailId(record.id)}
+                            title="Ver detalhes"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setGenerateImportId(record.id);
+                              setGenerateTarget("page");
+                            }}
+                            title="Gerar Landing Page"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setGenerateImportId(record.id);
+                              setGenerateTarget("funnel");
+                            }}
+                            title="Gerar Funil"
+                          >
+                            <Layers className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -173,6 +206,15 @@ export function MCPImportHistory({ workspaceId }: MCPImportHistoryProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Generate dialog */}
+      <MCPGenerateDialog
+        open={!!generateImportId}
+        onOpenChange={(open) => !open && setGenerateImportId(null)}
+        workspaceId={workspaceId}
+        defaultTarget={generateTarget}
+        preselectedImportId={generateImportId || undefined}
+      />
     </>
   );
 }
