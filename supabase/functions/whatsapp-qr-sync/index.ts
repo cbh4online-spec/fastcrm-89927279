@@ -98,8 +98,10 @@ Deno.serve(async (req) => {
         const infoData = await infoRes.json();
         console.log(`[WHATSAPP_QR] FETCH_INSTANCES raw=${JSON.stringify(infoData).substring(0, 500)}`);
         const instance = Array.isArray(infoData) ? infoData[0] : infoData;
-        phoneNumber = instance?.instance?.owner
-          || instance?.instance?.wuid?.split("@")?.[0]
+        // Evolution API v2 returns flat objects with ownerJid
+        phoneNumber = instance?.ownerJid
+          || instance?.instance?.owner
+          || instance?.instance?.wuid
           || instance?.owner
           || instance?.number
           || null;
