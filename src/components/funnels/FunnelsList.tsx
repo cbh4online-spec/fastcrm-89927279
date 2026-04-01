@@ -1058,7 +1058,7 @@ export function FunnelsList() {
           open={mcpGenerateOpen}
           onOpenChange={setMcpGenerateOpen}
           workspaceId={currentWorkspace.id}
-          defaultTarget="funnel"
+          
           onGenerated={(id) => setEditingFunnelId(id)}
         />
       )}
