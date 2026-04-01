@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { CHANGE_EVENTS_SELECT_COLUMNS } from '@/hooks/constants/selectColumns';
 
 export function useChangeEvents(limit = 30) {
   const { currentWorkspace } = useWorkspace();
