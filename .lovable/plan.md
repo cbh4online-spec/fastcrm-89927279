@@ -1,110 +1,98 @@
 
-# Plano: WhatsApp Conversation Management — Integração com Inbox Existente
 
-## A. Diagnóstico
+# Plano: Dual Health Model — Connection State + Sync Health
 
-O FastCRM **já tem um inbox omnichannel production-grade** com todas as funcionalidades pedidas:
+## A. Causa Raiz
 
-| Funcionalidade | Estado |
-|---|---|
-| Layout 3 colunas (sidebar + lista + thread + context panel) | ✅ Implementado |
-| Pesquisa, filtros, tabs, pinning, bulk actions | ✅ Implementado |
-| Message bubbles com delivery status, date separators | ✅ Implementado |
-| Context panel com AI, Summary, Lead, Actions | ✅ Implementado |
-| Assignment, status (open/closed/pending/archived) | ✅ Implementado |
-| Tags (ai_tags, user_tags) | ✅ Implementado |
-| Notas internas via entity_notes | ✅ Implementado |
-| Realtime via postgres_changes | ✅ Implementado |
-| AI composer com sugestões e templates | ✅ Implementado |
-| CRM integration (lead/contact/company/opportunity) | ✅ Implementado |
-| Keyboard shortcuts, Sales columns view | ✅ Implementado |
-| WhatsApp QR connection + settings card | ✅ Implementado |
+O campo `status` mistura estado de conexão com saúde de sincronização. Uma sessão Evolution API pode estar `open` (connected) mas com sync de histórico suspenso no dispositivo móvel. O sistema actual mostra "Conectado" verde, o que é enganador.
 
-### O que falta (3 lacunas específicas):
+## B. Alterações Necessárias
 
-1. **Inbound webhook** — Não existe edge function para receber mensagens inbound da Evolution API e criar conversations/messages no inbox
-2. **Outbound routing** — O hook `useSendMessage` não encaminha mensagens WhatsApp (non-GHL) via `whatsapp-evolution-send`
-3. **WhatsApp connection awareness** — O inbox não mostra o estado da conexão WhatsApp QR
+### 1. Migration SQL — Adicionar campos de sync health
 
-**Resultado actual:** 0 conversas WhatsApp no DB. O sistema está pronto mas não tem o "tubo" de entrada/saída ligado à Evolution API.
+Novas colunas em `whatsapp_qr_connections`:
+- `sync_health` TEXT DEFAULT 'unknown' — valores: active, delayed, suspended, degraded, failed, unknown
+- `last_sync_at` TIMESTAMPTZ
+- `last_successful_sync_at` TIMESTAMPTZ
+- `sync_issue_reason` TEXT
+- `last_health_check_at` TIMESTAMPTZ
+- `last_inbound_message_at` TIMESTAMPTZ
+- `last_outbound_message_at` TIMESTAMPTZ
 
----
+CHECK constraint para `sync_health` com os 6 valores permitidos.
 
-## B. Ficheiros a Criar/Alterar
+### 2. Edge Function: `whatsapp-qr-status` — Refactor
 
-| Ficheiro | Acção | Descrição |
-|---|---|---|
-| `supabase/functions/whatsapp-evolution-inbound/index.ts` | CRIAR | Webhook para receber mensagens inbound da Evolution API |
-| `src/hooks/useMessages.ts` | EDITAR | Adicionar routing WhatsApp QR no `useSendMessage` |
-| `src/components/inbox/ConversationDetail.tsx` | EDITAR | Mostrar banner de estado WhatsApp quando canal é whatsapp |
-| `src/components/inbox/InboxView.tsx` | EDITAR | Adicionar indicador de conexão WhatsApp no header |
+Após verificar `connectionState` e `fetchInstances`, adicionar lógica de inferência de sync health:
+- Se connected + última mensagem inbound recente (< 5 min) → `active`
+- Se connected + sem mensagens inbound há > 30 min mas instância recente → `delayed`
+- Se connected + sem mensagens inbound há > 2h → `suspended`
+- Se connected mas sem dados para inferir → `unknown`
+- Se disconnected → `failed`
 
----
+Consultar tabela `messages` para verificar última actividade inbound/outbound do workspace.
 
-## C. Detalhes Técnicos
+Persistir `sync_health`, `last_health_check_at`, `sync_issue_reason` no upsert.
 
-### 1. Edge Function: `whatsapp-evolution-inbound`
-
-Recebe webhooks da Evolution API com mensagens inbound. Responsabilidades:
-- Validar workspace via instance_name (`ws_{workspaceId}`)
-- Identificar ou criar lead pelo número de telefone
-- Identificar ou criar conversation (channel=whatsapp)
-- Inserir mensagem na tabela `messages`
-- Actualizar `last_message_at`, `last_message_preview`, `unread_count` na conversation
-- Usar `external_message_id` para idempotência (evitar duplicados)
-- Suportar tipos: text, image, audio, video, document
-- Logs estruturados com workspace_id, phone, message_id
-
-### 2. Routing WhatsApp no `useSendMessage`
-
-Adicionar bloco antes do fallback "other channels":
-```typescript
-// For WhatsApp via Evolution QR (not GHL)
-if (conversation.channel === "whatsapp" && !isGHLConversation) {
-  const { data, error } = await mainClient.functions.invoke("whatsapp-evolution-send", {
-    body: { workspaceId: currentWorkspace.id, phone: recipientPhone, message: content }
-  });
-  // persist message, return
+Retornar ambos os campos na resposta:
+```json
+{
+  "connection_state": "connected",
+  "sync_health": "suspended",
+  "sync_issue_reason": "Sem mensagens inbound há mais de 2 horas",
+  "last_health_check_at": "..."
 }
 ```
 
-Extrair número de telefone de `channel_metadata.phone` ou do lead associado.
+### 3. Edge Function: `whatsapp-qr-sync` — Mesmo refactor
 
-### 3. Connection Awareness no Inbox
+Aplicar a mesma lógica de inferência de sync health.
 
-Pequeno badge no header do InboxView quando existem conversas WhatsApp:
-- Verde: "WhatsApp Conectado"
-- Vermelho: "WhatsApp Desconectado"
+### 4. Edge Function: `whatsapp-evolution-webhook` — Update
 
-Usa o hook `useWhatsAppQRConnection` já existente.
+Ao receber mensagem inbound, actualizar `last_inbound_message_at` e `sync_health = 'active'` na tabela.
 
-### 4. Evolution API Webhook Configuration
+### 5. Hook: `useWhatsAppQRConnection` — Expor novos campos
 
-Após deploy, configurar webhook na Evolution API para:
-`https://{SUPABASE_URL}/functions/v1/whatsapp-evolution-inbound`
+Adicionar `sync_health`, `last_health_check_at`, `sync_issue_reason`, `last_inbound_message_at`, `last_outbound_message_at` ao type `WhatsAppQRConnection`.
 
-Events: `messages.upsert` (mensagens recebidas)
+### 6. UI: `WhatsAppConnectionCard.tsx` — Dual badges
 
----
+Refactor para mostrar:
+- Badge 1: Connection State (Conectado/Desconectado/etc.)
+- Badge 2: Sync Health (Ativo/Suspenso/Degradado/Desconhecido/Falhou)
 
-## D. O que NÃO precisa ser alterado
+Lógica de cores:
+- Verde: connected + active
+- Âmbar: connected + (delayed | suspended | degraded | unknown)
+- Vermelho: disconnected | failed
 
-- ConversationList — já filtra por canal WhatsApp
-- InboxSidebar — já tem filtro por canal WhatsApp
-- InboxContextPanel — já mostra lead, tags, notas, assignment, CRM actions
-- MessageBubble — já suporta inbound/outbound com delivery status
-- Realtime subscriptions — já existem em conversations e messages
-- ConversationDetail — já funciona com qualquer canal
-- AIMessageComposer — já funciona com qualquer canal
-- DB schema (conversations, messages) — já tem todas as colunas necessárias
+Mostrar `sync_issue_reason` quando disponível.
+Mostrar `last_health_check_at` formatado.
 
----
+### 7. UI: `WhatsAppConfigPanel.tsx` — Mesma lógica dual
 
-## E. Critérios de Aceitação
+Adicionar segunda linha com sync health badge e info contextual.
 
-1. Mensagens inbound WhatsApp criam automaticamente conversas no inbox
-2. Mensagens outbound WhatsApp são enviadas via Evolution API
-3. Conversas WhatsApp aparecem na lista com ícone e filtro correcto
-4. Estado da conexão WhatsApp visível no inbox
-5. Sem duplicação de mensagens (idempotência via external_message_id)
-6. Sem regressão nos canais existentes (email, SMS, Instagram, GHL)
+## C. Ficheiros a Criar/Alterar
+
+| Ficheiro | Acção |
+|---|---|
+| Migration SQL | CRIAR — novos campos sync health |
+| `supabase/functions/whatsapp-qr-status/index.ts` | EDITAR — inferir sync health |
+| `supabase/functions/whatsapp-qr-sync/index.ts` | EDITAR — inferir sync health |
+| `supabase/functions/whatsapp-evolution-inbound/index.ts` | EDITAR — update last_inbound_message_at + sync_health |
+| `src/hooks/useWhatsAppQRConnection.ts` | EDITAR — novos campos no type |
+| `src/components/integrations/WhatsAppConnectionCard.tsx` | EDITAR — dual badges |
+| `src/components/settings/WhatsAppConfigPanel.tsx` | EDITAR — dual badges |
+
+## D. Critérios de Aceitação
+
+1. DB tem `sync_health` separado de `status`
+2. Backend infere sync health com base em actividade real
+3. UI mostra dois badges distintos (conexão + sincronização)
+4. "Connected + Sync Suspended" é um estado visível e claro
+5. Verde só quando ambos saudáveis
+6. Unknown não é mostrado como saudável
+7. Refresh health actualiza ambos os campos
+
