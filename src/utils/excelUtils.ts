@@ -93,7 +93,8 @@ export async function exportToExcel(
   sheetName: string,
   fileName: string
 ): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new (ExcelJS as any).Workbook() as ExcelJS_NS.Workbook;
   const worksheet = workbook.addWorksheet(sheetName);
 
   if (data.length === 0) return;

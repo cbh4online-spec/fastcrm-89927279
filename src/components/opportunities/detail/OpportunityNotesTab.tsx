@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
 import { Opportunity } from "@/types/opportunity";
 import { toast } from "sonner";
-import { RichTextEditor, type RichTextEditorRef } from "@/components/ui/RichTextEditor";
+import { RichTextEditorLazy as RichTextEditor, type RichTextEditorRef } from "@/components/ui/RichTextEditorLazy";
 
 interface OpportunityNotesTabProps {
   opportunity: Opportunity;

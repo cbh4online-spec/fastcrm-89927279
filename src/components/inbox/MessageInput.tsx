@@ -58,13 +58,15 @@ export function MessageInput({
         </Button>
 
         {/* Rich Text Editor */}
-        <RichTextEditor
-          ref={editorRef}
-          placeholder={placeholder}
-          disabled={disabled || isSending}
-          onEnterSend={handleSend}
-          onUpdate={handleUpdate}
-        />
+        <Suspense fallback={<Skeleton className="h-10 flex-1 rounded-md" />}>
+          <RichTextEditor
+            ref={editorRef}
+            placeholder={placeholder}
+            disabled={disabled || isSending}
+            onEnterSend={handleSend}
+            onUpdate={handleUpdate}
+          />
+        </Suspense>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
