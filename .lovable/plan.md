@@ -1,21 +1,31 @@
 
 
-# Plano: Adicionar tooltip ao botão de Health Check MCP
+# Plano: Adicionar secção MCP/Figma na página Settings → Integrações & API
 
-## Alteração
+## Problema
 
-Substituir o `title="Health Check"` do botão RefreshCw em `MCPProvidersPanel.tsx` (linha 153-165) por um componente `Tooltip` do shadcn/ui com texto explicativo: **"Verificar saúde — Testa a ligação ao servidor MCP e actualiza o estado da conexão"**.
+O módulo MCP (Figma e outros providers) só está acessível em **Marketing → Integrações MCP**. O utilizador espera encontrá-lo também em **Settings → Integrações & API** (`/settings/integrations`).
 
-## Ficheiro
+## Solução
+
+Adicionar uma nova secção "Integrações MCP" no componente `IntegrationsSettings.tsx`, reutilizando o `MCPProvidersPanel` já existente.
+
+## Ficheiros a Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | Adicionar import de `Tooltip, TooltipContent, TooltipProvider, TooltipTrigger` e envolver o botão de health check com tooltip |
+| `src/components/settings/sections/IntegrationsSettings.tsx` | Adicionar secção MCP com `MCPProvidersPanel` |
 
 ## Detalhe
 
-- Importar `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger` de `@/components/ui/tooltip`
-- Envolver o `Button` (linhas 153-165) com `TooltipProvider > Tooltip > TooltipTrigger` + `TooltipContent`
-- Remover o atributo `title` nativo
-- Texto do tooltip: "Verificar saúde — Testa a ligação ao servidor MCP e actualiza o estado da conexão"
+1. Importar `MCPProvidersPanel` de `@/components/marketing/mcp/MCPProvidersPanel`
+2. Importar `useWorkspace` de `@/contexts/WorkspaceContext`
+3. Importar ícone `Blocks` do lucide-react
+4. Adicionar entrada `integrations-mcp` ao array `visibleSections`
+5. Adicionar nova `SettingsSection` com:
+   - Título: "Integrações MCP"
+   - Descrição: "Gerir providers MCP (Figma, etc.) para importar design systems e componentes"
+   - Ícone: `Blocks`
+   - Conteúdo: `<MCPProvidersPanel workspaceId={currentWorkspace?.id} />` (com guard se não há workspace)
+6. Posicionar após "Videoconferência" e antes de "API & Webhooks"
 
