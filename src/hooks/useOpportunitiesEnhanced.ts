@@ -85,7 +85,10 @@ export function useOpportunitiesEnhanced(filters?: {
       let query = workspaceClient
         .from("opportunities")
         .select(`
-          *,
+          id, title, value, currency, status, probability, priority,
+          expected_close_date, stage_id, owner_id, contact_id, company_id, lead_id,
+          pipeline_id, workspace_id, notes, ai_temperature, ai_next_action,
+          created_at, updated_at,
           lead:leads(id, name, email, phone),
           contact:contacts(id, name, email, phone, company),
           company:companies(id, name, website),
