@@ -429,4 +429,4 @@ export const SmartCompanyRow = memo(function SmartCompanyRow({
       </TableCell>
     </TableRow>
   );
-}
+});
