@@ -26,9 +26,15 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Heart,
   Loader2,
   RefreshCw,
+  Figma,
+  GitBranch,
+  Blocks,
+  CircleCheck,
+  CircleX,
+  CircleDot,
+  type LucideIcon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -45,10 +51,16 @@ interface MCPProvidersPanelProps {
   workspaceId: string;
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline" }> = {
-  connected: { label: "Conectado", variant: "default" },
-  error: { label: "Erro", variant: "destructive" },
-  unknown: { label: "Desconhecido", variant: "secondary" },
+const PROVIDER_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
+  figma: { icon: Figma, className: "text-purple-500" },
+  git: { icon: GitBranch, className: "text-orange-500" },
+  custom: { icon: Blocks, className: "text-blue-500" },
+};
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline"; icon: LucideIcon; dotClass: string }> = {
+  connected: { label: "Conectado", variant: "default", icon: CircleCheck, dotClass: "text-emerald-500" },
+  error: { label: "Erro", variant: "destructive", icon: CircleX, dotClass: "text-destructive" },
+  unknown: { label: "Desconhecido", variant: "secondary", icon: CircleDot, dotClass: "text-muted-foreground" },
 };
 
 const KEY_LABELS: Record<string, string> = {
@@ -122,12 +134,26 @@ export function MCPProvidersPanel({ workspaceId }: MCPProvidersPanelProps) {
                     const st = STATUS_MAP[p.connection_status] || STATUS_MAP.unknown;
                     return (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.provider_name}</TableCell>
+                        <TableCell className="font-medium">
+                          {(() => {
+                            const pi = PROVIDER_ICONS[p.provider_key];
+                            const ProvIcon = pi?.icon || Blocks;
+                            return (
+                              <span className="inline-flex items-center gap-1.5">
+                                <ProvIcon className={`h-4 w-4 ${pi?.className || "text-muted-foreground"}`} />
+                                {p.provider_name}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{KEY_LABELS[p.provider_key] || p.provider_key}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={st.variant}>{st.label}</Badge>
+                          <span className="inline-flex items-center gap-1.5">
+                            <st.icon className={`h-4 w-4 ${st.dotClass}`} />
+                            <span className="text-sm">{st.label}</span>
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Switch
