@@ -12,7 +12,7 @@ interface KPICardProps {
   loading?: boolean;
 }
 
-export function KPICard({ title, value, change, icon: Icon, loading }: KPICardProps) {
+export const KPICard = memo(function KPICard({ title, value, change, icon: Icon, loading }: KPICardProps) {
   if (loading) {
     return (
       <Card>
