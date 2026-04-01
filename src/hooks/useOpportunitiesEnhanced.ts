@@ -27,7 +27,7 @@ export function usePipelines() {
 
       const { data, error } = await workspaceClient
         .from("pipelines")
-        .select("*")
+        .select("id, name, workspace_id, is_default, created_at, updated_at")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: true });
 
