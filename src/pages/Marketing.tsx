@@ -20,6 +20,7 @@ import {
   Globe,
   Zap,
   Bell,
+  Blocks,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -41,6 +42,7 @@ import { CampaignLandingPages } from '@/components/marketing/CampaignLandingPage
 import { CampaignReportExport } from '@/components/marketing/CampaignReportExport';
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
+import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
 import { toast } from 'sonner';
 
 export default function Marketing() {
@@ -180,6 +182,10 @@ export default function Marketing() {
                 <GitBranch className="h-4 w-4" />
                 <span className="hidden sm:inline">Pipeline</span>
               </TabsTrigger>
+              <TabsTrigger value="mcp" className="gap-1.5">
+                <Blocks className="h-4 w-4" />
+                <span className="hidden sm:inline">Integrações MCP</span>
+              </TabsTrigger>
               <TabsTrigger value="settings" className="gap-1.5">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Definições</span>
@@ -232,6 +238,10 @@ export default function Marketing() {
 
           <TabsContent value="pipeline" className="space-y-6">
             <PipelineTriggersPanel />
+          </TabsContent>
+
+          <TabsContent value="mcp" className="space-y-6">
+            <MCPIntegrationsTab />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">

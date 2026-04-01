@@ -32536,6 +32536,119 @@ export type Database = {
           },
         ]
       }
+      marketing_mcp_providers: {
+        Row: {
+          auth_type: string
+          connection_status: string
+          created_at: string
+          encrypted_credentials_json: Json | null
+          id: string
+          is_default_for_funnels: boolean
+          is_default_for_pages: boolean
+          is_enabled: boolean
+          last_error: string | null
+          last_health_check_at: string | null
+          metadata_json: Json | null
+          provider_key: string
+          provider_name: string
+          provider_type: string
+          server_url: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_type?: string
+          connection_status?: string
+          created_at?: string
+          encrypted_credentials_json?: Json | null
+          id?: string
+          is_default_for_funnels?: boolean
+          is_default_for_pages?: boolean
+          is_enabled?: boolean
+          last_error?: string | null
+          last_health_check_at?: string | null
+          metadata_json?: Json | null
+          provider_key: string
+          provider_name: string
+          provider_type?: string
+          server_url: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_type?: string
+          connection_status?: string
+          created_at?: string
+          encrypted_credentials_json?: Json | null
+          id?: string
+          is_default_for_funnels?: boolean
+          is_default_for_pages?: boolean
+          is_enabled?: boolean
+          last_error?: string | null
+          last_health_check_at?: string | null
+          metadata_json?: Json | null
+          provider_key?: string
+          provider_name?: string
+          provider_type?: string
+          server_url?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_mcp_providers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_mcp_workflow_bindings: {
+        Row: {
+          config_json: Json | null
+          created_at: string
+          id: string
+          provider_id: string
+          updated_at: string
+          workflow_type: string
+          workspace_id: string
+        }
+        Insert: {
+          config_json?: Json | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          updated_at?: string
+          workflow_type: string
+          workspace_id: string
+        }
+        Update: {
+          config_json?: Json | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          updated_at?: string
+          workflow_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_mcp_workflow_bindings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_mcp_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_mcp_workflow_bindings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_recipients: {
         Row: {
           bounce_code: string | null
