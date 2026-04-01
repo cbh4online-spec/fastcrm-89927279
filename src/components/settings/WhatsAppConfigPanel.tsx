@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useWhatsAppQRConnection, useDisconnectWhatsAppQR, useSyncWhatsAppQR, type WhatsAppQRStatus, type WhatsAppSyncHealth } from "@/hooks/useWhatsAppQRConnection";
+import { useWhatsAppQRConnection, useDisconnectWhatsAppQR, useSyncWhatsAppQR, useReconnectWhatsAppQR, type WhatsAppQRStatus, type WhatsAppSyncHealth, type WhatsAppRecoveryState } from "@/hooks/useWhatsAppQRConnection";
 import { useWhatsAppSettings, useSaveWhatsAppSettings } from "@/hooks/useWhatsAppSettings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Phone, Loader2, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode, RefreshCw, AlertCircle, Wifi, WifiOff, Activity, Clock, AlertTriangle, XCircle } from "lucide-react";
+import { Phone, Loader2, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode, RefreshCw, AlertCircle, Wifi, WifiOff, Activity, Clock, AlertTriangle, XCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { WhatsAppQRDialog } from "./WhatsAppQRDialog";
 
@@ -46,16 +39,26 @@ const SYNC_HEALTH_CONFIG: Record<WhatsAppSyncHealth, { label: string; className:
   unknown: { label: "Sync Desconhecido", className: "bg-muted text-muted-foreground", icon: AlertCircle },
 };
 
+const RECOVERY_LABELS: Record<WhatsAppRecoveryState, string> = {
+  none: "",
+  checking: "A verificar...",
+  resyncing: "A resincronizar...",
+  reconnecting: "A reconectar...",
+  repair_required: "Nova ligação necessária",
+  repaired: "Reparado",
+  failed: "Recuperação falhou",
+};
+
 export function WhatsAppConfigPanel() {
   const { data: qrConnection, isLoading } = useWhatsAppQRConnection();
   const { data: settings, isLoading: isLoadingSettings } = useWhatsAppSettings();
   const saveMutation = useSaveWhatsAppSettings();
   const disconnectMutation = useDisconnectWhatsAppQR();
   const syncMutation = useSyncWhatsAppQR();
+  const reconnectMutation = useReconnectWhatsAppQR();
   const { currentWorkspace } = useWorkspace();
   const [showQRDialog, setShowQRDialog] = useState(false);
 
-  // Local form state
   const [autopilotEnabled, setAutopilotEnabled] = useState(false);
   const [aiPersona, setAiPersona] = useState("");
   const [businessHoursOnly, setBusinessHoursOnly] = useState(false);
@@ -94,9 +97,7 @@ export function WhatsAppConfigPanel() {
   };
 
   const handleDisconnect = async () => {
-    try {
-      await disconnectMutation.mutateAsync();
-    } catch { /* handled in hook */ }
+    try { await disconnectMutation.mutateAsync(); } catch { /* handled */ }
   };
 
   const handleSync = async () => {
@@ -106,6 +107,10 @@ export function WhatsAppConfigPanel() {
     } catch {
       toast.error("Erro ao sincronizar estado");
     }
+  };
+
+  const handleReconnect = async () => {
+    try { await reconnectMutation.mutateAsync(); } catch { /* handled in hook */ }
   };
 
   if (isLoading) {
@@ -118,11 +123,15 @@ export function WhatsAppConfigPanel() {
 
   const status: WhatsAppQRStatus = (qrConnection?.status as WhatsAppQRStatus) || "not_configured";
   const syncHealth: WhatsAppSyncHealth = (qrConnection?.sync_health as WhatsAppSyncHealth) || "unknown";
+  const recoveryState: WhatsAppRecoveryState = (qrConnection?.recovery_state as WhatsAppRecoveryState) || "none";
   const isConnected = status === "connected";
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.not_configured;
   const syncCfg = SYNC_HEALTH_CONFIG[syncHealth] || SYNC_HEALTH_CONFIG.unknown;
   const StatusIcon = statusConfig.icon;
   const SyncIcon = syncCfg.icon;
+  const isRecoveryPending = syncMutation.isPending || reconnectMutation.isPending;
+  const needsRecovery = isConnected && syncHealth !== "active";
+  const isRepairRequired = recoveryState === "repair_required";
 
   return (
     <div className="space-y-4">
@@ -135,10 +144,7 @@ export function WhatsAppConfigPanel() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium">WhatsApp (Evolution QR)</p>
-              <Badge
-                variant={statusConfig.variant}
-                className={`text-[10px] gap-1 ${isConnected ? "bg-emerald-500 text-white" : ""}`}
-              >
+              <Badge variant={statusConfig.variant} className={`text-[10px] gap-1 ${isConnected ? "bg-emerald-500 text-white" : ""}`}>
                 <StatusIcon className="h-3 w-3" />
                 {statusConfig.label}
               </Badge>
@@ -157,23 +163,44 @@ export function WhatsAppConfigPanel() {
                 Última verificação: {new Date(qrConnection.last_health_check_at).toLocaleString("pt-PT")}
               </p>
             )}
+            {recoveryState !== "none" && (
+              <p className={`text-xs font-medium ${isRepairRequired ? "text-destructive" : "text-amber-600"}`}>
+                {RECOVERY_LABELS[recoveryState]}
+                {(qrConnection?.recovery_attempt_count ?? 0) > 0 && ` (${qrConnection?.recovery_attempt_count} tentativas)`}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Sync button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleSync}
-            disabled={syncMutation.isPending}
-            title="Verificar saúde da conexão"
-          >
+          {/* Health check */}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSync} disabled={isRecoveryPending} title="Verificar saúde da conexão">
             <RefreshCw className={`h-3.5 w-3.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
           </Button>
 
-          {isConnected ? (
+          {/* Recovery actions */}
+          {needsRecovery && !isRepairRequired && (
+            <Button variant="outline" size="sm" onClick={handleReconnect} disabled={isRecoveryPending} className="gap-1.5" title="Reconectar sessão">
+              {reconnectMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              Reconectar
+            </Button>
+          )}
+
+          {/* Repair required — clean re-pair */}
+          {isRepairRequired && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { disconnectMutation.mutate(); setShowQRDialog(true); }}
+              disabled={disconnectMutation.isPending}
+              className="gap-1.5"
+            >
+              <Unplug className="h-3.5 w-3.5" />
+              Nova ligação
+            </Button>
+          )}
+
+          {isConnected && !isRepairRequired ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
@@ -196,7 +223,7 @@ export function WhatsAppConfigPanel() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          ) : (
+          ) : !isConnected && (
             <Button onClick={() => setShowQRDialog(true)} size="sm" className="gap-1.5">
               <QrCode className="h-3.5 w-3.5" />
               {status === "disconnected" || status === "error" ? "Reconectar via QR" : "Conectar via QR"}
@@ -205,8 +232,23 @@ export function WhatsAppConfigPanel() {
         </div>
       </div>
 
+      {/* Repair required warning */}
+      {isRepairRequired && (
+        <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-xs">Nova ligação necessária</p>
+              <p className="mt-0.5 text-xs opacity-80">
+                Após múltiplas tentativas de recuperação, a sessão não conseguiu restabelecer o sync. Desconecte e inicie uma nova ligação.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sync health warning */}
-      {isConnected && syncHealth !== "active" && (
+      {needsRecovery && !isRepairRequired && (
         <div className={`p-3 rounded-lg border text-sm ${
           syncHealth === "suspended" || syncHealth === "failed"
             ? "border-destructive/30 bg-destructive/5 text-destructive"
@@ -232,7 +274,7 @@ export function WhatsAppConfigPanel() {
         </div>
       )}
 
-      {/* Error display */}
+      {/* Error */}
       {status === "error" && qrConnection?.last_error && (
         <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
           <div className="flex items-center gap-2 text-sm text-destructive">
@@ -242,25 +284,15 @@ export function WhatsAppConfigPanel() {
         </div>
       )}
 
-      {/* Settings tabs (only when connected) */}
+      {/* Settings tabs */}
       {isConnected && !isLoadingSettings && (
         <>
           <Separator />
-
           <Tabs defaultValue="autopilot" className="w-full">
             <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="autopilot" className="gap-1.5 text-xs">
-                <Bot className="h-3.5 w-3.5" />
-                Auto-Piloto IA
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="gap-1.5 text-xs">
-                <MessageSquare className="h-3.5 w-3.5" />
-                Mensagens
-              </TabsTrigger>
-              <TabsTrigger value="general" className="gap-1.5 text-xs">
-                <Settings className="h-3.5 w-3.5" />
-                Definições
-              </TabsTrigger>
+              <TabsTrigger value="autopilot" className="gap-1.5 text-xs"><Bot className="h-3.5 w-3.5" />Auto-Piloto IA</TabsTrigger>
+              <TabsTrigger value="messages" className="gap-1.5 text-xs"><MessageSquare className="h-3.5 w-3.5" />Mensagens</TabsTrigger>
+              <TabsTrigger value="general" className="gap-1.5 text-xs"><Settings className="h-3.5 w-3.5" />Definições</TabsTrigger>
             </TabsList>
 
             <TabsContent value="autopilot" className="space-y-4 mt-4">
@@ -273,13 +305,7 @@ export function WhatsAppConfigPanel() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Personalidade da IA</Label>
-                <Textarea
-                  placeholder="Ex: Sou a assistente virtual da empresa X..."
-                  value={aiPersona}
-                  onChange={(e) => { setAiPersona(e.target.value); markChanged(); }}
-                  rows={4}
-                  className="resize-none text-sm"
-                />
+                <Textarea placeholder="Ex: Sou a assistente virtual da empresa X..." value={aiPersona} onChange={(e) => { setAiPersona(e.target.value); markChanged(); }} rows={4} className="resize-none text-sm" />
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -293,24 +319,12 @@ export function WhatsAppConfigPanel() {
             <TabsContent value="messages" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Mensagem de Boas-Vindas</Label>
-                <Textarea
-                  placeholder="Ex: Olá! 👋 Bem-vindo ao nosso atendimento."
-                  value={welcomeMessage}
-                  onChange={(e) => { setWelcomeMessage(e.target.value); markChanged(); }}
-                  rows={3}
-                  className="resize-none text-sm"
-                />
+                <Textarea placeholder="Ex: Olá! 👋 Bem-vindo ao nosso atendimento." value={welcomeMessage} onChange={(e) => { setWelcomeMessage(e.target.value); markChanged(); }} rows={3} className="resize-none text-sm" />
               </div>
               <Separator />
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Mensagem de Ausência</Label>
-                <Textarea
-                  placeholder="Ex: Obrigado pela mensagem! Responderemos assim que possível."
-                  value={awayMessage}
-                  onChange={(e) => { setAwayMessage(e.target.value); markChanged(); }}
-                  rows={3}
-                  className="resize-none text-sm"
-                />
+                <Textarea placeholder="Ex: Obrigado pela mensagem! Responderemos assim que possível." value={awayMessage} onChange={(e) => { setAwayMessage(e.target.value); markChanged(); }} rows={3} className="resize-none text-sm" />
               </div>
             </TabsContent>
 
@@ -339,27 +353,18 @@ export function WhatsAppConfigPanel() {
               <Separator />
               <div className="space-y-2 text-xs text-muted-foreground">
                 {qrConnection?.instance_name && (
-                  <div className="flex justify-between">
-                    <span>Instância</span>
-                    <span className="font-mono">{qrConnection.instance_name}</span>
-                  </div>
+                  <div className="flex justify-between"><span>Instância</span><span className="font-mono">{qrConnection.instance_name}</span></div>
                 )}
                 {qrConnection?.connected_at && (
-                  <div className="flex justify-between">
-                    <span>Conectado desde</span>
-                    <span>{new Date(qrConnection.connected_at).toLocaleString("pt-PT")}</span>
-                  </div>
+                  <div className="flex justify-between"><span>Conectado desde</span><span>{new Date(qrConnection.connected_at).toLocaleString("pt-PT")}</span></div>
                 )}
                 {qrConnection?.last_successful_sync_at && (
-                  <div className="flex justify-between">
-                    <span>Último sync bem-sucedido</span>
-                    <span>{new Date(qrConnection.last_successful_sync_at).toLocaleString("pt-PT")}</span>
-                  </div>
+                  <div className="flex justify-between"><span>Último sync bem-sucedido</span><span>{new Date(qrConnection.last_successful_sync_at).toLocaleString("pt-PT")}</span></div>
                 )}
-                <div className="flex justify-between">
-                  <span>Provider</span>
-                  <span className="font-mono">{qrConnection?.provider || "evolution_qr"}</span>
-                </div>
+                {qrConnection?.last_reconnect_at && (
+                  <div className="flex justify-between"><span>Última reconexão</span><span>{new Date(qrConnection.last_reconnect_at).toLocaleString("pt-PT")}</span></div>
+                )}
+                <div className="flex justify-between"><span>Provider</span><span className="font-mono">{qrConnection?.provider || "evolution_qr"}</span></div>
               </div>
             </TabsContent>
           </Tabs>
