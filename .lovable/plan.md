@@ -1,143 +1,147 @@
 
 
-# Plano: MCP Integration Layer para Marketing Module
+# Plano: MCP Provider Registry & Settings — Marketing Module
 
 ## Diagnóstico
 
-O Marketing module actual tem tabs (Dashboard, Campanhas, Segmentos, Templates, Landing Pages, Multi-Canal, Automações, Analytics, Eventos, Pipeline, Definições). Já existe um AI Funnel Builder, Landing Page Builder, e Template Library. Não existe qualquer infra de MCP. O Figma MCP não está nos conectores nativos do Lovable — terá de ser implementado como provider custom via Edge Functions.
-
-## Decisões de Produto
-
-- MCP Providers são configurações geridas pelo workspace admin dentro de Marketing > Definições
-- Figma MCP é o primeiro adapter — ligação via Server URL + token
-- A arquitectura é extensível para futuros providers (Git, CMS, etc.)
-- O contexto MCP importado é normalizado em "Marketing Blocks" reutilizáveis
-- A geração de páginas/funis pode usar MCP context como input adicional ao AI builder existente
-
-## Arquitectura
-
-```text
-┌─────────────────────────────────────┐
-│  Marketing UI (Tab: Integrações MCP)│
-│  ├── Provider List + CRUD          │
-│  ├── Connection Test / Health      │
-│  ├── Workflow Bindings             │
-│  └── Import Browser                │
-├─────────────────────────────────────┤
-│  Hook: useMarketingMCP()           │
-│  ├── providers CRUD (react-query)  │
-│  ├── test/health mutations         │
-│  └── import mutation               │
-├─────────────────────────────────────┤
-│  Edge Function: marketing-mcp      │
-│  ├── /providers — CRUD             │
-│  ├── /test — connection test       │
-│  ├── /health — health check        │
-│  ├── /import — fetch + normalize   │
-│  └── /generate — MCP-aware gen     │
-├─────────────────────────────────────┤
-│  DB Tables                         │
-│  ├── marketing_mcp_providers       │
-│  ├── marketing_mcp_workflow_binds  │
-│  └── marketing_mcp_imports         │
-└─────────────────────────────────────┘
-```
+- O build error actual é transiente (429 rate-limiting no npm cache) — não é problema de código. O `@fullcalendar/core` já está no package.json. O build deve passar ao re-tentar.
+- Já existe `figma-extract` edge function que usa Figma REST API directamente — será reutilizado como referência.
+- Não existe qualquer tabela `marketing_mcp_*` nem componentes MCP no frontend.
+- O padrão do projecto usa `useWorkspace()` para scoping, `corsHeaders` manuais, e edge functions multi-action.
 
 ## Ficheiros a Criar/Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| Migration SQL | CRIAR — 3 tabelas + RLS |
-| `supabase/functions/marketing-mcp/index.ts` | CRIAR — edge function multi-action |
-| `src/hooks/useMarketingMCP.ts` | CRIAR — hook com queries + mutations |
-| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | CRIAR — lista + CRUD de providers |
-| `src/components/marketing/mcp/MCPProviderDialog.tsx` | CRIAR — dialog criar/editar provider |
-| `src/components/marketing/mcp/MCPWorkflowBindings.tsx` | CRIAR — bindings workflow → provider |
-| `src/components/marketing/mcp/MCPImportBrowser.tsx` | CRIAR — browser de imports MCP |
+| Migration SQL | CRIAR — 2 tabelas + RLS + indexes |
+| `supabase/functions/marketing-mcp/index.ts` | CRIAR — edge function multi-action (CRUD, test, health) |
+| `src/hooks/useMarketingMCP.ts` | CRIAR — queries + mutations |
+| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | CRIAR — lista de providers |
+| `src/components/marketing/mcp/MCPProviderDialog.tsx` | CRIAR — dialog criar/editar |
+| `src/components/marketing/mcp/MCPWorkflowBindings.tsx` | CRIAR — bindings UI |
 | `src/components/marketing/mcp/MCPIntegrationsTab.tsx` | CRIAR — tab container |
 | `src/pages/Marketing.tsx` | EDITAR — adicionar tab "Integrações MCP" |
+| `supabase/config.toml` | EDITAR — adicionar `[functions.marketing-mcp]` |
 
-## Detalhes Técnicos
+## 1. Migration SQL
 
-### 1. Migration SQL — 3 tabelas
+### Tabela `marketing_mcp_providers`
+```sql
+CREATE TABLE public.marketing_mcp_providers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  provider_key text NOT NULL,           -- 'figma', 'git', 'custom'
+  provider_name text NOT NULL,
+  provider_type text NOT NULL DEFAULT 'mcp',
+  server_url text NOT NULL,
+  auth_type text NOT NULL DEFAULT 'bearer', -- 'bearer', 'api_key', 'none'
+  encrypted_credentials_json jsonb DEFAULT '{}',
+  is_enabled boolean NOT NULL DEFAULT false,
+  is_default_for_pages boolean NOT NULL DEFAULT false,
+  is_default_for_funnels boolean NOT NULL DEFAULT false,
+  connection_status text NOT NULL DEFAULT 'unknown', -- 'unknown','connected','error'
+  last_health_check_at timestamptz,
+  last_error text,
+  metadata_json jsonb DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(workspace_id, provider_key)
+);
+```
 
-**marketing_mcp_providers**: id, workspace_id, provider_key (figma, git, etc.), provider_name, provider_type, server_url, auth_type (bearer, api_key, oauth), is_enabled, is_default_for_pages, is_default_for_funnels, connection_status (unknown, connected, error), last_health_check_at, last_error, metadata_json (jsonb), created_at, updated_at.
+### Tabela `marketing_mcp_workflow_bindings`
+```sql
+CREATE TABLE public.marketing_mcp_workflow_bindings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  workflow_type text NOT NULL,          -- 'landing_page','funnel','website','campaign','section_library'
+  provider_id uuid NOT NULL REFERENCES public.marketing_mcp_providers(id) ON DELETE CASCADE,
+  config_json jsonb DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(workspace_id, workflow_type)
+);
+```
 
-**marketing_mcp_workflow_bindings**: id, workspace_id, workflow_type (landing_page, funnel, campaign, template, section_library), provider_id FK, config_json, created_at, updated_at. UNIQUE(workspace_id, workflow_type).
+Indexes em `workspace_id`, `provider_key`, `is_enabled`. RLS escopado por `workspace_id` via `workspace_members`. Trigger `updated_at`.
 
-**marketing_mcp_imports**: id, workspace_id, provider_id FK, import_type (design_system, page_frame, section, component, tokens), external_reference_id, external_reference_name, status (pending, processing, completed, failed), imported_payload_json, normalized_payload_json, created_at, updated_at.
+## 2. Edge Function: `marketing-mcp`
 
-RLS: todas as tabelas escopadas por workspace_id via workspace_members.
+Endpoint unificado com campo `action` no body JSON:
 
-### 2. Edge Function: `marketing-mcp`
+| Action | Descrição |
+|---|---|
+| `list_providers` | SELECT providers por workspace |
+| `create_provider` | INSERT com validação zod |
+| `update_provider` | UPDATE parcial |
+| `delete_provider` | DELETE |
+| `test_connection` | HTTP request ao server_url (MCP initialize handshake) |
+| `health_check` | Igual a test + persiste resultado no DB |
+| `enable_provider` / `disable_provider` | Toggle is_enabled |
+| `list_bindings` | SELECT bindings por workspace |
+| `upsert_binding` | UPSERT binding workflow→provider |
+| `delete_binding` | DELETE binding |
 
-Endpoint unificado com `action` no body:
+Segurança: JWT validation via `getClaims()` + workspace_members check + super admin bypass. CORS manual. Inputs validados com zod. Credenciais nunca retornadas ao frontend (campo redactado).
 
-- **list_providers** — SELECT por workspace
-- **create_provider** — INSERT com validação zod
-- **update_provider** — UPDATE
-- **delete_provider** — soft disable
-- **test_connection** — faz HTTP request ao server_url do provider (MCP initialize/list_tools), retorna resultado
-- **health_check** — igual a test mas persiste resultado no DB
-- **import_context** — chama MCP server, busca contexto (ex: Figma frames), normaliza em blocos marketing, persiste em marketing_mcp_imports
-- **list_imports** — SELECT imports do workspace
-- **generate_from_mcp** — usa import normalizado como context para AI (via ai-router) gerar HTML/structure de página/funnel
+Test de conexão MCP: POST ao `server_url` com `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"FastCRM","version":"1.0.0"}},"id":1}` com headers `Accept: application/json, text/event-stream` e `Content-Type: application/json`.
 
-Para Figma MCP adapter:
-- Chama o servidor MCP Figma via HTTP (Streamable HTTP transport)
-- Headers: `Accept: application/json, text/event-stream`, `Content-Type: application/json`
-- Usa tools como `get_file`, `get_file_nodes`, `get_team_styles` se disponíveis
-- Normaliza resposta em blocos: sections, tokens, layout hierarchy
+## 3. Hook: `useMarketingMCP`
 
-Auth: JWT + workspace_members validation. CORS headers manuais (padrão do projecto).
-
-### 3. Hook: `useMarketingMCP`
-
-- `useMarketingMCPProviders(workspaceId)` — react-query GET
+- `useMCPProviders()` — react-query lista
 - `useCreateMCPProvider()` — mutation
 - `useUpdateMCPProvider()` — mutation
+- `useDeleteMCPProvider()` — mutation
 - `useTestMCPConnection()` — mutation
 - `useHealthCheckMCP()` — mutation
-- `useImportFromMCP()` — mutation
-- `useMarketingMCPImports(workspaceId)` — react-query GET
+- `useToggleMCPProvider()` — mutation enable/disable
+- `useMCPWorkflowBindings()` — react-query lista
+- `useUpsertMCPBinding()` — mutation
 
-### 4. UI — Tab "Integrações MCP" no Marketing
+Todas chamam `supabase.functions.invoke('marketing-mcp', { body: { action, ... } })`.
+
+## 4. UI — Tab "Integrações MCP"
 
 Nova tab no Marketing.tsx com ícone `Blocks`:
 
-**MCPProvidersPanel**: tabela de providers com status badges, botões Test/Enable/Disable/Edit/Delete. Card de "Adicionar Provider" com presets (Figma, Custom MCP).
+### MCPProvidersPanel
+- Tabela com colunas: Nome, Tipo, Estado, Activo, Default (Pages/Funnels), Último check, Acções
+- Badges de status: `connected` (verde), `error` (vermelho), `unknown` (cinza)
+- Botões: Testar, Editar, Activar/Desactivar, Eliminar
+- Card "Adicionar Provider" com presets: Figma MCP, Custom MCP
 
-**MCPProviderDialog**: formulário com campos: nome, tipo (select: figma, git, custom), server URL, auth type, credentials (token field masked). Botão "Testar Conexão" inline.
+### MCPProviderDialog
+- Campos: nome, tipo (select: figma, git, custom), server URL, auth type (bearer, api_key, none), token (masked input)
+- Toggles: default para pages, default para funnels
+- Botão "Testar Conexão" inline com feedback
+- Save/Update
 
-**MCPWorkflowBindings**: cards por workflow type (Landing Pages, Funis, Templates, Secções) com dropdown de provider assignado.
+### MCPWorkflowBindings
+- Cards por workflow type com dropdown de provider
+- Tipos: Landing Pages, Funis, Websites, Campanhas, Secções
 
-**MCPImportBrowser**: lista de imports anteriores com status. Botão "Nova Importação" que abre wizard: escolher provider → inserir referência (ex: Figma file URL) → import → ver resultado normalizado.
+## 5. Segurança
 
-### 5. Integração com Builders Existentes
+- Credenciais armazenadas em `encrypted_credentials_json` — nunca retornadas ao frontend
+- Edge function redacta o campo antes de responder
+- RLS por workspace_id
+- JWT + workspace membership obrigatório
+- Super admin bypass
 
-No `LandingPageBuilder` e `AIFunnelBuilder`, adicionar opção "Usar contexto MCP" que:
-- Lista imports normalizados disponíveis
-- Permite seleccionar um como base/referência
-- Passa como context ao prompt de geração AI
+## 6. Observabilidade
 
-Isto é uma extensão futura — nesta fase, a infra de import e normalização fica pronta, e a tab MCP fica operacional.
-
-### 6. Segurança
-
-- Credenciais MCP encriptadas no campo metadata_json (não em plaintext — na edge function, usar `pgcrypto` ou armazenar via secrets quando possível)
-- RLS em todas as tabelas por workspace_id
-- Edge function valida JWT + workspace membership
-- Inputs validados com zod
+Logs estruturados `console.log(JSON.stringify({ event, workspace_id, provider_id, ... }))` para todos os eventos listados nos requisitos.
 
 ## Critérios de Aceitação
 
-1. DB tem 3 tabelas com RLS por workspace
-2. Admin pode criar/editar/eliminar MCP providers
+1. DB tem 2 tabelas com RLS por workspace
+2. Admin pode CRUD MCP providers
 3. Admin pode testar conexão ao servidor MCP
-4. Admin pode atribuir providers a workflows (landing pages, funis, etc.)
-5. Sistema pode importar contexto de um MCP server (Figma como primeiro)
-6. Imports são normalizados em blocos marketing reutilizáveis
-7. Tab "Integrações MCP" visível e funcional no Marketing
-8. Arquitectura extensível para novos providers
-9. Logs estruturados em todas as operações MCP
+4. Admin pode activar/desactivar providers
+5. Admin pode definir defaults para pages/funnels
+6. Workflow bindings configuráveis
+7. Credenciais nunca expostas ao frontend
+8. Tab "Integrações MCP" visível no Marketing
+9. Arquitectura extensível (provider_key genérico)
+10. Build error resolvido (re-install deps)
 
