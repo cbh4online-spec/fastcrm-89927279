@@ -531,8 +531,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         setShowEmailCompose(true);
         break;
       case "whatsapp":
-        setSelectedGHLChannel("whatsapp");
-        setShowGHLDialog(true);
+        setShowEvolutionWhatsApp(true);
         break;
       case "sms":
         setSelectedGHLChannel("sms");
