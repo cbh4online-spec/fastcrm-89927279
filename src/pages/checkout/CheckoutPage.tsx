@@ -11,8 +11,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 
-const sb = supabase as any;
-
 export default function CheckoutPage() {
   const { funnelSlug } = useParams();
   const [searchParams] = useSearchParams();
