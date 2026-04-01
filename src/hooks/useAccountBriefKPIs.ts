@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { KPI_SNAPSHOTS_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export interface ABKpiSnapshot {
   metric_key: string;
