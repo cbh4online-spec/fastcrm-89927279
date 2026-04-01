@@ -42,6 +42,7 @@ import { CampaignLandingPages } from '@/components/marketing/CampaignLandingPage
 import { CampaignReportExport } from '@/components/marketing/CampaignReportExport';
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
+import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
 import { toast } from 'sonner';
 
 export default function Marketing() {
