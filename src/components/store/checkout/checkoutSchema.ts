@@ -11,7 +11,7 @@ export const checkoutStep1Schema = z.object({
 });
 
 export const checkoutStep2Schema = z.object({
-  email: z.string().trim().min(1, "Preencha o email").email("Email inválido"),
+  email: z.string().trim().min(1, "Preencha o email").email("Email inválido").max(255, "Email demasiado longo"),
 });
 
 export type CheckoutStep1Data = z.infer<typeof checkoutStep1Schema>;
