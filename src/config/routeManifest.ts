@@ -184,8 +184,9 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("email-campaigns", "Campanhas Email",  "/dashboard/email-campaigns",  Mail,      "marketing", { moduleSlug: "email-campaigns", menuKey: "marketing" }),
   e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
-  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing"),
-  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing"),
+  e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
+  e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", { visibleInSidebar: false }),
+  e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", { visibleInSidebar: false }),
   e("ebooks",          "eBooks",           "/dashboard/ebooks",           BookOpen,  "marketing"),
   e("ebook-templates", "Templates eBooks", "/dashboard/ebooks/templates",  LayoutGrid, "marketing", { visibleInSidebar: false }),
   e("ebook-templates-admin", "Gerir Templates", "/dashboard/ebooks/templates/admin", LayoutGrid, "marketing", { visibleInSidebar: false }),
