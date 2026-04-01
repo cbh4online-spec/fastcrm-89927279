@@ -271,3 +271,33 @@ export function useImportFromMCP(workspaceId: string | undefined) {
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
+// ========================
+// GENERATION HOOKS
+// ========================
+
+export function useGeneratePageFromMCP(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { import_id: string; title?: string; slug?: string }) =>
+      invokeMarketingMCP({ action: "generate_page", workspace_id: workspaceId, ...payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["landing-pages"] });
+      toast.success("Landing page gerada com sucesso");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useGenerateFunnelFromMCP(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { import_id: string; name?: string; slug?: string }) =>
+      invokeMarketingMCP({ action: "generate_funnel", workspace_id: workspaceId, ...payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["funnels"] });
+      toast.success("Funil gerado com sucesso");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
