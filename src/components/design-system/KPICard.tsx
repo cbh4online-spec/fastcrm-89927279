@@ -53,7 +53,7 @@ const trendStyles = {
   neutral: { color: "text-muted-foreground", icon: Minus },
 };
 
-export function KPICard({
+export const KPICard = memo(function KPICard({
   title,
   value,
   icon,
