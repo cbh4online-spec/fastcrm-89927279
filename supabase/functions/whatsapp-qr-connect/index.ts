@@ -77,8 +77,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // 2xx = created, 409 = already exists — both are OK to proceed
-      instanceCreated = createRes.ok || createRes.status === 409;
+      // 2xx = created, 409/403 "already in use" = already exists — all OK to proceed
+      instanceCreated = createRes.ok || createRes.status === 409 || createRes.status === 403;
     } catch (e) {
       console.log("Create instance failed:", e.message);
     }
