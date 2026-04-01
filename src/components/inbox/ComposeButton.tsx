@@ -460,8 +460,9 @@ interface ComposeButtonProps {
 export function ComposeButton({ className, variant = "default" }: ComposeButtonProps) {
   const [showEmailCompose, setShowEmailCompose] = useState(false);
   const [showGHLDialog, setShowGHLDialog] = useState(false);
+  const [showEvolutionWhatsApp, setShowEvolutionWhatsApp] = useState(false);
   const [showInstagramDialog, setShowInstagramDialog] = useState(false);
-  const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("whatsapp");
+  const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("sms");
 
   // Check connection status
   const { data: emailConnections } = useEmailConnections();
