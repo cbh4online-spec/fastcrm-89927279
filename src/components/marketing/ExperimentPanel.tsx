@@ -86,7 +86,7 @@ export function ExperimentPanel({ campaignId }: Props) {
                   <Select value={metric} onValueChange={(v) => setMetric(v as EvaluationMetric)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(EVALUATION_METRIC_LABELS).map(([k, v]) => (
+                      {(Object.entries(EVALUATION_METRIC_LABELS) as [EvaluationMetric, string][]).map(([k, v]) => (
                         <SelectItem key={k} value={k}>{v}</SelectItem>
                       ))}
                     </SelectContent>
