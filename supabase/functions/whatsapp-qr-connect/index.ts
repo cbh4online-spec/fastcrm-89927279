@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     console.log(`[v2] Evolution API URL: ${baseUrl.substring(0, 60)}...`);
     console.log(`Instance name: ${instanceName}`);
 
-    // Try to create instance (ignore if already exists)
+    // Try to create instance
+    let instanceCreated = false;
     try {
       const createRes = await fetch(`${baseUrl}/instance/create`, {
         method: "POST",
@@ -68,8 +69,25 @@ Deno.serve(async (req) => {
       });
       const createText = await createRes.text();
       console.log(`Create instance response (${createRes.status}):`, createText.substring(0, 200));
+
+      if (createRes.status === 401) {
+        return new Response(
+          JSON.stringify({ error: "EVOLUTION_API_KEY inválida — verifique a configuração do secret." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 2xx = created, 409 = already exists — both are OK to proceed
+      instanceCreated = createRes.ok || createRes.status === 409;
     } catch (e) {
-      console.log("Create instance failed (may already exist):", e.message);
+      console.log("Create instance failed:", e.message);
+    }
+
+    if (!instanceCreated) {
+      return new Response(
+        JSON.stringify({ error: "Falha ao criar instância na Evolution API. Verifique os logs." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Connect and get QR code
