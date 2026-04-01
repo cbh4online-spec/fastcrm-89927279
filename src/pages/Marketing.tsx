@@ -240,6 +240,10 @@ export default function Marketing() {
             <PipelineTriggersPanel />
           </TabsContent>
 
+          <TabsContent value="mcp" className="space-y-6">
+            <MCPIntegrationsTab />
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-6">
             <MarketingSettingsPanel />
           </TabsContent>

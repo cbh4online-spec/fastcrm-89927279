@@ -1,4 +1,4 @@
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MCPProvidersPanel } from "./MCPProvidersPanel";
 import { MCPWorkflowBindings } from "./MCPWorkflowBindings";
 

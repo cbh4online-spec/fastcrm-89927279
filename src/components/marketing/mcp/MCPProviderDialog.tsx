@@ -210,7 +210,7 @@ export function MCPProviderDialog({ open, onOpenChange, workspaceId, provider }:
               {testResult && (
                 <div className="mt-2">
                   {testResult.success ? (
-                    <Badge variant="default" className="bg-green-600">
+                    <Badge variant="default" className="bg-primary">
                       <CheckCircle2 className="h-3 w-3 mr-1" /> Conectado
                     </Badge>
                   ) : (
