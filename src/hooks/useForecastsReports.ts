@@ -274,7 +274,7 @@ export function useConsumptionForecast() {
 
       const { data: contactProducts } = await supabase
         .from('contact_products')
-        .select('*, products(*)')
+        .select(FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT)
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'active');
 
