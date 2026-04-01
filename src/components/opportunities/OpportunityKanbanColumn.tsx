@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import { Opportunity, PipelineStage } from "@/types/opportunity";
 import { OpportunityCard } from "./OpportunityCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
