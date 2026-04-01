@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { useWhatsAppConnection, useDisconnectWhatsApp } from "@/hooks/useWhatsAppConnection";
+import { useWhatsAppQRConnection, useDisconnectWhatsAppQR, useSyncWhatsAppQR, type WhatsAppQRStatus } from "@/hooks/useWhatsAppQRConnection";
 import { useWhatsAppSettings, useSaveWhatsAppSettings } from "@/hooks/useWhatsAppSettings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -21,18 +20,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Phone, Loader2, ExternalLink, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode } from "lucide-react";
+import { Phone, Loader2, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode, RefreshCw, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppQRDialog } from "./WhatsAppQRDialog";
 
+const STATUS_CONFIG: Record<WhatsAppQRStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof Wifi }> = {
+  not_configured: { label: "Não configurado", variant: "secondary", icon: WifiOff },
+  creating_instance: { label: "A criar...", variant: "outline", icon: Loader2 },
+  qr_pending: { label: "QR pendente", variant: "outline", icon: QrCode },
+  waiting_for_scan: { label: "A aguardar scan", variant: "outline", icon: QrCode },
+  connected: { label: "Conectado", variant: "default", icon: Wifi },
+  disconnected: { label: "Desconectado", variant: "secondary", icon: WifiOff },
+  qr_expired: { label: "QR expirado", variant: "secondary", icon: QrCode },
+  reconnecting: { label: "A reconectar...", variant: "outline", icon: RefreshCw },
+  error: { label: "Erro", variant: "destructive", icon: AlertCircle },
+};
+
 export function WhatsAppConfigPanel() {
-  const { data: connection, isLoading } = useWhatsAppConnection();
+  const { data: qrConnection, isLoading } = useWhatsAppQRConnection();
   const { data: settings, isLoading: isLoadingSettings } = useWhatsAppSettings();
   const saveMutation = useSaveWhatsAppSettings();
-  const disconnectMutation = useDisconnectWhatsApp();
+  const disconnectMutation = useDisconnectWhatsAppQR();
+  const syncMutation = useSyncWhatsAppQR();
   const { currentWorkspace } = useWorkspace();
-  const [isConnecting, setIsConnecting] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
 
   // Local form state
@@ -45,7 +55,6 @@ export function WhatsAppConfigPanel() {
   const [notifyOnNew, setNotifyOnNew] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Sync settings to local state
   useEffect(() => {
     if (settings) {
       setAutopilotEnabled(settings.autopilot_enabled ?? false);
@@ -74,35 +83,18 @@ export function WhatsAppConfigPanel() {
     setHasChanges(false);
   };
 
-  const handleConnect = async () => {
-    if (!currentWorkspace?.id) return;
-    setIsConnecting(true);
+  const handleDisconnect = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase.functions.invoke("whatsapp-auth-url", {
-        body: { workspaceId: currentWorkspace.id, userId: user?.id },
-      });
-      if (error) throw error;
-      if (data?.authUrl) {
-        window.open(data.authUrl, "_blank");
-        toast.info("Complete a autorização na janela aberta");
-      } else {
-        toast.error("URL de autorização não recebida. Verifique se o META_APP_ID está configurado.");
-      }
-    } catch (err: any) {
-      toast.error("Erro ao iniciar conexão: " + err.message);
-    } finally {
-      setIsConnecting(false);
-    }
+      await disconnectMutation.mutateAsync();
+    } catch { /* handled in hook */ }
   };
 
-  const handleDisconnect = async () => {
-    if (!connection?.id) return;
+  const handleSync = async () => {
     try {
-      await disconnectMutation.mutateAsync(connection.id);
-      toast.success("WhatsApp desconectado");
-    } catch (err: any) {
-      toast.error("Erro: " + err.message);
+      await syncMutation.mutateAsync();
+      toast.success("Estado sincronizado com sucesso");
+    } catch {
+      toast.error("Erro ao sincronizar estado");
     }
   };
 
@@ -114,76 +106,92 @@ export function WhatsAppConfigPanel() {
     );
   }
 
-  const isConnected = connection?.is_active;
-  const tokenExpiry = connection?.token_expires_at ? new Date(connection.token_expires_at) : null;
-  const isTokenExpired = tokenExpiry && tokenExpiry < new Date();
+  const status: WhatsAppQRStatus = (qrConnection?.status as WhatsAppQRStatus) || "not_configured";
+  const isConnected = status === "connected";
+  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.not_configured;
+  const StatusIcon = statusConfig.icon;
 
   return (
     <div className="space-y-4">
       {/* Connection Status */}
       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-500/10">
-            <Phone className="h-5 w-5 text-green-600" />
+          <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
+            <Phone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-medium">WhatsApp Business API</p>
-              {isConnected ? (
-                <Badge className="bg-emerald-500 text-white text-[10px]">Conectado</Badge>
-              ) : (
-                <Badge variant="secondary" className="text-[10px]">Desconectado</Badge>
-              )}
+              <p className="font-medium">WhatsApp (Evolution QR)</p>
+              <Badge
+                variant={statusConfig.variant}
+                className={`text-[10px] gap-1 ${isConnected ? "bg-emerald-500 text-white" : ""}`}
+              >
+                <StatusIcon className="h-3 w-3" />
+                {statusConfig.label}
+              </Badge>
             </div>
-            {isConnected && connection?.display_phone_number && (
-              <p className="text-sm text-muted-foreground">{connection.display_phone_number}</p>
+            {isConnected && qrConnection?.phone_number && (
+              <p className="text-sm text-muted-foreground">+{qrConnection.phone_number}</p>
+            )}
+            {qrConnection?.last_seen_at && (
+              <p className="text-xs text-muted-foreground">
+                Última verificação: {new Date(qrConnection.last_seen_at).toLocaleString("pt-PT")}
+              </p>
             )}
           </div>
         </div>
 
-        {isConnected ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
-                <Unplug className="h-3.5 w-3.5" />
-                Desconectar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Desconectar WhatsApp?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  O Auto-Pilot e as mensagens automáticas serão interrompidos. Poderá reconectar a qualquer momento.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDisconnect} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+        <div className="flex items-center gap-2">
+          {/* Sync button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleSync}
+            disabled={syncMutation.isPending}
+            title="Sincronizar estado"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+          </Button>
+
+          {isConnected ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                  <Unplug className="h-3.5 w-3.5" />
                   Desconectar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Button onClick={handleConnect} disabled={isConnecting} size="sm" variant="outline" className="gap-1.5">
-              {isConnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-              Conectar via Meta
-            </Button>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Desconectar WhatsApp?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O Auto-Pilot e as mensagens automáticas serão interrompidos. A instância será removida. Poderá reconectar a qualquer momento.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDisconnect} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Desconectar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
             <Button onClick={() => setShowQRDialog(true)} size="sm" className="gap-1.5">
               <QrCode className="h-3.5 w-3.5" />
-              Conectar via QR
+              {status === "disconnected" || status === "error" ? "Reconectar via QR" : "Conectar via QR"}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Token warning */}
-      {isConnected && isTokenExpired && (
-        <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
-          <div className="flex items-center gap-2 text-sm text-amber-600">
-            <Shield className="h-4 w-4 flex-shrink-0" />
-            <span>Token expirado. Reconecte para renovar o acesso.</span>
+      {/* Error display */}
+      {status === "error" && qrConnection?.last_error && (
+        <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{qrConnection.last_error}</span>
           </div>
         </div>
       )}
@@ -209,142 +217,101 @@ export function WhatsAppConfigPanel() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Auto-Pilot Tab */}
             <TabsContent value="autopilot" className="space-y-4 mt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-medium">Ativar Auto-Piloto</Label>
-                  <p className="text-xs text-muted-foreground">
-                    A IA responde automaticamente às mensagens WhatsApp
-                  </p>
+                  <p className="text-xs text-muted-foreground">A IA responde automaticamente às mensagens WhatsApp</p>
                 </div>
-                <Switch
-                  checked={autopilotEnabled}
-                  onCheckedChange={(v) => { setAutopilotEnabled(v); markChanged(); }}
-                />
+                <Switch checked={autopilotEnabled} onCheckedChange={(v) => { setAutopilotEnabled(v); markChanged(); }} />
               </div>
-
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Personalidade da IA</Label>
                 <Textarea
-                  placeholder="Ex: Sou a assistente virtual da empresa X. Respondo de forma simpática e profissional, sempre em português..."
+                  placeholder="Ex: Sou a assistente virtual da empresa X..."
                   value={aiPersona}
                   onChange={(e) => { setAiPersona(e.target.value); markChanged(); }}
                   rows={4}
                   className="resize-none text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Descreva como a IA deve se comportar e comunicar com os clientes.
-                </p>
               </div>
-
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-medium">Apenas em horário comercial</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Auto-Piloto ativo só durante o horário de trabalho
-                  </p>
+                  <p className="text-xs text-muted-foreground">Auto-Piloto ativo só durante o horário de trabalho</p>
                 </div>
-                <Switch
-                  checked={businessHoursOnly}
-                  onCheckedChange={(v) => { setBusinessHoursOnly(v); markChanged(); }}
-                />
+                <Switch checked={businessHoursOnly} onCheckedChange={(v) => { setBusinessHoursOnly(v); markChanged(); }} />
               </div>
             </TabsContent>
 
-            {/* Messages Tab */}
             <TabsContent value="messages" className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Mensagem de Boas-Vindas</Label>
                 <Textarea
-                  placeholder="Ex: Olá! 👋 Bem-vindo ao nosso atendimento. Como posso ajudá-lo?"
+                  placeholder="Ex: Olá! 👋 Bem-vindo ao nosso atendimento."
                   value={welcomeMessage}
                   onChange={(e) => { setWelcomeMessage(e.target.value); markChanged(); }}
                   rows={3}
                   className="resize-none text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Enviada automaticamente na primeira mensagem de um contacto novo.
-                </p>
               </div>
-
               <Separator />
-
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Mensagem de Ausência</Label>
                 <Textarea
-                  placeholder="Ex: Obrigado pela mensagem! De momento estamos fora do horário de atendimento. Responderemos assim que possível."
+                  placeholder="Ex: Obrigado pela mensagem! Responderemos assim que possível."
                   value={awayMessage}
                   onChange={(e) => { setAwayMessage(e.target.value); markChanged(); }}
                   rows={3}
                   className="resize-none text-sm"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Enviada fora do horário comercial quando o Auto-Piloto está desativado.
-                </p>
               </div>
             </TabsContent>
 
-            {/* General Settings Tab */}
             <TabsContent value="general" className="space-y-4 mt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <Label className="text-sm font-medium">Criar leads automaticamente</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Criar lead no CRM quando recebe mensagem de número novo
-                    </p>
+                    <p className="text-xs text-muted-foreground">Criar lead quando recebe mensagem de número novo</p>
                   </div>
                 </div>
-                <Switch
-                  checked={autoCreateLeads}
-                  onCheckedChange={(v) => { setAutoCreateLeads(v); markChanged(); }}
-                />
+                <Switch checked={autoCreateLeads} onCheckedChange={(v) => { setAutoCreateLeads(v); markChanged(); }} />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <BellRing className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <Label className="text-sm font-medium">Notificações</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Receber notificação quando chega uma nova mensagem WhatsApp
-                    </p>
+                    <p className="text-xs text-muted-foreground">Notificação quando chega nova mensagem WhatsApp</p>
                   </div>
                 </div>
-                <Switch
-                  checked={notifyOnNew}
-                  onCheckedChange={(v) => { setNotifyOnNew(v); markChanged(); }}
-                />
+                <Switch checked={notifyOnNew} onCheckedChange={(v) => { setNotifyOnNew(v); markChanged(); }} />
               </div>
 
-              {/* Technical details */}
               <Separator />
               <div className="space-y-2 text-xs text-muted-foreground">
-                {connection?.phone_number_id && (
+                {qrConnection?.instance_name && (
                   <div className="flex justify-between">
-                    <span>Phone Number ID</span>
-                    <span className="font-mono">{connection.phone_number_id}</span>
+                    <span>Instância</span>
+                    <span className="font-mono">{qrConnection.instance_name}</span>
                   </div>
                 )}
-                {connection?.waba_id && (
+                {qrConnection?.connected_at && (
                   <div className="flex justify-between">
-                    <span>WABA ID</span>
-                    <span className="font-mono">{connection.waba_id}</span>
+                    <span>Conectado desde</span>
+                    <span>{new Date(qrConnection.connected_at).toLocaleString("pt-PT")}</span>
                   </div>
                 )}
-                {tokenExpiry && !isTokenExpired && (
-                  <div className="flex justify-between">
-                    <span>Token expira em</span>
-                    <span>{tokenExpiry.toLocaleDateString("pt-PT")}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>Provider</span>
+                  <span className="font-mono">{qrConnection?.provider || "evolution_qr"}</span>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
 
-          {/* Save button */}
           {hasChanges && (
             <div className="flex justify-end pt-2">
               <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm" className="gap-1.5">
@@ -356,7 +323,6 @@ export function WhatsAppConfigPanel() {
         </>
       )}
 
-      {/* QR Code Dialog */}
       <WhatsAppQRDialog open={showQRDialog} onOpenChange={setShowQRDialog} />
     </div>
   );
