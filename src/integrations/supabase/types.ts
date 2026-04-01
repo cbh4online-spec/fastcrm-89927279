@@ -54708,6 +54708,7 @@ export type Database = {
           last_health_check_at: string | null
           last_inbound_message_at: string | null
           last_outbound_message_at: string | null
+          last_reconnect_at: string | null
           last_seen_at: string | null
           last_successful_sync_at: string | null
           last_sync_at: string | null
@@ -54716,6 +54717,9 @@ export type Database = {
           provider: string
           qr_code: string | null
           qr_updated_at: string | null
+          recovery_attempt_count: number
+          recovery_last_attempt_at: string | null
+          recovery_state: string
           status: string
           sync_health: string
           sync_issue_reason: string | null
@@ -54733,6 +54737,7 @@ export type Database = {
           last_health_check_at?: string | null
           last_inbound_message_at?: string | null
           last_outbound_message_at?: string | null
+          last_reconnect_at?: string | null
           last_seen_at?: string | null
           last_successful_sync_at?: string | null
           last_sync_at?: string | null
@@ -54741,6 +54746,9 @@ export type Database = {
           provider?: string
           qr_code?: string | null
           qr_updated_at?: string | null
+          recovery_attempt_count?: number
+          recovery_last_attempt_at?: string | null
+          recovery_state?: string
           status?: string
           sync_health?: string
           sync_issue_reason?: string | null
@@ -54758,6 +54766,7 @@ export type Database = {
           last_health_check_at?: string | null
           last_inbound_message_at?: string | null
           last_outbound_message_at?: string | null
+          last_reconnect_at?: string | null
           last_seen_at?: string | null
           last_successful_sync_at?: string | null
           last_sync_at?: string | null
@@ -54766,6 +54775,9 @@ export type Database = {
           provider?: string
           qr_code?: string | null
           qr_updated_at?: string | null
+          recovery_attempt_count?: number
+          recovery_last_attempt_at?: string | null
+          recovery_state?: string
           status?: string
           sync_health?: string
           sync_issue_reason?: string | null
