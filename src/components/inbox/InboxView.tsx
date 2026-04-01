@@ -28,6 +28,7 @@ import { toast } from "sonner";
 type ViewMode = "list" | "columns";
 
 export function InboxView() {
+  const { data: whatsappConnection } = useWhatsAppQRConnection();
   const [searchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);
