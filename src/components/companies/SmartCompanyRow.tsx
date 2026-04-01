@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Link } from "react-router-dom";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
@@ -99,7 +99,7 @@ function EditableText({ field, value, entityId, onUpdate, children }: { field: s
   );
 }
 
-export function SmartCompanyRow({ 
+export const SmartCompanyRow = memo(function SmartCompanyRow({ 
   company, 
   isSelected, 
   onToggleSelect, 
@@ -429,4 +429,4 @@ export function SmartCompanyRow({
       </TableCell>
     </TableRow>
   );
-}
+});
