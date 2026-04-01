@@ -30,8 +30,8 @@ export const ACTIVITIES_SELECT_COLUMNS = `
 `;
 
 export const CHANGE_EVENTS_SELECT_COLUMNS = `
-  id, workspace_id, event_type, entity_type, entity_id,
-  entity_name, changed_by, description, metadata, created_at
+  id, workspace_id, change_type, entity_kind, entity_id,
+  old_value, new_value, created_at
 `;
 
 export const KPI_SNAPSHOTS_SELECT_COLUMNS = `
