@@ -99,7 +99,7 @@ function EditableText({ field, value, entityId, onUpdate, children }: { field: s
   );
 }
 
-export function SmartCompanyRow({ 
+export const SmartCompanyRow = memo(function SmartCompanyRow({ 
   company, 
   isSelected, 
   onToggleSelect, 
