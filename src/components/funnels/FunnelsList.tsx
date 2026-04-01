@@ -100,6 +100,7 @@ export function FunnelsList() {
   const [editingCaptureType, setEditingCaptureType] = useState<any>(null);
   const [deleteCaptureId, setDeleteCaptureId] = useState<string | null>(null);
   const [captureSearch, setCaptureSearch] = useState("");
+  const [mcpGenerateOpen, setMcpGenerateOpen] = useState(false);
 
   const handleCopyShareLink = (type: string, slug: string) => {
     const url = getShareUrl(type, slug);
