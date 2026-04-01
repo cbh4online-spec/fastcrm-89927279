@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,7 +33,9 @@ import { OpportunityTasksTab } from "./detail/OpportunityTasksTab";
 import { OpportunityAssociatedTab } from "./detail/OpportunityAssociatedTab";
 import { OpportunityCallsTab } from "./detail/OpportunityCallsTab";
 import { OpportunityCommentsTab } from "./detail/OpportunityCommentsTab";
+import { OpportunityProposalsTab } from "./detail/OpportunityProposalsTab";
 import { useOpportunityComments } from "@/hooks/useOpportunityComments";
+import { useProposals } from "@/hooks/useProposals";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
@@ -87,6 +89,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const updateOpportunity = useUpdateOpportunityEnhanced();
   const { data: intelligence, isLoading: intelligenceLoading } = useDealIntelligenceAPI(opportunityId);
   const { data: commentsData = [] } = useOpportunityComments(opportunityId);
+  const { data: proposalsData = [] } = useProposals(opportunityId);
   const { data: members = [] } = useWorkspaceMembers();
   
   const ownerName = opportunity?.owner_id
@@ -176,6 +179,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     keycontact: "bg-teal-500",
     partner: "bg-indigo-500",
     comments: "bg-violet-500",
+    proposals: "bg-sky-500",
   };
 
   const tabDot = (key: string) => (
@@ -268,6 +272,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <MessageSquare className="h-3 w-3" />
                 {t("oppDetail_commentsTab")}
                 {tabBadge(commentsData.filter(c => !c.parent_id).length)}
+              </TabsTrigger>
+              <TabsTrigger value="proposals" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("proposals")}
+                <FileText className="h-3 w-3" />
+                Propostas
+                {tabBadge(proposalsData.length)}
               </TabsTrigger>
               {/* Dynamic tabs */}
               {additionalTabs.map(tabId => {
@@ -366,6 +376,10 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <OpportunityAIInsightsSection opportunityId={opportunity.id} onActionClick={(actionType) => { toast.info(t("oppDetailAction", { action: actionType })); }} />
                 <EntityMemoryPanel entityId={opportunity.id} entityType="opportunity" entityName={opportunity.title} />
               </div>
+            </TabsContent>
+
+            <TabsContent value="proposals" className="mt-4">
+              <OpportunityProposalsTab opportunityId={opportunity.id} />
             </TabsContent>
 
             <TabsContent value="comments" className="mt-4">
