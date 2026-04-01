@@ -64,9 +64,9 @@ function hexToHSL(hex: string) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// Dynamic Lucide icon component
+// Dynamic Lucide icon component — uses the `icons` named export (tree-shakable map)
 function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  const IconComponent = (LucideIcons as any)[name];
+  const IconComponent = (icons as Record<string, React.ElementType>)[name];
   if (!IconComponent) return null;
   return <IconComponent className={className} style={style} />;
 }

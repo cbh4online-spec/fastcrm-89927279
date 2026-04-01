@@ -21,21 +21,8 @@ interface ProductCardProps {
 
 // Icon mapping for dynamic product types
 const iconMap: Record<string, React.ElementType> = {
-  Package: LucideIcons.Package,
-  Repeat: LucideIcons.Repeat,
-  Clock: LucideIcons.Clock,
-  Layers: LucideIcons.Layers,
-  GraduationCap: LucideIcons.GraduationCap,
-  Boxes: LucideIcons.Boxes,
-  Box: LucideIcons.Box,
-  Briefcase: LucideIcons.Briefcase,
-  Cloud: LucideIcons.Cloud,
-  FileText: LucideIcons.FileText,
-  RefreshCw: LucideIcons.RefreshCw,
-  Key: LucideIcons.Key,
-  Users: LucideIcons.Users,
-  Wrench: LucideIcons.Wrench,
-  BookOpen: LucideIcons.BookOpen,
+  Package, Repeat, Clock, Layers, GraduationCap, Boxes, Box,
+  Briefcase, Cloud, FileText, RefreshCw, Key, Users, Wrench, BookOpen,
 };
 
 // Dynamic color classes based on product type

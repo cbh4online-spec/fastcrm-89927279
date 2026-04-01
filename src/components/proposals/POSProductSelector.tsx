@@ -21,30 +21,13 @@ interface POSProductSelectorProps {
 
 // Icon mapping for dynamic resolution
 const iconMap: Record<string, React.ElementType> = {
-  Package: LucideIcons.Package,
-  Repeat: LucideIcons.Repeat,
-  Clock: LucideIcons.Clock,
-  Layers: LucideIcons.Layers,
-  GraduationCap: LucideIcons.GraduationCap,
-  Boxes: LucideIcons.Boxes,
-  Box: LucideIcons.Box,
-  Briefcase: LucideIcons.Briefcase,
-  Cloud: LucideIcons.Cloud,
-  FileText: LucideIcons.FileText,
-  RefreshCw: LucideIcons.RefreshCw,
-  Key: LucideIcons.Key,
-  Users: LucideIcons.Users,
-  Wrench: LucideIcons.Wrench,
-  BookOpen: LucideIcons.BookOpen,
-  Building2: LucideIcons.Building2,
-  Zap: LucideIcons.Zap,
-  Settings: LucideIcons.Settings,
-  Star: LucideIcons.Star,
-  Tag: LucideIcons.Tag,
+  Package, Repeat, Clock, Layers, GraduationCap, Boxes, Box,
+  Briefcase, Cloud, FileText, RefreshCw, Key, Users, Wrench, BookOpen,
+  Building2, Zap, Settings, Star, Tag,
 };
 
 function getIcon(iconName: string): React.ElementType {
-  return iconMap[iconName] || LucideIcons.Package;
+  return iconMap[iconName] || Package;
 }
 
 export function POSProductSelector({
