@@ -54701,6 +54701,7 @@ export type Database = {
           connected_at: string | null
           created_at: string
           disconnected_at: string | null
+          external_instance_id: string | null
           id: string
           instance_name: string
           last_error: string | null
@@ -54718,6 +54719,7 @@ export type Database = {
           connected_at?: string | null
           created_at?: string
           disconnected_at?: string | null
+          external_instance_id?: string | null
           id?: string
           instance_name: string
           last_error?: string | null
@@ -54735,6 +54737,7 @@ export type Database = {
           connected_at?: string | null
           created_at?: string
           disconnected_at?: string | null
+          external_instance_id?: string | null
           id?: string
           instance_name?: string
           last_error?: string | null
