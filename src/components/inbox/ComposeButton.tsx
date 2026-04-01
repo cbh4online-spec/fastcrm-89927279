@@ -33,7 +33,9 @@ import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
+import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
+import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
 
 interface RecipientSuggestion {
   id: string;
