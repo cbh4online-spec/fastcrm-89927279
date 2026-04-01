@@ -18,7 +18,7 @@ interface KPICardWithChartProps {
   onClick?: () => void;
 }
 
-export function KPICardWithChart({
+export const KPICardWithChart = memo(function KPICardWithChart({
   title,
   value,
   trend,
