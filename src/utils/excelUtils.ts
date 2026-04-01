@@ -11,7 +11,8 @@ export async function parseExcelFile(
     normalizeHeader?: (h: string) => string;
   }
 ): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new (ExcelJS as any).Workbook() as ExcelJS_NS.Workbook;
   await workbook.xlsx.load(buffer);
   const worksheet = workbook.worksheets[0];
   if (!worksheet || worksheet.rowCount === 0) {
