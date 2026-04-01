@@ -1,31 +1,22 @@
 
 
-# Plano: Adicionar secção MCP/Figma na página Settings → Integrações & API
+# Plano: Atualizar texto de orientação no diálogo Figma MCP
 
 ## Problema
 
-O módulo MCP (Figma e outros providers) só está acessível em **Marketing → Integrações MCP**. O utilizador espera encontrá-lo também em **Settings → Integrações & API** (`/settings/integrations`).
+O diálogo "Gerar Landing Page via Figma MCP" indica "Configure um provider Figma em **Marketing → Integrações MCP**", mas agora a secção MCP também está disponível em **Settings → Integrações & API**. O texto deve refletir ambos os caminhos.
 
-## Solução
-
-Adicionar uma nova secção "Integrações MCP" no componente `IntegrationsSettings.tsx`, reutilizando o `MCPProvidersPanel` já existente.
-
-## Ficheiros a Alterar
+## Ficheiro a Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/settings/sections/IntegrationsSettings.tsx` | Adicionar secção MCP com `MCPProvidersPanel` |
+| `src/components/landing-pages/FigmaMCPGenerateDialog.tsx` | Atualizar texto na linha 275 |
 
 ## Detalhe
 
-1. Importar `MCPProvidersPanel` de `@/components/marketing/mcp/MCPProvidersPanel`
-2. Importar `useWorkspace` de `@/contexts/WorkspaceContext`
-3. Importar ícone `Blocks` do lucide-react
-4. Adicionar entrada `integrations-mcp` ao array `visibleSections`
-5. Adicionar nova `SettingsSection` com:
-   - Título: "Integrações MCP"
-   - Descrição: "Gerir providers MCP (Figma, etc.) para importar design systems e componentes"
-   - Ícone: `Blocks`
-   - Conteúdo: `<MCPProvidersPanel workspaceId={currentWorkspace?.id} />` (com guard se não há workspace)
-6. Posicionar após "Videoconferência" e antes de "API & Webhooks"
+Substituir:
+> Configure um provider Figma em Marketing → Integrações MCP.
+
+Por:
+> Configure um provider Figma em Marketing → Integrações MCP ou em Settings → Integrações & API.
 
