@@ -429,6 +429,16 @@ export function LandingPagesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {currentWorkspace && (
+        <MCPGenerateDialog
+          open={mcpGenerateOpen}
+          onOpenChange={setMcpGenerateOpen}
+          workspaceId={currentWorkspace.id}
+          defaultTarget="page"
+          onGenerated={(_, id) => setEditingPageId(id)}
+        />
+      )}
     </div>
   );
 }
