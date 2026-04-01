@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS_NS from "exceljs";
 
 /**
  * Parse an Excel file (xlsx/xls) and return rows as key-value objects.
