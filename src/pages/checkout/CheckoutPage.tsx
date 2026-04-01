@@ -27,7 +27,7 @@ export default function CheckoutPage() {
 
   async function loadFunnel() {
     try {
-      const { data: funnelData } = await sb.from("checkout_funnels").select("*").eq("slug", funnelSlug).eq("is_active", true).single();
+      const { data: funnelData } = await supabase.from("checkout_funnels" as any).select("*").eq("slug", funnelSlug).eq("is_active", true).single();
       if (!funnelData) { toast.error("Checkout não encontrado"); return; }
       setFunnel(funnelData);
 
