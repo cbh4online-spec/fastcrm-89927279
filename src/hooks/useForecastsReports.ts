@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMemo } from "react";
 import {
+  FORECAST_OPPORTUNITIES_SELECT,
+  FORECAST_CONTACTS_SELECT,
+  FORECAST_CONTACT_PRODUCTS_SELECT,
+  FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT,
+  FORECAST_PRODUCTS_SELECT,
+} from "@/hooks/constants/selectColumns";
+import {
   ExecutiveKPIs,
   RevenueMetrics,
   ChurnMetrics,
