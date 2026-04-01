@@ -486,7 +486,7 @@ export function usePipelineStagesEnhanced(pipelineId?: string) {
 
       let query = workspaceClient
         .from("pipeline_stages")
-        .select("*")
+        .select("id, name, color, position, workspace_id, pipeline_id, probability, description, created_at, updated_at")
         .eq("workspace_id", currentWorkspace.id)
         .order("position", { ascending: true });
 
