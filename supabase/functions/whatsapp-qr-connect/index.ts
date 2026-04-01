@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
     }
 
     const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
-    const baseUrl = finalUrl.replace(/\/$/, "");
+    const parsedUrl = new URL(finalUrl);
+    const baseUrl = parsedUrl.origin; // apenas scheme + host, sem paths
 
     console.log(`[v2] Evolution API URL: ${baseUrl.substring(0, 60)}...`);
     console.log(`Instance name: ${instanceName}`);
