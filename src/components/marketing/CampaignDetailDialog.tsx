@@ -21,6 +21,7 @@ import {
   Mail,
   Pencil,
   FlaskConical,
+  Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -36,6 +37,8 @@ import { DeliverabilityPanel } from './DeliverabilityPanel';
 import { ActivityFeed } from './ActivityFeed';
 import { ClickHeatmapPanel } from './ClickHeatmapPanel';
 import { TriggerBuilder } from './TriggerBuilder';
+import { ExperimentPanel } from './ExperimentPanel';
+import { AIOptimizationPanel } from './AIOptimizationPanel';
 import { CampaignValidationPanel } from '@/components/email-campaigns/CampaignValidationPanel';
 import { CampaignSendModeSelector } from '@/components/email-campaigns/CampaignSendModeSelector';
 import { CampaignQueueStatus } from '@/components/email-campaigns/CampaignQueueStatus';
