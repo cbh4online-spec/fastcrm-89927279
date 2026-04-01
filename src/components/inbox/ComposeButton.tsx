@@ -489,7 +489,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: Phone, 
       color: "text-green-500 bg-green-500/10", 
       available: true,
-      configured: isGHLConfigured,
+      configured: hasWhatsAppQR,
     },
     { 
       id: "instagram", 
