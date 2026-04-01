@@ -66,11 +66,21 @@ function hexToHSL(hex: string) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// Dynamic Lucide icon component — uses the `icons` named export (tree-shakable map)
+// Dynamic Lucide icon component — lazy loads icons by name (tree-shakable)
+const iconCache = new Map<string, React.LazyExoticComponent<React.ComponentType<LucideProps>>>();
 function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  const IconComponent = (icons as Record<string, React.ElementType>)[name];
-  if (!IconComponent) return null;
-  return <IconComponent className={className} style={style} />;
+  // Convert PascalCase to kebab-case for dynamicIconImports lookup
+  const kebab = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase() as keyof typeof dynamicIconImports;
+  if (!dynamicIconImports[kebab]) return null;
+  if (!iconCache.has(kebab)) {
+    iconCache.set(kebab, lazy(dynamicIconImports[kebab]));
+  }
+  const LazyIcon = iconCache.get(kebab)!;
+  return (
+    <Suspense fallback={<div className="w-5 h-5" />}>
+      <LazyIcon className={className} style={style} />
+    </Suspense>
+  );
 }
 
 // Track page view (fire-and-forget)
