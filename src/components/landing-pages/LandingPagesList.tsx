@@ -25,7 +25,6 @@ import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
 import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
-import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 
 export function LandingPagesList() {
   const { data: pages, isLoading } = useLandingPages();
