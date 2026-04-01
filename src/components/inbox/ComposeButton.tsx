@@ -603,6 +603,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           onOpenChange={setShowGHLDialog}
           channel={selectedGHLChannel}
         />
+        <QuickEvolutionWhatsAppDialog
+          open={showEvolutionWhatsApp}
+          onOpenChange={setShowEvolutionWhatsApp}
+        />
         <QuickInstagramDialog
           open={showInstagramDialog}
           onOpenChange={setShowInstagramDialog}
