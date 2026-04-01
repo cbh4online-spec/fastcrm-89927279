@@ -1,141 +1,141 @@
 
 
-# Plano: Figma MCP Adapter + Import/Normalization Pipeline
+# Plano: MCP-Aware Page/Funnel Generation
 
 ## Estado Actual
 
-- **Existe**: Provider registry (DB + edge function + UI) com CRUD, test, health check, workflow bindings
-- **Não existe**: tabela `marketing_mcp_imports`, actions de import no edge function, normalização, UI de importação
+- **MCP Provider Registry**: Completo (CRUD, test, health, bindings)
+- **MCP Import Pipeline**: Completo (import, normalização Figma, histórico)
+- **Landing Pages**: Tabela `landing_pages` com campos simples (title, slug, headline, subheadline, cta_text, features, testimonials, form_fields, custom_css). Hook `useCreateLandingPage` insere directamente.
+- **Funnels**: Tabela `funnels` + `funnel_steps` (step_type, content jsonb). Hook `useCreateFunnel` cria funil + 5 steps default.
+- **Normalized Payload**: Já tem `sections[]` (com section_type, content_placeholders, media_slots, cta_slots, form_slots, token_references, layout), `tokens`, `components`, `metadata`.
+
+## Arquitectura da Geração
+
+```text
+┌──────────────────────────────────┐
+│  UI: MCPGenerateDialog           │
+│  1. Escolher import concluído    │
+│  2. Escolher target (LP/Funnel)  │
+│  3. Preview secções + confirmar  │
+│  4. Gerar → abre editor          │
+├──────────────────────────────────┤
+│  Edge Function: generate_page    │
+│  / generate_funnel actions       │
+│  - Carrega import normalizado    │
+│  - Mapeia secções → LP fields    │
+│    ou → funnel_steps             │
+│  - Aplica tokens como custom_css │
+│  - Persiste via service_role     │
+│  - Retorna ID do asset criado    │
+├──────────────────────────────────┤
+│  DB: landing_pages / funnels     │
+│  (tabelas existentes)            │
+└──────────────────────────────────┘
+```
 
 ## Ficheiros a Criar/Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| Migration SQL | CRIAR — tabela `marketing_mcp_imports` + RLS + indexes |
-| `supabase/functions/marketing-mcp/index.ts` | EDITAR — adicionar actions: `import_context`, `list_imports`, `get_import` |
-| `src/hooks/useMarketingMCP.ts` | EDITAR — adicionar hooks de import |
-| `src/components/marketing/mcp/MCPImportDialog.tsx` | CRIAR — wizard de importação |
-| `src/components/marketing/mcp/MCPImportHistory.tsx` | CRIAR — lista de imports anteriores |
-| `src/components/marketing/mcp/MCPImportResult.tsx` | CRIAR — visualização do resultado normalizado |
-| `src/components/marketing/mcp/MCPIntegrationsTab.tsx` | EDITAR — adicionar secção de imports |
+| `supabase/functions/marketing-mcp/index.ts` | EDITAR — adicionar actions `generate_page` e `generate_funnel` |
+| `src/hooks/useMarketingMCP.ts` | EDITAR — adicionar `useGeneratePageFromMCP()` e `useGenerateFunnelFromMCP()` |
+| `src/components/marketing/mcp/MCPGenerateDialog.tsx` | CRIAR — dialog de geração com preview |
+| `src/components/marketing/mcp/MCPImportHistory.tsx` | EDITAR — adicionar botão "Gerar" nos imports concluídos |
+| `src/components/landing-pages/LandingPagesList.tsx` | EDITAR — adicionar botão "Gerar a partir de MCP" |
+| `src/components/funnels/FunnelsList.tsx` | EDITAR — adicionar botão "Gerar a partir de MCP" |
 
-## 1. Migration — `marketing_mcp_imports`
+## Detalhes Técnicos
 
-```sql
-CREATE TABLE public.marketing_mcp_imports (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  provider_id uuid NOT NULL REFERENCES public.marketing_mcp_providers(id) ON DELETE CASCADE,
-  import_type text NOT NULL,  -- 'design_system','page_frame','section','component','tokens'
-  external_reference_id text,
-  external_reference_name text,
-  status text NOT NULL DEFAULT 'pending',  -- 'pending','processing','completed','failed'
-  imported_payload_json jsonb DEFAULT '{}',
-  normalized_payload_json jsonb DEFAULT '{}',
-  error_message text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-```
+### 1. Edge Function — `generate_page` action
 
-Indexes: `workspace_id`, `provider_id`, `import_type`, `created_at DESC`. RLS escopado por workspace_members. Trigger `updated_at`.
+Recebe: `{ workspace_id, import_id, title?, slug? }`
 
-## 2. Edge Function — Figma MCP Adapter + Normalization
+Lógica:
+1. Carregar import normalizado do DB (validar status=completed, workspace)
+2. Extrair secções, tokens do `normalized_payload_json`
+3. Mapear para campos `landing_pages`:
+   - `headline` ← primeiro content_placeholder da secção `hero`
+   - `subheadline` ← segundo content_placeholder ou secção `benefits`
+   - `cta_text` ← primeiro cta_slot do `hero` ou `cta`
+   - `features` ← secções `benefits`/`content` mapeadas como array JSON
+   - `testimonials` ← secções `social_proof` mapeadas
+   - `form_enabled` ← true se existir secção `form`
+   - `form_fields` ← form_slots da secção `form`
+   - `custom_css` ← CSS gerado a partir dos tokens (cores, tipografia)
+4. INSERT em `landing_pages`, retornar ID
+5. Logs estruturados
 
-Adicionar 3 actions à edge function existente:
+### 2. Edge Function — `generate_funnel` action
 
-### `import_context`
-1. Valida `provider_id`, `import_type`, `external_reference` (ex: Figma file key ou node ID)
-2. Busca provider do DB, extrai credenciais
-3. Cria registo de import com status `processing`
-4. Chama o MCP server com `tools/call` (JSON-RPC) — tool name depende do import_type:
-   - `design_system` → `get_file` (ficheiro completo com design tokens)
-   - `page_frame` → `get_file_nodes` (nós específicos por node ID)
-   - `section` → `get_file_nodes` 
-   - `tokens` → `get_team_styles` ou `get_file_styles`
-5. Normaliza a resposta raw em estrutura marketing:
+Recebe: `{ workspace_id, import_id, name?, slug? }`
 
-**Normalization target**:
-```json
-{
-  "source": { "provider_key": "figma", "file_key": "...", "node_id": "..." },
-  "sections": [
-    {
-      "section_type": "hero",
-      "section_name": "Hero Principal",
-      "order": 0,
-      "layout": { "direction": "vertical", "alignment": "center" },
-      "content_placeholders": ["headline", "subheadline", "cta_text"],
-      "media_slots": ["hero_image"],
-      "cta_slots": ["primary_cta"],
-      "responsive_hints": { "mobile_stack": true },
-      "token_references": { "bg_color": "#1a1a2e", "text_color": "#ffffff" }
-    }
-  ],
-  "tokens": { "colors": {...}, "typography": {...}, "spacing": {...} },
-  "components": [{ "name": "...", "variants": [...] }],
-  "metadata": { "page_count": 1, "section_count": 5, "total_nodes": 42 }
-}
-```
+Lógica:
+1. Carregar import normalizado
+2. Mapear secções para `funnel_steps`:
+   - hero → step_type "page" (sort_order 0)
+   - form/opt-in → step_type "optin"
+   - social_proof/benefits → step_type "testimonials"
+   - thank_you → step_type "thankyou"
+   - upsell → step_type "upsell"
+   - outros → step_type "page"
+3. Cada step recebe `content` jsonb com dados da secção normalizada (placeholders, slots, tokens)
+4. INSERT funnel + steps, retornar ID
+5. Logs estruturados
 
-A normalização classifica frames/nós por nome e hierarquia:
-- Nomes contendo hero/banner → `hero`
-- Nomes contendo cta/button/action → `cta`
-- Nomes contendo faq/questions → `faq`
-- Nomes contendo pricing/price/plans → `pricing`
-- Nomes contendo testimonial/proof/review → `social_proof`
-- Nomes contendo footer → `footer`
-- Nomes contendo form/opt-in/signup → `form`
-- Default → `content`
-
-6. Persiste raw + normalized no DB, actualiza status para `completed` ou `failed`
-
-### `list_imports`
-SELECT imports por workspace, com join ao provider para mostrar nome. Ordenado por `created_at DESC`. Limit 50.
-
-### `get_import`
-SELECT single import por ID + workspace validation.
-
-## 3. Hooks — Novos
+### 3. Hooks — Novos mutations
 
 ```typescript
-useMCPImports(workspaceId) // lista
-useMCPImport(importId)     // detalhe
-useImportFromMCP()         // mutation: import_context
+useGeneratePageFromMCP()   // mutation → action: generate_page
+useGenerateFunnelFromMCP() // mutation → action: generate_funnel
 ```
 
-## 4. UI — Import Dialog (Wizard de 3 passos)
+Ambos invalidam queries de landing-pages/funnels e retornam o ID do asset criado.
 
-**Passo 1 — Configuração**: Seleccionar provider (dropdown dos activos) + import type (design_system, page_frame, section, tokens) + referência externa (input texto: file key ou URL Figma)
+### 4. UI — MCPGenerateDialog
 
-**Passo 2 — A processar**: Loader com status do import
+Dialog com 3 passos:
 
-**Passo 3 — Resultado**: Sumário com secções detectadas, tokens, componentes. Badge de status. Acção "Usar em Landing Page" / "Usar em Funil" (futuro).
+**Passo 1**: Escolher import (dropdown dos completed) — mostra secções/tokens do import seleccionado
+**Passo 2**: Escolher target — Landing Page ou Funil. Campos: título, slug (auto-gerado)
+**Passo 3**: Preview — resumo das secções que serão mapeadas, tokens aplicados. Botão "Gerar"
 
-## 5. UI — Import History
+Após geração bem-sucedida: toast + opção de navegar para o editor (LandingPageBuilder ou FunnelBuilder).
 
-Tabela com: data, provider, tipo, referência, status, acção "Ver Detalhes". Dentro de `MCPIntegrationsTab`, abaixo de Workflow Bindings.
+### 5. Entry Points
 
-## 6. UI — Import Result
+- **MCPImportHistory**: Botão "Gerar Página" / "Gerar Funil" em cada import com status `completed`
+- **LandingPagesList**: Botão extra "Gerar a partir de MCP" no header, junto ao "Criar"
+- **FunnelsList**: Botão extra "Gerar a partir de MCP" no header
 
-Card expandível mostrando: secções normalizadas (tipo + nome + ordem), tokens detectados, contagem de componentes, raw payload colapsável para debug.
+### 6. Section-to-Step Mapping Table
 
-## Segurança
+| Section Type | Landing Page Field | Funnel Step Type |
+|---|---|---|
+| hero | headline, subheadline, cta_text, hero_image_url | page (sort 0) |
+| benefits | features[] | page |
+| social_proof | testimonials[] | testimonials |
+| form | form_enabled, form_fields | optin |
+| cta | cta_text | page |
+| faq | features[] (appended) | page |
+| pricing | features[] (appended) | page |
+| thank_you | — | thankyou |
+| upsell | — | upsell |
+| content | features[] (appended) | page |
+| footer | custom_css (footer rules) | — |
 
-- Import corre via service_role no edge function
-- RLS por workspace_members em todas as queries
-- Credenciais MCP nunca expostas ao frontend
-- Input validado (import_type enum, referência max 500 chars)
-- Logs estruturados para cada fase
+### 7. Observabilidade
+
+Logs: `marketing_mcp_generation_started`, `marketing_mcp_page_generated`, `marketing_mcp_funnel_generated`, `marketing_mcp_generation_failed`. Cada um com workspace_id, import_id, target_type, asset_id.
 
 ## Critérios de Aceitação
 
-1. Tabela `marketing_mcp_imports` criada com RLS
-2. Edge function suporta `import_context`, `list_imports`, `get_import`
-3. Figma MCP adapter faz JSON-RPC `tools/call` ao servidor MCP configurado
-4. Raw payload persistido + normalizado em secções/tokens/componentes marketing
-5. UI permite seleccionar provider, tipo, referência e executar import
-6. Histórico de imports visível com status e detalhes
-7. Resultado normalizado mostra secções classificadas por tipo marketing
-8. Arquitectura extensível (adapter pattern — Figma é o primeiro, lógica genérica)
+1. Utilizador pode gerar landing page a partir de import MCP concluído
+2. Utilizador pode gerar funil a partir de import MCP concluído
+3. Secções normalizadas são mapeadas correctamente para campos LP / funnel steps
+4. Tokens são aplicados como custom_css na landing page
+5. Assets gerados são editáveis nos builders existentes
+6. Entry points visíveis em LandingPagesList, FunnelsList e Import History
+7. Dialog de geração mostra preview das secções antes de confirmar
+8. Logs estruturados em todas as operações de geração
 
