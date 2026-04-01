@@ -189,6 +189,31 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
+        {/* Recovery in progress banner */}
+        {qrConnection && ["checking", "resyncing", "reconnecting"].includes(qrConnection.recovery_state) && (
+          <div className="p-4 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  {RECOVERY_LABELS[qrConnection.recovery_state as WhatsAppRecoveryState]}
+                </p>
+                <div className="flex items-center gap-2 mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  {qrConnection.recovery_attempt_count > 0 && (
+                    <span>Tentativa {qrConnection.recovery_attempt_count}</span>
+                  )}
+                  {qrConnection.recovery_attempt_count > 0 && qrConnection.recovery_last_attempt_at && (
+                    <span>·</span>
+                  )}
+                  {qrConnection.recovery_last_attempt_at && (
+                    <span>Última às {new Date(qrConnection.recovery_last_attempt_at).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Transitional states */}
         {isTransitional && (
           <div className="p-4 rounded-lg bg-muted/50 flex items-center gap-3">
