@@ -1,110 +1,99 @@
 
 
-## B5 + B6 — Separação Catálogo vs Pricing Intelligence + Hardening Checkout/SEO
+## Fase P1 — Forecast Comercial por Pipeline/Owner/Período + Propostas Integradas no Ciclo de Venda
 
 ### Diagnóstico
 
-| Área | Estado | Problema |
-|------|--------|----------|
-| **StoreProductsAdminPage.tsx** | 574 linhas | Mistura gestão de catálogo (publish/featured/sort/edit) com pricing intelligence (sugestões IA, comparação concorrência, bulk price update) no mesmo ficheiro |
-| **StoreProductPage.tsx** | 734 linhas | Monolítico — gallery, buy box, description, specs, reviews, price comparison, cross-sell tudo inline. SEO já existe (OG + JSON-LD Product) mas falta BreadcrumbList structured data |
-| **Checkout (store)** | Bom — já decomposto em steps/hooks | Faltam: trust badges no checkout da loja, SEO noindex já presente, mas sem tratamento de erros robusto no edge function call. `checkoutSchema` não valida `name` com max length |
-| **Checkout (funnel)** | 149 linhas — `CheckoutPage.tsx` | Usa `const sb = supabase as any` — type safety fraca. Sem tratamento de edge cases (funnel expirado, preço zero) |
-| **SEO** | StoreSeoHead OK para loja. Product page tem OG+JSON-LD. | Falta `BreadcrumbList` JSON-LD na product page. Falta meta robots canonical consistency |
+| Área | Estado Actual | Gap |
+|------|---------------|-----|
+| **Forecast comercial** | `useSalesPerformance` calcula `dealForecast` apenas por stage (sem filtro por pipeline/owner/período). `useRevenueForecast` é agregado global. `ForecastCenterPage` foca simulação operacional, não forecast comercial | Não existe **vista de forecast comercial filtrável** por pipeline, owner e período — peça fundamental para gestão de vendas |
+| **Propostas no deal** | `useProposals(opportunityId)` já suporta filtro por oportunidade. `CreateProposalDialog` já aceita `opportunity_id`. Mas **OpportunityDetailPage não tem tab de propostas** — propostas são geridas apenas em `/proposals` | Falta integração visual: tab "Propostas" no detalhe da oportunidade + CTA "Criar Proposta" contextual |
+| **Pipeline/Owner no forecast** | `useSalesPerformance` já faz fetch de `opportunities` com `owner_id` e `pipeline_stages` | Dados existem mas não são segmentáveis — o forecast é calculado em bloco |
 
 ---
 
-### Plano B5 — Separar Catálogo vs Pricing Intelligence
+### Âmbito
 
-**Objectivo:** Isolar a gestão de catálogo (publicação, destaque, ordenação) da inteligência de preços (comparação concorrência, sugestões IA, bulk update).
+**P1 inclui:**
+1. **Forecast Comercial Dashboard** — nova página `/dashboard/sales-forecast` com forecast filtrável por pipeline, owner e período
+2. **Tab "Propostas" no detalhe da oportunidade** — reutilizando `useProposals(opportunityId)` e componentes existentes
+3. **Hook `useSalesForecast`** — forecast segmentado (pipeline × owner × período) com weighted pipeline value
 
-**Criar `src/components/store/admin/`:**
-
-| Ficheiro | Conteúdo |
-|----------|----------|
-| `CatalogProductsTable.tsx` | Tabela de produtos com colunas: imagem, nome, categoria, preço, publicado (switch), destaque (star), ordem (up/down), editar. Recebe `products`, `onTogglePublish`, `onToggleFeatured`, `onMoveOrder`, `onEdit`, `isLoading` como props |
-| `PricingSuggestionsPanel.tsx` | Painel de sugestões de preço IA (linhas 317-378 do admin page). Recebe `suggestions`, `products`, `onApply`, `onDismiss` como props |
-| `PricingIntelligenceSection.tsx` | Secção com: botão "Atualizar Preços", progress bar bulk, colunas de custo/margem/concorrência/Δ%. Compõe a área de pricing do admin. Recebe `products`, `onUpdateSinglePrice`, `onUpdateAllPrices`, `bulkProgress`, `loadingPrices` |
-| `useStoreAdminProducts.ts` | Hook que extrai queries e mutations do admin page: `products` query, `updateProduct`, `applySuggestion`, `dismissSuggestion`, `updateSinglePrice`, `updateAllPrices`, `suggestions` query |
-
-**Refatorar `StoreProductsAdminPage.tsx`:**
-- Reduzir de 574 para ~80 linhas
-- Page compõe: Header + `PricingSuggestionsPanel` + Tabs (Catálogo | Pricing Intelligence)
-- Tab "Catálogo" → `CatalogProductsTable` (publicação, destaque, ordenação, edit)
-- Tab "Preços & Concorrência" → `PricingIntelligenceSection` (custo, margem, concorrência, Δ%, sugestões, bulk update)
-- Ambas as tabs partilham o mesmo dataset via `useStoreAdminProducts`
-
----
-
-### Plano B6 — Hardening Checkout + SEO
-
-**6.1 — Checkout hardening**
-
-**`checkoutSchema.ts`:**
-- Adicionar `max(100)` ao name
-- Adicionar `max(255)` ao email
-- Exportar schema unificado para validação completa
-
-**`StoreCheckoutPage.tsx`:**
-- Adicionar `TrustBadges` component (já existe em `src/components/checkout/TrustBadges.tsx`) abaixo do botão de pagamento
-- Adicionar tratamento de erro mais específico: network errors vs server errors vs validation errors
-
-**`CheckoutPage.tsx` (funnel checkout):**
-- Remover `const sb = supabase as any` — usar supabase diretamente com proper typing
-- Adicionar validação de preço zero (não permitir submit se total === 0 sem gift card)
-- Adicionar `TrustBadges` após o form
-
-**6.2 — SEO hardening**
-
-**Criar `src/components/store/storefront/ProductSeoHead.tsx`:**
-- Extrair o bloco Helmet+JSON-LD da `StoreProductPage.tsx` (linhas 202-238) para componente reutilizável
-- Adicionar `BreadcrumbList` JSON-LD structured data (Loja > Categoria > Produto)
-- Adicionar `product:price:amount` e `product:price:currency` Open Graph tags
-- Recebe props: `product`, `storeName`, `wsSlug`, `pricing`, `reviewAvg`, `reviewCount`, `images`, `primaryIndex`
-
-**Refatorar `StoreProductPage.tsx`:**
-- Substituir inline Helmet por `<ProductSeoHead />`
-- Reduz ~40 linhas no ficheiro principal
+**P1 NÃO inclui:**
+- Alterações ao `ForecastCenterPage` (simulação — mantém-se separado)
+- Alterações ao `useRevenueForecast` / edge function `compute-revenue-forecast`
+- Alterações à base de dados
+- Won→Invoice handoff (P2)
+- Renewal/expansion logic (P3)
 
 ---
 
 ### Ficheiros a Criar
 
-| Ficheiro | Batch |
-|----------|-------|
-| `src/components/store/admin/CatalogProductsTable.tsx` | B5 |
-| `src/components/store/admin/PricingSuggestionsPanel.tsx` | B5 |
-| `src/components/store/admin/PricingIntelligenceSection.tsx` | B5 |
-| `src/components/store/admin/useStoreAdminProducts.ts` | B5 |
-| `src/components/store/storefront/ProductSeoHead.tsx` | B6 |
+| Ficheiro | Conteúdo |
+|----------|----------|
+| `src/hooks/useSalesForecast.ts` | Hook que reutiliza dados de `opportunities` + `pipeline_stages` + `profiles` para gerar forecast segmentado. Aceita filtros: `pipelineId`, `ownerId`, `period` (month/quarter/year). Retorna: weighted pipeline por stage, forecast por owner, forecast por período, totais |
+| `src/pages/SalesForecastPage.tsx` | Página com DashboardLayout. Header + filtros (pipeline selector, owner selector, period selector). Compõe 4 secções: KPI strip, forecast por stage (bar chart horizontal weighted), forecast por owner (tabela com valor ponderado, deals, win rate), forecast temporal (line chart mês a mês) |
+| `src/components/sales-forecast/ForecastKPIStrip.tsx` | Strip com: Pipeline Total, Weighted Forecast, Best Case, Deals Ativos, Avg Win Rate |
+| `src/components/sales-forecast/ForecastByStageChart.tsx` | Bar chart horizontal (reutiliza padrão do `DealForecastChart`) filtrado por pipeline/owner |
+| `src/components/sales-forecast/ForecastByOwnerTable.tsx` | Tabela: Owner, Deals, Pipeline Value, Weighted Value, Win Rate, Avg Cycle |
+| `src/components/sales-forecast/ForecastTrendChart.tsx` | Line chart com forecast acumulado por mês (últimos 6 meses) — deals expected_close_date × weighted value |
+| `src/components/opportunities/detail/OpportunityProposalsTab.tsx` | Tab que lista propostas da oportunidade via `useProposals(opportunityId)`. Mostra: título, valor, estado, data, CTA "Criar Proposta" que abre `CreateProposalDialog` pré-preenchido |
 
-### Ficheiros a Refatorar
+### Ficheiros a Modificar
 
-| Ficheiro | De | Para | Batch |
-|----------|----|------|-------|
-| `StoreProductsAdminPage.tsx` | 574 | ~80 | B5 |
-| `StoreProductPage.tsx` | 734 | ~695 | B6 |
-| `checkoutSchema.ts` | 18 | ~22 | B6 |
-| `CheckoutPage.tsx` (funnel) | 149 | ~155 | B6 |
-| `StoreCheckoutPage.tsx` | 181 | ~190 | B6 |
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/components/opportunities/OpportunityDetailPage.tsx` | Adicionar tab "Propostas" com badge de contagem. Importar `OpportunityProposalsTab` e `CreateProposalDialog` |
+| `src/routes/` (ficheiro de rotas relevante) | Adicionar rota `/dashboard/sales-forecast` → `SalesForecastPage` |
 
 ### Sem alterações a
-- Rotas
+- Base de dados / migrações
+- `useSalesPerformance.ts` (mantém-se para ReportsSales)
+- `useRevenueForecast.ts` (mantém-se para Revenue module)
+- `ForecastCenterPage.tsx` (simulação — separado)
+- `ProposalsList.tsx` (lista global — mantém-se)
 - Edge functions
-- Database schema
-- Hooks existentes (useStoreProducts, usePriceComparison, etc.)
-- Store frontend (StorePage, StoreHeader, StoreFooter)
+
+---
+
+### Detalhes Técnicos
+
+**`useSalesForecast` — lógica core:**
+- Query `opportunities` com `stage_id, owner_id, value, status, expected_close_date, pipeline_id` + join stages para `probability`
+- Filtros: `pipeline_id`, `owner_id`, período (filtra por `expected_close_date` ou `created_at`)
+- Weighted value = `value × (stage.probability / 100)` por oportunidade ativa
+- Agrupamentos: por stage, por owner, por mês de expected_close_date
+- Reutiliza `workspaceClient` do `WorkspaceInstanceContext`
+
+**`OpportunityProposalsTab`:**
+- Usa `useProposals(opportunityId)` (já suporta filtro)
+- Lista cards compactos: título, badge status, valor, data criação, link para detalhe
+- Empty state: "Sem propostas para este negócio" + CTA "Criar Proposta"
+- CTA abre `CreateProposalDialog` com `opportunityId` pré-preenchido (já suportado pela prop existente)
+
+**Selectors de filtro na `SalesForecastPage`:**
+- Pipeline: `usePipelines()` (já existe em `useOpportunitiesEnhanced`)
+- Owner: extraído dos membros via `useWorkspaceMembers()`
+- Período: select com "Este mês", "Este trimestre", "Este ano", "Últimos 6 meses"
+
+---
 
 ### Riscos
-- B5 tab separation: garantir que ambas as tabs partilham o dataset — mitigado via hook centralizado
-- B6 SEO: Helmet re-render — mitigado extraindo para componente puro com props
+
+| Risco | Mitigação |
+|-------|-----------|
+| Performance com muitas oportunidades | `staleTime: 5min`, query limitada ao workspace |
+| Tab de propostas no deal detalhe pode sobrecarregar tabs | Usar badge count, só renderizar conteúdo quando tab activa |
+| Forecast por owner pode revelar dados sensíveis | Respeitar RLS existente — workspace-scoped |
 
 ### Critérios de Aceitação
-- Admin page tem 2 tabs claras: Catálogo e Preços
-- Sugestões de preço IA aparecem apenas na tab de preços
-- Checkout store tem trust badges visíveis
-- Checkout funnel sem `as any` no supabase
-- Product page tem BreadcrumbList JSON-LD
-- Schemas de checkout validam comprimento máximo
-- Nenhuma funcionalidade removida
+- `/dashboard/sales-forecast` mostra forecast segmentável por pipeline, owner e período
+- KPIs reflectem weighted pipeline, total pipeline, best case, deals, avg win rate
+- Chart de forecast por stage mostra valor total vs weighted por stage
+- Tabela por owner mostra métricas individuais
+- Chart temporal mostra evolução do forecast por mês
+- Detalhe de oportunidade tem tab "Propostas" com contagem
+- CTA "Criar Proposta" no detalhe da oportunidade abre dialog pré-preenchido
+- Nenhuma funcionalidade existente quebrada
 
