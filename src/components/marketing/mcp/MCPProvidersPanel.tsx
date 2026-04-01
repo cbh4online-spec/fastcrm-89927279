@@ -134,12 +134,26 @@ export function MCPProvidersPanel({ workspaceId }: MCPProvidersPanelProps) {
                     const st = STATUS_MAP[p.connection_status] || STATUS_MAP.unknown;
                     return (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.provider_name}</TableCell>
+                        <TableCell className="font-medium">
+                          {(() => {
+                            const pi = PROVIDER_ICONS[p.provider_key];
+                            const ProvIcon = pi?.icon || Blocks;
+                            return (
+                              <span className="inline-flex items-center gap-1.5">
+                                <ProvIcon className={`h-4 w-4 ${pi?.className || "text-muted-foreground"}`} />
+                                {p.provider_name}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{KEY_LABELS[p.provider_key] || p.provider_key}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={st.variant}>{st.label}</Badge>
+                          <span className="inline-flex items-center gap-1.5">
+                            <st.icon className={`h-4 w-4 ${st.dotClass}`} />
+                            <span className="text-sm">{st.label}</span>
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Switch
