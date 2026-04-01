@@ -20,6 +20,7 @@ import {
   Globe,
   Zap,
   Bell,
+  Blocks,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
