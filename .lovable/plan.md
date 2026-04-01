@@ -1,36 +1,38 @@
 
 
-# Plano: Melhorar ícones e badges de estado nos Providers MCP
+# Plano: Juntar Landing Pages com Funis numa Página Combinada
 
-## Alteração
+## Resumo
 
-Enriquecer visualmente a tabela de providers MCP com:
-1. **Ícones por tipo de provider** na coluna "Tipo" (Figma, Git, Custom)
-2. **Indicadores visuais coloridos** na coluna "Estado" (dot colorido + texto)
-3. **Ícone na coluna "Nome"** para identificação rápida
+Criar uma nova página unificada "Conversão" (ou "Funis & Landing Pages") que combina ambos os conteúdos via tabs, com um único item na sidebar.
 
-## Ficheiro a Alterar
+## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | Adicionar ícones por tipo e melhorar badges de estado |
+| `src/pages/ConversionHub.tsx` | **Criar** — nova página com `DashboardLayout` + `Tabs` contendo tab "Funis" (renderiza `FunnelsList`) e tab "Landing Pages" (renderiza `LandingPagesList`) |
+| `src/config/routeManifest.ts` | **Editar** — substituir as 2 entradas (`funnels` + `landing-pages`) por 1 entrada `conversion-hub` com label "Funis & Landing Pages", href `/dashboard/conversion`, ícone `Workflow`, grupo `marketing` |
+| `src/routes/sales/MarketingRoutes.tsx` | **Editar** — substituir as 2 rotas por 1 rota `/dashboard/conversion` apontando para `ConversionHub`. Manter rotas antigas como redirects para `/dashboard/conversion` (compatibilidade) |
 
-## Detalhe Técnico
+## Detalhe Tecnico
 
-1. Importar ícones `Figma`, `GitBranch`, `Blocks`, `CircleCheck`, `CircleX`, `CircleDot` do `lucide-react`
-2. Criar mapa `PROVIDER_ICONS` associando cada `provider_key` a um ícone e cor:
-   - `figma` → `Figma` (roxo)
-   - `git` → `GitBranch` (laranja)
-   - `custom` → `Blocks` (azul)
-3. Atualizar `STATUS_MAP` para incluir ícone e cor de dot:
-   - `connected` → `CircleCheck` verde
-   - `error` → `CircleX` vermelho
-   - `unknown` → `CircleDot` cinzento
-4. Na coluna "Nome", prefixar com o ícone do provider
-5. Na coluna "Estado", renderizar ícone colorido + texto em vez de apenas Badge
+### Nova página `ConversionHub.tsx`
+- Tabs com valor controlado via query param `?tab=funnels|landing-pages` (default: `funnels`)
+- Tab "Funis" renderiza `<FunnelsList />` directamente
+- Tab "Landing Pages" renderiza `<LandingPagesList />` directamente
+- Header com titulo "Funis & Landing Pages" e descrição contextual
+
+### Route Manifest
+- Remover entradas `funnels` e `landing-pages`
+- Adicionar `conversion-hub` com `visibleInSidebar: true`
+- Manter as entradas antigas como `visibleInSidebar: false` para que links/bookmarks antigos continuem a funcionar na pesquisa
+
+### Rotas
+- Nova rota principal: `/dashboard/conversion`
+- Redirects de compatibilidade: `/dashboard/funnels` → `/dashboard/conversion?tab=funnels`, `/dashboard/landing-pages` → `/dashboard/conversion?tab=landing-pages`
 
 ## Impacto
-
-- Puramente visual, sem alteração de lógica ou dados
-- O componente é partilhado entre Marketing e Settings — ambas as vistas beneficiam
+- Apenas 3 ficheiros alterados/criados
+- Sem alterações de dados ou backend
+- Componentes `FunnelsList` e `LandingPagesList` reutilizados sem modificação
 
