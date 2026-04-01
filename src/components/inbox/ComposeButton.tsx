@@ -33,7 +33,9 @@ import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
+import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
+import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
 
 interface RecipientSuggestion {
   id: string;
@@ -458,16 +460,19 @@ interface ComposeButtonProps {
 export function ComposeButton({ className, variant = "default" }: ComposeButtonProps) {
   const [showEmailCompose, setShowEmailCompose] = useState(false);
   const [showGHLDialog, setShowGHLDialog] = useState(false);
+  const [showEvolutionWhatsApp, setShowEvolutionWhatsApp] = useState(false);
   const [showInstagramDialog, setShowInstagramDialog] = useState(false);
-  const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("whatsapp");
+  const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("sms");
 
   // Check connection status
   const { data: emailConnections } = useEmailConnections();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { data: instagramConnection } = useInstagramConnection();
+  const { data: whatsappQRConnection } = useWhatsAppQRConnection();
 
   const hasEmailConnection = emailConnections?.some(c => c.is_active);
   const hasInstagramConnection = instagramConnection?.is_active;
+  const hasWhatsAppQR = whatsappQRConnection?.status === "connected";
 
   const channels = [
     { 
@@ -484,7 +489,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: Phone, 
       color: "text-green-500 bg-green-500/10", 
       available: true,
-      configured: isGHLConfigured,
+      configured: hasWhatsAppQR,
     },
     { 
       id: "instagram", 
@@ -526,8 +531,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         setShowEmailCompose(true);
         break;
       case "whatsapp":
-        setSelectedGHLChannel("whatsapp");
-        setShowGHLDialog(true);
+        setShowEvolutionWhatsApp(true);
         break;
       case "sms":
         setSelectedGHLChannel("sms");
@@ -599,6 +603,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           onOpenChange={setShowGHLDialog}
           channel={selectedGHLChannel}
         />
+        <QuickEvolutionWhatsAppDialog
+          open={showEvolutionWhatsApp}
+          onOpenChange={setShowEvolutionWhatsApp}
+        />
         <QuickInstagramDialog
           open={showInstagramDialog}
           onOpenChange={setShowInstagramDialog}
@@ -638,6 +646,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         open={showGHLDialog}
         onOpenChange={setShowGHLDialog}
         channel={selectedGHLChannel}
+      />
+      <QuickEvolutionWhatsAppDialog
+        open={showEvolutionWhatsApp}
+        onOpenChange={setShowEvolutionWhatsApp}
       />
       <QuickInstagramDialog
         open={showInstagramDialog}
