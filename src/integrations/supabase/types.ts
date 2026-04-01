@@ -4209,6 +4209,60 @@ export type Database = {
           },
         ]
       }
+      ai_campaign_recommendations: {
+        Row: {
+          accepted_at: string | null
+          campaign_id: string | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          reasoning: string | null
+          recommendation_data: Json
+          recommendation_type: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          reasoning?: string | null
+          recommendation_data?: Json
+          recommendation_type: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          reasoning?: string | null
+          recommendation_data?: Json
+          recommendation_type?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_campaign_recommendations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_campaign_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_field_suggestions: {
         Row: {
           applied_at: string | null
@@ -10010,6 +10064,108 @@ export type Database = {
           },
         ]
       }
+      campaign_benchmarks: {
+        Row: {
+          calculated_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metrics: Json
+          period_days: number
+          workspace_id: string
+        }
+        Insert: {
+          calculated_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metrics?: Json
+          period_days?: number
+          workspace_id: string
+        }
+        Update: {
+          calculated_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metrics?: Json
+          period_days?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_benchmarks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_experiments: {
+        Row: {
+          base_campaign_id: string
+          created_at: string
+          created_by: string | null
+          evaluation_metric: string
+          experiment_type: string
+          id: string
+          min_sample_size: number
+          status: string
+          updated_at: string
+          winning_variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          base_campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          evaluation_metric?: string
+          experiment_type?: string
+          id?: string
+          min_sample_size?: number
+          status?: string
+          updated_at?: string
+          winning_variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          base_campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          evaluation_metric?: string
+          experiment_type?: string
+          id?: string
+          min_sample_size?: number
+          status?: string
+          updated_at?: string
+          winning_variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_experiments_base_campaign_id_fkey"
+            columns: ["base_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_experiments_winning_variant_fkey"
+            columns: ["winning_variant_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_experiments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_landing_pages: {
         Row: {
           campaign_id: string | null
@@ -10429,6 +10585,63 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_variants: {
+        Row: {
+          campaign_id: string | null
+          click_rate: number | null
+          conversion_rate: number | null
+          created_at: string
+          experiment_id: string
+          id: string
+          open_rate: number | null
+          revenue_attributed: number | null
+          sample_size: number | null
+          traffic_split: number
+          variant_label: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          click_rate?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          experiment_id: string
+          id?: string
+          open_rate?: number | null
+          revenue_attributed?: number | null
+          sample_size?: number | null
+          traffic_split?: number
+          variant_label?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          click_rate?: number | null
+          conversion_rate?: number | null
+          created_at?: string
+          experiment_id?: string
+          id?: string
+          open_rate?: number | null
+          revenue_attributed?: number | null
+          sample_size?: number | null
+          traffic_split?: number
+          variant_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_variants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_variants_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_experiments"
             referencedColumns: ["id"]
           },
         ]

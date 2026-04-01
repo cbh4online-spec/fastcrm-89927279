@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Sparkles, Mail, UserPlus, ShoppingCart, UserX, ChevronDown, ChevronUp, Zap, ArrowRight } from 'lucide-react';
+import { Sparkles, Mail, UserPlus, ShoppingCart, UserX, ChevronDown, ChevronUp, Zap, ArrowRight, RefreshCw, TrendingUp, Heart, Gift, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AutomationTemplate {
@@ -13,48 +13,99 @@ interface AutomationTemplate {
   icon: React.ReactNode;
   trigger: string;
   steps: string[];
-  category: 'acquisition' | 'engagement' | 'retention';
+  category: 'acquisition' | 'engagement' | 'retention' | 'growth';
+  scoringImpact: string;
 }
 
 const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'welcome-series',
-    name: 'Welcome Series',
-    description: 'Série de 3 emails automáticos para novos contactos. Apresenta a empresa, educa sobre o produto e propõe uma ação.',
+    name: 'Onboarding / Welcome Series',
+    description: 'Série de 3 emails para novos contactos. Apresenta, educa e converte.',
     icon: <UserPlus className="h-5 w-5 text-green-500" />,
     trigger: 'Novo contacto criado',
     steps: [
       'Email 1 (imediato): Boas-vindas + apresentação',
       'Email 2 (3 dias): Conteúdo educativo + caso de sucesso',
       'Email 3 (7 dias): CTA para agendar demo ou comprar',
+      'Scoring: +2 por abertura, +5 por clique',
     ],
     category: 'acquisition',
+    scoringImpact: '+2 a +15 pontos',
   },
   {
-    id: 'deal-abandonment',
-    name: 'Abandono de Deal',
-    description: 'Email automático quando um deal fica parado ou é perdido. Recupera oportunidades que estavam a esfriar.',
-    icon: <ShoppingCart className="h-5 w-5 text-amber-500" />,
-    trigger: 'Deal muda para "perdido" ou sem atividade > 7 dias',
+    id: 'lead-nurture',
+    name: 'Lead Nurture',
+    description: 'Sequência educativa para leads que demonstraram interesse mas não converteram.',
+    icon: <TrendingUp className="h-5 w-5 text-blue-500" />,
+    trigger: 'Lead com score > 20 e sem oportunidade há 14 dias',
     steps: [
-      'Email 1 (imediato): "Ainda podemos ajudar?"',
-      'Email 2 (3 dias): Oferta especial ou benefício extra',
-      'Email 3 (7 dias): Último follow-up + case study',
+      'Email 1 (imediato): Conteúdo de valor + ROI',
+      'Email 2 (5 dias): Testemunho + comparativo',
+      'Email 3 (10 dias): Oferta limitada + demo grátis',
+      'Não abriu nenhum → tarefa comercial',
     ],
     category: 'engagement',
+    scoringImpact: '+5 a +25 pontos',
   },
   {
-    id: 'win-back',
-    name: 'Win-back / Reativação',
-    description: 'Campanha automática para contactos inativos há mais de 90 dias. Reaviva o interesse com conteúdo relevante.',
-    icon: <UserX className="h-5 w-5 text-red-500" />,
-    trigger: 'Contacto inativo > 90 dias',
+    id: 'reengagement',
+    name: 'Reengagement (Cold 90d)',
+    description: 'Campanha para contactos inativos há 90+ dias. Reaviva com conteúdo relevante.',
+    icon: <RefreshCw className="h-5 w-5 text-amber-500" />,
+    trigger: 'Contacto sem abertura há 90+ dias',
     steps: [
       'Email 1: "Sentimos a sua falta" + novidades',
       'Email 2 (5 dias): Oferta exclusiva de reativação',
       'Email 3 (10 dias): Última tentativa + unsubscribe suave',
+      'Sem resposta → lifecycle stage = cold',
     ],
     category: 'retention',
+    scoringImpact: '-15 a +10 pontos',
+  },
+  {
+    id: 'win-back',
+    name: 'Win-back (Opp Perdida)',
+    description: 'Recuperar oportunidades perdidas com nova abordagem.',
+    icon: <RotateCcw className="h-5 w-5 text-red-500" />,
+    trigger: 'Oportunidade marcada como perdida',
+    steps: [
+      'Email 1 (3 dias): "O que podemos melhorar?" + pesquisa',
+      'Email 2 (14 dias): Nova proposta de valor ou feature',
+      'Email 3 (30 dias): Caso de sucesso de cliente semelhante',
+      'Clicou → criar nova oportunidade + tarefa',
+    ],
+    category: 'retention',
+    scoringImpact: '+5 a +25 pontos',
+  },
+  {
+    id: 'upsell',
+    name: 'Upsell / Cross-sell',
+    description: 'Campanha para clientes activos com proposta de valor complementar.',
+    icon: <Gift className="h-5 w-5 text-purple-500" />,
+    trigger: 'Cliente activo com compra há 30-90 dias',
+    steps: [
+      'Email 1: Produto/serviço complementar',
+      'Email 2 (7 dias): Benefício exclusivo para clientes',
+      'Clicou → scoring +5 + notificar comercial',
+    ],
+    category: 'growth',
+    scoringImpact: '+5 a +15 pontos',
+  },
+  {
+    id: 'churn-prevention',
+    name: 'Prevenção de Churn',
+    description: 'Detectar sinais de risco e actuar preventivamente.',
+    icon: <Heart className="h-5 w-5 text-pink-500" />,
+    trigger: 'Cliente com engagement em queda ou reclamação',
+    steps: [
+      'Email 1: "Como podemos ajudar?" + NPS/feedback',
+      'Email 2 (5 dias): Conteúdo de valor personalizado',
+      'Sem resposta → tarefa urgente ao gestor de conta',
+      'Bounce/complaint → lifecycle = at_risk',
+    ],
+    category: 'retention',
+    scoringImpact: '-20 a +10 pontos',
   },
 ];
 
@@ -67,20 +118,23 @@ export function LifecycleAutomations() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        toast.info('Automação desativada');
+        toast.info('Jornada desativada');
       } else {
         next.add(id);
-        toast.success('Automação ativada! Será executada automaticamente.');
+        toast.success('Jornada ativada! Os triggers serão criados automaticamente.');
       }
       return next;
     });
   };
 
   const categoryLabels: Record<string, { label: string; color: string }> = {
-    acquisition: { label: 'Aquisição', color: 'bg-green-500/10 text-green-700' },
-    engagement: { label: 'Engagement', color: 'bg-blue-500/10 text-blue-700' },
-    retention: { label: 'Retenção', color: 'bg-orange-500/10 text-orange-700' },
+    acquisition: { label: 'Aquisição', color: 'bg-green-500/10 text-green-700 dark:text-green-400' },
+    engagement: { label: 'Engagement', color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
+    retention: { label: 'Retenção', color: 'bg-orange-500/10 text-orange-700 dark:text-orange-400' },
+    growth: { label: 'Crescimento', color: 'bg-purple-500/10 text-purple-700 dark:text-purple-400' },
   };
+
+  const activeCount = activeAutomations.size;
 
   return (
     <div className="space-y-6">
@@ -88,16 +142,23 @@ export function LifecycleAutomations() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
-            Automações de Ciclo de Vida
+            Jornadas de Lifecycle
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Fluxos pré-configurados que ativa com 1 clique. Baseados em eventos do CRM.
+            Fluxos automatizados baseados em eventos reais do CRM. Cada jornada actualiza o scoring do contacto.
           </p>
         </div>
-        <Badge variant="outline" className="gap-1">
-          <Sparkles className="h-3 w-3" />
-          CRM-Native
-        </Badge>
+        <div className="flex items-center gap-2">
+          {activeCount > 0 && (
+            <Badge variant="default" className="bg-green-600">
+              {activeCount} ativa{activeCount > 1 ? 's' : ''}
+            </Badge>
+          )}
+          <Badge variant="outline" className="gap-1">
+            <Sparkles className="h-3 w-3" />
+            CRM-Native
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -125,10 +186,15 @@ export function LifecycleAutomations() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{auto.description}</p>
 
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <Zap className="h-3 w-3 text-amber-500" />
-                      <span className="text-[11px] font-medium">Trigger:</span>
-                      <span className="text-[11px] text-muted-foreground">{auto.trigger}</span>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="h-3 w-3 text-amber-500" />
+                        <span className="text-[11px] font-medium">Trigger:</span>
+                        <span className="text-[11px] text-muted-foreground">{auto.trigger}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">
+                        Scoring: {auto.scoringImpact}
+                      </Badge>
                     </div>
 
                     {isExpanded && (
@@ -169,9 +235,9 @@ export function LifecycleAutomations() {
       <Card className="border-dashed">
         <CardContent className="py-6 text-center">
           <p className="text-sm text-muted-foreground">
-            💡 Estas automações são disparadas por eventos do CRM — deals, contactos e pipeline.
+            💡 Cada jornada cria triggers automáticos, actualiza o scoring do contacto e alimenta o CRM timeline.
             <br />
-            <span className="text-xs">Diferente de ferramentas externas, o FastCRM tem contexto de negócio completo.</span>
+            <span className="text-xs">Os eventos de campanha (aberturas, cliques, bounces) impactam directamente o score via lifecycle scoring.</span>
           </p>
         </CardContent>
       </Card>

@@ -21,6 +21,7 @@ import {
   Mail,
   Pencil,
   FlaskConical,
+  Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -36,6 +37,8 @@ import { DeliverabilityPanel } from './DeliverabilityPanel';
 import { ActivityFeed } from './ActivityFeed';
 import { ClickHeatmapPanel } from './ClickHeatmapPanel';
 import { TriggerBuilder } from './TriggerBuilder';
+import { ExperimentPanel } from './ExperimentPanel';
+import { AIOptimizationPanel } from './AIOptimizationPanel';
 import { CampaignValidationPanel } from '@/components/email-campaigns/CampaignValidationPanel';
 import { CampaignSendModeSelector } from '@/components/email-campaigns/CampaignSendModeSelector';
 import { CampaignQueueStatus } from '@/components/email-campaigns/CampaignQueueStatus';
@@ -117,6 +120,8 @@ export function CampaignDetailDialog({
               <TabsTrigger value="activity">Actividade</TabsTrigger>
               <TabsTrigger value="recipients">Destinatários</TabsTrigger>
               <TabsTrigger value="automation">Automação</TabsTrigger>
+              <TabsTrigger value="experiments">Testes A/B</TabsTrigger>
+              <TabsTrigger value="ai">IA</TabsTrigger>
               <TabsTrigger value="content">Conteúdo</TabsTrigger>
             </TabsList>
 
@@ -359,6 +364,14 @@ export function CampaignDetailDialog({
 
             <TabsContent value="automation" className="space-y-4">
               <TriggerBuilder campaignId={campaign.id} />
+            </TabsContent>
+
+            <TabsContent value="experiments" className="space-y-4">
+              <ExperimentPanel campaignId={campaign.id} />
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              <AIOptimizationPanel campaignId={campaign.id} />
             </TabsContent>
 
             <TabsContent value="content" className="space-y-4">

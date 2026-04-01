@@ -31,6 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
   update_score: 'Atualizar score',
   create_task: 'Criar tarefa comercial',
   update_lifecycle: 'Mudar lifecycle stage',
+  start_journey: 'Iniciar jornada lifecycle',
 };
 
 export function TriggerBuilder({ campaignId }: Props) {
@@ -115,7 +116,8 @@ export function TriggerBuilder({ campaignId }: Props) {
                      actionType === 'webhook' ? 'URL do webhook' :
                      actionType === 'update_score' ? 'Pontos (ex: +5 ou -10)' :
                      actionType === 'create_task' ? 'Descrição da tarefa' :
-                     actionType === 'update_lifecycle' ? 'Novo stage (ex: qualified, customer)' : 'Valor'}
+                     actionType === 'update_lifecycle' ? 'Novo stage (ex: qualified, customer)' :
+                     actionType === 'start_journey' ? 'ID da jornada (ex: welcome-series)' : 'Valor'}
                   </Label>
                   <Input value={actionValue} onChange={(e) => setActionValue(e.target.value)} />
                 </div>
