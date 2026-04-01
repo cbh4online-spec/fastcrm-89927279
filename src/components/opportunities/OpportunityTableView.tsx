@@ -55,7 +55,6 @@ interface OpportunityRowProps {
   score?: DealScore;
   intelligence?: CompactDealIntelligence;
   locale: typeof pt;
-  t: (key: string, fallback?: string) => string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: any;
   formatCurrency: (value: number, currency?: string) => string;
