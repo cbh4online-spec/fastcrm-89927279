@@ -1,63 +1,59 @@
 
 
-# Correcções P0 — Estado Actual e Plano
+# Dynamic Imports para Libs Pesadas
 
 ## Diagnóstico
 
-Duas das três correcções P0 já foram implementadas na sessão anterior:
-- **@faker-js/faker** → já está em `devDependencies` (linha 263 do package.json)
-- **import \* as LucideIcons** → já corrigido nos 3 ficheiros (PublicBioPage, ProductCard, POSProductSelector)
+| Lib | Ficheiros | Estado actual | Acção |
+|-----|-----------|---------------|-------|
+| **exceljs** | `excelUtils.ts` → 7 consumidores | Import estático top-level | Converter para dynamic import |
+| **@fullcalendar/\*** | `FullCalendarView.tsx` | FullCalendar lazy, mas **plugins importados estaticamente** (daygrid, timegrid, list, interaction) | Mover plugins para dynamic import |
+| **@tiptap/\*** | `ui/RichTextEditor.tsx` (17 imports), `inbox/RichTextEditor.tsx` (5 imports) | Tudo estático | Lazy-load componentes inteiros |
+| **@react-pdf/renderer** | 0 imports encontrados | Não usado | Nada a fazer |
+| **@nivo/\*** | 0 imports encontrados | Não usado | Nada a fazer |
 
-Resta apenas a **virtualização das tabelas core**.
+**@react-pdf/renderer** e **@nivo/\*** não têm imports no código — já foram removidos ou nunca foram usados directamente. Não há acção necessária.
 
-## Análise das Tabelas
+---
 
-As 3 tabelas usam **paginação client-side** com pageSize de 10-100 rows:
-- `SmartContactsTable` (881 linhas) — renderiza `paginatedContacts` dentro de `StickyTableWrapper` + `TableBody`
-- `SmartCompaniesTable` (408 linhas) — mesmo padrão, delega rows a `SmartCompanyRow`
-- `OpportunityTableView` (371 linhas) — renderiza `sortedOpportunities` (sem paginação própria, depende do módulo pai)
+## Plano de Implementação
 
-**Facto importante:** Com pageSize máximo de 100 rows, o DOM nunca terá mais de ~100 `<tr>`. Virtualização com `@tanstack/react-virtual` traria **complexidade significativa** (reescrever o scroll container, lidar com sticky headers, alterar a estrutura `<table>` para usar `position: absolute` ou `translateY`) com **ganho marginal** — 100 rows é trivial para o browser.
+### 1. ExcelJS — Dynamic import dentro das funções
 
-## Decisão Técnica
+**Ficheiro:** `src/utils/excelUtils.ts`
 
-A virtualização traz valor real quando se renderizam **500+ items sem paginação** (ex: Kanban com centenas de cards, listas infinitas). Nas tabelas paginadas com max 100 rows, o custo de implementação supera o benefício.
+Remover `import ExcelJS from "exceljs"` do topo. Dentro de `parseExcelFile()` e `exportToExcel()`, fazer `const ExcelJS = (await import("exceljs")).default`. Como ambas as funções já são `async`, zero alteração na API — os 7 consumidores continuam a funcionar sem mudanças.
 
-**Proposta:** Em vez de forçar virtualização nestas tabelas paginadas, implementar onde traz impacto real:
+### 2. FullCalendar — Dynamic import dos plugins
 
-### Opção A — Virtualizar apenas onde faz sentido
-1. **OpportunityTableView**: adicionar virtualização porque pode receber centenas de oportunidades sem paginação (o componente pai `OpportunitiesListView` passa `filteredOpportunities` sem paginar)
-2. Manter contactos e empresas como estão (já paginadas com max 100 rows)
+**Ficheiro:** `src/components/calendars/FullCalendarView.tsx`
 
-### Opção B — Remover limite de paginação + virtualizar
-1. Remover paginação client-side das 3 tabelas
-2. Implementar virtualização com `@tanstack/react-virtual` para scroll infinito
-3. Reescrever o layout das tabelas para suportar rows virtualizadas (heights fixas, container com overflow)
+Os 4 plugins (`dayGridPlugin`, `timeGridPlugin`, `listPlugin`, `interactionPlugin`) são importados estaticamente mesmo com o FullCalendar já lazy. Solução: carregar tudo junto via `React.lazy` num wrapper que importa plugins + componente numa promise única, ou usar `useMemo` + `await import()` com estado. A abordagem mais limpa: fazer dynamic import de todos os plugins dentro do componente com um `useEffect` + `useState` loading gate.
 
-A **Opção A** é pragmática e de baixo risco. A **Opção B** é uma refactorização significativa (cada tabela tem 400-900 linhas de código).
+### 3. TipTap — Lazy-load dos componentes RichTextEditor
 
-## Plano de Implementação (Opção A)
+**Ficheiros:** Consumidores de `ui/RichTextEditor.tsx` e `inbox/RichTextEditor.tsx`
 
-### 1. Virtualizar `OpportunityTableView`
-- Importar `useVirtualizer` de `@tanstack/react-virtual`
-- Wrapper div com `ref` e `overflow-y: auto` com altura fixa
-- Virtualizar as rows do `TableBody` com `estimateSize: 52` (altura de uma row)
-- Manter header sticky fora do container virtualizado
-- Renderizar apenas as rows visíveis + overscan de 5
+Os RichTextEditors são usados em ~5 componentes, todos em contextos que não são above-the-fold (notas, email compose, block editor, inbox). Estratégia:
+- Criar wrappers lazy: `const LazyRichTextEditor = lazy(() => import("@/components/ui/RichTextEditor"))` nos consumidores, ou melhor, criar um ficheiro `RichTextEditor.lazy.tsx` que re-exporta com lazy + Suspense + skeleton fallback.
+- Os componentes `inbox/RichTextEditor.tsx` já são usados apenas dentro de `MessageInput.tsx` — fazer lazy import lá.
 
-### 2. Adicionar `React.memo` aos componentes de row
-- Wrap do conteúdo do `.map()` em `SmartContactsTable` num componente `ContactRow` com `React.memo`
-- `SmartCompanyRow` já é um componente separado — adicionar `React.memo`
-- Criar `OpportunityRow` com `React.memo` extraído do `.map()` em `OpportunityTableView`
+---
 
-### Ficheiros alterados
+### Ficheiros a alterar
+
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/components/opportunities/OpportunityTableView.tsx` | Virtualização com useVirtualizer + extrair OpportunityRow com memo |
-| `src/components/contacts/SmartContactsTable.tsx` | Extrair ContactRow com React.memo |
-| `src/components/companies/SmartCompanyRow.tsx` | Adicionar React.memo wrapper |
+| `src/utils/excelUtils.ts` | Remover import estático, dynamic import dentro de cada função |
+| `src/components/calendars/FullCalendarView.tsx` | Dynamic import dos 4 plugins + FullCalendar juntos |
+| `src/components/ui/RichTextEditorLazy.tsx` | **Novo** — wrapper lazy com Suspense + skeleton |
+| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | Usar lazy import do RichTextEditor |
+| `src/components/email-builder/BlockEditor.tsx` | Usar lazy import do RichTextEditor |
+| `src/components/inbox/MessageInput.tsx` | Lazy import do inbox RichTextEditor |
+| `src/components/email/ComposeEmailDialog.tsx` | Já usa email-builder/RichTextEditor (não @tiptap) — sem alteração |
 
-### Riscos
-- Virtualização altera o comportamento de scroll — testar com 200+ oportunidades
-- Sticky columns (`StickyTableWrapper`) podem conflitar com o container virtualizado nas tabelas de contactos/empresas — por isso virtualizar apenas OpportunityTableView que não usa sticky columns
+### Estimativa de impacto
+- **ExcelJS (~300KB)**: removido do bundle principal, carregado só quando utilizador clica importar/exportar
+- **FullCalendar plugins (~120KB)**: removidos do bundle principal, carregados com a vista calendário
+- **TipTap (~100KB)**: removido do bundle principal, carregado quando editor aparece
 
