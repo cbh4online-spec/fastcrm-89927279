@@ -54,6 +54,7 @@ export default function CheckoutPage() {
 
   async function handleSubmit(formData: CheckoutFormData) {
     if (!funnel) return;
+    if (subtotal <= 0) { toast.error("O total deve ser superior a zero"); return; }
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke("checkout-create-session", {
