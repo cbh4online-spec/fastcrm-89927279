@@ -49,7 +49,7 @@ import { CrossFunnelAnalytics } from "./CrossFunnelAnalytics";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
-import { MCPGenerateDialog } from "@/components/marketing/mcp/MCPGenerateDialog";
+import { FigmaMCPGenerateDialog } from "@/components/landing-pages/FigmaMCPGenerateDialog";
 
 export function FunnelsList() {
   const { data: funnels, isLoading } = useFunnels();
