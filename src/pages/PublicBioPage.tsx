@@ -1,8 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star, ArrowRight, icons } from "lucide-react";
+import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star, ArrowRight } from "lucide-react";
+import type { LucideProps } from "lucide-react";
+import dynamicIconImports from "lucide-react/dynamicIconImports";
 
 interface BioPage {
   id: string;
