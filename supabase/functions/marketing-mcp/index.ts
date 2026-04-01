@@ -859,14 +859,14 @@ Deno.serve(async (req) => {
     }
 
     // ========================
-    // GENERATE PAGE FROM MCP
+    // GENERATE PAGE FROM MCP (with native section blocks)
     // ========================
 
     if (action === "generate_page") {
       const { import_id, title, slug } = body;
       if (!import_id) return json({ error: "Missing import_id" }, 400);
 
-      log("marketing_mcp_generation_started", { workspace_id, import_id, target_type: "landing_page" });
+      log("landing_page_native_block_generation_started", { workspace_id, import_id });
 
       const { data: imp, error: impErr } = await supabase
         .from("marketing_mcp_imports")
@@ -883,18 +883,24 @@ Deno.serve(async (req) => {
         const sections = (normalized.sections || []) as Array<Record<string, unknown>>;
         const tokens = (normalized.tokens || {}) as Record<string, Record<string, string>>;
 
-        // Map sections to landing page fields
-        let headline = "";
-        let subheadline = "";
-        let ctaText = "";
-        let heroImageUrl = "";
-        const features: Array<Record<string, string>> = [];
-        const testimonials: Array<Record<string, string>> = [];
-        let formEnabled = false;
-        let formFields: string[] = [];
+        // ---- Section-to-block mapping engine ----
+        const SECTION_TO_BLOCK: Record<string, string> = {
+          hero: "hero",
+          benefits: "features_grid",
+          cta: "cta_banner",
+          social_proof: "testimonials",
+          faq: "faq_accordion",
+          pricing: "pricing_cards",
+          form: "lead_form",
+          content: "rich_text",
+          webinar: "split_content",
+          upsell: "cta_banner",
+          thank_you: "rich_text",
+        };
+        const SKIP_SECTIONS = ["navigation", "footer"];
+        const HIGH_CONFIDENCE_TYPES = new Set(Object.keys(SECTION_TO_BLOCK));
 
-        for (const sec of sections) {
-          const sType = sec.section_type as string;
+        function mapSectionContent(sType: string, sec: Record<string, unknown>): Record<string, unknown> {
           const placeholders = (sec.content_placeholders || []) as string[];
           const ctaSlots = (sec.cta_slots || []) as string[];
           const mediaSlots = (sec.media_slots || []) as string[];
@@ -902,40 +908,90 @@ Deno.serve(async (req) => {
 
           switch (sType) {
             case "hero":
-              headline = placeholders[0] || headline;
-              subheadline = placeholders[1] || subheadline;
-              ctaText = ctaSlots[0] || ctaText;
-              heroImageUrl = mediaSlots[0] || heroImageUrl;
-              break;
+              return {
+                headline: placeholders[0] || "",
+                subheadline: placeholders[1] || "",
+                primary_cta: { label: ctaSlots[0] || "Get Started", link: "#" },
+                secondary_cta: ctaSlots[1] ? { label: ctaSlots[1], link: "#" } : null,
+                media: mediaSlots[0] || null,
+              };
             case "benefits":
-            case "content":
-            case "faq":
-            case "pricing":
-              features.push({
-                title: (sec.section_name as string) || sType,
-                description: placeholders.join(", "),
-                type: sType,
-              });
-              break;
-            case "social_proof":
-              testimonials.push({
-                name: (sec.section_name as string) || "Testimonial",
-                content: placeholders.join(", "),
-              });
-              break;
-            case "form":
-              formEnabled = true;
-              formFields = formSlots.length > 0 ? formSlots : ["email"];
-              break;
+              return {
+                title: (sec.section_name as string) || "Features",
+                intro: "",
+                items: placeholders.map((p, i) => ({ title: p, description: "", icon: `feature-${i + 1}` })),
+              };
             case "cta":
-              if (!ctaText) ctaText = ctaSlots[0] || placeholders[0] || "";
-              break;
+            case "upsell":
+              return {
+                headline: placeholders[0] || (sec.section_name as string) || "",
+                supporting_text: placeholders[1] || "",
+                button_label: ctaSlots[0] || "Learn More",
+                button_link: "#",
+              };
+            case "social_proof":
+              return {
+                title: (sec.section_name as string) || "What our customers say",
+                items: placeholders.map((p) => ({ name: "", role: "", quote: p, avatar: null })),
+              };
+            case "faq":
+              return {
+                title: (sec.section_name as string) || "FAQ",
+                items: placeholders.map((p) => ({ question: p, answer: "" })),
+              };
+            case "pricing":
+              return {
+                title: (sec.section_name as string) || "Pricing",
+                plans: placeholders.map((p) => ({ name: p, price: "", features: [], cta: "Select" })),
+              };
+            case "form":
+              return {
+                title: (sec.section_name as string) || "Get in Touch",
+                description: "",
+                form_fields: formSlots.length > 0 ? formSlots : ["name", "email"],
+                cta: ctaSlots[0] || "Submit",
+              };
+            case "webinar":
+              return {
+                headline: placeholders[0] || (sec.section_name as string) || "",
+                body: placeholders.slice(1).join("\n"),
+                media: mediaSlots[0] || null,
+                cta: ctaSlots[0] ? { label: ctaSlots[0], link: "#" } : null,
+              };
+            case "content":
+            case "thank_you":
+            default:
+              return {
+                title: (sec.section_name as string) || "",
+                body: placeholders.join("\n"),
+              };
           }
+        }
+
+        // Build flat fields for backward compat
+        let headline = "";
+        let subheadline = "";
+        let ctaText = "";
+        let formEnabled = false;
+        const features: Array<Record<string, string>> = [];
+
+        for (const sec of sections) {
+          const sType = sec.section_type as string;
+          const placeholders = (sec.content_placeholders || []) as string[];
+          const ctaSlots = (sec.cta_slots || []) as string[];
+          if (sType === "hero") {
+            headline = placeholders[0] || headline;
+            subheadline = placeholders[1] || subheadline;
+            ctaText = ctaSlots[0] || ctaText;
+          }
+          if (sType === "benefits" || sType === "content") {
+            features.push({ title: (sec.section_name as string) || sType, description: placeholders.join(", ") });
+          }
+          if (sType === "form") formEnabled = true;
         }
 
         // Generate CSS from tokens
         const colors = tokens.colors || {};
-        const typography = tokens.typography || {};
         let customCss = "";
         const colorEntries = Object.entries(colors);
         if (colorEntries.length > 0) {
@@ -945,19 +1001,11 @@ Deno.serve(async (req) => {
           });
           customCss += `}\n`;
         }
-        const typoEntries = Object.entries(typography);
-        if (typoEntries.length > 0) {
-          typoEntries.forEach(([name, val]) => {
-            const t = val as Record<string, unknown>;
-            if (t.fontFamily) {
-              customCss += `/* ${name}: font-family: ${t.fontFamily}; font-size: ${t.fontSize || "inherit"}; */\n`;
-            }
-          });
-        }
 
         const pageSlug = slug || `mcp-page-${Date.now()}`;
         const pageTitle = title || headline || `Página MCP ${new Date().toLocaleDateString("pt-PT")}`;
 
+        // Create landing page (flat fields for backward compat)
         const { data: page, error: pgErr } = await supabase
           .from("landing_pages")
           .insert({
@@ -967,11 +1015,8 @@ Deno.serve(async (req) => {
             headline: headline || null,
             subheadline: subheadline || null,
             cta_text: ctaText || null,
-            hero_image_url: heroImageUrl || null,
             features: features.length > 0 ? features : null,
-            testimonials: testimonials.length > 0 ? testimonials : null,
             form_enabled: formEnabled,
-            form_fields: formFields.length > 0 ? formFields : null,
             custom_css: customCss || null,
             is_published: false,
           })
@@ -982,11 +1027,83 @@ Deno.serve(async (req) => {
           throw new Error(pgErr?.message || "Failed to create landing page");
         }
 
-        log("marketing_mcp_page_generated", { workspace_id, import_id, asset_id: page.id });
-        return json({ success: true, page_id: page.id, slug: pageSlug });
+        // ---- Map sections to native builder blocks ----
+        const blockRows: Array<Record<string, unknown>> = [];
+        let sortOrder = 0;
+
+        for (const sec of sections) {
+          const sType = sec.section_type as string;
+          if (SKIP_SECTIONS.includes(sType)) continue;
+
+          const blockType = SECTION_TO_BLOCK[sType] || "rich_text";
+          const confidence = HIGH_CONFIDENCE_TYPES.has(sType) ? "high" : "low";
+          const reason = HIGH_CONFIDENCE_TYPES.has(sType) ? null : `Unknown section type '${sType}' mapped to rich_text fallback`;
+
+          log("figma_section_mapping_started", {
+            workspace_id,
+            import_id,
+            page_id: page.id,
+            source_section_type: sType,
+            native_block_type: blockType,
+          });
+
+          const content = mapSectionContent(sType, sec);
+
+          if (confidence === "low") {
+            log("figma_section_fallback_mapping_used", {
+              workspace_id,
+              import_id,
+              page_id: page.id,
+              source_section_type: sType,
+              native_block_type: blockType,
+              mapping_confidence: confidence,
+            });
+          }
+
+          blockRows.push({
+            landing_page_id: page.id,
+            workspace_id,
+            block_type: blockType,
+            section_name: (sec.section_name as string) || null,
+            sort_order: sortOrder++,
+            content,
+            auto_generated: true,
+            source_import_id: import_id,
+            source_section_type: sType,
+            mapping_confidence: confidence,
+            mapping_reason: reason,
+          });
+
+          log("figma_section_mapping_succeeded", {
+            workspace_id,
+            import_id,
+            page_id: page.id,
+            source_section_type: sType,
+            native_block_type: blockType,
+            mapping_confidence: confidence,
+          });
+        }
+
+        if (blockRows.length > 0) {
+          const { error: secErr } = await supabase
+            .from("landing_page_sections")
+            .insert(blockRows);
+          if (secErr) {
+            throw new Error(`Failed to create sections: ${secErr.message}`);
+          }
+        }
+
+        log("landing_page_native_block_generation_succeeded", {
+          workspace_id,
+          import_id,
+          page_id: page.id,
+          blocks_count: blockRows.length,
+        });
+
+        return json({ success: true, page_id: page.id, slug: pageSlug, blocks_count: blockRows.length });
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        log("marketing_mcp_generation_failed", { workspace_id, import_id, target_type: "landing_page", error: errMsg });
+        log("landing_page_native_block_generation_failed", { workspace_id, import_id, error: errMsg });
         return json({ error: errMsg }, 500);
       }
     }
