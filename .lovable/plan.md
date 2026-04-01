@@ -1,49 +1,46 @@
 
 
-# Plano: Tornar o módulo Figma MCP acessível
+# Plano: Corrigir visibilidade do módulo Figma MCP
 
 ## Diagnóstico
 
-O módulo Figma MCP está implementado mas **inacessível** por dois motivos:
+Após revisão exaustiva do código, **todas as alterações estão correctamente implementadas**:
 
-1. **A rota `/dashboard/landing-pages` faz redirect para `/dashboard/funnels`** (em `src/routes/sales/MarketingRoutes.tsx`, linha 25) — a página `LandingPagesList` com o botão "Gerar via Figma MCP" nunca é renderizada
-2. **A página Funnels usa o `MCPGenerateDialog` antigo** (sem o fluxo Figma com mapeamento de secções), não o novo `FigmaMCPGenerateDialog`
-3. **"Landing Pages" não está no Route Manifest** — logo não aparece na sidebar
+1. **Rota** (`src/routes/sales/MarketingRoutes.tsx` linha 26): `/dashboard/landing-pages` → `<LandingPages />` — sem redirect
+2. **Manifest** (`src/config/routeManifest.ts` linha 188): entrada `landing-pages` no grupo `marketing`, sem `moduleSlug` (sempre visível), `visibleInSidebar: true`
+3. **FunnelsList** (`src/components/funnels/FunnelsList.tsx` linha 52): importa e usa `FigmaMCPGenerateDialog`
+4. **Sidebar** (`AdaptiveSidebar.tsx`): usa `buildSidebarSections` que lê o manifest — filtra apenas por `moduleSlug` e `menuKey`, nenhum dos quais está definido para `landing-pages`
+
+## Problema Real
+
+O preview está a retornar **HTTP 412** (precondition failed) — o que indica um **erro de build** que impede o carregamento de toda a aplicação. Isto não é específico do Figma MCP — nenhuma página funciona.
 
 ## Solução
 
-Integrar o fluxo Figma MCP na página de **Funis** (que é onde o utilizador já trabalha) e restaurar o acesso à página Landing Pages para quem precise.
+Verificar e corrigir o erro de build que está a bloquear o preview. As causas mais prováveis:
 
-### Alterações
+1. **Import circular ou ficheiro ausente** — algum dos ficheiros recém-criados (`SectionBlockEditor.tsx`, `useLandingPageSections.ts`, `figmaSectionMapper.ts`) pode ter um problema de importação
+2. **Tipo TypeScript incompatível** — o `as unknown as BuilderBlock[]` em `useLandingPageSections.ts` pode não ser suficiente se o Supabase types não reflectirem a tabela correctamente
+
+### Alterações necessárias
 
 | Ficheiro | Acção |
 |---|---|
-| `src/routes/sales/MarketingRoutes.tsx` | Restaurar rota `/dashboard/landing-pages` → componente `LandingPages` (remover redirect) |
-| `src/config/routeManifest.ts` | Adicionar entrada "Landing Pages" no grupo `marketing` |
-| `src/components/funnels/FunnelsList.tsx` | Substituir `MCPGenerateDialog` por `FigmaMCPGenerateDialog` (o novo com fluxo Figma + mapeamento de secções) |
+| `src/hooks/useLandingPageSections.ts` | Verificar e corrigir cast de tipos — usar type assertion segura com os campos da tabela `landing_page_sections` definidos no types.ts |
+| Build logs | Verificar erros de compilação Vite no dev-server log |
 
 ### Detalhe
 
-**1. MarketingRoutes.tsx** — Substituir:
-```tsx
-<Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
-```
-Por:
-```tsx
-<Route path="/dashboard/landing-pages" element={<LandingPages />} />
-```
+O hook `useLandingPageSections.ts` faz `as unknown as BuilderBlock[]` — mas como a tabela `landing_page_sections` já está nas types do Supabase (confirmado), o cast deveria funcionar. No entanto, se o campo `mapping_confidence` no tipo Supabase é `string | null` mas o `BuilderBlock` espera `"high" | "medium" | "low" | null`, isto pode gerar um erro silencioso em modo strict.
 
-**2. routeManifest.ts** — Adicionar no bloco MARKETING:
-```tsx
-e("landing-pages", "Landing Pages", "/dashboard/landing-pages", Globe, "marketing"),
-```
+**Fix**: Alterar o tipo `mapping_confidence` em `BuilderBlock` para `string | null` em vez de union literal, ou manter o `as unknown as` que já está presente.
 
-**3. FunnelsList.tsx** — Substituir o import e uso de `MCPGenerateDialog` pelo `FigmaMCPGenerateDialog` para que o fluxo Figma completo (seleccionar provider → importar → pré-visualizar secções → gerar página) fique disponível também a partir da página de Funis.
+Se o build error é noutro ficheiro, será necessário inspecionar o log do dev-server (`/tmp/dev-server-logs/dev-server.log`) para identificar a causa exacta.
 
 ## Critérios de Aceitação
 
-1. Landing Pages aparece na sidebar do grupo Marketing
-2. `/dashboard/landing-pages` mostra a lista de landing pages com botão "Gerar via Figma MCP"
-3. Na página Funis, o botão MCP abre o fluxo Figma completo (não o diálogo antigo)
-4. O fluxo Figma MCP funciona end-to-end: seleccionar provider → importar → pré-visualizar secções → gerar página → abrir no builder
+1. Preview carrega sem HTTP 412
+2. Sidebar mostra "Landing Pages" no grupo Marketing
+3. `/dashboard/landing-pages` renderiza a lista com botão "Gerar via Figma MCP"
+4. Em `/dashboard/funnels`, o dropdown "Novo" mostra "Gerar via MCP"
 
