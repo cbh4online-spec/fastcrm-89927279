@@ -27,7 +27,7 @@ export function usePipelines() {
 
       const { data, error } = await workspaceClient
         .from("pipelines")
-        .select("*")
+        .select("id, name, workspace_id, is_default, created_at, updated_at")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: true });
 
@@ -85,7 +85,10 @@ export function useOpportunitiesEnhanced(filters?: {
       let query = workspaceClient
         .from("opportunities")
         .select(`
-          *,
+          id, title, value, currency, status, probability,
+          expected_close_date, stage_id, owner_id, contact_id, company_id, lead_id,
+          workspace_id, notes, ai_temperature, ai_next_action, source,
+          priority_level, lost_reason, created_at, updated_at,
           lead:leads(id, name, email, phone),
           contact:contacts(id, name, email, phone, company),
           company:companies(id, name, website),
@@ -486,7 +489,7 @@ export function usePipelineStagesEnhanced(pipelineId?: string) {
 
       let query = workspaceClient
         .from("pipeline_stages")
-        .select("*")
+        .select("id, name, color, position, workspace_id, pipeline_id, probability, description, created_at, updated_at")
         .eq("workspace_id", currentWorkspace.id)
         .order("position", { ascending: true });
 

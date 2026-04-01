@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star, ArrowRight } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import type { LucideProps } from "lucide-react";
+import dynamicIconImports from "lucide-react/dynamicIconImports";
 
 interface BioPage {
   id: string;
@@ -65,11 +66,21 @@ function hexToHSL(hex: string) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-// Dynamic Lucide icon component
+// Dynamic Lucide icon component — lazy loads icons by name (tree-shakable)
+const iconCache = new Map<string, React.LazyExoticComponent<React.ComponentType<LucideProps>>>();
 function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  const IconComponent = (LucideIcons as any)[name];
-  if (!IconComponent) return null;
-  return <IconComponent className={className} style={style} />;
+  // Convert PascalCase to kebab-case for dynamicIconImports lookup
+  const kebab = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase() as keyof typeof dynamicIconImports;
+  if (!dynamicIconImports[kebab]) return null;
+  if (!iconCache.has(kebab)) {
+    iconCache.set(kebab, lazy(dynamicIconImports[kebab]));
+  }
+  const LazyIcon = iconCache.get(kebab)!;
+  return (
+    <Suspense fallback={<div className="w-5 h-5" />}>
+      <LazyIcon className={className} style={style} />
+    </Suspense>
+  );
 }
 
 // Track page view (fire-and-forget)
