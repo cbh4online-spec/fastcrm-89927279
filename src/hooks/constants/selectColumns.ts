@@ -80,8 +80,9 @@ export const FORECAST_CONTACT_PRODUCTS_SELECT = `
 `;
 
 export const FORECAST_CONTACT_PRODUCTS_WITH_PRODUCT_SELECT = `
-  id, product_id, contact_id, workspace_id, status, purchased_quantity,
-  consumed_quantity, purchase_date, next_renewal_date, total_value,
+  id, product_id, contact_id, company_id, workspace_id, status,
+  purchased_quantity, consumed_quantity, acquisition_date, expiry_date,
+  total_value, quantity, unit_price,
   products(id, name, consumption_model)
 `;
 
