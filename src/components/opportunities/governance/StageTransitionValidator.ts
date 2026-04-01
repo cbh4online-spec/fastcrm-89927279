@@ -38,7 +38,7 @@ export function validateStageTransition(
 
   // move action — check stage config
   if (stageConfig) {
-    if (stageConfig.blocked_if?.includes("no_next_step") && !opportunity.next_step) {
+    if (stageConfig.blocked_if?.includes("no_next_step") && !opportunity.ai_next_action) {
       errors.push("next_step_required");
     }
     if (stageConfig.blocked_if?.includes("no_expected_close") && !opportunity.expected_close_date) {
