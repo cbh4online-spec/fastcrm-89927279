@@ -475,7 +475,7 @@ export function FigmaMCPGenerateDialog({
         {/* Step: Done */}
         {step === "done" && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <CheckCircle2 className="h-10 w-10 text-green-600" />
+            <CheckCircle2 className="h-10 w-10 text-primary" />
             <p className="text-sm font-medium">Landing page gerada com sucesso!</p>
             <p className="text-xs text-muted-foreground">A abrir no editor...</p>
           </div>
