@@ -29,6 +29,7 @@ const STATUS_CONFIG: Record<WhatsAppQRStatus, { label: string; variant: "default
   creating_instance: { label: "A criar...", variant: "outline", icon: Loader2 },
   qr_pending: { label: "QR pendente", variant: "outline", icon: QrCode },
   waiting_for_scan: { label: "A aguardar scan", variant: "outline", icon: QrCode },
+  authenticating: { label: "A autenticar...", variant: "outline", icon: Loader2 },
   connected: { label: "Conectado", variant: "default", icon: Wifi },
   disconnected: { label: "Desconectado", variant: "secondary", icon: WifiOff },
   qr_expired: { label: "QR expirado", variant: "secondary", icon: QrCode },
