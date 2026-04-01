@@ -13,6 +13,9 @@ import {
   DollarSign,
   Target,
   TrendingUp,
+  FlaskConical,
+  Sparkles,
+  BarChart3,
 } from 'lucide-react';
 import { useMarketingUsage } from '@/hooks/useMarketingSettings';
 import { useMarketingCampaigns } from '@/hooks/useMarketingCampaigns';
@@ -29,7 +32,13 @@ import { HealthScoreCard } from './HealthScoreCard';
 import { SmartSendTimeCard } from './SmartSendTimeCard';
 import { EngagementSegmentsPanel } from './EngagementSegmentsPanel';
 import { RevenueAttributionPanel } from './RevenueAttributionPanel';
+import { SendTimeOptimizer } from './SendTimeOptimizer';
+import { TemplatePerformancePanel } from './TemplatePerformancePanel';
+import { CTAPerformancePanel } from './CTAPerformancePanel';
+import { BenchmarkScorecard } from './BenchmarkScorecard';
 import { useCampaignAttribution } from '@/hooks/useCampaignAttribution';
+import { useAIRecommendations } from '@/hooks/useAIRecommendations';
+import { useCampaignBenchmarks } from '@/hooks/useCampaignBenchmarks';
 
 interface MarketingDashboardProps {
   onCreateCampaign?: () => void;
