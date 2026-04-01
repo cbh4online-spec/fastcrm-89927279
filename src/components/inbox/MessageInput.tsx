@@ -1,8 +1,13 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, lazy, Suspense, KeyboardEvent } from "react";
 import { Plus, Smile, Mic, Paperclip, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { RichTextEditor, RichTextEditorRef } from "./RichTextEditor";
+import type { RichTextEditorRef } from "./RichTextEditor";
+
+const RichTextEditor = lazy(() =>
+  import("./RichTextEditor").then((m) => ({ default: m.RichTextEditor }))
+);
 
 interface MessageInputProps {
   onSend: (message: string) => Promise<void>;
