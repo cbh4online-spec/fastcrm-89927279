@@ -27,11 +27,11 @@ export default function CheckoutPage() {
 
   async function loadFunnel() {
     try {
-      const { data: funnelData } = await supabase.from("checkout_funnels" as any).select("*").eq("slug", funnelSlug).eq("is_active", true).single();
+      const { data: funnelData } = await (supabase as any).from("checkout_funnels").select("*").eq("slug", funnelSlug).eq("is_active", true).single();
       if (!funnelData) { toast.error("Checkout não encontrado"); return; }
       setFunnel(funnelData);
 
-      const { data: bumpData } = await supabase.from("checkout_order_bumps" as any)
+      const { data: bumpData } = await (supabase as any).from("checkout_order_bumps")
         .select("*, offer:checkout_offers(*)")
         .eq("funnel_id", funnelData.id)
         .eq("is_active", true)
