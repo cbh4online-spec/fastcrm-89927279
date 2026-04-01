@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { LEAD_AUDIT_LOG_SELECT_COLUMNS } from "@/hooks/constants/selectColumns";
 
 export interface LeadAuditLogEntry {
   id: string;
