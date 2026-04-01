@@ -330,7 +330,7 @@ export function useProductConsumption() {
 
       const { data: products } = await supabase
         .from('products')
-        .select('*')
+        .select(FORECAST_PRODUCTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       // Group by product
