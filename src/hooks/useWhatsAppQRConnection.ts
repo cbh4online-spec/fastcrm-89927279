@@ -23,6 +23,15 @@ export type WhatsAppSyncHealth =
   | "failed"
   | "unknown";
 
+export type WhatsAppRecoveryState =
+  | "none"
+  | "checking"
+  | "resyncing"
+  | "reconnecting"
+  | "repair_required"
+  | "repaired"
+  | "failed";
+
 const TRANSITIONAL_STATUSES: WhatsAppQRStatus[] = [
   "creating_instance",
   "qr_pending",
@@ -38,6 +47,9 @@ export interface WhatsAppQRConnection {
   provider: string;
   status: WhatsAppQRStatus;
   sync_health: WhatsAppSyncHealth;
+  recovery_state: WhatsAppRecoveryState;
+  recovery_attempt_count: number;
+  recovery_last_attempt_at: string | null;
   qr_code: string | null;
   qr_updated_at: string | null;
   phone_number: string | null;
@@ -51,6 +63,7 @@ export interface WhatsAppQRConnection {
   last_successful_sync_at: string | null;
   last_inbound_message_at: string | null;
   last_outbound_message_at: string | null;
+  last_reconnect_at: string | null;
   metadata_json: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -125,6 +138,37 @@ export function useSyncWhatsAppQR() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-qr-connection", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp-connection", currentWorkspace?.id] });
+    },
+  });
+}
+
+export function useReconnectWhatsAppQR() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!currentWorkspace?.id) throw new Error("No workspace");
+      const { data, error } = await supabase.functions.invoke("whatsapp-qr-reconnect", {
+        body: { workspaceId: currentWorkspace.id },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-qr-connection", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-connection", currentWorkspace?.id] });
+      if (data?.recovery_state === "repair_required") {
+        toast.warning("Recuperação não resolveu o problema. É necessário iniciar uma nova ligação.");
+      } else if (data?.sync_health === "active") {
+        toast.success("Reconexão bem-sucedida — sync ativo");
+      } else {
+        toast.info("Reconexão tentada — a verificar estado...");
+      }
+      console.log(`[WHATSAPP_QR] RECONNECT_DONE workspace=${currentWorkspace?.id} recovery_state=${data?.recovery_state}`);
+    },
+    onError: (error) => {
+      toast.error("Erro ao reconectar: " + error.message);
     },
   });
 }
