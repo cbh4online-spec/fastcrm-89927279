@@ -140,6 +140,20 @@ export function IntegrationsSettings({ searchQuery = "", matchedSections }: Inte
         </SettingsSection>
       )}
 
+      {shouldShow("integrations-mcp") && (
+        <SettingsSection
+          title="Integrações MCP"
+          description="Gerir providers MCP (Figma, etc.) para importar design systems e componentes"
+          icon={<Blocks className="h-5 w-5" />}
+        >
+          {currentWorkspace?.id ? (
+            <MCPProvidersPanel workspaceId={currentWorkspace.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Selecione um workspace para gerir integrações MCP.</p>
+          )}
+        </SettingsSection>
+      )}
+
       {shouldShow("integrations-api") && (
         <SettingsSection
           title="API & Webhooks"
