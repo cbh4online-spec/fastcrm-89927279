@@ -148,7 +148,7 @@ export const CompactKPI = memo(function CompactKPI({
       </div>
     </div>
   );
-}
+});
 
 // KPI Grid Layout
 interface KPIGridProps {

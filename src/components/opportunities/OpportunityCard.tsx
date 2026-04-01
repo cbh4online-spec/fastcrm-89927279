@@ -275,4 +275,4 @@ export const OpportunityCard = memo(function OpportunityCard({
       </AlertDialog>
     </motion.div>
   );
-}
+});

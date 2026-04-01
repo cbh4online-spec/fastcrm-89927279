@@ -88,4 +88,4 @@ export const KPICardWithChart = memo(function KPICardWithChart({
       </div>
     </Card>
   );
-}
+});

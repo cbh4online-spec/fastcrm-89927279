@@ -288,4 +288,4 @@ export const OpportunityKanbanColumn = memo(function OpportunityKanbanColumn({
       </div>
     </motion.div>
   );
-}
+});

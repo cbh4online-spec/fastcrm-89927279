@@ -43,4 +43,4 @@ export const KPICard = memo(function KPICard({ title, value, change, icon: Icon,
       </CardContent>
     </Card>
   );
-}
+});

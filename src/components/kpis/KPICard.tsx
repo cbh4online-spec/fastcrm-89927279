@@ -144,7 +144,7 @@ export const KPICard = memo(function KPICard({
   );
 
   return content;
-}
+});
 
 // Compact inline KPI for use in tables/lists
 export function InlineKPI({
