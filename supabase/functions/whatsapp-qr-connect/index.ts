@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
     const baseUrl = finalUrl.replace(/\/$/, "");
 
-    console.log(`Evolution API URL: ${baseUrl.substring(0, 30)}...`);
+    console.log(`[v2] Evolution API URL: ${baseUrl.substring(0, 60)}...`);
     console.log(`Instance name: ${instanceName}`);
 
     // Try to create instance (ignore if already exists)
