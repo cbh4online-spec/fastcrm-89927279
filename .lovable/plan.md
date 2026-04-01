@@ -1,31 +1,110 @@
 
+# Plano: WhatsApp Conversation Management — Integração com Inbox Existente
 
-# Diagnóstico: Frontend WhatsApp QR — Já Completamente Implementado
+## A. Diagnóstico
 
-## Estado Actual
+O FastCRM **já tem um inbox omnichannel production-grade** com todas as funcionalidades pedidas:
 
-A UI e lógica frontend **já estão completas e funcionais**:
+| Funcionalidade | Estado |
+|---|---|
+| Layout 3 colunas (sidebar + lista + thread + context panel) | ✅ Implementado |
+| Pesquisa, filtros, tabs, pinning, bulk actions | ✅ Implementado |
+| Message bubbles com delivery status, date separators | ✅ Implementado |
+| Context panel com AI, Summary, Lead, Actions | ✅ Implementado |
+| Assignment, status (open/closed/pending/archived) | ✅ Implementado |
+| Tags (ai_tags, user_tags) | ✅ Implementado |
+| Notas internas via entity_notes | ✅ Implementado |
+| Realtime via postgres_changes | ✅ Implementado |
+| AI composer com sugestões e templates | ✅ Implementado |
+| CRM integration (lead/contact/company/opportunity) | ✅ Implementado |
+| Keyboard shortcuts, Sales columns view | ✅ Implementado |
+| WhatsApp QR connection + settings card | ✅ Implementado |
 
-### Componentes implementados
-- **`WhatsAppConnectionCard.tsx`** — Card com badge para todos os 10 statuses, botões Connect/Disconnect/Sync, info de número/timestamps, mensagens contextuais para cada estado
-- **`WhatsAppConfigPanel.tsx`** — Painel de settings com status badge, disconnect com confirmação, sync, tabs de configuração (Auto-Piloto IA, Mensagens, Definições)
-- **`WhatsAppQRDialog.tsx`** — Dialog com QR gerado via backend, countdown de 60s, polling de status a cada 4s, auto-close ao conectar, retry on error
-- **`useWhatsAppQRConnection.ts`** — Hook com polling dinâmico (5s para estados transitórios), mutations para sync e disconnect
+### O que falta (3 lacunas específicas):
 
-### Critérios de aceitação — todos cumpridos
-1. ✅ Card mostra estado correcto para 10 statuses com badges distintos
-2. ✅ "Conectar via QR" chama backend (`whatsapp-qr-connect`) antes de mostrar QR
-3. ✅ QR só aparece após backend confirmar disponibilidade
-4. ✅ UI actualiza automaticamente via polling (5s hook + 4s dialog)
-5. ✅ QR expirado mostra estado claro com botão de refresh
-6. ✅ Connected mostra número, data, última sincronização
-7. ✅ Disconnect com AlertDialog de confirmação
-8. ✅ Sync disponível em todos os estados
-9. ✅ Erros mostrados com mensagem real do backend
-10. ✅ DB confirma: `status=connected`, `phone_number=351925990747`
+1. **Inbound webhook** — Não existe edge function para receber mensagens inbound da Evolution API e criar conversations/messages no inbox
+2. **Outbound routing** — O hook `useSendMessage` não encaminha mensagens WhatsApp (non-GHL) via `whatsapp-evolution-send`
+3. **WhatsApp connection awareness** — O inbox não mostra o estado da conexão WhatsApp QR
 
-### Conclusão
-**Não há alterações necessárias.** O frontend está production-ready e alinhado com o backend. Todos os fluxos (connect, scan, auth, connected, disconnect, error, expired) estão implementados e a funcionar correctamente.
+**Resultado actual:** 0 conversas WhatsApp no DB. O sistema está pronto mas não tem o "tubo" de entrada/saída ligado à Evolution API.
 
-Se houver algum caso específico que esteja a falhar na prática, posso investigar com logs e session replay — mas o código está completo e coerente.
+---
 
+## B. Ficheiros a Criar/Alterar
+
+| Ficheiro | Acção | Descrição |
+|---|---|---|
+| `supabase/functions/whatsapp-evolution-inbound/index.ts` | CRIAR | Webhook para receber mensagens inbound da Evolution API |
+| `src/hooks/useMessages.ts` | EDITAR | Adicionar routing WhatsApp QR no `useSendMessage` |
+| `src/components/inbox/ConversationDetail.tsx` | EDITAR | Mostrar banner de estado WhatsApp quando canal é whatsapp |
+| `src/components/inbox/InboxView.tsx` | EDITAR | Adicionar indicador de conexão WhatsApp no header |
+
+---
+
+## C. Detalhes Técnicos
+
+### 1. Edge Function: `whatsapp-evolution-inbound`
+
+Recebe webhooks da Evolution API com mensagens inbound. Responsabilidades:
+- Validar workspace via instance_name (`ws_{workspaceId}`)
+- Identificar ou criar lead pelo número de telefone
+- Identificar ou criar conversation (channel=whatsapp)
+- Inserir mensagem na tabela `messages`
+- Actualizar `last_message_at`, `last_message_preview`, `unread_count` na conversation
+- Usar `external_message_id` para idempotência (evitar duplicados)
+- Suportar tipos: text, image, audio, video, document
+- Logs estruturados com workspace_id, phone, message_id
+
+### 2. Routing WhatsApp no `useSendMessage`
+
+Adicionar bloco antes do fallback "other channels":
+```typescript
+// For WhatsApp via Evolution QR (not GHL)
+if (conversation.channel === "whatsapp" && !isGHLConversation) {
+  const { data, error } = await mainClient.functions.invoke("whatsapp-evolution-send", {
+    body: { workspaceId: currentWorkspace.id, phone: recipientPhone, message: content }
+  });
+  // persist message, return
+}
+```
+
+Extrair número de telefone de `channel_metadata.phone` ou do lead associado.
+
+### 3. Connection Awareness no Inbox
+
+Pequeno badge no header do InboxView quando existem conversas WhatsApp:
+- Verde: "WhatsApp Conectado"
+- Vermelho: "WhatsApp Desconectado"
+
+Usa o hook `useWhatsAppQRConnection` já existente.
+
+### 4. Evolution API Webhook Configuration
+
+Após deploy, configurar webhook na Evolution API para:
+`https://{SUPABASE_URL}/functions/v1/whatsapp-evolution-inbound`
+
+Events: `messages.upsert` (mensagens recebidas)
+
+---
+
+## D. O que NÃO precisa ser alterado
+
+- ConversationList — já filtra por canal WhatsApp
+- InboxSidebar — já tem filtro por canal WhatsApp
+- InboxContextPanel — já mostra lead, tags, notas, assignment, CRM actions
+- MessageBubble — já suporta inbound/outbound com delivery status
+- Realtime subscriptions — já existem em conversations e messages
+- ConversationDetail — já funciona com qualquer canal
+- AIMessageComposer — já funciona com qualquer canal
+- DB schema (conversations, messages) — já tem todas as colunas necessárias
+
+---
+
+## E. Critérios de Aceitação
+
+1. Mensagens inbound WhatsApp criam automaticamente conversas no inbox
+2. Mensagens outbound WhatsApp são enviadas via Evolution API
+3. Conversas WhatsApp aparecem na lista com ícone e filtro correcto
+4. Estado da conexão WhatsApp visível no inbox
+5. Sem duplicação de mensagens (idempotência via external_message_id)
+6. Sem regressão nos canais existentes (email, SMS, Instagram, GHL)
