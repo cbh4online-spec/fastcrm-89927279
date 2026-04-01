@@ -5,7 +5,7 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import {
   Plus, Trash2, Globe, GlobeLock, ExternalLink,
   MoreHorizontal, Sparkles, Eye, FileText, TrendingUp,
-  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins, Search, Pencil
+  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins, Search, Pencil, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
