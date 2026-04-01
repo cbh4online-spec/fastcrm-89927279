@@ -208,6 +208,89 @@ export const CAMPAIGN_SCORING = {
   converted: 25,
 } as const;
 
+// P2 — Experiment types
+export type ExperimentType = 'subject' | 'preview_text' | 'from_name' | 'cta' | 'content' | 'template' | 'send_time';
+export type ExperimentStatus = 'draft' | 'running' | 'completed' | 'cancelled';
+export type EvaluationMetric = 'open_rate' | 'click_rate' | 'conversion_rate' | 'revenue_attributed';
+
+export interface CampaignExperiment {
+  id: string;
+  workspaceId: string;
+  baseCampaignId: string;
+  experimentType: ExperimentType;
+  status: ExperimentStatus;
+  winningVariantId?: string;
+  evaluationMetric: EvaluationMetric;
+  minSampleSize: number;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignVariant {
+  id: string;
+  experimentId: string;
+  campaignId?: string;
+  variantLabel: string;
+  trafficSplit: number;
+  openRate: number;
+  clickRate: number;
+  conversionRate: number;
+  revenueAttributed: number;
+  sampleSize: number;
+  createdAt: string;
+}
+
+export type RecommendationType = 'subject' | 'preview_text' | 'cta' | 'body' | 'segment' | 'send_time' | 'spam_risk';
+export type RecommendationStatus = 'pending' | 'accepted' | 'dismissed';
+
+export interface AICampaignRecommendation {
+  id: string;
+  workspaceId: string;
+  campaignId?: string;
+  recommendationType: RecommendationType;
+  recommendationData: Record<string, unknown>;
+  reasoning?: string;
+  status: RecommendationStatus;
+  acceptedAt?: string;
+  dismissedAt?: string;
+  createdAt: string;
+}
+
+export interface CampaignBenchmark {
+  id: string;
+  workspaceId: string;
+  entityType: string;
+  entityId?: string;
+  periodDays: number;
+  metrics: {
+    avgOpenRate?: number;
+    avgClickRate?: number;
+    avgConversionRate?: number;
+    avgBounceRate?: number;
+    avgRevenue?: number;
+    totalCampaigns?: number;
+  };
+  calculatedAt: string;
+}
+
+export const EXPERIMENT_TYPE_LABELS: Record<ExperimentType, string> = {
+  subject: 'Assunto',
+  preview_text: 'Preview Text',
+  from_name: 'Nome do Remetente',
+  cta: 'CTA',
+  content: 'Conteúdo',
+  template: 'Template',
+  send_time: 'Horário de Envio',
+};
+
+export const EVALUATION_METRIC_LABELS: Record<EvaluationMetric, string> = {
+  open_rate: 'Taxa de Abertura',
+  click_rate: 'Taxa de Cliques',
+  conversion_rate: 'Taxa de Conversão',
+  revenue_attributed: 'Receita Atribuída',
+};
+
 export type SubscriptionStatus = 'subscribed' | 'unsubscribed' | 'bounced' | 'complained';
 
 export interface MarketingSubscription {
