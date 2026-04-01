@@ -150,6 +150,7 @@ export default function StoreCheckoutPage() {
                   onSelectShipping={pricing.setSelectedShippingId}
                 />
               )}
+              <TrustBadges />
             </div>
 
             <div className="md:col-span-2">

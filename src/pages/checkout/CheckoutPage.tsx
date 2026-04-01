@@ -133,6 +133,8 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               )}
+
+              <TrustBadges />
             </div>
 
             <div className="lg:col-span-2">
