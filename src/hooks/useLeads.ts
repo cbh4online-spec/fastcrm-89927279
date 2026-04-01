@@ -157,7 +157,7 @@ export function useLeads(filters?: { status?: LeadStatus; search?: string }) {
 
       let query = workspaceClient
         .from("leads")
-        .select("*")
+        .select(LEADS_SELECT_COLUMNS)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
 
