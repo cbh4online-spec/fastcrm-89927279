@@ -272,7 +272,7 @@ export function FigmaMCPGenerateDialog({
                   Nenhum provider Figma MCP configurado.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Configure um provider Figma em Marketing → Integrações MCP.
+                  Configure um provider Figma em Marketing → Integrações MCP ou em Settings → Integrações & API.
                 </p>
               </div>
             ) : (
