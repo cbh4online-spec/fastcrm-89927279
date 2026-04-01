@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
-import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp, Copy, Check } from "lucide-react";
+import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp, Copy, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateLandingPageDialog } from "./CreateLandingPageDialog";
 import { LandingPageBuilder } from "./LandingPageBuilder";
 import { VerticalTemplateBuilder } from "./VerticalTemplateBuilder";
+import { MCPGenerateDialog } from "@/components/marketing/mcp/MCPGenerateDialog";
 import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
@@ -41,6 +42,7 @@ export function LandingPagesList() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [mcpGenerateOpen, setMcpGenerateOpen] = useState(false);
 
   const handleCopyShareLink = (type: string, slug: string) => {
     const url = getShareUrl(type, slug);
@@ -104,6 +106,10 @@ export function LandingPagesList() {
           <p className="text-muted-foreground">Create conversion-focused landing pages</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setMcpGenerateOpen(true)}>
+            <Download className="h-4 w-4 mr-2" />
+            Gerar via MCP
+          </Button>
           <Button variant="outline" onClick={() => setBuilderMode("new")}>
             <Sparkles className="h-4 w-4 mr-2" />
             Novo Template AIDA
@@ -423,6 +429,16 @@ export function LandingPagesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {currentWorkspace && (
+        <MCPGenerateDialog
+          open={mcpGenerateOpen}
+          onOpenChange={setMcpGenerateOpen}
+          workspaceId={currentWorkspace.id}
+          defaultTarget="page"
+          onGenerated={(_, id) => setEditingPageId(id)}
+        />
+      )}
     </div>
   );
 }

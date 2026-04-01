@@ -858,6 +858,236 @@ Deno.serve(async (req) => {
       return json({ import: data });
     }
 
+    // ========================
+    // GENERATE PAGE FROM MCP
+    // ========================
+
+    if (action === "generate_page") {
+      const { import_id, title, slug } = body;
+      if (!import_id) return json({ error: "Missing import_id" }, 400);
+
+      log("marketing_mcp_generation_started", { workspace_id, import_id, target_type: "landing_page" });
+
+      const { data: imp, error: impErr } = await supabase
+        .from("marketing_mcp_imports")
+        .select("*")
+        .eq("id", import_id)
+        .eq("workspace_id", workspace_id)
+        .single();
+
+      if (impErr || !imp) return json({ error: "Import not found" }, 404);
+      if (imp.status !== "completed") return json({ error: "Import is not completed" }, 400);
+
+      try {
+        const normalized = imp.normalized_payload_json as Record<string, unknown>;
+        const sections = (normalized.sections || []) as Array<Record<string, unknown>>;
+        const tokens = (normalized.tokens || {}) as Record<string, Record<string, string>>;
+
+        // Map sections to landing page fields
+        let headline = "";
+        let subheadline = "";
+        let ctaText = "";
+        let heroImageUrl = "";
+        const features: Array<Record<string, string>> = [];
+        const testimonials: Array<Record<string, string>> = [];
+        let formEnabled = false;
+        let formFields: string[] = [];
+
+        for (const sec of sections) {
+          const sType = sec.section_type as string;
+          const placeholders = (sec.content_placeholders || []) as string[];
+          const ctaSlots = (sec.cta_slots || []) as string[];
+          const mediaSlots = (sec.media_slots || []) as string[];
+          const formSlots = (sec.form_slots || []) as string[];
+
+          switch (sType) {
+            case "hero":
+              headline = placeholders[0] || headline;
+              subheadline = placeholders[1] || subheadline;
+              ctaText = ctaSlots[0] || ctaText;
+              heroImageUrl = mediaSlots[0] || heroImageUrl;
+              break;
+            case "benefits":
+            case "content":
+            case "faq":
+            case "pricing":
+              features.push({
+                title: (sec.section_name as string) || sType,
+                description: placeholders.join(", "),
+                type: sType,
+              });
+              break;
+            case "social_proof":
+              testimonials.push({
+                name: (sec.section_name as string) || "Testimonial",
+                content: placeholders.join(", "),
+              });
+              break;
+            case "form":
+              formEnabled = true;
+              formFields = formSlots.length > 0 ? formSlots : ["email"];
+              break;
+            case "cta":
+              if (!ctaText) ctaText = ctaSlots[0] || placeholders[0] || "";
+              break;
+          }
+        }
+
+        // Generate CSS from tokens
+        const colors = tokens.colors || {};
+        const typography = tokens.typography || {};
+        let customCss = "";
+        const colorEntries = Object.entries(colors);
+        if (colorEntries.length > 0) {
+          customCss += `:root {\n`;
+          colorEntries.forEach(([name, hex], i) => {
+            customCss += `  --mcp-color-${i}: ${hex}; /* ${name} */\n`;
+          });
+          customCss += `}\n`;
+        }
+        const typoEntries = Object.entries(typography);
+        if (typoEntries.length > 0) {
+          typoEntries.forEach(([name, val]) => {
+            const t = val as Record<string, unknown>;
+            if (t.fontFamily) {
+              customCss += `/* ${name}: font-family: ${t.fontFamily}; font-size: ${t.fontSize || "inherit"}; */\n`;
+            }
+          });
+        }
+
+        const pageSlug = slug || `mcp-page-${Date.now()}`;
+        const pageTitle = title || headline || `Página MCP ${new Date().toLocaleDateString("pt-PT")}`;
+
+        const { data: page, error: pgErr } = await supabase
+          .from("landing_pages")
+          .insert({
+            workspace_id,
+            title: pageTitle,
+            slug: pageSlug,
+            headline: headline || null,
+            subheadline: subheadline || null,
+            cta_text: ctaText || null,
+            hero_image_url: heroImageUrl || null,
+            features: features.length > 0 ? features : null,
+            testimonials: testimonials.length > 0 ? testimonials : null,
+            form_enabled: formEnabled,
+            form_fields: formFields.length > 0 ? formFields : null,
+            custom_css: customCss || null,
+            is_published: false,
+          })
+          .select("id")
+          .single();
+
+        if (pgErr || !page) {
+          throw new Error(pgErr?.message || "Failed to create landing page");
+        }
+
+        log("marketing_mcp_page_generated", { workspace_id, import_id, asset_id: page.id });
+        return json({ success: true, page_id: page.id, slug: pageSlug });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        log("marketing_mcp_generation_failed", { workspace_id, import_id, target_type: "landing_page", error: errMsg });
+        return json({ error: errMsg }, 500);
+      }
+    }
+
+    // ========================
+    // GENERATE FUNNEL FROM MCP
+    // ========================
+
+    if (action === "generate_funnel") {
+      const { import_id, name, slug } = body;
+      if (!import_id) return json({ error: "Missing import_id" }, 400);
+
+      log("marketing_mcp_generation_started", { workspace_id, import_id, target_type: "funnel" });
+
+      const { data: imp, error: impErr } = await supabase
+        .from("marketing_mcp_imports")
+        .select("*")
+        .eq("id", import_id)
+        .eq("workspace_id", workspace_id)
+        .single();
+
+      if (impErr || !imp) return json({ error: "Import not found" }, 404);
+      if (imp.status !== "completed") return json({ error: "Import is not completed" }, 400);
+
+      try {
+        const normalized = imp.normalized_payload_json as Record<string, unknown>;
+        const sections = (normalized.sections || []) as Array<Record<string, unknown>>;
+
+        const sectionToStepType: Record<string, string> = {
+          hero: "page",
+          benefits: "page",
+          content: "page",
+          cta: "page",
+          faq: "page",
+          pricing: "page",
+          social_proof: "page",
+          form: "optin",
+          thank_you: "thankyou",
+          upsell: "upsell",
+          navigation: "page",
+          footer: "page",
+          webinar: "page",
+        };
+
+        const funnelSlug = slug || `mcp-funnel-${Date.now()}`;
+        const funnelName = name || `Funil MCP ${new Date().toLocaleDateString("pt-PT")}`;
+
+        const { data: funnel, error: fErr } = await supabase
+          .from("funnels")
+          .insert({
+            workspace_id,
+            name: funnelName,
+            slug: funnelSlug,
+            is_published: false,
+          })
+          .select("id")
+          .single();
+
+        if (fErr || !funnel) {
+          throw new Error(fErr?.message || "Failed to create funnel");
+        }
+
+        // Map sections to funnel steps
+        const steps = sections
+          .filter(s => !["navigation", "footer"].includes(s.section_type as string))
+          .map((sec, i) => ({
+            funnel_id: funnel.id,
+            workspace_id,
+            name: (sec.section_name as string) || `Step ${i + 1}`,
+            step_type: sectionToStepType[sec.section_type as string] || "page",
+            sort_order: i,
+            content: {
+              section_type: sec.section_type,
+              content_placeholders: sec.content_placeholders,
+              media_slots: sec.media_slots,
+              cta_slots: sec.cta_slots,
+              form_slots: sec.form_slots,
+              token_references: sec.token_references,
+              layout: sec.layout,
+              responsive_hints: sec.responsive_hints,
+            },
+          }));
+
+        if (steps.length > 0) {
+          const { error: stErr } = await supabase
+            .from("funnel_steps")
+            .insert(steps);
+          if (stErr) {
+            throw new Error(stErr.message);
+          }
+        }
+
+        log("marketing_mcp_funnel_generated", { workspace_id, import_id, asset_id: funnel.id, steps_count: steps.length });
+        return json({ success: true, funnel_id: funnel.id, slug: funnelSlug, steps_count: steps.length });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        log("marketing_mcp_generation_failed", { workspace_id, import_id, target_type: "funnel", error: errMsg });
+        return json({ error: errMsg }, 500);
+      }
+    }
+
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     console.error("marketing-mcp error:", err);

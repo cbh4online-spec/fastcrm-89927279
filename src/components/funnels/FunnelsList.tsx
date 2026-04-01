@@ -5,7 +5,7 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import {
   Plus, Trash2, Globe, GlobeLock, ExternalLink,
   MoreHorizontal, Sparkles, Eye, FileText, TrendingUp,
-  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins, Search, Pencil
+  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins, Search, Pencil, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ import { CrossFunnelAnalytics } from "./CrossFunnelAnalytics";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
+import { MCPGenerateDialog } from "@/components/marketing/mcp/MCPGenerateDialog";
 
 export function FunnelsList() {
   const { data: funnels, isLoading } = useFunnels();
@@ -99,6 +100,7 @@ export function FunnelsList() {
   const [editingCaptureType, setEditingCaptureType] = useState<any>(null);
   const [deleteCaptureId, setDeleteCaptureId] = useState<string | null>(null);
   const [captureSearch, setCaptureSearch] = useState("");
+  const [mcpGenerateOpen, setMcpGenerateOpen] = useState(false);
 
   const handleCopyShareLink = (type: string, slug: string) => {
     const url = getShareUrl(type, slug);
@@ -263,6 +265,10 @@ export function FunnelsList() {
               <DropdownMenuItem onClick={() => setBuilderMode("new")}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Novo Template AIDA
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMcpGenerateOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Gerar via MCP
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1046,6 +1052,16 @@ export function FunnelsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {currentWorkspace && (
+        <MCPGenerateDialog
+          open={mcpGenerateOpen}
+          onOpenChange={setMcpGenerateOpen}
+          workspaceId={currentWorkspace.id}
+          defaultTarget="funnel"
+          onGenerated={(_, id) => setEditingFunnelId(id)}
+        />
+      )}
     </div>
   );
 }
