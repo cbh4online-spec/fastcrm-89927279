@@ -24,7 +24,7 @@ interface StoreCatalogSectionProps {
   reviewStats: any;
   salesCounts: any;
   recentlyViewed: any[];
-  sentinelRef: React.RefCallback<HTMLElement>;
+  sentinelRef: React.RefObject<HTMLDivElement>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
