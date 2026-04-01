@@ -332,6 +332,24 @@ Deno.serve(async (req) => {
 
     console.log(`[WA_INBOUND] MSG_INSERTED conv=${conversationId} dir=${direction} type=${messageType} phone=${phone} workspace=${workspaceId}`);
 
+    // 6. Update sync health on whatsapp_qr_connections
+    const syncUpdate: Record<string, unknown> = { updated_at: now };
+    if (direction === "inbound") {
+      syncUpdate.last_inbound_message_at = messageTimestamp;
+      syncUpdate.sync_health = "active";
+      syncUpdate.sync_issue_reason = null;
+      syncUpdate.last_successful_sync_at = now;
+    } else {
+      syncUpdate.last_outbound_message_at = messageTimestamp;
+    }
+
+    await admin
+      .from("whatsapp_qr_connections")
+      .update(syncUpdate)
+      .eq("workspace_id", workspaceId);
+
+    console.log(`[WA_INBOUND] SYNC_HEALTH_UPDATED workspace=${workspaceId} dir=${direction} sync_health=${syncUpdate.sync_health || "unchanged"}`);
+
     return jsonRes({
       received: true,
       processed: true,

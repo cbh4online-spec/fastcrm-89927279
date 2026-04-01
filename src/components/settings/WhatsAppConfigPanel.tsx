@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useWhatsAppQRConnection, useDisconnectWhatsAppQR, useSyncWhatsAppQR, type WhatsAppQRStatus } from "@/hooks/useWhatsAppQRConnection";
+import { useWhatsAppQRConnection, useDisconnectWhatsAppQR, useSyncWhatsAppQR, type WhatsAppQRStatus, type WhatsAppSyncHealth } from "@/hooks/useWhatsAppQRConnection";
 import { useWhatsAppSettings, useSaveWhatsAppSettings } from "@/hooks/useWhatsAppSettings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Phone, Loader2, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode, RefreshCw, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { Phone, Loader2, Unplug, UserPlus, Bot, Shield, MessageSquare, Settings, BellRing, Save, QrCode, RefreshCw, AlertCircle, Wifi, WifiOff, Activity, Clock, AlertTriangle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { WhatsAppQRDialog } from "./WhatsAppQRDialog";
 
@@ -35,6 +35,15 @@ const STATUS_CONFIG: Record<WhatsAppQRStatus, { label: string; variant: "default
   qr_expired: { label: "QR expirado", variant: "secondary", icon: QrCode },
   reconnecting: { label: "A reconectar...", variant: "outline", icon: RefreshCw },
   error: { label: "Erro", variant: "destructive", icon: AlertCircle },
+};
+
+const SYNC_HEALTH_CONFIG: Record<WhatsAppSyncHealth, { label: string; className: string; icon: typeof Activity }> = {
+  active: { label: "Sync Ativo", className: "bg-emerald-500 text-white", icon: Activity },
+  delayed: { label: "Sync Atrasado", className: "bg-amber-500 text-white", icon: Clock },
+  suspended: { label: "Sync Suspenso", className: "bg-orange-500 text-white", icon: AlertTriangle },
+  degraded: { label: "Sync Degradado", className: "bg-amber-600 text-white", icon: AlertCircle },
+  failed: { label: "Sync Falhou", className: "bg-destructive text-destructive-foreground", icon: XCircle },
+  unknown: { label: "Sync Desconhecido", className: "bg-muted text-muted-foreground", icon: AlertCircle },
 };
 
 export function WhatsAppConfigPanel() {
@@ -108,20 +117,23 @@ export function WhatsAppConfigPanel() {
   }
 
   const status: WhatsAppQRStatus = (qrConnection?.status as WhatsAppQRStatus) || "not_configured";
+  const syncHealth: WhatsAppSyncHealth = (qrConnection?.sync_health as WhatsAppSyncHealth) || "unknown";
   const isConnected = status === "connected";
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.not_configured;
+  const syncCfg = SYNC_HEALTH_CONFIG[syncHealth] || SYNC_HEALTH_CONFIG.unknown;
   const StatusIcon = statusConfig.icon;
+  const SyncIcon = syncCfg.icon;
 
   return (
     <div className="space-y-4">
       {/* Connection Status */}
       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
-            <Phone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
+          <div className={`p-2 rounded-lg ${isConnected && syncHealth === "active" ? "bg-green-500/10" : isConnected ? "bg-amber-500/10" : "bg-muted"}`}>
+            <Phone className={`h-5 w-5 ${isConnected && syncHealth === "active" ? "text-green-600" : isConnected ? "text-amber-600" : "text-muted-foreground"}`} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium">WhatsApp (Evolution QR)</p>
               <Badge
                 variant={statusConfig.variant}
@@ -130,13 +142,19 @@ export function WhatsAppConfigPanel() {
                 <StatusIcon className="h-3 w-3" />
                 {statusConfig.label}
               </Badge>
+              {isConnected && (
+                <Badge variant="outline" className={`text-[10px] gap-1 ${syncCfg.className}`}>
+                  <SyncIcon className="h-3 w-3" />
+                  {syncCfg.label}
+                </Badge>
+              )}
             </div>
             {isConnected && qrConnection?.phone_number && (
               <p className="text-sm text-muted-foreground">+{qrConnection.phone_number}</p>
             )}
-            {qrConnection?.last_seen_at && (
+            {qrConnection?.last_health_check_at && (
               <p className="text-xs text-muted-foreground">
-                Última verificação: {new Date(qrConnection.last_seen_at).toLocaleString("pt-PT")}
+                Última verificação: {new Date(qrConnection.last_health_check_at).toLocaleString("pt-PT")}
               </p>
             )}
           </div>
@@ -150,7 +168,7 @@ export function WhatsAppConfigPanel() {
             className="h-8 w-8"
             onClick={handleSync}
             disabled={syncMutation.isPending}
-            title="Sincronizar estado"
+            title="Verificar saúde da conexão"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
           </Button>
@@ -186,6 +204,33 @@ export function WhatsAppConfigPanel() {
           )}
         </div>
       </div>
+
+      {/* Sync health warning */}
+      {isConnected && syncHealth !== "active" && (
+        <div className={`p-3 rounded-lg border text-sm ${
+          syncHealth === "suspended" || syncHealth === "failed"
+            ? "border-destructive/30 bg-destructive/5 text-destructive"
+            : syncHealth === "delayed" || syncHealth === "degraded"
+            ? "border-amber-300 bg-amber-50 text-amber-800"
+            : "border-border bg-muted/50 text-muted-foreground"
+        }`}>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-xs">
+                {syncHealth === "suspended" && "Sincronização suspensa"}
+                {syncHealth === "delayed" && "Sincronização atrasada"}
+                {syncHealth === "degraded" && "Sincronização degradada"}
+                {syncHealth === "failed" && "Sincronização falhou"}
+                {syncHealth === "unknown" && "Estado de sincronização desconhecido"}
+              </p>
+              {qrConnection?.sync_issue_reason && (
+                <p className="mt-0.5 text-xs opacity-80">{qrConnection.sync_issue_reason}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error display */}
       {status === "error" && qrConnection?.last_error && (
@@ -303,6 +348,12 @@ export function WhatsAppConfigPanel() {
                   <div className="flex justify-between">
                     <span>Conectado desde</span>
                     <span>{new Date(qrConnection.connected_at).toLocaleString("pt-PT")}</span>
+                  </div>
+                )}
+                {qrConnection?.last_successful_sync_at && (
+                  <div className="flex justify-between">
+                    <span>Último sync bem-sucedido</span>
+                    <span>{new Date(qrConnection.last_successful_sync_at).toLocaleString("pt-PT")}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
