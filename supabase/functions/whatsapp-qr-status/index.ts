@@ -23,6 +23,51 @@ function mapEvolutionState(state: string | undefined): string {
   }
 }
 
+/** Infer sync health based on connection state and message activity */
+function inferSyncHealth(
+  connectionStatus: string,
+  lastInboundAt: string | null,
+  lastOutboundAt: string | null,
+): { sync_health: string; sync_issue_reason: string | null } {
+  if (connectionStatus !== "connected") {
+    return { sync_health: "failed", sync_issue_reason: "Sessão WhatsApp não está conectada" };
+  }
+
+  const now = Date.now();
+
+  // Check last inbound activity
+  if (lastInboundAt) {
+    const inboundAge = now - new Date(lastInboundAt).getTime();
+    const fiveMin = 5 * 60 * 1000;
+    const thirtyMin = 30 * 60 * 1000;
+    const twoHours = 2 * 60 * 60 * 1000;
+
+    if (inboundAge < fiveMin) {
+      return { sync_health: "active", sync_issue_reason: null };
+    }
+    if (inboundAge < thirtyMin) {
+      return { sync_health: "active", sync_issue_reason: null };
+    }
+    if (inboundAge < twoHours) {
+      return { sync_health: "delayed", sync_issue_reason: `Sem mensagens inbound há ${Math.round(inboundAge / 60000)} minutos` };
+    }
+    return { sync_health: "suspended", sync_issue_reason: `Sem mensagens inbound há mais de ${Math.round(inboundAge / 3600000)} horas. O sync do histórico pode estar suspenso no dispositivo.` };
+  }
+
+  // No inbound ever — check outbound
+  if (lastOutboundAt) {
+    const outboundAge = now - new Date(lastOutboundAt).getTime();
+    const twoHours = 2 * 60 * 60 * 1000;
+    if (outboundAge < twoHours) {
+      return { sync_health: "active", sync_issue_reason: null };
+    }
+    return { sync_health: "delayed", sync_issue_reason: "Sem actividade recente de mensagens" };
+  }
+
+  // No message activity at all
+  return { sync_health: "unknown", sync_issue_reason: "Sem dados de actividade para inferir saúde de sincronização" };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -77,7 +122,6 @@ Deno.serve(async (req) => {
         const infoData = await infoRes.json();
         console.log(`[WHATSAPP_QR] FETCH_INSTANCES raw=${JSON.stringify(infoData).substring(0, 500)}`);
         const instance = Array.isArray(infoData) ? infoData[0] : infoData;
-        // Evolution API v2 returns flat objects with ownerJid
         phoneNumber = instance?.ownerJid
           || instance?.instance?.owner
           || instance?.instance?.wuid
@@ -93,15 +137,55 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Upsert whatsapp_qr_connections
+    // 4. Query last message activity for sync health inference
+    let lastInboundAt: string | null = null;
+    let lastOutboundAt: string | null = null;
+
+    try {
+      const { data: lastInbound } = await adminClient
+        .from("messages")
+        .select("sent_at")
+        .eq("workspace_id", workspaceId)
+        .eq("direction", "inbound")
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      lastInboundAt = lastInbound?.sent_at || null;
+
+      const { data: lastOutbound } = await adminClient
+        .from("messages")
+        .select("sent_at")
+        .eq("workspace_id", workspaceId)
+        .eq("direction", "outbound")
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      lastOutboundAt = lastOutbound?.sent_at || null;
+    } catch (e) {
+      console.warn(`[WHATSAPP_QR] MSG_ACTIVITY_QUERY_FAILED error=${e.message}`);
+    }
+
+    // 5. Infer sync health
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt);
     const now = new Date().toISOString();
+
+    console.log(`[WHATSAPP_QR] HEALTH_INFERRED connection=${mappedStatus} sync_health=${sync_health} reason=${sync_issue_reason}`);
+
+    // 6. Upsert whatsapp_qr_connections
     const updatePayload: Record<string, unknown> = {
       workspace_id: workspaceId,
       instance_name: instanceName,
       status: mappedStatus,
+      sync_health,
+      sync_issue_reason,
+      last_health_check_at: now,
       last_seen_at: now,
       updated_at: now,
     };
+
+    if (lastInboundAt) updatePayload.last_inbound_message_at = lastInboundAt;
+    if (lastOutboundAt) updatePayload.last_outbound_message_at = lastOutboundAt;
+    if (sync_health === "active") updatePayload.last_successful_sync_at = now;
 
     if (mappedStatus === "connected") {
       updatePayload.connected_at = now;
@@ -114,7 +198,7 @@ Deno.serve(async (req) => {
 
     await adminClient.from("whatsapp_qr_connections").upsert(updatePayload, { onConflict: "workspace_id" });
 
-    // 5. If connected, also sync to whatsapp_connections for inbox compatibility
+    // 7. If connected, also sync to whatsapp_connections for inbox compatibility
     if (mappedStatus === "connected") {
       console.log(`[WHATSAPP_QR] CONNECTED instance=${instanceName} phone=${phoneNumber}`);
       await adminClient.from("whatsapp_connections").upsert(
@@ -132,8 +216,14 @@ Deno.serve(async (req) => {
     return jsonRes({
       connected: mappedStatus === "connected",
       status: mappedStatus,
+      connection_state: mappedStatus,
+      sync_health,
+      sync_issue_reason,
       phoneNumber,
       state: evolutionState,
+      last_health_check_at: now,
+      last_inbound_message_at: lastInboundAt,
+      last_outbound_message_at: lastOutboundAt,
     });
   } catch (error) {
     console.error("[WHATSAPP_QR] STATUS_ERROR", error);
