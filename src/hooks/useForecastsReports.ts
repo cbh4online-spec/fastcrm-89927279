@@ -45,7 +45,7 @@ export function useExecutiveKPIs() {
       // Fetch contacts for journey analysis
       const { data: contacts } = await supabase
         .from('contacts')
-        .select('*')
+        .select(FORECAST_CONTACTS_SELECT)
         .eq('workspace_id', currentWorkspace.id);
 
       const now = new Date();
