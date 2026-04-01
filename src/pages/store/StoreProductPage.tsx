@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { ProductSeoHead } from "@/components/store/storefront/ProductSeoHead";
 import { addDays, format, isWeekend, nextMonday } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
