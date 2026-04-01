@@ -63,7 +63,7 @@ export function useAccountBriefKPIs() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { data, error } = await supabase
         .from("account_brief_kpi_snapshots")
-        .select("*")
+        .select(KPI_SNAPSHOTS_SELECT_COLUMNS)
         .eq("workspace_id", workspaceId)
         .gte("snapshot_date", thirtyDaysAgo.toISOString().split("T")[0])
         .order("snapshot_date", { ascending: true });

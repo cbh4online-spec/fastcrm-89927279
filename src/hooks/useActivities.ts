@@ -20,7 +20,7 @@ export function useActivities(options: UseActivitiesOptions = {}) {
 
       let query = supabase
         .from("crm_activities")
-        .select("*")
+        .select(ACTIVITIES_SELECT_COLUMNS)
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false })
         .limit(limit);

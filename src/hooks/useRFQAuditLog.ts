@@ -21,7 +21,7 @@ export function useRFQAuditLog(rfqId: string | undefined) {
 
       const { data, error } = await (supabase
         .from("rfq_audit_log" as any)
-        .select("*, profile:changed_by(email)")
+        .select("id, workspace_id, rfq_id, changed_by, changed_at, field_name, old_value, new_value, profile:changed_by(email)")
         .eq("rfq_id", rfqId)
         .order("changed_at", { ascending: false })
         .limit(200) as any);

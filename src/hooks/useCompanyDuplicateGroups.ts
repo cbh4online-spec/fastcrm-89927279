@@ -89,7 +89,7 @@ export function useCompanyDuplicateGroups() {
 
       const { data: companies, error } = await supabase
         .from("companies")
-        .select("*")
+        .select("id, name, email, website, tax_id, workspace_id, created_at, industry, size, deleted_at, domain")
         .eq("workspace_id", currentWorkspace.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: true });

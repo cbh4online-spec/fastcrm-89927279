@@ -15,7 +15,7 @@ export function useChangeEvents(limit = 30) {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from('change_events')
-        .select('*')
+        .select(CHANGE_EVENTS_SELECT_COLUMNS)
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(limit);

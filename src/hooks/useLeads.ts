@@ -191,7 +191,7 @@ export function useLead(id: string | undefined) {
 
       const { data, error } = await workspaceClient
         .from("leads")
-        .select("*")
+        .select(LEADS_SELECT_COLUMNS)
         .eq("id", id)
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();
