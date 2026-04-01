@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Opportunity, PipelineStage, OPPORTUNITY_SOURCES } from "@/types/opportunity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +78,7 @@ const priorityLabels: Record<string, string> = {
   low: "Low Priority",
 };
 
-export function OpportunityCard({
+export const OpportunityCard = memo(function OpportunityCard({
   opportunity,
   isDragging,
   onClick,
@@ -275,4 +275,4 @@ export function OpportunityCard({
       </AlertDialog>
     </motion.div>
   );
-}
+});

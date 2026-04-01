@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { type ClientTicketRow } from "@/hooks/tickets/useClientTicketsAdmin";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,27 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: "border-l-orange-400",
   urgent: "border-l-red-400",
 };
+
+interface TicketKanbanCardProps {
+  ticket: ClientTicketRow;
+  onTicketClick: (id: string) => void;
+}
+
+const TicketKanbanCard = memo(function TicketKanbanCard({ ticket, onTicketClick }: TicketKanbanCardProps) {
+  return (
+    <Card
+      onClick={() => onTicketClick(ticket.id)}
+      className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${PRIORITY_COLORS[ticket.priority] || ""}`}
+    >
+      <p className="text-xs text-muted-foreground font-mono mb-1">{ticket.ticket_number || "—"}</p>
+      <p className="text-sm font-medium text-foreground line-clamp-2">{ticket.subject}</p>
+      <div className="flex items-center justify-between mt-2">
+        <Badge variant="outline" className="text-xs">{ticket.type}</Badge>
+        <span className="text-xs text-muted-foreground"><TimeAgo date={ticket.created_at} /></span>
+      </div>
+    </Card>
+  );
+});
 
 interface TicketKanbanProps {
   tickets: ClientTicketRow[];
@@ -42,18 +64,7 @@ export function TicketKanban({ tickets, onTicketClick }: TicketKanbanProps) {
           </div>
           <div className="space-y-2">
             {col.items.map((ticket) => (
-              <Card
-                key={ticket.id}
-                onClick={() => onTicketClick(ticket.id)}
-                className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors border-l-4 ${PRIORITY_COLORS[ticket.priority] || ""}`}
-              >
-                <p className="text-xs text-muted-foreground font-mono mb-1">{ticket.ticket_number || "—"}</p>
-                <p className="text-sm font-medium text-foreground line-clamp-2">{ticket.subject}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <Badge variant="outline" className="text-xs">{ticket.type}</Badge>
-                  <span className="text-xs text-muted-foreground"><TimeAgo date={ticket.created_at} /></span>
-                </div>
-              </Card>
+              <TicketKanbanCard key={ticket.id} ticket={ticket} onTicketClick={onTicketClick} />
             ))}
             {col.items.length === 0 && (
               <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded-lg">

@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, memo } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -64,7 +64,7 @@ function TrendIcon({ trend }: { trend: TrendDirection }) {
   }
 }
 
-export function KPICard({
+export const KPICard = memo(function KPICard({
   label,
   value,
   format,
@@ -144,7 +144,7 @@ export function KPICard({
   );
 
   return content;
-}
+});
 
 // Compact inline KPI for use in tables/lists
 export function InlineKPI({

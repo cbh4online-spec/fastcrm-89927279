@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card } from "@/components/ui/card";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ interface KPICardWithChartProps {
   onClick?: () => void;
 }
 
-export function KPICardWithChart({
+export const KPICardWithChart = memo(function KPICardWithChart({
   title,
   value,
   trend,
@@ -87,4 +88,4 @@ export function KPICardWithChart({
       </div>
     </Card>
   );
-}
+});

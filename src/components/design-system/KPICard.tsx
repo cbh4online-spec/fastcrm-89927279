@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, memo } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -53,7 +53,7 @@ const trendStyles = {
   neutral: { color: "text-muted-foreground", icon: Minus },
 };
 
-export function KPICard({
+export const KPICard = memo(function KPICard({
   title,
   value,
   icon,
@@ -109,7 +109,7 @@ export function KPICard({
       </CardContent>
     </Card>
   );
-}
+});
 
 // Compact KPI for inline display
 interface CompactKPIProps {
@@ -128,7 +128,7 @@ const compactVariantStyles = {
   destructive: "bg-destructive/10 text-destructive",
 };
 
-export function CompactKPI({
+export const CompactKPI = memo(function CompactKPI({
   label,
   value,
   icon,
@@ -148,7 +148,7 @@ export function CompactKPI({
       </div>
     </div>
   );
-}
+});
 
 // KPI Grid Layout
 interface KPIGridProps {
