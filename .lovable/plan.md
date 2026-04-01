@@ -1,22 +1,36 @@
 
 
-# Plano: Atualizar texto de orientação no diálogo Figma MCP
+# Plano: Melhorar ícones e badges de estado nos Providers MCP
 
-## Problema
+## Alteração
 
-O diálogo "Gerar Landing Page via Figma MCP" indica "Configure um provider Figma em **Marketing → Integrações MCP**", mas agora a secção MCP também está disponível em **Settings → Integrações & API**. O texto deve refletir ambos os caminhos.
+Enriquecer visualmente a tabela de providers MCP com:
+1. **Ícones por tipo de provider** na coluna "Tipo" (Figma, Git, Custom)
+2. **Indicadores visuais coloridos** na coluna "Estado" (dot colorido + texto)
+3. **Ícone na coluna "Nome"** para identificação rápida
 
 ## Ficheiro a Alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/landing-pages/FigmaMCPGenerateDialog.tsx` | Atualizar texto na linha 275 |
+| `src/components/marketing/mcp/MCPProvidersPanel.tsx` | Adicionar ícones por tipo e melhorar badges de estado |
 
-## Detalhe
+## Detalhe Técnico
 
-Substituir:
-> Configure um provider Figma em Marketing → Integrações MCP.
+1. Importar ícones `Figma`, `GitBranch`, `Blocks`, `CircleCheck`, `CircleX`, `CircleDot` do `lucide-react`
+2. Criar mapa `PROVIDER_ICONS` associando cada `provider_key` a um ícone e cor:
+   - `figma` → `Figma` (roxo)
+   - `git` → `GitBranch` (laranja)
+   - `custom` → `Blocks` (azul)
+3. Atualizar `STATUS_MAP` para incluir ícone e cor de dot:
+   - `connected` → `CircleCheck` verde
+   - `error` → `CircleX` vermelho
+   - `unknown` → `CircleDot` cinzento
+4. Na coluna "Nome", prefixar com o ícone do provider
+5. Na coluna "Estado", renderizar ícone colorido + texto em vez de apenas Badge
 
-Por:
-> Configure um provider Figma em Marketing → Integrações MCP ou em Settings → Integrações & API.
+## Impacto
+
+- Puramente visual, sem alteração de lógica ou dados
+- O componente é partilhado entre Marketing e Settings — ambas as vistas beneficiam
 
