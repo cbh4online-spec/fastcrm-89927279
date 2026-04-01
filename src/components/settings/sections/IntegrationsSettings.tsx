@@ -54,6 +54,7 @@ interface IntegrationsSettingsProps {
 
 export function IntegrationsSettings({ searchQuery = "", matchedSections }: IntegrationsSettingsProps) {
   const { isSuperAdmin } = useUserRole();
+  const { currentWorkspace } = useWorkspace();
   const { isConfigured: isStripeConfigured } = useWorkspaceStripeConfig();
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { isZoomConfigured, isGoogleMeetConnected } = useWorkspaceVideoConfig();
