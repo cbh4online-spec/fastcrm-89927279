@@ -50,7 +50,7 @@ interface OpportunityKanbanColumnProps {
   membersMap?: Map<string, WorkspaceMember["profile"]>;
 }
 
-export function OpportunityKanbanColumn({
+export const OpportunityKanbanColumn = memo(function OpportunityKanbanColumn({
   stage,
   opportunities,
   onMoveOpportunity,
