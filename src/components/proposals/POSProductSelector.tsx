@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Package, Grid3X3, Loader2 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { Search, Package, Grid3X3, Loader2, Repeat, Clock, Layers, GraduationCap, Boxes, Box, Briefcase, Cloud, FileText, RefreshCw, Key, Users, Wrench, BookOpen, Building2, Zap, Settings, Star, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";

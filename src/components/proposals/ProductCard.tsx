@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { Package, Plus, Minus } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import { Package, Plus, Minus, Repeat, Clock, Layers, GraduationCap, Boxes, Box, Briefcase, Cloud, FileText, RefreshCw, Key, Users, Wrench, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

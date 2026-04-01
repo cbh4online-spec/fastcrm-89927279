@@ -52,7 +52,15 @@ function C2CRedirectToMarketplace() {
   return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000, // 30s default — prevents unnecessary refetches
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
