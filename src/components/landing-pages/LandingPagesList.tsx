@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
-import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp, Copy, Check } from "lucide-react";
+import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp, Copy, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
