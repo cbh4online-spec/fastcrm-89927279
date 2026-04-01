@@ -1,33 +1,19 @@
 import { useState, useMemo } from "react";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { StoreHeader } from "@/components/store/StoreHeader";
-import { StoreProductCard } from "@/components/store/StoreProductCard";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
-import { StoreHeroCarousel } from "@/components/store/sections/StoreHeroCarousel";
-import { StoreCategoryGrid } from "@/components/store/sections/StoreCategoryGrid";
-import { StoreBestSellers } from "@/components/store/sections/StoreBestSellers";
-import { StoreNewArrivals } from "@/components/store/sections/StoreNewArrivals";
-import { StoreTrustSection } from "@/components/store/sections/StoreTrustSection";
-import { StoreFeaturedSection } from "@/components/store/sections/StoreFeaturedSection";
-import { StoreCTABanner } from "@/components/store/sections/StoreCTABanner";
 import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner";
-import { StoreDealsSection } from "@/components/store/sections/StoreDealsSection";
-import { StoreCategoryCarousel } from "@/components/store/sections/StoreCategoryCarousel";
-import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
-import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreVisitorTracker } from "@/components/store/StoreVisitorTracker";
-import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { StoreCompareBar } from "@/components/store/StoreCompareBar";
 import { StoreCompareModal } from "@/components/store/StoreCompareModal";
 import { StoreCompareProvider } from "@/contexts/StoreCompareContext";
 import { StoreVatProvider } from "@/contexts/StoreVatContext";
+import type { StoreFilters } from "@/components/store/StoreFilterSidebar";
+import { StoreSeoHead } from "@/components/store/storefront/StoreSeoHead";
+import { StoreHeroSections } from "@/components/store/storefront/StoreHeroSections";
+import { StoreCatalogSection } from "@/components/store/storefront/StoreCatalogSection";
 import { useStoreProducts, useStoreCategories, useInfiniteStoreProducts } from "@/hooks/useStoreProducts";
 import { useStoreTierPricing } from "@/hooks/useStoreTierPricing";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
@@ -35,9 +21,8 @@ import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSalesCount";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Loader2, Package } from "lucide-react";
+import { useC2CStorefrontProducts } from "@/hooks/useC2CStorefrontProducts";
+import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -47,11 +32,7 @@ export default function StorePage() {
   const { workspaceId: wsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
 
   const {
-    data: infiniteData,
-    isLoading,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
+    data: infiniteData, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage,
   } = useInfiniteStoreProducts({
     workspaceId: wsId,
     categoryId: filters.categoryId,
@@ -61,22 +42,11 @@ export default function StorePage() {
     maxPrice: filters.maxPrice,
   });
 
-  const allStoreProducts = useMemo(
-    () => infiniteData?.pages.flat() ?? [],
-    [infiniteData]
-  );
+  const allStoreProducts = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData]);
 
-  const sentinelRef = useInfiniteScroll({
-    hasNextPage: !!hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  });
+  const sentinelRef = useInfiniteScroll({ hasNextPage: !!hasNextPage, isFetchingNextPage, fetchNextPage });
 
-  const { data: featuredProducts = [] } = useStoreProducts({
-    workspaceId: wsId,
-    featured: true,
-  });
-
+  const { data: featuredProducts = [] } = useStoreProducts({ workspaceId: wsId, featured: true });
   const { data: categories = [] } = useStoreCategories(wsId);
   const { data: tierPricing } = useStoreTierPricing(wsId);
   const { data: storeSettings } = usePublicStoreSettings(wsId);
@@ -84,56 +54,11 @@ export default function StorePage() {
   const { data: reviewStats } = useBatchReviewStats(wsId);
   const { data: salesCounts } = useProductSalesCount(wsId);
 
-  // ── C2C Listings Integration ──
+  // C2C
   const c2cEnabled = storeSettings?.c2c_enabled ?? false;
+  const mappedC2CProducts = useC2CStorefrontProducts(wsId, c2cEnabled);
 
-  const { data: c2cListings = [] } = useQuery({
-    queryKey: ["c2c-listings-public", wsId],
-    queryFn: async () => {
-      if (!wsId) return [];
-      const { data, error } = await supabase
-        .from("c2c_listings")
-        .select("*, c2c_sellers!inner(id, display_name, slug, avatar_url, avg_rating)")
-        .eq("workspace_id", wsId)
-        .eq("status", "active")
-        .eq("moderation_status", "approved")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!wsId && c2cEnabled,
-  });
-
-  const mappedC2CProducts = useMemo(() => {
-    if (!c2cEnabled) return [] as any[];
-    return c2cListings.map((l: any) => ({
-      id: l.id,
-      name: l.title,
-      base_price: Number(l.price),
-      currency: l.currency || "EUR",
-      images: l.photos || [],
-      short_description: l.description?.slice(0, 120),
-      category: null,
-      stock_status: "in_stock",
-      stock_quantity: null,
-      track_stock: false,
-      store_featured: l.is_featured || false,
-      created_at: l.created_at,
-      sku: null,
-      billing_type: "one_time",
-      primary_image_index: 0,
-      product_condition: l.condition,
-      workspace_id: wsId,
-      _isC2C: true,
-      _sellerId: l.c2c_sellers?.id,
-      _sellerName: l.c2c_sellers?.display_name,
-      _sellerSlug: l.c2c_sellers?.slug,
-    }));
-  }, [c2cListings, c2cEnabled, wsId]);
-
-  const allProducts = useMemo(() => {
-    return [...allStoreProducts, ...mappedC2CProducts] as any[];
-  }, [allStoreProducts, mappedC2CProducts]);
+  const allProducts = useMemo(() => [...allStoreProducts, ...mappedC2CProducts] as any[], [allStoreProducts, mappedC2CProducts]);
 
   // Client-side stock filter
   const products = useMemo(() => {
@@ -144,14 +69,7 @@ export default function StorePage() {
   const storeName = storeSettings?.store_name || "Loja";
   const showHero = !search && !filters.categoryId && !filters.minPrice && !filters.maxPrice && !filters.inStock;
   const isFiltering = !!search || !!filters.categoryId || !!filters.minPrice || !!filters.maxPrice || !!filters.inStock;
-
-  // "Deals" — featured products serve as deals for now
-  const dealProducts = featuredProducts.filter(p => p.stock_status !== "out_of_stock");
-
-  const maxPrice = useMemo(() => {
-    if (allProducts.length === 0) return 500;
-    return Math.ceil(Math.max(...allProducts.map(p => p.base_price)) / 10) * 10;
-  }, [allProducts]);
+  const dealProducts = featuredProducts.filter((p) => p.stock_status !== "out_of_stock");
 
   if (isResolving) {
     return (
@@ -163,262 +81,84 @@ export default function StorePage() {
 
   return (
     <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
-    <StoreCompareProvider>
-    <>
-      <Helmet>
-        <title>{storeName} | FastCRM</title>
-        <meta name="description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
-        <link rel="canonical" href={`${getPublicBaseUrl()}/store/${wsSlug}`} />
-        <meta property="og:title" content={`${storeName} | FastCRM`} />
-        <meta property="og:description" content={storeSettings?.store_description || "Explore os nossos produtos e serviços"} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getPublicBaseUrl()}/store/${wsSlug}`} />
-        <meta property="og:site_name" content="FastCRM" />
-        {(storeSettings?.banner_url || storeSettings?.logo_url) && (
-          <meta property="og:image" content={storeSettings.banner_url || storeSettings.logo_url!} />
-        )}
-        <meta name="twitter:card" content="summary_large_image" />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Store",
-            "name": storeName,
-            "description": storeSettings?.store_description || "",
-            "url": `${getPublicBaseUrl()}/store/${wsSlug}`,
-            ...(storeSettings?.logo_url ? { "logo": storeSettings.logo_url } : {}),
-          })}
-        </script>
-      </Helmet>
+      <StoreCompareProvider>
+        <>
+          <StoreSeoHead storeName={storeName} wsSlug={wsSlug} storeSettings={storeSettings} />
 
-      <div className="min-h-screen bg-background">
-        {/* Visitor Tracking */}
-        <StoreVisitorTracker workspaceId={wsId} currentPage={`/store/${wsSlug}`} />
+          <div className="min-h-screen bg-background">
+            <StoreVisitorTracker workspaceId={wsId} currentPage={`/store/${wsSlug}`} />
+            <StoreCouponBanner workspaceId={wsId} />
 
-        {/* Coupon Countdown Banner */}
-        <StoreCouponBanner workspaceId={wsId} />
+            <StoreHeader
+              storeName={storeName}
+              logoUrl={storeSettings?.logo_url || undefined}
+              onSearch={setSearch}
+              workspaceSlug={wsSlug}
+              categories={categories}
+              onSelectCategory={(id) => setFilters((f) => ({ ...f, categoryId: id }))}
+              products={allProducts}
+            />
+            <StoreCartDrawer workspaceSlug={wsSlug} />
 
-        <StoreHeader
-          storeName={storeName}
-          logoUrl={storeSettings?.logo_url || undefined}
-          onSearch={setSearch}
-          workspaceSlug={wsSlug}
-          categories={categories}
-          onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
-          products={allProducts}
-        />
-        <StoreCartDrawer workspaceSlug={wsSlug} />
-
-        {/* Category Carousel */}
-        {categories.length > 0 && showHero && (
-          <StoreCategoryCarousel
-            categories={categories}
-            selectedCategoryId={filters.categoryId}
-            onSelectCategory={(id) => setFilters(f => ({ ...f, categoryId: id }))}
-          />
-        )}
-
-        {/* Hero Carousel */}
-        {showHero && (
-          <StoreHeroCarousel
-            products={featuredProducts}
-            workspaceSlug={wsSlug}
-            storeName={storeName}
-            storeDescription={storeSettings?.store_description}
-            bannerUrl={storeSettings?.banner_url}
-          />
-        )}
-
-        {showHero && <StoreTrustSection />}
-
-        {/* Category Grid — Quad Cards */}
-        {showHero && categories.length > 0 && (
-          <StoreCategoryGrid
-            categories={categories}
-            onSelectCategory={(id) => {
-              setFilters(f => ({ ...f, categoryId: id }));
-              document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" });
-            }}
-          />
-        )}
-
-        {/* Best Sellers */}
-        {showHero && salesCounts && salesCounts.size > 0 && (
-          <StoreBestSellers
-            products={allProducts}
-            salesCounts={salesCounts}
-            workspaceSlug={wsSlug}
-          />
-        )}
-
-        {/* New Arrivals */}
-        {showHero && allProducts.length > 0 && (
-          <StoreNewArrivals
-            products={allProducts}
-            workspaceSlug={wsSlug}
-          />
-        )}
-
-        {/* Deals section */}
-        {showHero && dealProducts.length > 0 && (
-          <StoreDealsSection
-            products={dealProducts}
-            workspaceSlug={wsSlug}
-            tierPricing={tierPricing}
-          />
-        )}
-
-        {showHero && featuredProducts.length > 0 && (
-          <StoreFeaturedSection
-            products={featuredProducts}
-            workspaceSlug={wsSlug}
-            tierPricing={tierPricing}
-          />
-        )}
-
-        {showHero && <StoreCTABanner />}
-
-        {/* Products Section with Sidebar Filters */}
-        <section id="products-section" className="container mx-auto px-4 py-8 md:py-12">
-          {search && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-sm text-muted-foreground mb-6"
-            >
-              Resultados para "<span className="font-medium text-foreground">{search}</span>"
-              {products.length > 0 && ` — ${products.length} produto${products.length !== 1 ? "s" : ""}`}
-            </motion.p>
-          )}
-
-          <div className="flex gap-8">
-            {/* Filter Sidebar */}
-            {(categories.length > 0 || allProducts.length > 0) && (
-              <StoreFilterSidebar
+            {showHero && (
+              <StoreHeroSections
                 categories={categories}
+                featuredProducts={featuredProducts}
+                dealProducts={dealProducts}
+                allProducts={allProducts}
+                salesCounts={salesCounts}
+                tierPricing={tierPricing}
+                wsSlug={wsSlug}
+                storeName={storeName}
+                storeDescription={storeSettings?.store_description}
+                bannerUrl={storeSettings?.banner_url}
                 filters={filters}
-                onFiltersChange={setFilters}
-                totalProducts={products.length}
-                maxProductPrice={maxPrice}
+                onFilterChange={setFilters}
               />
             )}
 
-            {/* Product Grid */}
-            <div className="flex-1 min-w-0">
-              {/* Mobile sort bar */}
-              <div className="flex items-center justify-between mb-6 lg:hidden">
-                <span className="text-sm text-muted-foreground">
-                  {products.length} produto{products.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-
-              {!isFiltering && !showHero && null}
-
-              {isLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="space-y-3">
-                      <Skeleton className="aspect-square w-full rounded-2xl" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </div>
-                  ))}
-                </div>
-              ) : products.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-20"
-                >
-                  <Package className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-                  <h2 className="text-xl font-semibold mb-2">Sem produtos disponíveis</h2>
-                  <p className="text-muted-foreground">
-                    {search
-                      ? "Nenhum produto encontrado para esta pesquisa."
-                      : isFiltering
-                      ? "Nenhum produto corresponde aos filtros selecionados."
-                      : "A loja ainda não tem produtos publicados."}
-                  </p>
-                </motion.div>
-              ) : (
-                <>
-                  {!isFiltering && (
-                    <h2 className="text-2xl font-bold text-foreground mb-6">Todo o Catálogo</h2>
-                  )}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                    {products.map((product, index) => (
-                      <StoreProductCard
-                        key={product.id}
-                        product={product}
-                        workspaceSlug={wsSlug}
-                        tierPricing={tierPricing}
-                        index={index}
-                        reviewStats={reviewStats}
-                        salesCounts={salesCounts}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Infinite scroll sentinel */}
-                  <div ref={sentinelRef} className="h-1" />
-
-                  {isFetchingNextPage && (
-                    <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm">A carregar mais...</span>
-                    </div>
-                  )}
-
-                  {hasNextPage && !isFetchingNextPage && (
-                    <div className="flex justify-center py-6">
-                      <Button variant="outline" onClick={() => fetchNextPage()}>
-                        Carregar Mais
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Recently Viewed */}
-          {recentlyViewed.length > 0 && (
-            <StoreRecentlyViewed
-              items={recentlyViewed}
-              workspaceSlug={wsSlug}
+            <StoreCatalogSection
+              products={products}
+              allProducts={allProducts}
+              categories={categories}
+              filters={filters}
+              onFiltersChange={setFilters}
+              search={search}
+              isLoading={isLoading}
+              isFiltering={isFiltering}
+              showHero={showHero}
+              wsSlug={wsSlug}
+              wsId={wsId}
+              tierPricing={tierPricing}
+              reviewStats={reviewStats}
+              salesCounts={salesCounts}
+              recentlyViewed={recentlyViewed}
+              sentinelRef={sentinelRef}
+              hasNextPage={!!hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              fetchNextPage={fetchNextPage}
             />
-          )}
-        </section>
 
-        {/* FAQ Section */}
-        <StoreFaqSection workspaceId={wsId} />
+            <StoreFooter
+              workspaceSlug={wsSlug}
+              storeName={storeName}
+              categories={categories}
+              footerText={storeSettings?.footer_text}
+              pricesIncludeVat={storeSettings?.prices_include_vat ?? true}
+              vatRate={storeSettings?.vat_rate ?? 23}
+            />
 
-        {/* Footer */}
-        <StoreFooter
-          workspaceSlug={wsSlug}
-          storeName={storeName}
-          categories={categories}
-          footerText={storeSettings?.footer_text}
-          pricesIncludeVat={storeSettings?.prices_include_vat ?? true}
-          vatRate={storeSettings?.vat_rate ?? 23}
-        />
-
-        {/* AI Advisor - need workspaceId from products */}
-        {allProducts.length > 0 && (
-          <StoreAIAdvisor
-            workspaceId={(allProducts[0] as any).workspace_id}
-            workspaceSlug={wsSlug}
-          />
-        )}
-        {/* Compare Bar & Modal */}
-        <StoreCompareBar />
-        <StoreCompareModal
-          workspaceSlug={wsSlug}
-          tierPricing={tierPricing}
-          reviewStats={reviewStats}
-        />
-      </div>
-    </>
-    </StoreCompareProvider>
+            {allProducts.length > 0 && (
+              <StoreAIAdvisor
+                workspaceId={(allProducts[0] as any).workspace_id}
+                workspaceSlug={wsSlug}
+              />
+            )}
+            <StoreCompareBar />
+            <StoreCompareModal workspaceSlug={wsSlug} tierPricing={tierPricing} reviewStats={reviewStats} />
+          </div>
+        </>
+      </StoreCompareProvider>
     </StoreVatProvider>
   );
 }
