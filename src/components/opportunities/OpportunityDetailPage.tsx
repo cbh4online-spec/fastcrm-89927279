@@ -89,6 +89,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const updateOpportunity = useUpdateOpportunityEnhanced();
   const { data: intelligence, isLoading: intelligenceLoading } = useDealIntelligenceAPI(opportunityId);
   const { data: commentsData = [] } = useOpportunityComments(opportunityId);
+  const { data: proposalsData = [] } = useProposals(opportunityId);
   const { data: members = [] } = useWorkspaceMembers();
   
   const ownerName = opportunity?.owner_id
