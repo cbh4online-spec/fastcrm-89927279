@@ -75,13 +75,21 @@ Deno.serve(async (req) => {
           headers: { apikey: EVOLUTION_API_KEY },
         });
         const infoData = await infoRes.json();
+        console.log(`[WHATSAPP_QR] FETCH_INSTANCES raw=${JSON.stringify(infoData).substring(0, 500)}`);
         const instance = Array.isArray(infoData) ? infoData[0] : infoData;
-        phoneNumber = instance?.instance?.owner || instance?.owner || null;
-        // Clean phone number format (remove @s.whatsapp.net)
+        // Try multiple known Evolution API response paths
+        phoneNumber = instance?.instance?.owner
+          || instance?.instance?.wuid?.split("@")?.[0]
+          || instance?.owner
+          || instance?.number
+          || null;
         if (phoneNumber && phoneNumber.includes("@")) {
           phoneNumber = phoneNumber.split("@")[0];
         }
-      } catch { /* non-critical */ }
+        console.log(`[WHATSAPP_QR] PHONE_EXTRACTED phone=${phoneNumber}`);
+      } catch (e) {
+        console.warn(`[WHATSAPP_QR] FETCH_INSTANCES_FAILED error=${e.message}`);
+      }
     }
 
     // 4. Upsert whatsapp_qr_connections
