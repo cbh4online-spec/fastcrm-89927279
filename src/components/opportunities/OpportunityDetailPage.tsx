@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
