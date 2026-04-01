@@ -366,6 +366,14 @@ export function CampaignDetailDialog({
               <TriggerBuilder campaignId={campaign.id} />
             </TabsContent>
 
+            <TabsContent value="experiments" className="space-y-4">
+              <ExperimentPanel campaignId={campaign.id} />
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              <AIOptimizationPanel campaignId={campaign.id} />
+            </TabsContent>
+
             <TabsContent value="content" className="space-y-4">
               <Card>
                 <CardHeader>

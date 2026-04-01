@@ -202,6 +202,52 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
       {/* Engagement Segments */}
       <EngagementSegmentsPanel />
 
+      {/* P2 — Optimization Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Otimização
+          </CardTitle>
+          <CardDescription>Insights para melhorar performance</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <Sparkles className="h-4 w-4 mx-auto text-primary mb-1" />
+              <div className="text-lg font-bold">{aiPendingCount}</div>
+              <div className="text-[10px] text-muted-foreground">Sugestões IA Pendentes</div>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <BarChart3 className="h-4 w-4 mx-auto text-primary mb-1" />
+              <div className="text-lg font-bold">{benchmarks?.workspace?.avgOpenRate?.toFixed(1) || '—'}%</div>
+              <div className="text-[10px] text-muted-foreground">Abertura Média</div>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <Target className="h-4 w-4 mx-auto text-primary mb-1" />
+              <div className="text-lg font-bold">{benchmarks?.workspace?.avgClickRate?.toFixed(1) || '—'}%</div>
+              <div className="text-[10px] text-muted-foreground">Cliques Médios</div>
+            </div>
+            <div className="text-center p-3 rounded-lg bg-muted/50">
+              <FlaskConical className="h-4 w-4 mx-auto text-primary mb-1" />
+              <div className="text-lg font-bold">{benchmarks?.workspace?.totalCampaigns || 0}</div>
+              <div className="text-[10px] text-muted-foreground">Campanhas ({benchmarks?.periodDays || 30}d)</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Intelligence Panels */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <SendTimeOptimizer />
+        <BenchmarkScorecard />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <TemplatePerformancePanel />
+        <CTAPerformancePanel />
+      </div>
+
       {/* Recent Campaigns */}
       <Card>
         <CardHeader>
