@@ -31,6 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
   update_score: 'Atualizar score',
   create_task: 'Criar tarefa comercial',
   update_lifecycle: 'Mudar lifecycle stage',
+  start_journey: 'Iniciar jornada lifecycle',
 };
 
 export function TriggerBuilder({ campaignId }: Props) {
