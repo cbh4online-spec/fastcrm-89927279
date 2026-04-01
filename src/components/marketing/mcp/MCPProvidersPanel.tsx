@@ -151,19 +151,27 @@ export function MCPProvidersPanel({ workspaceId }: MCPProvidersPanelProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-1 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Health Check"
-                              onClick={() => healthMutation.mutate(p.id)}
-                              disabled={healthMutation.isPending}
-                            >
-                              {healthMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <RefreshCw className="h-4 w-4" />
-                              )}
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => healthMutation.mutate(p.id)}
+                                    disabled={healthMutation.isPending}
+                                  >
+                                    {healthMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Verificar saúde — Testa a ligação ao servidor MCP e actualiza o estado da conexão</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button variant="ghost" size="icon" title="Editar" onClick={() => handleEdit(p)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
