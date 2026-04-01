@@ -1,169 +1,98 @@
 
 
-## P0 — Consolidação Estrutural do Módulo de Vendas
+## B3 + B4 — Decomposição do StoreAnalyticsPage e StoreSettingsPage
 
-### Diagnóstico Actual
+### Diagnóstico
 
-| Área | Estado | Problema |
-|------|--------|----------|
-| **SalesCRMRoutes.tsx** | 140 linhas, 55+ rotas | Ficheiro monolítico que mistura CRM, prospeção, comunicação, marketing, scheduling e eventos no mesmo route group |
-| **OpportunitiesModule.tsx** | 547 linhas | Monolítico: KPIs, filtros, kanban, list, dialogs, won→invoice tudo inline |
-| **OpportunityDetailPage.tsx** | 422 linhas | Razoável mas mistura tabs dinâmicos, AI, memory e layout config |
-| **OpportunityDetailSidebar.tsx** | 415 linhas | Monolítico: comunicação, deal info, associations, intelligence tudo junto |
-| **UnifiedCrmView.tsx** | 322 linhas | CRM genérico — não tem "commercial summary" nem visão comercial unificada |
-| **Ciclo Lead→Opp→Proposal→Invoice** | Parcial | Won→Invoice prompt existe mas é básico (AlertDialog). Proposal↔Opportunity ligação existe mas sem governance. Sem next step obrigatório, sem lost reason obrigatório, sem aging/SLA |
-| **Governance** | Mínima | Sem papéis comerciais explícitos, sem stage progression rules, sem stuck deal detection UI |
+**StoreAnalyticsPage.tsx** — 1073 linhas. Contém 8 tabs inline (overview, sales, products, customers, coupons, carts, inventory, financial) + 6 sub-componentes auxiliares (KPICard, DualTooltip, StatusTooltip, RecentOrdersTable, SalesHeatmap, WeekdayChart). Tudo num ficheiro.
 
-### Plano de Execução — 5 Batches
+**StoreSettingsPage.tsx** — 629 linhas. Contém 11 tabs, com as tabs general (120+ linhas inline), branding (170+ linhas inline) e notifications inline. As restantes delegam para managers existentes. Inclui lógica de upload, geração IA de banner/cores, validação de slug — tudo inline.
 
 ---
 
-**B1 — Separar SalesCRMRoutes por domínio**
+### Plano B3 — StoreAnalyticsPage → Tab Components
 
-Refatorar `src/routes/SalesCRMRoutes.tsx` em sub-route files sem alterar paths:
+Criar `src/components/store/analytics/`:
 
-- `src/routes/sales/SalesCoreRoutes.tsx` — leads, contacts, companies, crm, objects, imports
-- `src/routes/sales/PipelineRoutes.tsx` — opportunities
-- `src/routes/sales/SalesAssetsRoutes.tsx` — proposals, products, packages, bundles
-- `src/routes/sales/ProspectingRoutes.tsx` — prospecting hub, google local, web search, professionals, competitors, lead enricher, fastmatch
-- `src/routes/sales/CommunicationRoutes.tsx` — inbox, groups, telegram, templates, sequences, email-campaigns, suppressions
-- `src/routes/sales/RevenueOpsRoutes.tsx` — invoices, payments, renewals
-- `src/routes/sales/MarketingRoutes.tsx` — automations, funnels, nurture, ebooks, bio, form-studio, marketing, lifecycle
-- `src/routes/sales/MiscRoutes.tsx` — scheduling, events, feed, productivity, member, profile
+| Ficheiro | Conteúdo extraído |
+|----------|------------------|
+| `KPICard.tsx` | Componente KPICard reutilizável (linhas 890-923) |
+| `AnalyticsChartHelpers.tsx` | DualTooltip, StatusTooltip, constantes (CHART_COLORS, PIE_COLORS, DAY_NAMES, statusLabels, fadeIn) |
+| `StoreOverviewTab.tsx` | KPIs grid + Revenue/Orders chart + Top Products + Recent Orders (linhas 178-280) |
+| `StoreSalesTab.tsx` | Status breakdown chart + Heatmap + Weekday chart (linhas 282-343). Inclui SalesHeatmap e WeekdayChart como sub-componentes internos |
+| `StoreProductsTab.tsx` | Tabela de performance de produtos (linhas 345-428) |
+| `StoreCustomersTab.tsx` | Pie novos/recorrentes + Top clientes (linhas 430-525) |
+| `StoreCouponsTab.tsx` | Tabela de cupões (linhas 527-580) |
+| `StoreInventoryTab.tsx` | Donut stock + Alertas (linhas 582-687) |
+| `StoreFinancialTab.tsx` | Funnel + LTV + Bundle revenue (linhas 688-876) |
+| `StoreAnalyticsShell.tsx` | Header + period selector + custom date picker + Tabs container que compõe os tab components |
 
-Refatorar `SalesCRMRoutes.tsx` para ~20 linhas: importa e compõe os sub-route groups.
+Refatorar `StoreAnalyticsPage.tsx` para ~30 linhas: DashboardLayout + Helmet + StoreAnalyticsShell.
 
----
-
-**B2 — Refatorar OpportunitiesModule em submódulos**
-
-Criar `src/components/opportunities/module/`:
-- `OpportunitiesHeader.tsx` — view selector, import/export, settings, create button
-- `OpportunitiesFiltersBar.tsx` — search, status filter, score sort, hot deals, active view pills
-- `OpportunitiesKanbanView.tsx` — kanban layout com columns
-- `OpportunitiesListView.tsx` — table wrapper
-- `OpportunitiesDialogs.tsx` — create, settings, invoice prompt, invoice dialog, create view
-- `useOpportunitiesModule.ts` — hook com todo o state e handlers (move, won, lost, delete, select, filter)
-
-Refatorar `OpportunitiesModule.tsx` para ~80 linhas: compõe submódulos.
+RecentOrdersTable move para dentro de `StoreOverviewTab.tsx` como sub-componente local.
 
 ---
 
-**B3 — Governance comercial: stage rules, stuck deals, next step, lost reason**
+### Plano B4 — StoreSettingsPage → Secções Independentes
 
-Adicionar à tabela `pipeline_stages` (se não existir já na coluna `config` JSONB):
-- `sla_days` — SLA máximo por stage
-- `requires_next_step` — boolean
-- `requires_expected_close` — boolean
+Criar `src/components/store-settings/sections/`:
 
-Criar `src/components/opportunities/governance/`:
-- `StuckDealsAlert.tsx` — lista deals parados acima do SLA por stage, com badge no header do pipeline
-- `StageTransitionValidator.ts` — utility que valida: next_step preenchido quando exigido, expected_close_date quando exigido, lost_reason obrigatório ao fechar como lost
-- `LostReasonDialog.tsx` — dialog obrigatório com reason ao marcar como lost (substituir o close direto)
-- `WonValidationDialog.tsx` — validação mínima ao marcar como won (owner, value > 0, contact/company associado)
+| Ficheiro | Conteúdo extraído |
+|----------|------------------|
+| `StoreIdentitySettings.tsx` | Nome, descrição (com AI assist), slug, domínio, footer, toggles categorias/pesquisa (linhas 267-397). Recebe `form` + `setForm` + handlers como props |
+| `StoreBrandingSettings.tsx` | Logo upload, banner upload/AI, cores/AI (linhas 399-568). Recebe `form` + `setForm` + handlers |
+| `StoreNotificationSettings.tsx` | Email de notificação (linhas 570-591). Recebe `form` + `setForm` |
+| `StoreGrowthSettings.tsx` | Compõe CrmOffersManager, StoreFaqManager, StoreLoyaltyManager, StoreReferralManager, StoreOffersManager, StoreGiftCardsManager em secção unificada com sub-tabs ou accordion |
 
-Integrar no `useOpportunitiesModule.ts`:
-- `handleMarkAsLost` abre `LostReasonDialog` em vez de fechar direto
-- `handleMarkAsWon` valida via `WonValidationDialog` antes de fechar + prompt invoice
+Refatorar `StoreSettingsPage.tsx` para ~120 linhas: mantém form state, useEffect de sync, handleSave, handleFileUpload, handleGenerateBanner, handleSuggestColors no page (são necessários para o save global), mas delega UI para secções.
 
-Adicionar `stuck_since` computed field (days since last stage change) no `OpportunityCard.tsx` e `OpportunityTableView.tsx`.
+As tabs shipping, crm-offers, faq, loyalty, referrals, offers, gift-cards já delegam para managers — serão agrupadas sob "Crescimento" via StoreGrowthSettings. Marketplace mantém StoreC2CSettings direto.
 
----
-
-**B4 — Contexto comercial unificado: Commercial Summary**
-
-Criar `src/components/crm/commercial/`:
-- `CommercialSummaryCard.tsx` — bloco compacto para contact/company detail pages mostrando:
-  - Total pipeline aberto (count + value)
-  - Win rate
-  - Propostas enviadas / aceites
-  - Faturas pendentes / pagas
-  - Revenue total
-  - Última atividade comercial
-- `CommercialNextActions.tsx` — próximos passos pendentes das oportunidades abertas desta conta
-- `CommercialRiskSignals.tsx` — deals parados, propostas expiradas, faturas em atraso
-
-Integrar estes componentes nas páginas de detalhe existentes:
-- `ContactDetail` / `CompanyDetail` — adicionar `CommercialSummaryCard` no painel lateral ou como secção dedicada
-- Usar dados já disponíveis via `EntityOpportunitiesSection`, `EntityProposalsSection`, queries de invoices
-
----
-
-**B5 — Won→Invoice handoff reforçado + Proposal↔Opportunity governance**
-
-Reforçar `OpportunitiesDialogs.tsx`:
-- Won→Invoice: pré-preencher items da proposta aceite (se existir) ao criar invoice
-- Adicionar link direto para invoice criada na timeline da oportunidade
-
-Reforçar `ProposalDetailContent.tsx`:
-- Mostrar status da oportunidade associada
-- Impedir envio de proposta se oportunidade já está won/lost
-- Mostrar warning se proposta expira antes de expected_close_date
-
-Criar `src/hooks/useCommercialCycle.ts`:
-- Query unificada: dado um contact_id ou company_id, retorna opportunities + proposals + invoices + payments agregados
-- Alimenta `CommercialSummaryCard`
+Tabs finais simplificadas: Geral, Branding, Notificações, Envio, Crescimento, Marketplace.
 
 ---
 
 ### Ficheiros a Criar
 
-| Ficheiro | Batch |
-|----------|-------|
-| `src/routes/sales/SalesCoreRoutes.tsx` | B1 |
-| `src/routes/sales/PipelineRoutes.tsx` | B1 |
-| `src/routes/sales/SalesAssetsRoutes.tsx` | B1 |
-| `src/routes/sales/ProspectingRoutes.tsx` | B1 |
-| `src/routes/sales/CommunicationRoutes.tsx` | B1 |
-| `src/routes/sales/RevenueOpsRoutes.tsx` | B1 |
-| `src/routes/sales/MarketingRoutes.tsx` | B1 |
-| `src/routes/sales/MiscRoutes.tsx` | B1 |
-| `src/components/opportunities/module/OpportunitiesHeader.tsx` | B2 |
-| `src/components/opportunities/module/OpportunitiesFiltersBar.tsx` | B2 |
-| `src/components/opportunities/module/OpportunitiesKanbanView.tsx` | B2 |
-| `src/components/opportunities/module/OpportunitiesListView.tsx` | B2 |
-| `src/components/opportunities/module/OpportunitiesDialogs.tsx` | B2 |
-| `src/components/opportunities/module/useOpportunitiesModule.ts` | B2 |
-| `src/components/opportunities/governance/StuckDealsAlert.tsx` | B3 |
-| `src/components/opportunities/governance/StageTransitionValidator.ts` | B3 |
-| `src/components/opportunities/governance/LostReasonDialog.tsx` | B3 |
-| `src/components/opportunities/governance/WonValidationDialog.tsx` | B3 |
-| `src/components/crm/commercial/CommercialSummaryCard.tsx` | B4 |
-| `src/components/crm/commercial/CommercialNextActions.tsx` | B4 |
-| `src/components/crm/commercial/CommercialRiskSignals.tsx` | B4 |
-| `src/hooks/useCommercialCycle.ts` | B5 |
+**B3:**
+- `src/components/store/analytics/KPICard.tsx`
+- `src/components/store/analytics/AnalyticsChartHelpers.tsx`
+- `src/components/store/analytics/StoreOverviewTab.tsx`
+- `src/components/store/analytics/StoreSalesTab.tsx`
+- `src/components/store/analytics/StoreProductsTab.tsx`
+- `src/components/store/analytics/StoreCustomersTab.tsx`
+- `src/components/store/analytics/StoreCouponsTab.tsx`
+- `src/components/store/analytics/StoreInventoryTab.tsx`
+- `src/components/store/analytics/StoreFinancialTab.tsx`
+- `src/components/store/analytics/StoreAnalyticsShell.tsx`
+
+**B4:**
+- `src/components/store-settings/sections/StoreIdentitySettings.tsx`
+- `src/components/store-settings/sections/StoreBrandingSettings.tsx`
+- `src/components/store-settings/sections/StoreNotificationSettings.tsx`
+- `src/components/store-settings/sections/StoreGrowthSettings.tsx`
 
 ### Ficheiros a Refatorar
 
 | Ficheiro | De | Para |
 |----------|----|------|
-| `SalesCRMRoutes.tsx` | 140 | ~20 (compositor) |
-| `OpportunitiesModule.tsx` | 547 | ~80 |
+| `StoreAnalyticsPage.tsx` | 1073 | ~30 |
+| `StoreSettingsPage.tsx` | 629 | ~120 |
 
 ### Sem alterações a
+- Rotas
+- `useStoreAnalytics.ts`
+- Managers existentes (ShippingMethodsManager, etc.)
+- Schema de base de dados
 
-- Schema de base de dados (excepto potencial migração para `sla_days` em pipeline_stages config se não existir)
-- Edge functions
-- Rotas existentes (paths mantidos)
-- Componentes de detalhe existentes (`OpportunityDetailPage`, `OpportunityDetailSidebar`)
+### Riscos
+- Props drilling nas settings sections — mitigado passando form+setForm como props (padrão já usado)
+- Analytics tabs dependem de queries do hook `useStoreAnalytics` — passadas como props do Shell para cada tab
 
-### Critérios de Aceitação P0
-
-- Rotas organizadas por domínio sem quebrar paths
-- `OpportunitiesModule` decomposto em < 100 linhas
-- Lost reason obrigatório
-- Won validation mínima (owner, value, account)
-- Stuck deals visíveis no pipeline
-- Contexto comercial unificado em contact/company detail
-- Proposal↔Opportunity governance básica
-- Won→Invoice handoff mais completo
-
-### Fora de Scope (P1/P2)
-
-- Forecast por pipeline/owner/período (P1)
-- Proposal versioning e métricas de aceitação (P1)
-- Renewals como extensão do ciclo comercial (P1)
-- Deal scoring avançado (P2)
-- Sales intelligence / benchmarking (P2)
-- Next best action automático (P2)
+### Critérios de Aceitação
+- Todas as 8 tabs de analytics funcionam como antes
+- Todas as 11 tabs de settings funcionam como antes (agrupadas em 6)
+- KPICard reutilizável por outros módulos
+- Nenhuma rota quebrada
+- Nenhuma funcionalidade removida
 
