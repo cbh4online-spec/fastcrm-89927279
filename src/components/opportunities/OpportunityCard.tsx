@@ -78,7 +78,7 @@ const priorityLabels: Record<string, string> = {
   low: "Low Priority",
 };
 
-export function OpportunityCard({
+export const OpportunityCard = memo(function OpportunityCard({
   opportunity,
   isDragging,
   onClick,
