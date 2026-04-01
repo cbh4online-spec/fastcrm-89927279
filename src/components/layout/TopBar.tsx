@@ -21,6 +21,7 @@ import { ContextScoreIndicator } from "./ContextScoreIndicator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 import { TopBarCreditsBadge } from "./TopBarCreditsBadge";
+import { OnlineUsersIndicator } from "./OnlineUsersIndicator";
 
 interface TopBarProps {
   onMenuClick: () => void;
