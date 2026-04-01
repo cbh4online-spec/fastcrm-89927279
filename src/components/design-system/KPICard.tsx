@@ -109,7 +109,7 @@ export const KPICard = memo(function KPICard({
       </CardContent>
     </Card>
   );
-}
+});
 
 // Compact KPI for inline display
 interface CompactKPIProps {
