@@ -272,6 +272,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 {t("oppDetail_commentsTab")}
                 {tabBadge(commentsData.filter(c => !c.parent_id).length)}
               </TabsTrigger>
+              <TabsTrigger value="proposals" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("proposals")}
+                <FileText className="h-3 w-3" />
+                Propostas
+                {tabBadge(proposalsData.length)}
+              </TabsTrigger>
               {/* Dynamic tabs */}
               {additionalTabs.map(tabId => {
                 const opt = ADD_TAB_OPTIONS.find(o => o.id === tabId);
