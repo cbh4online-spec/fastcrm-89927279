@@ -1,8 +1,13 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, lazy, Suspense, KeyboardEvent } from "react";
 import { Plus, Smile, Mic, Paperclip, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { RichTextEditor, RichTextEditorRef } from "./RichTextEditor";
+import type { RichTextEditorRef } from "./RichTextEditor";
+
+const RichTextEditor = lazy(() =>
+  import("./RichTextEditor").then((m) => ({ default: m.RichTextEditor }))
+);
 
 interface MessageInputProps {
   onSend: (message: string) => Promise<void>;
@@ -53,13 +58,15 @@ export function MessageInput({
         </Button>
 
         {/* Rich Text Editor */}
-        <RichTextEditor
-          ref={editorRef}
-          placeholder={placeholder}
-          disabled={disabled || isSending}
-          onEnterSend={handleSend}
-          onUpdate={handleUpdate}
-        />
+        <Suspense fallback={<Skeleton className="h-10 flex-1 rounded-md" />}>
+          <RichTextEditor
+            ref={editorRef}
+            placeholder={placeholder}
+            disabled={disabled || isSending}
+            onEnterSend={handleSend}
+            onUpdate={handleUpdate}
+          />
+        </Suspense>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">

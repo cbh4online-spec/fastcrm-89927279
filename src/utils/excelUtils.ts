@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS_NS from "exceljs";
 
 /**
  * Parse an Excel file (xlsx/xls) and return rows as key-value objects.
@@ -11,7 +11,8 @@ export async function parseExcelFile(
     normalizeHeader?: (h: string) => string;
   }
 ): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new (ExcelJS as any).Workbook() as ExcelJS_NS.Workbook;
   await workbook.xlsx.load(buffer);
   const worksheet = workbook.worksheets[0];
   if (!worksheet || worksheet.rowCount === 0) {
@@ -92,7 +93,8 @@ export async function exportToExcel(
   sheetName: string,
   fileName: string
 ): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJS = (await import("exceljs")).default;
+  const workbook = new (ExcelJS as any).Workbook() as ExcelJS_NS.Workbook;
   const worksheet = workbook.addWorksheet(sheetName);
 
   if (data.length === 0) return;
