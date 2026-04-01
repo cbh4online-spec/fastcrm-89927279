@@ -30945,6 +30945,72 @@ export type Database = {
           },
         ]
       }
+      landing_page_sections: {
+        Row: {
+          auto_generated: boolean | null
+          block_type: string
+          content: Json
+          created_at: string
+          id: string
+          landing_page_id: string
+          mapping_confidence: string | null
+          mapping_reason: string | null
+          section_name: string | null
+          sort_order: number
+          source_import_id: string | null
+          source_section_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_generated?: boolean | null
+          block_type: string
+          content?: Json
+          created_at?: string
+          id?: string
+          landing_page_id: string
+          mapping_confidence?: string | null
+          mapping_reason?: string | null
+          section_name?: string | null
+          sort_order?: number
+          source_import_id?: string | null
+          source_section_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_generated?: boolean | null
+          block_type?: string
+          content?: Json
+          created_at?: string
+          id?: string
+          landing_page_id?: string
+          mapping_confidence?: string | null
+          mapping_reason?: string | null
+          section_name?: string | null
+          sort_order?: number
+          source_import_id?: string | null
+          source_section_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_page_sections_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_page_sections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_page_submissions: {
         Row: {
           contact_id: string | null
