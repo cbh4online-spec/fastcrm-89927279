@@ -38,6 +38,316 @@ function redactProvider(p: Record<string, unknown>) {
   return { ...safe, has_credentials: !!_ && JSON.stringify(_) !== "{}" };
 }
 
+// ========================
+// FIGMA MCP ADAPTER
+// ========================
+
+const IMPORT_TYPE_TO_TOOL: Record<string, string> = {
+  design_system: "get_file",
+  page_frame: "get_file_nodes",
+  section: "get_file_nodes",
+  component: "get_file_nodes",
+  tokens: "get_file_styles",
+};
+
+const VALID_IMPORT_TYPES = Object.keys(IMPORT_TYPE_TO_TOOL);
+
+function classifySectionType(name: string): string {
+  const lower = name.toLowerCase();
+  if (/hero|banner|header-hero|main-banner/.test(lower)) return "hero";
+  if (/cta|call.?to.?action|button.?section|action/.test(lower)) return "cta";
+  if (/faq|questions|accordion/.test(lower)) return "faq";
+  if (/pricing|price|plans|tiers/.test(lower)) return "pricing";
+  if (/testimonial|proof|review|social.?proof|depoimento/.test(lower)) return "social_proof";
+  if (/footer|rodape/.test(lower)) return "footer";
+  if (/nav|navbar|navigation|menu/.test(lower)) return "navigation";
+  if (/form|opt.?in|signup|regist|newsletter/.test(lower)) return "form";
+  if (/benefit|feature|vantag/.test(lower)) return "benefits";
+  if (/thank.?you|obrigad/.test(lower)) return "thank_you";
+  if (/upsell|downsell|bump/.test(lower)) return "upsell";
+  if (/webinar|evento|event/.test(lower)) return "webinar";
+  return "content";
+}
+
+interface FigmaNode {
+  id?: string;
+  name?: string;
+  type?: string;
+  children?: FigmaNode[];
+  absoluteBoundingBox?: { x: number; y: number; width: number; height: number };
+  layoutMode?: string;
+  primaryAxisAlignItems?: string;
+  counterAxisAlignItems?: string;
+  fills?: Array<{ type: string; color?: { r: number; g: number; b: number; a: number } }>;
+  style?: Record<string, unknown>;
+  styles?: Record<string, string>;
+  characters?: string;
+}
+
+function extractSections(nodes: FigmaNode[], depth = 0): Array<Record<string, unknown>> {
+  const sections: Array<Record<string, unknown>> = [];
+
+  for (const node of nodes) {
+    // Top-level frames and components are treated as sections
+    if (depth <= 1 && (node.type === "FRAME" || node.type === "COMPONENT" || node.type === "COMPONENT_SET")) {
+      const sectionType = classifySectionType(node.name || "");
+      const contentPlaceholders: string[] = [];
+      const mediaSlots: string[] = [];
+      const ctaSlots: string[] = [];
+      const formSlots: string[] = [];
+
+      // Scan children for slot detection
+      scanSlots(node.children || [], contentPlaceholders, mediaSlots, ctaSlots, formSlots);
+
+      sections.push({
+        section_type: sectionType,
+        section_name: node.name || "Unnamed",
+        node_id: node.id,
+        order: sections.length,
+        layout: {
+          direction: node.layoutMode === "HORIZONTAL" ? "horizontal" : "vertical",
+          alignment: node.primaryAxisAlignItems || "center",
+          width: node.absoluteBoundingBox?.width,
+          height: node.absoluteBoundingBox?.height,
+        },
+        content_placeholders: contentPlaceholders,
+        media_slots: mediaSlots,
+        cta_slots: ctaSlots,
+        form_slots: formSlots,
+        responsive_hints: {
+          mobile_stack: node.layoutMode === "HORIZONTAL",
+        },
+        token_references: extractTokenRefs(node),
+      });
+    }
+
+    // Recurse one level deeper
+    if (node.children && depth < 1) {
+      sections.push(...extractSections(node.children, depth + 1));
+    }
+  }
+
+  return sections;
+}
+
+function scanSlots(
+  nodes: FigmaNode[],
+  content: string[],
+  media: string[],
+  cta: string[],
+  form: string[]
+) {
+  for (const n of nodes) {
+    const lower = (n.name || "").toLowerCase();
+    if (n.type === "TEXT" || /heading|title|subtitle|text|headline|paragraph/.test(lower)) {
+      content.push(n.name || "text");
+    }
+    if (n.type === "RECTANGLE" || n.type === "ELLIPSE" || /image|photo|media|video|illustration/.test(lower)) {
+      media.push(n.name || "media");
+    }
+    if (/button|cta|btn|action/.test(lower)) {
+      cta.push(n.name || "cta");
+    }
+    if (/input|field|form|email/.test(lower)) {
+      form.push(n.name || "form_field");
+    }
+    if (n.children) {
+      scanSlots(n.children, content, media, cta, form);
+    }
+  }
+}
+
+function extractTokenRefs(node: FigmaNode): Record<string, string> {
+  const tokens: Record<string, string> = {};
+  if (node.fills && Array.isArray(node.fills)) {
+    for (const fill of node.fills) {
+      if (fill.type === "SOLID" && fill.color) {
+        const { r, g, b } = fill.color;
+        tokens.bg_color = `rgba(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)},1)`;
+        break;
+      }
+    }
+  }
+  if (node.styles) {
+    if (node.styles.fill) tokens.fill_style_id = node.styles.fill;
+    if (node.styles.text) tokens.text_style_id = node.styles.text;
+  }
+  return tokens;
+}
+
+function extractTokens(nodes: FigmaNode[]): Record<string, unknown> {
+  const colors: Record<string, string> = {};
+  const typography: Record<string, unknown> = {};
+
+  function walk(ns: FigmaNode[]) {
+    for (const n of ns) {
+      if (n.fills && Array.isArray(n.fills)) {
+        for (const fill of n.fills) {
+          if (fill.type === "SOLID" && fill.color) {
+            const { r, g, b } = fill.color;
+            const hex = `#${[r, g, b].map(v => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`;
+            colors[n.name || hex] = hex;
+          }
+        }
+      }
+      if (n.type === "TEXT" && n.style) {
+        typography[n.name || "text"] = {
+          fontSize: n.style.fontSize,
+          fontFamily: n.style.fontFamily,
+          fontWeight: n.style.fontWeight,
+          lineHeight: n.style.lineHeightPx,
+          letterSpacing: n.style.letterSpacing,
+        };
+      }
+      if (n.children) walk(n.children);
+    }
+  }
+  walk(nodes);
+  return { colors, typography };
+}
+
+function extractComponents(nodes: FigmaNode[]): Array<Record<string, unknown>> {
+  const comps: Array<Record<string, unknown>> = [];
+  function walk(ns: FigmaNode[]) {
+    for (const n of ns) {
+      if (n.type === "COMPONENT" || n.type === "COMPONENT_SET") {
+        const variants = n.type === "COMPONENT_SET" && n.children
+          ? n.children.filter(c => c.type === "COMPONENT").map(c => c.name)
+          : [];
+        comps.push({ name: n.name, node_id: n.id, variants });
+      }
+      if (n.children) walk(n.children);
+    }
+  }
+  walk(nodes);
+  return comps;
+}
+
+function countNodes(nodes: FigmaNode[]): number {
+  let count = 0;
+  for (const n of nodes) {
+    count++;
+    if (n.children) count += countNodes(n.children);
+  }
+  return count;
+}
+
+function normalizePayload(
+  rawPayload: Record<string, unknown>,
+  providerKey: string,
+  externalRef: string,
+  importType: string
+): Record<string, unknown> {
+  // Extract document nodes from typical Figma MCP responses
+  let rootNodes: FigmaNode[] = [];
+
+  // tools/call response wraps in content array
+  const content = rawPayload.content as Array<{ type: string; text?: string }> | undefined;
+  if (content && Array.isArray(content)) {
+    for (const c of content) {
+      if (c.type === "text" && c.text) {
+        try {
+          const parsed = JSON.parse(c.text);
+          if (parsed.document?.children) {
+            rootNodes = parsed.document.children;
+          } else if (parsed.nodes) {
+            // get_file_nodes returns { nodes: { "id": { document: {...} } } }
+            rootNodes = Object.values(parsed.nodes).map((n: unknown) => {
+              const node = n as { document?: FigmaNode };
+              return node.document || n;
+            }) as FigmaNode[];
+          } else if (Array.isArray(parsed)) {
+            rootNodes = parsed;
+          } else if (parsed.children) {
+            rootNodes = parsed.children;
+          }
+        } catch {
+          // not JSON text, skip
+        }
+      }
+    }
+  }
+
+  // Direct document response
+  if (rootNodes.length === 0) {
+    const doc = rawPayload as { document?: { children?: FigmaNode[] }; nodes?: Record<string, { document?: FigmaNode }> };
+    if (doc.document?.children) {
+      rootNodes = doc.document.children;
+    } else if (doc.nodes) {
+      rootNodes = Object.values(doc.nodes).map(n => n.document || n) as FigmaNode[];
+    }
+  }
+
+  const sections = extractSections(rootNodes);
+  const tokens = extractTokens(rootNodes);
+  const components = extractComponents(rootNodes);
+  const totalNodes = countNodes(rootNodes);
+
+  return {
+    source: { provider_key: providerKey, reference: externalRef, import_type: importType },
+    sections,
+    tokens,
+    components,
+    metadata: {
+      section_count: sections.length,
+      component_count: components.length,
+      total_nodes: totalNodes,
+      color_count: Object.keys(tokens.colors as Record<string, string>).length,
+      typography_count: Object.keys(tokens.typography as Record<string, unknown>).length,
+    },
+  };
+}
+
+async function callMcpServer(
+  serverUrl: string,
+  creds: Record<string, string> | null,
+  authType: string,
+  toolName: string,
+  toolArgs: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+
+  if (creds?.token && authType === "bearer") {
+    headers["Authorization"] = `Bearer ${creds.token}`;
+  } else if (creds?.token && authType === "api_key") {
+    headers["X-API-Key"] = creds.token;
+  }
+
+  const mcpPayload = {
+    jsonrpc: "2.0",
+    method: "tools/call",
+    params: { name: toolName, arguments: toolArgs },
+    id: Date.now(),
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  const resp = await fetch(serverUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(mcpPayload),
+    signal: controller.signal,
+  });
+
+  clearTimeout(timeout);
+
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "Unknown error");
+    throw new Error(`MCP server returned HTTP ${resp.status}: ${errText.substring(0, 500)}`);
+  }
+
+  const result = await resp.json();
+  if (result.error) {
+    throw new Error(`MCP error: ${JSON.stringify(result.error).substring(0, 500)}`);
+  }
+
+  return result.result || result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -387,6 +697,165 @@ Deno.serve(async (req) => {
 
       if (error) return json({ error: error.message }, 500);
       return json({ success: true });
+    }
+
+    // ========================
+    // MCP IMPORT
+    // ========================
+
+    if (action === "import_context") {
+      const { provider_id, import_type, external_reference } = body;
+      if (!provider_id) return json({ error: "Missing provider_id" }, 400);
+      if (!import_type || !VALID_IMPORT_TYPES.includes(import_type)) {
+        return json({ error: `Invalid import_type. Must be one of: ${VALID_IMPORT_TYPES.join(", ")}` }, 400);
+      }
+      if (!external_reference || typeof external_reference !== "string" || external_reference.length > 500) {
+        return json({ error: "Missing or invalid external_reference (max 500 chars)" }, 400);
+      }
+
+      log("marketing_mcp_import_started", { workspace_id, provider_id, import_type, external_reference });
+
+      // Fetch provider
+      const { data: provider, error: pErr } = await supabase
+        .from("marketing_mcp_providers")
+        .select("*")
+        .eq("id", provider_id)
+        .eq("workspace_id", workspace_id)
+        .single();
+
+      if (pErr || !provider) return json({ error: "Provider not found" }, 404);
+      if (!provider.is_enabled) return json({ error: "Provider is disabled" }, 400);
+
+      // Create import record
+      const { data: importRecord, error: iErr } = await supabase
+        .from("marketing_mcp_imports")
+        .insert({
+          workspace_id,
+          provider_id,
+          import_type,
+          external_reference_id: external_reference,
+          external_reference_name: external_reference,
+          status: "processing",
+        })
+        .select()
+        .single();
+
+      if (iErr || !importRecord) return json({ error: "Failed to create import record" }, 500);
+
+      try {
+        // Build tool arguments based on import type
+        const toolName = IMPORT_TYPE_TO_TOOL[import_type];
+        const toolArgs: Record<string, unknown> = {};
+
+        // Parse external_reference: could be a Figma URL or a file key
+        let fileKey = external_reference;
+        let nodeId: string | undefined;
+
+        // Extract file key from Figma URL
+        const figmaUrlMatch = external_reference.match(/figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/);
+        if (figmaUrlMatch) {
+          fileKey = figmaUrlMatch[1];
+        }
+
+        // Extract node-id from URL params
+        const nodeMatch = external_reference.match(/node-id=([^&]+)/);
+        if (nodeMatch) {
+          nodeId = decodeURIComponent(nodeMatch[1]);
+        }
+
+        if (import_type === "design_system" || import_type === "tokens") {
+          toolArgs.fileKey = fileKey;
+        } else {
+          toolArgs.fileKey = fileKey;
+          if (nodeId) {
+            toolArgs.ids = [nodeId];
+          }
+        }
+
+        const creds = provider.encrypted_credentials_json as Record<string, string> | null;
+        const rawResult = await callMcpServer(
+          provider.server_url,
+          creds,
+          provider.auth_type,
+          toolName,
+          toolArgs
+        );
+
+        log("marketing_mcp_normalization_started", { workspace_id, import_id: importRecord.id });
+
+        const normalized = normalizePayload(
+          rawResult as Record<string, unknown>,
+          provider.provider_key,
+          external_reference,
+          import_type
+        );
+
+        log("marketing_mcp_normalization_succeeded", {
+          workspace_id,
+          import_id: importRecord.id,
+          section_count: (normalized.metadata as Record<string, unknown>)?.section_count,
+        });
+
+        // Update import record with results
+        await supabase
+          .from("marketing_mcp_imports")
+          .update({
+            status: "completed",
+            imported_payload_json: rawResult,
+            normalized_payload_json: normalized,
+            external_reference_name: fileKey,
+          })
+          .eq("id", importRecord.id);
+
+        log("marketing_mcp_import_succeeded", { workspace_id, provider_id, import_id: importRecord.id });
+
+        return json({
+          import_id: importRecord.id,
+          status: "completed",
+          normalized,
+        });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        log("marketing_mcp_import_failed", { workspace_id, provider_id, import_id: importRecord.id, error: errMsg });
+
+        await supabase
+          .from("marketing_mcp_imports")
+          .update({ status: "failed", error_message: errMsg })
+          .eq("id", importRecord.id);
+
+        return json({
+          import_id: importRecord.id,
+          status: "failed",
+          error: errMsg,
+        });
+      }
+    }
+
+    if (action === "list_imports") {
+      const { data, error } = await supabase
+        .from("marketing_mcp_imports")
+        .select("id, workspace_id, provider_id, import_type, external_reference_id, external_reference_name, status, error_message, created_at, updated_at, normalized_payload_json")
+        .eq("workspace_id", workspace_id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return json({ error: error.message }, 500);
+      return json({ imports: data || [] });
+    }
+
+    if (action === "get_import") {
+      const { import_id } = body;
+      if (!import_id) return json({ error: "Missing import_id" }, 400);
+
+      const { data, error } = await supabase
+        .from("marketing_mcp_imports")
+        .select("*")
+        .eq("id", import_id)
+        .eq("workspace_id", workspace_id)
+        .single();
+
+      if (error) return json({ error: error.message }, 500);
+      if (!data) return json({ error: "Import not found" }, 404);
+      return json({ import: data });
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);

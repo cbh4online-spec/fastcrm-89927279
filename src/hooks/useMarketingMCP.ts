@@ -38,12 +38,57 @@ interface MCPWorkflowBinding {
   updated_at: string;
 }
 
+export interface MCPImportRecord {
+  id: string;
+  workspace_id: string;
+  provider_id: string;
+  import_type: string;
+  external_reference_id: string | null;
+  external_reference_name: string | null;
+  status: string;
+  error_message: string | null;
+  normalized_payload_json: Record<string, unknown>;
+  imported_payload_json?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NormalizedPayload {
+  source: { provider_key: string; reference: string; import_type: string };
+  sections: Array<{
+    section_type: string;
+    section_name: string;
+    node_id?: string;
+    order: number;
+    layout: Record<string, unknown>;
+    content_placeholders: string[];
+    media_slots: string[];
+    cta_slots: string[];
+    form_slots: string[];
+    responsive_hints: Record<string, unknown>;
+    token_references: Record<string, string>;
+  }>;
+  tokens: { colors: Record<string, string>; typography: Record<string, unknown> };
+  components: Array<{ name: string; node_id?: string; variants: string[] }>;
+  metadata: {
+    section_count: number;
+    component_count: number;
+    total_nodes: number;
+    color_count: number;
+    typography_count: number;
+  };
+}
+
 async function invokeMarketingMCP(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("marketing-mcp", { body });
   if (error) throw new Error(error.message || "Edge function error");
   if (data?.error) throw new Error(data.error);
   return data;
 }
+
+// ========================
+// PROVIDER HOOKS
+// ========================
 
 export function useMCPProviders(workspaceId: string | undefined) {
   return useQuery<MCPProvider[]>({
@@ -144,6 +189,10 @@ export function useHealthCheckMCP(workspaceId: string | undefined) {
   });
 }
 
+// ========================
+// WORKFLOW BINDING HOOKS
+// ========================
+
 export function useMCPWorkflowBindings(workspaceId: string | undefined) {
   return useQuery<MCPWorkflowBinding[]>({
     queryKey: ["marketing-mcp-bindings", workspaceId],
@@ -176,6 +225,48 @@ export function useDeleteMCPBinding(workspaceId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-mcp-bindings", workspaceId] });
       toast.success("Binding removido");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+// ========================
+// IMPORT HOOKS
+// ========================
+
+export function useMCPImports(workspaceId: string | undefined) {
+  return useQuery<MCPImportRecord[]>({
+    queryKey: ["marketing-mcp-imports", workspaceId],
+    queryFn: async () => {
+      const res = await invokeMarketingMCP({ action: "list_imports", workspace_id: workspaceId });
+      return res.imports ?? [];
+    },
+    enabled: !!workspaceId,
+  });
+}
+
+export function useMCPImportDetail(workspaceId: string | undefined, importId: string | undefined) {
+  return useQuery<MCPImportRecord>({
+    queryKey: ["marketing-mcp-import", workspaceId, importId],
+    queryFn: async () => {
+      const res = await invokeMarketingMCP({ action: "get_import", workspace_id: workspaceId, import_id: importId });
+      return res.import;
+    },
+    enabled: !!workspaceId && !!importId,
+  });
+}
+
+export function useImportFromMCP(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      provider_id: string;
+      import_type: string;
+      external_reference: string;
+    }) => invokeMarketingMCP({ action: "import_context", workspace_id: workspaceId, ...payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-mcp-imports", workspaceId] });
+      toast.success("Importação concluída");
     },
     onError: (e: Error) => toast.error(e.message),
   });
