@@ -108,7 +108,7 @@ export function LandingPagesList() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setMcpGenerateOpen(true)}>
             <Download className="h-4 w-4 mr-2" />
-            Gerar via MCP
+            Gerar via Figma MCP
           </Button>
           <Button variant="outline" onClick={() => setBuilderMode("new")}>
             <Sparkles className="h-4 w-4 mr-2" />
