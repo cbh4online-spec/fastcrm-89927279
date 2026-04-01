@@ -1,59 +1,67 @@
 
 
-# Dynamic Imports para Libs Pesadas
+# Substituir `.select("*")` por colunas explícitas — 15 queries core
 
 ## Diagnóstico
 
-| Lib | Ficheiros | Estado actual | Acção |
-|-----|-----------|---------------|-------|
-| **exceljs** | `excelUtils.ts` → 7 consumidores | Import estático top-level | Converter para dynamic import |
-| **@fullcalendar/\*** | `FullCalendarView.tsx` | FullCalendar lazy, mas **plugins importados estaticamente** (daygrid, timegrid, list, interaction) | Mover plugins para dynamic import |
-| **@tiptap/\*** | `ui/RichTextEditor.tsx` (17 imports), `inbox/RichTextEditor.tsx` (5 imports) | Tudo estático | Lazy-load componentes inteiros |
-| **@react-pdf/renderer** | 0 imports encontrados | Não usado | Nada a fazer |
-| **@nivo/\*** | 0 imports encontrados | Não usado | Nada a fazer |
+Hooks já com select explícito (não precisam alteração):
+- `useOpportunitiesEnhanced` — já usa colunas explícitas
+- `useSmartLeads` — já usa `LEADS_SELECT_COLUMNS`
+- `useOpportunityKPIs` — já usa `"id, value, status, probability, created_at, updated_at"`
+- `usePipelineStagesEnhanced` — já usa colunas explícitas
+- `usePipelines` — já usa colunas explícitas
 
-**@react-pdf/renderer** e **@nivo/\*** não têm imports no código — já foram removidos ou nunca foram usados directamente. Não há acção necessária.
+Hooks com `.select("*")` a corrigir (priorizados por frequência de uso):
 
----
+| # | Hook | Tabela(s) | Colunas necessárias |
+|---|------|-----------|---------------------|
+| 1 | `useActivities` | crm_activities | id, workspace_id, entity_type, entity_id, activity_type, title, description, metadata, created_at, created_by |
+| 2 | `useLeads` (list + detail) | leads | Reutilizar `LEADS_SELECT_COLUMNS` do useSmartLeads (mover para ficheiro partilhado) |
+| 3 | `useCompanyDuplicates` | companies | id, name, email, website, tax_id, workspace_id |
+| 4 | `useCompanyDuplicateGroups` | companies | id, name, email, website, tax_id, domain, workspace_id, created_at, industry, size |
+| 5 | `useAccountBriefKPIs` (2 queries) | account_brief_kpi_snapshots | id, workspace_id, metric_key, metric_value, snapshot_date |
+| 6 | `useChangeEvents` | change_events | id, workspace_id, event_type, entity_type, entity_id, entity_name, changed_by, description, metadata, created_at |
+| 7 | `useCompanyAuditLog` | companies_audit_log | id, workspace_id, company_id, changed_by, changed_at, field_name, old_value, new_value |
+| 8 | `useRFQAuditLog` | rfq_audit_log | id, workspace_id, rfq_id, changed_by, changed_at, field_name, old_value, new_value + profile join |
+| 9 | `useClientTicketDetail` | client_tickets | id, workspace_id, subject, description, type, priority, status, client_user_id, company_id, assigned_to, tags, source, satisfaction_rating, satisfaction_comment, created_at, updated_at, resolved_at, closed_at |
+| 10 | `useForecastsReports` (8 queries) | opportunities, contacts, contact_products, products | Seleccionar apenas colunas usadas nos cálculos |
 
-## Plano de Implementação
+## Estrutura técnica
 
-### 1. ExcelJS — Dynamic import dentro das funções
+### Constante partilhada para leads
+Mover `LEADS_SELECT_COLUMNS` de `useSmartLeads.ts` para `src/hooks/constants/selectColumns.ts` e reutilizar em `useLeads.ts`.
 
-**Ficheiro:** `src/utils/excelUtils.ts`
+### useForecastsReports — colunas por tabela
+- **opportunities**: `id, value, status, probability, updated_at, created_at, expected_close_date, stage_id`
+- **contacts**: `id, name, email, client_status, last_contact_at, created_at, workspace_id`
+- **contact_products**: `id, product_id, workspace_id, status, purchased_quantity, consumed_quantity, purchase_date, next_renewal_date`
+- **products**: `id, name, sku, category, price`
 
-Remover `import ExcelJS from "exceljs"` do topo. Dentro de `parseExcelFile()` e `exportToExcel()`, fazer `const ExcelJS = (await import("exceljs")).default`. Como ambas as funções já são `async`, zero alteração na API — os 7 consumidores continuam a funcionar sem mudanças.
+## Plano de implementação
 
-### 2. FullCalendar — Dynamic import dos plugins
-
-**Ficheiro:** `src/components/calendars/FullCalendarView.tsx`
-
-Os 4 plugins (`dayGridPlugin`, `timeGridPlugin`, `listPlugin`, `interactionPlugin`) são importados estaticamente mesmo com o FullCalendar já lazy. Solução: carregar tudo junto via `React.lazy` num wrapper que importa plugins + componente numa promise única, ou usar `useMemo` + `await import()` com estado. A abordagem mais limpa: fazer dynamic import de todos os plugins dentro do componente com um `useEffect` + `useState` loading gate.
-
-### 3. TipTap — Lazy-load dos componentes RichTextEditor
-
-**Ficheiros:** Consumidores de `ui/RichTextEditor.tsx` e `inbox/RichTextEditor.tsx`
-
-Os RichTextEditors são usados em ~5 componentes, todos em contextos que não são above-the-fold (notas, email compose, block editor, inbox). Estratégia:
-- Criar wrappers lazy: `const LazyRichTextEditor = lazy(() => import("@/components/ui/RichTextEditor"))` nos consumidores, ou melhor, criar um ficheiro `RichTextEditor.lazy.tsx` que re-exporta com lazy + Suspense + skeleton fallback.
-- Os componentes `inbox/RichTextEditor.tsx` já são usados apenas dentro de `MessageInput.tsx` — fazer lazy import lá.
-
----
-
-### Ficheiros a alterar
+### Ficheiros a alterar (10 ficheiros)
 
 | Ficheiro | Alteração |
 |----------|-----------|
-| `src/utils/excelUtils.ts` | Remover import estático, dynamic import dentro de cada função |
-| `src/components/calendars/FullCalendarView.tsx` | Dynamic import dos 4 plugins + FullCalendar juntos |
-| `src/components/ui/RichTextEditorLazy.tsx` | **Novo** — wrapper lazy com Suspense + skeleton |
-| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | Usar lazy import do RichTextEditor |
-| `src/components/email-builder/BlockEditor.tsx` | Usar lazy import do RichTextEditor |
-| `src/components/inbox/MessageInput.tsx` | Lazy import do inbox RichTextEditor |
-| `src/components/email/ComposeEmailDialog.tsx` | Já usa email-builder/RichTextEditor (não @tiptap) — sem alteração |
+| `src/hooks/constants/selectColumns.ts` | **Novo** — constantes LEADS_SELECT, OPPORTUNITIES_SELECT, CONTACTS_SELECT |
+| `src/hooks/useActivities.ts` | `.select("*")` → colunas explícitas |
+| `src/hooks/useLeads.ts` | 2× `.select("*")` → `LEADS_SELECT_COLUMNS` |
+| `src/hooks/useCompanyDuplicates.ts` | `.select("*")` → colunas de matching |
+| `src/hooks/useCompanyDuplicateGroups.ts` | `.select("*")` → colunas de matching |
+| `src/hooks/useAccountBriefKPIs.ts` | 2× `.select("*")` → colunas KPI |
+| `src/hooks/useChangeEvents.ts` | `.select("*")` → colunas explícitas |
+| `src/hooks/useCompanyAuditLog.ts` | `.select("*")` → colunas da interface |
+| `src/hooks/useRFQAuditLog.ts` | `"*"` na parte base → colunas explícitas + join |
+| `src/hooks/useClientTicketDetail.ts` | `.select("*")` → colunas do ticket |
+| `src/hooks/useForecastsReports.ts` | 8× `.select("*")` → colunas por tabela |
+| `src/hooks/useSmartLeads.ts` | Import da constante partilhada (opcional, pode manter inline) |
 
-### Estimativa de impacto
-- **ExcelJS (~300KB)**: removido do bundle principal, carregado só quando utilizador clica importar/exportar
-- **FullCalendar plugins (~120KB)**: removidos do bundle principal, carregados com a vista calendário
-- **TipTap (~100KB)**: removido do bundle principal, carregado quando editor aparece
+### Critérios de aceitação
+- Zero `.select("*")` nos 15 hooks listados
+- Todas as interfaces TypeScript continuam satisfeitas (nenhum campo undefined)
+- Queries existentes devolvem os mesmos dados sem regressão
+
+### Riscos
+- Se algum componente consumidor usa um campo obscuro não listado na selecção, vai receber `undefined`. Mitigação: verificar as interfaces TypeScript de cada hook para garantir cobertura.
+- `useForecastsReports` é o mais complexo (8 queries, 539 linhas) — risco de omitir colunas usadas downstream.
 
