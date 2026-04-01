@@ -2,7 +2,7 @@ import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js";
 
 export const checkoutStep1Schema = z.object({
-  name: z.string().trim().min(1, "Preencha o nome"),
+  name: z.string().trim().min(1, "Preencha o nome").max(100, "Nome demasiado longo"),
   phone: z
     .string()
     .trim()
