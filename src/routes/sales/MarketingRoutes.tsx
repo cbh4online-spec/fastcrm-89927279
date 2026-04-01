@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Route, Navigate } from "react-router-dom";
+import { Route } from "react-router-dom";
 
 const Automations = lazy(() => import("@/pages/Automations"));
 const Funnels = lazy(() => import("@/pages/Funnels"));
