@@ -51,6 +51,8 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
   const [selectedCampaign, setSelectedCampaign] = useState<MarketingCampaign | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const { data: commercialImpact } = useCampaignAttribution();
+  const { pendingCount: aiPendingCount } = useAIRecommendations();
+  const { benchmarks } = useCampaignBenchmarks();
 
   const handleViewCampaign = (campaign: MarketingCampaign) => {
     setSelectedCampaign(campaign);
