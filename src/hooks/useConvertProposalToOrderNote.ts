@@ -21,6 +21,17 @@ export function useConvertProposalToOrderNote() {
     }: ConvertToOrderNoteInput) => {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
+      // 0. Check for duplicate conversion
+      const { data: existingOrder } = await (supabase as any)
+        .from("order_notes")
+        .select("id, order_number")
+        .eq("proposal_id", proposalId)
+        .maybeSingle();
+
+      if (existingOrder) {
+        throw new Error(`Esta proposta já foi convertida na encomenda #${(existingOrder as any).order_number}`);
+      }
+
       // 1. Fetch proposal with contact/company info
       const { data: proposal, error: proposalError } = await supabase
         .from("proposals")
@@ -161,7 +172,8 @@ export function useConvertProposalToOrderNote() {
           submitted_at: new Date().toISOString(),
           installment_requested: false,
           installment_count: 0,
-        })
+          proposal_id: proposalId,
+        } as any)
         .select("id, order_number")
         .single();
 
@@ -209,6 +221,7 @@ export function useConvertProposalToOrderNote() {
     onSuccess: (orderNote) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["converted-proposal-ids"] });
       toast.success(`Nota de Encomenda #${orderNote.order_number} criada com sucesso`);
     },
     onError: (error) => {

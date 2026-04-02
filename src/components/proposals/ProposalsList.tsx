@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card } from "@/components/ui/card";
@@ -76,6 +77,8 @@ import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
 import { useConvertProposalToOrderNote } from "@/hooks/useConvertProposalToOrderNote";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
@@ -195,6 +198,21 @@ export function ProposalsList() {
   const duplicateProposal = useDuplicateProposal();
   const quickStatusChange = useQuickStatusChange();
   const convertToOrderNote = useConvertProposalToOrderNote();
+  const { currentWorkspace } = useWorkspace();
+
+  // Query proposals that already have an order note
+  const { data: convertedProposalIds } = useQuery({
+    queryKey: ["converted-proposal-ids", currentWorkspace?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("order_notes")
+        .select("proposal_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .not("proposal_id", "is", null);
+      return new Set((data || []).map((d: any) => d.proposal_id as string));
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   // Additional filter state
   const [valueFilter, setValueFilter] = useState<string | undefined>();
@@ -729,17 +747,24 @@ export function ProposalsList() {
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
 
-                        {/* Converter em Nota de Encomenda - only for accepted proposals */}
+                        {/* Converter em Nota de Encomenda - only for accepted proposals not yet converted */}
                         {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConvertOrderId(proposal.id);
-                            }}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Converter em Encomenda
-                          </DropdownMenuItem>
+                          convertedProposalIds?.has(proposal.id) ? (
+                            <DropdownMenuItem disabled>
+                              <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
+                              Já convertida em Encomenda
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConvertOrderId(proposal.id);
+                              }}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Converter em Encomenda
+                            </DropdownMenuItem>
+                          )
                         )}
                         
                         {proposal.status === "published" && (

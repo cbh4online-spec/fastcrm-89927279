@@ -37794,6 +37794,7 @@ export type Database = {
           installment_requested: boolean | null
           opportunity_id: string | null
           order_number: string
+          proposal_id: string | null
           rejected_at: string | null
           rejected_by: string | null
           rejection_reason: string | null
@@ -37821,6 +37822,7 @@ export type Database = {
           installment_requested?: boolean | null
           opportunity_id?: string | null
           order_number: string
+          proposal_id?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
@@ -37848,6 +37850,7 @@ export type Database = {
           installment_requested?: boolean | null
           opportunity_id?: string | null
           order_number?: string
+          proposal_id?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
           rejection_reason?: string | null
@@ -37873,6 +37876,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_notes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
             referencedColumns: ["id"]
           },
           {
