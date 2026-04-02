@@ -99,6 +99,7 @@ export function EditClientDialog({
     if (client) {
       form.reset({
         name: client.name,
+        email: client.email || "",
         phone: client.phone || "",
         tax_id: client.tax_id || "",
         credit_limit: client.credit_limit || 0,
