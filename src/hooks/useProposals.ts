@@ -253,6 +253,8 @@ export function useCreateProposal() {
         currency: input.currency || "EUR",
         expires_at: input.expires_at,
         created_by: user?.id,
+        contact_id: input.contact_id || null,
+        company_id: input.company_id || null,
       };
 
       const { data, error } = await supabase

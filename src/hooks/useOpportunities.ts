@@ -18,6 +18,8 @@ export interface Opportunity {
   id: string;
   workspace_id: string;
   lead_id: string | null;
+  contact_id: string | null;
+  company_id: string | null;
   title: string;
   value: number;
   stage_id: string;

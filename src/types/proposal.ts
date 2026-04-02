@@ -136,6 +136,8 @@ export interface CreateProposalInput {
   price?: number;
   currency?: string;
   expires_at?: string;
+  contact_id?: string | null;
+  company_id?: string | null;
 }
 
 export interface UpdateProposalInput {

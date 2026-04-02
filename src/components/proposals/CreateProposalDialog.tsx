@@ -257,6 +257,8 @@ export function CreateProposalDialog({
       price: price ? parseFloat(price) : selectedOpportunity?.value || undefined,
       currency: workspaceCurrency,
       expires_at: expiresAt || undefined,
+      contact_id: selectedOpportunity?.contact_id || null,
+      company_id: selectedOpportunity?.company_id || null,
     });
 
     // Save cart items to proposal_items table
