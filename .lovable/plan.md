@@ -1,43 +1,66 @@
 
 
-# Corrigir Atualização Automática do Sales Performance Engine
+# Editar Valores em Propostas — Criação e Detalhe
 
 ## Diagnóstico
 
-O problema tem **duas causas**:
+A funcionalidade de edição de preço, quantidade e desconto **já existe** em ambos os contextos, mas com lacunas:
 
-### 1. Bug crítico: nome de coluna errado (causa raiz dos zeros)
-A função `useRecalculateScores` usa `.eq("assigned_to", uid)` para consultar oportunidades, mas a coluna real é `owner_id`. Resultado: **todas as queries de revenue e pipeline retornam 0**, mesmo havendo dados reais (ex: "Renovação Kommo" 350€ está como `won` com `owner_id` definido).
+| Campo | Criação (ProposalCart) | Detalhe (POSProposalItemsEditor) | Detalhe (ProposalInternalView) |
+|---|---|---|---|
+| Preço | ✅ (escondido no collapsible) | ✅ inline | ✅ inline |
+| Quantidade | ✅ | ✅ | ✅ |
+| Desconto | ✅ (escondido) | ✅ (escondido) | ❌ |
+| Nome | ❌ | ❌ | ❌ |
+| Descrição | ❌ | ❌ | ❌ |
 
-### 2. Sem recálculo automático
-Os scores só são atualizados quando o utilizador clica em "Recalcular". Não há nenhum mecanismo automático.
+**Problemas identificados:**
+1. **Nome e descrição não são editáveis** em nenhum dos contextos — apenas texto estático
+2. **Desconto não disponível** na vista `ProposalInternalView`
+3. **UX de edição pouco visível** — preço/desconto escondidos atrás de ícone de lápis pequeno
 
-## Solução
+## Plano
 
-### 1. Corrigir coluna em `usePerformanceScores.ts` (linhas 148-151)
-Substituir `assigned_to` por `owner_id` nas queries de oportunidades:
-```typescript
-// Antes:  .eq("assigned_to", uid)
-// Depois: .eq("owner_id", uid)
-```
+### 1. Tornar nome e descrição editáveis
 
-### 2. Auto-recálculo ao abrir a página
-No `PerformanceDashboardPage.tsx`, adicionar um `useEffect` que dispara `recalculate.mutate("weekly")` automaticamente quando:
-- Os scores estão vazios ou todos a zero
-- Não foi recalculado nos últimos 5 minutos (guardar timestamp em `sessionStorage`)
+**POSProposalItemsEditor** (edição após criação):
+- Converter o `<h4>` estático do nome (linha 407-409) para `<Input>` editável
+- Adicionar campo de descrição editável no painel expandido (collapsible)
+- Adicionar handler `handleUpdateName` e `handleUpdateDescription`
 
-Isto garante que os dados estão sempre frescos sem sobrecarregar a API.
+**ProposalInternalView** (vista de detalhe):
+- Converter nome estático para `<Input>` inline editável
+- Adicionar campo de descrição editável abaixo do nome
+- Ligar aos callbacks `onNameChange` e `onDescriptionChange` (novos props)
+
+**ProposalCart** (criação):
+- Adicionar campo de nome editável no painel expandido (collapsible)
+
+### 2. Adicionar desconto na ProposalInternalView
+
+- Adicionar coluna "Desc." na tabela de itens
+- Input numérico com percentagem, que atualiza o preço unitário
+- Novo callback `onDiscountChange`
+
+### 3. Melhorar descobribilidade da edição
+
+- No `ProposalCart`, mostrar o preço como `<Input>` inline visível (sem necessidade de expandir)
+- Manter o collapsible para desconto e opções avançadas
 
 ## Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/hooks/usePerformanceScores.ts` | Corrigir `assigned_to` → `owner_id` nas queries de oportunidades (linhas 148-151) |
-| `src/pages/performance/PerformanceDashboardPage.tsx` | Adicionar auto-recálculo ao carregar a página quando scores estão desatualizados |
+| `src/components/proposals/POSProposalItemsEditor.tsx` | Nome e descrição editáveis; nome como Input inline |
+| `src/components/proposals/ProposalInternalView.tsx` | Nome editável; coluna desconto; novos props |
+| `src/components/proposals/ProposalDetailContent.tsx` | Handlers para `onNameChange`, `onDescriptionChange`, `onDiscountChange` |
+| `src/components/proposals/ProposalCart.tsx` | Nome editável no collapsible; preço visível como Input inline |
 
-## Impacto
+## Critérios de aceitação
 
-- Os KPIs (Receita Fechada, Pipeline Gerado) passarão a mostrar valores reais
-- O leaderboard mostrará scores corretos
-- A página atualiza automaticamente sem depender do clique manual
+- Nome e descrição editáveis em ambos os contextos (criação e detalhe)
+- Desconto editável na vista de detalhe (ProposalInternalView)
+- Preço visível e editável sem necessidade de expandir no carrinho
+- Alterações persistem na BD ao guardar
+- Funciona em mobile (viewport 393px)
 
