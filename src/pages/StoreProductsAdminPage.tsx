@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, Package, Sparkles, Info, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
-import { StoreProductEditDialog } from "@/components/store/StoreProductEditDialog";
-import { useStoreAdminProducts, type ProductStoreData } from "@/components/store/admin/useStoreAdminProducts";
+import { ProductDetailDialog } from "@/components/products/ProductDetailDialog";
+import { useStoreAdminProducts } from "@/components/store/admin/useStoreAdminProducts";
 import { CatalogProductsTable } from "@/components/store/admin/CatalogProductsTable";
 import { PricingSuggestionsPanel } from "@/components/store/admin/PricingSuggestionsPanel";
 import { PricingIntelligenceSection } from "@/components/store/admin/PricingIntelligenceSection";
@@ -19,7 +19,7 @@ export default function StoreProductsAdminPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [editProduct, setEditProduct] = useState<ProductStoreData | null>(null);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
 
   const admin = useStoreAdminProducts(search);
 
@@ -77,7 +77,7 @@ export default function StoreProductsAdminPage() {
                 onTogglePublish={admin.togglePublish}
                 onToggleFeatured={admin.toggleFeatured}
                 onMoveOrder={admin.moveOrder}
-                onEdit={setEditProduct}
+                onEdit={(id: string) => setEditProductId(id)}
               />
             </TabsContent>
 
@@ -100,16 +100,13 @@ export default function StoreProductsAdminPage() {
           </Tabs>
         </main>
 
-        <StoreProductEditDialog
-          product={editProduct}
-          open={!!editProduct}
-          onOpenChange={(open) => { if (!open) setEditProduct(null); }}
-          onSave={(id, updates) => {
-            admin.updateProduct.mutate({ id, ...updates });
-            setEditProduct(null);
-            toast.success("Produto atualizado");
-          }}
-        />
+        {editProductId && (
+          <ProductDetailDialog
+            open={!!editProductId}
+            onOpenChange={(open) => { if (!open) setEditProductId(null); }}
+            productId={editProductId}
+          />
+        )}
       </DashboardLayout>
     </>
   );

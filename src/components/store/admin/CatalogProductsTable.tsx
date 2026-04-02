@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, Eye } from "lucide-react";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -11,7 +11,7 @@ interface CatalogProductsTableProps {
   onTogglePublish: (id: string, current: boolean) => void;
   onToggleFeatured: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
-  onEdit: (product: ProductStoreData) => void;
+  onEdit: (productId: string) => void;
 }
 
 export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onMoveOrder, onEdit }: CatalogProductsTableProps) {
@@ -53,7 +53,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     <div>
                       <div className="flex items-center gap-1.5">
                         {product.brand_logo_url && <img src={product.brand_logo_url} alt="" className="h-4 object-contain flex-shrink-0" />}
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <button onClick={() => onEdit(product.id)} className="font-medium text-sm hover:underline text-left cursor-pointer">{product.name}</button>
                       </div>
                       {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
                     </div>
@@ -76,10 +76,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/products?highlight=${product.id}`)} title="Ver ficha completa"><Eye className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product)} title="Editar produto"><Pencil className="h-3.5 w-3.5" /></Button>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product.id)} title="Editar produto"><Pencil className="h-3.5 w-3.5" /></Button>
                   </TableCell>
                 </TableRow>
               );
