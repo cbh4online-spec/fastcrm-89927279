@@ -861,6 +861,44 @@ export default function PipelineMetricsPage() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* ===== AI ALERT SUGGESTIONS DIALOG ===== */}
+      <Dialog open={aiAlertOpen} onOpenChange={setAiAlertOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Sugestões de Alertas — IA
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[65vh]">
+            {aiAlertSuggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Sem sugestões disponíveis.</p>
+            ) : (
+              <div className="space-y-3">
+                {aiAlertSuggestions.map((s, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-medium text-sm">{s.metric_name}</h4>
+                          <Badge variant="secondary" className="text-xs">{ALERT_CONDITIONS.find(c => c.value === s.condition)?.label || s.condition}</Badge>
+                          <Badge variant="outline" className="text-xs">{s.threshold_pct}%</Badge>
+                          <Badge variant="outline" className="text-xs">{ALERT_CHANNELS.find(c => c.value === s.channel)?.label || s.channel}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground/70 italic">{s.reasoning}</p>
+                      </div>
+                      <Button size="sm" className="gap-1 shrink-0" onClick={() => acceptAlertSuggestion(s)} disabled={createAlert.isPending}>
+                        <Check className="h-3.5 w-3.5" />Adicionar
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardLayout>
   );
