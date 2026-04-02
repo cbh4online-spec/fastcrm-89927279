@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InstagramConnectionCard } from "@/components/integrations/InstagramConnectionCard";
 import { WhatsAppConnectionCard } from "@/components/integrations/WhatsAppConnectionCard";
+import { TwilioConnectionCard } from "@/components/integrations/TwilioConnectionCard";
 import { EmailChannelSettings } from "./EmailChannelSettings";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import {
