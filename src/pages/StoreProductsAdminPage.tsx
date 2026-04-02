@@ -37,6 +37,18 @@ export default function StoreProductsAdminPage() {
             </p>
           </div>
 
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-sm">
+                Os produtos da loja são os mesmos do catálogo comercial. Publicar/despublicar controla a visibilidade na loja.
+              </span>
+              <Button variant="link" size="sm" className="gap-1.5 shrink-0" onClick={() => navigate("/dashboard/products")}>
+                Ir para Catálogo Completo <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+
           <div className="flex items-center gap-3">
             <div className="relative max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
