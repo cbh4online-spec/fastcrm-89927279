@@ -464,6 +464,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
   const [showGHLDialog, setShowGHLDialog] = useState(false);
   const [showEvolutionWhatsApp, setShowEvolutionWhatsApp] = useState(false);
   const [showInstagramDialog, setShowInstagramDialog] = useState(false);
+  const [showTwilioSMS, setShowTwilioSMS] = useState(false);
   const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("sms");
 
   // Check connection status
