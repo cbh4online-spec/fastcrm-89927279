@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
 
     // Supabase admin client for DB ops
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const webhookUrl = `${SUPABASE_URL}/functions/v1/whatsapp-evolution-webhook`;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
