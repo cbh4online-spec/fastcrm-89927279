@@ -31,7 +31,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Download, Upload, Info, Settings2, ChevronLeft, ChevronRight, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Archive, Briefcase } from "lucide-react";
+import { Plus, Download, Upload, Info, Settings2, ChevronLeft, ChevronRight, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Archive, Briefcase, Building2 } from "lucide-react";
+import { useSyncCompanyContacts } from "@/hooks/useSyncCompanyContacts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
