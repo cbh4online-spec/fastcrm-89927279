@@ -274,15 +274,31 @@ export function InboxTemplatePanel({
     const commTpl = (template as any)._commTemplate as CommunicationTemplate | undefined;
     
     if (commTpl) {
-      // Use dynamic rendering for communication templates
-      const rawContent = commTpl.isDynamic && dynamicContext
-        ? renderDynamicTemplate(commTpl.body, dynamicContext.allVariables)
-        : commTpl.body;
+      // Build variables from dynamicContext or fallback from templateContext
+      const vars: Record<string, string | number | undefined> = dynamicContext?.allVariables
+        ? { ...dynamicContext.allVariables }
+        : {};
+
+      // Enrich with templateContext data as fallback for flat keys
+      if (templateContext.contact) {
+        if (!vars.first_name && templateContext.contact.name) vars.first_name = templateContext.contact.name.split(' ')[0];
+        if (!vars.company_name && templateContext.contact.company) vars.company_name = templateContext.contact.company;
+      }
+      if (templateContext.lead) {
+        if (!vars.first_name && templateContext.lead.name) vars.first_name = templateContext.lead.name.split(' ')[0];
+      }
+      if (templateContext.company) {
+        if (!vars.company_name && templateContext.company.name) vars.company_name = templateContext.company.name;
+      }
+      if (templateContext.user) {
+        if (!vars.sender_name && templateContext.user.full_name) vars.sender_name = templateContext.user.full_name;
+      }
+
+      // Always process dynamic syntax (conditionals + variables)
+      const rawContent = renderDynamicTemplate(commTpl.body, vars);
       const content = stripStructureLabels(rawContent);
       const subject = commTpl.subject
-        ? (commTpl.isDynamic && dynamicContext
-          ? renderDynamicTemplate(commTpl.subject, dynamicContext.allVariables)
-          : commTpl.subject)
+        ? renderDynamicTemplate(commTpl.subject, vars)
         : '';
       setEditedContent(content);
       setEditedSubject(subject);
