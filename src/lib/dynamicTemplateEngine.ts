@@ -218,6 +218,9 @@ export function getDynamicPreviewVariables(): Record<string, string> {
     responsavel_nome: 'Maria Costa',
     empresa_nome: 'Minha Empresa',
     workspace_name: 'Minha Empresa',
+    // Sender
+    sender_name: 'Maria Costa',
+    sender_email: 'maria@empresa.pt',
     // CRM extended
     first_name: 'João',
     company_name: 'TechCorp',
