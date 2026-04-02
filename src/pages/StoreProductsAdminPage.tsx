@@ -20,6 +20,7 @@ export default function StoreProductsAdminPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
 
   const admin = useStoreAdminProducts(search);
