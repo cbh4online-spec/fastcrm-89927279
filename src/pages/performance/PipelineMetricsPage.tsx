@@ -149,8 +149,8 @@ export default function PipelineMetricsPage() {
   const [tMetricId, setTMetricId] = useState("");
   const [tPeriod, setTPeriod] = useState<MetricPeriod>("monthly");
   const [tValue, setTValue] = useState("");
-  const [tPipelineId, setTPipelineId] = useState("");
-  const [tStageId, setTStageId] = useState("");
+  const [tPipelineId, setTPipelineId] = useState("__all__");
+  const [tStageId, setTStageId] = useState("__all__");
 
   // Alert form
   const [aMetricId, setAMetricId] = useState("");
@@ -190,8 +190,8 @@ export default function PipelineMetricsPage() {
     setTMetricId(t.metric_id);
     setTPeriod(t.period);
     setTValue(String(t.target_value));
-    setTPipelineId(t.pipeline_id || "");
-    setTStageId(t.stage_id || "");
+    setTPipelineId(t.pipeline_id || "__all__");
+    setTStageId(t.stage_id || "__all__");
     setTargetOpen(true);
   };
 
@@ -243,17 +243,17 @@ export default function PipelineMetricsPage() {
       metric_id: tMetricId,
       period: tPeriod,
       target_value: parseFloat(tValue),
-      pipeline_id: tPipelineId || null,
-      stage_id: tStageId || null,
+      pipeline_id: tPipelineId !== "__all__" ? tPipelineId : null,
+      stage_id: tStageId !== "__all__" ? tStageId : null,
     };
 
     if (editingTarget) {
       updateTarget.mutate({ id: editingTarget.id, ...payload }, {
-        onSuccess: () => { setEditingTarget(null); setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+        onSuccess: () => { setEditingTarget(null); setTMetricId(""); setTValue(""); setTPipelineId("__all__"); setTStageId("__all__"); setTargetOpen(false); },
       });
     } else {
       createTarget.mutate(payload, {
-        onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+        onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId("__all__"); setTStageId("__all__"); setTargetOpen(false); },
       });
     }
   };
@@ -595,7 +595,7 @@ export default function PipelineMetricsPage() {
                       <Select value={tPipelineId} onValueChange={setTPipelineId}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos</SelectItem>
+                          <SelectItem value="__all__">Todos</SelectItem>
                           {(pipelines || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -605,7 +605,7 @@ export default function PipelineMetricsPage() {
                       <Select value={tStageId} onValueChange={setTStageId}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todas</SelectItem>
+                          <SelectItem value="__all__">Todas</SelectItem>
                           {(stages || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
