@@ -1,24 +1,31 @@
 
 
-# Fix: Mostrar cliente na lista de propostas
+# Permitir converter propostas em encomendas sem email do cliente
 
 ## Diagnóstico
 
-A coluna "Cliente" na lista (linha 607 de `ProposalsList.tsx`) mostra apenas `proposal.opportunity?.lead?.name`. Ignora completamente `proposal.contact` e `proposal.company`, que já vêm preenchidos pela query do hook.
+Duas barreiras impedem a conversão quando o contacto/empresa não tem email:
+
+1. **Código** (`useConvertProposalToOrderNote.ts`, linha 99-101): `throw new Error("O contacto/empresa precisa de ter email...")` — bloqueia explicitamente.
+2. **Base de dados**: coluna `client_users.email` é `NOT NULL` — mesmo removendo o check no código, o INSERT falharia.
 
 ## Solução
 
-Alterar a célula "Cliente" para usar fallback chain:
-1. `proposal.contact?.name` (contacto directo)
-2. `proposal.company?.name` (empresa directa)
-3. `proposal.opportunity?.lead?.name` (lead da oportunidade)
-4. `"-"` (fallback)
+### 1. Migração DB — tornar `email` nullable em `client_users`
 
-Mesma lógica no export CSV (linha ~374).
+```sql
+ALTER TABLE public.client_users ALTER COLUMN email DROP NOT NULL;
+```
 
-## Ficheiro alterado
+### 2. Alterar `useConvertProposalToOrderNote.ts`
+
+- Remover o `throw` nas linhas 99-101
+- Passar `email: clientEmail || null` no insert (em vez de exigir)
+
+### Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/proposals/ProposalsList.tsx` | Linha 607: substituir `proposal.opportunity?.lead?.name` por fallback chain `contact → company → lead`; linha ~374: mesma lógica no CSV export |
+| Migração SQL | `ALTER COLUMN email DROP NOT NULL` na tabela `client_users` |
+| `src/hooks/useConvertProposalToOrderNote.ts` | Remover validação obrigatória de email (linhas 99-101); passar `null` quando não existe |
 
