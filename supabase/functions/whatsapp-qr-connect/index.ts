@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
           // Recreate instance
           console.log(`[WHATSAPP_QR] RECREATE instance=${instanceName}`);
           try {
-            const recreateRes = await fetch(`${baseUrl}/instance/create`, {
+            const recreateRes = await api(`${baseUrl}/instance/create`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
               body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
