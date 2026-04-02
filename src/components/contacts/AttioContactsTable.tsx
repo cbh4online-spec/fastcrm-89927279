@@ -151,7 +151,7 @@ export function AttioContactsTable() {
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
   const { data: workspaceTags } = useWorkspaceTags();
   const syncTags = useSyncLeadTagsToWorkspace();
-
+  const { sync: syncCompanies, isSyncing: isSyncingCompanies } = useSyncCompanyContacts();
   const availableTags = useMemo(() => {
     const fromContacts = [...new Set((contacts || []).flatMap(c => c.tags || []))];
     const fromWorkspace = (workspaceTags || []).map(t => t.name);
