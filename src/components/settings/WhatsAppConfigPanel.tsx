@@ -233,16 +233,21 @@ export function WhatsAppConfigPanel() {
         </div>
       </div>
 
-      {/* Repair required warning */}
+      {/* Repair required warning — shown for both connected and disconnected */}
       {isRepairRequired && (
-        <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-xs">Nova ligação necessária</p>
-              <p className="mt-0.5 text-xs opacity-80">
-                Após múltiplas tentativas de recuperação, a sessão não conseguiu restabelecer o sync. Desconecte e inicie uma nova ligação.
+        <div className="p-4 rounded-lg border-2 border-destructive/60 bg-destructive/10 text-sm text-destructive">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold">⚠️ Dispositivo desconectado — Nova ligação necessária</p>
+              <p className="mt-1 text-xs opacity-80">
+                O WhatsApp reportou que a sessão foi encerrada no dispositivo. É necessário iniciar uma nova ligação via QR Code.
               </p>
+              {qrConnection?.last_error && (
+                <p className="mt-2 text-xs font-mono bg-destructive/10 p-2 rounded">
+                  Erro: {qrConnection.last_error}
+                </p>
+              )}
             </div>
           </div>
         </div>
