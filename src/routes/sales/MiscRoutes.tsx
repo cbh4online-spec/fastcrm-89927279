@@ -8,7 +8,7 @@ const EventDetailPage = lazy(() => import("@/components/events/EventDetailPage")
 const FeedPage = lazy(() => import("@/pages/FeedPage"));
 const ProductivityPage = lazy(() => import("@/pages/ProductivityPage"));
 const MemberPanelPage = lazy(() => import("@/pages/MemberPanelPage"));
-const Profile = lazy(() => import("@/pages/Profile"));
+const Profile = lazy(() => import("@/pages/Profile").catch(() => ({ default: () => { window.location.reload(); return null; } })));
 
 export function SalesMiscRoutes() {
   return (
