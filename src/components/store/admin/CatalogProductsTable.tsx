@@ -76,10 +76,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/products?highlight=${product.id}`)} title="Ver ficha completa"><Eye className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product)} title="Editar produto"><Pencil className="h-3.5 w-3.5" /></Button>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product.id)} title="Editar produto"><Pencil className="h-3.5 w-3.5" /></Button>
                   </TableCell>
                 </TableRow>
               );
