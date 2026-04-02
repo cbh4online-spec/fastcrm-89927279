@@ -116,6 +116,8 @@ export function useProposalCart() {
     updateQuantity,
     updatePrice,
     updateDiscount,
+    updateName,
+    updateDescription,
     clearCart,
     getSelectedProductIds,
     calculateTotals,

@@ -156,6 +156,8 @@ export function POSProposalBuilder({
           onUpdateQuantity={handleUpdateQuantity}
           onUpdatePrice={handleUpdatePrice}
           onUpdateDiscount={handleUpdateDiscount}
+          onUpdateName={handleUpdateName}
+          onUpdateDescription={handleUpdateDescription}
           onRemoveItem={handleRemoveProduct}
           onClear={handleClear}
           tierName={tier?.name}
