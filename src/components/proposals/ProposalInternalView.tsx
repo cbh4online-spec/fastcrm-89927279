@@ -68,6 +68,8 @@ interface ProposalInternalViewProps {
   onQuantityChange?: (itemId: string, quantity: number) => void;
   onPriceChange?: (itemId: string, price: number) => void;
   onCostsRefreshed?: () => void;
+  onAccept?: () => void;
+  onRequestChange?: () => void;
 }
 
 function formatCurrency(value: number, currency: string = "EUR"): string {
@@ -84,6 +86,8 @@ export function ProposalInternalView({
   onQuantityChange,
   onPriceChange,
   onCostsRefreshed,
+  onAccept,
+  onRequestChange,
 }: ProposalInternalViewProps) {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
@@ -470,10 +474,12 @@ export function ProposalInternalView({
           <Clock className="h-4 w-4" />
           <span>Última atualização: {format(new Date(proposal.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: pt })}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">Solicitar Alteração</Button>
-          <Button className="bg-green-600 hover:bg-green-700">Aceitar Proposta</Button>
-        </div>
+        {proposal.status === "published" && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onRequestChange}>Solicitar Alteração</Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={onAccept}>Aceitar Proposta</Button>
+          </div>
+        )}
       </div>
     </div>
   );

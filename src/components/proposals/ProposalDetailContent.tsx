@@ -43,6 +43,7 @@ import { ProposalReferencesSection, type ReferencesData } from "./ProposalRefere
 import { ProposalStepNavigation } from "./ProposalStepNavigation";
 import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
+import { ProposalChangeRequestDialog } from "./ProposalChangeRequestDialog";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { ProposalToRenewalCTA } from "./ProposalToRenewalCTA";
@@ -152,6 +153,7 @@ export function ProposalDetailContent({
   const [scopeData, setScopeData] = useState<ScopeData>(DEFAULT_SCOPE_DATA);
   const [timelineData, setTimelineData] = useState<TimelineData>(DEFAULT_TIMELINE_DATA);
   const [referencesData, setReferencesData] = useState<ReferencesData>(DEFAULT_REFERENCES_DATA);
+  const [showChangeRequestDialog, setShowChangeRequestDialog] = useState(false);
 
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
@@ -208,6 +210,41 @@ export function ProposalDetailContent({
   // Handle item toggle
   const handleItemToggle = (itemId: string, isEnabled: boolean) => {
     toggleItem.mutate({ itemId, isEnabled, proposalId });
+  };
+
+  // Handle accept proposal
+  const handleAcceptProposal = async () => {
+    if (!proposal) return;
+    try {
+      await updateProposal.mutateAsync({
+        id: proposalId,
+        status: "accepted",
+      });
+      toast.success("Proposta aceite com sucesso!");
+    } catch {
+      toast.error("Erro ao aceitar a proposta.");
+    }
+  };
+
+  // Handle change request
+  const handleChangeRequest = async (message: string) => {
+    if (!proposal || !currentWorkspace) return;
+    try {
+      await supabase.from("proposal_activity_logs").insert({
+        proposal_id: proposalId,
+        workspace_id: currentWorkspace.id,
+        action: "change_requested",
+        details: { message },
+      });
+      await updateProposal.mutateAsync({
+        id: proposalId,
+        status: "draft",
+      });
+      queryClient.invalidateQueries({ queryKey: ["proposal-activity", proposalId] });
+      toast.success("Pedido de alteração registado. A proposta voltou a rascunho.");
+    } catch {
+      toast.error("Erro ao registar o pedido de alteração.");
+    }
   };
   
   // Handle item price change
@@ -1006,6 +1043,8 @@ export function ProposalDetailContent({
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}
                       onPriceChange={handleItemPriceChange}
+                      onAccept={handleAcceptProposal}
+                      onRequestChange={() => setShowChangeRequestDialog(true)}
                     />
                   ) : (
                     <ProposalClientDocument
@@ -1128,6 +1167,12 @@ export function ProposalDetailContent({
           referencesData={referencesData}
         />
       )}
+
+      <ProposalChangeRequestDialog
+        open={showChangeRequestDialog}
+        onOpenChange={setShowChangeRequestDialog}
+        onSubmit={handleChangeRequest}
+      />
     </>
   );
 }
