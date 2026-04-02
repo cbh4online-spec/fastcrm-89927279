@@ -32,6 +32,8 @@ export function POSProposalBuilder({
     updateQuantity,
     updatePrice,
     updateDiscount,
+    updateName,
+    updateDescription,
     clearCart,
     getSelectedProductIds,
     setItems,
