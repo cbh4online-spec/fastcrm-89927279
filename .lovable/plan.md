@@ -1,52 +1,70 @@
 
 
-# Unificar Produtos da Loja com Catálogo de Vendas
+# Funis Criam Leads (Não Contactos)
 
 ## Diagnóstico
 
-A arquitectura de dados já está correcta — a loja online e o módulo de vendas usam **a mesma tabela `products`**. O campo `store_published` controla a visibilidade na loja. Não existe tabela `store_products` separada.
-
-O problema é na **experiência de gestão**:
-
-1. **Duas páginas admin paralelas**: `/dashboard/products` (1225 linhas, completo) e `/dashboard/store-products` (simplificado, apenas store)
-2. **Dialog de edição duplicado**: `StoreProductEditDialog` é uma versão reduzida do `ProductDetailDialog`
-3. **Sem ligação cruzada**: a página de produtos principal não tem coluna/filtro `store_published`, e a página da loja não liga ao produto completo
-4. **Funcionalidades ausentes na loja admin**: variantes, tabelas de preço, imagens avançadas, especificações, tags, documentos, barcode — tudo só existe em `/dashboard/products`
+A edge function `funnel-lead-capture` insere/atualiza directamente na tabela `contacts`. O fluxo correcto deveria criar registos na tabela `leads` — os funis capturam leads que depois, manualmente ou via automação, são convertidos em contactos.
 
 ## Solução
 
-Eliminar a duplicação mantendo a página da loja como **vista filtrada** com funcionalidades store-específicas, e adicionando integração bidirecional.
+Alterar a edge function `funnel-lead-capture` para:
+1. Procurar leads existentes por email no workspace (em vez de contactos)
+2. Criar/atualizar na tabela `leads` (em vez de `contacts`)
+3. Manter tags, activity_logs e link à `funnel_submissions` — mas referenciando leads
 
-### Alterações
+A tabela `funnel_submissions` tem `contact_id` — precisamos verificar se existe ou adicionar `lead_id`.
+
+## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/products/ProductsList.tsx` | Adicionar coluna `store_published` (switch inline) + filtro no sidebar. Adicionar badge "Na Loja" visível na lista |
-| `src/components/store/admin/CatalogProductsTable.tsx` | Adicionar botão "Ver ficha completa" que navega para `/dashboard/products` com o produto selecionado (via query param ou dialog) |
-| `src/components/store/StoreProductEditDialog.tsx` | Adicionar link "Editar ficha completa →" que abre o `ProductDetailDialog` ou navega para a página de produtos |
-| `src/pages/StoreProductsAdminPage.tsx` | Adicionar nota informativa: "Os produtos da loja são os mesmos do catálogo de vendas. Para edição completa, use Produtos." com link directo |
+| Migração SQL | Adicionar coluna `lead_id` (FK → leads) a `funnel_submissions` |
+| `supabase/functions/funnel-lead-capture/index.ts` | Reescrever para operar na tabela `leads` em vez de `contacts` |
 
-### Detalhe por alteração
+### Edge Function — alterações chave
 
-**1. ProductsList — coluna + filtro `store_published`**
-- Adicionar entrada no array `PRODUCT_COLUMNS`: `{ id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true }`
-- Renderizar como Switch inline (igual ao da `CatalogProductsTable`)
-- Adicionar filtro "Publicado na Loja" no `FilterSidebar` (sim/não/todos)
+```typescript
+// ANTES: contacts
+const { data: existingContact } = await supabase
+  .from("contacts").select("id, tags")...
 
-**2. CatalogProductsTable — link para ficha completa**
-- Na coluna de acções (onde está o Pencil), adicionar botão `Eye` que navega para `/dashboard/products?highlight={productId}`
-- Alternativa mais simples: o botão Pencil existente abre o `ProductDetailDialog` em vez do `StoreProductEditDialog` simplificado
+// DEPOIS: leads  
+const { data: existingLead } = await supabase
+  .from("leads").select("id, tags")
+  .eq("workspace_id", workspace_id)
+  .eq("email", normalizedEmail)
+  .maybeSingle();
 
-**3. StoreProductEditDialog — link cruzado**
-- Adicionar no topo do dialog: `<Button variant="link" onClick={() => navigate('/dashboard/products')}>Editar ficha completa →</Button>`
+// Insert em leads (não contacts)
+const { data: newLead } = await supabase
+  .from("leads").insert({
+    workspace_id,
+    name: name || normalizedEmail.split("@")[0],
+    email: normalizedEmail,
+    source: "funnel",
+    status: "new",
+    tags: newTags,
+  }).select("id").single();
 
-**4. StoreProductsAdminPage — banner informativo**
-- Adicionar `<Alert>` discreto no topo: "Estes são os mesmos produtos do catálogo comercial. Publicar/despublicar controla a visibilidade na loja."
-- Botão "Ir para Catálogo Completo" que navega para `/dashboard/products`
+// Activity log com entity_type: "lead"
+// funnel_submissions.lead_id = leadId
+```
+
+### Migração SQL
+
+```sql
+ALTER TABLE public.funnel_submissions 
+  ADD COLUMN lead_id uuid REFERENCES public.leads(id);
+```
+
+A coluna `contact_id` existente permanece para retrocompatibilidade com submissões antigas.
 
 ## Critérios de aceitação
-- Na página de Produtos (`/dashboard/products`), consigo ver e alterar `store_published` directamente
-- Na página da Loja (`/dashboard/store-products`), consigo navegar para a ficha completa do produto
-- Não há dados duplicados — tudo referencia a mesma tabela `products`
-- Zero regressões no storefront público
+
+- Submissões de funil criam registos em `leads`, não em `contacts`
+- Leads duplicados por email são atualizados (merge de tags)
+- Activity logs registam `entity_type: "lead"`
+- `funnel_submissions.lead_id` preenchido correctamente
+- Submissões antigas com `contact_id` continuam a funcionar
 
