@@ -28,6 +28,8 @@ interface ProposalCartProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onUpdatePrice: (productId: string, price: number | undefined) => void;
   onUpdateDiscount: (productId: string, discount: number | undefined) => void;
+  onUpdateName: (productId: string, name: string) => void;
+  onUpdateDescription: (productId: string, description: string) => void;
   onRemoveItem: (productId: string) => void;
   onClear: () => void;
   tierName?: string | null;
