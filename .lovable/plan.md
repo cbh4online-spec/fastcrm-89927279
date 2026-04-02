@@ -1,42 +1,52 @@
 
 
-# WhatsApp com Link Clicável no Painel de Detalhes
+# Unificar Produtos da Loja com Catálogo de Vendas
 
 ## Diagnóstico
 
-No painel lateral de detalhes (`EntityDetailsPanel.tsx`), o campo WhatsApp usa `linkType="url"`, mas o valor guardado é frequentemente um número de telefone (ex: `+3519186145`), não um URL. Resultado: o número aparece como texto sem link útil, ou tenta abrir como URL genérico.
+A arquitectura de dados já está correcta — a loja online e o módulo de vendas usam **a mesma tabela `products`**. O campo `store_published` controla a visibilidade na loja. Não existe tabela `store_products` separada.
 
-O campo `whatsapp_url` pode conter um URL (`https://wa.me/...`) ou um número de telefone. Ambos os casos precisam de tratamento.
+O problema é na **experiência de gestão**:
+
+1. **Duas páginas admin paralelas**: `/dashboard/products` (1225 linhas, completo) e `/dashboard/store-products` (simplificado, apenas store)
+2. **Dialog de edição duplicado**: `StoreProductEditDialog` é uma versão reduzida do `ProductDetailDialog`
+3. **Sem ligação cruzada**: a página de produtos principal não tem coluna/filtro `store_published`, e a página da loja não liga ao produto completo
+4. **Funcionalidades ausentes na loja admin**: variantes, tabelas de preço, imagens avançadas, especificações, tags, documentos, barcode — tudo só existe em `/dashboard/products`
 
 ## Solução
 
-Adicionar um novo `linkType="whatsapp"` ao componente `EditableFieldRow` que:
-- Se o valor já for um URL (`wa.me` ou `https://`), usa-o directamente
-- Se for um número de telefone, gera automaticamente `https://wa.me/{numero_limpo}`
-- Renderiza com ícone do WhatsApp e abre numa nova tab
+Eliminar a duplicação mantendo a página da loja como **vista filtrada** com funcionalidades store-específicas, e adicionando integração bidirecional.
 
-## Alterações
+### Alterações
 
-| Ficheiro | Alteração |
+| Ficheiro | Acção |
 |---|---|
-| `src/components/entity/EntityDetailsPanel.tsx` | 1. No `renderValue()`, adicionar bloco para `linkType === 'whatsapp'` que converte número em link `wa.me`. 2. Alterar as 3 linhas de WhatsApp (Contact, Company, Lead) de `linkType="url"` para `linkType="whatsapp"` |
+| `src/components/products/ProductsList.tsx` | Adicionar coluna `store_published` (switch inline) + filtro no sidebar. Adicionar badge "Na Loja" visível na lista |
+| `src/components/store/admin/CatalogProductsTable.tsx` | Adicionar botão "Ver ficha completa" que navega para `/dashboard/products` com o produto selecionado (via query param ou dialog) |
+| `src/components/store/StoreProductEditDialog.tsx` | Adicionar link "Editar ficha completa →" que abre o `ProductDetailDialog` ou navega para a página de produtos |
+| `src/pages/StoreProductsAdminPage.tsx` | Adicionar nota informativa: "Os produtos da loja são os mesmos do catálogo de vendas. Para edição completa, use Produtos." com link directo |
 
-### Lógica do `renderValue` para whatsapp
+### Detalhe por alteração
 
-```typescript
-if (isLink && linkType === 'whatsapp') {
-  const raw = String(value);
-  const href = raw.startsWith('http') 
-    ? raw 
-    : `https://wa.me/${raw.replace(/[^\d+]/g, '').replace(/^\+/, '')}`;
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp}
-       className="text-[#25D366] hover:underline text-[13px] font-medium break-all">
-      {raw}
-    </a>
-  );
-}
-```
+**1. ProductsList — coluna + filtro `store_published`**
+- Adicionar entrada no array `PRODUCT_COLUMNS`: `{ id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true }`
+- Renderizar como Switch inline (igual ao da `CatalogProductsTable`)
+- Adicionar filtro "Publicado na Loja" no `FilterSidebar` (sim/não/todos)
 
-Alteração mínima: ~10 linhas adicionadas, 3 linhas modificadas.
+**2. CatalogProductsTable — link para ficha completa**
+- Na coluna de acções (onde está o Pencil), adicionar botão `Eye` que navega para `/dashboard/products?highlight={productId}`
+- Alternativa mais simples: o botão Pencil existente abre o `ProductDetailDialog` em vez do `StoreProductEditDialog` simplificado
+
+**3. StoreProductEditDialog — link cruzado**
+- Adicionar no topo do dialog: `<Button variant="link" onClick={() => navigate('/dashboard/products')}>Editar ficha completa →</Button>`
+
+**4. StoreProductsAdminPage — banner informativo**
+- Adicionar `<Alert>` discreto no topo: "Estes são os mesmos produtos do catálogo comercial. Publicar/despublicar controla a visibilidade na loja."
+- Botão "Ir para Catálogo Completo" que navega para `/dashboard/products`
+
+## Critérios de aceitação
+- Na página de Produtos (`/dashboard/products`), consigo ver e alterar `store_published` directamente
+- Na página da Loja (`/dashboard/store-products`), consigo navegar para a ficha completa do produto
+- Não há dados duplicados — tudo referencia a mesma tabela `products`
+- Zero regressões no storefront público
 
