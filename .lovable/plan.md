@@ -2,45 +2,55 @@
 
 ## Diagnóstico
 
-O erro **"Edge Function returned a non-2xx status code"** vem da edge function `whatsapp-qr-connect` que retorna **HTTP 500** com a mensagem `"QR code not available. Try again."`.
+Os logs confirmam o ciclo:
+1. `CREATE` → 403 (instância já existe)
+2. `CONNECT` → 200 mas body = `{"count":0}` (sem QR code)
+3. `connectionState` → `{"instance":{"state":"connecting"}}` (presa)
+4. Nenhum estado é "open"/"connected" → cai no erro
 
-**Causa raiz:** Quando a instância já existe na Evolution API (resposta 403 no create), o código chama `/instance/connect/{instanceName}`. A resposta não contém QR code (instância já está ligada ou num estado intermédio), mas o check `connectData?.instance?.state === "open"` **não corresponde** ao formato real da resposta da Evolution API. A resposta pode ter a estrutura `{ state: "open" }` directamente, ou variantes como `{ status: "open" }`, em vez de `{ instance: { state: "open" } }`.
+**Causa raiz:** A instância está **presa no estado "connecting"** na Evolution API. O endpoint `/instance/connect/` não retorna QR quando a instância está neste estado intermédio. É necessário **reiniciar a instância** (via `/instance/restart/`) antes de reconectar para obter um QR fresco.
 
-O código não loga a resposta do connect, o que dificulta o debug. Sem match, cai no fallback (linha 124) e retorna 500.
+## Plano
 
-## Plano de Implementação
+### 1. Edge Function — adicionar restart para estado "connecting"
 
-### 1. Melhorar `whatsapp-qr-connect/index.ts`
+**Ficheiro:** `supabase/functions/whatsapp-qr-connect/index.ts`
 
-**Alterações na secção connect (linhas 95-125):**
+Quando o connect retorna sem QR e o fallback detecta `state === "connecting"`:
 
-- **Logar a resposta do connect** para visibilidade: `console.log("[WHATSAPP_QR] CONNECT_RESPONSE", JSON.stringify(connectData).substring(0, 500))`
-- **Ampliar a detecção de "já conectado"** para cobrir múltiplos formatos da Evolution API:
-  ```
-  const state = connectData?.instance?.state 
-    || connectData?.state 
-    || connectData?.status;
-  if (state === "open" || state === "connected") { ... }
-  ```
-- **Fallback: verificar estado via `/instance/connectionState/`** se o connect não retorna QR nem indica "open". Isto resolve o caso em que a instância está ligada mas o endpoint connect não indica isso directamente.
-- **Retornar 200 com erro estruturado** em vez de 500 quando o QR não está disponível (padrão resiliente do projecto), incluindo uma flag `needsReconnect: true` para que o frontend possa guiar o utilizador.
+1. Chamar `GET /instance/restart/{instanceName}` para resetar a instância
+2. Aguardar 2 segundos (`setTimeout`)
+3. Repetir o `GET /instance/connect/{instanceName}` para obter o QR
+4. Se continuar sem QR, aí sim retornar o erro estruturado
 
-### 2. Melhorar tratamento de erro no `WhatsAppQRDialog.tsx`
+Lógica (pseudo-código):
+```
+if (fallbackState === "connecting") {
+  // Restart instance
+  await fetch(`${baseUrl}/instance/restart/${instanceName}`, { GET, apikey })
+  await delay(2000)
+  // Retry connect
+  const retryRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, ...)
+  // Extract QR from retry response
+  if (retryQR) → return QR
+}
+```
 
-- Quando `data?.error` existe mas HTTP é 200, mostrar a mensagem de erro ao utilizador sem o toast genérico do SDK.
-- Adicionar distinção entre "QR não disponível" (sugerir desconectar e reconectar) e erros de configuração.
+### 2. Frontend — sem alterações necessárias
+
+O `WhatsAppQRDialog.tsx` já trata correctamente os 3 cenários (QR, alreadyConnected, error). A correcção é 100% server-side.
 
 ### Detalhes Técnicos
 
-**Ficheiros a alterar:**
-- `supabase/functions/whatsapp-qr-connect/index.ts` — logging + detecção de estado ampliada + fallback connectionState + resposta resiliente
-- `src/components/settings/WhatsAppQRDialog.tsx` — tratamento de novos cenários de resposta
-
-**Impacto:** Apenas o fluxo de conexão WhatsApp QR. Sem impacto noutros componentes.
+- **Endpoint usado:** `GET /instance/restart/{instanceName}` (Evolution API v2)
+- **Delay de 2s** entre restart e reconnect para dar tempo à instância reiniciar
+- **Retry único** — não criar loops infinitos
+- **Logging** de cada passo para rastreabilidade
+- Deploy automático da edge function após alteração
 
 ### Critérios de Aceitação
-- Abrir o diálogo QR com instância já conectada → mostra "Já conectado" sem erro
-- Abrir o diálogo QR com instância desconectada → mostra QR code normalmente
-- Logs da edge function registam a resposta do connect para debug futuro
-- Nenhum erro 500 para cenários esperados (instância já ligada)
+- Instância em "connecting" é reiniciada automaticamente e retorna QR
+- Instância "open"/"connected" continua a funcionar (sem regressão)
+- Logs registam `RESTART` e `RETRY_CONNECT`
+- Se após restart ainda não houver QR, erro estruturado mantém-se
 
