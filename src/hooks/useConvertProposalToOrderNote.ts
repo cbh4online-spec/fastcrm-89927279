@@ -21,6 +21,17 @@ export function useConvertProposalToOrderNote() {
     }: ConvertToOrderNoteInput) => {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
+      // 0. Check for duplicate conversion
+      const { data: existingOrder } = await supabase
+        .from("order_notes")
+        .select("id, order_number")
+        .eq("proposal_id" as any, proposalId)
+        .maybeSingle();
+
+      if (existingOrder) {
+        throw new Error(`Esta proposta já foi convertida na encomenda #${(existingOrder as any).order_number}`);
+      }
+
       // 1. Fetch proposal with contact/company info
       const { data: proposal, error: proposalError } = await supabase
         .from("proposals")
