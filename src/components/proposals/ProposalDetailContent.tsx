@@ -43,6 +43,7 @@ import { ProposalReferencesSection, type ReferencesData } from "./ProposalRefere
 import { ProposalStepNavigation } from "./ProposalStepNavigation";
 import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
+import { ProposalChangeRequestDialog } from "./ProposalChangeRequestDialog";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { ProposalToRenewalCTA } from "./ProposalToRenewalCTA";

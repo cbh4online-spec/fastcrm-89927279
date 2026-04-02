@@ -474,10 +474,12 @@ export function ProposalInternalView({
           <Clock className="h-4 w-4" />
           <span>Última atualização: {format(new Date(proposal.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: pt })}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">Solicitar Alteração</Button>
-          <Button className="bg-green-600 hover:bg-green-700">Aceitar Proposta</Button>
-        </div>
+        {proposal.status === "published" && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onRequestChange}>Solicitar Alteração</Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={onAccept}>Aceitar Proposta</Button>
+          </div>
+        )}
       </div>
     </div>
   );
