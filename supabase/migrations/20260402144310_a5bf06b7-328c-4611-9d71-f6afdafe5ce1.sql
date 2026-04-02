@@ -1,0 +1,1 @@
+ALTER TABLE public.client_users ALTER COLUMN email DROP NOT NULL;

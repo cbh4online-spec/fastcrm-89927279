@@ -12851,7 +12851,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           credit_limit: number | null
-          email: string
+          email: string | null
           id: string
           invite_expires_at: string | null
           invite_token: string | null
@@ -12874,7 +12874,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           credit_limit?: number | null
-          email: string
+          email?: string | null
           id?: string
           invite_expires_at?: string | null
           invite_token?: string | null
@@ -12897,7 +12897,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           credit_limit?: number | null
-          email?: string
+          email?: string | null
           id?: string
           invite_expires_at?: string | null
           invite_token?: string | null
