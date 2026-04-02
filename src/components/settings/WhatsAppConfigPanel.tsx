@@ -149,7 +149,7 @@ export function WhatsAppConfigPanel() {
                 <StatusIcon className="h-3 w-3" />
                 {statusConfig.label}
               </Badge>
-              {isConnected && (
+              {(isConnected || isDisconnectedRepair) && (
                 <Badge variant="outline" className={`text-[10px] gap-1 ${syncCfg.className}`}>
                   <SyncIcon className="h-3 w-3" />
                   {syncCfg.label}
