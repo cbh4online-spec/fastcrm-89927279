@@ -1,91 +1,53 @@
 
 
-# Reorganizar Performance vs Métricas & Metas
+# Corrigir Conversão de Proposta em Encomenda
 
 ## Diagnóstico
 
-Existem **dois sistemas de metas a funcionar em paralelo**, com sobreposição confusa:
+Dois bugs confirmados no hook `useConvertProposalToOrderNote.ts`:
 
-### Sistema 1: "Metas de Performance" (`/dashboard/performance/goals`)
-- Tabela: `performance_goals`
-- Hook: `usePerformanceGoals` + `useGoalProgress`
-- Tipos fixos: revenue, leads, proposals, deals, meetings, pipeline
-- Progresso calculado em tempo real via queries diretas às tabelas fonte
-- Página dedicada com cards, status, projeções
+1. **Sem guarda contra duplicação** — nada impede converter a mesma proposta aceite várias vezes, criando encomendas duplicadas
+2. **Estado da proposta não atualizado** — após conversão, a proposta permanece como `accepted`, permitindo nova conversão; deveria passar para um estado terminal
 
-### Sistema 2: "Métricas & Metas" (`/dashboard/performance/metrics`)
-- Tabelas: `pipeline_metrics` + `pipeline_metric_targets` + `pipeline_metric_alerts`
-- Hook: `usePipelineMetrics`
-- Métricas customizáveis (fórmula, fonte, filtros avançados)
-- Metas ligadas a métricas com pipeline/stage/team scoping
-- Alertas configuráveis
-- Sugestões IA
-- Página monolítica de 905 linhas com 3 tabs
+## Solução
 
-### Sistema 3 (legado): `performance_targets`
-- Usado pelo Weekly Dashboard para metas semanais simples (metric_type + target_value)
-- Também usado pelo `useWorkspaceMetricSettings` para configurações de conversão
+### 1. Migração DB — adicionar `proposal_id` a `order_notes`
 
-### Problemas concretos
-1. **Duas páginas de "Metas"** com dados diferentes e sem ligação entre si
-2. **Navegação confusa**: sidebar mostra "Metas" (goals) mas não mostra "Métricas & Metas" (metrics) — esta última só é acessível via botão "Gerir Métricas" no dashboard
-3. **3 tabelas de metas** (`performance_goals`, `pipeline_metric_targets`, `performance_targets`) sem relação
-4. **PipelineMetricsPage** é um ficheiro monolítico de 905 linhas misturando métricas, metas e alertas
-5. O dashboard de Performance mostra "Active Goals" do sistema 1, e "MetricWidgets" do sistema 2, lado a lado sem contexto
+Adicionar coluna `proposal_id` (FK para `proposals`, nullable, **unique**) na tabela `order_notes`. O constraint unique impede múltiplas encomendas para a mesma proposta a nível de base de dados.
 
-## Solução proposta
-
-Unificar a experiência numa **única página de Métricas, Metas & Alertas** e eliminar a duplicação.
-
-### Decisões de produto
-- **Manter** o sistema 2 (pipeline_metrics) como sistema primário — é mais flexível e extensível
-- **Absorver** os presets do sistema 1 (revenue, leads, etc.) como métricas pré-configuradas no sistema 2
-- **Não tocar** no sistema 3 (performance_targets) — é específico do Weekly Dashboard
-- **Remover** a página `/performance/goals` como página separada
-- **Integrar** as metas na página de Métricas & Metas, tornando-a o ponto único de gestão
-
-### Alterações
-
-| Ficheiro | Acção |
-|---|---|
-| `src/pages/performance/PipelineMetricsPage.tsx` | Refactorizar: extrair cada tab para componente próprio; adicionar tab "Metas Rápidas" com os presets do sistema 1; renomear para "Centro de Métricas" |
-| `src/components/performance/metrics/MetricsTab.tsx` | Novo — extrair lógica do tab Métricas |
-| `src/components/performance/metrics/TargetsTab.tsx` | Novo — extrair lógica do tab Metas |
-| `src/components/performance/metrics/AlertsTab.tsx` | Novo — extrair lógica do tab Alertas |
-| `src/components/performance/metrics/GoalPresetsTab.tsx` | Novo — absorver os presets de PerformanceGoalsPage com cards de progresso |
-| `src/pages/performance/PerformanceDashboardPage.tsx` | Substituir secção "Active Goals" para usar dados unificados; link "Gerir" aponta para a mesma página |
-| `src/routes/PerformanceRoutes.tsx` | Remover rota `/performance/goals`; redirecionar para `/performance/metrics` |
-| `src/config/nav.v1.ts` | Substituir "Metas" por "Métricas & Metas" apontando para `/performance/metrics` |
-| `src/config/nav.v2.ts` | Idem |
-| `src/config/routeManifest.ts` | Remover entrada `perf-goals`, tornar `perf-metrics` visível no sidebar |
-
-### Estrutura final do módulo Performance no sidebar
-
-```text
-Performance
-├── Dashboard
-├── Métricas & Metas    ← unificado (4 tabs: Métricas, Metas, Alertas, Objetivos)
-├── Leaderboard
-├── Desafios
-├── Reconhecimentos
-├── TV Mode
-└── Configurações
+```sql
+ALTER TABLE order_notes ADD COLUMN proposal_id uuid REFERENCES proposals(id);
+CREATE UNIQUE INDEX order_notes_proposal_id_unique ON order_notes(proposal_id) WHERE proposal_id IS NOT NULL;
 ```
 
-### Tab "Objetivos" (ex-Goals)
-- Usa os mesmos presets (revenue, leads, proposals, etc.) do `useGoalProgress`
-- Mostra cards com progresso em tempo real, projeções e status
-- Dados continuam em `performance_goals` (não se elimina a tabela)
-- Mas a página separada desaparece — fica integrada como tab
+### 2. Hook `useConvertProposalToOrderNote.ts` — 3 correções
+
+| Correção | Detalhe |
+|---|---|
+| Guardar `proposal_id` | Inserir `proposal_id` no `order_notes` insert |
+| Verificar duplicado | Antes de criar, verificar se já existe `order_notes` com esse `proposal_id`; se sim, lançar erro "Esta proposta já foi convertida" |
+| Atualizar proposta | Após criação bem-sucedida da encomenda, atualizar `proposals.status` para `accepted` (já é o estado correcto — o problema é que não bloqueia re-conversão) |
+
+Na prática, a proteção real é: **se `proposal.status !== 'accepted'`, não converte** (já existe no UI) + **se já existe encomenda com esse `proposal_id`, erro** (novo).
+
+### 3. UI `ProposalsList.tsx` — esconder botão se já convertida
+
+Adicionar verificação: se já existe uma `order_note` associada a esta proposta, esconder o botão "Converter em Encomenda" ou mostrar "Já convertida".
+
+Opção mais simples: após conversão bem-sucedida, queries invalidadas já refrescam a lista. A protecção DB (unique index) garante segurança mesmo sem alteração de UI adicional.
+
+## Ficheiros
+
+| Ficheiro | Alteração |
+|---|---|
+| Migração SQL | Adicionar `proposal_id` unique a `order_notes` |
+| `src/hooks/useConvertProposalToOrderNote.ts` | Guardar `proposal_id`, verificar duplicado antes de criar |
+| `src/components/proposals/ProposalsList.tsx` | Desactivar botão "Converter" para propostas já convertidas |
 
 ## Critérios de aceitação
-- Página única `/performance/metrics` com 4 tabs claros
-- Ficheiro monolítico partido em 4 componentes (~200 linhas cada)
-- Navegação sem duplicação: "Métricas & Metas" no sidebar, sem "Metas" separado
-- Dashboard de Performance referencia dados unificados
-- Zero regressões no Weekly Dashboard (performance_targets intocado)
 
-## Riscos
-- Links directos a `/performance/goals` precisam de redirect
-- Hooks `usePerformanceGoals` e `useGoalProgress` mantêm-se mas ficam encapsulados no tab "Objetivos"
+- Conversão duplicada bloqueada tanto no frontend (botão desactivado) como no backend (unique index)
+- `proposal_id` registado na encomenda para rastreabilidade
+- Proposta já convertida mostra indicação visual na lista
+- Encomendas existentes sem `proposal_id` não são afectadas (coluna nullable)
 
