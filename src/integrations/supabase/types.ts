@@ -52201,6 +52201,93 @@ export type Database = {
           },
         ]
       }
+      supplier_import_profiles: {
+        Row: {
+          base_price_field: string | null
+          category_discounts_json: Json | null
+          created_at: string
+          created_by: string | null
+          delimiter_hint: string | null
+          encoding_hint: string | null
+          file_type_hint: string | null
+          global_discount_percent: number | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          mapping_json: Json | null
+          margin_percent: number | null
+          matching_strategy_json: Json | null
+          name: string
+          normalization_rules_json: Json | null
+          price_is_per_pack: boolean
+          pricing_mode: string
+          supplier_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          base_price_field?: string | null
+          category_discounts_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          delimiter_hint?: string | null
+          encoding_hint?: string | null
+          file_type_hint?: string | null
+          global_discount_percent?: number | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          mapping_json?: Json | null
+          margin_percent?: number | null
+          matching_strategy_json?: Json | null
+          name: string
+          normalization_rules_json?: Json | null
+          price_is_per_pack?: boolean
+          pricing_mode?: string
+          supplier_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          base_price_field?: string | null
+          category_discounts_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          delimiter_hint?: string | null
+          encoding_hint?: string | null
+          file_type_hint?: string | null
+          global_discount_percent?: number | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          mapping_json?: Json | null
+          margin_percent?: number | null
+          matching_strategy_json?: Json | null
+          name?: string
+          normalization_rules_json?: Json | null
+          price_is_per_pack?: boolean
+          pricing_mode?: string
+          supplier_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_import_profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_import_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_invoices: {
         Row: {
           created_at: string
@@ -52270,47 +52357,86 @@ export type Database = {
       }
       supplier_price_import_rows: {
         Row: {
+          commit_error_text: string | null
+          commit_status: string | null
+          computed_discount_percent: number | null
           computed_rrp_price: number | null
           computed_unit_price: number | null
           created_at: string
+          duplicate_key: string | null
           error_text: string | null
           id: string
           import_id: string
+          match_confidence: number | null
+          match_method: string | null
           match_status: string
+          matched_supplier_product_id: string | null
           normalized_json: Json | null
+          parse_error_text: string | null
+          parse_status: string | null
+          pricing_status: string | null
           product_id: string | null
           raw_json: Json | null
+          row_hash: string | null
           row_index: number
+          validation_error_text: string | null
+          validation_status: string | null
           variant_id: string | null
           workspace_id: string
         }
         Insert: {
+          commit_error_text?: string | null
+          commit_status?: string | null
+          computed_discount_percent?: number | null
           computed_rrp_price?: number | null
           computed_unit_price?: number | null
           created_at?: string
+          duplicate_key?: string | null
           error_text?: string | null
           id?: string
           import_id: string
+          match_confidence?: number | null
+          match_method?: string | null
           match_status?: string
+          matched_supplier_product_id?: string | null
           normalized_json?: Json | null
+          parse_error_text?: string | null
+          parse_status?: string | null
+          pricing_status?: string | null
           product_id?: string | null
           raw_json?: Json | null
+          row_hash?: string | null
           row_index?: number
+          validation_error_text?: string | null
+          validation_status?: string | null
           variant_id?: string | null
           workspace_id: string
         }
         Update: {
+          commit_error_text?: string | null
+          commit_status?: string | null
+          computed_discount_percent?: number | null
           computed_rrp_price?: number | null
           computed_unit_price?: number | null
           created_at?: string
+          duplicate_key?: string | null
           error_text?: string | null
           id?: string
           import_id?: string
+          match_confidence?: number | null
+          match_method?: string | null
           match_status?: string
+          matched_supplier_product_id?: string | null
           normalized_json?: Json | null
+          parse_error_text?: string | null
+          parse_status?: string | null
+          pricing_status?: string | null
           product_id?: string | null
           raw_json?: Json | null
+          row_hash?: string | null
           row_index?: number
+          validation_error_text?: string | null
+          validation_status?: string | null
           variant_id?: string | null
           workspace_id?: string
         }
@@ -52320,6 +52446,13 @@ export type Database = {
             columns: ["import_id"]
             isOneToOne: false
             referencedRelation: "supplier_price_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_price_import_rows_matched_supplier_product_id_fkey"
+            columns: ["matched_supplier_product_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_products"
             referencedColumns: ["id"]
           },
           {
@@ -52359,18 +52492,31 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          current_step: string | null
+          duplicate_rows: number | null
+          error_rows: number | null
+          file_checksum: string | null
           file_name: string | null
+          file_size_bytes: number | null
           file_type: string | null
           file_url: string | null
+          finished_at: string | null
           global_discount_percent: number | null
           id: string
           mapping_json: Json | null
           margin_percent: number | null
+          matched_rows: number | null
+          parsed_rows: number | null
           price_is_per_pack: boolean
           pricing_mode: string
+          profile_id: string | null
+          progress_percent: number | null
+          started_at: string | null
           stats_json: Json | null
           status: string
           supplier_id: string
+          total_rows: number | null
+          unmatched_rows: number | null
           workspace_id: string
         }
         Insert: {
@@ -52379,18 +52525,31 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          current_step?: string | null
+          duplicate_rows?: number | null
+          error_rows?: number | null
+          file_checksum?: string | null
           file_name?: string | null
+          file_size_bytes?: number | null
           file_type?: string | null
           file_url?: string | null
+          finished_at?: string | null
           global_discount_percent?: number | null
           id?: string
           mapping_json?: Json | null
           margin_percent?: number | null
+          matched_rows?: number | null
+          parsed_rows?: number | null
           price_is_per_pack?: boolean
           pricing_mode?: string
+          profile_id?: string | null
+          progress_percent?: number | null
+          started_at?: string | null
           stats_json?: Json | null
           status?: string
           supplier_id: string
+          total_rows?: number | null
+          unmatched_rows?: number | null
           workspace_id: string
         }
         Update: {
@@ -52399,21 +52558,41 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          current_step?: string | null
+          duplicate_rows?: number | null
+          error_rows?: number | null
+          file_checksum?: string | null
           file_name?: string | null
+          file_size_bytes?: number | null
           file_type?: string | null
           file_url?: string | null
+          finished_at?: string | null
           global_discount_percent?: number | null
           id?: string
           mapping_json?: Json | null
           margin_percent?: number | null
+          matched_rows?: number | null
+          parsed_rows?: number | null
           price_is_per_pack?: boolean
           pricing_mode?: string
+          profile_id?: string | null
+          progress_percent?: number | null
+          started_at?: string | null
           stats_json?: Json | null
           status?: string
           supplier_id?: string
+          total_rows?: number | null
+          unmatched_rows?: number | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_price_imports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_import_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_price_imports_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -52430,27 +52609,108 @@ export type Database = {
           },
         ]
       }
+      supplier_product_aliases: {
+        Row: {
+          alias_type: string
+          alias_value_normalized: string
+          alias_value_raw: string
+          confidence_source: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          product_id: string | null
+          supplier_id: string
+          workspace_id: string
+        }
+        Insert: {
+          alias_type?: string
+          alias_value_normalized: string
+          alias_value_raw: string
+          confidence_source?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          product_id?: string | null
+          supplier_id: string
+          workspace_id: string
+        }
+        Update: {
+          alias_type?: string
+          alias_value_normalized?: string
+          alias_value_raw?: string
+          confidence_source?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          product_id?: string | null
+          supplier_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "supplier_product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_product_aliases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_product_aliases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_products: {
         Row: {
           barcode: string | null
+          barcode_normalized: string | null
           category: string | null
           created_at: string
           currency: string
           id: string
           import_id: string | null
           is_preferred: boolean
+          last_import_job_id: string | null
+          last_price_change_at: string | null
           last_price_date: string | null
+          last_seen_at: string | null
           lead_time_days: number | null
+          link_status: string | null
+          match_confidence: number | null
+          match_locked: boolean
+          match_method: string | null
           min_order_qty: number
           notes: string | null
           pack_size: number
+          previous_rrp_price: number | null
+          previous_unit_price: number | null
           price_source: string | null
           product_id: string
           quality_score: number | null
           reliability_score: number | null
           rrp_price: number | null
           supplier_id: string
+          supplier_product_name_normalized: string | null
+          supplier_product_name_raw: string | null
           supplier_sku: string | null
+          supplier_sku_normalized: string | null
           unit_price: number
           updated_at: string
           variant_id: string | null
@@ -52458,24 +52718,37 @@ export type Database = {
         }
         Insert: {
           barcode?: string | null
+          barcode_normalized?: string | null
           category?: string | null
           created_at?: string
           currency?: string
           id?: string
           import_id?: string | null
           is_preferred?: boolean
+          last_import_job_id?: string | null
+          last_price_change_at?: string | null
           last_price_date?: string | null
+          last_seen_at?: string | null
           lead_time_days?: number | null
+          link_status?: string | null
+          match_confidence?: number | null
+          match_locked?: boolean
+          match_method?: string | null
           min_order_qty?: number
           notes?: string | null
           pack_size?: number
+          previous_rrp_price?: number | null
+          previous_unit_price?: number | null
           price_source?: string | null
           product_id: string
           quality_score?: number | null
           reliability_score?: number | null
           rrp_price?: number | null
           supplier_id: string
+          supplier_product_name_normalized?: string | null
+          supplier_product_name_raw?: string | null
           supplier_sku?: string | null
+          supplier_sku_normalized?: string | null
           unit_price?: number
           updated_at?: string
           variant_id?: string | null
@@ -52483,24 +52756,37 @@ export type Database = {
         }
         Update: {
           barcode?: string | null
+          barcode_normalized?: string | null
           category?: string | null
           created_at?: string
           currency?: string
           id?: string
           import_id?: string | null
           is_preferred?: boolean
+          last_import_job_id?: string | null
+          last_price_change_at?: string | null
           last_price_date?: string | null
+          last_seen_at?: string | null
           lead_time_days?: number | null
+          link_status?: string | null
+          match_confidence?: number | null
+          match_locked?: boolean
+          match_method?: string | null
           min_order_qty?: number
           notes?: string | null
           pack_size?: number
+          previous_rrp_price?: number | null
+          previous_unit_price?: number | null
           price_source?: string | null
           product_id?: string
           quality_score?: number | null
           reliability_score?: number | null
           rrp_price?: number | null
           supplier_id?: string
+          supplier_product_name_normalized?: string | null
+          supplier_product_name_raw?: string | null
           supplier_sku?: string | null
+          supplier_sku_normalized?: string | null
           unit_price?: number
           updated_at?: string
           variant_id?: string | null
