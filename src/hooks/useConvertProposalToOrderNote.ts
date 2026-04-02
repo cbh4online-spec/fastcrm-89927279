@@ -96,16 +96,12 @@ export function useConvertProposalToOrderNote() {
         const clientName = contact?.name || company?.name || "Cliente";
         const clientEmail = contact?.email || company?.email;
 
-        if (!clientEmail) {
-          throw new Error("O contacto/empresa precisa de ter email para criar utilizador cliente");
-        }
-
         const { data: newClient, error: createError } = await supabase
           .from("client_users")
           .insert({
             workspace_id: currentWorkspace.id,
             name: clientName,
-            email: clientEmail,
+            email: clientEmail || null,
             contact_id: contactId || null,
             company_id: companyId || null,
             tax_id: contact?.tax_id || company?.tax_id || null,
