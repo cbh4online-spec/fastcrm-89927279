@@ -330,7 +330,7 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       const result = await createContact.mutateAsync({
         name: formData.name.trim() || formData.email.split("@")[0] || "Contacto",
         email: formData.email.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
+        phone: formData.phone.trim() ? (toE164(formData.phone.trim()) ?? formData.phone.trim()) : undefined,
         company: formData.company.trim() || undefined,
         job_title: formData.job_title.trim() || undefined,
         notes: formData.notes.trim() || undefined,
