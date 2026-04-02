@@ -13,6 +13,11 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
   });
 }
 
+// Wrapper with 8s timeout to prevent hanging on Evolution API calls
+function api(url: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
