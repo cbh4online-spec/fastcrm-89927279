@@ -131,9 +131,10 @@ export function ClientSearchSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[400px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <Command shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             placeholder={`Pesquisar ${clientType === "contact" ? "contacto" : "empresa"}...`}
             value={search}
             onValueChange={setSearch}
