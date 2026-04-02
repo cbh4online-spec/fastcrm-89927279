@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // 1. Create instance (idempotent)
     let instanceCreated = false;
     try {
-      const createRes = await fetch(`${baseUrl}/instance/create`, {
+      const createRes = await api(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
         body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
