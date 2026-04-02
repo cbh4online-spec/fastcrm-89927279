@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
 
     // Supabase admin client for DB ops
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const webhookUrl = `${SUPABASE_URL}/functions/v1/whatsapp-evolution-webhook`;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -70,7 +71,18 @@ Deno.serve(async (req) => {
       const createRes = await api(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-        body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+          webhook: {
+            url: webhookUrl,
+            enabled: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+            webhook_by_events: false,
+            webhook_base64: false,
+          },
+        }),
       });
       const createText = await createRes.text();
       console.log(`[WHATSAPP_QR] CREATE status=${createRes.status} body=${createText.substring(0, 200)}`);
@@ -84,6 +96,28 @@ Deno.serve(async (req) => {
 
       // 2xx created, 409/403 already exists — all OK
       instanceCreated = createRes.ok || createRes.status === 409 || createRes.status === 403;
+
+      // If instance already existed (403/409), ensure webhook is configured
+      if (createRes.status === 403 || createRes.status === 409) {
+        try {
+          console.log(`[WHATSAPP_QR] SET_WEBHOOK instance=${instanceName} url=${webhookUrl}`);
+          const whRes = await api(`${baseUrl}/webhook/set/${instanceName}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
+            body: JSON.stringify({
+              url: webhookUrl,
+              enabled: true,
+              events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+              webhook_by_events: false,
+              webhook_base64: false,
+            }),
+          });
+          const whText = await whRes.text();
+          console.log(`[WHATSAPP_QR] SET_WEBHOOK status=${whRes.status} body=${whText.substring(0, 200)}`);
+        } catch (whErr) {
+          console.error(`[WHATSAPP_QR] SET_WEBHOOK_FAILED`, whErr);
+        }
+      }
     } catch (e) {
       console.error(`[WHATSAPP_QR] CREATE_FAILED error=${e.message}`);
     }
@@ -208,7 +242,18 @@ Deno.serve(async (req) => {
             const recreateRes = await api(`${baseUrl}/instance/create`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-              body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
+              body: JSON.stringify({
+                instanceName,
+                qrcode: true,
+                integration: "WHATSAPP-BAILEYS",
+                webhook: {
+                  url: webhookUrl,
+                  enabled: true,
+                  events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+                  webhook_by_events: false,
+                  webhook_base64: false,
+                },
+              }),
             });
             const recreateText = await recreateRes.text();
             console.log(`[WHATSAPP_QR] RECREATE status=${recreateRes.status} body=${recreateText.substring(0, 300)}`);
