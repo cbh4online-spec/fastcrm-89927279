@@ -518,7 +518,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: MessageSquare, 
       color: "text-purple-500 bg-purple-500/10", 
       available: true,
-      configured: isGHLConfigured,
+      configured: hasTwilioSMS || isGHLConfigured,
     },
     { 
       id: "webchat", 
