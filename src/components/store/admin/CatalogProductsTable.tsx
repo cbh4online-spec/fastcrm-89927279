@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -12,6 +13,55 @@ interface CatalogProductsTableProps {
   onToggleFeatured: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
   onEdit: (productId: string) => void;
+}
+
+function ProductIndicators({ product }: { product: ProductStoreData }) {
+  const imgCount = product.images?.length || 0;
+  const varCount = product.variants_count || 0;
+  const stock = product.stock_status;
+
+  const stockConfig: Record<string, { color: string; label: string }> = {
+    available: { color: "text-green-600", label: "Em stock" },
+    limited: { color: "text-amber-500", label: "Stock limitado" },
+    out_of_stock: { color: "text-destructive", label: "Sem stock" },
+    backorder: { color: "text-blue-500", label: "Encomenda" },
+  };
+  const sc = stock ? stockConfig[stock] : null;
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="flex items-center gap-2 mt-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-0.5 ${imgCount > 0 ? "text-green-600" : "text-muted-foreground/40"}`}>
+              <ImageIcon className="h-3.5 w-3.5" />
+              {imgCount > 0 && <span className="text-[10px]">{imgCount}</span>}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">{imgCount > 0 ? `${imgCount} imagen${imgCount > 1 ? "s" : ""}` : "Sem imagens"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-0.5 ${varCount > 0 ? "text-blue-500" : "text-muted-foreground/40"}`}>
+              <Layers className="h-3.5 w-3.5" />
+              {varCount > 0 && <span className="text-[10px]">{varCount}</span>}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">{varCount > 0 ? `${varCount} variante${varCount > 1 ? "s" : ""}` : "Sem variantes"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center ${sc ? sc.color : "text-muted-foreground/40"}`}>
+              <PackageCheck className="h-3.5 w-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">{sc ? sc.label : "Stock não configurado"}</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
 }
 
 export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onMoveOrder, onEdit }: CatalogProductsTableProps) {
@@ -56,6 +106,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                         <button onClick={() => onEdit(product.id)} className="font-medium text-sm hover:underline text-left cursor-pointer">{product.name}</button>
                       </div>
                       {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
+                      <ProductIndicators product={product} />
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{product.category || "—"}</TableCell>

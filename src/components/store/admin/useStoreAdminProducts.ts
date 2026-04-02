@@ -28,6 +28,7 @@ export interface ProductStoreData {
   product_condition: string | null;
   stock_status: string | null;
   stock_quantity: number | null;
+  variants_count: number;
 }
 
 export interface PriceSuggestion {
@@ -55,7 +56,7 @@ export function useStoreAdminProducts(search: string) {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, product_variants(count)")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -67,7 +68,11 @@ export function useStoreAdminProducts(search: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProductStoreData[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        variants_count: item.product_variants?.[0]?.count || 0,
+        product_variants: undefined,
+      })) as ProductStoreData[];
     },
     enabled: !!currentWorkspace?.id,
   });
