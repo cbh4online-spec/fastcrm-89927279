@@ -331,6 +331,9 @@ export function ComposeEmailDialog({
   const [meetingUrl, setMeetingUrl] = useState("");
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>("");
 
+  // Templates panel (controlled to avoid nested Dialog/Sheet conflict)
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
   // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
