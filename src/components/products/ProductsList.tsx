@@ -49,6 +49,7 @@ import {
   Eye,
   PanelLeft,
   PanelLeftClose,
+  Store,
   RefreshCw,
   Download,
   ChevronLeft,
