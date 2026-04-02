@@ -93,25 +93,16 @@ export function ChannelsSettings({ searchQuery = "", matchedSections }: Channels
           icon={<MessageSquare className="h-5 w-5" />}
         >
           <div className="space-y-4">
+            <TwilioConnectionCard />
+            
             {isGHLConfigured && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30">
                 <Zap className="h-4 w-4 text-orange-500" />
                 <p className="text-sm text-muted-foreground">
-                  SMS está conectado via <span className="font-medium text-foreground">GoHighLevel</span>. As mensagens são sincronizadas automaticamente.
+                  SMS também disponível via <span className="font-medium text-foreground">GoHighLevel</span>.
                 </p>
               </div>
             )}
-            <SettingsItem
-              title="Número de Telefone"
-              description={isGHLConfigured ? "Configurado via GoHighLevel" : "Configurar número para envio de SMS"}
-              action={
-                isGHLConfigured ? (
-                  <Badge className="bg-orange-500 text-white">Via GHL</Badge>
-                ) : (
-                  <Button variant="outline">Configurar</Button>
-                )
-              }
-            />
             <SettingsItem
               title="Templates SMS"
               description="Gerir templates de mensagens de texto"

@@ -668,6 +668,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         open={showInstagramDialog}
         onOpenChange={setShowInstagramDialog}
       />
+      <QuickTwilioSMSDialog
+        open={showTwilioSMS}
+        onOpenChange={setShowTwilioSMS}
+      />
     </>
   );
 }
