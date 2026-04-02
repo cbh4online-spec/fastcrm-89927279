@@ -135,6 +135,9 @@ const App = () => (
                 <Route path="/club/:slug/topic/:topicId" element={<AuthProvider><PublicCommunityTopicPage /></AuthProvider>} />
                 <Route path="/club/:slug/auth" element={<AuthProvider><CommunityAuthPage /></AuthProvider>} />
                 
+                {/* Partner Center B2B - ISOLATED */}
+                <Route path="/partner/*" element={<PartnerRoutes />} />
+
                 {/* Client Portal - ISOLATED from CRM providers */}
                 <Route path="/client/*" element={<ClientPortalRoutes />} />
                 
