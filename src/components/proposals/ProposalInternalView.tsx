@@ -86,6 +86,8 @@ export function ProposalInternalView({
   onQuantityChange,
   onPriceChange,
   onCostsRefreshed,
+  onAccept,
+  onRequestChange,
 }: ProposalInternalViewProps) {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
