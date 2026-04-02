@@ -2,29 +2,27 @@
 
 ## Diagnóstico
 
-O ficheiro `claude-code-prompt-whatsapp-edge-functions.md` propõe **exactamente a mesma reimplementação** já rejeitada anteriormente:
-- Nova tabela `whatsapp_devices` (desnecessária — `whatsapp_qr_connections` já tem todos os campos)
-- Novas edge functions com nomes diferentes (desnecessárias — as existentes já funcionam)
+O ficheiro `lovable-prompt-whatsapp-ui.md` propõe **a mesma reimplementação** já rejeitada duas vezes:
 
-**Estado actual do sistema (já implementado):**
+- Nova tabela `whatsapp_devices` → **desnecessária** — `whatsapp_qr_connections` já tem `status`, `sync_health`, `recovery_state`, `last_error`, `sync_issue_reason`
+- Novo componente `WhatsAppDeviceCard` → **já existe** — `WhatsAppConnectionCard` já mostra badges de estado, alertas de recuperação e botões de reconexão
+- Novo hook `useWhatsAppDevices` → **já existe** — `useWhatsAppQRConnection` com polling adaptativo
+- Novas edge functions → **já existem e foram corrigidas** — `whatsapp-qr-status`, `whatsapp-evolution-webhook`
 
-| Funcionalidade | Estado |
+## Estado actual (já implementado)
+
+| Requisito do ficheiro | Estado no sistema |
 |---|---|
-| `mapEvolutionState` expandida (LOGOUT, NOT_CONNECTION, PAIRING) | ✅ Implementado |
-| `isLogoutState()` para detecção de logout | ✅ Implementado |
-| Consulta a `/instance/fetchInstances` para `connectionStatus` | ✅ Implementado |
-| Captura de `disconnectionObject` em `last_error` | ✅ Implementado |
-| Webhook trata LOGOUT → `recovery_state: repair_required` | ✅ Implementado |
-| `inferSyncHealth` corrigida (freshest activity, 24h threshold) | ✅ Implementado |
-| UI com alerta vermelho para `repair_required` | ✅ Implementado |
+| Mostrar estado real do dispositivo | ✅ `WhatsAppConnectionCard` com 10 estados mapeados |
+| Alerta vermelho quando precisa reconexão | ✅ `repair_required` → banner vermelho com `last_error` |
+| Botão "Reconectar" | ✅ `useReconnectWhatsAppQR` com feedback toast |
+| Auto-poll a cada 30s | ✅ Polling a 5s em estados transitórios |
+| Detecção de LOGOUT/NOT_CONNECTION | ✅ `mapEvolutionState` expandida + `fetchInstances` |
+| Captura de erros (`disconnectionObject`) | ✅ Guardado em `last_error` |
 
 ## Recomendação
 
-**Não implementar.** Todas as correcções descritas no ficheiro já estão activas no código. Criar uma tabela `whatsapp_devices` separada seria duplicação de dados e obrigaria a refactoring extenso do frontend e hooks existentes sem benefício funcional.
+**Não implementar.** Seria a terceira tentativa de substituir código funcional por uma arquitectura alternativa com tabela e componentes duplicados.
 
-O próximo passo útil seria **testar o fluxo completo** para validar que tudo funciona em produção:
-1. Desconectar o dispositivo WhatsApp (remover sessão no telemóvel)
-2. Verificar que o FastCRM detecta o LOGOUT em < 30s
-3. Confirmar que o alerta vermelho aparece com botão "Reconectar"
-4. Reconectar e verificar transição para "Conectado / Sync Ativo"
+O sistema está completo. O próximo passo útil é **testar o fluxo em produção** — desconectar o dispositivo no telemóvel e verificar que o FastCRM detecta a mudança e apresenta o alerta correcto.
 
