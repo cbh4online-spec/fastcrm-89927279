@@ -57,6 +57,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                         <button onClick={() => onEdit(product.id)} className="font-medium text-sm hover:underline text-left cursor-pointer">{product.name}</button>
                       </div>
                       {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
+                      <ProductIndicators product={product} />
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{product.category || "—"}</TableCell>
