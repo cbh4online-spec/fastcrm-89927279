@@ -248,6 +248,111 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "suggest_metrics_and_targets") {
+      const { data: allBlocks } = await supabase
+        .from("context_blocks")
+        .select("*, context_fields(*)")
+        .eq("workspace_id", workspaceId);
+
+      const contextSummary = (allBlocks || []).map((b: any) => {
+        const filledFields = (b.context_fields || [])
+          .filter((f: any) => f.field_value !== null && f.field_value !== "")
+          .map((f: any) => `  ${f.field_key}: ${JSON.stringify(f.field_value)}`);
+        return `[${b.block_type}] ${b.title}\n${filledFields.join("\n")}${b.rich_text ? `\n  Resumo: ${b.rich_text}` : ""}`;
+      }).join("\n\n");
+
+      // Also get existing metrics to avoid duplicates
+      const { data: existingMetrics } = await supabase
+        .from("pipeline_metrics")
+        .select("name, metric_type")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+
+      const existingNames = (existingMetrics || []).map((m: any) => m.name).join(", ");
+
+      const _startTime = Date.now();
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `És um consultor de vendas e performance. Com base no contexto estratégico do negócio, sugere métricas de pipeline e metas relevantes. Responde em Português de Portugal. Sê prático e específico. As fontes de dados disponíveis são: leads, opportunities, contacts, companies, tasks, messages, kernel_events, activity_logs.`,
+            },
+            {
+              role: "user",
+              content: `CONTEXTO ESTRATÉGICO:\n${contextSummary || "Sem contexto definido — sugere métricas genéricas de CRM."}\n\nMÉTRICAS JÁ EXISTENTES (evitar duplicados):\n${existingNames || "Nenhuma"}\n\nSugere 4-6 métricas novas com metas, baseadas no contexto do negócio.`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "suggest_metrics",
+                description: "Return metric and target suggestions",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    suggestions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          description: { type: "string" },
+                          metric_type: { type: "string", enum: ["volume", "value", "conversion", "time", "quality", "custom"] },
+                          formula: { type: "string", enum: ["count", "sum", "avg", "percentage", "duration", "event_count"] },
+                          source_table: { type: "string", enum: ["leads", "opportunities", "contacts", "companies", "tasks", "messages", "kernel_events", "activity_logs"] },
+                          source_field: { type: "string", description: "Field name for sum/avg formulas, null for count" },
+                          unit: { type: "string" },
+                          target_value: { type: "number", description: "Suggested monthly target value" },
+                          target_period: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "annual"] },
+                          reasoning: { type: "string", description: "Why this metric matters for this business" },
+                        },
+                        required: ["name", "description", "metric_type", "formula", "source_table", "unit", "reasoning"],
+                      },
+                    },
+                  },
+                  required: ["suggestions"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "suggest_metrics" } },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error("AI error:", aiResponse.status, errText);
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit — tente novamente em breve" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (aiResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "Créditos IA esgotados" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("AI gateway error");
+      }
+
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      const suggestions = toolCall ? JSON.parse(toolCall.function.arguments).suggestions : [];
+
+      return new Response(JSON.stringify({ suggestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
