@@ -221,6 +221,7 @@ export function useConvertProposalToOrderNote() {
     onSuccess: (orderNote) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["converted-proposal-ids"] });
       toast.success(`Nota de Encomenda #${orderNote.order_number} criada com sucesso`);
     },
     onError: (error) => {
