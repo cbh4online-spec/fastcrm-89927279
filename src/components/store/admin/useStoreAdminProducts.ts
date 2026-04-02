@@ -68,7 +68,11 @@ export function useStoreAdminProducts(search: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProductStoreData[];
+      return (data || []).map((item: any) => ({
+        ...item,
+        variants_count: item.product_variants?.[0]?.count || 0,
+        product_variants: undefined,
+      })) as ProductStoreData[];
     },
     enabled: !!currentWorkspace?.id,
   });
