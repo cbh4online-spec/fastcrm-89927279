@@ -80,6 +80,8 @@ interface InboxTemplatePanelProps {
   opportunityData?: OpportunityData;
   onApply: (content: string, subject?: string) => void;
   trigger?: React.ReactNode;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 const channelConfig: Record<string, { icon: React.ElementType; label: string; templateType: TemplateType }> = {
