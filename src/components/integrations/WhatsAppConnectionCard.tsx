@@ -72,6 +72,7 @@ export function WhatsAppConnectionCard() {
   const isRecoveryPending = syncMutation.isPending || reconnectMutation.isPending;
   const needsRecovery = isConnected && syncHealth !== "active";
   const isRepairRequired = recoveryState === "repair_required";
+  const isDisconnectedRepair = status === "disconnected" && isRepairRequired;
 
   if (isLoading) {
     return (

@@ -54,6 +54,15 @@ Deno.serve(async (req) => {
       const update: Record<string, unknown> = { updated_at: now, last_health_check_at: now, last_seen_at: now };
       let mappedStatus: string;
 
+      // Extract error / disconnection info
+      const disconnectionObj = body?.data?.disconnectionObject || body?.data?.lastDisconnect;
+      let errorMessage: string | null = null;
+      if (disconnectionObj) {
+        errorMessage = disconnectionObj?.message || disconnectionObj?.reason || (typeof disconnectionObj === 'object' ? JSON.stringify(disconnectionObj) : String(disconnectionObj));
+      }
+
+      const upperState = rawState?.toUpperCase?.() || "";
+
       if (rawState === "open" || rawState === "connected") {
         mappedStatus = "connected";
         update.connected_at = now;
@@ -68,11 +77,21 @@ Deno.serve(async (req) => {
         let phone = body?.data?.owner || body?.data?.wuid;
         if (phone?.includes("@")) phone = phone.split("@")[0];
         if (phone) update.phone_number = phone;
+      } else if (upperState === "LOGOUT" || upperState === "NOT_CONNECTION") {
+        // Device logged out — requires new QR pairing
+        mappedStatus = "disconnected";
+        update.disconnected_at = now;
+        update.sync_health = "failed";
+        update.recovery_state = "repair_required";
+        update.sync_issue_reason = errorMessage || "Dispositivo desconectado (LOGOUT) — necessário novo emparelhamento";
+        update.last_error = errorMessage || "Sessão encerrada no dispositivo";
+        console.log(`[WA_WEBHOOK] LOGOUT_DETECTED ws=${workspaceId} error=${errorMessage}`);
       } else if (rawState === "close" || rawState === "disconnected") {
         mappedStatus = "disconnected";
         update.disconnected_at = now;
         update.sync_health = "suspended";
-        update.sync_issue_reason = "Conexão encerrada";
+        update.sync_issue_reason = errorMessage || "Conexão encerrada";
+        if (errorMessage) update.last_error = errorMessage;
       } else if (rawState === "connecting") {
         mappedStatus = "reconnecting";
       } else {
