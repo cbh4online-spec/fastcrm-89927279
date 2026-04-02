@@ -1,40 +1,43 @@
 
 
-# Fix: Pesquisa de empresas no selector de propostas
+# Auto-associar cliente e contacto da oportunidade à proposta
 
 ## Diagnóstico
 
-O `ClientSearchSelect` usa `cmdk` v1.1.1 dentro de um `Popover`. Com `shouldFilter={false}`, o `CommandInput` pode não receber foco correctamente quando o popover abre, impedindo o utilizador de digitar para pesquisar.
+Quando uma proposta é criada a partir de uma oportunidade do pipeline, os campos `contact_id` e `company_id` da proposta ficam `NULL`, apesar de a oportunidade já ter esses dados preenchidos. Confirmado na BD: a oportunidade `fdf737cc` tem `contact_id` e `company_id`, mas a proposta `518035c3` tem ambos a `NULL`.
 
-Problema adicional: em cmdk v1.x, o `CommandInput` dentro de Popover pode perder eventos de teclado se o foco não for explicitamente dado ao input.
+**Causa raiz:** O `handleSave` em `CreateProposalDialog.tsx` não copia `contact_id` nem `company_id` da oportunidade para o insert da proposta. O `useCreateProposal` também não aceita esses campos no `CreateProposalInput`.
 
 ## Solução
 
-No `ClientSearchSelect.tsx`:
+### 1. Expandir `CreateProposalInput` (`src/types/proposal.ts`)
 
-1. **Auto-focus no input** — Adicionar ref ao `CommandInput` e fazer `focus()` quando o popover abre (via `useEffect` no estado `open`)
-2. **Garantir que `onOpenAutoFocus` do PopoverContent não bloqueia** — Prevenir o comportamento default do Popover que pode roubar foco do input
+Adicionar `contact_id` e `company_id` opcionais ao tipo `CreateProposalInput`.
 
-## Ficheiro alterado
+### 2. Passar contact/company no `useCreateProposal` (`src/hooks/useProposals.ts`)
+
+No `insertData`, incluir `contact_id` e `company_id` vindos do input.
+
+### 3. Expandir `useOpportunity` query (`src/hooks/useOpportunities.ts`)
+
+Incluir `contact_id` e `company_id` no select da oportunidade (actualmente só traz `lead`).
+
+### 4. Auto-preencher no `CreateProposalDialog` (`src/components/proposals/CreateProposalDialog.tsx`)
+
+No `handleSave`, ler `selectedOpportunity.contact_id` e `selectedOpportunity.company_id` e passá-los ao `createProposal.mutateAsync`.
+
+## Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/proposals/ClientSearchSelect.tsx` | Adicionar `useRef` + `useEffect` para auto-focus no `CommandInput` quando popover abre; adicionar `onOpenAutoFocus={(e) => e.preventDefault()}` no `PopoverContent` para evitar conflito de foco |
+| `src/types/proposal.ts` | Adicionar `contact_id?` e `company_id?` a `CreateProposalInput` |
+| `src/hooks/useProposals.ts` | Incluir `contact_id` e `company_id` no `insertData` |
+| `src/hooks/useOpportunities.ts` | Adicionar `contact_id, company_id` ao select de `useOpportunity` |
+| `src/components/proposals/CreateProposalDialog.tsx` | Passar `contact_id` e `company_id` da oportunidade no `handleSave` |
 
-## Alteração concreta
+## Critérios de aceitação
 
-```tsx
-// Adicionar ref
-const inputRef = useRef<HTMLInputElement>(null);
-
-// Auto-focus quando abre
-useEffect(() => {
-  if (open) {
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }
-}, [open]);
-
-// No PopoverContent: onOpenAutoFocus={(e) => e.preventDefault()}
-// No CommandInput: ref={inputRef}
-```
+- Proposta criada a partir de oportunidade herda automaticamente o contacto e empresa da oportunidade
+- Campos `contact_id` e `company_id` preenchidos na BD após criação
+- Detalhe da proposta mostra o cliente e contacto sem intervenção manual
 
