@@ -723,7 +723,11 @@ export default function PipelineMetricsPage() {
 
         {/* ===== ALERTS TAB ===== */}
         <TabsContent value="alerts" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={handleAIAlertSuggest} disabled={aiAlertLoading || metrics.length === 0}>
+              {aiAlertLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sugerir com IA
+            </Button>
             <Dialog open={alertOpen} onOpenChange={(open) => { setAlertOpen(open); if (!open) setEditingAlert(null); }}>
               <DialogTrigger asChild>
                 <Button className="gap-1.5" disabled={metrics.length === 0}><Plus className="h-4 w-4" />Novo Alerta</Button>
