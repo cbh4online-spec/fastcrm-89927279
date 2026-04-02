@@ -140,6 +140,48 @@ Deno.serve(async (req) => {
           }).eq("workspace_id", workspaceId);
           return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
         }
+
+        // If stuck in "connecting", restart instance and retry connect once
+        if (fallbackState === "connecting") {
+          console.log(`[WHATSAPP_QR] RESTART instance=${instanceName} (stuck in connecting)`);
+          try {
+            await fetch(`${baseUrl}/instance/restart/${instanceName}`, {
+              method: "PUT",
+              headers: { apikey: EVOLUTION_API_KEY },
+            });
+          } catch (restartErr) {
+            console.error(`[WHATSAPP_QR] RESTART_FAILED`, restartErr);
+          }
+
+          // Wait 2s for restart
+          await new Promise((r) => setTimeout(r, 2000));
+
+          // Retry connect
+          const retryRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+            method: "GET",
+            headers: { apikey: EVOLUTION_API_KEY },
+          });
+          const retryData = await retryRes.json();
+          console.log(`[WHATSAPP_QR] RETRY_CONNECT status=${retryRes.status} body=${JSON.stringify(retryData).substring(0, 500)}`);
+
+          const retryQR = retryData?.base64 || retryData?.qrcode?.base64 || retryData?.code || null;
+          if (retryQR) {
+            console.log(`[WHATSAPP_QR] QR_GENERATED_AFTER_RESTART instance=${instanceName}`);
+            await adminClient.from("whatsapp_qr_connections").update({
+              status: "qr_pending", qr_code: retryQR, qr_updated_at: new Date().toISOString(), last_error: null,
+            }).eq("workspace_id", workspaceId);
+            return jsonRes({ qrcode: retryQR, instanceName, status: "qr_pending" });
+          }
+
+          // Check if now connected after restart
+          const retryState = retryData?.instance?.state || retryData?.state || retryData?.status;
+          if (retryState === "open" || retryState === "connected") {
+            await adminClient.from("whatsapp_qr_connections").update({
+              status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
+            }).eq("workspace_id", workspaceId);
+            return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
+          }
+        }
       } catch (fallbackErr) {
         console.error(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK_ERROR`, fallbackErr);
       }
