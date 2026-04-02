@@ -2,32 +2,45 @@
 
 ## Diagnóstico
 
-O ficheiro enviado (`LOVABLE-PROMPT-WHATSAPP-FIX_1.md`) propõe uma **reimplementação completa** com:
-- Tabela `integrations` em vez de `whatsapp_qr_connections` (que já existe e funciona)
-- Funções novas (`whatsapp-evolution-init`, `whatsapp-webhook`, `whatsapp-evolution-sync`) em vez das existentes (`whatsapp-qr-connect`, `whatsapp-evolution-webhook`, `whatsapp-qr-sync`)
-- Hook novo (`useWhatsAppIntegration`) em vez do existente (`useWhatsAppConnection`)
+O problema central é claro: a Evolution API reporta dispositivos como `LOGOUT` / `NOT_CONNECTION` com erros repetidos (`error in sending keep alive`, `Failed to check/upload pre-keys`), mas o FastCRM continua a mostrar "Conectado ✓ Sync Ativo".
 
-**O sistema actual já está funcional:**
-- `whatsapp-qr-connect` — cria instância com webhook configurado ✅
-- `whatsapp-evolution-webhook` — recebe eventos da Evolution API ✅
-- `whatsapp-evolution-send` — envia mensagens ✅
-- `whatsapp-qr-sync` — sincronização manual ✅
-- `whatsapp-qr-reconnect` — reconexão com recuperação ✅
-- `whatsapp-qr-status` — polling de estado ✅
-- Webhook body corrigido (nested `webhook` key) — retorna 201 ✅
-- `inferSyncHealth` corrigida — considera `connected_at`/`last_seen_at` ✅
+**Causa raiz:** A função `mapEvolutionState` no `whatsapp-qr-status` só reconhece 3 estados (`open`, `close`, `connecting`). Tudo o resto é mapeado como genérico `"error"`, sem capturar informação do erro. Além disso, o endpoint `/instance/connectionState/` pode não retornar o estado `LOGOUT` — é necessário também consultar `/instance/fetchInstances` que retorna `connectionStatus: "NOT_CONNECTION"`.
 
-Acabei de re-deployar `whatsapp-qr-status` e `whatsapp-qr-sync` com sucesso.
+**Decisão arquitectural:** Não é necessário criar uma tabela `whatsapp_devices` separada. A tabela `whatsapp_qr_connections` já tem todos os campos necessários (`status`, `sync_health`, `recovery_state`, `last_error`, `sync_issue_reason`). A UI existente já mostra alertas de recuperação e botão de reconexão. Basta melhorar a detecção no backend.
 
-## Recomendação
+## Plano
 
-**Não implementar o ficheiro enviado.** Seria uma regressão — substituiria código funcional por uma arquitectura diferente que usa tabelas e funções que não existem (`integrations`, `integration_logs`), obrigando a migrações de base de dados e refactoring do frontend.
+### 1. Melhorar detecção de estado no `whatsapp-qr-status/index.ts`
 
-O único passo pendente é **testar o fluxo completo**:
-1. Ir a Settings → Integrations → WhatsApp
-2. Clicar "Conectar"
-3. Fazer scan do QR code
-4. Verificar que o estado muda para "active" (via webhook)
+- Expandir `mapEvolutionState` para reconhecer `LOGOUT`, `NOT_CONNECTION`, `PAIRING`
+- Após obter `connectionState`, consultar também `/instance/fetchInstances` para obter `connectionStatus` (que reporta `NOT_CONNECTION` quando o dispositivo está em logout)
+- Capturar erros da resposta da API (`instance.error`, `instance.disconnectionObject`) e guardá-los em `last_error`
+- Quando `connectionStatus === "NOT_CONNECTION"` ou estado é `LOGOUT`: mapear para `disconnected`, definir `sync_health: "failed"`, `recovery_state: "repair_required"`, e `last_error` com a mensagem do erro
 
-Se houver algum problema específico que persista após estas correcções, posso diagnosticar com base nos logs reais.
+### 2. Melhorar detecção no `whatsapp-evolution-webhook/index.ts`
+
+- No handler de `connection.update`, tratar estados `LOGOUT`, `NOT_CONNECTION` como `disconnected` com `recovery_state: "repair_required"`
+- Capturar `body.data.disconnectionObject` ou `body.data.lastDisconnect` e guardar em `last_error`
+
+### 3. Melhorar UI — alerta de reconexão mais visível
+
+- No `WhatsAppConnectionCard.tsx` e `WhatsAppConfigPanel.tsx`: quando `status === "disconnected"` E `recovery_state === "repair_required"`, mostrar alerta vermelho proeminente com o `last_error` e botão "Reconectar Dispositivo"
+- Actualmente o alerta de `repair_required` só aparece quando `isConnected` — corrigir para aparecer também quando `disconnected`
+
+### Ficheiros a alterar
+
+| Ficheiro | Acção |
+|---|---|
+| `supabase/functions/whatsapp-qr-status/index.ts` | Expandir `mapEvolutionState`, consultar `fetchInstances` para `connectionStatus`, capturar erros |
+| `supabase/functions/whatsapp-evolution-webhook/index.ts` | Tratar LOGOUT/NOT_CONNECTION, capturar `disconnectionObject` |
+| `src/components/integrations/WhatsAppConnectionCard.tsx` | Mostrar alerta repair_required quando disconnected |
+| `src/components/settings/WhatsAppConfigPanel.tsx` | Idem |
+
+### Critérios de Aceitação
+
+- Dispositivo em LOGOUT na Evolution API → FastCRM mostra "Desconectado" + alerta vermelho "Reconexão necessária" com mensagem de erro
+- Botão "Reconectar Dispositivo" visível e funcional
+- Detecção em < 30 segundos (via polling) ou instantânea (via webhook)
+- Sem alterações de base de dados (usa campos existentes)
+- Sem nova tabela `whatsapp_devices` — reutiliza `whatsapp_qr_connections`
 
