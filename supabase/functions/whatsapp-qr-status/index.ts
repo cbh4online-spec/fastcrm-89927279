@@ -14,12 +14,35 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
 }
 
 function mapEvolutionState(state: string | undefined): string {
-  switch (state) {
-    case "open": return "connected";
-    case "close": return "disconnected";
-    case "connecting": return "waiting_for_scan";
-    default: return "error";
+  switch (state?.toUpperCase()) {
+    case "OPEN":
+    case "open":
+      return "connected";
+    case "CLOSE":
+    case "close":
+      return "disconnected";
+    case "CONNECTING":
+    case "connecting":
+      return "waiting_for_scan";
+    case "LOGOUT":
+    case "logout":
+      return "disconnected";
+    case "NOT_CONNECTION":
+    case "not_connection":
+      return "disconnected";
+    case "PAIRING":
+    case "pairing":
+      return "authenticating";
+    default:
+      return "error";
   }
+}
+
+/** Check if a state indicates the device has been logged out / requires new pairing */
+function isLogoutState(state: string | undefined, connectionStatus: string | undefined): boolean {
+  const s = state?.toUpperCase();
+  const cs = connectionStatus?.toUpperCase();
+  return s === "LOGOUT" || cs === "NOT_CONNECTION" || cs === "LOGOUT";
 }
 
 function inferSyncHealth(
@@ -35,17 +58,14 @@ function inferSyncHealth(
   const now = Date.now();
   const twentyFourH = 24 * 60 * 60 * 1000;
 
-  // Check message-based health first
   if (lastInboundAt) {
     const inboundAge = now - new Date(lastInboundAt).getTime();
     const thirtyMin = 30 * 60 * 1000;
     const twoHours = 2 * 60 * 60 * 1000;
     if (inboundAge < thirtyMin) return { sync_health: "active", sync_issue_reason: null };
     if (inboundAge < twoHours) return { sync_health: "delayed", sync_issue_reason: `Sem mensagens inbound há ${Math.round(inboundAge / 60000)} minutos` };
-    // Inbound is old — but if connection is recent, still active
   }
 
-  // Connection is alive — check if connected_at or last_seen_at is recent
   const freshestActivity = [connectedAt, lastSeenAt, lastOutboundAt]
     .filter(Boolean)
     .map((d) => new Date(d!).getTime())
@@ -60,25 +80,20 @@ function inferSyncHealth(
   return { sync_health: "unknown", sync_issue_reason: "Sem dados de actividade para inferir saúde de sincronização" };
 }
 
-/** Reconcile recovery_state based on sync health and existing attempts */
 function reconcileRecoveryState(
   syncHealth: string,
   currentRecoveryState: string,
   attemptCount: number,
 ): { recovery_state: string; recovery_attempt_count: number } {
-  // Healthy → reset recovery
   if (syncHealth === "active") {
     return { recovery_state: "none", recovery_attempt_count: 0 };
   }
-  // If repair already required, keep it
   if (currentRecoveryState === "repair_required") {
     return { recovery_state: "repair_required", recovery_attempt_count: attemptCount };
   }
-  // Escalate if too many attempts
   if (attemptCount >= 3 && (syncHealth === "suspended" || syncHealth === "failed" || syncHealth === "degraded")) {
     return { recovery_state: "repair_required", recovery_attempt_count: attemptCount };
   }
-  // Otherwise keep current state
   return { recovery_state: currentRecoveryState || "none", recovery_attempt_count: attemptCount };
 }
 
@@ -97,15 +112,53 @@ Deno.serve(async (req) => {
     if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) finalUrl = `https://${finalUrl}`;
     const baseUrl = new URL(finalUrl).origin;
 
+    // 1. Get connectionState
     const statusRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
       method: "GET",
       headers: { apikey: EVOLUTION_API_KEY },
     });
     const statusData = await statusRes.json();
     const evolutionState = statusData?.instance?.state;
-    const mappedStatus = mapEvolutionState(evolutionState);
 
-    console.log(`[WHATSAPP_QR] STATUS_CHECK instance=${instanceName} evolution=${evolutionState} mapped=${mappedStatus}`);
+    // 2. Also fetch instance details for connectionStatus + error info
+    let instanceConnectionStatus: string | undefined;
+    let instanceError: string | null = null;
+    let phoneNumber: string | null = null;
+    let disconnectionReason: string | null = null;
+
+    try {
+      const instancesRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+        method: "GET",
+        headers: { apikey: EVOLUTION_API_KEY },
+      });
+      const instancesData = await instancesRes.json();
+      const instance = Array.isArray(instancesData) ? instancesData[0] : instancesData;
+
+      instanceConnectionStatus = instance?.connectionStatus || instance?.instance?.connectionStatus;
+
+      // Extract phone number
+      phoneNumber = instance?.ownerJid || instance?.instance?.owner || instance?.instance?.wuid || instance?.owner || instance?.number || null;
+      if (phoneNumber?.includes("@")) phoneNumber = phoneNumber.split("@")[0];
+
+      // Extract error / disconnection info
+      const disconnectionObj = instance?.disconnectionObject || instance?.instance?.disconnectionObject;
+      if (disconnectionObj) {
+        disconnectionReason = disconnectionObj?.message || disconnectionObj?.reason || JSON.stringify(disconnectionObj);
+      }
+      if (instance?.error) {
+        instanceError = typeof instance.error === "string" ? instance.error : JSON.stringify(instance.error);
+      }
+    } catch (e) {
+      console.warn(`[WHATSAPP_QR] FETCH_INSTANCES_FAILED error=${e.message}`);
+    }
+
+    // 3. Determine final mapped status — prefer fetchInstances connectionStatus for LOGOUT detection
+    const isLogout = isLogoutState(evolutionState, instanceConnectionStatus);
+    let mappedStatus = isLogout ? "disconnected" : mapEvolutionState(evolutionState);
+
+    const errorMessage = disconnectionReason || instanceError || null;
+
+    console.log(`[WHATSAPP_QR] STATUS_CHECK instance=${instanceName} evolution=${evolutionState} connectionStatus=${instanceConnectionStatus} isLogout=${isLogout} mapped=${mappedStatus} error=${errorMessage}`);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -119,28 +172,11 @@ Deno.serve(async (req) => {
       userId = user?.id || null;
     }
 
-    // Get current record for recovery state
     const { data: existingConn } = await adminClient
       .from("whatsapp_qr_connections")
       .select("recovery_state, recovery_attempt_count")
       .eq("workspace_id", workspaceId)
       .maybeSingle();
-
-    let phoneNumber: string | null = null;
-    if (mappedStatus === "connected") {
-      try {
-        const infoRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
-          method: "GET",
-          headers: { apikey: EVOLUTION_API_KEY },
-        });
-        const infoData = await infoRes.json();
-        const instance = Array.isArray(infoData) ? infoData[0] : infoData;
-        phoneNumber = instance?.ownerJid || instance?.instance?.owner || instance?.instance?.wuid || instance?.owner || instance?.number || null;
-        if (phoneNumber?.includes("@")) phoneNumber = phoneNumber.split("@")[0];
-      } catch (e) {
-        console.warn(`[WHATSAPP_QR] FETCH_INSTANCES_FAILED error=${e.message}`);
-      }
-    }
 
     // Query message activity
     let lastInboundAt: string | null = null;
@@ -156,15 +192,31 @@ Deno.serve(async (req) => {
 
     const connectedAt = mappedStatus === "connected" ? new Date().toISOString() : null;
     const lastSeenAt = new Date().toISOString();
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, connectedAt, lastSeenAt);
     const now = new Date().toISOString();
 
-    // Reconcile recovery state
-    const { recovery_state, recovery_attempt_count } = reconcileRecoveryState(
-      sync_health,
-      existingConn?.recovery_state || "none",
-      existingConn?.recovery_attempt_count || 0,
-    );
+    // For logout/not_connection: force sync_health and recovery_state
+    let sync_health: string;
+    let sync_issue_reason: string | null;
+    let recovery_state: string;
+    let recovery_attempt_count: number;
+
+    if (isLogout) {
+      sync_health = "failed";
+      sync_issue_reason = errorMessage || "Dispositivo desconectado (LOGOUT) — necessário novo emparelhamento";
+      recovery_state = "repair_required";
+      recovery_attempt_count = existingConn?.recovery_attempt_count || 0;
+    } else {
+      const healthResult = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, connectedAt, lastSeenAt);
+      sync_health = healthResult.sync_health;
+      sync_issue_reason = healthResult.sync_issue_reason;
+      const recoveryResult = reconcileRecoveryState(
+        sync_health,
+        existingConn?.recovery_state || "none",
+        existingConn?.recovery_attempt_count || 0,
+      );
+      recovery_state = recoveryResult.recovery_state;
+      recovery_attempt_count = recoveryResult.recovery_attempt_count;
+    }
 
     console.log(`[WHATSAPP_QR] HEALTH_INFERRED connection=${mappedStatus} sync_health=${sync_health} recovery_state=${recovery_state} reason=${sync_issue_reason}`);
 
@@ -192,6 +244,7 @@ Deno.serve(async (req) => {
       updatePayload.disconnected_at = null;
     } else if (mappedStatus === "disconnected") {
       updatePayload.disconnected_at = now;
+      updatePayload.last_error = errorMessage;
     }
 
     await adminClient.from("whatsapp_qr_connections").upsert(updatePayload, { onConflict: "workspace_id" });
@@ -204,6 +257,10 @@ Deno.serve(async (req) => {
         connected_by: userId,
         updated_at: now,
       }, { onConflict: "workspace_id" });
+    } else if (isLogout) {
+      // Mark whatsapp_connections as inactive on logout
+      await adminClient.from("whatsapp_connections").update({ is_active: false, updated_at: now })
+        .eq("workspace_id", workspaceId);
     }
 
     return jsonRes({
@@ -216,6 +273,8 @@ Deno.serve(async (req) => {
       recovery_attempt_count,
       phoneNumber,
       state: evolutionState,
+      connectionStatus: instanceConnectionStatus,
+      last_error: errorMessage,
       last_health_check_at: now,
       last_inbound_message_at: lastInboundAt,
       last_outbound_message_at: lastOutboundAt,

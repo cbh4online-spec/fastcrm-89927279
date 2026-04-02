@@ -72,6 +72,7 @@ export function WhatsAppConnectionCard() {
   const isRecoveryPending = syncMutation.isPending || reconnectMutation.isPending;
   const needsRecovery = isConnected && syncHealth !== "active";
   const isRepairRequired = recoveryState === "repair_required";
+  const isDisconnectedRepair = status === "disconnected" && isRepairRequired;
 
   if (isLoading) {
     return (
@@ -84,11 +85,11 @@ export function WhatsAppConnectionCard() {
   }
 
   return (
-    <Card>
+    <Card className={isDisconnectedRepair ? "border-destructive/50" : ""}>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isConnected && syncHealth === "active" ? "bg-green-500/10" : isConnected ? "bg-amber-500/10" : "bg-muted"}`}>
-            <Phone className={`h-6 w-6 ${isConnected && syncHealth === "active" ? "text-green-600" : isConnected ? "text-amber-600" : "text-muted-foreground"}`} />
+          <div className={`p-2 rounded-lg ${isConnected && syncHealth === "active" ? "bg-green-500/10" : isConnected ? "bg-amber-500/10" : isDisconnectedRepair ? "bg-destructive/10" : "bg-muted"}`}>
+            <Phone className={`h-6 w-6 ${isConnected && syncHealth === "active" ? "text-green-600" : isConnected ? "text-amber-600" : isDisconnectedRepair ? "text-destructive" : "text-muted-foreground"}`} />
           </div>
           <div className="flex-1">
             <CardTitle className="text-lg">WhatsApp (QR Code)</CardTitle>
@@ -99,7 +100,7 @@ export function WhatsAppConnectionCard() {
               {statusCfg.icon}
               {statusCfg.label}
             </Badge>
-            {isConnected && (
+            {(isConnected || isDisconnectedRepair) && (
               <Badge variant="outline" className={syncCfg.className}>
                 {syncCfg.icon}
                 {syncCfg.label}
@@ -146,17 +147,21 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
-        {/* Repair required warning */}
+        {/* Repair required warning — shown for both connected and disconnected */}
         {isRepairRequired && (
-          <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Nova ligação necessária</p>
+          <div className="p-4 rounded-lg border-2 border-destructive/60 bg-destructive/10 text-sm text-destructive">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold">⚠️ Dispositivo desconectado — Nova ligação necessária</p>
                 <p className="mt-1 text-xs opacity-80">
-                  Após múltiplas tentativas de recuperação, a sessão não conseguiu restabelecer o sync.
-                  Desconecte e inicie uma nova ligação via QR Code.
+                  O WhatsApp reportou que a sessão foi encerrada no dispositivo. É necessário iniciar uma nova ligação via QR Code.
                 </p>
+                {qrConnection?.last_error && (
+                  <p className="mt-2 text-xs font-mono bg-destructive/10 p-2 rounded">
+                    Erro: {qrConnection.last_error}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -242,7 +247,7 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
-        {status === "disconnected" && (
+        {status === "disconnected" && !isRepairRequired && (
           <div className="text-sm text-muted-foreground space-y-2">
             <p>A sessão WhatsApp foi desconectada. Pode reconectar ou gerar um novo QR.</p>
           </div>
