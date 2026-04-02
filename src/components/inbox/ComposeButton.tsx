@@ -29,12 +29,14 @@ import { useEmailConnections } from "@/hooks/useEmailConnection";
 import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useInstagramConnection } from "@/hooks/useInstagramConnection";
+import { useTwilioConnection } from "@/hooks/useTwilioConnection";
 import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
 import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
+import { QuickTwilioSMSDialog } from "./QuickTwilioSMSDialog";
 import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
 
 interface RecipientSuggestion {
