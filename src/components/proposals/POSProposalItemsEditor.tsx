@@ -404,9 +404,15 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                             >
                               <GripVertical className="h-4 w-4" />
                             </div>
-                            <h4 className="font-medium text-sm truncate">
-                              {item.name}
-                            </h4>
+                            <Input
+                              value={item.name}
+                              onChange={(e) => {
+                                setItems(prev => prev.map((it, i) => i === index ? { ...it, name: e.target.value } : it));
+                                setHasChanges(true);
+                              }}
+                              className="h-7 text-sm font-medium flex-1 min-w-0 px-1"
+                              placeholder="Nome do item"
+                            />
                             {(hasOverride || hasDiscount) && (
                               <Badge variant="secondary" className="text-[10px] shrink-0">
                                 Editado
