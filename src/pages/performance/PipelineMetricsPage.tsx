@@ -448,7 +448,7 @@ export default function PipelineMetricsPage() {
                               <Select value={fStatus} onValueChange={setFStatus}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Todos</SelectItem>
+                                  <SelectItem value="__all__">Todos</SelectItem>
                                   {LEAD_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                                 </SelectContent>
                               </Select>
