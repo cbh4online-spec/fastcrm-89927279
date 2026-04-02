@@ -12,7 +12,7 @@ interface WhatsAppQRDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type Status = "idle" | "loading" | "qr_ready" | "waiting_for_scan" | "connected" | "error";
+type Status = "idle" | "loading" | "qr_ready" | "waiting_for_scan" | "preparing" | "connected" | "error";
 
 export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) {
   const { currentWorkspace } = useWorkspace();
@@ -31,9 +31,8 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
     setCountdown(60);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke("whatsapp-qr-connect", {
-        body: { workspaceId: currentWorkspace.id, userId: user?.id },
+        body: { workspaceId: currentWorkspace.id },
       });
       if (error) throw error;
 
@@ -47,11 +46,18 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
         return;
       }
 
-      // Handle structured error (200 with error payload — resilient pattern)
+      // Handle structured error (200 with error payload)
       if (data?.error) {
         setErrorMsg(data.error);
         setInstanceName(data.instanceName || null);
         setStatus("error");
+        return;
+      }
+
+      // Async preparation — no QR yet
+      if (data?.preparing) {
+        setInstanceName(data.instanceName);
+        setStatus("preparing");
         return;
       }
 
@@ -86,16 +92,17 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
   useEffect(() => {
     if (status !== "qr_ready" && status !== "waiting_for_scan") return;
     if (countdown <= 0) {
-      setStatus("idle"); // QR expired — show refresh
+      setStatus("idle");
       return;
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [status, countdown]);
 
-  // Poll for connection status
+  // Poll for connection status (also handles async QR recovery)
   useEffect(() => {
-    if ((status !== "qr_ready" && status !== "waiting_for_scan") || !instanceName || !currentWorkspace?.id) return;
+    const pollable = status === "qr_ready" || status === "waiting_for_scan" || status === "preparing";
+    if (!pollable || !instanceName || !currentWorkspace?.id) return;
 
     const interval = setInterval(async () => {
       try {
@@ -111,8 +118,16 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
           queryClient.invalidateQueries({ queryKey: ["whatsapp-connection", currentWorkspace.id] });
           toast.success("WhatsApp conectado via QR Code!");
           setTimeout(() => onOpenChange(false), 1500);
+        } else if (data?.qr_code && status === "preparing") {
+          // QR recovered asynchronously
+          setQrBase64(data.qr_code);
+          setStatus("qr_ready");
+          setCountdown(60);
         } else if (data?.status === "waiting_for_scan" && status !== "waiting_for_scan") {
           setStatus("waiting_for_scan");
+        } else if (data?.status === "error") {
+          setErrorMsg(data.last_error || "Erro na preparação");
+          setStatus("error");
         }
       } catch {
         // Silent retry
@@ -133,10 +148,12 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-4">
-          {status === "loading" && (
+          {(status === "loading" || status === "preparing") && (
             <div className="flex flex-col items-center gap-3 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">A gerar QR Code...</p>
+              <p className="text-sm text-muted-foreground">
+                {status === "preparing" ? "A preparar instância..." : "A gerar QR Code..."}
+              </p>
             </div>
           )}
 

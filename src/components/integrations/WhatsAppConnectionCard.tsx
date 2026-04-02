@@ -11,7 +11,7 @@ import {
   type WhatsAppSyncHealth,
   type WhatsAppRecoveryState,
 } from "@/hooks/useWhatsAppQRConnection";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { WhatsAppQRDialog } from "@/components/settings/WhatsAppQRDialog";
 
 const STATUS_CONFIG: Record<WhatsAppQRStatus, {
@@ -61,6 +61,7 @@ export function WhatsAppConnectionCard() {
   const disconnectMutation = useDisconnectWhatsAppQR();
   const reconnectMutation = useReconnectWhatsAppQR();
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const status: WhatsAppQRStatus = (qrConnection?.status as WhatsAppQRStatus) || "not_configured";
   const syncHealth: WhatsAppSyncHealth = (qrConnection?.sync_health as WhatsAppSyncHealth) || "unknown";
@@ -73,6 +74,22 @@ export function WhatsAppConnectionCard() {
   const needsRecovery = isConnected && syncHealth !== "active";
   const isRepairRequired = recoveryState === "repair_required";
   const isDisconnectedRepair = status === "disconnected" && isRepairRequired;
+
+  // Sequential: disconnect first, then open QR dialog
+  const handleNewConnection = useCallback(async () => {
+    setIsDisconnecting(true);
+    try {
+      await disconnectMutation.mutateAsync();
+      // Small delay to let the DB state settle
+      await new Promise((r) => setTimeout(r, 500));
+      setShowQRDialog(true);
+    } catch {
+      // Even on error, allow user to try QR
+      setShowQRDialog(true);
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }, [disconnectMutation]);
 
   if (isLoading) {
     return (
@@ -147,7 +164,7 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
-        {/* Repair required warning — shown for both connected and disconnected */}
+        {/* Repair required warning */}
         {isRepairRequired && (
           <div className="p-4 rounded-lg border-2 border-destructive/60 bg-destructive/10 text-sm text-destructive">
             <div className="flex items-start gap-3">
@@ -219,8 +236,19 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
+        {/* Disconnecting state */}
+        {isDisconnecting && (
+          <div className="p-4 rounded-lg bg-muted/50 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-sm font-medium">A desligar sessão anterior...</p>
+              <p className="text-xs text-muted-foreground mt-1">Aguarde antes de iniciar nova ligação</p>
+            </div>
+          </div>
+        )}
+
         {/* Transitional states */}
-        {isTransitional && (
+        {isTransitional && !isDisconnecting && (
           <div className="p-4 rounded-lg bg-muted/50 flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground shrink-0" />
             <div>
@@ -266,7 +294,7 @@ export function WhatsAppConnectionCard() {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          {!isConnected && status !== "creating_instance" && status !== "authenticating" && status !== "reconnecting" && (
+          {!isConnected && status !== "creating_instance" && status !== "authenticating" && status !== "reconnecting" && !isDisconnecting && (
             <Button onClick={() => setShowQRDialog(true)} className="gap-1.5">
               <QrCode className="h-4 w-4" />
               {status === "waiting_for_scan" || status === "qr_pending" ? "Abrir QR Code"
@@ -313,20 +341,17 @@ export function WhatsAppConnectionCard() {
             </>
           )}
 
-          {/* Repair required — clean pairing */}
+          {/* Repair required — sequential disconnect then QR */}
           {isRepairRequired && (
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => {
-                disconnectMutation.mutate();
-                setShowQRDialog(true);
-              }}
-              disabled={disconnectMutation.isPending}
+              onClick={handleNewConnection}
+              disabled={isDisconnecting || disconnectMutation.isPending}
               className="gap-1.5"
             >
-              <Unplug className="h-3.5 w-3.5" />
-              Iniciar nova ligação
+              {isDisconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unplug className="h-3.5 w-3.5" />}
+              {isDisconnecting ? "A desligar..." : "Iniciar nova ligação"}
             </Button>
           )}
 
