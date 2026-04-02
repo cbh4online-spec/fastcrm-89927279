@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { WeeklyTargetsEditor } from "@/components/weekly-dashboard/WeeklyTargetsEditor";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PremiumDashboardHeader } from "@/components/weekly-dashboard/PremiumDashboardHeader";
 import { PremiumAISection } from "@/components/weekly-dashboard/PremiumAISection";
@@ -32,7 +32,7 @@ export default function WeeklyDashboard() {
   const { openDecisions } = useKernelDecisions();
   const { needsSetup, isLoading: adaptiveLoading } = useAdaptiveDashboard();
   const [setupDismissed, setSetupDismissed] = useState(false);
-  const [targetsOpen, setTargetsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const briefMetrics = todaysBrief?.key_metrics;
 
@@ -90,7 +90,7 @@ export default function WeeklyDashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setTargetsOpen(true)}
+              onClick={() => navigate("/dashboard/performance/metrics")}
               className="gap-1.5"
             >
               <Target className="h-3.5 w-3.5" />
@@ -108,7 +108,7 @@ export default function WeeklyDashboard() {
             </Button>
           </div>
         </div>
-        <WeeklyTargetsEditor open={targetsOpen} onOpenChange={setTargetsOpen} />
+        
         <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
