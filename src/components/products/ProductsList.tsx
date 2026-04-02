@@ -248,6 +248,8 @@ export function ProductsList() {
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
   const deleteProductsBatch = useDeleteProductsBatch();
+  const queryClient = useQueryClient();
+  const [storeFilter, setStoreFilter] = useState<string>("all");
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
