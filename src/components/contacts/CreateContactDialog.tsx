@@ -298,6 +298,12 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       return;
     }
 
+    // Validate phone if provided
+    if (hasPhone && !isValidPhone(formData.phone)) {
+      toast.error("Número de telefone inválido");
+      return;
+    }
+
     // Check for blocking duplicates (email or exact name)
     const blockingDuplicates = duplicates.filter(d => d.isBlockingDuplicate);
     if (blockingDuplicates.length > 0) {
