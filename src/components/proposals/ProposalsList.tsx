@@ -747,17 +747,24 @@ export function ProposalsList() {
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
 
-                        {/* Converter em Nota de Encomenda - only for accepted proposals */}
+                        {/* Converter em Nota de Encomenda - only for accepted proposals not yet converted */}
                         {proposal.status === "accepted" && (proposal.contact_id || proposal.company_id) && (
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConvertOrderId(proposal.id);
-                            }}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Converter em Encomenda
-                          </DropdownMenuItem>
+                          convertedProposalIds?.has(proposal.id) ? (
+                            <DropdownMenuItem disabled>
+                              <ShoppingCart className="h-4 w-4 mr-2 text-muted-foreground" />
+                              Já convertida em Encomenda
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConvertOrderId(proposal.id);
+                              }}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Converter em Encomenda
+                            </DropdownMenuItem>
+                          )
                         )}
                         
                         {proposal.status === "published" && (
