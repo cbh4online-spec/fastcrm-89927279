@@ -595,7 +595,7 @@ export default function PipelineMetricsPage() {
                       <Select value={tPipelineId} onValueChange={setTPipelineId}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos</SelectItem>
+                          <SelectItem value="__all__">Todos</SelectItem>
                           {(pipelines || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
