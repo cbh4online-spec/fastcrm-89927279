@@ -31,7 +31,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Download, Upload, Info, Settings2, ChevronLeft, ChevronRight, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Archive, Briefcase } from "lucide-react";
+import { Plus, Download, Upload, Info, Settings2, ChevronLeft, ChevronRight, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Archive, Briefcase, Building2 } from "lucide-react";
+import { useSyncCompanyContacts } from "@/hooks/useSyncCompanyContacts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
@@ -150,7 +151,7 @@ export function AttioContactsTable() {
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
   const { data: workspaceTags } = useWorkspaceTags();
   const syncTags = useSyncLeadTagsToWorkspace();
-
+  const { sync: syncCompanies, isSyncing: isSyncingCompanies } = useSyncCompanyContacts();
   const availableTags = useMemo(() => {
     const fromContacts = [...new Set((contacts || []).flatMap(c => c.tags || []))];
     const fromWorkspace = (workspaceTags || []).map(t => t.name);
@@ -262,10 +263,16 @@ export function AttioContactsTable() {
           </TooltipTrigger><TooltipContent><p className="text-xs">{t("contactsTooltip")}</p></TooltipContent></Tooltip></TooltipProvider>
           {totalContacts > 0 && <span className="text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full font-medium">{totalContacts}</span>}
         </div>
-        <Button size="sm" className="gap-1.5 h-8" onClick={() => setIsCreateOpen(true)}>
-          <Plus className="h-3.5 w-3.5" />
-          {t("newContact")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => syncCompanies().then(() => refetch())} disabled={isSyncingCompanies}>
+            <Building2 className="h-3.5 w-3.5" />
+            {isSyncingCompanies ? "A sincronizar..." : "Sincronizar Empresas"}
+          </Button>
+          <Button size="sm" className="gap-1.5 h-8" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            {t("newContact")}
+          </Button>
+        </div>
       </div>
 
       {/* ── View bar ── */}
