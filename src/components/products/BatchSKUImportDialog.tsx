@@ -89,6 +89,37 @@ interface SKUResult {
   selected?: boolean;
   editedName?: string;
   editedPrice?: string;
+  suspicious?: boolean;
+}
+
+const SKU_STOP_WORDS = new Set([
+  "marca", "unidades", "capacidade", "interface", "resolução", "compatível",
+  "iluminação", "cor", "material", "peso", "dimensões", "garantia", "tipo",
+  "modelo", "descrição", "preço", "stock", "categoria", "quantidade",
+  "tamanho", "altura", "largura", "comprimento", "voltagem", "potência",
+  "frequência", "velocidade", "temperatura", "formato", "conectividade",
+  "alimentação", "certificação", "origem", "fabricante", "fornecedor",
+  "brand", "weight", "color", "size", "type", "description", "price",
+  "category", "warranty", "dimensions", "quantity", "resolution",
+  "compatible", "capacity", "units", "model", "specification",
+]);
+
+function looksLikeHtmlLabel(rawValue: string, cleanedValue: string): boolean {
+  const hadStructuralHtml = /<(td|th|li|tr|table|ul|ol|dl|dt|dd)\b/i.test(rawValue);
+  if (!hadStructuralHtml) return false;
+  const hasSkuPattern = /[\d\-_\/]/.test(cleanedValue);
+  if (hasSkuPattern) return false;
+  return true;
+}
+
+function isStopWordOrDescriptive(sku: string): boolean {
+  const lower = sku.toLowerCase().trim();
+  if (SKU_STOP_WORDS.has(lower)) return true;
+  if (/^[\d.,]+\s*[a-zA-Zµ°]{1,5}$/.test(sku)) return true; // "265 g", "12 V"
+  if (sku.split(/\s+/).length > 3) return true;
+  if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|Western Digital|Samsung|Seagate|Kingston|Crucial)/i.test(sku) &&
+      !/[\d\-_]/.test(sku)) return true;
+  return false;
 }
 
 type DialogPhase = "input" | "mapping" | "processing" | "results" | "summary";
@@ -403,17 +434,17 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const seenSkus = new Set<string>();
 
     for (const cells of allRows) {
-      let sku = cells[skuIdx]?.trim() || "";
-      // Strip HTML tags from SKU
-      sku = sku.replace(/<[^>]*>/g, "").trim();
-      // Skip if SKU looks like descriptive text (contains units, long words, etc.)
-      const looksDescriptive = /^[\d.,]+\s*[a-zA-Zµ°]{1,5}$/.test(sku) || // "265 g", "12 V"
-        sku.split(/\s+/).length > 3 || // too many words
-        /^(Impermeável|Ethernet|Iluminação|Compatible|Resolução)/i.test(sku);
-      if (looksDescriptive) sku = "";
+      const rawSku = cells[skuIdx]?.trim() || "";
+      let sku = rawSku.replace(/<[^>]*>/g, "").trim();
+      
+      const fromHtmlMarkup = looksLikeHtmlLabel(rawSku, sku);
+      if (fromHtmlMarkup && !/[\d\-_\/]/.test(sku)) sku = "";
+      if (isStopWordOrDescriptive(sku)) sku = "";
+      
       const normalizedSku = sku?.toLowerCase();
       if (!sku || sku.length < 2 || !normalizedSku || seenSkus.has(normalizedSku)) continue;
       seenSkus.add(normalizedSku);
+      const isSuspicious = rawSku !== sku && /<[^>]*>/.test(rawSku);
 
       const rawRow: Record<string, string> = {};
       allCsvHeaders.forEach((h, i) => {
@@ -466,7 +497,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       parsedItems.push({
         sku,
         status: useAi ? "pending" : "success",
-        selected: true,
+        selected: !isSuspicious,
+        suspicious: isSuspicious,
         rawRow,
         data: useAi ? undefined : (Object.keys(itemData).length > 0 ? itemData : undefined),
       });
@@ -748,11 +780,20 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       return <span className="text-xs whitespace-nowrap">{display || "—"}</span>;
     }
     switch (col.key) {
-      case "__status":
-        if (item.status === "pending") return <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pendente</Badge>;
-        if (item.status === "processing") return <Badge variant="outline" className="text-[10px] px-1.5 py-0"><Loader2 className="h-3 w-3 mr-1 animate-spin" />...</Badge>;
-        if (item.status === "success") return <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0"><CheckCircle className="h-3 w-3 mr-0.5" />OK</Badge>;
-        return <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><XCircle className="h-3 w-3 mr-0.5" />Erro</Badge>;
+      case "__status": {
+        const statusBadge = (() => {
+          if (item.status === "pending") return <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pendente</Badge>;
+          if (item.status === "processing") return <Badge variant="outline" className="text-[10px] px-1.5 py-0"><Loader2 className="h-3 w-3 mr-1 animate-spin" />...</Badge>;
+          if (item.status === "success") return <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0"><CheckCircle className="h-3 w-3 mr-0.5" />OK</Badge>;
+          return <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><XCircle className="h-3 w-3 mr-0.5" />Erro</Badge>;
+        })();
+        return (
+          <div className="flex items-center gap-1">
+            {statusBadge}
+            {item.suspicious && <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 text-[10px] px-1.5 py-0">⚠ Verificar</Badge>}
+          </div>
+        );
+      }
       case "__ai_name":
         if (!item.data) return <span className="text-xs text-muted-foreground">—</span>;
         if (phase === "results") return (
