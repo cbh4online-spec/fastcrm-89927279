@@ -162,7 +162,7 @@ export default function PipelineMetricsPage() {
   const resetMetricForm = () => {
     setMName(""); setMDesc(""); setMType("volume"); setMFormula("count");
     setMSource("leads"); setMField(""); setMUnit("");
-    setFPipelineId(""); setFStageId(""); setFStatus(""); setFSource(""); setFChannel(""); setFEventType("");
+    setFPipelineId("__all__"); setFStageId("__all__"); setFStatus("__all__"); setFSource(""); setFChannel(""); setFEventType("");
     setEditingMetric(null);
   };
 
