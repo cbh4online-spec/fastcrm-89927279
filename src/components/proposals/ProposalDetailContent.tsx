@@ -211,6 +211,47 @@ export function ProposalDetailContent({
   const handleItemToggle = (itemId: string, isEnabled: boolean) => {
     toggleItem.mutate({ itemId, isEnabled, proposalId });
   };
+
+  // Handle accept proposal
+  const handleAcceptProposal = async () => {
+    if (!proposal) return;
+    try {
+      await updateProposal.mutateAsync({
+        id: proposalId,
+        workspaceId: currentWorkspace?.id || "",
+        updates: {
+          status: "accepted",
+        },
+      });
+      toast.success("Proposta aceite com sucesso!");
+    } catch {
+      toast.error("Erro ao aceitar a proposta.");
+    }
+  };
+
+  // Handle change request
+  const handleChangeRequest = async (message: string) => {
+    if (!proposal || !currentWorkspace) return;
+    try {
+      // Log activity
+      await supabase.from("proposal_activity_logs").insert({
+        proposal_id: proposalId,
+        workspace_id: currentWorkspace.id,
+        action: "change_requested",
+        details: { message },
+      });
+      // Move back to draft
+      await updateProposal.mutateAsync({
+        id: proposalId,
+        workspaceId: currentWorkspace.id,
+        updates: { status: "draft" },
+      });
+      queryClient.invalidateQueries({ queryKey: ["proposal-activity", proposalId] });
+      toast.success("Pedido de alteração registado. A proposta voltou a rascunho.");
+    } catch {
+      toast.error("Erro ao registar o pedido de alteração.");
+    }
+  };
   
   // Handle item price change
   const handleItemPriceChange = async (itemId: string, price: number) => {
