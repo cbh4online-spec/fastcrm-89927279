@@ -1,43 +1,37 @@
 
 
-## Corrigir validação e registo de números de telefone
+## Corrigir templates que não abrem no ComposeEmailDialog
 
 ### Diagnóstico
 
-O `PhoneInput` importa `PatternFormat` e `react-number-format` mas **não os utiliza** — renderiza apenas um `<Input type="tel">` simples. Isto significa:
-- Não há formatação automática do número
-- Não há máscara de input
-- O valor é guardado tal como o utilizador escreve (pode faltar dígitos, ter espaços inconsistentes, etc.)
-- A validação visual (borda vermelha) existe mas não impede a submissão
-- Os formulários de criação de contacto e lead **não validam** o telefone antes de guardar
+O `InboxTemplatePanel` usa um componente `Sheet` (baseado em `@radix-ui/react-dialog`). O `ComposeEmailDialog` também usa `Dialog` (mesma primitiva Radix). Quando um `SheetTrigger` está aninhado dentro de um `Dialog` modal, o Radix intercepta o clique no trigger e trata-o como interacção do Dialog pai — o Sheet nunca abre.
 
-### Plano
+Isto confirma-se pelo session replay: o utilizador clica várias vezes no botão "Templates" sem efeito.
 
-**1. Refazer `PhoneInput` com formatação e validação real**
-- Usar `libphonenumber-js` `AsYouType` formatter para formatação em tempo real
-- Mostrar indicador visual de válido/inválido (borda vermelha + ícone)
-- Normalizar o valor para E.164 no `onChange` quando válido
-- Manter o prefixo `+351` como default mas aceitar qualquer código de país
-- Expor prop `onValidChange` para os formulários saberem se o número é válido
+### Solução
 
-**2. Adicionar validação nos formulários**
-- `CreateContactDialog`: validar telefone antes de submeter — se preenchido, deve ser válido
-- `CreateLeadDialog`: mesma validação no schema zod/react-hook-form
-- Bloquear submissão se telefone preenchido mas inválido
-- Mostrar mensagem de erro clara: "Número de telefone inválido"
+Remover a dependência do `SheetTrigger` dentro do contexto do `ComposeEmailDialog` e controlar o `Sheet` programaticamente:
 
-**3. Normalização ao guardar**
-- Converter para E.164 (`toE164()`) antes de persistir na base de dados
-- Garantir consistência: todos os telefones guardados em formato `+351912345678`
+**Ficheiro: `src/components/inbox/InboxTemplatePanel.tsx`**
+- Aceitar uma nova prop `externalOpen` + `onExternalOpenChange` para controlo externo do estado `open`
+- Quando `externalOpen` é fornecido, usar esse estado em vez do interno
+- Manter o `SheetTrigger` funcional para os contextos onde não há Dialog pai (Inbox)
 
-### Ficheiros alterados
-- `src/components/ui/PhoneInput.tsx` — refazer com formatação AsYouType
-- `src/components/contacts/CreateContactDialog.tsx` — adicionar validação
-- `src/components/crm/CreateLeadDialog.tsx` — adicionar validação no schema
+**Ficheiro: `src/components/email/ComposeEmailDialog.tsx`**
+- Em vez de passar o botão como `trigger` ao `InboxTemplatePanel`, gerir o estado `open` localmente
+- O botão Templates chama `setTemplatesOpen(true)` directamente (evento onClick, sem SheetTrigger)
+- Passar `externalOpen={templatesOpen}` e `onExternalOpenChange={setTemplatesOpen}` ao painel
+
+### Alterações
+
+1. **`InboxTemplatePanel.tsx`**: Adicionar props `externalOpen` / `onExternalOpenChange`. Quando fornecidas, usar essas em vez do estado interno. Renderizar `Sheet` sem `SheetTrigger` nesse modo.
+
+2. **`ComposeEmailDialog.tsx`**: Criar estado `templatesOpen`. O botão Templates usa `onClick` directo. Passar props de controlo externo ao `InboxTemplatePanel`.
+
+3. **`EmailRichComposer.tsx`**: Verificar se tem o mesmo problema (também está dentro de contextos de composição) e aplicar a mesma correcção se necessário.
 
 ### Critérios de aceitação
-- Ao digitar "912345678", o input formata automaticamente para "+351 912 345 678"
-- Números incompletos mostram borda vermelha
-- Formulários não submetem com telefone inválido (se preenchido)
-- Valor guardado na BD em formato E.164
+- Clicar em "Templates" no ComposeEmailDialog abre o painel lateral
+- Templates continuam a funcionar normalmente no Inbox (AIMessageComposer / EmailRichComposer)
+- Seleccionar e inserir template aplica conteúdo ao editor
 
