@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     console.log(`[WHATSAPP_QR] INSTANCE_READY instance=${instanceName}`);
 
     // 2. Connect and get QR
-    const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+    const connectRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
       method: "GET",
       headers: { apikey: EVOLUTION_API_KEY },
     });
