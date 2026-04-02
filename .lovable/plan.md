@@ -1,66 +1,48 @@
 
 
-# Editar Valores em Propostas — Criação e Detalhe
+# Sincronizar Empresas dos Contactos com a Tabela de Empresas
 
 ## Diagnóstico
 
-A funcionalidade de edição de preço, quantidade e desconto **já existe** em ambos os contextos, mas com lacunas:
+Existem **16 contactos** com o campo `company` preenchido (texto) mas sem `company_id` (sem ligação à tabela `companies`). Isto significa que estas empresas existem apenas como texto nos contactos mas não como registos na tabela de empresas.
 
-| Campo | Criação (ProposalCart) | Detalhe (POSProposalItemsEditor) | Detalhe (ProposalInternalView) |
-|---|---|---|---|
-| Preço | ✅ (escondido no collapsible) | ✅ inline | ✅ inline |
-| Quantidade | ✅ | ✅ | ✅ |
-| Desconto | ✅ (escondido) | ✅ (escondido) | ❌ |
-| Nome | ❌ | ❌ | ❌ |
-| Descrição | ❌ | ❌ | ❌ |
+Exemplos: "Simples e Divertido", "J.monteiro & Filhos Lda", "Authenticaravel Unipessoal LDA", "Connecthub", etc.
 
-**Problemas identificados:**
-1. **Nome e descrição não são editáveis** em nenhum dos contextos — apenas texto estático
-2. **Desconto não disponível** na vista `ProposalInternalView`
-3. **UX de edição pouco visível** — preço/desconto escondidos atrás de ícone de lápis pequeno
+Os contactos que **já têm** `company_id` estão todos corretamente ligados a empresas existentes (0 órfãos).
 
-## Plano
+## Solução
 
-### 1. Tornar nome e descrição editáveis
+Criar um script de sincronização que:
 
-**POSProposalItemsEditor** (edição após criação):
-- Converter o `<h4>` estático do nome (linha 407-409) para `<Input>` editável
-- Adicionar campo de descrição editável no painel expandido (collapsible)
-- Adicionar handler `handleUpdateName` e `handleUpdateDescription`
+1. **Busca contactos órfãos** — contactos com `company` preenchido mas `company_id = null`
+2. **Para cada empresa única**, verifica se já existe na tabela `companies` (match por nome normalizado)
+3. **Se não existe**, cria o registo na tabela `companies` com os dados disponíveis (nome, email, phone, workspace_id)
+4. **Atualiza o contacto** com o `company_id` correto
 
-**ProposalInternalView** (vista de detalhe):
-- Converter nome estático para `<Input>` inline editável
-- Adicionar campo de descrição editável abaixo do nome
-- Ligar aos callbacks `onNameChange` e `onDescriptionChange` (novos props)
+### Implementação
 
-**ProposalCart** (criação):
-- Adicionar campo de nome editável no painel expandido (collapsible)
+Adicionar um botão "Sincronizar Empresas" na página de Contactos (ou Empresas) que executa esta lógica via uma função no frontend, usando o Supabase client. A lógica será implementada num hook `useSyncCompanyContacts`.
 
-### 2. Adicionar desconto na ProposalInternalView
-
-- Adicionar coluna "Desc." na tabela de itens
-- Input numérico com percentagem, que atualiza o preço unitário
-- Novo callback `onDiscountChange`
-
-### 3. Melhorar descobribilidade da edição
-
-- No `ProposalCart`, mostrar o preço como `<Input>` inline visível (sem necessidade de expandir)
-- Manter o collapsible para desconto e opções avançadas
-
-## Ficheiros alterados
+## Ficheiros
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/components/proposals/POSProposalItemsEditor.tsx` | Nome e descrição editáveis; nome como Input inline |
-| `src/components/proposals/ProposalInternalView.tsx` | Nome editável; coluna desconto; novos props |
-| `src/components/proposals/ProposalDetailContent.tsx` | Handlers para `onNameChange`, `onDescriptionChange`, `onDiscountChange` |
-| `src/components/proposals/ProposalCart.tsx` | Nome editável no collapsible; preço visível como Input inline |
+| `src/hooks/useSyncCompanyContacts.ts` | Novo hook com lógica de deteção e criação de empresas órfãs |
+| `src/components/contacts/AttioContactsTable.tsx` | Adicionar botão "Sincronizar Empresas" no header da tabela |
+
+## Fluxo
+
+1. Utilizador clica "Sincronizar Empresas"
+2. Hook busca contactos com `company` preenchido e `company_id` nulo
+3. Para cada nome de empresa único, tenta fazer match com empresas existentes
+4. Se não encontra, cria empresa nova com `name`, `workspace_id`, `created_by`
+5. Atualiza `company_id` no contacto
+6. Mostra toast com resumo: "X empresas criadas, Y contactos vinculados"
 
 ## Critérios de aceitação
 
-- Nome e descrição editáveis em ambos os contextos (criação e detalhe)
-- Desconto editável na vista de detalhe (ProposalInternalView)
-- Preço visível e editável sem necessidade de expandir no carrinho
-- Alterações persistem na BD ao guardar
-- Funciona em mobile (viewport 393px)
+- Todos os contactos com campo `company` ficam com `company_id` preenchido
+- Empresas criadas aparecem na listagem de Empresas
+- Sem duplicação de empresas (match case-insensitive por nome)
+- Feedback visual ao utilizador com progresso/resultado
 
