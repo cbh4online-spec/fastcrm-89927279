@@ -32,7 +32,7 @@ export default function WeeklyDashboard() {
   const { openDecisions } = useKernelDecisions();
   const { needsSetup, isLoading: adaptiveLoading } = useAdaptiveDashboard();
   const [setupDismissed, setSetupDismissed] = useState(false);
-  const [targetsOpen, setTargetsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const briefMetrics = todaysBrief?.key_metrics;
 
