@@ -45,7 +45,7 @@ export function usePartnerCatalog({
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, sku, price, image_url, category, brand, description, b2b_published, b2b_visible, b2b_sellable, moq, pack_size, pvp_recommended, allow_backorder, partner_notes, stock_status")
+        .select("id, name, sku, base_price, image_url, category, brand, description, b2b_published, b2b_visible, b2b_sellable, moq, pack_size, pvp_recommended, allow_backorder, partner_notes, stock_status")
         .eq("workspace_id", workspaceId!)
         .eq("b2b_published", true)
         .order("name");
