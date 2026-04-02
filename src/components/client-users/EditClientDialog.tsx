@@ -126,6 +126,7 @@ export function EditClientDialog({
         clientId: client.id,
         updates: {
           name: data.name,
+          email: data.email || null,
           phone: data.phone || null,
           tax_id: data.tax_id || null,
           credit_limit: data.credit_limit,
