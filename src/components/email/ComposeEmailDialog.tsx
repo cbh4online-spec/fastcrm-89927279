@@ -331,6 +331,9 @@ export function ComposeEmailDialog({
   const [meetingUrl, setMeetingUrl] = useState("");
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>("");
 
+  // Templates panel (controlled to avoid nested Dialog/Sheet conflict)
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
   // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -810,24 +813,24 @@ export function ComposeEmailDialog({
           <div className="px-5 py-2 flex items-center justify-between gap-2 flex-wrap border-b">
             <div className="flex items-center gap-1 flex-wrap">
               {/* Templates */}
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1.5 h-8" onClick={() => setTemplatesOpen(true)}>
+                      <FileText className="w-4 h-4" />
+                      <span className="hidden sm:inline text-xs">Templates</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Templates de email</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <InboxTemplatePanel
                 channel="email"
                 messages={[]}
                 templateContext={effectiveTemplateContext}
                 onApply={handleTemplateApply}
-                trigger={
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" className="gap-1.5 h-8">
-                          <FileText className="w-4 h-4" />
-                          <span className="hidden sm:inline text-xs">Templates</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Templates de email</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                }
+                externalOpen={templatesOpen}
+                onExternalOpenChange={setTemplatesOpen}
               />
 
               {/* AI Assist */}

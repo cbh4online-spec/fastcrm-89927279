@@ -80,6 +80,8 @@ interface InboxTemplatePanelProps {
   opportunityData?: OpportunityData;
   onApply: (content: string, subject?: string) => void;
   trigger?: React.ReactNode;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
 const channelConfig: Record<string, { icon: React.ElementType; label: string; templateType: TemplateType }> = {
@@ -107,8 +109,13 @@ export function InboxTemplatePanel({
   opportunityData,
   onApply,
   trigger,
+  externalOpen,
+  onExternalOpenChange,
 }: InboxTemplatePanelProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = isControlled ? (onExternalOpenChange || (() => {})) : setInternalOpen;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [editedContent, setEditedContent] = useState("");
@@ -441,14 +448,16 @@ export function InboxTemplatePanel({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-            <FileText className="w-3 h-3" />
-            Templates
-          </Button>
-        )}
-      </SheetTrigger>
+      {!isControlled && (
+        <SheetTrigger asChild>
+          {trigger || (
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+              <FileText className="w-3 h-3" />
+              Templates
+            </Button>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
