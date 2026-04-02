@@ -253,6 +253,23 @@ export function ProductsList() {
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
+  // Toggle store_published
+  const toggleStorePublished = useMutation({
+    mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ store_published: published } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar visibilidade na loja");
+    },
+  });
+
   // Tag filter: get product IDs for selected tag
   const activeTagName = activeFilterId?.startsWith("tag_") ? activeFilterId.replace("tag_", "") : null;
   const { data: tagProductIds } = useQuery({
