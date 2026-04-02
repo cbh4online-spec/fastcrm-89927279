@@ -1,38 +1,46 @@
 
 
-# Plano: Juntar Landing Pages com Funis numa Página Combinada
+## Diagnóstico
 
-## Resumo
+O erro **"Edge Function returned a non-2xx status code"** vem da edge function `whatsapp-qr-connect` que retorna **HTTP 500** com a mensagem `"QR code not available. Try again."`.
 
-Criar uma nova página unificada "Conversão" (ou "Funis & Landing Pages") que combina ambos os conteúdos via tabs, com um único item na sidebar.
+**Causa raiz:** Quando a instância já existe na Evolution API (resposta 403 no create), o código chama `/instance/connect/{instanceName}`. A resposta não contém QR code (instância já está ligada ou num estado intermédio), mas o check `connectData?.instance?.state === "open"` **não corresponde** ao formato real da resposta da Evolution API. A resposta pode ter a estrutura `{ state: "open" }` directamente, ou variantes como `{ status: "open" }`, em vez de `{ instance: { state: "open" } }`.
 
-## Alterações
+O código não loga a resposta do connect, o que dificulta o debug. Sem match, cai no fallback (linha 124) e retorna 500.
 
-| Ficheiro | Acção |
-|---|---|
-| `src/pages/ConversionHub.tsx` | **Criar** — nova página com `DashboardLayout` + `Tabs` contendo tab "Funis" (renderiza `FunnelsList`) e tab "Landing Pages" (renderiza `LandingPagesList`) |
-| `src/config/routeManifest.ts` | **Editar** — substituir as 2 entradas (`funnels` + `landing-pages`) por 1 entrada `conversion-hub` com label "Funis & Landing Pages", href `/dashboard/conversion`, ícone `Workflow`, grupo `marketing` |
-| `src/routes/sales/MarketingRoutes.tsx` | **Editar** — substituir as 2 rotas por 1 rota `/dashboard/conversion` apontando para `ConversionHub`. Manter rotas antigas como redirects para `/dashboard/conversion` (compatibilidade) |
+## Plano de Implementação
 
-## Detalhe Tecnico
+### 1. Melhorar `whatsapp-qr-connect/index.ts`
 
-### Nova página `ConversionHub.tsx`
-- Tabs com valor controlado via query param `?tab=funnels|landing-pages` (default: `funnels`)
-- Tab "Funis" renderiza `<FunnelsList />` directamente
-- Tab "Landing Pages" renderiza `<LandingPagesList />` directamente
-- Header com titulo "Funis & Landing Pages" e descrição contextual
+**Alterações na secção connect (linhas 95-125):**
 
-### Route Manifest
-- Remover entradas `funnels` e `landing-pages`
-- Adicionar `conversion-hub` com `visibleInSidebar: true`
-- Manter as entradas antigas como `visibleInSidebar: false` para que links/bookmarks antigos continuem a funcionar na pesquisa
+- **Logar a resposta do connect** para visibilidade: `console.log("[WHATSAPP_QR] CONNECT_RESPONSE", JSON.stringify(connectData).substring(0, 500))`
+- **Ampliar a detecção de "já conectado"** para cobrir múltiplos formatos da Evolution API:
+  ```
+  const state = connectData?.instance?.state 
+    || connectData?.state 
+    || connectData?.status;
+  if (state === "open" || state === "connected") { ... }
+  ```
+- **Fallback: verificar estado via `/instance/connectionState/`** se o connect não retorna QR nem indica "open". Isto resolve o caso em que a instância está ligada mas o endpoint connect não indica isso directamente.
+- **Retornar 200 com erro estruturado** em vez de 500 quando o QR não está disponível (padrão resiliente do projecto), incluindo uma flag `needsReconnect: true` para que o frontend possa guiar o utilizador.
 
-### Rotas
-- Nova rota principal: `/dashboard/conversion`
-- Redirects de compatibilidade: `/dashboard/funnels` → `/dashboard/conversion?tab=funnels`, `/dashboard/landing-pages` → `/dashboard/conversion?tab=landing-pages`
+### 2. Melhorar tratamento de erro no `WhatsAppQRDialog.tsx`
 
-## Impacto
-- Apenas 3 ficheiros alterados/criados
-- Sem alterações de dados ou backend
-- Componentes `FunnelsList` e `LandingPagesList` reutilizados sem modificação
+- Quando `data?.error` existe mas HTTP é 200, mostrar a mensagem de erro ao utilizador sem o toast genérico do SDK.
+- Adicionar distinção entre "QR não disponível" (sugerir desconectar e reconectar) e erros de configuração.
+
+### Detalhes Técnicos
+
+**Ficheiros a alterar:**
+- `supabase/functions/whatsapp-qr-connect/index.ts` — logging + detecção de estado ampliada + fallback connectionState + resposta resiliente
+- `src/components/settings/WhatsAppQRDialog.tsx` — tratamento de novos cenários de resposta
+
+**Impacto:** Apenas o fluxo de conexão WhatsApp QR. Sem impacto noutros componentes.
+
+### Critérios de Aceitação
+- Abrir o diálogo QR com instância já conectada → mostra "Já conectado" sem erro
+- Abrir o diálogo QR com instância desconectada → mostra QR code normalmente
+- Logs da edge function registam a resposta do connect para debug futuro
+- Nenhum erro 500 para cenários esperados (instância já ligada)
 
