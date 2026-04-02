@@ -89,6 +89,37 @@ interface SKUResult {
   selected?: boolean;
   editedName?: string;
   editedPrice?: string;
+  suspicious?: boolean;
+}
+
+const SKU_STOP_WORDS = new Set([
+  "marca", "unidades", "capacidade", "interface", "resolução", "compatível",
+  "iluminação", "cor", "material", "peso", "dimensões", "garantia", "tipo",
+  "modelo", "descrição", "preço", "stock", "categoria", "quantidade",
+  "tamanho", "altura", "largura", "comprimento", "voltagem", "potência",
+  "frequência", "velocidade", "temperatura", "formato", "conectividade",
+  "alimentação", "certificação", "origem", "fabricante", "fornecedor",
+  "brand", "weight", "color", "size", "type", "description", "price",
+  "category", "warranty", "dimensions", "quantity", "resolution",
+  "compatible", "capacity", "units", "model", "specification",
+]);
+
+function looksLikeHtmlLabel(rawValue: string, cleanedValue: string): boolean {
+  const hadStructuralHtml = /<(td|th|li|tr|table|ul|ol|dl|dt|dd)\b/i.test(rawValue);
+  if (!hadStructuralHtml) return false;
+  const hasSkuPattern = /[\d\-_\/]/.test(cleanedValue);
+  if (hasSkuPattern) return false;
+  return true;
+}
+
+function isStopWordOrDescriptive(sku: string): boolean {
+  const lower = sku.toLowerCase().trim();
+  if (SKU_STOP_WORDS.has(lower)) return true;
+  if (/^[\d.,]+\s*[a-zA-Zµ°]{1,5}$/.test(sku)) return true; // "265 g", "12 V"
+  if (sku.split(/\s+/).length > 3) return true;
+  if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|Western Digital|Samsung|Seagate|Kingston|Crucial)/i.test(sku) &&
+      !/[\d\-_]/.test(sku)) return true;
+  return false;
 }
 
 type DialogPhase = "input" | "mapping" | "processing" | "results" | "summary";
