@@ -77,6 +77,8 @@ import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { useProposals, usePublishProposal, useDeleteProposal, useDuplicateProposal, useQuickStatusChange } from "@/hooks/useProposals";
 import { useConvertProposalToOrderNote } from "@/hooks/useConvertProposalToOrderNote";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateProposalDialog } from "./CreateProposalDialog";
 import { ProposalDetailDialog } from "./ProposalDetailDialog";
 import { ProposalTemplatesList } from "./ProposalTemplatesList";
