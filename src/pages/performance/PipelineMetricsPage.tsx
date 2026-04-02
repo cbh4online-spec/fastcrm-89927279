@@ -138,9 +138,9 @@ export default function PipelineMetricsPage() {
   const [mSource, setMSource] = useState("leads");
   const [mField, setMField] = useState("");
   const [mUnit, setMUnit] = useState("");
-  const [fPipelineId, setFPipelineId] = useState("");
-  const [fStageId, setFStageId] = useState("");
-  const [fStatus, setFStatus] = useState("");
+  const [fPipelineId, setFPipelineId] = useState("__all__");
+  const [fStageId, setFStageId] = useState("__all__");
+  const [fStatus, setFStatus] = useState("__all__");
   const [fSource, setFSource] = useState("");
   const [fChannel, setFChannel] = useState("");
   const [fEventType, setFEventType] = useState("");
