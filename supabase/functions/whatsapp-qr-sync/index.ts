@@ -147,9 +147,11 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
         body: JSON.stringify({
-          url: webhookUrl, enabled: true,
-          events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-          webhook_by_events: false, webhook_base64: false,
+          webhook: {
+            url: webhookUrl, enabled: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+            webhook_by_events: false, webhook_base64: false,
+          },
         }),
       });
       console.log(`[WA_SYNC] WEBHOOK_SET url=${webhookUrl}`);
