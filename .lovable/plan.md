@@ -1,48 +1,91 @@
 
 
-# Alertas com Ajuda da IA
+# Reorganizar Performance vs Métricas & Metas
 
 ## Diagnóstico
 
-O tab de Alertas tem apenas criação manual. O tab de Métricas já tem "Sugerir com IA" que chama a edge function `context-ai-assist` com action `suggest_metrics_and_targets`. Falta o equivalente para alertas.
+Existem **dois sistemas de metas a funcionar em paralelo**, com sobreposição confusa:
 
-## Solução
+### Sistema 1: "Metas de Performance" (`/dashboard/performance/goals`)
+- Tabela: `performance_goals`
+- Hook: `usePerformanceGoals` + `useGoalProgress`
+- Tipos fixos: revenue, leads, proposals, deals, meetings, pipeline
+- Progresso calculado em tempo real via queries diretas às tabelas fonte
+- Página dedicada com cards, status, projeções
 
-### 1. Edge Function — nova action `suggest_alerts`
+### Sistema 2: "Métricas & Metas" (`/dashboard/performance/metrics`)
+- Tabelas: `pipeline_metrics` + `pipeline_metric_targets` + `pipeline_metric_alerts`
+- Hook: `usePipelineMetrics`
+- Métricas customizáveis (fórmula, fonte, filtros avançados)
+- Metas ligadas a métricas com pipeline/stage/team scoping
+- Alertas configuráveis
+- Sugestões IA
+- Página monolítica de 905 linhas com 3 tabs
 
-Adicionar ao `context-ai-assist/index.ts` um novo bloco `if (action === "suggest_alerts")` que:
-- Busca métricas e metas existentes do workspace
-- Busca contexto estratégico dos `context_blocks`
-- Pede à IA para sugerir alertas relevantes (condição, threshold, canal, métrica associada)
-- Retorna array de sugestões com `metric_id`, `condition`, `threshold_pct`, `channel`, `reasoning`
+### Sistema 3 (legado): `performance_targets`
+- Usado pelo Weekly Dashboard para metas semanais simples (metric_type + target_value)
+- Também usado pelo `useWorkspaceMetricSettings` para configurações de conversão
 
-### 2. Frontend — botão "Sugerir com IA" no tab Alertas
+### Problemas concretos
+1. **Duas páginas de "Metas"** com dados diferentes e sem ligação entre si
+2. **Navegação confusa**: sidebar mostra "Metas" (goals) mas não mostra "Métricas & Metas" (metrics) — esta última só é acessível via botão "Gerir Métricas" no dashboard
+3. **3 tabelas de metas** (`performance_goals`, `pipeline_metric_targets`, `performance_targets`) sem relação
+4. **PipelineMetricsPage** é um ficheiro monolítico de 905 linhas misturando métricas, metas e alertas
+5. O dashboard de Performance mostra "Active Goals" do sistema 1, e "MetricWidgets" do sistema 2, lado a lado sem contexto
 
-No `PipelineMetricsPage.tsx`:
-- Adicionar botão "Sugerir com IA" ao lado do "Novo Alerta" (mesmo padrão do tab Métricas)
-- Estado para `aiAlertSuggestions`, `aiAlertLoading`, `aiAlertOpen`
-- Dialog com lista de sugestões, cada uma com botão "Adicionar" que chama `createAlert.mutate`
-- Cada sugestão mostra: métrica, condição, threshold, canal, e reasoning da IA
+## Solução proposta
 
-## Ficheiros
+Unificar a experiência numa **única página de Métricas, Metas & Alertas** e eliminar a duplicação.
 
-| Ficheiro | Alteração |
+### Decisões de produto
+- **Manter** o sistema 2 (pipeline_metrics) como sistema primário — é mais flexível e extensível
+- **Absorver** os presets do sistema 1 (revenue, leads, etc.) como métricas pré-configuradas no sistema 2
+- **Não tocar** no sistema 3 (performance_targets) — é específico do Weekly Dashboard
+- **Remover** a página `/performance/goals` como página separada
+- **Integrar** as metas na página de Métricas & Metas, tornando-a o ponto único de gestão
+
+### Alterações
+
+| Ficheiro | Acção |
 |---|---|
-| `supabase/functions/context-ai-assist/index.ts` | Nova action `suggest_alerts` com prompt contextual |
-| `src/pages/performance/PipelineMetricsPage.tsx` | Botão IA + dialog de sugestões no tab Alertas |
+| `src/pages/performance/PipelineMetricsPage.tsx` | Refactorizar: extrair cada tab para componente próprio; adicionar tab "Metas Rápidas" com os presets do sistema 1; renomear para "Centro de Métricas" |
+| `src/components/performance/metrics/MetricsTab.tsx` | Novo — extrair lógica do tab Métricas |
+| `src/components/performance/metrics/TargetsTab.tsx` | Novo — extrair lógica do tab Metas |
+| `src/components/performance/metrics/AlertsTab.tsx` | Novo — extrair lógica do tab Alertas |
+| `src/components/performance/metrics/GoalPresetsTab.tsx` | Novo — absorver os presets de PerformanceGoalsPage com cards de progresso |
+| `src/pages/performance/PerformanceDashboardPage.tsx` | Substituir secção "Active Goals" para usar dados unificados; link "Gerir" aponta para a mesma página |
+| `src/routes/PerformanceRoutes.tsx` | Remover rota `/performance/goals`; redirecionar para `/performance/metrics` |
+| `src/config/nav.v1.ts` | Substituir "Metas" por "Métricas & Metas" apontando para `/performance/metrics` |
+| `src/config/nav.v2.ts` | Idem |
+| `src/config/routeManifest.ts` | Remover entrada `perf-goals`, tornar `perf-metrics` visível no sidebar |
 
-## Fluxo
+### Estrutura final do módulo Performance no sidebar
 
-1. Utilizador clica "Sugerir com IA" no tab Alertas
-2. Frontend chama edge function com `action: "suggest_alerts"`
-3. IA analisa métricas, metas e contexto do negócio
-4. Retorna 3-5 alertas sugeridos com reasoning
-5. Utilizador revê e aceita os que quiser com um clique
+```text
+Performance
+├── Dashboard
+├── Métricas & Metas    ← unificado (4 tabs: Métricas, Metas, Alertas, Objetivos)
+├── Leaderboard
+├── Desafios
+├── Reconhecimentos
+├── TV Mode
+└── Configurações
+```
+
+### Tab "Objetivos" (ex-Goals)
+- Usa os mesmos presets (revenue, leads, proposals, etc.) do `useGoalProgress`
+- Mostra cards com progresso em tempo real, projeções e status
+- Dados continuam em `performance_goals` (não se elimina a tabela)
+- Mas a página separada desaparece — fica integrada como tab
 
 ## Critérios de aceitação
+- Página única `/performance/metrics` com 4 tabs claros
+- Ficheiro monolítico partido em 4 componentes (~200 linhas cada)
+- Navegação sem duplicação: "Métricas & Metas" no sidebar, sem "Metas" separado
+- Dashboard de Performance referencia dados unificados
+- Zero regressões no Weekly Dashboard (performance_targets intocado)
 
-- Botão "Sugerir com IA" visível no tab Alertas (desactivado se não há métricas)
-- Sugestões mostram métrica, condição, threshold e justificação
-- Aceitar sugestão cria o alerta imediatamente
-- Loading state e tratamento de erros consistentes com o padrão existente
+## Riscos
+- Links directos a `/performance/goals` precisam de redirect
+- Hooks `usePerformanceGoals` e `useGoalProgress` mantêm-se mas ficam encapsulados no tab "Objetivos"
 
