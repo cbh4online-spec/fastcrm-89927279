@@ -279,19 +279,47 @@ export function InboxTemplatePanel({
         ? { ...dynamicContext.allVariables }
         : {};
 
-      // Enrich with templateContext data as fallback for flat keys
+      // Sender / user variables
+      if (templateContext.user) {
+        const userName = templateContext.user.full_name || '';
+        if (!vars.sender_name) vars.sender_name = userName;
+        if (!vars.responsavel_nome) vars.responsavel_nome = userName;
+        if (!vars.assigned_user) vars.assigned_user = userName;
+        if (!vars.sender_email && templateContext.user.email) vars.sender_email = templateContext.user.email;
+      }
+
+      // Workspace variables
+      if (templateContext.workspace) {
+        const wsName = templateContext.workspace.name || '';
+        if (!vars.empresa_nome) vars.empresa_nome = wsName;
+        if (!vars.workspace_name) vars.workspace_name = wsName;
+      }
+
+      // Contact variables
       if (templateContext.contact) {
-        if (!vars.first_name && templateContext.contact.name) vars.first_name = templateContext.contact.name.split(' ')[0];
+        const contactName = templateContext.contact.name || '';
+        if (!vars.nome_cliente) vars.nome_cliente = contactName;
+        if (!vars.primeiro_nome) vars.primeiro_nome = contactName.split(' ')[0];
+        if (!vars.first_name) vars.first_name = contactName.split(' ')[0];
         if (!vars.company_name && templateContext.contact.company) vars.company_name = templateContext.contact.company;
+        if (!vars.city && (templateContext.contact as any).city) vars.city = (templateContext.contact as any).city;
       }
+
+      // Lead variables
       if (templateContext.lead) {
-        if (!vars.first_name && templateContext.lead.name) vars.first_name = templateContext.lead.name.split(' ')[0];
+        const leadName = templateContext.lead.name || '';
+        if (!vars.nome_cliente) vars.nome_cliente = leadName;
+        if (!vars.primeiro_nome) vars.primeiro_nome = leadName.split(' ')[0];
+        if (!vars.first_name) vars.first_name = leadName.split(' ')[0];
+        if (!vars.lead_score && (templateContext.lead as any).score) vars.lead_score = String((templateContext.lead as any).score);
+        if (!vars.pipeline_stage && (templateContext.lead as any).stage) vars.pipeline_stage = (templateContext.lead as any).stage;
+        if (!vars.potential_value && (templateContext.lead as any).value) vars.potential_value = String((templateContext.lead as any).value);
       }
+
+      // Company variables
       if (templateContext.company) {
         if (!vars.company_name && templateContext.company.name) vars.company_name = templateContext.company.name;
-      }
-      if (templateContext.user) {
-        if (!vars.sender_name && templateContext.user.full_name) vars.sender_name = templateContext.user.full_name;
+        if (!vars.industry && (templateContext.company as any).industry) vars.industry = (templateContext.company as any).industry;
       }
 
       // Always process dynamic syntax (conditionals + variables)

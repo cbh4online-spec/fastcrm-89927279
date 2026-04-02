@@ -82,6 +82,10 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
   { key: 'proxima_acao', label: 'Próxima Ação', description: 'Ação sugerida pela IA', example: 'Agendar sessão de follow-up' },
   { key: 'responsavel_nome', label: 'Nome do Responsável', description: 'Nome do responsável pela conta', example: 'Maria Costa' },
   { key: 'empresa_nome', label: 'Nome da Empresa', description: 'Nome da sua empresa', example: 'Minha Empresa' },
+  // Sender variables
+  { key: 'sender_name', label: 'Nome do Remetente', description: 'Nome completo do utilizador que envia', example: 'Maria Costa' },
+  { key: 'sender_email', label: 'Email do Remetente', description: 'Email do utilizador que envia', example: 'maria@empresa.pt' },
+  { key: 'workspace_name', label: 'Nome do Workspace', description: 'Nome do workspace/empresa', example: 'Minha Empresa' },
   // CRM extended variables
   { key: 'first_name', label: 'Primeiro Nome (CRM)', description: 'Primeiro nome do lead/contacto', example: 'João' },
   { key: 'company_name', label: 'Empresa (CRM)', description: 'Nome da empresa do lead', example: 'TechCorp' },
@@ -189,8 +193,11 @@ export function renderTemplate(
 
 // Generate preview variables
 export function getPreviewVariables(): Record<string, string> {
-  return TEMPLATE_VARIABLES.reduce((acc, v) => {
+  const vars = TEMPLATE_VARIABLES.reduce((acc, v) => {
     acc[v.key] = v.example;
     return acc;
   }, {} as Record<string, string>);
+  // Ensure aliases are also populated
+  vars.workspace_name = vars.workspace_name || vars.empresa_nome || 'Minha Empresa';
+  return vars;
 }

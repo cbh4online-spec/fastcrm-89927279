@@ -94,18 +94,49 @@ function evaluateCondition(
   return val !== undefined && val !== '' && val !== '0' && val !== 'false';
 }
 
+// Alias map: when a variable is not found, try these alternatives
+const VARIABLE_ALIASES: Record<string, string[]> = {
+  sender_name: ['responsavel_nome', 'assigned_user'],
+  responsavel_nome: ['sender_name', 'assigned_user'],
+  empresa_nome: ['workspace_name', 'company_name'],
+  workspace_name: ['empresa_nome'],
+  nome_cliente: ['primeiro_nome', 'first_name'],
+  primeiro_nome: ['first_name', 'nome_cliente'],
+  first_name: ['primeiro_nome', 'nome_cliente'],
+  company_name: ['empresa_nome'],
+  assigned_user: ['sender_name', 'responsavel_nome'],
+};
+
+function resolveVariable(
+  key: string,
+  variables: Record<string, string | number | undefined>
+): string {
+  // Direct match
+  const value = variables[key];
+  if (value !== undefined && value !== null && value !== '') return String(value);
+  // Try dot-to-underscore
+  const flatKey = key.replace(/\./g, '_');
+  if (flatKey !== key) {
+    const flatValue = variables[flatKey];
+    if (flatValue !== undefined && flatValue !== null && flatValue !== '') return String(flatValue);
+  }
+  // Try aliases
+  const aliases = VARIABLE_ALIASES[key];
+  if (aliases) {
+    for (const alias of aliases) {
+      const aliasValue = variables[alias];
+      if (aliasValue !== undefined && aliasValue !== null && aliasValue !== '') return String(aliasValue);
+    }
+  }
+  return '';
+}
+
 function replaceVariables(
   template: string,
   variables: Record<string, string | number | undefined>
 ): string {
-  return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
-    const value = variables[key];
-    if (value !== undefined && value !== null && value !== '') return String(value);
-    // Try without dots (e.g. "company_name" for "company.name")
-    const flatKey = key.replace(/\./g, '_');
-    const flatValue = variables[flatKey];
-    if (flatValue !== undefined && flatValue !== null && flatValue !== '') return String(flatValue);
-    return '';
+  return template.replace(/\{\{([\w.]+)\}\}/g, (_match, key) => {
+    return resolveVariable(key, variables);
   });
 }
 
@@ -187,6 +218,9 @@ export function getDynamicPreviewVariables(): Record<string, string> {
     responsavel_nome: 'Maria Costa',
     empresa_nome: 'Minha Empresa',
     workspace_name: 'Minha Empresa',
+    // Sender
+    sender_name: 'Maria Costa',
+    sender_email: 'maria@empresa.pt',
     // CRM extended
     first_name: 'João',
     company_name: 'TechCorp',
