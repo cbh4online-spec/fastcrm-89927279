@@ -90,7 +90,7 @@ export default function WeeklyDashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setTargetsOpen(true)}
+              onClick={() => navigate("/dashboard/performance/metrics")}
               className="gap-1.5"
             >
               <Target className="h-3.5 w-3.5" />
