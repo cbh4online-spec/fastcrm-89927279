@@ -24041,6 +24041,7 @@ export type Database = {
           device_type: string | null
           funnel_id: string
           id: string
+          lead_id: string | null
           marketing_opt_in: boolean | null
           referrer: string | null
           session_id: string | null
@@ -24061,6 +24062,7 @@ export type Database = {
           device_type?: string | null
           funnel_id: string
           id?: string
+          lead_id?: string | null
           marketing_opt_in?: boolean | null
           referrer?: string | null
           session_id?: string | null
@@ -24081,6 +24083,7 @@ export type Database = {
           device_type?: string | null
           funnel_id?: string
           id?: string
+          lead_id?: string | null
           marketing_opt_in?: boolean | null
           referrer?: string | null
           session_id?: string | null
@@ -24097,6 +24100,13 @@ export type Database = {
             columns: ["funnel_id"]
             isOneToOne: false
             referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {

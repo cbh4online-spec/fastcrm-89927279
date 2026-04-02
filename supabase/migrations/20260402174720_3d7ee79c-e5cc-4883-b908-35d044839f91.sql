@@ -1,0 +1,1 @@
+ALTER TABLE public.funnel_submissions ADD COLUMN lead_id uuid REFERENCES public.leads(id);

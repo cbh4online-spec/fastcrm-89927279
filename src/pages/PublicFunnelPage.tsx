@@ -222,8 +222,9 @@ export default function PublicFunnelPage() {
           step_type: step.step_type,
         },
       }).then((res: any) => {
-        if (res.data?.contact_id) {
-          tracking.setContactId(res.data.contact_id);
+        const capturedId = res.data?.lead_id || res.data?.contact_id;
+        if (capturedId) {
+          tracking.setContactId(capturedId);
         }
       }).catch(console.error);
 
