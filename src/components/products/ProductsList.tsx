@@ -786,6 +786,12 @@ export function ProductsList() {
     toast.success(`${selected.length} produtos arquivados`);
   };
 
+    // Apply store filter
+    if (activeFilterId === "store_yes") {
+      result = result.filter((p) => !!(p as any).store_published);
+    } else if (activeFilterId === "store_no") {
+      result = result.filter((p) => !(p as any).store_published);
+    }
 
   return (
     <div className="flex h-full -m-6">
