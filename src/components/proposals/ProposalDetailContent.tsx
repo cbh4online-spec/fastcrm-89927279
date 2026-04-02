@@ -1090,6 +1090,9 @@ export function ProposalDetailContent({
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}
                       onPriceChange={handleItemPriceChange}
+                      onNameChange={handleItemNameChange}
+                      onDescriptionChange={handleItemDescriptionChange}
+                      onDiscountChange={handleItemDiscountChange}
                       onAccept={handleAcceptProposal}
                       onRequestChange={() => setShowChangeRequestDialog(true)}
                     />
