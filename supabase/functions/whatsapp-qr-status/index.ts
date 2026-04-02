@@ -154,7 +154,9 @@ Deno.serve(async (req) => {
       console.warn(`[WHATSAPP_QR] MSG_ACTIVITY_QUERY_FAILED error=${e.message}`);
     }
 
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt);
+    const connectedAt = mappedStatus === "connected" ? new Date().toISOString() : null;
+    const lastSeenAt = new Date().toISOString();
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, connectedAt, lastSeenAt);
     const now = new Date().toISOString();
 
     // Reconcile recovery state

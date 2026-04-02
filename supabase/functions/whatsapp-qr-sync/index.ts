@@ -140,7 +140,8 @@ Deno.serve(async (req) => {
       lastOutboundAt = lo?.sent_at || null;
     } catch { /* ignore */ }
 
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt);
+    const syncConnectedAt = mappedStatus === "connected" ? now : null;
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, syncConnectedAt, now);
 
     // Reconcile recovery
     let recovery_state = existingConn?.recovery_state || "none";
