@@ -67,6 +67,9 @@ interface ProposalInternalViewProps {
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
   onPriceChange?: (itemId: string, price: number) => void;
+  onNameChange?: (itemId: string, name: string) => void;
+  onDescriptionChange?: (itemId: string, description: string) => void;
+  onDiscountChange?: (itemId: string, discount: number | undefined) => void;
   onCostsRefreshed?: () => void;
   onAccept?: () => void;
   onRequestChange?: () => void;
