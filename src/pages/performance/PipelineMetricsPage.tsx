@@ -605,7 +605,7 @@ export default function PipelineMetricsPage() {
                       <Select value={tStageId} onValueChange={setTStageId}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Todas" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todas</SelectItem>
+                          <SelectItem value="__all__">Todas</SelectItem>
                           {(stages || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
