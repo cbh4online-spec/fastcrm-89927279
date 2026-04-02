@@ -90,6 +90,15 @@ const TYPE_COLORS: Record<MetricType, string> = {
   custom: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
 };
 
+interface AIAlertSuggestion {
+  metric_id: string;
+  metric_name: string;
+  condition: string;
+  threshold_pct: number;
+  channel: AlertChannel;
+  reasoning: string;
+}
+
 interface AISuggestion {
   name: string;
   description: string;
