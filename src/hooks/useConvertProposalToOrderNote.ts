@@ -172,7 +172,8 @@ export function useConvertProposalToOrderNote() {
           submitted_at: new Date().toISOString(),
           installment_requested: false,
           installment_count: 0,
-        })
+          proposal_id: proposalId,
+        } as any)
         .select("id, order_number")
         .single();
 
