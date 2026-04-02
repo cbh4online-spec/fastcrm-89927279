@@ -363,12 +363,16 @@ export function ProposalInternalView({
                     </TableCell>
                     <TableCell className="max-w-0">
                       <div className="flex items-center gap-1">
-                        <p className={cn(
-                          "font-medium truncate",
-                          !isEnabled && "line-through text-muted-foreground"
-                        )}>
-                          {item.name}
-                        </p>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => onNameChange?.(item.id, e.target.value)}
+                          className={cn(
+                            "h-7 text-sm font-medium px-1 min-w-0",
+                            !isEnabled && "line-through text-muted-foreground opacity-50"
+                          )}
+                          disabled={!isEnabled}
+                          placeholder="Nome do item"
+                        />
                         {item.product_status === "active" && item.product_id && currentWorkspace?.slug && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -386,14 +390,16 @@ export function ProposalInternalView({
                           </Tooltip>
                         )}
                       </div>
-                      {item.description && (
-                        <p className={cn(
-                          "text-sm text-muted-foreground line-clamp-2",
-                          !isEnabled && "line-through"
-                        )} title={item.description}>
-                          {item.description}
-                        </p>
-                      )}
+                      <Input
+                        value={item.description ?? ""}
+                        onChange={(e) => onDescriptionChange?.(item.id, e.target.value)}
+                        className={cn(
+                          "h-6 text-xs text-muted-foreground px-1 mt-1",
+                          !isEnabled && "line-through opacity-50"
+                        )}
+                        disabled={!isEnabled}
+                        placeholder="Descrição"
+                      />
                     </TableCell>
                     <TableCell className="text-center">
                       <Input
