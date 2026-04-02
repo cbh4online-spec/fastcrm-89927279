@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         if (fallbackState === "connecting") {
           console.log(`[WHATSAPP_QR] RESTART instance=${instanceName} (stuck in connecting)`);
           try {
-            await fetch(`${baseUrl}/instance/restart/${instanceName}`, {
+            await api(`${baseUrl}/instance/restart/${instanceName}`, {
               method: "PUT",
               headers: { apikey: EVOLUTION_API_KEY },
             });
