@@ -329,6 +329,7 @@ export function ProposalInternalView({
                 <TableHead>Item</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
                 <TableHead className="w-28 text-right">Preço</TableHead>
+                <TableHead className="w-20 text-right">Desc.%</TableHead>
                 <TableHead className="w-24 text-right">Custo</TableHead>
                 <TableHead className="w-28 text-right">Margem</TableHead>
                 <TableHead className="w-28 text-right">Subtotal</TableHead>
