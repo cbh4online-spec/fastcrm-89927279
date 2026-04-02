@@ -56,13 +56,18 @@ export default function StoreProductsAdminPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Pesquisar produtos..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
-            <Button variant="outline" onClick={() => navigate("/mobile/products/quick-create")} className="gap-2">
-              <Package className="h-4 w-4" /> Criar Rápido
+            <Button onClick={() => setCreateOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Produto
             </Button>
-            <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
+            <Button variant="outline" onClick={() => setAiDialogOpen(true)} className="gap-2">
               <Sparkles className="h-4 w-4" /> Criar com IA
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/mobile/products/quick-create")} className="gap-2">
+              <Package className="h-4 w-4" /> Criar Rápido
+            </Button>
           </div>
+
+          <CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />
 
           <StoreQuickProductDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
 
