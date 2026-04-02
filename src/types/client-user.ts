@@ -57,6 +57,7 @@ export interface CreateClientUserData {
 
 export interface UpdateClientUserData {
   name?: string;
+  email?: string | null;
   phone?: string;
   tax_id?: string;
   billing_address?: AddressData;

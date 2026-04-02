@@ -37,6 +37,7 @@ import { Loader2 } from "lucide-react";
 
 const editClientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   tax_id: z.string().optional(),
   credit_limit: z.coerce.number().min(0).optional(),
@@ -75,6 +76,7 @@ export function EditClientDialog({
     resolver: zodResolver(editClientSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
       tax_id: "",
       credit_limit: 0,
@@ -97,6 +99,7 @@ export function EditClientDialog({
     if (client) {
       form.reset({
         name: client.name,
+        email: client.email || "",
         phone: client.phone || "",
         tax_id: client.tax_id || "",
         credit_limit: client.credit_limit || 0,
@@ -123,6 +126,7 @@ export function EditClientDialog({
         clientId: client.id,
         updates: {
           name: data.name,
+          email: data.email || null,
           phone: data.phone || null,
           tax_id: data.tax_id || null,
           credit_limit: data.credit_limit,
@@ -198,6 +202,20 @@ export function EditClientDialog({
                         <SelectItem value="pending">Pendente</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="cliente@empresa.pt" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
