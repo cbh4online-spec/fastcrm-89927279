@@ -193,8 +193,11 @@ export function renderTemplate(
 
 // Generate preview variables
 export function getPreviewVariables(): Record<string, string> {
-  return TEMPLATE_VARIABLES.reduce((acc, v) => {
+  const vars = TEMPLATE_VARIABLES.reduce((acc, v) => {
     acc[v.key] = v.example;
     return acc;
   }, {} as Record<string, string>);
+  // Ensure aliases are also populated
+  vars.workspace_name = vars.workspace_name || vars.empresa_nome || 'Minha Empresa';
+  return vars;
 }
