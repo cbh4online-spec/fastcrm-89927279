@@ -351,6 +351,16 @@ export function ProductsList() {
           { id: "status_archived", label: "Arquivados" },
         ],
       },
+      {
+        id: "store",
+        label: "Loja Online",
+        icon: <Store className="h-4 w-4" />,
+        defaultOpen: false,
+        items: [
+          { id: "store_yes", label: "Publicados na Loja" },
+          { id: "store_no", label: "Não publicados" },
+        ],
+      },
     ];
 
     // Add categories if they exist
