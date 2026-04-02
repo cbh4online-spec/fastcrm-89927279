@@ -67,6 +67,9 @@ interface ProposalInternalViewProps {
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
   onPriceChange?: (itemId: string, price: number) => void;
+  onNameChange?: (itemId: string, name: string) => void;
+  onDescriptionChange?: (itemId: string, description: string) => void;
+  onDiscountChange?: (itemId: string, discount: number | undefined) => void;
   onCostsRefreshed?: () => void;
   onAccept?: () => void;
   onRequestChange?: () => void;
@@ -85,6 +88,9 @@ export function ProposalInternalView({
   onItemToggle,
   onQuantityChange,
   onPriceChange,
+  onNameChange,
+  onDescriptionChange,
+  onDiscountChange,
   onCostsRefreshed,
   onAccept,
   onRequestChange,
@@ -323,6 +329,7 @@ export function ProposalInternalView({
                 <TableHead>Item</TableHead>
                 <TableHead className="w-20 text-center">Qtd.</TableHead>
                 <TableHead className="w-28 text-right">Preço</TableHead>
+                <TableHead className="w-20 text-right">Desc.%</TableHead>
                 <TableHead className="w-24 text-right">Custo</TableHead>
                 <TableHead className="w-28 text-right">Margem</TableHead>
                 <TableHead className="w-28 text-right">Subtotal</TableHead>
@@ -356,12 +363,16 @@ export function ProposalInternalView({
                     </TableCell>
                     <TableCell className="max-w-0">
                       <div className="flex items-center gap-1">
-                        <p className={cn(
-                          "font-medium truncate",
-                          !isEnabled && "line-through text-muted-foreground"
-                        )}>
-                          {item.name}
-                        </p>
+                        <Input
+                          value={item.name}
+                          onChange={(e) => onNameChange?.(item.id, e.target.value)}
+                          className={cn(
+                            "h-7 text-sm font-medium px-1 min-w-0",
+                            !isEnabled && "line-through text-muted-foreground opacity-50"
+                          )}
+                          disabled={!isEnabled}
+                          placeholder="Nome do item"
+                        />
                         {item.product_status === "active" && item.product_id && currentWorkspace?.slug && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -379,14 +390,16 @@ export function ProposalInternalView({
                           </Tooltip>
                         )}
                       </div>
-                      {item.description && (
-                        <p className={cn(
-                          "text-sm text-muted-foreground line-clamp-2",
-                          !isEnabled && "line-through"
-                        )} title={item.description}>
-                          {item.description}
-                        </p>
-                      )}
+                      <Input
+                        value={item.description ?? ""}
+                        onChange={(e) => onDescriptionChange?.(item.id, e.target.value)}
+                        className={cn(
+                          "h-6 text-xs text-muted-foreground px-1 mt-1",
+                          !isEnabled && "line-through opacity-50"
+                        )}
+                        disabled={!isEnabled}
+                        placeholder="Descrição"
+                      />
                     </TableCell>
                     <TableCell className="text-center">
                       <Input
@@ -412,6 +425,19 @@ export function ProposalInternalView({
                         disabled={!isEnabled}
                       />
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max="100"
+                        value={(item as any).discount ?? ""}
+                        onChange={(e) => onDiscountChange?.(item.id, e.target.value ? parseFloat(e.target.value) : undefined)}
+                        className={cn("w-16 h-8 text-right ml-auto", !isEnabled && "opacity-50")}
+                        disabled={!isEnabled}
+                        placeholder="0"
+                      />
+                    </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
                       {formatCurrency(itemUnitCost, proposal.currency)}
                     </TableCell>
@@ -431,7 +457,7 @@ export function ProposalInternalView({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={4} className="text-right font-semibold">
+                <TableCell colSpan={5} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground font-medium">

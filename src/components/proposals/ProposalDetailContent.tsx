@@ -277,6 +277,53 @@ export function ProposalDetailContent({
       toast.error(`Erro ao atualizar quantidade: ${error.message}`);
     }
   };
+
+  // Handle item name change
+  const handleItemNameChange = async (itemId: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ name })
+        .eq("id", itemId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar nome: ${error.message}`);
+    }
+  };
+
+  // Handle item description change
+  const handleItemDescriptionChange = async (itemId: string, description: string) => {
+    try {
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ description })
+        .eq("id", itemId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar descrição: ${error.message}`);
+    }
+  };
+
+  // Handle item discount change
+  const handleItemDiscountChange = async (itemId: string, discount: number | undefined) => {
+    try {
+      // Find the item to calculate discounted price
+      const item = proposalItems?.find(i => i.id === itemId);
+      if (!item) return;
+      const originalPrice = (item as any).original_unit_price ?? item.unit_price;
+      const newPrice = discount ? originalPrice * (1 - discount / 100) : originalPrice;
+      const { error } = await supabase
+        .from("proposal_items")
+        .update({ unit_price: newPrice })
+        .eq("id", itemId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar desconto: ${error.message}`);
+    }
+  };
   
   // Initialize edit form when proposal loads or when switching to edit mode
   const initializeEditForm = () => {
@@ -1043,6 +1090,9 @@ export function ProposalDetailContent({
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}
                       onPriceChange={handleItemPriceChange}
+                      onNameChange={handleItemNameChange}
+                      onDescriptionChange={handleItemDescriptionChange}
+                      onDiscountChange={handleItemDiscountChange}
                       onAccept={handleAcceptProposal}
                       onRequestChange={() => setShowChangeRequestDialog(true)}
                     />

@@ -32,6 +32,8 @@ export function POSProposalBuilder({
     updateQuantity,
     updatePrice,
     updateDiscount,
+    updateName,
+    updateDescription,
     clearCart,
     getSelectedProductIds,
     setItems,
@@ -101,6 +103,14 @@ export function POSProposalBuilder({
     updateDiscount(productId, discount);
   };
 
+  const handleUpdateName = (productId: string, name: string) => {
+    updateName(productId, name);
+  };
+
+  const handleUpdateDescription = (productId: string, description: string) => {
+    updateDescription(productId, description);
+  };
+
   const handleClear = () => {
     clearCart();
   };
@@ -146,6 +156,8 @@ export function POSProposalBuilder({
           onUpdateQuantity={handleUpdateQuantity}
           onUpdatePrice={handleUpdatePrice}
           onUpdateDiscount={handleUpdateDiscount}
+          onUpdateName={handleUpdateName}
+          onUpdateDescription={handleUpdateDescription}
           onRemoveItem={handleRemoveProduct}
           onClear={handleClear}
           tierName={tier?.name}

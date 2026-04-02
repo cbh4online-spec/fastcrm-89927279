@@ -404,9 +404,15 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                             >
                               <GripVertical className="h-4 w-4" />
                             </div>
-                            <h4 className="font-medium text-sm truncate">
-                              {item.name}
-                            </h4>
+                            <Input
+                              value={item.name}
+                              onChange={(e) => {
+                                setItems(prev => prev.map((it, i) => i === index ? { ...it, name: e.target.value } : it));
+                                setHasChanges(true);
+                              }}
+                              className="h-7 text-sm font-medium flex-1 min-w-0 px-1"
+                              placeholder="Nome do item"
+                            />
                             {(hasOverride || hasDiscount) && (
                               <Badge variant="secondary" className="text-[10px] shrink-0">
                                 Editado
@@ -488,36 +494,52 @@ export function POSProposalItemsEditor({ proposalId, currency = "EUR", onSaved }
                         </div>
 
                         <CollapsibleContent className="mt-3 pt-3 border-t border-border/50">
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-3">
                             <div className="space-y-1">
                               <label className="text-xs text-muted-foreground">
-                                Preço unitário
+                                Descrição
                               </label>
                               <Input
-                                type="number"
-                                step="0.01"
-                                value={item.unit_price}
-                                onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+                                value={item.description ?? ""}
+                                onChange={(e) => {
+                                  setItems(prev => prev.map((it, i) => i === index ? { ...it, description: e.target.value } : it));
+                                  setHasChanges(true);
+                                }}
                                 className="h-8 text-sm"
+                                placeholder="Descrição do item"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <label className="text-xs text-muted-foreground">
-                                Desconto (%)
-                              </label>
-                              <Input
-                                type="number"
-                                step="1"
-                                min="0"
-                                max="100"
-                                value={item.discount ?? ""}
-                                onChange={(e) => handleUpdateDiscount(
-                                  index,
-                                  e.target.value ? parseFloat(e.target.value) : undefined
-                                )}
-                                className="h-8 text-sm"
-                                placeholder="0"
-                              />
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-xs text-muted-foreground">
+                                  Preço unitário
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.unit_price}
+                                  onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs text-muted-foreground">
+                                  Desconto (%)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="1"
+                                  min="0"
+                                  max="100"
+                                  value={item.discount ?? ""}
+                                  onChange={(e) => handleUpdateDiscount(
+                                    index,
+                                    e.target.value ? parseFloat(e.target.value) : undefined
+                                  )}
+                                  className="h-8 text-sm"
+                                  placeholder="0"
+                                />
+                              </div>
                             </div>
                           </div>
                           {hasOverride && item.product && item.unit_price !== item.product.base_price && (

@@ -19,6 +19,8 @@ export interface CartItem {
   quantity: number;
   priceOverride?: number;
   discount?: number;
+  nameOverride?: string;
+  descriptionOverride?: string;
 }
 
 interface ProposalCartProps {
@@ -26,6 +28,8 @@ interface ProposalCartProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onUpdatePrice: (productId: string, price: number | undefined) => void;
   onUpdateDiscount: (productId: string, discount: number | undefined) => void;
+  onUpdateName: (productId: string, name: string) => void;
+  onUpdateDescription: (productId: string, description: string) => void;
   onRemoveItem: (productId: string) => void;
   onClear: () => void;
   tierName?: string | null;
@@ -38,6 +42,8 @@ export function ProposalCart({
   onUpdateQuantity,
   onUpdatePrice,
   onUpdateDiscount,
+  onUpdateName,
+  onUpdateDescription,
   onRemoveItem,
   onClear,
   tierName,
@@ -155,18 +161,29 @@ export function ProposalCart({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-sm truncate">
-                          {item.product.name}
+                          {item.nameOverride || item.product.name}
                         </h4>
-                        {(hasOverride || hasDiscount) && (
+                        {(hasOverride || hasDiscount || item.nameOverride) && (
                           <Badge variant="secondary" className="text-[10px] shrink-0">
                             Editado
                           </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm font-semibold text-primary">
-                          {formatPrice(itemTotal)}
-                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.priceOverride ?? item.product.base_price ?? ""}
+                          onChange={(e) =>
+                            onUpdatePrice(
+                              item.product.id,
+                              e.target.value ? parseFloat(e.target.value) : undefined
+                            )
+                          }
+                          className="w-24 h-7 text-sm font-semibold text-primary text-right px-1"
+                          placeholder={`${item.product.base_price ?? 0}`}
+                        />
+                        <span className="text-xs text-muted-foreground">€</span>
                         {(hasOverride || hasDiscount) && originalTotal !== itemTotal && (
                           <span className="text-xs text-muted-foreground line-through">
                             {formatPrice(originalTotal)}
@@ -221,23 +238,27 @@ export function ProposalCart({
                   </div>
 
                   <CollapsibleContent className="mt-3 pt-3 border-t border-border/50">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-3">
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
-                          Preço unitário
+                          Nome do item
                         </label>
                         <Input
-                          type="number"
-                          step="0.01"
-                          value={item.priceOverride ?? item.product.base_price ?? ""}
-                          onChange={(e) =>
-                            onUpdatePrice(
-                              item.product.id,
-                              e.target.value ? parseFloat(e.target.value) : undefined
-                            )
-                          }
+                          value={item.nameOverride ?? item.product.name}
+                          onChange={(e) => onUpdateName(item.product.id, e.target.value)}
                           className="h-8 text-sm"
-                          placeholder={`${item.product.base_price ?? 0}`}
+                          placeholder={item.product.name}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">
+                          Descrição
+                        </label>
+                        <Input
+                          value={item.descriptionOverride ?? item.product.short_description ?? ""}
+                          onChange={(e) => onUpdateDescription(item.product.id, e.target.value)}
+                          className="h-8 text-sm"
+                          placeholder="Descrição do item"
                         />
                       </div>
                       <div className="space-y-1">
