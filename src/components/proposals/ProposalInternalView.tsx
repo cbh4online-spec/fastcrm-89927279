@@ -178,7 +178,7 @@ export function ProposalInternalView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {clientEmail && (
+          {primaryEmail && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleSendEmail}>
@@ -186,7 +186,7 @@ export function ProposalInternalView({
                   Email
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Enviar email para {clientEmail}</TooltipContent>
+              <TooltipContent>Enviar email para {primaryEmail}</TooltipContent>
             </Tooltip>
           )}
           <DropdownMenu>
