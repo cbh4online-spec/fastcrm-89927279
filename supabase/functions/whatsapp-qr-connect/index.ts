@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
       // Fallback: check connectionState endpoint
       try {
-        const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+        const stateRes = await api(`${baseUrl}/instance/connectionState/${instanceName}`, {
           method: "GET",
           headers: { apikey: EVOLUTION_API_KEY },
         });
