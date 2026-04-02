@@ -53,7 +53,25 @@ export function useWeeklyPerformance() {
         .gte("period_end", startDate);
 
       const tMap: Record<string, number> = {};
-      (targets || []).forEach((t: any) => { tMap[t.metric_type] = Number(t.target_value); });
+      const tData = targets || [];
+      if (tData.length > 0) {
+        tData.forEach((t: any) => { tMap[t.metric_type] = Number(t.target_value); });
+      } else {
+        // Fallback: fetch most recent targets before this week
+        const { data: fallback } = await supabase
+          .from("performance_targets")
+          .select("metric_type, target_value")
+          .eq("workspace_id", wid!)
+          .eq("period_type", "weekly")
+          .lt("period_start", startDate)
+          .order("period_end", { ascending: false })
+          .limit(20);
+        (fallback || []).forEach((t: any) => {
+          if (!(t.metric_type in tMap)) {
+            tMap[t.metric_type] = Number(t.target_value);
+          }
+        });
+      }
 
       // Actuals
       const [leadsRes, meetingsRes, calendarEventsRes, proposalsRes, oppsRes, pipelineRes, newDealsRes] = await Promise.all([

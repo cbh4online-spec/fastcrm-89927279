@@ -101,10 +101,26 @@ export function useWeeklyHistory() {
               .lte("updated_at", week.end),
           ]);
 
-        const tMap: Record<string, number> = {};
-        (targetsRes.data || []).forEach((t: any) => {
-          tMap[t.metric_type] = Number(t.target_value);
-        });
+        let tMap: Record<string, number> = {};
+        const tData = targetsRes.data || [];
+        if (tData.length > 0) {
+          tData.forEach((t: any) => { tMap[t.metric_type] = Number(t.target_value); });
+        } else {
+          // Fallback: fetch most recent targets before this week
+          const { data: fallback } = await supabase
+            .from("performance_targets")
+            .select("metric_type, target_value")
+            .eq("workspace_id", wid!)
+            .eq("period_type", "weekly")
+            .lt("period_start", week.startDate)
+            .order("period_end", { ascending: false })
+            .limit(20);
+          (fallback || []).forEach((t: any) => {
+            if (!(t.metric_type in tMap)) {
+              tMap[t.metric_type] = Number(t.target_value);
+            }
+          });
+        }
 
         const revenue = (wonRes.data || []).reduce((s: number, d: any) => s + (d.value || 0), 0);
         const totalMeetings = (meetingsRes.count || 0) + (calendarRes.count || 0);
