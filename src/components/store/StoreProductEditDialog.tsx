@@ -166,6 +166,17 @@ export function StoreProductEditDialog({
             )}
             Editar Produto
           </DialogTitle>
+          <Button
+            variant="link"
+            size="sm"
+            className="gap-1.5 p-0 h-auto text-xs"
+            onClick={() => {
+              onOpenChange(false);
+              navigate(`/dashboard/products?highlight=${product?.id}`);
+            }}
+          >
+            Editar ficha completa <ExternalLink className="h-3 w-3" />
+          </Button>
         </DialogHeader>
 
         <div className="space-y-4">
