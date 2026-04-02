@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown, Building2, User, Plus, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +45,13 @@ export function ClientSearchSelect({
 }: ClientSearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open]);
 
   const { contacts, isLoading: loadingContacts } = useContacts();
   const { companies, isLoading: loadingCompanies } = useCompanies();
@@ -124,9 +131,10 @@ export function ClientSearchSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[400px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <Command shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             placeholder={`Pesquisar ${clientType === "contact" ? "contacto" : "empresa"}...`}
             value={search}
             onValueChange={setSearch}
