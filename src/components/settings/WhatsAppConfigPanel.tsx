@@ -132,6 +132,7 @@ export function WhatsAppConfigPanel() {
   const isRecoveryPending = syncMutation.isPending || reconnectMutation.isPending;
   const needsRecovery = isConnected && syncHealth !== "active";
   const isRepairRequired = recoveryState === "repair_required";
+  const isDisconnectedRepair = status === "disconnected" && isRepairRequired;
 
   return (
     <div className="space-y-4">
