@@ -160,6 +160,44 @@ export function usePipelineMetrics() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateTarget = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<MetricTarget> & { id: string }) => {
+      const { data, error } = await sb.from("pipeline_metric_targets").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as MetricTarget;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline-metric-targets", wid] }); toast.success("Meta atualizada"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteTarget = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("pipeline_metric_targets").update({ is_active: false }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline-metric-targets", wid] }); toast.success("Meta removida"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateAlert = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<MetricAlert> & { id: string }) => {
+      const { data, error } = await sb.from("pipeline_metric_alerts").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as MetricAlert;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline-metric-alerts", wid] }); toast.success("Alerta atualizado"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteAlert = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from("pipeline_metric_alerts").update({ is_active: false }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pipeline-metric-alerts", wid] }); toast.success("Alerta removido"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return {
     metrics: metricsQuery.data ?? [],
     metricsLoading: metricsQuery.isLoading,
@@ -171,6 +209,10 @@ export function usePipelineMetrics() {
     updateMetric,
     deleteMetric,
     createTarget,
+    updateTarget,
+    deleteTarget,
     createAlert,
+    updateAlert,
+    deleteAlert,
   };
 }
