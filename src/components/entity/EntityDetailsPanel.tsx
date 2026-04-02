@@ -310,7 +310,7 @@ function CompanyDetails({ entity, onUpdate, onEmailClick }: { entity: CompanyEnt
         <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
         <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="whatsapp" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
