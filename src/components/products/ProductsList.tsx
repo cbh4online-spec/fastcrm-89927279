@@ -117,6 +117,7 @@ const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: true },
+  { id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true },
   { id: "b2b_published", label: "Portal B2B", category: "basic", defaultVisible: true },
   { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
   { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
