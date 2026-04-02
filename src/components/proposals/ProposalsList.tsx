@@ -374,7 +374,7 @@ export function ProposalsList() {
         [
           p.title,
           p.opportunity?.title || "",
-          p.opportunity?.lead?.name || "",
+          p.contact?.name || p.company?.name || p.opportunity?.lead?.name || "",
           p.price || 0,
           statusLabels[p.status],
           p.views_count,
@@ -604,7 +604,7 @@ export function ProposalsList() {
                     </button>
                   </TableCell>
                   <TableCell className="max-w-[180px] truncate">{proposal.opportunity?.title || "-"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">{proposal.opportunity?.lead?.name || "-"}</TableCell>
+                  <TableCell className="max-w-[150px] truncate">{proposal.contact?.name || proposal.company?.name || proposal.opportunity?.lead?.name || "-"}</TableCell>
                   <TableCell>
                     {formatCurrency(proposal.price, proposal.currency || "EUR")}
                   </TableCell>
