@@ -22,10 +22,10 @@ export function useConvertProposalToOrderNote() {
       if (!currentWorkspace) throw new Error("No workspace selected");
 
       // 0. Check for duplicate conversion
-      const { data: existingOrder } = await supabase
+      const { data: existingOrder } = await (supabase as any)
         .from("order_notes")
         .select("id, order_number")
-        .eq("proposal_id" as any, proposalId)
+        .eq("proposal_id", proposalId)
         .maybeSingle();
 
       if (existingOrder) {
