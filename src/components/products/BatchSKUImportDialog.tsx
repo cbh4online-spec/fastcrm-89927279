@@ -497,7 +497,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       parsedItems.push({
         sku,
         status: useAi ? "pending" : "success",
-        selected: true,
+        selected: !isSuspicious,
+        suspicious: isSuspicious,
         rawRow,
         data: useAi ? undefined : (Object.keys(itemData).length > 0 ? itemData : undefined),
       });
