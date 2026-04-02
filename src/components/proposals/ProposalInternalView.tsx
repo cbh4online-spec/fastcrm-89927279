@@ -136,8 +136,8 @@ export function ProposalInternalView({
   };
 
   const handleSendEmail = () => {
-    if (clientEmail) {
-      window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
+    if (primaryEmail) {
+      window.open(`mailto:${primaryEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
     }
   };
 
