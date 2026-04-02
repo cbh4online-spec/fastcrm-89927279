@@ -109,8 +109,13 @@ export function InboxTemplatePanel({
   opportunityData,
   onApply,
   trigger,
+  externalOpen,
+  onExternalOpenChange,
 }: InboxTemplatePanelProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = isControlled ? (onExternalOpenChange || (() => {})) : setInternalOpen;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [editedContent, setEditedContent] = useState("");
