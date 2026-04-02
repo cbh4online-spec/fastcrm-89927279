@@ -2,52 +2,46 @@
 
 ## Diagnóstico
 
-Os logs revelam a causa exacta do problema:
+O webhook **está a funcionar**. Os logs confirmam:
+- `SET_WEBHOOK status=201` — webhook registado com sucesso
+- `whatsapp-evolution-webhook` recebeu eventos: `connection.update (state=open)`, `qrcode.updated`
+- DB mostra `status=connected`, `connected_at=09:03:30`, `recovery_state=none`
 
-```
-SET_WEBHOOK status=400 body={"status":400,"error":"Bad Request","response":{"message":[["instance requires property \"webhook\""]]}}
-```
+**Problema residual:** `sync_health` continua "suspended" porque o `whatsapp-qr-status` (polling do frontend) recalcula `sync_health` com base em `last_inbound_message_at` da tabela `messages`. Como a última mensagem inbound foi há 87h, cada poll sobrescreve `sync_health → suspended`, anulando o que o webhook colocou como "active".
 
-**E zero logs no `whatsapp-evolution-webhook`** — a Evolution API nunca enviou um único evento.
-
-**Causa raiz:** O body do `POST /webhook/set/` está errado. O código envia as propriedades directamente (`url`, `enabled`, `events`), mas a Evolution API espera que estejam dentro de uma propriedade `webhook`:
-
-```text
-ACTUAL (falha):   { url, enabled, events }
-EXPECTED:         { webhook: { url, enabled, events } }
-```
-
-Como a instância já existe (403), o webhook do `create` nunca é aplicado, e o `set` falha com 400. Resultado: zero webhooks → zero eventos → sync suspensa.
+A arquitectura proposta no ficheiro enviado é uma reimplementação completa com nomes e tabelas diferentes — não é necessária. O sistema actual já funciona, falta apenas corrigir a lógica de inferência de saúde.
 
 ## Plano
 
-### Ficheiro: `supabase/functions/whatsapp-qr-connect/index.ts`
+### 1. Corrigir `whatsapp-qr-status/index.ts` — lógica `inferSyncHealth`
 
-Envolver o body do `POST /webhook/set/` numa propriedade `webhook`:
+Quando a conexão é "connected" e há pouca/nenhuma actividade de mensagens, o estado deve ser "active" (não "suspended") se a conexão é recente. A ausência de mensagens inbound não significa falha — pode simplesmente não haver mensagens novas.
 
-```typescript
-body: JSON.stringify({
-  webhook: {
-    url: webhookUrl,
-    enabled: true,
-    events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-    webhook_by_events: false,
-    webhook_base64: false,
-  },
-}),
-```
+**Alteração na função `inferSyncHealth`:**
+- Se `connectionStatus === "connected"` e não há mensagens inbound recentes, verificar `connected_at` / `last_seen_at`
+- Se a conexão foi estabelecida recentemente (< 2h), considerar "active" independentemente de mensagens
+- Só marcar "suspended" se não houver actividade inbound NEM actualização de conexão há mais de 24h
 
-Aplicar esta correcção em **todos os locais** onde `webhook/set` é chamado (linha ~107 e eventualmente dentro do bloco de reconnect/sync).
+Passar `connectedAt` e `lastSeenAt` como parâmetros adicionais à função.
 
-### Ficheiros adicionais a verificar
+### 2. Corrigir `whatsapp-qr-sync/index.ts` — mesma lógica
 
-- `supabase/functions/whatsapp-qr-sync/index.ts` — se também chama `webhook/set`, corrigir o body
-- `supabase/functions/whatsapp-qr-reconnect/index.ts` — idem
+Aplicar a mesma correcção na função `computeSyncHealth` para não sobrescrever `sync_health` com base apenas em mensagens.
+
+### Ficheiros a alterar
+
+| Ficheiro | Acção |
+|---|---|
+| `supabase/functions/whatsapp-qr-status/index.ts` | Corrigir `inferSyncHealth` para considerar `connected_at`/`last_seen_at` |
+| `supabase/functions/whatsapp-qr-sync/index.ts` | Corrigir lógica equivalente |
 
 ### Critérios de Aceitação
 
-- `SET_WEBHOOK` retorna 200/201 (não 400)
-- `whatsapp-evolution-webhook` começa a receber logs de eventos
-- `sync_health` muda de `suspended` para `active` ao receber mensagem
-- Nenhuma alteração no frontend necessária
+- Conexão "connected" com 0 mensagens recentes mostra `sync_health: active` (não "suspended")
+- `sync_health` só muda para "suspended" após 24h sem qualquer actividade (mensagens ou conexão)
+- Frontend mostra estado correcto sem oscilar entre "active" e "suspended"
+
+### Sobre o ficheiro enviado
+
+O prompt sugere uma reimplementação completa com funções novas (`whatsapp-evolution-init`, `whatsapp-webhook`, `whatsapp-evolution-sync`) e tabela diferente (`integrations` em vez de `whatsapp_qr_connections`). **Não é necessário** — o sistema actual já está funcional após a correcção do webhook. A única correcção pendente é a lógica de `sync_health`.
 
