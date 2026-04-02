@@ -146,9 +146,9 @@ export function useRecalculateScores() {
         const proposalsRes = await (supabase.from("proposals").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid) as any).eq("created_by", uid).eq("status", "published").gte("created_at", startISO).lte("created_at", endISO);
         const oppsRes = await (supabase.from("opportunities").select("id, value")
-          .eq("workspace_id", wid) as any).eq("assigned_to", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
+          .eq("workspace_id", wid) as any).eq("owner_id", uid).eq("status", "won").gte("updated_at", startISO).lte("updated_at", endISO);
         const pipelineRes = await (supabase.from("opportunities").select("id, value")
-          .eq("workspace_id", wid) as any).eq("assigned_to", uid).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO);
+          .eq("workspace_id", wid) as any).eq("owner_id", uid).in("status", ["open", "active", "negotiation"]).gte("created_at", startISO).lte("created_at", endISO);
 
         const revenue = (oppsRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);
         const pipeline = (pipelineRes.data || []).reduce((s, d: any) => s + (d.value || 0), 0);

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
@@ -18,6 +19,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { formatCurrency } from "@/lib/formatters";
 
+const RECALC_KEY = "perf_last_recalc";
+const RECALC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 export default function PerformanceDashboardPage() {
   const { t } = useTranslation("performance");
   useSeedDefaultMetrics();
@@ -28,6 +32,22 @@ export default function PerformanceDashboardPage() {
   const { data: recognitions } = usePerformanceRecognition(5);
   const { data: goals } = usePerformanceGoals();
   const recalculate = useRecalculateScores();
+
+  // Auto-recalculate when scores are empty/zero or stale (>5min)
+  useEffect(() => {
+    if (scoresLoading || recalculate.isPending) return;
+    const lastRecalc = sessionStorage.getItem(RECALC_KEY);
+    const now = Date.now();
+    if (lastRecalc && now - Number(lastRecalc) < RECALC_INTERVAL_MS) return;
+
+    const allZero = !scores?.length || scores.every(s => s.score_total === 0 && s.revenue_generated === 0);
+    const isStale = !lastRecalc || now - Number(lastRecalc) >= RECALC_INTERVAL_MS;
+
+    if (allZero || isStale) {
+      sessionStorage.setItem(RECALC_KEY, String(now));
+      recalculate.mutate("weekly");
+    }
+  }, [scoresLoading, scores]);
 
   const getChallengeProgress = (ch: any) => {
     if (!scores?.length || !ch.target_value) return 0;
