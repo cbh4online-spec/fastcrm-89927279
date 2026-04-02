@@ -134,6 +134,13 @@ function EditableFieldRow({
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+    if (isLink && linkType === 'whatsapp') {
+      const raw = String(value);
+      const href = raw.startsWith('http')
+        ? raw
+        : `https://wa.me/${raw.replace(/[^\d+]/g, '').replace(/^\+/, '')}`;
+      return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-[#25D366] hover:underline text-[13px] font-medium break-all">{raw}</a>;
+    }
     if (isLink && linkType === 'url') {
       const href = String(value).startsWith('http') ? String(value) : `https://${value}`;
       return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
