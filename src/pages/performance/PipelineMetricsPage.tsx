@@ -208,9 +208,9 @@ export default function PipelineMetricsPage() {
   const handleSaveMetric = () => {
     if (!mName.trim()) return;
     const filterJson: Record<string, unknown> = {};
-    if (fPipelineId) filterJson.pipeline_id = fPipelineId;
-    if (fStageId) filterJson.stage_id = fStageId;
-    if (fStatus) filterJson.status = fStatus;
+    if (fPipelineId && fPipelineId !== "__all__") filterJson.pipeline_id = fPipelineId;
+    if (fStageId && fStageId !== "__all__") filterJson.stage_id = fStageId;
+    if (fStatus && fStatus !== "__all__") filterJson.status = fStatus;
     if (fSource) filterJson.source = fSource;
     if (fChannel) filterJson.channel = fChannel;
     if (fEventType) filterJson.event_type = fEventType;
