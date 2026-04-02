@@ -37988,6 +37988,596 @@ export type Database = {
           },
         ]
       }
+      partner_accounts: {
+        Row: {
+          account_code: string
+          allow_backorders: boolean
+          allow_checkout: boolean
+          approval_threshold: number | null
+          assigned_channel_manager_id: string | null
+          assigned_sales_owner_id: string | null
+          business_type: string | null
+          country: string | null
+          created_at: string
+          credit_limit: number | null
+          currency: string | null
+          current_credit_exposure: number | null
+          id: string
+          language: string | null
+          legal_name: string
+          metadata: Json | null
+          notes: string | null
+          owner_contact_id: string | null
+          partner_tier_id: string | null
+          payment_terms: string | null
+          price_list_id: string | null
+          requires_order_approval: boolean
+          status: Database["public"]["Enums"]["partner_account_status"]
+          storefront_enabled: boolean
+          storefront_slug: string | null
+          trade_name: string | null
+          updated_at: string
+          vat_number: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_code: string
+          allow_backorders?: boolean
+          allow_checkout?: boolean
+          approval_threshold?: number | null
+          assigned_channel_manager_id?: string | null
+          assigned_sales_owner_id?: string | null
+          business_type?: string | null
+          country?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          currency?: string | null
+          current_credit_exposure?: number | null
+          id?: string
+          language?: string | null
+          legal_name: string
+          metadata?: Json | null
+          notes?: string | null
+          owner_contact_id?: string | null
+          partner_tier_id?: string | null
+          payment_terms?: string | null
+          price_list_id?: string | null
+          requires_order_approval?: boolean
+          status?: Database["public"]["Enums"]["partner_account_status"]
+          storefront_enabled?: boolean
+          storefront_slug?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_code?: string
+          allow_backorders?: boolean
+          allow_checkout?: boolean
+          approval_threshold?: number | null
+          assigned_channel_manager_id?: string | null
+          assigned_sales_owner_id?: string | null
+          business_type?: string | null
+          country?: string | null
+          created_at?: string
+          credit_limit?: number | null
+          currency?: string | null
+          current_credit_exposure?: number | null
+          id?: string
+          language?: string | null
+          legal_name?: string
+          metadata?: Json | null
+          notes?: string | null
+          owner_contact_id?: string | null
+          partner_tier_id?: string | null
+          payment_terms?: string | null
+          price_list_id?: string | null
+          requires_order_approval?: boolean
+          status?: Database["public"]["Enums"]["partner_account_status"]
+          storefront_enabled?: boolean
+          storefront_slug?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_accounts_partner_tier_id_fkey"
+            columns: ["partner_tier_id"]
+            isOneToOne: false
+            referencedRelation: "partner_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_accounts_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "partner_price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_activity_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          partner_account_id: string | null
+          payload: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          partner_account_id?: string | null
+          payload?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          partner_account_id?: string | null
+          payload?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_activity_logs_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_order_headers: {
+        Row: {
+          approved_at: string | null
+          approver_user_id: string | null
+          billing_address_snapshot: Json | null
+          buyer_user_id: string | null
+          created_at: string
+          currency: string
+          discount_amount: number
+          id: string
+          notes: string | null
+          order_number: string
+          partner_account_id: string
+          payment_method: string | null
+          payment_status: string | null
+          payment_terms_snapshot: string | null
+          po_number: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          shipping_address_snapshot: Json | null
+          shipping_amount: number
+          source: string
+          status: Database["public"]["Enums"]["partner_order_status"]
+          subtotal_net: number
+          tax_amount: number
+          total_gross: number
+          total_net: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approver_user_id?: string | null
+          billing_address_snapshot?: Json | null
+          buyer_user_id?: string | null
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          id?: string
+          notes?: string | null
+          order_number: string
+          partner_account_id: string
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_terms_snapshot?: string | null
+          po_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          shipping_address_snapshot?: Json | null
+          shipping_amount?: number
+          source?: string
+          status?: Database["public"]["Enums"]["partner_order_status"]
+          subtotal_net?: number
+          tax_amount?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approver_user_id?: string | null
+          billing_address_snapshot?: Json | null
+          buyer_user_id?: string | null
+          created_at?: string
+          currency?: string
+          discount_amount?: number
+          id?: string
+          notes?: string | null
+          order_number?: string
+          partner_account_id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_terms_snapshot?: string | null
+          po_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          shipping_address_snapshot?: Json | null
+          shipping_amount?: number
+          source?: string
+          status?: Database["public"]["Enums"]["partner_order_status"]
+          subtotal_net?: number
+          tax_amount?: number
+          total_gross?: number
+          total_net?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_order_headers_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_headers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_order_items: {
+        Row: {
+          created_at: string
+          fulfillment_mode: string | null
+          id: string
+          line_total_net: number
+          margin_estimated: number | null
+          moq_applied: number | null
+          pack_size: number | null
+          partner_order_id: string
+          product_id: string
+          product_name: string
+          pvp_recommended: number | null
+          quantity: number
+          sku: string | null
+          tax_rate: number | null
+          unit_price_net: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          fulfillment_mode?: string | null
+          id?: string
+          line_total_net?: number
+          margin_estimated?: number | null
+          moq_applied?: number | null
+          pack_size?: number | null
+          partner_order_id: string
+          product_id: string
+          product_name: string
+          pvp_recommended?: number | null
+          quantity?: number
+          sku?: string | null
+          tax_rate?: number | null
+          unit_price_net: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          fulfillment_mode?: string | null
+          id?: string
+          line_total_net?: number
+          margin_estimated?: number | null
+          moq_applied?: number | null
+          pack_size?: number | null
+          partner_order_id?: string
+          product_id?: string
+          product_name?: string
+          pvp_recommended?: number | null
+          quantity?: number
+          sku?: string | null
+          tax_rate?: number | null
+          unit_price_net?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_order_items_partner_order_id_fkey"
+            columns: ["partner_order_id"]
+            isOneToOne: false
+            referencedRelation: "partner_order_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_order_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_price_list_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          max_discount_allowed: number | null
+          min_qty: number | null
+          moq: number | null
+          pack_size: number | null
+          price_list_id: string
+          price_net: number
+          product_id: string
+          pvp_recommended: number | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_discount_allowed?: number | null
+          min_qty?: number | null
+          moq?: number | null
+          pack_size?: number | null
+          price_list_id: string
+          price_net: number
+          product_id: string
+          pvp_recommended?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_discount_allowed?: number | null
+          min_qty?: number | null
+          moq?: number | null
+          pack_size?: number | null
+          price_list_id?: string
+          price_net?: number
+          product_id?: string
+          pvp_recommended?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_price_list_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "partner_price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_price_list_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_price_lists: {
+        Row: {
+          channel_type: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          pricing_mode: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          pricing_mode?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          pricing_mode?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_price_lists_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_tiers: {
+        Row: {
+          benefits_json: Json | null
+          code: string
+          color: string
+          created_at: string
+          discount_percentage: number
+          id: string
+          is_active: boolean
+          min_annual_volume: number | null
+          min_quarter_volume: number | null
+          name: string
+          priority: number
+          rebate_percentage: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          benefits_json?: Json | null
+          code: string
+          color?: string
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean
+          min_annual_volume?: number | null
+          min_quarter_volume?: number | null
+          name: string
+          priority?: number
+          rebate_percentage?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          benefits_json?: Json | null
+          code?: string
+          color?: string
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean
+          min_annual_volume?: number | null
+          min_quarter_volume?: number | null
+          name?: string
+          priority?: number
+          rebate_percentage?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_tiers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_users: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          invited_at: string | null
+          is_active: boolean
+          last_login_at: string | null
+          partner_account_id: string
+          role: Database["public"]["Enums"]["partner_user_role"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          email: string
+          full_name?: string
+          id?: string
+          invited_at?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          partner_account_id: string
+          role?: Database["public"]["Enums"]["partner_user_role"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          invited_at?: string | null
+          is_active?: boolean
+          last_login_at?: string | null
+          partner_account_id?: string
+          role?: Database["public"]["Enums"]["partner_user_role"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_users_partner_account_id_fkey"
+            columns: ["partner_account_id"]
+            isOneToOne: false
+            referencedRelation: "partner_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_users_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pathologies: {
         Row: {
           created_at: string | null
@@ -42464,8 +43054,11 @@ export type Database = {
       }
       products: {
         Row: {
+          allow_backorder: boolean | null
           avg_cost: number | null
           b2b_published: boolean | null
+          b2b_sellable: boolean | null
+          b2b_visible: boolean | null
           barcode: string | null
           base_price: number
           benefits: string[] | null
@@ -42510,14 +43103,17 @@ export type Database = {
           low_stock_threshold: number
           metadata: Json | null
           min_order_quantity: number | null
+          moq: number | null
           name: string
           operational_cost: number | null
           order_multiple: number | null
           pack_size: number | null
+          partner_notes: string | null
           primary_image_index: number | null
           product_condition: string | null
           product_type: string
           published_at: string | null
+          pvp_recommended: number | null
           recommended_frequency: string | null
           recurring_fee: number | null
           reorder_point: number | null
@@ -42558,8 +43154,11 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          allow_backorder?: boolean | null
           avg_cost?: number | null
           b2b_published?: boolean | null
+          b2b_sellable?: boolean | null
+          b2b_visible?: boolean | null
           barcode?: string | null
           base_price?: number
           benefits?: string[] | null
@@ -42604,14 +43203,17 @@ export type Database = {
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null
+          moq?: number | null
           name: string
           operational_cost?: number | null
           order_multiple?: number | null
           pack_size?: number | null
+          partner_notes?: string | null
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
           published_at?: string | null
+          pvp_recommended?: number | null
           recommended_frequency?: string | null
           recurring_fee?: number | null
           reorder_point?: number | null
@@ -42652,8 +43254,11 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          allow_backorder?: boolean | null
           avg_cost?: number | null
           b2b_published?: boolean | null
+          b2b_sellable?: boolean | null
+          b2b_visible?: boolean | null
           barcode?: string | null
           base_price?: number
           benefits?: string[] | null
@@ -42698,14 +43303,17 @@ export type Database = {
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null
+          moq?: number | null
           name?: string
           operational_cost?: number | null
           order_multiple?: number | null
           pack_size?: number | null
+          partner_notes?: string | null
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
           published_at?: string | null
+          pvp_recommended?: number | null
           recommended_frequency?: string | null
           recurring_fee?: number | null
           reorder_point?: number | null
@@ -58074,6 +58682,23 @@ export type Database = {
         }
         Returns: Json
       }
+      compute_partner_price: {
+        Args: {
+          p_partner_account_id: string
+          p_product_id: string
+          p_quantity?: number
+          p_workspace_id: string
+        }
+        Returns: {
+          base_price: number
+          gross_margin_pct: number
+          list_applied: string
+          price_net: number
+          price_source: string
+          pvp_recommended: number
+          tier_applied: string
+        }[]
+      }
       consolidate_entity_memories: {
         Args: {
           p_entity_id?: string
@@ -58565,6 +59190,10 @@ export type Database = {
       }
       is_metodopare_member: {
         Args: { check_workspace_id: string }
+        Returns: boolean
+      }
+      is_partner_member: {
+        Args: { p_partner_account_id: string; p_user_id: string }
         Returns: boolean
       }
       is_same_client_company: {
@@ -59147,6 +59776,29 @@ export type Database = {
         | "paused"
         | "past_due"
         | "canceled"
+      partner_account_status:
+        | "lead"
+        | "invited"
+        | "active"
+        | "suspended"
+        | "blocked"
+      partner_order_status:
+        | "draft"
+        | "submitted"
+        | "awaiting_approval"
+        | "approved"
+        | "rejected"
+        | "processing"
+        | "shipped"
+        | "completed"
+        | "cancelled"
+      partner_user_role:
+        | "partner_owner"
+        | "partner_admin"
+        | "partner_buyer"
+        | "partner_finance"
+        | "partner_approver"
+        | "partner_viewer"
       payment_method_type:
         | "stripe"
         | "bank_transfer"
@@ -59657,6 +60309,32 @@ export const Constants = {
         "paused",
         "past_due",
         "canceled",
+      ],
+      partner_account_status: [
+        "lead",
+        "invited",
+        "active",
+        "suspended",
+        "blocked",
+      ],
+      partner_order_status: [
+        "draft",
+        "submitted",
+        "awaiting_approval",
+        "approved",
+        "rejected",
+        "processing",
+        "shipped",
+        "completed",
+        "cancelled",
+      ],
+      partner_user_role: [
+        "partner_owner",
+        "partner_admin",
+        "partner_buyer",
+        "partner_finance",
+        "partner_approver",
+        "partner_viewer",
       ],
       payment_method_type: [
         "stripe",
