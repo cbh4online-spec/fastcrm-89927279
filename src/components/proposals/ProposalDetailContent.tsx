@@ -255,9 +255,9 @@ export function ProposalDetailContent({
         clientType: hasCompany ? "company" : "contact",
         contactId: proposal.contact_id,
         companyId: proposal.company_id,
-        billingName: proposal.billing_nif ? (proposal.contact?.name || proposal.company?.name || "") : "",
-        billingNif: proposal.billing_nif || "",
-        billingAddress: proposal.billing_address || "",
+        billingName: proposal.contact?.name || proposal.company?.name || "",
+        billingNif: proposal.billing_nif || proposal.contact?.tax_id || proposal.company?.tax_id || "",
+        billingAddress: proposal.billing_address || proposal.contact?.address || proposal.company?.address || "",
       });
       
       // Initialize conditions data

@@ -91,9 +91,11 @@ export function ProposalInternalView({
   const refreshCosts = useRefreshCostSnapshots();
   
   const clientName = proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name;
-  const clientEmail = proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
   const clientAddress = proposal.billing_address || proposal.company?.address || proposal.contact?.address;
   const clientNif = proposal.billing_nif || proposal.company?.tax_id || proposal.contact?.tax_id;
+  const contactName = proposal.contact?.name || proposal.opportunity?.lead?.name;
+  const contactEmail = proposal.contact?.email || proposal.opportunity?.lead?.email;
+  const primaryEmail = contactEmail || proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
   
   const createdDate = new Date(proposal.created_at);
   const expiryDate = proposal.validity_days 
@@ -134,8 +136,8 @@ export function ProposalInternalView({
   };
 
   const handleSendEmail = () => {
-    if (clientEmail) {
-      window.open(`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
+    if (primaryEmail) {
+      window.open(`mailto:${primaryEmail}?subject=${encodeURIComponent(`Re: ${proposal.title}`)}`);
     }
   };
 
@@ -176,7 +178,7 @@ export function ProposalInternalView({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {clientEmail && (
+          {primaryEmail && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleSendEmail}>
@@ -184,7 +186,7 @@ export function ProposalInternalView({
                   Email
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Enviar email para {clientEmail}</TooltipContent>
+              <TooltipContent>Enviar email para {primaryEmail}</TooltipContent>
             </Tooltip>
           )}
           <DropdownMenu>
@@ -256,12 +258,12 @@ export function ProposalInternalView({
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ponto de Contacto</p>
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{clientName || "-"}</span>
+              <span className="font-medium">{contactName || "-"}</span>
             </div>
-            {clientEmail && (
+            {contactEmail && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Mail className="h-4 w-4" />
-                <span>{clientEmail}</span>
+                <span>{contactEmail}</span>
               </div>
             )}
           </div>
