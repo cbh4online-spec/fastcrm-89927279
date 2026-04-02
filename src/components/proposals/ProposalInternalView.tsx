@@ -258,12 +258,12 @@ export function ProposalInternalView({
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Ponto de Contacto</p>
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{clientName || "-"}</span>
+              <span className="font-medium">{contactName || "-"}</span>
             </div>
-            {clientEmail && (
+            {contactEmail && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                 <Mail className="h-4 w-4" />
-                <span>{clientEmail}</span>
+                <span>{contactEmail}</span>
               </div>
             )}
           </div>
