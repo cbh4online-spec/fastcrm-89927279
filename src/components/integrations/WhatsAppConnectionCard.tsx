@@ -85,11 +85,11 @@ export function WhatsAppConnectionCard() {
   }
 
   return (
-    <Card>
+    <Card className={isDisconnectedRepair ? "border-destructive/50" : ""}>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isConnected && syncHealth === "active" ? "bg-green-500/10" : isConnected ? "bg-amber-500/10" : "bg-muted"}`}>
-            <Phone className={`h-6 w-6 ${isConnected && syncHealth === "active" ? "text-green-600" : isConnected ? "text-amber-600" : "text-muted-foreground"}`} />
+          <div className={`p-2 rounded-lg ${isConnected && syncHealth === "active" ? "bg-green-500/10" : isConnected ? "bg-amber-500/10" : isDisconnectedRepair ? "bg-destructive/10" : "bg-muted"}`}>
+            <Phone className={`h-6 w-6 ${isConnected && syncHealth === "active" ? "text-green-600" : isConnected ? "text-amber-600" : isDisconnectedRepair ? "text-destructive" : "text-muted-foreground"}`} />
           </div>
           <div className="flex-1">
             <CardTitle className="text-lg">WhatsApp (QR Code)</CardTitle>
@@ -100,7 +100,7 @@ export function WhatsAppConnectionCard() {
               {statusCfg.icon}
               {statusCfg.label}
             </Badge>
-            {isConnected && (
+            {(isConnected || isDisconnectedRepair) && (
               <Badge variant="outline" className={syncCfg.className}>
                 {syncCfg.icon}
                 {syncCfg.label}
