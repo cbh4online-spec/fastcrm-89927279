@@ -412,9 +412,9 @@ export default function PipelineMetricsPage() {
                           <div className="flex items-center gap-2">
                             <Filter className="h-4 w-4 text-muted-foreground" />
                             <span>Filtros avançados</span>
-                            {(fPipelineId || fStageId || fStatus || fSource || fChannel || fEventType) && (
+                            {([fPipelineId, fStageId, fStatus].some(v => v && v !== "__all__") || fSource || fChannel || fEventType) && (
                               <Badge variant="secondary" className="text-xs">
-                                {[fPipelineId, fStageId, fStatus, fSource, fChannel, fEventType].filter(Boolean).length} activo(s)
+                                {[fPipelineId !== "__all__" && fPipelineId, fStageId !== "__all__" && fStageId, fStatus !== "__all__" && fStatus, fSource, fChannel, fEventType].filter(Boolean).length} activo(s)
                               </Badge>
                             )}
                           </div>
