@@ -247,7 +247,7 @@ export function WhatsAppConnectionCard() {
           </div>
         )}
 
-        {status === "disconnected" && (
+        {status === "disconnected" && !isRepairRequired && (
           <div className="text-sm text-muted-foreground space-y-2">
             <p>A sessão WhatsApp foi desconectada. Pode reconectar ou gerar um novo QR.</p>
           </div>
