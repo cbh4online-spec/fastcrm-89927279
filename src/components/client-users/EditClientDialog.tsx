@@ -37,6 +37,7 @@ import { Loader2 } from "lucide-react";
 
 const editClientSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   tax_id: z.string().optional(),
   credit_limit: z.coerce.number().min(0).optional(),
