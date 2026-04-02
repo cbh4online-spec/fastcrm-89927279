@@ -153,6 +153,7 @@ export function ProposalDetailContent({
   const [scopeData, setScopeData] = useState<ScopeData>(DEFAULT_SCOPE_DATA);
   const [timelineData, setTimelineData] = useState<TimelineData>(DEFAULT_TIMELINE_DATA);
   const [referencesData, setReferencesData] = useState<ReferencesData>(DEFAULT_REFERENCES_DATA);
+  const [showChangeRequestDialog, setShowChangeRequestDialog] = useState(false);
 
   const { data: proposal, isLoading } = useProposal(proposalId);
   const { data: versions } = useProposalVersions(proposalId);
