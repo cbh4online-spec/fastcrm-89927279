@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Loader2, Check, X, Package } from "lucide-react";
+import { Lightbulb, Loader2, Check, X, Package, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -57,6 +58,7 @@ export function StoreProductEditDialog({
   onOpenChange,
   onSave,
 }: StoreProductEditDialogProps) {
+  const navigate = useNavigate();
   const [form, setForm] = useState<Partial<ProductEditData>>({});
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -164,6 +166,17 @@ export function StoreProductEditDialog({
             )}
             Editar Produto
           </DialogTitle>
+          <Button
+            variant="link"
+            size="sm"
+            className="gap-1.5 p-0 h-auto text-xs"
+            onClick={() => {
+              onOpenChange(false);
+              navigate(`/dashboard/products?highlight=${product?.id}`);
+            }}
+          >
+            Editar ficha completa <ExternalLink className="h-3 w-3" />
+          </Button>
         </DialogHeader>
 
         <div className="space-y-4">

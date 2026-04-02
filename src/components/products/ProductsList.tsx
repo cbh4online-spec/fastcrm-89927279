@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -48,6 +49,7 @@ import {
   Eye,
   PanelLeft,
   PanelLeftClose,
+  Store,
   RefreshCw,
   Download,
   ChevronLeft,
@@ -117,6 +119,7 @@ const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: true },
+  { id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true },
   { id: "b2b_published", label: "Portal B2B", category: "basic", defaultVisible: true },
   { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
   { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
@@ -140,6 +143,7 @@ const INITIAL_COL_WIDTHS: Record<string, number> = {
   billing_type: 100,
   billing_frequency: 100,
   status: 90,
+  store_published: 90,
   b2b_published: 80,
   total_units: 80,
   unit_duration: 90,
@@ -244,8 +248,27 @@ export function ProductsList() {
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
   const deleteProductsBatch = useDeleteProductsBatch();
+  const queryClient = useQueryClient();
+  const [storeFilter, setStoreFilter] = useState<string>("all");
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  // Toggle store_published
+  const toggleStorePublished = useMutation({
+    mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ store_published: published } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar visibilidade na loja");
+    },
+  });
 
   // Tag filter: get product IDs for selected tag
   const activeTagName = activeFilterId?.startsWith("tag_") ? activeFilterId.replace("tag_", "") : null;
@@ -326,6 +349,16 @@ export function ProductsList() {
         items: [
           { id: "status_active", label: "Ativos" },
           { id: "status_archived", label: "Arquivados" },
+        ],
+      },
+      {
+        id: "store",
+        label: "Loja Online",
+        icon: <Store className="h-4 w-4" />,
+        defaultOpen: false,
+        items: [
+          { id: "store_yes", label: "Publicados na Loja" },
+          { id: "store_no", label: "Não publicados" },
         ],
       },
     ];
@@ -480,6 +513,13 @@ export function ProductsList() {
     if (activeFilterId?.startsWith("tag_") && tagProductIds) {
       result = result.filter((p) => tagProductIds.includes(p.id));
     }
+
+    // Apply store filter
+    if (activeFilterId === "store_yes") {
+      result = result.filter((p) => !!(p as any).store_published);
+    } else if (activeFilterId === "store_no") {
+      result = result.filter((p) => !(p as any).store_published);
+    }
     
     return result;
   }, [products, searchValue, activeFilterId, tagProductIds]);
@@ -608,6 +648,13 @@ export function ProductsList() {
           <Badge variant={product.status === "active" ? "default" : "secondary"}>
             {productStatusLabels[product.status]}
           </Badge>
+        );
+      case "store_published":
+        return (
+          <Switch
+            checked={!!(product as any).store_published}
+            onCheckedChange={(checked) => toggleStorePublished.mutate({ id: product.id, published: checked })}
+          />
         );
       case "b2b_published":
         return (product as any).b2b_published !== false ? (

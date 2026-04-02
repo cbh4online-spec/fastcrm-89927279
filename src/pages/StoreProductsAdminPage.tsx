@@ -5,7 +5,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Package, Sparkles } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, Package, Sparkles, Info, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 import { StoreProductEditDialog } from "@/components/store/StoreProductEditDialog";
@@ -35,6 +36,18 @@ export default function StoreProductsAdminPage() {
               <span className="font-medium">{admin.publishedCount}</span> publicados, <span className="font-medium">{admin.featuredCount}</span> em destaque
             </p>
           </div>
+
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-sm">
+                Os produtos da loja são os mesmos do catálogo comercial. Publicar/despublicar controla a visibilidade na loja.
+              </span>
+              <Button variant="link" size="sm" className="gap-1.5 shrink-0" onClick={() => navigate("/dashboard/products")}>
+                Ir para Catálogo Completo <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDescription>
+          </Alert>
 
           <div className="flex items-center gap-3">
             <div className="relative max-w-sm flex-1">

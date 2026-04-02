@@ -65,6 +65,10 @@ export interface Product {
   labor_notes: string | null;
   // B2B Portal visibility
   b2b_published: boolean | null;
+  // Store visibility
+  store_published: boolean | null;
+  store_featured: boolean | null;
+  store_sort_order: number | null;
 }
 
 export interface ProductWithMargins extends Product {
