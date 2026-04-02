@@ -249,11 +249,11 @@ export default function PipelineMetricsPage() {
 
     if (editingTarget) {
       updateTarget.mutate({ id: editingTarget.id, ...payload }, {
-        onSuccess: () => { setEditingTarget(null); setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+        onSuccess: () => { setEditingTarget(null); setTMetricId(""); setTValue(""); setTPipelineId("__all__"); setTStageId("__all__"); setTargetOpen(false); },
       });
     } else {
       createTarget.mutate(payload, {
-        onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+        onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId("__all__"); setTStageId("__all__"); setTargetOpen(false); },
       });
     }
   };
