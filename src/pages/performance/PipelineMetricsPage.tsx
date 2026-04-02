@@ -190,8 +190,8 @@ export default function PipelineMetricsPage() {
     setTMetricId(t.metric_id);
     setTPeriod(t.period);
     setTValue(String(t.target_value));
-    setTPipelineId(t.pipeline_id || "");
-    setTStageId(t.stage_id || "");
+    setTPipelineId(t.pipeline_id || "__all__");
+    setTStageId(t.stage_id || "__all__");
     setTargetOpen(true);
   };
 
