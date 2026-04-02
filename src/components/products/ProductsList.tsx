@@ -513,6 +513,13 @@ export function ProductsList() {
     if (activeFilterId?.startsWith("tag_") && tagProductIds) {
       result = result.filter((p) => tagProductIds.includes(p.id));
     }
+
+    // Apply store filter
+    if (activeFilterId === "store_yes") {
+      result = result.filter((p) => !!(p as any).store_published);
+    } else if (activeFilterId === "store_no") {
+      result = result.filter((p) => !(p as any).store_published);
+    }
     
     return result;
   }, [products, searchValue, activeFilterId, tagProductIds]);
