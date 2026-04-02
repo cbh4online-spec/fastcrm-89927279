@@ -374,7 +374,7 @@ export function ProposalsList() {
         [
           p.title,
           p.opportunity?.title || "",
-          p.opportunity?.lead?.name || "",
+          p.contact?.name || p.company?.name || p.opportunity?.lead?.name || "",
           p.price || 0,
           statusLabels[p.status],
           p.views_count,
