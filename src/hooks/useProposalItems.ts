@@ -67,6 +67,22 @@ export function useProposalCart() {
     );
   }, []);
 
+  const updateName = useCallback((productId: string, nameOverride: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, nameOverride } : item
+      )
+    );
+  }, []);
+
+  const updateDescription = useCallback((productId: string, descriptionOverride: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, descriptionOverride } : item
+      )
+    );
+  }, []);
+
   const clearCart = useCallback(() => {
     setItems([]);
   }, []);
