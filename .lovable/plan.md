@@ -1,34 +1,56 @@
 
 
-# Produtos da Loja com Edição Completa (ProductDetailDialog)
+# Reorganizar ProductDetailDialog — Layout Profissional
 
 ## Diagnóstico
 
-Na `CatalogProductsTable`, o botão Pencil abre o `StoreProductEditDialog` — um formulário simplificado com campos limitados. O utilizador quer que a edição use exactamente o mesmo `ProductDetailDialog` completo (652 linhas, com tabs de variantes, imagens, stock, specs, analytics, etc.) usado na página `/dashboard/products`.
+O dialog tem 16+ tabs numa única linha que faz wrap desorganizado. O conteúdo dentro do ScrollArea não tem padding consistente. O header hero funciona mas pode ser mais limpo. As tabs precisam de agrupamento lógico para serem navegáveis.
 
 ## Solução
 
-Substituir o uso do `StoreProductEditDialog` pelo `ProductDetailDialog` na página da loja. Tornar o nome do produto clicável também.
+Reorganizar o dialog em 3 eixos: (1) header hero mais compacto e limpo, (2) tabs agrupadas em duas linhas lógicas com separação visual, (3) padding e espaçamento consistente no conteúdo.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/pages/StoreProductsAdminPage.tsx` | Substituir `StoreProductEditDialog` por `ProductDetailDialog`. Mudar state de `editProduct: ProductStoreData` para `editProductId: string \| null` |
-| `src/components/store/admin/CatalogProductsTable.tsx` | 1. Tornar o nome do produto clicável (cursor pointer, hover underline). 2. O botão Pencil e o clique no nome chamam `onEdit(product.id)`. 3. Remover botão Eye (redundante — o edit já abre a ficha completa). Ajustar interface: `onEdit: (productId: string) => void` |
+| `src/components/products/ProductDetailDialog.tsx` | Reestruturar layout completo |
 
-### Detalhe
+### 1. Header Hero — mais compacto
 
-**StoreProductsAdminPage.tsx:**
-- Remover import de `StoreProductEditDialog`
-- Importar `ProductDetailDialog` de `@/components/products/ProductDetailDialog`
-- State: `const [editProductId, setEditProductId] = useState<string | null>(null)`
-- Render: `<ProductDetailDialog open={!!editProductId} onOpenChange={(open) => { if (!open) setEditProductId(null); }} productId={editProductId!} />`
-- Passar `onEdit={(id) => setEditProductId(id)}` ao `CatalogProductsTable`
+- Reduzir altura da imagem de 220px para 180px
+- Mover badges (tipo, status, categoria) para linha única mais compacta
+- Alinhar preço e margem na mesma linha que SKU
+- Botões de ação mais compactos com tooltips em vez de texto
 
-**CatalogProductsTable.tsx:**
-- Interface `onEdit` muda para `(productId: string) => void`
-- Nome do produto: `<button onClick={() => onEdit(product.id)} className="hover:underline text-left">...</button>`
-- Botão Pencil: `onClick={() => onEdit(product.id)}`
-- Remover botão Eye (já não necessário)
+### 2. Tabs — agrupamento em duas filas lógicas
+
+Organizar as 16 tabs em duas linhas temáticas com `TabsList` estilizado:
+
+**Linha 1 — Core:**
+Detalhes | Financeiro | Histórico | Imagens | Progressões | Ciclos | Ficha
+
+**Linha 2 — Avançado:**
+Relações | Documentos | Specs | Stock | Analytics | Ciclo de Vida | Entregáveis | Preços
+
+- Usar `flex-wrap` com gap controlado e `text-xs` para caber melhor
+- Adicionar ícones apenas na segunda linha (avançado) para diferenciar visualmente
+- Tabs condicionais (Componentes, Pacotes) aparecem no início da linha 1
+
+### 3. Conteúdo — padding e espaçamento
+
+- Adicionar `px-5 pb-5` ao ScrollArea inner
+- KPI cards e alerts dentro do padding consistente
+- Remover `mb-6` / `mb-4` inconsistentes, usar `space-y-4` no wrapper
+
+### 4. Detalhes tab — layout mais limpo
+
+- Cards de preço/custo lado a lado com altura equalizada
+- Grid de metadados (SKU, datas, comissão) com estilo de tabela limpa
+- Secções condicionais (Consumo, Specs, Vídeo) em cards com header
+- Barcode/QR mais compacto
+
+## Resultado esperado
+
+Dialog visualmente mais profissional, com navegação clara entre as 16+ tabs, hierarquia visual correcta no header, e conteúdo bem espaçado. Sem alteração de funcionalidade — apenas layout e UX.
 
