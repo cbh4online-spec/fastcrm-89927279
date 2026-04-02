@@ -26,26 +26,37 @@ function inferSyncHealth(
   connectionStatus: string,
   lastInboundAt: string | null,
   lastOutboundAt: string | null,
+  connectedAt: string | null = null,
+  lastSeenAt: string | null = null,
 ): { sync_health: string; sync_issue_reason: string | null } {
   if (connectionStatus !== "connected") {
     return { sync_health: "failed", sync_issue_reason: "Sessão WhatsApp não está conectada" };
   }
   const now = Date.now();
+  const twentyFourH = 24 * 60 * 60 * 1000;
+
+  // Check message-based health first
   if (lastInboundAt) {
     const inboundAge = now - new Date(lastInboundAt).getTime();
-    const fiveMin = 5 * 60 * 1000;
     const thirtyMin = 30 * 60 * 1000;
     const twoHours = 2 * 60 * 60 * 1000;
-    if (inboundAge < fiveMin) return { sync_health: "active", sync_issue_reason: null };
     if (inboundAge < thirtyMin) return { sync_health: "active", sync_issue_reason: null };
     if (inboundAge < twoHours) return { sync_health: "delayed", sync_issue_reason: `Sem mensagens inbound há ${Math.round(inboundAge / 60000)} minutos` };
-    return { sync_health: "suspended", sync_issue_reason: `Sem mensagens inbound há mais de ${Math.round(inboundAge / 3600000)} horas. O sync do histórico pode estar suspenso no dispositivo.` };
+    // Inbound is old — but if connection is recent, still active
   }
-  if (lastOutboundAt) {
-    const outboundAge = now - new Date(lastOutboundAt).getTime();
-    if (outboundAge < 2 * 60 * 60 * 1000) return { sync_health: "active", sync_issue_reason: null };
-    return { sync_health: "delayed", sync_issue_reason: "Sem actividade recente de mensagens" };
+
+  // Connection is alive — check if connected_at or last_seen_at is recent
+  const freshestActivity = [connectedAt, lastSeenAt, lastOutboundAt]
+    .filter(Boolean)
+    .map((d) => new Date(d!).getTime())
+    .reduce((a, b) => Math.max(a, b), 0);
+
+  if (freshestActivity > 0) {
+    const activityAge = now - freshestActivity;
+    if (activityAge < twentyFourH) return { sync_health: "active", sync_issue_reason: null };
+    return { sync_health: "suspended", sync_issue_reason: `Sem qualquer actividade há mais de ${Math.round(activityAge / 3600000)} horas` };
   }
+
   return { sync_health: "unknown", sync_issue_reason: "Sem dados de actividade para inferir saúde de sincronização" };
 }
 
@@ -143,7 +154,9 @@ Deno.serve(async (req) => {
       console.warn(`[WHATSAPP_QR] MSG_ACTIVITY_QUERY_FAILED error=${e.message}`);
     }
 
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt);
+    const connectedAt = mappedStatus === "connected" ? new Date().toISOString() : null;
+    const lastSeenAt = new Date().toISOString();
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, connectedAt, lastSeenAt);
     const now = new Date().toISOString();
 
     // Reconcile recovery state

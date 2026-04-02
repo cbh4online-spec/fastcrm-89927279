@@ -30,20 +30,30 @@ function inferSyncHealth(
   status: string,
   lastInboundAt: string | null,
   lastOutboundAt: string | null,
+  connectedAt: string | null = null,
+  lastSeenAt: string | null = null,
 ): { sync_health: string; sync_issue_reason: string | null } {
   if (status !== "connected") return { sync_health: "failed", sync_issue_reason: "Sessão não conectada" };
   const now = Date.now();
+  const twentyFourH = 24 * 60 * 60 * 1000;
+
   if (lastInboundAt) {
     const age = now - new Date(lastInboundAt).getTime();
     if (age < 30 * 60_000) return { sync_health: "active", sync_issue_reason: null };
     if (age < 2 * 3600_000) return { sync_health: "delayed", sync_issue_reason: `Sem mensagens há ${Math.round(age / 60000)} min` };
-    return { sync_health: "suspended", sync_issue_reason: `Sem mensagens inbound há ${Math.round(age / 3600000)}h` };
   }
-  if (lastOutboundAt) {
-    const age = now - new Date(lastOutboundAt).getTime();
-    if (age < 2 * 3600_000) return { sync_health: "active", sync_issue_reason: null };
-    return { sync_health: "delayed", sync_issue_reason: "Sem actividade recente" };
+
+  const freshestActivity = [connectedAt, lastSeenAt, lastOutboundAt]
+    .filter(Boolean)
+    .map((d) => new Date(d!).getTime())
+    .reduce((a, b) => Math.max(a, b), 0);
+
+  if (freshestActivity > 0) {
+    const activityAge = now - freshestActivity;
+    if (activityAge < twentyFourH) return { sync_health: "active", sync_issue_reason: null };
+    return { sync_health: "suspended", sync_issue_reason: `Sem actividade há ${Math.round(activityAge / 3600000)}h` };
   }
+
   return { sync_health: "unknown", sync_issue_reason: "Sem dados de actividade" };
 }
 
@@ -130,7 +140,8 @@ Deno.serve(async (req) => {
       lastOutboundAt = lo?.sent_at || null;
     } catch { /* ignore */ }
 
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt);
+    const syncConnectedAt = mappedStatus === "connected" ? now : null;
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, syncConnectedAt, now);
 
     // Reconcile recovery
     let recovery_state = existingConn?.recovery_state || "none";
