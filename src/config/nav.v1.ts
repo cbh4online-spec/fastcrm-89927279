@@ -131,7 +131,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
 
   // ── PERFORMANCE ──
   { name: "Performance", href: "/dashboard/performance", icon: BarChart3, group: "Performance", separator: true },
-  { name: "Metas", href: "/dashboard/performance/goals", icon: Target, group: "Performance" },
+  { name: "Métricas & Metas", href: "/dashboard/performance/metrics", icon: Target, group: "Performance" },
   { name: "Leaderboard", href: "/dashboard/performance/leaderboard", icon: Trophy, group: "Performance" },
   { name: "Desafios", href: "/dashboard/performance/challenges", icon: Zap, group: "Performance" },
   { name: "Reconhecimentos", href: "/dashboard/performance/recognition", icon: Trophy, group: "Performance" },

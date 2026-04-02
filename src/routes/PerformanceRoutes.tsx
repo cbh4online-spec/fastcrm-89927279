@@ -13,7 +13,7 @@ export function PerformanceRoutes() {
   return (
     <>
       <Route path="/dashboard/performance" element={<PerformanceDashboardPage />} />
-      <Route path="/dashboard/performance/goals" element={<PerformanceGoalsPage />} />
+      <Route path="/dashboard/performance/goals" element={<Navigate to="/dashboard/performance/metrics" replace />} />
       <Route path="/dashboard/performance/leaderboard" element={<PerformanceLeaderboardPage />} />
       <Route path="/dashboard/performance/challenges" element={<PerformanceChallengesPage />} />
       <Route path="/dashboard/performance/recognition" element={<PerformanceRecognitionPage />} />

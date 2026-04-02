@@ -179,7 +179,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
       iconColor: "text-yellow-500",
       children: [
         { nameKey: "performanceDashboard", name: t("performanceDashboard"), href: "/dashboard/performance", icon: BarChart3, iconColor: "text-yellow-500" },
-        { nameKey: "performanceGoals", name: t("performanceGoals"), href: "/dashboard/performance/goals", icon: Target, iconColor: "text-yellow-500" },
+        { nameKey: "performanceMetrics", name: t("performanceMetrics") || "Métricas & Metas", href: "/dashboard/performance/metrics", icon: Target, iconColor: "text-yellow-500" },
         { nameKey: "leaderboard", name: t("leaderboard"), href: "/dashboard/performance/leaderboard", icon: Trophy, iconColor: "text-yellow-500" },
         { nameKey: "challenges", name: t("challenges"), href: "/dashboard/performance/challenges", icon: Zap, iconColor: "text-yellow-500" },
         { nameKey: "recognitions", name: t("recognitions"), href: "/dashboard/performance/recognition", icon: Award, iconColor: "text-yellow-500" },

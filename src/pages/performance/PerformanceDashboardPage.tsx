@@ -239,7 +239,7 @@ export default function PerformanceDashboardPage() {
                 <Target className="h-5 w-5 text-primary" />
                 {t("activeGoals")}
               </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/goals")}>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/metrics")}>
                 {t("manage")}
               </Button>
             </CardHeader>
