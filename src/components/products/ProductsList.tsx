@@ -632,6 +632,13 @@ export function ProductsList() {
             {productStatusLabels[product.status]}
           </Badge>
         );
+      case "store_published":
+        return (
+          <Switch
+            checked={!!(product as any).store_published}
+            onCheckedChange={(checked) => toggleStorePublished.mutate({ id: product.id, published: checked })}
+          />
+        );
       case "b2b_published":
         return (product as any).b2b_published !== false ? (
           <Badge variant="outline" className="text-green-600 border-green-300">
