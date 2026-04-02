@@ -539,8 +539,12 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         setShowEvolutionWhatsApp(true);
         break;
       case "sms":
-        setSelectedGHLChannel("sms");
-        setShowGHLDialog(true);
+        if (hasTwilioSMS) {
+          setShowTwilioSMS(true);
+        } else {
+          setSelectedGHLChannel("sms");
+          setShowGHLDialog(true);
+        }
         break;
       case "facebook":
         setSelectedGHLChannel("facebook");
