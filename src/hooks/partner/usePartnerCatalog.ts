@@ -6,7 +6,7 @@ export interface PartnerCatalogProduct {
   id: string;
   name: string;
   sku: string | null;
-  price: number;
+  base_price: number;
   image_url: string | null;
   category: string | null;
   brand: string | null;
@@ -20,7 +20,6 @@ export interface PartnerCatalogProduct {
   allow_backorder: boolean;
   partner_notes: string | null;
   stock_status: string | null;
-  // Computed pricing
   pricing?: ComputedPartnerPrice;
 }
 
@@ -43,9 +42,10 @@ export function usePartnerCatalog({
     queryKey: ["partner-catalog", workspaceId, partnerAccountId, search, category, brand],
     enabled: !!workspaceId && !!partnerAccountId,
     queryFn: async () => {
+      // Use a simpler select to avoid type issues with newly added columns
       let query = supabase
         .from("products")
-        .select("id, name, sku, base_price, image_url, category, brand, description, b2b_published, b2b_visible, b2b_sellable, moq, pack_size, pvp_recommended, allow_backorder, partner_notes, stock_status")
+        .select("*")
         .eq("workspace_id", workspaceId!)
         .eq("b2b_published", true)
         .order("name");
@@ -63,9 +63,12 @@ export function usePartnerCatalog({
       const { data, error } = await query.limit(200);
       if (error) throw error;
 
-      // Compute prices for all products via RPC
+      const rawProducts = (data || []) as any[];
+
+      // Compute prices via RPC
       const productsWithPricing = await Promise.all(
-        (data || []).map(async (product) => {
+        rawProducts.map(async (product) => {
+          let pricing: ComputedPartnerPrice | undefined;
           try {
             const { data: priceData } = await supabase.rpc("compute_partner_price", {
               p_workspace_id: workspaceId!,
@@ -73,26 +76,29 @@ export function usePartnerCatalog({
               p_partner_account_id: partnerAccountId!,
               p_quantity: 1,
             });
+            pricing = priceData?.[0] as ComputedPartnerPrice | undefined;
+          } catch { /* ignore pricing errors */ }
 
-            return {
-              ...product,
-              moq: product.moq ?? 1,
-              pack_size: product.pack_size ?? 1,
-              b2b_visible: product.b2b_visible ?? false,
-              b2b_sellable: product.b2b_sellable ?? true,
-              allow_backorder: product.allow_backorder ?? false,
-              pricing: priceData?.[0] as ComputedPartnerPrice | undefined,
-            } as PartnerCatalogProduct;
-          } catch {
-            return {
-              ...product,
-              moq: product.moq ?? 1,
-              pack_size: product.pack_size ?? 1,
-              b2b_visible: product.b2b_visible ?? false,
-              b2b_sellable: product.b2b_sellable ?? true,
-              allow_backorder: product.allow_backorder ?? false,
-            } as PartnerCatalogProduct;
-          }
+          return {
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            base_price: product.base_price ?? 0,
+            image_url: product.image_url ?? null,
+            category: product.category ?? null,
+            brand: product.brand ?? null,
+            description: product.description ?? null,
+            b2b_published: product.b2b_published ?? false,
+            b2b_visible: product.b2b_visible ?? false,
+            b2b_sellable: product.b2b_sellable ?? true,
+            moq: product.moq ?? 1,
+            pack_size: product.pack_size ?? 1,
+            pvp_recommended: product.pvp_recommended ?? null,
+            allow_backorder: product.allow_backorder ?? false,
+            partner_notes: product.partner_notes ?? null,
+            stock_status: product.stock_status ?? null,
+            pricing,
+          } as PartnerCatalogProduct;
         })
       );
 
@@ -100,7 +106,6 @@ export function usePartnerCatalog({
     },
   });
 
-  // Extract unique categories and brands for filters
   const categories = [...new Set(products.map((p) => p.category).filter(Boolean))] as string[];
   const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))] as string[];
 
