@@ -11,7 +11,7 @@ interface CatalogProductsTableProps {
   onTogglePublish: (id: string, current: boolean) => void;
   onToggleFeatured: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
-  onEdit: (product: ProductStoreData) => void;
+  onEdit: (productId: string) => void;
 }
 
 export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onMoveOrder, onEdit }: CatalogProductsTableProps) {
