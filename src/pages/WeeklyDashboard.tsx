@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { WeeklyTargetsEditor } from "@/components/weekly-dashboard/WeeklyTargetsEditor";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PremiumDashboardHeader } from "@/components/weekly-dashboard/PremiumDashboardHeader";
 import { PremiumAISection } from "@/components/weekly-dashboard/PremiumAISection";
