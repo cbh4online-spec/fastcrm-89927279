@@ -1043,6 +1043,8 @@ export function ProposalDetailContent({
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}
                       onPriceChange={handleItemPriceChange}
+                      onAccept={handleAcceptProposal}
+                      onRequestChange={() => setShowChangeRequestDialog(true)}
                     />
                   ) : (
                     <ProposalClientDocument
