@@ -19,6 +19,8 @@ export interface CartItem {
   quantity: number;
   priceOverride?: number;
   discount?: number;
+  nameOverride?: string;
+  descriptionOverride?: string;
 }
 
 interface ProposalCartProps {
