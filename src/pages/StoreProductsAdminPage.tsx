@@ -100,16 +100,13 @@ export default function StoreProductsAdminPage() {
           </Tabs>
         </main>
 
-        <StoreProductEditDialog
-          product={editProduct}
-          open={!!editProduct}
-          onOpenChange={(open) => { if (!open) setEditProduct(null); }}
-          onSave={(id, updates) => {
-            admin.updateProduct.mutate({ id, ...updates });
-            setEditProduct(null);
-            toast.success("Produto atualizado");
-          }}
-        />
+        {editProductId && (
+          <ProductDetailDialog
+            open={!!editProductId}
+            onOpenChange={(open) => { if (!open) setEditProductId(null); }}
+            productId={editProductId}
+          />
+        )}
       </DashboardLayout>
     </>
   );
