@@ -1,43 +1,46 @@
 
 
-# Auto-associar cliente e contacto da oportunidade à proposta
+# Fix: Botões "Aceitar Proposta" e "Solicitar Alteração" sem funcionalidade
 
 ## Diagnóstico
 
-Quando uma proposta é criada a partir de uma oportunidade do pipeline, os campos `contact_id` e `company_id` da proposta ficam `NULL`, apesar de a oportunidade já ter esses dados preenchidos. Confirmado na BD: a oportunidade `fdf737cc` tem `contact_id` e `company_id`, mas a proposta `518035c3` tem ambos a `NULL`.
-
-**Causa raiz:** O `handleSave` em `CreateProposalDialog.tsx` não copia `contact_id` nem `company_id` da oportunidade para o insert da proposta. O `useCreateProposal` também não aceita esses campos no `CreateProposalInput`.
+Os botões na `ProposalInternalView.tsx` (linhas 474-475) são puramente decorativos — não têm `onClick` nem qualquer lógica associada. São `<Button>` sem handlers.
 
 ## Solução
 
-### 1. Expandir `CreateProposalInput` (`src/types/proposal.ts`)
+### 1. Adicionar callbacks ao `ProposalInternalView`
 
-Adicionar `contact_id` e `company_id` opcionais ao tipo `CreateProposalInput`.
+Expandir a interface `ProposalInternalViewProps` com dois callbacks opcionais:
+- `onAccept?: () => void`
+- `onRequestChange?: () => void`
 
-### 2. Passar contact/company no `useCreateProposal` (`src/hooks/useProposals.ts`)
+Ligar aos botões existentes via `onClick`. Esconder os botões se a proposta já estiver aceite/rejeitada.
 
-No `insertData`, incluir `contact_id` e `company_id` vindos do input.
+### 2. Implementar lógica no `ProposalDetailContent`
 
-### 3. Expandir `useOpportunity` query (`src/hooks/useOpportunities.ts`)
+No componente pai que renderiza `ProposalInternalView`:
+- **Aceitar Proposta**: chamar `useUpdateProposal` com `{ status: "accepted", accepted_at: new Date().toISOString() }` + toast de sucesso
+- **Solicitar Alteração**: abrir um dialog simples com textarea para o utilizador escrever o pedido de alteração, e ao submeter:
+  - Registar na `proposal_activity_logs` (action: `change_requested`, details com a mensagem)
+  - Mudar status para `draft` (volta ao rascunho para edição)
+  - Toast de confirmação
 
-Incluir `contact_id` e `company_id` no select da oportunidade (actualmente só traz `lead`).
+### 3. Criar `ProposalChangeRequestDialog`
 
-### 4. Auto-preencher no `CreateProposalDialog` (`src/components/proposals/CreateProposalDialog.tsx`)
+Dialog com:
+- Textarea para descrever as alterações pedidas
+- Botão cancelar / submeter
+- Ao submeter: insere activity log + actualiza status
 
-No `handleSave`, ler `selectedOpportunity.contact_id` e `selectedOpportunity.company_id` e passá-los ao `createProposal.mutateAsync`.
+### 4. Controlo de visibilidade
+
+Os botões só aparecem quando `proposal.status === "published"` (faz sentido aceitar/pedir alteração apenas em propostas publicadas).
 
 ## Ficheiros alterados
 
 | Ficheiro | Alteração |
 |---|---|
-| `src/types/proposal.ts` | Adicionar `contact_id?` e `company_id?` a `CreateProposalInput` |
-| `src/hooks/useProposals.ts` | Incluir `contact_id` e `company_id` no `insertData` |
-| `src/hooks/useOpportunities.ts` | Adicionar `contact_id, company_id` ao select de `useOpportunity` |
-| `src/components/proposals/CreateProposalDialog.tsx` | Passar `contact_id` e `company_id` da oportunidade no `handleSave` |
-
-## Critérios de aceitação
-
-- Proposta criada a partir de oportunidade herda automaticamente o contacto e empresa da oportunidade
-- Campos `contact_id` e `company_id` preenchidos na BD após criação
-- Detalhe da proposta mostra o cliente e contacto sem intervenção manual
+| `src/components/proposals/ProposalInternalView.tsx` | Adicionar props `onAccept`, `onRequestChange`; condicionar visibilidade por status; ligar `onClick` |
+| `src/components/proposals/ProposalDetailContent.tsx` | Passar callbacks ao `ProposalInternalView`; implementar lógica de aceitar e solicitar alteração |
+| `src/components/proposals/ProposalChangeRequestDialog.tsx` | Novo dialog para pedido de alteração com textarea |
 
