@@ -141,6 +141,7 @@ const INITIAL_COL_WIDTHS: Record<string, number> = {
   billing_type: 100,
   billing_frequency: 100,
   status: 90,
+  store_published: 90,
   b2b_published: 80,
   total_units: 80,
   unit_duration: 90,
