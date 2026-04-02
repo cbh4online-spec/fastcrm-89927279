@@ -76,6 +76,7 @@ export function EditClientDialog({
     resolver: zodResolver(editClientSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
       tax_id: "",
       credit_limit: 0,
