@@ -90,6 +90,15 @@ const TYPE_COLORS: Record<MetricType, string> = {
   custom: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
 };
 
+interface AIAlertSuggestion {
+  metric_id: string;
+  metric_name: string;
+  condition: string;
+  threshold_pct: number;
+  channel: AlertChannel;
+  reasoning: string;
+}
+
 interface AISuggestion {
   name: string;
   description: string;
@@ -125,10 +134,15 @@ export default function PipelineMetricsPage() {
   const [editingTarget, setEditingTarget] = useState<MetricTarget | null>(null);
   const [editingAlert, setEditingAlert] = useState<MetricAlert | null>(null);
 
-  // AI suggestions
+  // AI suggestions (metrics)
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [aiOpen, setAiOpen] = useState(false);
+
+  // AI suggestions (alerts)
+  const [aiAlertLoading, setAiAlertLoading] = useState(false);
+  const [aiAlertSuggestions, setAiAlertSuggestions] = useState<AIAlertSuggestion[]>([]);
+  const [aiAlertOpen, setAiAlertOpen] = useState(false);
 
   // Metric form
   const [mName, setMName] = useState("");
@@ -318,6 +332,38 @@ export default function PipelineMetricsPage() {
         }
         setAiSuggestions(prev => prev.filter(x => x.name !== s.name));
         toast.success(`Métrica "${s.name}" adicionada`);
+      },
+    });
+  };
+
+  const handleAIAlertSuggest = async () => {
+    if (!currentWorkspace?.id) return;
+    setAiAlertLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("context-ai-assist", {
+        body: { action: "suggest_alerts", workspaceId: currentWorkspace.id },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setAiAlertSuggestions(data.suggestions || []);
+      setAiAlertOpen(true);
+    } catch (e: any) {
+      toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
+    } finally {
+      setAiAlertLoading(false);
+    }
+  };
+
+  const acceptAlertSuggestion = (s: AIAlertSuggestion) => {
+    createAlert.mutate({
+      metric_id: s.metric_id,
+      channel: s.channel,
+      condition: s.condition,
+      threshold_pct: s.threshold_pct,
+    }, {
+      onSuccess: () => {
+        setAiAlertSuggestions(prev => prev.filter(x => x !== s));
+        toast.success(`Alerta "${s.metric_name}" adicionado`);
       },
     });
   };
@@ -677,7 +723,11 @@ export default function PipelineMetricsPage() {
 
         {/* ===== ALERTS TAB ===== */}
         <TabsContent value="alerts" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={handleAIAlertSuggest} disabled={aiAlertLoading || metrics.length === 0}>
+              {aiAlertLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sugerir com IA
+            </Button>
             <Dialog open={alertOpen} onOpenChange={(open) => { setAlertOpen(open); if (!open) setEditingAlert(null); }}>
               <DialogTrigger asChild>
                 <Button className="gap-1.5" disabled={metrics.length === 0}><Plus className="h-4 w-4" />Novo Alerta</Button>
@@ -801,6 +851,44 @@ export default function PipelineMetricsPage() {
                         <p className="text-xs text-muted-foreground/70 italic">{s.reasoning}</p>
                       </div>
                       <Button size="sm" className="gap-1 shrink-0" onClick={() => acceptSuggestion(s)} disabled={createMetric.isPending}>
+                        <Check className="h-3.5 w-3.5" />Adicionar
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== AI ALERT SUGGESTIONS DIALOG ===== */}
+      <Dialog open={aiAlertOpen} onOpenChange={setAiAlertOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Sugestões de Alertas — IA
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[65vh]">
+            {aiAlertSuggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Sem sugestões disponíveis.</p>
+            ) : (
+              <div className="space-y-3">
+                {aiAlertSuggestions.map((s, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-medium text-sm">{s.metric_name}</h4>
+                          <Badge variant="secondary" className="text-xs">{ALERT_CONDITIONS.find(c => c.value === s.condition)?.label || s.condition}</Badge>
+                          <Badge variant="outline" className="text-xs">{s.threshold_pct}%</Badge>
+                          <Badge variant="outline" className="text-xs">{ALERT_CHANNELS.find(c => c.value === s.channel)?.label || s.channel}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground/70 italic">{s.reasoning}</p>
+                      </div>
+                      <Button size="sm" className="gap-1 shrink-0" onClick={() => acceptAlertSuggestion(s)} disabled={createAlert.isPending}>
                         <Check className="h-3.5 w-3.5" />Adicionar
                       </Button>
                     </div>

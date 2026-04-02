@@ -248,6 +248,136 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "suggest_alerts") {
+      // Get existing metrics for this workspace
+      const { data: existingMetrics } = await supabase
+        .from("pipeline_metrics")
+        .select("id, name, metric_type, unit, source_table")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+
+      if (!existingMetrics || existingMetrics.length === 0) {
+        return new Response(JSON.stringify({ suggestions: [], error: "Crie métricas primeiro para receber sugestões de alertas." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get existing targets
+      const { data: existingTargets } = await supabase
+        .from("pipeline_metric_targets")
+        .select("metric_id, period, target_value")
+        .eq("workspace_id", workspaceId);
+
+      // Get strategic context
+      const { data: allBlocks } = await supabase
+        .from("context_blocks")
+        .select("block_type, title, rich_text")
+        .eq("workspace_id", workspaceId);
+
+      const contextSummary = (allBlocks || []).map((b: any) =>
+        `[${b.block_type}] ${b.title}${b.rich_text ? `: ${b.rich_text}` : ""}`
+      ).join("\n");
+
+      const metricsInfo = existingMetrics.map((m: any) => {
+        const tgts = (existingTargets || []).filter((t: any) => t.metric_id === m.id);
+        const tgtStr = tgts.length > 0 ? ` (meta: ${tgts.map((t: any) => `${t.target_value} ${t.period}`).join(", ")})` : "";
+        return `- ${m.name} [${m.metric_type}] unit:${m.unit} id:${m.id}${tgtStr}`;
+      }).join("\n");
+
+      // Get existing alerts to avoid duplicates
+      const { data: existingAlerts } = await supabase
+        .from("pipeline_metric_alerts")
+        .select("metric_id, condition, is_active")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+
+      const existingAlertStr = (existingAlerts || []).map((a: any) =>
+        `metric_id:${a.metric_id} condition:${a.condition}`
+      ).join(", ");
+
+      const _startTime = Date.now();
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            {
+              role: "system",
+              content: `És um consultor de vendas e performance. Com base no contexto estratégico e nas métricas existentes, sugere alertas relevantes para monitorizar KPIs críticos. Responde em Português de Portugal. Sê prático e específico.`,
+            },
+            {
+              role: "user",
+              content: `CONTEXTO ESTRATÉGICO:\n${contextSummary || "Sem contexto — sugere alertas genéricos."}\n\nMÉTRICAS DISPONÍVEIS:\n${metricsInfo}\n\nALERTAS JÁ EXISTENTES (evitar duplicados):\n${existingAlertStr || "Nenhum"}\n\nSugere 3-5 alertas novos. Cada alerta deve referenciar uma métrica existente pelo id. Condições disponíveis: below_target, above_target, sla_breach, trend_down. Canais: in_app, email, webhook.`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "suggest_alerts",
+                description: "Return alert suggestions based on metrics and context",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    suggestions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          metric_id: { type: "string", description: "ID of an existing metric" },
+                          metric_name: { type: "string", description: "Name of the metric for display" },
+                          condition: { type: "string", enum: ["below_target", "above_target", "sla_breach", "trend_down"] },
+                          threshold_pct: { type: "number", description: "Threshold percentage (e.g. 80 means alert at 80%)" },
+                          channel: { type: "string", enum: ["in_app", "email", "webhook"] },
+                          reasoning: { type: "string", description: "Why this alert is important" },
+                        },
+                        required: ["metric_id", "metric_name", "condition", "threshold_pct", "channel", "reasoning"],
+                      },
+                    },
+                  },
+                  required: ["suggestions"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "suggest_alerts" } },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error("AI error:", aiResponse.status, errText);
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit — tente novamente em breve" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (aiResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "Créditos IA esgotados" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("AI gateway error");
+      }
+
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      const suggestions = toolCall ? JSON.parse(toolCall.function.arguments).suggestions : [];
+
+      // Validate metric_ids exist
+      const validMetricIds = new Set(existingMetrics.map((m: any) => m.id));
+      const validSuggestions = suggestions.filter((s: any) => validMetricIds.has(s.metric_id));
+
+      return new Response(JSON.stringify({ suggestions: validSuggestions }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "suggest_metrics_and_targets") {
       const { data: allBlocks } = await supabase
         .from("context_blocks")
