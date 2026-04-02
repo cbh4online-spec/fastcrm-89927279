@@ -161,18 +161,29 @@ export function ProposalCart({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-sm truncate">
-                          {item.product.name}
+                          {item.nameOverride || item.product.name}
                         </h4>
-                        {(hasOverride || hasDiscount) && (
+                        {(hasOverride || hasDiscount || item.nameOverride) && (
                           <Badge variant="secondary" className="text-[10px] shrink-0">
                             Editado
                           </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm font-semibold text-primary">
-                          {formatPrice(itemTotal)}
-                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.priceOverride ?? item.product.base_price ?? ""}
+                          onChange={(e) =>
+                            onUpdatePrice(
+                              item.product.id,
+                              e.target.value ? parseFloat(e.target.value) : undefined
+                            )
+                          }
+                          className="w-24 h-7 text-sm font-semibold text-primary text-right px-1"
+                          placeholder={`${item.product.base_price ?? 0}`}
+                        />
+                        <span className="text-xs text-muted-foreground">€</span>
                         {(hasOverride || hasDiscount) && originalTotal !== itemTotal && (
                           <span className="text-xs text-muted-foreground line-through">
                             {formatPrice(originalTotal)}
