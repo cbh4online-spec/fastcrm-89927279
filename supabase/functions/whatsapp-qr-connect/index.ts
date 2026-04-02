@@ -13,6 +13,11 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
   });
 }
 
+// Wrapper with 8s timeout to prevent hanging on Evolution API calls
+function api(url: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -62,7 +67,7 @@ Deno.serve(async (req) => {
     // 1. Create instance (idempotent)
     let instanceCreated = false;
     try {
-      const createRes = await fetch(`${baseUrl}/instance/create`, {
+      const createRes = await api(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
         body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
@@ -93,7 +98,7 @@ Deno.serve(async (req) => {
     console.log(`[WHATSAPP_QR] INSTANCE_READY instance=${instanceName}`);
 
     // 2. Connect and get QR
-    const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+    const connectRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
       method: "GET",
       headers: { apikey: EVOLUTION_API_KEY },
     });
@@ -126,7 +131,7 @@ Deno.serve(async (req) => {
 
       // Fallback: check connectionState endpoint
       try {
-        const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+        const stateRes = await api(`${baseUrl}/instance/connectionState/${instanceName}`, {
           method: "GET",
           headers: { apikey: EVOLUTION_API_KEY },
         });
@@ -145,7 +150,7 @@ Deno.serve(async (req) => {
         if (fallbackState === "connecting") {
           console.log(`[WHATSAPP_QR] RESTART instance=${instanceName} (stuck in connecting)`);
           try {
-            await fetch(`${baseUrl}/instance/restart/${instanceName}`, {
+            await api(`${baseUrl}/instance/restart/${instanceName}`, {
               method: "PUT",
               headers: { apikey: EVOLUTION_API_KEY },
             });
@@ -157,7 +162,7 @@ Deno.serve(async (req) => {
           await new Promise((r) => setTimeout(r, 2000));
 
           // Retry connect
-          const retryRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+          const retryRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
             method: "GET",
             headers: { apikey: EVOLUTION_API_KEY },
           });
@@ -185,7 +190,7 @@ Deno.serve(async (req) => {
           // Escalate: DELETE + RECREATE instance
           console.log(`[WHATSAPP_QR] DELETE instance=${instanceName} (restart did not resolve)`);
           try {
-            const delRes = await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
+            const delRes = await api(`${baseUrl}/instance/delete/${instanceName}`, {
               method: "DELETE",
               headers: { apikey: EVOLUTION_API_KEY },
             });
@@ -200,7 +205,7 @@ Deno.serve(async (req) => {
           // Recreate instance
           console.log(`[WHATSAPP_QR] RECREATE instance=${instanceName}`);
           try {
-            const recreateRes = await fetch(`${baseUrl}/instance/create`, {
+            const recreateRes = await api(`${baseUrl}/instance/create`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
               body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
@@ -212,7 +217,7 @@ Deno.serve(async (req) => {
           }
 
           // Connect after recreate
-          const finalRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+          const finalRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
             method: "GET",
             headers: { apikey: EVOLUTION_API_KEY },
           });
