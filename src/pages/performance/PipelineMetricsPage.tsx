@@ -336,7 +336,38 @@ export default function PipelineMetricsPage() {
     });
   };
 
-  const activeFiltersCount = (filters: Record<string, unknown>) => {
+  const handleAIAlertSuggest = async () => {
+    if (!currentWorkspace?.id) return;
+    setAiAlertLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("context-ai-assist", {
+        body: { action: "suggest_alerts", workspaceId: currentWorkspace.id },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setAiAlertSuggestions(data.suggestions || []);
+      setAiAlertOpen(true);
+    } catch (e: any) {
+      toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
+    } finally {
+      setAiAlertLoading(false);
+    }
+  };
+
+  const acceptAlertSuggestion = (s: AIAlertSuggestion) => {
+    createAlert.mutate({
+      metric_id: s.metric_id,
+      channel: s.channel,
+      condition: s.condition,
+      threshold_pct: s.threshold_pct,
+    }, {
+      onSuccess: () => {
+        setAiAlertSuggestions(prev => prev.filter(x => x !== s));
+        toast.success(`Alerta "${s.metric_name}" adicionado`);
+      },
+    });
+  };
+
     return Object.values(filters).filter(v => v !== undefined && v !== null && v !== "").length;
   };
 
