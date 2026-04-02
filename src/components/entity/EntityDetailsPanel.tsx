@@ -134,6 +134,13 @@ function EditableFieldRow({
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground/60 text-[13px]">—</span>;
     const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+    if (isLink && linkType === 'whatsapp') {
+      const raw = String(value);
+      const href = raw.startsWith('http')
+        ? raw
+        : `https://wa.me/${raw.replace(/[^\d+]/g, '').replace(/^\+/, '')}`;
+      return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-[#25D366] hover:underline text-[13px] font-medium break-all">{raw}</a>;
+    }
     if (isLink && linkType === 'url') {
       const href = String(value).startsWith('http') ? String(value) : `https://${value}`;
       return <a href={href} target="_blank" rel="noopener noreferrer" onClick={stopProp} className="text-primary hover:underline text-[13px] font-medium break-all">{String(value)}</a>;
@@ -303,7 +310,7 @@ function CompanyDetails({ entity, onUpdate, onEmailClick }: { entity: CompanyEnt
         <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
         <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="whatsapp" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -345,7 +352,7 @@ function ContactDetails({ entity, onUpdate, onEmailClick }: { entity: ContactEnt
         <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
         <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="whatsapp" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -380,7 +387,7 @@ function LeadDetails({ entity, onUpdate, onEmailClick }: { entity: LeadEntity; o
         <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
         <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="whatsapp" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
