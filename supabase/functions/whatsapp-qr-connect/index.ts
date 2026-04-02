@@ -1,317 +1,147 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function jsonRes(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-// Wrapper with 8s timeout to prevent hanging on Evolution API calls
-function api(url: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
-}
+import {
+  corsHeaders, jsonRes, evoFetch, getAdminClient, getEvolutionConfig,
+  validateAuth, validateWorkspaceMembership, instanceNameFor, getWebhookUrl,
+} from "../_shared/evolution-api.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { workspaceId, userId } = await req.json();
-    if (!workspaceId || !userId) return jsonRes({ error: "Missing workspaceId or userId" }, 400);
+    // 1. Auth
+    const auth = await validateAuth(req);
+    if (auth.error) return auth.error;
 
-    const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-      return jsonRes({ error: "Evolution API not configured. Add EVOLUTION_API_URL and EVOLUTION_API_KEY secrets." }, 500);
-    }
+    const body = await req.json();
+    const workspaceId = body?.workspaceId;
+    if (!workspaceId || typeof workspaceId !== "string") return jsonRes({ error: "Missing workspaceId" }, 400);
 
-    // Sanitize URL — extract origin only
-    let finalUrl = EVOLUTION_API_URL.trim();
-    if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) {
-      if (finalUrl.includes("://")) {
-        console.error(`[WHATSAPP_QR] INVALID_URL scheme="${finalUrl.substring(0, 15)}"`);
-        return jsonRes({ error: "EVOLUTION_API_URL must be an HTTP(S) URL." }, 500);
-      }
-      finalUrl = `https://${finalUrl}`;
-    }
-    const baseUrl = new URL(finalUrl).origin;
+    const membership = await validateWorkspaceMembership(auth.userId, workspaceId);
+    if (membership.error) return membership.error;
 
-    // Deterministic instance name
-    const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
-    console.log(`[WHATSAPP_QR] START workspace=${workspaceId} instance=${instanceName}`);
+    // 2. Config
+    const evo = getEvolutionConfig();
+    if ("error" in evo) return evo.error;
+    const { baseUrl, apiKey } = evo;
+    const { admin, supabaseUrl } = getAdminClient();
+    const instanceName = instanceNameFor(workspaceId);
+    const webhookUrl = getWebhookUrl();
 
-    // Supabase admin client for DB ops
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const webhookUrl = `${SUPABASE_URL}/functions/v1/whatsapp-evolution-webhook`;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log(`[WHATSAPP_QR] CONNECT_START workspace=${workspaceId} instance=${instanceName}`);
 
-    // Upsert status → creating_instance
-    await adminClient.from("whatsapp_qr_connections").upsert(
-      {
-        workspace_id: workspaceId,
-        instance_name: instanceName,
-        status: "creating_instance",
-        last_error: null,
-        qr_code: null,
-        updated_at: new Date().toISOString(),
+    // 3. Set status → creating_instance
+    await admin.from("whatsapp_qr_connections").upsert({
+      workspace_id: workspaceId,
+      instance_name: instanceName,
+      status: "creating_instance",
+      last_error: null,
+      qr_code: null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "workspace_id" });
+
+    // 4. Create instance (idempotent)
+    const createPayload = {
+      instanceName,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+      webhook: {
+        url: webhookUrl, enabled: true,
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+        webhook_by_events: false, webhook_base64: false,
       },
-      { onConflict: "workspace_id" }
-    );
+    };
 
-    // 1. Create instance (idempotent)
-    let instanceCreated = false;
-    try {
-      const createRes = await api(`${baseUrl}/instance/create`, {
+    const createRes = await evoFetch(baseUrl, "/instance/create", apiKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(createPayload),
+    });
+
+    console.log(`[WHATSAPP_QR] CREATE status=${createRes.status} body=${createRes.text}`);
+
+    if (createRes.status === 401) {
+      await admin.from("whatsapp_qr_connections").update({
+        status: "error", last_error: "EVOLUTION_API_KEY inválida",
+      }).eq("workspace_id", workspaceId);
+      return jsonRes({ error: "EVOLUTION_API_KEY inválida — verifique a configuração." }, 401);
+    }
+
+    const instanceCreated = createRes.ok || createRes.status === 409 || createRes.status === 403;
+
+    // If already exists, set webhook
+    if (createRes.status === 403 || createRes.status === 409) {
+      await evoFetch(baseUrl, `/webhook/set/${instanceName}`, apiKey, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instanceName,
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS",
           webhook: {
-            url: webhookUrl,
-            enabled: true,
+            url: webhookUrl, enabled: true,
             events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-            webhook_by_events: false,
-            webhook_base64: false,
+            webhook_by_events: false, webhook_base64: false,
           },
         }),
       });
-      const createText = await createRes.text();
-      console.log(`[WHATSAPP_QR] CREATE status=${createRes.status} body=${createText.substring(0, 200)}`);
-
-      if (createRes.status === 401) {
-        await adminClient.from("whatsapp_qr_connections").update({
-          status: "error", last_error: "EVOLUTION_API_KEY inválida",
-        }).eq("workspace_id", workspaceId);
-        return jsonRes({ error: "EVOLUTION_API_KEY inválida — verifique a configuração." }, 401);
-      }
-
-      // 2xx created, 409/403 already exists — all OK
-      instanceCreated = createRes.ok || createRes.status === 409 || createRes.status === 403;
-
-      // If instance already existed (403/409), ensure webhook is configured
-      if (createRes.status === 403 || createRes.status === 409) {
-        try {
-          console.log(`[WHATSAPP_QR] SET_WEBHOOK instance=${instanceName} url=${webhookUrl}`);
-          const whRes = await api(`${baseUrl}/webhook/set/${instanceName}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-            body: JSON.stringify({
-              webhook: {
-                url: webhookUrl,
-                enabled: true,
-                events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-                webhook_by_events: false,
-                webhook_base64: false,
-              },
-            }),
-          });
-          const whText = await whRes.text();
-          console.log(`[WHATSAPP_QR] SET_WEBHOOK status=${whRes.status} body=${whText.substring(0, 200)}`);
-        } catch (whErr) {
-          console.error(`[WHATSAPP_QR] SET_WEBHOOK_FAILED`, whErr);
-        }
-      }
-    } catch (e) {
-      console.error(`[WHATSAPP_QR] CREATE_FAILED error=${e.message}`);
     }
 
     if (!instanceCreated) {
-      await adminClient.from("whatsapp_qr_connections").update({
+      await admin.from("whatsapp_qr_connections").update({
         status: "error", last_error: "Falha ao criar instância na Evolution API",
       }).eq("workspace_id", workspaceId);
-      return jsonRes({ error: "Falha ao criar instância na Evolution API." }, 500);
+      return jsonRes({ error: "Falha ao criar instância na Evolution API." }, 200);
     }
 
-    console.log(`[WHATSAPP_QR] INSTANCE_READY instance=${instanceName}`);
-
-    // 2. Connect and get QR
-    const connectRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
-      method: "GET",
-      headers: { apikey: EVOLUTION_API_KEY },
-    });
-    const connectData = await connectRes.json();
-    console.log(`[WHATSAPP_QR] CONNECT_RESPONSE status=${connectRes.status} body=${JSON.stringify(connectData).substring(0, 500)}`);
+    // 5. Connect and get QR
+    const connectRes = await evoFetch(baseUrl, `/instance/connect/${instanceName}`, apiKey, { method: "GET" });
+    console.log(`[WHATSAPP_QR] CONNECT status=${connectRes.status} body=${connectRes.text}`);
 
     if (!connectRes.ok) {
-      console.error(`[WHATSAPP_QR] CONNECT_FAILED status=${connectRes.status}`, connectData);
-      await adminClient.from("whatsapp_qr_connections").update({
-        status: "error", last_error: connectData?.message || "Failed to connect instance",
+      // Don't escalate here — save pending_action for status to pick up
+      const now = new Date().toISOString();
+      await admin.from("whatsapp_qr_connections").update({
+        status: "creating_instance",
+        last_error: connectRes.data?.message || "Connect failed — retrying via status",
+        metadata_json: { pending_action: "restart_and_connect", retry_after: now },
+        updated_at: now,
       }).eq("workspace_id", workspaceId);
-      return jsonRes({ error: connectData?.message || "Failed to connect instance" }, 500);
+      return jsonRes({ status: "creating_instance", instanceName, preparing: true });
     }
 
-    const qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code || null;
+    const qrcode = connectRes.data?.base64 || connectRes.data?.qrcode?.base64 || connectRes.data?.code || null;
 
-    if (!qrcode) {
-      // Check state from multiple possible response formats
-      const detectedState = connectData?.instance?.state
-        || connectData?.state
-        || connectData?.status;
-
-      if (detectedState === "open" || detectedState === "connected") {
-        console.log(`[WHATSAPP_QR] ALREADY_CONNECTED instance=${instanceName} state=${detectedState}`);
-        await adminClient.from("whatsapp_qr_connections").update({
-          status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
-        }).eq("workspace_id", workspaceId);
-        return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
-      }
-
-      // Fallback: check connectionState endpoint
-      try {
-        const stateRes = await api(`${baseUrl}/instance/connectionState/${instanceName}`, {
-          method: "GET",
-          headers: { apikey: EVOLUTION_API_KEY },
-        });
-        const stateData = await stateRes.json();
-        console.log(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK body=${JSON.stringify(stateData).substring(0, 300)}`);
-        const fallbackState = stateData?.instance?.state || stateData?.state || stateData?.status;
-        if (fallbackState === "open" || fallbackState === "connected") {
-          console.log(`[WHATSAPP_QR] ALREADY_CONNECTED_VIA_FALLBACK instance=${instanceName} state=${fallbackState}`);
-          await adminClient.from("whatsapp_qr_connections").update({
-            status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
-          }).eq("workspace_id", workspaceId);
-          return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
-        }
-
-        // If stuck in "connecting", restart instance and retry connect once
-        if (fallbackState === "connecting") {
-          console.log(`[WHATSAPP_QR] RESTART instance=${instanceName} (stuck in connecting)`);
-          try {
-            await api(`${baseUrl}/instance/restart/${instanceName}`, {
-              method: "PUT",
-              headers: { apikey: EVOLUTION_API_KEY },
-            });
-          } catch (restartErr) {
-            console.error(`[WHATSAPP_QR] RESTART_FAILED`, restartErr);
-          }
-
-          // Wait 2s for restart
-          await new Promise((r) => setTimeout(r, 2000));
-
-          // Retry connect
-          const retryRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
-            method: "GET",
-            headers: { apikey: EVOLUTION_API_KEY },
-          });
-          const retryData = await retryRes.json();
-          console.log(`[WHATSAPP_QR] RETRY_CONNECT status=${retryRes.status} body=${JSON.stringify(retryData).substring(0, 500)}`);
-
-          const retryQR = retryData?.base64 || retryData?.qrcode?.base64 || retryData?.code || null;
-          if (retryQR) {
-            console.log(`[WHATSAPP_QR] QR_GENERATED_AFTER_RESTART instance=${instanceName}`);
-            await adminClient.from("whatsapp_qr_connections").update({
-              status: "qr_pending", qr_code: retryQR, qr_updated_at: new Date().toISOString(), last_error: null,
-            }).eq("workspace_id", workspaceId);
-            return jsonRes({ qrcode: retryQR, instanceName, status: "qr_pending" });
-          }
-
-          // Check if now connected after restart
-          const retryState = retryData?.instance?.state || retryData?.state || retryData?.status;
-          if (retryState === "open" || retryState === "connected") {
-            await adminClient.from("whatsapp_qr_connections").update({
-              status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
-            }).eq("workspace_id", workspaceId);
-            return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
-          }
-
-          // Escalate: DELETE + RECREATE instance
-          console.log(`[WHATSAPP_QR] DELETE instance=${instanceName} (restart did not resolve)`);
-          try {
-            const delRes = await api(`${baseUrl}/instance/delete/${instanceName}`, {
-              method: "DELETE",
-              headers: { apikey: EVOLUTION_API_KEY },
-            });
-            const delText = await delRes.text();
-            console.log(`[WHATSAPP_QR] DELETE status=${delRes.status} body=${delText.substring(0, 200)}`);
-          } catch (delErr) {
-            console.error(`[WHATSAPP_QR] DELETE_FAILED`, delErr);
-          }
-
-          await new Promise((r) => setTimeout(r, 1000));
-
-          // Recreate instance
-          console.log(`[WHATSAPP_QR] RECREATE instance=${instanceName}`);
-          try {
-            const recreateRes = await api(`${baseUrl}/instance/create`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-              body: JSON.stringify({
-                instanceName,
-                qrcode: true,
-                integration: "WHATSAPP-BAILEYS",
-                webhook: {
-                  url: webhookUrl,
-                  enabled: true,
-                  events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-                  webhook_by_events: false,
-                  webhook_base64: false,
-                },
-              }),
-            });
-            const recreateText = await recreateRes.text();
-            console.log(`[WHATSAPP_QR] RECREATE status=${recreateRes.status} body=${recreateText.substring(0, 300)}`);
-          } catch (recreateErr) {
-            console.error(`[WHATSAPP_QR] RECREATE_FAILED`, recreateErr);
-          }
-
-          // Connect after recreate
-          const finalRes = await api(`${baseUrl}/instance/connect/${instanceName}`, {
-            method: "GET",
-            headers: { apikey: EVOLUTION_API_KEY },
-          });
-          const finalData = await finalRes.json();
-          console.log(`[WHATSAPP_QR] RETRY_CONNECT_AFTER_RECREATE status=${finalRes.status} body=${JSON.stringify(finalData).substring(0, 500)}`);
-
-          const finalQR = finalData?.base64 || finalData?.qrcode?.base64 || finalData?.code || null;
-          if (finalQR) {
-            console.log(`[WHATSAPP_QR] QR_GENERATED_AFTER_RECREATE instance=${instanceName}`);
-            await adminClient.from("whatsapp_qr_connections").update({
-              status: "qr_pending", qr_code: finalQR, qr_updated_at: new Date().toISOString(), last_error: null,
-            }).eq("workspace_id", workspaceId);
-            return jsonRes({ qrcode: finalQR, instanceName, status: "qr_pending" });
-          }
-
-          const finalState = finalData?.instance?.state || finalData?.state || finalData?.status;
-          if (finalState === "open" || finalState === "connected") {
-            await adminClient.from("whatsapp_qr_connections").update({
-              status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
-            }).eq("workspace_id", workspaceId);
-            return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
-          }
-        }
-      } catch (fallbackErr) {
-        console.error(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK_ERROR`, fallbackErr);
-      }
-
-      // Return 200 with structured error instead of 500 (resilient pattern)
-      console.warn(`[WHATSAPP_QR] NO_QR_NO_STATE instance=${instanceName}`);
-      await adminClient.from("whatsapp_qr_connections").update({
-        status: "error", last_error: "QR code not available",
+    if (qrcode) {
+      const now = new Date().toISOString();
+      await admin.from("whatsapp_qr_connections").update({
+        status: "qr_pending", qr_code: qrcode, qr_updated_at: now,
+        last_error: null, metadata_json: {}, updated_at: now,
       }).eq("workspace_id", workspaceId);
-      return jsonRes({ error: "QR code não disponível. Tente desconectar e reconectar.", needsReconnect: true, instanceName });
+      return jsonRes({ qrcode, instanceName, status: "qr_pending" });
     }
 
-    // Save QR to DB
-    console.log(`[WHATSAPP_QR] QR_GENERATED instance=${instanceName}`);
-    await adminClient.from("whatsapp_qr_connections").update({
-      status: "qr_pending",
-      qr_code: qrcode,
-      qr_updated_at: new Date().toISOString(),
-      last_error: null,
-    }).eq("workspace_id", workspaceId);
+    // No QR — check if already connected
+    const detectedState = connectRes.data?.instance?.state || connectRes.data?.state || connectRes.data?.status;
+    if (detectedState === "open" || detectedState === "connected") {
+      const now = new Date().toISOString();
+      await admin.from("whatsapp_qr_connections").update({
+        status: "connected", connected_at: now, last_seen_at: now,
+        metadata_json: {}, updated_at: now,
+      }).eq("workspace_id", workspaceId);
+      return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
+    }
 
-    return jsonRes({ qrcode, instanceName, status: "qr_pending" });
+    // Stuck state — save pending_action for async recovery via status polling
+    if (detectedState === "connecting" || !detectedState) {
+      const now = new Date().toISOString();
+      await admin.from("whatsapp_qr_connections").update({
+        status: "creating_instance",
+        metadata_json: { pending_action: "restart_and_connect", retry_after: now },
+        updated_at: now,
+      }).eq("workspace_id", workspaceId);
+      console.log(`[WHATSAPP_QR] DEFERRED_RECOVERY instance=${instanceName} state=${detectedState}`);
+      return jsonRes({ status: "creating_instance", instanceName, preparing: true });
+    }
+
+    return jsonRes({ error: "QR code não disponível. Tente desconectar e reconectar.", needsReconnect: true, instanceName });
   } catch (error) {
-    console.error("[WHATSAPP_QR] UNHANDLED_ERROR", error);
+    console.error("[WHATSAPP_QR] CONNECT_ERROR", error);
     return jsonRes({ error: "Internal server error" }, 500);
   }
 });
