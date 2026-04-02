@@ -1,0 +1,2 @@
+ALTER TABLE public.order_notes ADD COLUMN proposal_id uuid REFERENCES public.proposals(id);
+CREATE UNIQUE INDEX order_notes_proposal_id_unique ON public.order_notes(proposal_id) WHERE proposal_id IS NOT NULL;
