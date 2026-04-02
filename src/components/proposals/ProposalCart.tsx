@@ -238,23 +238,27 @@ export function ProposalCart({
                   </div>
 
                   <CollapsibleContent className="mt-3 pt-3 border-t border-border/50">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-3">
                       <div className="space-y-1">
                         <label className="text-xs text-muted-foreground">
-                          Preço unitário
+                          Nome do item
                         </label>
                         <Input
-                          type="number"
-                          step="0.01"
-                          value={item.priceOverride ?? item.product.base_price ?? ""}
-                          onChange={(e) =>
-                            onUpdatePrice(
-                              item.product.id,
-                              e.target.value ? parseFloat(e.target.value) : undefined
-                            )
-                          }
+                          value={item.nameOverride ?? item.product.name}
+                          onChange={(e) => onUpdateName(item.product.id, e.target.value)}
                           className="h-8 text-sm"
-                          placeholder={`${item.product.base_price ?? 0}`}
+                          placeholder={item.product.name}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">
+                          Descrição
+                        </label>
+                        <Input
+                          value={item.descriptionOverride ?? item.product.short_description ?? ""}
+                          onChange={(e) => onUpdateDescription(item.product.id, e.target.value)}
+                          className="h-8 text-sm"
+                          placeholder="Descrição do item"
                         />
                       </div>
                       <div className="space-y-1">

@@ -457,7 +457,7 @@ export function ProposalInternalView({
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={4} className="text-right font-semibold">
+                <TableCell colSpan={5} className="text-right font-semibold">
                   TOTAL {disabledCount > 0 && <span className="text-xs text-muted-foreground font-normal">(itens activos)</span>}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground font-medium">
