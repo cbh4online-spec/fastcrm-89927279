@@ -58,6 +58,7 @@ export function StoreProductEditDialog({
   onOpenChange,
   onSave,
 }: StoreProductEditDialogProps) {
+  const navigate = useNavigate();
   const [form, setForm] = useState<Partial<ProductEditData>>({});
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
