@@ -77,7 +77,7 @@ export default function StoreProductsAdminPage() {
                 onTogglePublish={admin.togglePublish}
                 onToggleFeatured={admin.toggleFeatured}
                 onMoveOrder={admin.moveOrder}
-                onEdit={setEditProduct}
+                onEdit={(id: string) => setEditProductId(id)}
               />
             </TabsContent>
 
