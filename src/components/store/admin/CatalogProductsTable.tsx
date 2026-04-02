@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
