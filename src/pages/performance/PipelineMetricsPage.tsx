@@ -368,6 +368,7 @@ export default function PipelineMetricsPage() {
     });
   };
 
+  const activeFiltersCount = (filters: Record<string, unknown>) => {
     return Object.values(filters).filter(v => v !== undefined && v !== null && v !== "").length;
   };
 
