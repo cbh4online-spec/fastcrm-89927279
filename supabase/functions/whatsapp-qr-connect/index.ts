@@ -71,7 +71,18 @@ Deno.serve(async (req) => {
       const createRes = await api(`${baseUrl}/instance/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-        body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS",
+          webhook: {
+            url: webhookUrl,
+            enabled: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+            webhook_by_events: false,
+            webhook_base64: false,
+          },
+        }),
       });
       const createText = await createRes.text();
       console.log(`[WHATSAPP_QR] CREATE status=${createRes.status} body=${createText.substring(0, 200)}`);
