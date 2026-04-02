@@ -98,10 +98,14 @@ function replaceVariables(
   template: string,
   variables: Record<string, string | number | undefined>
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+  return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
     const value = variables[key];
-    if (value === undefined || value === null || value === '') return '';
-    return String(value);
+    if (value !== undefined && value !== null && value !== '') return String(value);
+    // Try without dots (e.g. "company_name" for "company.name")
+    const flatKey = key.replace(/\./g, '_');
+    const flatValue = variables[flatKey];
+    if (flatValue !== undefined && flatValue !== null && flatValue !== '') return String(flatValue);
+    return '';
   });
 }
 
