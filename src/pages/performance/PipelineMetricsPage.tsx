@@ -149,8 +149,8 @@ export default function PipelineMetricsPage() {
   const [tMetricId, setTMetricId] = useState("");
   const [tPeriod, setTPeriod] = useState<MetricPeriod>("monthly");
   const [tValue, setTValue] = useState("");
-  const [tPipelineId, setTPipelineId] = useState("");
-  const [tStageId, setTStageId] = useState("");
+  const [tPipelineId, setTPipelineId] = useState("__all__");
+  const [tStageId, setTStageId] = useState("__all__");
 
   // Alert form
   const [aMetricId, setAMetricId] = useState("");
