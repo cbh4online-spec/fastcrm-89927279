@@ -53,7 +53,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     <div>
                       <div className="flex items-center gap-1.5">
                         {product.brand_logo_url && <img src={product.brand_logo_url} alt="" className="h-4 object-contain flex-shrink-0" />}
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <button onClick={() => onEdit(product.id)} className="font-medium text-sm hover:underline text-left cursor-pointer">{product.name}</button>
                       </div>
                       {product.sku && <p className="text-xs text-muted-foreground">{product.sku}</p>}
                     </div>
