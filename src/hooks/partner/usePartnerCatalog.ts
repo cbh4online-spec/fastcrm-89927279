@@ -43,12 +43,12 @@ export function usePartnerCatalog({
     enabled: !!workspaceId && !!partnerAccountId,
     queryFn: async () => {
       // Use a simpler select to avoid type issues with newly added columns
-      let query = supabase
+      let query = (supabase
         .from("products")
         .select("*")
         .eq("workspace_id", workspaceId!)
         .eq("b2b_published", true)
-        .order("name");
+        .order("name")) as any;
 
       if (search) {
         query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%`);
