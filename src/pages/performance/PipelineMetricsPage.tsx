@@ -125,10 +125,15 @@ export default function PipelineMetricsPage() {
   const [editingTarget, setEditingTarget] = useState<MetricTarget | null>(null);
   const [editingAlert, setEditingAlert] = useState<MetricAlert | null>(null);
 
-  // AI suggestions
+  // AI suggestions (metrics)
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [aiOpen, setAiOpen] = useState(false);
+
+  // AI suggestions (alerts)
+  const [aiAlertLoading, setAiAlertLoading] = useState(false);
+  const [aiAlertSuggestions, setAiAlertSuggestions] = useState<AIAlertSuggestion[]>([]);
+  const [aiAlertOpen, setAiAlertOpen] = useState(false);
 
   // Metric form
   const [mName, setMName] = useState("");
