@@ -198,6 +198,21 @@ export function ProposalsList() {
   const duplicateProposal = useDuplicateProposal();
   const quickStatusChange = useQuickStatusChange();
   const convertToOrderNote = useConvertProposalToOrderNote();
+  const { currentWorkspace } = useWorkspace();
+
+  // Query proposals that already have an order note
+  const { data: convertedProposalIds } = useQuery({
+    queryKey: ["converted-proposal-ids", currentWorkspace?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("order_notes")
+        .select("proposal_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .not("proposal_id", "is", null);
+      return new Set((data || []).map((d: any) => d.proposal_id as string));
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   // Additional filter state
   const [valueFilter, setValueFilter] = useState<string | undefined>();
