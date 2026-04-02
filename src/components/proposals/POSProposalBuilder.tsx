@@ -103,6 +103,14 @@ export function POSProposalBuilder({
     updateDiscount(productId, discount);
   };
 
+  const handleUpdateName = (productId: string, name: string) => {
+    updateName(productId, name);
+  };
+
+  const handleUpdateDescription = (productId: string, description: string) => {
+    updateDescription(productId, description);
+  };
+
   const handleClear = () => {
     clearCart();
   };
