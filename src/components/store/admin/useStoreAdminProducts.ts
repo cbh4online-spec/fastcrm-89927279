@@ -28,6 +28,7 @@ export interface ProductStoreData {
   product_condition: string | null;
   stock_status: string | null;
   stock_quantity: number | null;
+  variants_count: number;
 }
 
 export interface PriceSuggestion {
