@@ -13,122 +13,245 @@ function jsonRes(body: Record<string, unknown>, status = 200) {
   });
 }
 
-function mapEvolutionState(state: string | undefined): string {
-  switch (state) {
-    case "open": return "connected";
-    case "close": return "disconnected";
-    case "connecting": return "waiting_for_scan";
-    default: return "disconnected";
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
-    console.log(`[WHATSAPP_WEBHOOK] RECEIVED event=${body?.event} raw=${JSON.stringify(body).substring(0, 500)}`);
-
-    // Validate webhook secret if configured
-    const WEBHOOK_SECRET = Deno.env.get("EVOLUTION_WEBHOOK_SECRET");
-    if (WEBHOOK_SECRET) {
-      const incomingSecret = req.headers.get("x-webhook-secret") || body?.apikey;
-      if (incomingSecret !== WEBHOOK_SECRET) {
-        console.warn(`[WHATSAPP_WEBHOOK] INVALID_SECRET`);
-        return jsonRes({ error: "Unauthorized" }, 401);
-      }
-    }
-
     const event = body?.event;
-    if (event !== "connection.update") {
-      console.log(`[WHATSAPP_WEBHOOK] IGNORED_EVENT event=${event}`);
+    const instanceName = body?.instance || body?.data?.instance;
+
+    console.log(`[WA_WEBHOOK] event=${event} instance=${instanceName} raw=${JSON.stringify(body).substring(0, 600)}`);
+
+    if (!event || !instanceName) {
       return jsonRes({ received: true, ignored: true });
     }
 
-    // Extract instance name from the payload
-    const instanceName = body?.instance || body?.data?.instance || null;
-    const rawState = body?.data?.state || body?.state || null;
-
-    if (!instanceName || !rawState) {
-      console.warn(`[WHATSAPP_WEBHOOK] MISSING_DATA instance=${instanceName} state=${rawState}`);
-      return jsonRes({ error: "Missing instance or state" }, 400);
-    }
-
-    const mappedStatus = mapEvolutionState(rawState);
-    console.log(`[WHATSAPP_WEBHOOK] CONNECTION_UPDATE instance=${instanceName} raw=${rawState} mapped=${mappedStatus}`);
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Find workspace by instance_name
-    const { data: conn, error: findError } = await adminClient
+    // Find workspace for this instance
+    const { data: conn } = await admin
       .from("whatsapp_qr_connections")
-      .select("workspace_id")
+      .select("workspace_id, id, status")
       .eq("instance_name", instanceName)
       .maybeSingle();
 
-    if (findError || !conn) {
-      console.warn(`[WHATSAPP_WEBHOOK] WORKSPACE_NOT_FOUND instance=${instanceName} error=${findError?.message}`);
+    if (!conn) {
+      console.warn(`[WA_WEBHOOK] NO_CONN instance=${instanceName}`);
       return jsonRes({ received: true, matched: false });
     }
 
     const workspaceId = conn.workspace_id;
     const now = new Date().toISOString();
 
-    // Build update payload
-    const updatePayload: Record<string, unknown> = {
-      status: mappedStatus,
-      last_seen_at: now,
-      updated_at: now,
-    };
+    // ── connection.update / CONNECTION_UPDATE ──
+    if (event === "connection.update" || event === "CONNECTION_UPDATE") {
+      const rawState = body?.data?.state || body?.state;
+      console.log(`[WA_WEBHOOK] CONNECTION state=${rawState} ws=${workspaceId}`);
 
-    if (mappedStatus === "connected") {
-      updatePayload.connected_at = now;
-      updatePayload.last_error = null;
-      updatePayload.disconnected_at = null;
+      const update: Record<string, unknown> = { updated_at: now, last_health_check_at: now, last_seen_at: now };
+      let mappedStatus: string;
 
-      // Try to extract phone from webhook data
-      let phoneNumber = body?.data?.owner || body?.data?.wuid || null;
-      if (phoneNumber && phoneNumber.includes("@")) {
-        phoneNumber = phoneNumber.split("@")[0];
+      if (rawState === "open" || rawState === "connected") {
+        mappedStatus = "connected";
+        update.connected_at = now;
+        update.sync_health = "active";
+        update.recovery_state = "none";
+        update.recovery_attempt_count = 0;
+        update.last_error = null;
+        update.sync_issue_reason = null;
+        update.disconnected_at = null;
+
+        // Extract phone
+        let phone = body?.data?.owner || body?.data?.wuid;
+        if (phone?.includes("@")) phone = phone.split("@")[0];
+        if (phone) update.phone_number = phone;
+      } else if (rawState === "close" || rawState === "disconnected") {
+        mappedStatus = "disconnected";
+        update.disconnected_at = now;
+        update.sync_health = "suspended";
+        update.sync_issue_reason = "Conexão encerrada";
+      } else if (rawState === "connecting") {
+        mappedStatus = "reconnecting";
+      } else {
+        mappedStatus = conn.status;
       }
-      if (phoneNumber) {
-        updatePayload.phone_number = phoneNumber;
+      update.status = mappedStatus;
+
+      await admin.from("whatsapp_qr_connections").update(update).eq("workspace_id", workspaceId);
+
+      // Sync whatsapp_connections table
+      if (mappedStatus === "connected") {
+        await admin.from("whatsapp_connections").upsert({
+          workspace_id: workspaceId, is_active: true,
+          display_phone_number: update.phone_number || null, updated_at: now,
+        }, { onConflict: "workspace_id" });
+      } else if (mappedStatus === "disconnected") {
+        await admin.from("whatsapp_connections").update({ is_active: false, updated_at: now })
+          .eq("workspace_id", workspaceId);
       }
-    } else if (mappedStatus === "disconnected") {
-      updatePayload.disconnected_at = now;
+
+      return jsonRes({ received: true, status: mappedStatus });
     }
 
-    const { error: updateError } = await adminClient
-      .from("whatsapp_qr_connections")
-      .update(updatePayload)
-      .eq("workspace_id", workspaceId);
-
-    if (updateError) {
-      console.error(`[WHATSAPP_WEBHOOK] DB_UPDATE_FAILED workspace=${workspaceId} error=${updateError.message}`);
-      return jsonRes({ error: "DB update failed" }, 500);
+    // ── QRCODE_UPDATED ──
+    if (event === "QRCODE_UPDATED" || event === "qrcode.updated") {
+      const qr = body?.data?.qrcode?.base64 || body?.data?.base64;
+      if (qr) {
+        await admin.from("whatsapp_qr_connections").update({
+          qr_code: qr, qr_updated_at: now, status: "qr_pending", updated_at: now,
+        }).eq("workspace_id", workspaceId);
+        console.log(`[WA_WEBHOOK] QR_UPDATED ws=${workspaceId}`);
+      }
+      return jsonRes({ received: true });
     }
 
-    // Sync whatsapp_connections for inbox
-    if (mappedStatus === "connected") {
-      await adminClient.from("whatsapp_connections").upsert({
-        workspace_id: workspaceId,
-        is_active: true,
-        display_phone_number: updatePayload.phone_number || null,
-        updated_at: now,
-      }, { onConflict: "workspace_id" });
-    } else if (mappedStatus === "disconnected") {
-      await adminClient.from("whatsapp_connections").update({
-        is_active: false,
-        updated_at: now,
-      }).eq("workspace_id", workspaceId);
+    // ── MESSAGES_UPSERT / messages.upsert ──
+    if (event === "MESSAGES_UPSERT" || event === "messages.upsert") {
+      const rawMessages = Array.isArray(body?.data) ? body.data : [body?.data];
+
+      for (const msg of rawMessages) {
+        if (!msg) continue;
+
+        const key = msg.key || {};
+        const isFromMe = key.fromMe === true;
+        const remoteJid: string = key.remoteJid || "";
+        const messageId: string = key.id || "";
+
+        // Skip status broadcasts and group messages for now
+        if (remoteJid === "status@broadcast" || remoteJid.endsWith("@g.us")) continue;
+        if (!messageId) continue;
+
+        const phone = remoteJid.replace("@s.whatsapp.net", "");
+        const direction = isFromMe ? "outbound" : "inbound";
+
+        // Extract content
+        const msgObj = msg.message || {};
+        const content =
+          msgObj.conversation ||
+          msgObj.extendedTextMessage?.text ||
+          msgObj.imageMessage?.caption ||
+          msgObj.videoMessage?.caption ||
+          msgObj.documentMessage?.fileName ||
+          (msgObj.audioMessage ? "[áudio]" : null) ||
+          (msgObj.stickerMessage ? "[sticker]" : null) ||
+          (msgObj.imageMessage ? "[imagem]" : null) ||
+          (msgObj.videoMessage ? "[vídeo]" : null) ||
+          (msgObj.documentMessage ? "[documento]" : null) ||
+          (msgObj.contactMessage ? "[contacto]" : null) ||
+          (msgObj.locationMessage ? "[localização]" : null) ||
+          "[mensagem]";
+
+        // Dedup check
+        const { data: existing } = await admin
+          .from("messages")
+          .select("id")
+          .eq("external_message_id", messageId)
+          .eq("workspace_id", workspaceId)
+          .maybeSingle();
+
+        if (existing) continue;
+
+        // Find or create conversation
+        const externalThreadId = `wa_${phone}`;
+        let { data: conversation } = await admin
+          .from("conversations")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("external_thread_id", externalThreadId)
+          .maybeSingle();
+
+        if (!conversation) {
+          // Try to match lead by phone
+          const { data: lead } = await admin
+            .from("leads")
+            .select("id")
+            .eq("workspace_id", workspaceId)
+            .or(`phone.eq.${phone},phone.eq.+${phone}`)
+            .maybeSingle();
+
+          const { data: newConv } = await admin
+            .from("conversations")
+            .insert({
+              workspace_id: workspaceId,
+              channel: "whatsapp",
+              external_thread_id: externalThreadId,
+              lead_id: lead?.id || null,
+              status: "open",
+              last_message_at: now,
+              channel_metadata: { phone, instanceName },
+            })
+            .select("id")
+            .single();
+
+          conversation = newConv;
+        }
+
+        if (!conversation) {
+          console.error(`[WA_WEBHOOK] CONV_CREATE_FAILED phone=${phone}`);
+          continue;
+        }
+
+        const sentAt = msg.messageTimestamp
+          ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
+          : now;
+
+        await admin.from("messages").insert({
+          conversation_id: conversation.id,
+          workspace_id: workspaceId,
+          direction,
+          content,
+          external_message_id: messageId,
+          sent_at: sentAt,
+        });
+
+        // Update conversation metadata
+        const convUpdate: Record<string, unknown> = {
+          last_message_at: sentAt,
+          last_message_preview: content.substring(0, 200),
+          last_message_direction: direction,
+          updated_at: now,
+        };
+        if (direction === "inbound") {
+          // Increment unread count manually
+          const { data: currentConv } = await admin
+            .from("conversations")
+            .select("unread_count")
+            .eq("id", conversation.id)
+            .single();
+          convUpdate.unread_count = (currentConv?.unread_count || 0) + 1;
+        }
+        await admin.from("conversations").update(convUpdate).eq("id", conversation.id);
+
+        // Update connection health
+        const healthField = direction === "inbound"
+          ? { last_inbound_message_at: now }
+          : { last_outbound_message_at: now };
+
+        await admin.from("whatsapp_qr_connections").update({
+          ...healthField,
+          last_seen_at: now,
+          sync_health: "active",
+          last_sync_at: now,
+          last_successful_sync_at: now,
+          sync_issue_reason: null,
+          recovery_state: "none",
+          updated_at: now,
+        }).eq("workspace_id", workspaceId);
+
+        console.log(`[WA_WEBHOOK] MSG dir=${direction} phone=${phone} conv=${conversation.id}`);
+      }
+
+      return jsonRes({ received: true, processed: true });
     }
 
-    console.log(`[WHATSAPP_WEBHOOK] PROCESSED workspace=${workspaceId} status=${mappedStatus}`);
-    return jsonRes({ received: true, matched: true, status: mappedStatus });
+    console.log(`[WA_WEBHOOK] UNHANDLED event=${event}`);
+    return jsonRes({ received: true, ignored: true });
   } catch (error) {
-    console.error("[WHATSAPP_WEBHOOK] ERROR", error);
-    return jsonRes({ error: "Internal server error" }, 500);
+    console.error("[WA_WEBHOOK] ERROR", error);
+    // Always 200 to avoid Evolution API retries
+    return jsonRes({ received: true, error: true });
   }
 });
