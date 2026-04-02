@@ -1,70 +1,34 @@
 
 
-# Funis Criam Leads (Não Contactos)
+# Produtos da Loja com Edição Completa (ProductDetailDialog)
 
 ## Diagnóstico
 
-A edge function `funnel-lead-capture` insere/atualiza directamente na tabela `contacts`. O fluxo correcto deveria criar registos na tabela `leads` — os funis capturam leads que depois, manualmente ou via automação, são convertidos em contactos.
+Na `CatalogProductsTable`, o botão Pencil abre o `StoreProductEditDialog` — um formulário simplificado com campos limitados. O utilizador quer que a edição use exactamente o mesmo `ProductDetailDialog` completo (652 linhas, com tabs de variantes, imagens, stock, specs, analytics, etc.) usado na página `/dashboard/products`.
 
 ## Solução
 
-Alterar a edge function `funnel-lead-capture` para:
-1. Procurar leads existentes por email no workspace (em vez de contactos)
-2. Criar/atualizar na tabela `leads` (em vez de `contacts`)
-3. Manter tags, activity_logs e link à `funnel_submissions` — mas referenciando leads
-
-A tabela `funnel_submissions` tem `contact_id` — precisamos verificar se existe ou adicionar `lead_id`.
+Substituir o uso do `StoreProductEditDialog` pelo `ProductDetailDialog` na página da loja. Tornar o nome do produto clicável também.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Adicionar coluna `lead_id` (FK → leads) a `funnel_submissions` |
-| `supabase/functions/funnel-lead-capture/index.ts` | Reescrever para operar na tabela `leads` em vez de `contacts` |
+| `src/pages/StoreProductsAdminPage.tsx` | Substituir `StoreProductEditDialog` por `ProductDetailDialog`. Mudar state de `editProduct: ProductStoreData` para `editProductId: string \| null` |
+| `src/components/store/admin/CatalogProductsTable.tsx` | 1. Tornar o nome do produto clicável (cursor pointer, hover underline). 2. O botão Pencil e o clique no nome chamam `onEdit(product.id)`. 3. Remover botão Eye (redundante — o edit já abre a ficha completa). Ajustar interface: `onEdit: (productId: string) => void` |
 
-### Edge Function — alterações chave
+### Detalhe
 
-```typescript
-// ANTES: contacts
-const { data: existingContact } = await supabase
-  .from("contacts").select("id, tags")...
+**StoreProductsAdminPage.tsx:**
+- Remover import de `StoreProductEditDialog`
+- Importar `ProductDetailDialog` de `@/components/products/ProductDetailDialog`
+- State: `const [editProductId, setEditProductId] = useState<string | null>(null)`
+- Render: `<ProductDetailDialog open={!!editProductId} onOpenChange={(open) => { if (!open) setEditProductId(null); }} productId={editProductId!} />`
+- Passar `onEdit={(id) => setEditProductId(id)}` ao `CatalogProductsTable`
 
-// DEPOIS: leads  
-const { data: existingLead } = await supabase
-  .from("leads").select("id, tags")
-  .eq("workspace_id", workspace_id)
-  .eq("email", normalizedEmail)
-  .maybeSingle();
-
-// Insert em leads (não contacts)
-const { data: newLead } = await supabase
-  .from("leads").insert({
-    workspace_id,
-    name: name || normalizedEmail.split("@")[0],
-    email: normalizedEmail,
-    source: "funnel",
-    status: "new",
-    tags: newTags,
-  }).select("id").single();
-
-// Activity log com entity_type: "lead"
-// funnel_submissions.lead_id = leadId
-```
-
-### Migração SQL
-
-```sql
-ALTER TABLE public.funnel_submissions 
-  ADD COLUMN lead_id uuid REFERENCES public.leads(id);
-```
-
-A coluna `contact_id` existente permanece para retrocompatibilidade com submissões antigas.
-
-## Critérios de aceitação
-
-- Submissões de funil criam registos em `leads`, não em `contacts`
-- Leads duplicados por email são atualizados (merge de tags)
-- Activity logs registam `entity_type: "lead"`
-- `funnel_submissions.lead_id` preenchido correctamente
-- Submissões antigas com `contact_id` continuam a funcionar
+**CatalogProductsTable.tsx:**
+- Interface `onEdit` muda para `(productId: string) => void`
+- Nome do produto: `<button onClick={() => onEdit(product.id)} className="hover:underline text-left">...</button>`
+- Botão Pencil: `onClick={() => onEdit(product.id)}`
+- Remover botão Eye (já não necessário)
 
