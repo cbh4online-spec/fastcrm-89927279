@@ -181,6 +181,60 @@ Deno.serve(async (req) => {
             }).eq("workspace_id", workspaceId);
             return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
           }
+
+          // Escalate: DELETE + RECREATE instance
+          console.log(`[WHATSAPP_QR] DELETE instance=${instanceName} (restart did not resolve)`);
+          try {
+            const delRes = await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
+              method: "DELETE",
+              headers: { apikey: EVOLUTION_API_KEY },
+            });
+            const delText = await delRes.text();
+            console.log(`[WHATSAPP_QR] DELETE status=${delRes.status} body=${delText.substring(0, 200)}`);
+          } catch (delErr) {
+            console.error(`[WHATSAPP_QR] DELETE_FAILED`, delErr);
+          }
+
+          await new Promise((r) => setTimeout(r, 1000));
+
+          // Recreate instance
+          console.log(`[WHATSAPP_QR] RECREATE instance=${instanceName}`);
+          try {
+            const recreateRes = await fetch(`${baseUrl}/instance/create`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
+              body: JSON.stringify({ instanceName, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
+            });
+            const recreateText = await recreateRes.text();
+            console.log(`[WHATSAPP_QR] RECREATE status=${recreateRes.status} body=${recreateText.substring(0, 300)}`);
+          } catch (recreateErr) {
+            console.error(`[WHATSAPP_QR] RECREATE_FAILED`, recreateErr);
+          }
+
+          // Connect after recreate
+          const finalRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+            method: "GET",
+            headers: { apikey: EVOLUTION_API_KEY },
+          });
+          const finalData = await finalRes.json();
+          console.log(`[WHATSAPP_QR] RETRY_CONNECT_AFTER_RECREATE status=${finalRes.status} body=${JSON.stringify(finalData).substring(0, 500)}`);
+
+          const finalQR = finalData?.base64 || finalData?.qrcode?.base64 || finalData?.code || null;
+          if (finalQR) {
+            console.log(`[WHATSAPP_QR] QR_GENERATED_AFTER_RECREATE instance=${instanceName}`);
+            await adminClient.from("whatsapp_qr_connections").update({
+              status: "qr_pending", qr_code: finalQR, qr_updated_at: new Date().toISOString(), last_error: null,
+            }).eq("workspace_id", workspaceId);
+            return jsonRes({ qrcode: finalQR, instanceName, status: "qr_pending" });
+          }
+
+          const finalState = finalData?.instance?.state || finalData?.state || finalData?.status;
+          if (finalState === "open" || finalState === "connected") {
+            await adminClient.from("whatsapp_qr_connections").update({
+              status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
+            }).eq("workspace_id", workspaceId);
+            return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
+          }
         }
       } catch (fallbackErr) {
         console.error(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK_ERROR`, fallbackErr);
