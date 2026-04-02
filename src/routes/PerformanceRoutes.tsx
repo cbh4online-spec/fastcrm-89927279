@@ -1,8 +1,7 @@
 import { lazy } from "react";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 
 const PerformanceDashboardPage = lazy(() => import("@/pages/performance/PerformanceDashboardPage"));
-const PerformanceGoalsPage = lazy(() => import("@/pages/performance/PerformanceGoalsPage"));
 const PerformanceLeaderboardPage = lazy(() => import("@/pages/performance/PerformanceLeaderboardPage"));
 const PerformanceChallengesPage = lazy(() => import("@/pages/performance/PerformanceChallengesPage"));
 const PerformanceRecognitionPage = lazy(() => import("@/pages/performance/PerformanceRecognitionPage"));
