@@ -176,9 +176,9 @@ export default function PipelineMetricsPage() {
     setMField(m.source_field || "");
     setMUnit(m.unit);
     const f = m.filter_json || {};
-    setFPipelineId((f as any).pipeline_id || "");
-    setFStageId((f as any).stage_id || "");
-    setFStatus((f as any).status || "");
+    setFPipelineId((f as any).pipeline_id || "__all__");
+    setFStageId((f as any).stage_id || "__all__");
+    setFStatus((f as any).status || "__all__");
     setFSource((f as any).source || "");
     setFChannel((f as any).channel || "");
     setFEventType((f as any).event_type || "");
