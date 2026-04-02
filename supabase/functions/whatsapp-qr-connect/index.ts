@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
           // Escalate: DELETE + RECREATE instance
           console.log(`[WHATSAPP_QR] DELETE instance=${instanceName} (restart did not resolve)`);
           try {
-            const delRes = await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
+            const delRes = await api(`${baseUrl}/instance/delete/${instanceName}`, {
               method: "DELETE",
               headers: { apikey: EVOLUTION_API_KEY },
             });
