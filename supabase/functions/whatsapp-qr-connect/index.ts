@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
       headers: { apikey: EVOLUTION_API_KEY },
     });
     const connectData = await connectRes.json();
+    console.log(`[WHATSAPP_QR] CONNECT_RESPONSE status=${connectRes.status} body=${JSON.stringify(connectData).substring(0, 500)}`);
 
     if (!connectRes.ok) {
       console.error(`[WHATSAPP_QR] CONNECT_FAILED status=${connectRes.status}`, connectData);
@@ -110,18 +111,45 @@ Deno.serve(async (req) => {
     const qrcode = connectData?.base64 || connectData?.qrcode?.base64 || connectData?.code || null;
 
     if (!qrcode) {
-      // Already connected
-      if (connectData?.instance?.state === "open") {
-        console.log(`[WHATSAPP_QR] ALREADY_CONNECTED instance=${instanceName}`);
+      // Check state from multiple possible response formats
+      const detectedState = connectData?.instance?.state
+        || connectData?.state
+        || connectData?.status;
+
+      if (detectedState === "open" || detectedState === "connected") {
+        console.log(`[WHATSAPP_QR] ALREADY_CONNECTED instance=${instanceName} state=${detectedState}`);
         await adminClient.from("whatsapp_qr_connections").update({
           status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
         }).eq("workspace_id", workspaceId);
         return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
       }
+
+      // Fallback: check connectionState endpoint
+      try {
+        const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+          method: "GET",
+          headers: { apikey: EVOLUTION_API_KEY },
+        });
+        const stateData = await stateRes.json();
+        console.log(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK body=${JSON.stringify(stateData).substring(0, 300)}`);
+        const fallbackState = stateData?.instance?.state || stateData?.state || stateData?.status;
+        if (fallbackState === "open" || fallbackState === "connected") {
+          console.log(`[WHATSAPP_QR] ALREADY_CONNECTED_VIA_FALLBACK instance=${instanceName} state=${fallbackState}`);
+          await adminClient.from("whatsapp_qr_connections").update({
+            status: "connected", connected_at: new Date().toISOString(), last_seen_at: new Date().toISOString(),
+          }).eq("workspace_id", workspaceId);
+          return jsonRes({ alreadyConnected: true, instanceName, status: "connected" });
+        }
+      } catch (fallbackErr) {
+        console.error(`[WHATSAPP_QR] CONNECTION_STATE_FALLBACK_ERROR`, fallbackErr);
+      }
+
+      // Return 200 with structured error instead of 500 (resilient pattern)
+      console.warn(`[WHATSAPP_QR] NO_QR_NO_STATE instance=${instanceName}`);
       await adminClient.from("whatsapp_qr_connections").update({
         status: "error", last_error: "QR code not available",
       }).eq("workspace_id", workspaceId);
-      return jsonRes({ error: "QR code not available. Try again." }, 500);
+      return jsonRes({ error: "QR code não disponível. Tente desconectar e reconectar.", needsReconnect: true, instanceName });
     }
 
     // Save QR to DB

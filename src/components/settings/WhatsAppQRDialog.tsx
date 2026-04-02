@@ -47,12 +47,20 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
         return;
       }
 
+      // Handle structured error (200 with error payload — resilient pattern)
+      if (data?.error) {
+        setErrorMsg(data.error);
+        setInstanceName(data.instanceName || null);
+        setStatus("error");
+        return;
+      }
+
       if (data?.qrcode) {
         setQrBase64(data.qrcode);
         setInstanceName(data.instanceName);
         setStatus("qr_ready");
       } else {
-        throw new Error(data?.error || "QR code não recebido");
+        throw new Error("QR code não recebido");
       }
     } catch (err: any) {
       setErrorMsg(err.message);
