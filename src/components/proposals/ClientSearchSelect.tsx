@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown, Building2, User, Plus, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
