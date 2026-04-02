@@ -68,6 +68,8 @@ interface ProposalInternalViewProps {
   onQuantityChange?: (itemId: string, quantity: number) => void;
   onPriceChange?: (itemId: string, price: number) => void;
   onCostsRefreshed?: () => void;
+  onAccept?: () => void;
+  onRequestChange?: () => void;
 }
 
 function formatCurrency(value: number, currency: string = "EUR"): string {
