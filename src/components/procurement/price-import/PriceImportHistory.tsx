@@ -34,32 +34,59 @@ export function PriceImportHistory() {
               <TableHead>Ficheiro</TableHead>
               <TableHead>Modo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Match Rate</TableHead>
               <TableHead>Stats</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {imports.map((imp) => (
-              <TableRow key={imp.id}>
-                <TableCell className="text-sm">
-                  {format(new Date(imp.created_at), "dd/MM/yyyy HH:mm")}
-                </TableCell>
-                <TableCell className="text-sm">{(imp.suppliers as any)?.name || "-"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{imp.file_name}</TableCell>
-                <TableCell><Badge variant="outline" className="text-xs">{imp.pricing_mode}</Badge></TableCell>
-                <TableCell>
-                  <Badge variant={imp.status === "committed" ? "default" : imp.status === "failed" ? "destructive" : "secondary"}>
-                    {imp.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs">
-                  {imp.stats_json && typeof imp.stats_json === "object" ? (
-                    <span>
-                      {imp.stats_json.matched ?? imp.stats_json.total_matched ?? 0} matched / {imp.stats_json.total ?? imp.stats_json.errors ?? 0} total
-                    </span>
-                  ) : "-"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {imports.map((imp) => {
+              const stats = imp.stats_json && typeof imp.stats_json === "object" ? imp.stats_json : null;
+              const matchedCount = imp.matched_rows ?? stats?.matched ?? stats?.total_matched ?? 0;
+              const totalCount = imp.total_rows ?? stats?.total ?? 0;
+              const matchRate = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
+
+              return (
+                <TableRow key={imp.id}>
+                  <TableCell className="text-sm">
+                    {format(new Date(imp.created_at), "dd/MM/yyyy HH:mm")}
+                  </TableCell>
+                  <TableCell className="text-sm">{(imp.suppliers as any)?.name || "-"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">{imp.file_name}</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">{imp.pricing_mode}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      imp.status === "committed" ? "default" :
+                      imp.status === "failed" ? "destructive" :
+                      imp.status === "validated" ? "secondary" : "outline"
+                    }>
+                      {imp.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {totalCount > 0 ? (
+                      <Badge
+                        variant={matchRate >= 80 ? "default" : matchRate >= 50 ? "secondary" : "destructive"}
+                        className="text-xs"
+                      >
+                        {matchRate}%
+                      </Badge>
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {stats ? (
+                      <span>
+                        {matchedCount} matched / {totalCount} total
+                        {(stats.errors ?? imp.error_rows ?? 0) > 0 && (
+                          <span className="text-destructive ml-1">
+                            ({stats.errors ?? imp.error_rows} erros)
+                          </span>
+                        )}
+                      </span>
+                    ) : "-"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
