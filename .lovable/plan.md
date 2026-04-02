@@ -2,55 +2,55 @@
 
 ## Diagnóstico
 
-Os logs confirmam o ciclo:
-1. `CREATE` → 403 (instância já existe)
-2. `CONNECT` → 200 mas body = `{"count":0}` (sem QR code)
-3. `connectionState` → `{"instance":{"state":"connecting"}}` (presa)
-4. Nenhum estado é "open"/"connected" → cai no erro
+Os logs mostram um padrão consistente e repetitivo:
 
-**Causa raiz:** A instância está **presa no estado "connecting"** na Evolution API. O endpoint `/instance/connect/` não retorna QR quando a instância está neste estado intermédio. É necessário **reiniciar a instância** (via `/instance/restart/`) antes de reconectar para obter um QR fresco.
+1. `CREATE` → 403 (instância já existe)
+2. `CONNECT` → `{"count":0}` (sem QR)
+3. `connectionState` → `"connecting"` (presa)
+4. `RESTART` (PUT) → executa mas **não resolve**
+5. `RETRY CONNECT` → ainda `{"count":0}`
+
+**Causa raiz:** O `PUT /instance/restart/` não está a limpar o estado "connecting" na Evolution API. A instância continua presa. O restart não é suficiente — é necessário **eliminar e recriar a instância** para obter um QR fresco.
 
 ## Plano
 
-### 1. Edge Function — adicionar restart para estado "connecting"
+### Edge Function `whatsapp-qr-connect/index.ts`
 
-**Ficheiro:** `supabase/functions/whatsapp-qr-connect/index.ts`
+Quando a instância está presa em "connecting" e o restart falhou (retry connect continua sem QR):
 
-Quando o connect retorna sem QR e o fallback detecta `state === "connecting"`:
+1. **Substituir restart por delete + recreate:**
+   - Após detectar `state === "connecting"`, chamar `DELETE /instance/delete/${instanceName}` em vez de restart
+   - Aguardar 1s
+   - Recriar a instância via `POST /instance/create` (com `qrcode: true`)
+   - Chamar `GET /instance/connect/${instanceName}` para obter o QR
 
-1. Chamar `GET /instance/restart/{instanceName}` para resetar a instância
-2. Aguardar 2 segundos (`setTimeout`)
-3. Repetir o `GET /instance/connect/{instanceName}` para obter o QR
-4. Se continuar sem QR, aí sim retornar o erro estruturado
+2. **Manter o restart como primeira tentativa** (pode funcionar em alguns casos), mas se o retry falhar, escalar para delete+recreate.
 
-Lógica (pseudo-código):
+3. **Fluxo revisto:**
+```text
+connecting detectado
+  → RESTART (PUT)
+  → wait 2s
+  → RETRY CONNECT
+  → se QR → retorna ✓
+  → se ainda sem QR:
+    → DELETE instância
+    → wait 1s
+    → CREATE nova instância
+    → CONNECT
+    → se QR → retorna ✓
+    → se falhar → erro estruturado
 ```
-if (fallbackState === "connecting") {
-  // Restart instance
-  await fetch(`${baseUrl}/instance/restart/${instanceName}`, { GET, apikey })
-  await delay(2000)
-  // Retry connect
-  const retryRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, ...)
-  // Extract QR from retry response
-  if (retryQR) → return QR
-}
-```
 
-### 2. Frontend — sem alterações necessárias
+### Ficheiros a alterar
+- `supabase/functions/whatsapp-qr-connect/index.ts` — adicionar lógica de delete+recreate após falha do restart
 
-O `WhatsAppQRDialog.tsx` já trata correctamente os 3 cenários (QR, alreadyConnected, error). A correcção é 100% server-side.
-
-### Detalhes Técnicos
-
-- **Endpoint usado:** `GET /instance/restart/{instanceName}` (Evolution API v2)
-- **Delay de 2s** entre restart e reconnect para dar tempo à instância reiniciar
-- **Retry único** — não criar loops infinitos
-- **Logging** de cada passo para rastreabilidade
-- Deploy automático da edge function após alteração
+### Sem alterações no frontend
+O `WhatsAppQRDialog.tsx` já trata os cenários correctamente.
 
 ### Critérios de Aceitação
-- Instância em "connecting" é reiniciada automaticamente e retorna QR
-- Instância "open"/"connected" continua a funcionar (sem regressão)
-- Logs registam `RESTART` e `RETRY_CONNECT`
-- Se após restart ainda não houver QR, erro estruturado mantém-se
+- Instância presa em "connecting" é eliminada e recriada, retornando QR
+- Logs registam `DELETE`, `RECREATE`, `RETRY_CONNECT_AFTER_RECREATE`
+- Se delete+recreate também falhar, retorna erro estruturado (200 com `needsReconnect`)
+- Instâncias "open"/"connected" não são afectadas
 
