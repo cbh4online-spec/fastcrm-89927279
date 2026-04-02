@@ -1,31 +1,24 @@
 
 
-# Permitir converter propostas em encomendas sem email do cliente
+# Adicionar campo Email ao formulário de edição de cliente
 
 ## Diagnóstico
 
-Duas barreiras impedem a conversão quando o contacto/empresa não tem email:
-
-1. **Código** (`useConvertProposalToOrderNote.ts`, linha 99-101): `throw new Error("O contacto/empresa precisa de ter email...")` — bloqueia explicitamente.
-2. **Base de dados**: coluna `client_users.email` é `NOT NULL` — mesmo removendo o check no código, o INSERT falharia.
+O `EditClientDialog.tsx` já permite editar nome, telefone, NIF, etc., mas **não tem campo para email**. Agora que `client_users.email` é nullable, deve ser possível ver e editar o email do cliente.
 
 ## Solução
 
-### 1. Migração DB — tornar `email` nullable em `client_users`
+Alterar apenas `src/components/client-users/EditClientDialog.tsx`:
 
-```sql
-ALTER TABLE public.client_users ALTER COLUMN email DROP NOT NULL;
-```
+1. **Schema zod** (linha 38-54): adicionar `email: z.string().email().optional().or(z.literal(""))` ao schema
+2. **Default values** (linha 76-92): adicionar `email: ""`
+3. **Reset** (linha 98): adicionar `email: client.email || ""`
+4. **Submit** (linha 122-145): incluir `email: data.email || null` no objecto `updates`
+5. **Formulário**: adicionar campo Email na secção de dados básicos (junto ao telefone)
 
-### 2. Alterar `useConvertProposalToOrderNote.ts`
-
-- Remover o `throw` nas linhas 99-101
-- Passar `email: clientEmail || null` no insert (em vez de exigir)
-
-### Ficheiros alterados
+## Ficheiro alterado
 
 | Ficheiro | Alteração |
 |---|---|
-| Migração SQL | `ALTER COLUMN email DROP NOT NULL` na tabela `client_users` |
-| `src/hooks/useConvertProposalToOrderNote.ts` | Remover validação obrigatória de email (linhas 99-101); passar `null` quando não existe |
+| `src/components/client-users/EditClientDialog.tsx` | Adicionar campo email ao schema, defaults, reset, submit e formulário |
 
