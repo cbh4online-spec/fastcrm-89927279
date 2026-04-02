@@ -108,7 +108,7 @@ export default function WeeklyDashboard() {
             </Button>
           </div>
         </div>
-        <WeeklyTargetsEditor open={targetsOpen} onOpenChange={setTargetsOpen} />
+        
         <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
