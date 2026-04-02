@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card } from "@/components/ui/card";
