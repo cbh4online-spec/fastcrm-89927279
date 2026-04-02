@@ -269,6 +269,65 @@ export function useSendMessage() {
         } as Message;
       }
 
+      // For SMS via Twilio (source = "twilio" in channel_metadata)
+      const isTwilioConversation = conversation.channel === "sms" && channelMeta?.source === "twilio";
+      if (isTwilioConversation) {
+        const recipientPhone =
+          (channelMeta?.phone as string) ||
+          (lead as any)?.phone ||
+          "";
+
+        if (!recipientPhone) {
+          throw new Error("Número de telefone não encontrado para esta conversa");
+        }
+
+        const { data, error } = await mainClient.functions.invoke("twilio-send-sms", {
+          body: {
+            workspaceId: currentWorkspace.id,
+            conversationId,
+            to: recipientPhone,
+            message: content,
+          },
+        });
+
+        if (error) {
+          let errorMsg = "Falha ao enviar SMS via Twilio";
+          try {
+            const ctx = (error as any)?.context;
+            if (ctx?.json) {
+              const body = await ctx.json();
+              errorMsg = body?.error || errorMsg;
+            } else if (data?.error) {
+              errorMsg = data.error;
+            } else {
+              errorMsg = error.message || errorMsg;
+            }
+          } catch {
+            errorMsg = data?.error || error.message || errorMsg;
+          }
+          throw new Error(errorMsg);
+        }
+        if (data?.error) throw new Error(data.error);
+
+        // Message saved by edge function
+        return {
+          id: data.messageId || crypto.randomUUID(),
+          conversation_id: conversationId,
+          workspace_id: currentWorkspace.id,
+          direction: "outbound" as MessageDirection,
+          content,
+          attachments: [],
+          sender_id: user.id,
+          sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
+          read_at: null,
+          created_at: new Date().toISOString(),
+          email_subject: null,
+          email_message_id: null,
+          email_in_reply_to: null,
+        } as Message;
+      }
+
       // For Instagram, use the edge function to send via Instagram API
       if (conversation.channel === "instagram") {
         const { data, error } = await mainClient.functions.invoke("instagram-send-message", {

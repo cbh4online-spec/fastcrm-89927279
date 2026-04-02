@@ -29,12 +29,14 @@ import { useEmailConnections } from "@/hooks/useEmailConnection";
 import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useInstagramConnection } from "@/hooks/useInstagramConnection";
+import { useTwilioConnection } from "@/hooks/useTwilioConnection";
 import { useContacts } from "@/hooks/useContacts";
 import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
 import { QuickEvolutionWhatsAppDialog } from "./QuickEvolutionWhatsAppDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
+import { QuickTwilioSMSDialog } from "./QuickTwilioSMSDialog";
 import { useWhatsAppQRConnection } from "@/hooks/useWhatsAppQRConnection";
 
 interface RecipientSuggestion {
@@ -462,6 +464,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
   const [showGHLDialog, setShowGHLDialog] = useState(false);
   const [showEvolutionWhatsApp, setShowEvolutionWhatsApp] = useState(false);
   const [showInstagramDialog, setShowInstagramDialog] = useState(false);
+  const [showTwilioSMS, setShowTwilioSMS] = useState(false);
   const [selectedGHLChannel, setSelectedGHLChannel] = useState<GHLChannel>("sms");
 
   // Check connection status
@@ -469,9 +472,11 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
   const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
   const { data: instagramConnection } = useInstagramConnection();
   const { data: whatsappQRConnection } = useWhatsAppQRConnection();
+  const { data: twilioConnection } = useTwilioConnection();
 
   const hasEmailConnection = emailConnections?.some(c => c.is_active);
   const hasInstagramConnection = instagramConnection?.is_active;
+  const hasTwilioSMS = twilioConnection?.is_active;
   const hasWhatsAppQR = whatsappQRConnection?.status === "connected";
 
   const channels = [
@@ -513,7 +518,7 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       icon: MessageSquare, 
       color: "text-purple-500 bg-purple-500/10", 
       available: true,
-      configured: isGHLConfigured,
+      configured: hasTwilioSMS || isGHLConfigured,
     },
     { 
       id: "webchat", 
@@ -534,8 +539,12 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
         setShowEvolutionWhatsApp(true);
         break;
       case "sms":
-        setSelectedGHLChannel("sms");
-        setShowGHLDialog(true);
+        if (hasTwilioSMS) {
+          setShowTwilioSMS(true);
+        } else {
+          setSelectedGHLChannel("sms");
+          setShowGHLDialog(true);
+        }
         break;
       case "facebook":
         setSelectedGHLChannel("facebook");
@@ -611,6 +620,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
           open={showInstagramDialog}
           onOpenChange={setShowInstagramDialog}
         />
+        <QuickTwilioSMSDialog
+          open={showTwilioSMS}
+          onOpenChange={setShowTwilioSMS}
+        />
       </>
     );
   }
@@ -654,6 +667,10 @@ export function ComposeButton({ className, variant = "default" }: ComposeButtonP
       <QuickInstagramDialog
         open={showInstagramDialog}
         onOpenChange={setShowInstagramDialog}
+      />
+      <QuickTwilioSMSDialog
+        open={showTwilioSMS}
+        onOpenChange={setShowTwilioSMS}
       />
     </>
   );
