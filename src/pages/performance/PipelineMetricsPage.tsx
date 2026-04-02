@@ -138,9 +138,9 @@ export default function PipelineMetricsPage() {
   const [mSource, setMSource] = useState("leads");
   const [mField, setMField] = useState("");
   const [mUnit, setMUnit] = useState("");
-  const [fPipelineId, setFPipelineId] = useState("");
-  const [fStageId, setFStageId] = useState("");
-  const [fStatus, setFStatus] = useState("");
+  const [fPipelineId, setFPipelineId] = useState("__all__");
+  const [fStageId, setFStageId] = useState("__all__");
+  const [fStatus, setFStatus] = useState("__all__");
   const [fSource, setFSource] = useState("");
   const [fChannel, setFChannel] = useState("");
   const [fEventType, setFEventType] = useState("");
@@ -162,7 +162,7 @@ export default function PipelineMetricsPage() {
   const resetMetricForm = () => {
     setMName(""); setMDesc(""); setMType("volume"); setMFormula("count");
     setMSource("leads"); setMField(""); setMUnit("");
-    setFPipelineId(""); setFStageId(""); setFStatus(""); setFSource(""); setFChannel(""); setFEventType("");
+    setFPipelineId("__all__"); setFStageId("__all__"); setFStatus("__all__"); setFSource(""); setFChannel(""); setFEventType("");
     setEditingMetric(null);
   };
 
@@ -176,9 +176,9 @@ export default function PipelineMetricsPage() {
     setMField(m.source_field || "");
     setMUnit(m.unit);
     const f = m.filter_json || {};
-    setFPipelineId((f as any).pipeline_id || "");
-    setFStageId((f as any).stage_id || "");
-    setFStatus((f as any).status || "");
+    setFPipelineId((f as any).pipeline_id || "__all__");
+    setFStageId((f as any).stage_id || "__all__");
+    setFStatus((f as any).status || "__all__");
     setFSource((f as any).source || "");
     setFChannel((f as any).channel || "");
     setFEventType((f as any).event_type || "");
@@ -208,9 +208,9 @@ export default function PipelineMetricsPage() {
   const handleSaveMetric = () => {
     if (!mName.trim()) return;
     const filterJson: Record<string, unknown> = {};
-    if (fPipelineId) filterJson.pipeline_id = fPipelineId;
-    if (fStageId) filterJson.stage_id = fStageId;
-    if (fStatus) filterJson.status = fStatus;
+    if (fPipelineId && fPipelineId !== "__all__") filterJson.pipeline_id = fPipelineId;
+    if (fStageId && fStageId !== "__all__") filterJson.stage_id = fStageId;
+    if (fStatus && fStatus !== "__all__") filterJson.status = fStatus;
     if (fSource) filterJson.source = fSource;
     if (fChannel) filterJson.channel = fChannel;
     if (fEventType) filterJson.event_type = fEventType;
@@ -412,9 +412,9 @@ export default function PipelineMetricsPage() {
                           <div className="flex items-center gap-2">
                             <Filter className="h-4 w-4 text-muted-foreground" />
                             <span>Filtros avançados</span>
-                            {(fPipelineId || fStageId || fStatus || fSource || fChannel || fEventType) && (
+                            {([fPipelineId, fStageId, fStatus].some(v => v && v !== "__all__") || fSource || fChannel || fEventType) && (
                               <Badge variant="secondary" className="text-xs">
-                                {[fPipelineId, fStageId, fStatus, fSource, fChannel, fEventType].filter(Boolean).length} activo(s)
+                                {[fPipelineId !== "__all__" && fPipelineId, fStageId !== "__all__" && fStageId, fStatus !== "__all__" && fStatus, fSource, fChannel, fEventType].filter(Boolean).length} activo(s)
                               </Badge>
                             )}
                           </div>
@@ -426,7 +426,7 @@ export default function PipelineMetricsPage() {
                               <Select value={fPipelineId} onValueChange={setFPipelineId}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Todos</SelectItem>
+                                  <SelectItem value="__all__">Todos</SelectItem>
                                   {(pipelines || []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                                 </SelectContent>
                               </Select>
@@ -436,7 +436,7 @@ export default function PipelineMetricsPage() {
                               <Select value={fStageId} onValueChange={setFStageId}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todas" /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Todas</SelectItem>
+                                  <SelectItem value="__all__">Todas</SelectItem>
                                   {(stages || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                 </SelectContent>
                               </Select>
@@ -448,7 +448,7 @@ export default function PipelineMetricsPage() {
                               <Select value={fStatus} onValueChange={setFStatus}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Todos</SelectItem>
+                                  <SelectItem value="__all__">Todos</SelectItem>
                                   {LEAD_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                                 </SelectContent>
                               </Select>
