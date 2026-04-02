@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, BarChart3, TrendingUp, Clock, Target, Trash2, Bell, Zap, Filter, Shield } from "lucide-react";
-import { usePipelineMetrics, MetricType, MetricFormula, MetricPeriod, AlertChannel } from "@/hooks/usePipelineMetrics";
+import { Plus, BarChart3, TrendingUp, Clock, Target, Trash2, Bell, Zap, Filter, Shield, Pencil, Sparkles, Loader2, Check } from "lucide-react";
+import { usePipelineMetrics, MetricType, MetricFormula, MetricPeriod, AlertChannel, PipelineMetric, MetricTarget, MetricAlert } from "@/hooks/usePipelineMetrics";
 import { usePipelines, usePipelineStagesEnhanced } from "@/hooks/useOpportunitiesEnhanced";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -19,6 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSeedDefaultMetrics } from "@/hooks/useSeedDefaultMetrics";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const METRIC_TYPES: { value: MetricType; label: string; icon: typeof BarChart3 }[] = [
   { value: "volume", label: "Volume", icon: BarChart3 },
@@ -88,18 +90,45 @@ const TYPE_COLORS: Record<MetricType, string> = {
   custom: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
 };
 
+interface AISuggestion {
+  name: string;
+  description: string;
+  metric_type: MetricType;
+  formula: MetricFormula;
+  source_table: string;
+  source_field: string | null;
+  unit: string;
+  target_value?: number;
+  target_period?: MetricPeriod;
+  reasoning: string;
+}
+
 export default function PipelineMetricsPage() {
-  const { metrics, metricsLoading, targets, alerts, createMetric, createTarget, createAlert, deleteMetric } = usePipelineMetrics();
+  const {
+    metrics, metricsLoading, targets, alerts,
+    createMetric, updateMetric, deleteMetric,
+    createTarget, updateTarget, deleteTarget,
+    createAlert, updateAlert, deleteAlert,
+  } = usePipelineMetrics();
   useSeedDefaultMetrics();
   const { data: pipelines } = usePipelines();
   const { data: stages } = usePipelineStagesEnhanced();
   const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
 
   const [tab, setTab] = useState("metrics");
   const [metricOpen, setMetricOpen] = useState(false);
   const [targetOpen, setTargetOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
+
+  // Edit state
+  const [editingMetric, setEditingMetric] = useState<PipelineMetric | null>(null);
+  const [editingTarget, setEditingTarget] = useState<MetricTarget | null>(null);
+  const [editingAlert, setEditingAlert] = useState<MetricAlert | null>(null);
+
+  // AI suggestions
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Metric form
   const [mName, setMName] = useState("");
@@ -109,7 +138,6 @@ export default function PipelineMetricsPage() {
   const [mSource, setMSource] = useState("leads");
   const [mField, setMField] = useState("");
   const [mUnit, setMUnit] = useState("");
-  // Filters
   const [fPipelineId, setFPipelineId] = useState("");
   const [fStageId, setFStageId] = useState("");
   const [fStatus, setFStatus] = useState("");
@@ -135,9 +163,49 @@ export default function PipelineMetricsPage() {
     setMName(""); setMDesc(""); setMType("volume"); setMFormula("count");
     setMSource("leads"); setMField(""); setMUnit("");
     setFPipelineId(""); setFStageId(""); setFStatus(""); setFSource(""); setFChannel(""); setFEventType("");
+    setEditingMetric(null);
   };
 
-  const handleCreateMetric = () => {
+  const openEditMetric = (m: PipelineMetric) => {
+    setEditingMetric(m);
+    setMName(m.name);
+    setMDesc(m.description || "");
+    setMType(m.metric_type);
+    setMFormula(m.formula);
+    setMSource(m.source_table);
+    setMField(m.source_field || "");
+    setMUnit(m.unit);
+    const f = m.filter_json || {};
+    setFPipelineId((f as any).pipeline_id || "");
+    setFStageId((f as any).stage_id || "");
+    setFStatus((f as any).status || "");
+    setFSource((f as any).source || "");
+    setFChannel((f as any).channel || "");
+    setFEventType((f as any).event_type || "");
+    setMetricOpen(true);
+  };
+
+  const openEditTarget = (t: MetricTarget) => {
+    setEditingTarget(t);
+    setTMetricId(t.metric_id);
+    setTPeriod(t.period);
+    setTValue(String(t.target_value));
+    setTPipelineId(t.pipeline_id || "");
+    setTStageId(t.stage_id || "");
+    setTargetOpen(true);
+  };
+
+  const openEditAlert = (a: MetricAlert) => {
+    setEditingAlert(a);
+    setAMetricId(a.metric_id);
+    setAChannel(a.channel);
+    setACondition(a.condition);
+    setAThreshold(String(a.threshold_pct));
+    setAWebhook(a.webhook_url || "");
+    setAlertOpen(true);
+  };
+
+  const handleSaveMetric = () => {
     if (!mName.trim()) return;
     const filterJson: Record<string, unknown> = {};
     if (fPipelineId) filterJson.pipeline_id = fPipelineId;
@@ -147,7 +215,7 @@ export default function PipelineMetricsPage() {
     if (fChannel) filterJson.channel = fChannel;
     if (fEventType) filterJson.event_type = fEventType;
 
-    createMetric.mutate({
+    const payload = {
       name: mName.trim(),
       description: mDesc.trim() || null,
       metric_type: mType,
@@ -156,40 +224,111 @@ export default function PipelineMetricsPage() {
       source_field: mField.trim() || null,
       unit: mUnit.trim(),
       filter_json: filterJson,
-    }, {
-      onSuccess: () => { resetMetricForm(); setMetricOpen(false); },
-    });
+    };
+
+    if (editingMetric) {
+      updateMetric.mutate({ id: editingMetric.id, ...payload }, {
+        onSuccess: () => { resetMetricForm(); setMetricOpen(false); },
+      });
+    } else {
+      createMetric.mutate(payload, {
+        onSuccess: () => { resetMetricForm(); setMetricOpen(false); },
+      });
+    }
   };
 
-  const handleCreateTarget = () => {
+  const handleSaveTarget = () => {
     if (!tMetricId || !tValue) return;
-    createTarget.mutate({
+    const payload = {
       metric_id: tMetricId,
       period: tPeriod,
       target_value: parseFloat(tValue),
       pipeline_id: tPipelineId || null,
       stage_id: tStageId || null,
-    }, {
-      onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
-    });
+    };
+
+    if (editingTarget) {
+      updateTarget.mutate({ id: editingTarget.id, ...payload }, {
+        onSuccess: () => { setEditingTarget(null); setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+      });
+    } else {
+      createTarget.mutate(payload, {
+        onSuccess: () => { setTMetricId(""); setTValue(""); setTPipelineId(""); setTStageId(""); setTargetOpen(false); },
+      });
+    }
   };
 
-  const handleCreateAlert = () => {
+  const handleSaveAlert = () => {
     if (!aMetricId) return;
-    createAlert.mutate({
+    const payload = {
       metric_id: aMetricId,
       channel: aChannel,
       condition: aCondition,
       threshold_pct: parseFloat(aThreshold),
       webhook_url: aChannel === "webhook" ? aWebhook.trim() : null,
+    };
+
+    if (editingAlert) {
+      updateAlert.mutate({ id: editingAlert.id, ...payload }, {
+        onSuccess: () => { setEditingAlert(null); setAMetricId(""); setAThreshold("80"); setAWebhook(""); setACondition("below_target"); setAlertOpen(false); },
+      });
+    } else {
+      createAlert.mutate(payload, {
+        onSuccess: () => { setAMetricId(""); setAThreshold("80"); setAWebhook(""); setACondition("below_target"); setAlertOpen(false); },
+      });
+    }
+  };
+
+  const handleAISuggest = async () => {
+    if (!currentWorkspace?.id) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("context-ai-assist", {
+        body: { action: "suggest_metrics_and_targets", workspaceId: currentWorkspace.id },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setAiSuggestions(data.suggestions || []);
+      setAiOpen(true);
+    } catch (e: any) {
+      toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const acceptSuggestion = (s: AISuggestion) => {
+    createMetric.mutate({
+      name: s.name,
+      description: s.description,
+      metric_type: s.metric_type,
+      formula: s.formula,
+      source_table: s.source_table,
+      source_field: s.source_field,
+      unit: s.unit,
+      filter_json: {},
     }, {
-      onSuccess: () => { setAMetricId(""); setAThreshold("80"); setAWebhook(""); setACondition("below_target"); setAlertOpen(false); },
+      onSuccess: (created: any) => {
+        if (s.target_value && created?.id) {
+          createTarget.mutate({
+            metric_id: created.id,
+            period: s.target_period || "monthly",
+            target_value: s.target_value,
+          });
+        }
+        setAiSuggestions(prev => prev.filter(x => x.name !== s.name));
+        toast.success(`Métrica "${s.name}" adicionada`);
+      },
     });
   };
 
   const activeFiltersCount = (filters: Record<string, unknown>) => {
     return Object.values(filters).filter(v => v !== undefined && v !== null && v !== "").length;
   };
+
+  const isPending = createMetric.isPending || updateMetric.isPending;
+  const isTargetPending = createTarget.isPending || updateTarget.isPending;
+  const isAlertPending = createAlert.isPending || updateAlert.isPending;
 
   return (
     <DashboardLayout>
@@ -210,13 +349,17 @@ export default function PipelineMetricsPage() {
 
         {/* ===== METRICS TAB ===== */}
         <TabsContent value="metrics" className="space-y-4">
-          <div className="flex justify-end">
-            <Dialog open={metricOpen} onOpenChange={setMetricOpen}>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={handleAISuggest} disabled={aiLoading}>
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sugerir com IA
+            </Button>
+            <Dialog open={metricOpen} onOpenChange={(open) => { setMetricOpen(open); if (!open) resetMetricForm(); }}>
               <DialogTrigger asChild>
                 <Button className="gap-1.5"><Plus className="h-4 w-4" />Nova Métrica</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl max-h-[85vh]">
-                <DialogHeader><DialogTitle>Criar Métrica</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{editingMetric ? "Editar Métrica" : "Criar Métrica"}</DialogTitle></DialogHeader>
                 <ScrollArea className="max-h-[65vh] pr-4">
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={mName} onChange={e => setMName(e.target.value)} placeholder="ex: Leads criados por semana" /></div>
@@ -331,8 +474,8 @@ export default function PipelineMetricsPage() {
                       </AccordionItem>
                     </Accordion>
 
-                    <Button onClick={handleCreateMetric} disabled={createMetric.isPending || !mName.trim()} className="w-full">
-                      {createMetric.isPending ? "A criar..." : "Criar Métrica"}
+                    <Button onClick={handleSaveMetric} disabled={isPending || !mName.trim()} className="w-full">
+                      {isPending ? "A guardar..." : editingMetric ? "Guardar Alterações" : "Criar Métrica"}
                     </Button>
                   </div>
                 </ScrollArea>
@@ -347,8 +490,14 @@ export default function PipelineMetricsPage() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-1">Sem métricas configuradas</h3>
-                <p className="text-sm text-muted-foreground mb-4">Crie a primeira métrica para acompanhar o desempenho do pipeline</p>
-                <Button onClick={() => setMetricOpen(true)} className="gap-1.5"><Plus className="h-4 w-4" />Nova Métrica</Button>
+                <p className="text-sm text-muted-foreground mb-4">Crie a primeira métrica ou peça sugestões à IA</p>
+                <div className="flex gap-2">
+                  <Button onClick={() => setMetricOpen(true)} className="gap-1.5"><Plus className="h-4 w-4" />Nova Métrica</Button>
+                  <Button variant="outline" onClick={handleAISuggest} disabled={aiLoading} className="gap-1.5">
+                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Sugerir com IA
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
@@ -367,9 +516,14 @@ export default function PipelineMetricsPage() {
                             <Badge variant="secondary" className="text-xs gap-1"><Filter className="h-2.5 w-2.5" />{filterCount}</Badge>
                           )}
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => deleteMetric.mutate(m.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditMetric(m)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMetric.mutate(m.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <CardTitle className="text-base mt-2">{m.name}</CardTitle>
                     </CardHeader>
@@ -397,13 +551,17 @@ export default function PipelineMetricsPage() {
 
         {/* ===== TARGETS TAB ===== */}
         <TabsContent value="targets" className="space-y-4">
-          <div className="flex justify-end">
-            <Dialog open={targetOpen} onOpenChange={setTargetOpen}>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={handleAISuggest} disabled={aiLoading}>
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sugerir com IA
+            </Button>
+            <Dialog open={targetOpen} onOpenChange={(open) => { setTargetOpen(open); if (!open) setEditingTarget(null); }}>
               <DialogTrigger asChild>
                 <Button className="gap-1.5" disabled={metrics.length === 0}><Plus className="h-4 w-4" />Nova Meta</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
-                <DialogHeader><DialogTitle>Definir Meta</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{editingTarget ? "Editar Meta" : "Definir Meta"}</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>
                     <Label>Métrica *</Label>
@@ -454,8 +612,8 @@ export default function PipelineMetricsPage() {
                     </div>
                   </div>
 
-                  <Button onClick={handleCreateTarget} disabled={createTarget.isPending || !tMetricId || !tValue} className="w-full">
-                    {createTarget.isPending ? "A criar..." : "Definir Meta"}
+                  <Button onClick={handleSaveTarget} disabled={isTargetPending || !tMetricId || !tValue} className="w-full">
+                    {isTargetPending ? "A guardar..." : editingTarget ? "Guardar Alterações" : "Definir Meta"}
                   </Button>
                 </div>
               </DialogContent>
@@ -479,6 +637,7 @@ export default function PipelineMetricsPage() {
                   <TableHead>Âmbito</TableHead>
                   <TableHead className="text-right">Meta</TableHead>
                   <TableHead>Criada em</TableHead>
+                  <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -498,6 +657,16 @@ export default function PipelineMetricsPage() {
                       </TableCell>
                       <TableCell className="text-right font-semibold">{t.target_value}{m?.unit}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{new Date(t.created_at).toLocaleDateString("pt-PT")}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditTarget(t)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteTarget.mutate(t.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -509,12 +678,12 @@ export default function PipelineMetricsPage() {
         {/* ===== ALERTS TAB ===== */}
         <TabsContent value="alerts" className="space-y-4">
           <div className="flex justify-end">
-            <Dialog open={alertOpen} onOpenChange={setAlertOpen}>
+            <Dialog open={alertOpen} onOpenChange={(open) => { setAlertOpen(open); if (!open) setEditingAlert(null); }}>
               <DialogTrigger asChild>
                 <Button className="gap-1.5" disabled={metrics.length === 0}><Plus className="h-4 w-4" />Novo Alerta</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Criar Alerta</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{editingAlert ? "Editar Alerta" : "Criar Alerta"}</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div>
                     <Label>Métrica *</Label>
@@ -546,8 +715,8 @@ export default function PipelineMetricsPage() {
                   {aChannel === "webhook" && (
                     <div><Label>Webhook URL</Label><Input value={aWebhook} onChange={e => setAWebhook(e.target.value)} placeholder="https://..." /></div>
                   )}
-                  <Button onClick={handleCreateAlert} disabled={createAlert.isPending || !aMetricId} className="w-full">
-                    {createAlert.isPending ? "A criar..." : "Criar Alerta"}
+                  <Button onClick={handleSaveAlert} disabled={isAlertPending || !aMetricId} className="w-full">
+                    {isAlertPending ? "A guardar..." : editingAlert ? "Guardar Alterações" : "Criar Alerta"}
                   </Button>
                 </div>
               </DialogContent>
@@ -571,6 +740,7 @@ export default function PipelineMetricsPage() {
                   <TableHead>Canal</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Último disparo</TableHead>
+                  <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -585,6 +755,16 @@ export default function PipelineMetricsPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {a.last_triggered_at ? new Date(a.last_triggered_at).toLocaleDateString("pt-PT") : "Nunca"}
                       </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditAlert(a)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteAlert.mutate(a.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -593,6 +773,44 @@ export default function PipelineMetricsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* ===== AI SUGGESTIONS DIALOG ===== */}
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Sugestões IA — Context OS
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[65vh]">
+            {aiSuggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Sem sugestões disponíveis. Preencha mais dados no Context OS para obter melhores sugestões.</p>
+            ) : (
+              <div className="space-y-3">
+                {aiSuggestions.map((s, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-medium text-sm">{s.name}</h4>
+                          <Badge className={TYPE_COLORS[s.metric_type] || ""}>{METRIC_TYPES.find(t => t.value === s.metric_type)?.label || s.metric_type}</Badge>
+                          {s.target_value && <Badge variant="outline" className="text-xs">Meta: {s.target_value}{s.unit}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-1">{s.description}</p>
+                        <p className="text-xs text-muted-foreground/70 italic">{s.reasoning}</p>
+                      </div>
+                      <Button size="sm" className="gap-1 shrink-0" onClick={() => acceptSuggestion(s)} disabled={createMetric.isPending}>
+                        <Check className="h-3.5 w-3.5" />Adicionar
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardLayout>
   );
