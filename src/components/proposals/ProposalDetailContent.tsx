@@ -1167,6 +1167,12 @@ export function ProposalDetailContent({
           referencesData={referencesData}
         />
       )}
+
+      <ProposalChangeRequestDialog
+        open={showChangeRequestDialog}
+        onOpenChange={setShowChangeRequestDialog}
+        onSubmit={handleChangeRequest}
+      />
     </>
   );
 }
