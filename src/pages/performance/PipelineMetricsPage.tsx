@@ -243,8 +243,8 @@ export default function PipelineMetricsPage() {
       metric_id: tMetricId,
       period: tPeriod,
       target_value: parseFloat(tValue),
-      pipeline_id: tPipelineId || null,
-      stage_id: tStageId || null,
+      pipeline_id: tPipelineId !== "__all__" ? tPipelineId : null,
+      stage_id: tStageId !== "__all__" ? tStageId : null,
     };
 
     if (editingTarget) {
