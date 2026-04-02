@@ -1,85 +1,33 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-function jsonRes(body: Record<string, unknown>, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-function api(url: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
-}
-
-function mapState(state: string | undefined): string {
-  switch (state) {
-    case "open": return "connected";
-    case "close": return "disconnected";
-    case "connecting": return "waiting_for_scan";
-    default: return "disconnected";
-  }
-}
-
-function inferSyncHealth(
-  status: string,
-  lastInboundAt: string | null,
-  lastOutboundAt: string | null,
-  connectedAt: string | null = null,
-  lastSeenAt: string | null = null,
-): { sync_health: string; sync_issue_reason: string | null } {
-  if (status !== "connected") return { sync_health: "failed", sync_issue_reason: "Sessão não conectada" };
-  const now = Date.now();
-  const twentyFourH = 24 * 60 * 60 * 1000;
-
-  if (lastInboundAt) {
-    const age = now - new Date(lastInboundAt).getTime();
-    if (age < 30 * 60_000) return { sync_health: "active", sync_issue_reason: null };
-    if (age < 2 * 3600_000) return { sync_health: "delayed", sync_issue_reason: `Sem mensagens há ${Math.round(age / 60000)} min` };
-  }
-
-  const freshestActivity = [connectedAt, lastSeenAt, lastOutboundAt]
-    .filter(Boolean)
-    .map((d) => new Date(d!).getTime())
-    .reduce((a, b) => Math.max(a, b), 0);
-
-  if (freshestActivity > 0) {
-    const activityAge = now - freshestActivity;
-    if (activityAge < twentyFourH) return { sync_health: "active", sync_issue_reason: null };
-    return { sync_health: "suspended", sync_issue_reason: `Sem actividade há ${Math.round(activityAge / 3600000)}h` };
-  }
-
-  return { sync_health: "unknown", sync_issue_reason: "Sem dados de actividade" };
-}
+import {
+  corsHeaders, jsonRes, evoFetch, getAdminClient, getEvolutionConfig,
+  validateAuth, validateWorkspaceMembership, instanceNameFor,
+  inferSyncHealth, getWebhookUrl,
+} from "../_shared/evolution-api.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { workspaceId } = await req.json();
-    if (!workspaceId) return jsonRes({ error: "Missing workspaceId" }, 400);
+    // 1. Auth
+    const auth = await validateAuth(req);
+    if (auth.error) return auth.error;
 
-    const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) return jsonRes({ error: "Evolution API not configured" }, 500);
+    const body = await req.json();
+    const workspaceId = body?.workspaceId;
+    if (!workspaceId || typeof workspaceId !== "string") return jsonRes({ error: "Missing workspaceId" }, 400);
 
-    let finalUrl = EVOLUTION_API_URL.trim();
-    if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://")) finalUrl = `https://${finalUrl}`;
-    const baseUrl = new URL(finalUrl).origin;
+    const membership = await validateWorkspaceMembership(auth.userId, workspaceId);
+    if (membership.error) return membership.error;
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // 2. Config
+    const evo = getEvolutionConfig();
+    if ("error" in evo) return evo.error;
+    const { baseUrl, apiKey } = evo;
+    const { admin } = getAdminClient();
 
-    const instanceName = `ws_${workspaceId.replace(/-/g, "").substring(0, 16)}`;
+    const instanceName = instanceNameFor(workspaceId);
     console.log(`[WA_SYNC] START ws=${workspaceId} instance=${instanceName}`);
 
-    // Get existing record
     const { data: existingConn } = await admin
       .from("whatsapp_qr_connections")
       .select("recovery_state, recovery_attempt_count")
@@ -87,18 +35,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     // Check Evolution state
-    let evolutionState: string | null = null;
-    let phoneNumber: string | null = null;
-    try {
-      const stateRes = await api(`${baseUrl}/instance/connectionState/${instanceName}`, {
-        method: "GET", headers: { apikey: EVOLUTION_API_KEY },
-      });
-      if (stateRes.ok) {
-        const sd = await stateRes.json();
-        evolutionState = sd?.instance?.state || null;
-      } else { await stateRes.text(); }
-    } catch { evolutionState = null; }
-
+    const stateRes = await evoFetch(baseUrl, `/instance/connectionState/${instanceName}`, apiKey, { method: "GET" });
+    const evolutionState = stateRes.ok ? (stateRes.data?.instance?.state || null) : null;
     const now = new Date().toISOString();
 
     if (!evolutionState) {
@@ -111,39 +49,31 @@ Deno.serve(async (req) => {
       return jsonRes({ status: "not_configured", sync_health: "unknown", synced: true });
     }
 
-    const mappedStatus = mapState(evolutionState);
+    const mappedStatus = evolutionState === "open" ? "connected" : evolutionState === "close" ? "disconnected" : evolutionState === "connecting" ? "waiting_for_scan" : "disconnected";
 
     // Get phone if connected
+    let phoneNumber: string | null = null;
     if (mappedStatus === "connected") {
-      try {
-        const infoRes = await api(`${baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
-          method: "GET", headers: { apikey: EVOLUTION_API_KEY },
-        });
-        const infoData = await infoRes.json();
-        const inst = Array.isArray(infoData) ? infoData[0] : infoData;
+      const infoRes = await evoFetch(baseUrl, `/instance/fetchInstances?instanceName=${instanceName}`, apiKey, { method: "GET" });
+      if (infoRes.ok) {
+        const inst = Array.isArray(infoRes.data) ? infoRes.data[0] : infoRes.data;
         phoneNumber = inst?.ownerJid || inst?.instance?.owner || inst?.instance?.wuid || null;
         if (phoneNumber?.includes("@")) phoneNumber = phoneNumber.split("@")[0];
-      } catch { /* ignore */ }
+      }
     }
 
-    // Query message activity
+    // Message activity
     let lastInboundAt: string | null = null;
     let lastOutboundAt: string | null = null;
     try {
-      const { data: li } = await admin.from("messages").select("sent_at")
-        .eq("workspace_id", workspaceId).eq("direction", "inbound")
-        .order("sent_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: li } = await admin.from("messages").select("sent_at").eq("workspace_id", workspaceId).eq("direction", "inbound").order("sent_at", { ascending: false }).limit(1).maybeSingle();
       lastInboundAt = li?.sent_at || null;
-      const { data: lo } = await admin.from("messages").select("sent_at")
-        .eq("workspace_id", workspaceId).eq("direction", "outbound")
-        .order("sent_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: lo } = await admin.from("messages").select("sent_at").eq("workspace_id", workspaceId).eq("direction", "outbound").order("sent_at", { ascending: false }).limit(1).maybeSingle();
       lastOutboundAt = lo?.sent_at || null;
     } catch { /* ignore */ }
 
-    const syncConnectedAt = mappedStatus === "connected" ? now : null;
-    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, syncConnectedAt, now);
+    const { sync_health, sync_issue_reason } = inferSyncHealth(mappedStatus, lastInboundAt, lastOutboundAt, mappedStatus === "connected" ? now : null, now);
 
-    // Reconcile recovery
     let recovery_state = existingConn?.recovery_state || "none";
     let recovery_attempt_count = existingConn?.recovery_attempt_count || 0;
     if (sync_health === "active") { recovery_state = "none"; recovery_attempt_count = 0; }
@@ -151,24 +81,15 @@ Deno.serve(async (req) => {
       recovery_state = "repair_required";
     }
 
-    // Ensure webhook is set
-    const webhookUrl = `${SUPABASE_URL}/functions/v1/whatsapp-evolution-webhook`;
-    try {
-      await api(`${baseUrl}/webhook/set/${instanceName}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-        body: JSON.stringify({
-          webhook: {
-            url: webhookUrl, enabled: true,
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
-            webhook_by_events: false, webhook_base64: false,
-          },
-        }),
-      });
-      console.log(`[WA_SYNC] WEBHOOK_SET url=${webhookUrl}`);
-    } catch (e) {
-      console.warn(`[WA_SYNC] WEBHOOK_SET_FAILED`, e);
-    }
+    // Set webhook
+    const webhookUrl = getWebhookUrl();
+    await evoFetch(baseUrl, `/webhook/set/${instanceName}`, apiKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        webhook: { url: webhookUrl, enabled: true, events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"], webhook_by_events: false, webhook_base64: false },
+      }),
+    });
 
     const update: Record<string, unknown> = {
       workspace_id: workspaceId, instance_name: instanceName,
@@ -185,21 +106,16 @@ Deno.serve(async (req) => {
 
     await admin.from("whatsapp_qr_connections").upsert(update, { onConflict: "workspace_id" });
 
-    // Sync whatsapp_connections
     if (mappedStatus === "connected") {
       await admin.from("whatsapp_connections").upsert({
         workspace_id: workspaceId, is_active: true, display_phone_number: phoneNumber, updated_at: now,
       }, { onConflict: "workspace_id" });
     } else {
-      await admin.from("whatsapp_connections").update({ is_active: false, updated_at: now })
-        .eq("workspace_id", workspaceId);
+      await admin.from("whatsapp_connections").update({ is_active: false, updated_at: now }).eq("workspace_id", workspaceId);
     }
 
-    console.log(`[WA_SYNC] DONE ws=${workspaceId} status=${mappedStatus} health=${sync_health} recovery=${recovery_state}`);
-    return jsonRes({
-      status: mappedStatus, sync_health, sync_issue_reason, recovery_state,
-      recovery_attempt_count, phoneNumber, synced: true,
-    });
+    console.log(`[WA_SYNC] DONE ws=${workspaceId} status=${mappedStatus} health=${sync_health}`);
+    return jsonRes({ status: mappedStatus, sync_health, sync_issue_reason, recovery_state, recovery_attempt_count, phoneNumber, synced: true });
   } catch (error) {
     console.error("[WA_SYNC] ERROR", error);
     return jsonRes({ error: "Internal server error" }, 500);

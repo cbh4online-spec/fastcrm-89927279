@@ -40,6 +40,8 @@ const TRANSITIONAL_STATUSES: WhatsAppQRStatus[] = [
   "reconnecting",
 ];
 
+const STABLE_POLL_INTERVAL = 60000; // 60s fallback for stable states
+
 export interface WhatsAppQRConnection {
   id: string;
   workspace_id: string;
@@ -90,8 +92,10 @@ export function useWhatsAppQRConnection() {
     refetchInterval: (query) => {
       const status = query.state.data?.status as WhatsAppQRStatus | undefined;
       if (status && TRANSITIONAL_STATUSES.includes(status)) {
-        return 5000;
+        return 5000; // Fast polling for transitional states
       }
+      // Slow fallback for stable states to catch webhook failures
+      if (status === "connected") return STABLE_POLL_INTERVAL;
       return false;
     },
   });
