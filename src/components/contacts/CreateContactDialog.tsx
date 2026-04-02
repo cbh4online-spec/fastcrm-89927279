@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useContacts } from "@/hooks/useContacts";
+import { isValidPhone } from "@/utils/phone";
+import { toE164 } from "@/utils/phone";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
 import { useNavigate } from "react-router-dom";
@@ -296,6 +298,12 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       return;
     }
 
+    // Validate phone if provided
+    if (hasPhone && !isValidPhone(formData.phone)) {
+      toast.error("Número de telefone inválido");
+      return;
+    }
+
     // Check for blocking duplicates (email or exact name)
     const blockingDuplicates = duplicates.filter(d => d.isBlockingDuplicate);
     if (blockingDuplicates.length > 0) {
@@ -322,7 +330,7 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       const result = await createContact.mutateAsync({
         name: formData.name.trim() || formData.email.split("@")[0] || "Contacto",
         email: formData.email.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
+        phone: formData.phone.trim() ? (toE164(formData.phone.trim()) ?? formData.phone.trim()) : undefined,
         company: formData.company.trim() || undefined,
         job_title: formData.job_title.trim() || undefined,
         notes: formData.notes.trim() || undefined,

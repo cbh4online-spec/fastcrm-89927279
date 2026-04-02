@@ -4,6 +4,7 @@ import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { isValidPhone } from "@/utils/phone";
 import { useCreateLead, LeadStatus, LeadType } from "@/hooks/useLeads";
 import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 import {
@@ -43,7 +44,15 @@ const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
   name: z.string().min(1, "Nome é obrigatório").max(100),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
+  phone: z
+    .string()
+    .max(20)
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || isValidPhone(val, "PT"),
+      { message: "Número de telefone inválido" },
+    ),
   source: z.string().max(50).optional().or(z.literal("")),
   status: z.enum(["new", "in_progress", "completed"]).default("new"),
   // Company fields
