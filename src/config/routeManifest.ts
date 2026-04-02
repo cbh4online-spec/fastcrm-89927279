@@ -208,7 +208,6 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
   e("performance",  "Performance",      "/dashboard/performance",       BarChart3,   "vendas"),
-  e("perf-goals",   "Metas",            "/dashboard/performance/goals", Target,      "vendas", { visibleInSidebar: false }),
   e("perf-metrics", "Métricas & Metas", "/dashboard/performance/metrics", BarChart3, "vendas"),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
