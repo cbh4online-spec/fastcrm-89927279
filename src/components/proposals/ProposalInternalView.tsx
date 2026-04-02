@@ -91,9 +91,11 @@ export function ProposalInternalView({
   const refreshCosts = useRefreshCostSnapshots();
   
   const clientName = proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name;
-  const clientEmail = proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
   const clientAddress = proposal.billing_address || proposal.company?.address || proposal.contact?.address;
   const clientNif = proposal.billing_nif || proposal.company?.tax_id || proposal.contact?.tax_id;
+  const contactName = proposal.contact?.name || proposal.opportunity?.lead?.name;
+  const contactEmail = proposal.contact?.email || proposal.opportunity?.lead?.email;
+  const primaryEmail = contactEmail || proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
   
   const createdDate = new Date(proposal.created_at);
   const expiryDate = proposal.validity_days 
