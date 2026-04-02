@@ -1,26 +1,30 @@
 
 
-# Criar Produto na Página da Loja com Formulário Completo
-
-## Diagnóstico
-
-A página `StoreProductsAdminPage` tem um botão "Criar Rápido" que navega para outra rota e um "Criar com IA" que abre um dialog simplificado. Não existe opção de criar produto com o formulário completo (`CreateProductDialog`) directamente na loja.
+# Indicadores Visuais na Tabela da Loja
 
 ## Solução
 
-Adicionar um botão "Novo Produto" que abre o `CreateProductDialog` (o mesmo formulário completo de 1291 linhas usado no catálogo principal). Ao fechar com sucesso, os dados da tabela são refrescados.
+Adicionar 3 ícones compactos com tooltip na coluna "Produto" (abaixo do SKU) indicando estado de imagens, variantes e stock. Sem coluna extra — mantém a tabela limpa.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/pages/StoreProductsAdminPage.tsx` | Importar `CreateProductDialog`, adicionar state `createOpen`, adicionar botão "Novo Produto" com ícone `Plus`, renderizar o dialog |
+| `src/components/store/admin/useStoreAdminProducts.ts` | Adicionar contagem de variantes via sub-query `product_variants(count)` e expor `variants_count` no tipo |
+| `src/components/store/admin/CatalogProductsTable.tsx` | Renderizar 3 ícones com tooltip abaixo do nome/SKU: Imagens, Variantes, Stock |
 
 ### Detalhe
 
-- Novo state: `const [createOpen, setCreateOpen] = useState(false)`
-- Botão na barra de acções (antes dos botões existentes): `<Button variant="default" onClick={() => setCreateOpen(true)}>+ Novo Produto</Button>`
-- Reorganizar botões: "Novo Produto" (primário) | "Criar com IA" (outline) | "Criar Rápido" (outline/ghost)
-- Renderizar: `<CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />`
-- Import adicional: `Plus` de lucide-react, `CreateProductDialog` de `@/components/products/CreateProductDialog`
+**useStoreAdminProducts.ts:**
+- Query: adicionar `product_variants(count)` ao select
+- Tipo `ProductStoreData`: adicionar `variants_count: number`
+- Mapear: `variants_count: item.product_variants?.[0]?.count || 0`
+
+**CatalogProductsTable.tsx:**
+- Importar `ImageIcon`, `Layers`, `PackageCheck` do lucide + `Tooltip` do shadcn
+- Na célula do produto, após o SKU, renderizar uma linha de 3 ícones (14px):
+  - **Imagens** (`ImageIcon`): verde se `images?.length > 0`, cinza/vermelho se vazio
+  - **Variantes** (`Layers`): azul com count se > 0, cinza se 0
+  - **Stock** (`PackageCheck`): cor conforme `stock_status` (verde=available, amber=limited, vermelho=out_of_stock, azul=backorder), cinza se null
+- Cada ícone envolto em `Tooltip` com label descritivo (ex: "3 imagens", "Sem variantes", "Stock limitado")
 
