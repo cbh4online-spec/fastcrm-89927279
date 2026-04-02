@@ -42,6 +42,8 @@ export function ProposalCart({
   onUpdateQuantity,
   onUpdatePrice,
   onUpdateDiscount,
+  onUpdateName,
+  onUpdateDescription,
   onRemoveItem,
   onClear,
   tierName,
