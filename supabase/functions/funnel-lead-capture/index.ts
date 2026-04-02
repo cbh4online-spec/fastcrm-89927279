@@ -41,15 +41,15 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Lookup contact by email in workspace
-    const { data: existingContact } = await supabase
-      .from("contacts")
+    // 1. Lookup lead by email in workspace
+    const { data: existingLead } = await supabase
+      .from("leads")
       .select("id, tags")
       .eq("workspace_id", workspace_id)
       .eq("email", normalizedEmail)
       .maybeSingle();
 
-    let contactId: string;
+    let leadId: string;
     let isNew = false;
 
     // Build tags
@@ -59,60 +59,59 @@ Deno.serve(async (req) => {
     if (utm_campaign) newTags.push(`campaign:${utm_campaign}`);
     if (marketing_opt_in) newTags.push("marketing_opt_in");
 
-    if (existingContact) {
-      contactId = existingContact.id;
+    if (existingLead) {
+      leadId = existingLead.id;
       // Merge tags
-      const currentTags: string[] = Array.isArray(existingContact.tags) ? existingContact.tags : [];
+      const currentTags: string[] = Array.isArray(existingLead.tags) ? existingLead.tags : [];
       const mergedTags = [...new Set([...currentTags, ...newTags])];
 
       await supabase
-        .from("contacts")
+        .from("leads")
         .update({
           tags: mergedTags,
           updated_at: new Date().toISOString(),
           ...(name ? { name } : {}),
         })
-        .eq("id", contactId);
+        .eq("id", leadId);
     } else {
-      // 2. Create new contact
+      // 2. Create new lead
       isNew = true;
-      const { data: newContact, error: createError } = await supabase
-        .from("contacts")
+      const { data: newLead, error: createError } = await supabase
+        .from("leads")
         .insert({
           workspace_id,
           name: name || normalizedEmail.split("@")[0],
           email: normalizedEmail,
           source: "funnel",
-          lead_source: "funnel",
+          status: "new",
           tags: newTags,
-          status: "lead",
         })
         .select("id")
         .single();
 
       if (createError) {
-        console.error("Contact creation error:", createError);
-        return new Response(JSON.stringify({ error: "Failed to create contact" }), {
+        console.error("Lead creation error:", createError);
+        return new Response(JSON.stringify({ error: "Failed to create lead" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      contactId = newContact.id;
+      leadId = newLead.id;
     }
 
-    // 3. Update submission with contact_id
+    // 3. Update submission with lead_id
     if (submission_id) {
       await supabase
         .from("funnel_submissions")
-        .update({ contact_id: contactId })
+        .update({ lead_id: leadId })
         .eq("id", submission_id);
     }
 
     // 4. Activity logs
     await supabase.from("activity_logs").insert({
       workspace_id,
-      entity_type: "contact",
-      entity_id: contactId,
+      entity_type: "lead",
+      entity_id: leadId,
       action: "funnel.lead_captured",
       details: {
         funnel_id,
@@ -131,15 +130,15 @@ Deno.serve(async (req) => {
     if (isNew) {
       await supabase.from("activity_logs").insert({
         workspace_id,
-        entity_type: "contact",
-        entity_id: contactId,
-        action: "funnel.contact_created",
+        entity_type: "lead",
+        entity_id: leadId,
+        action: "funnel.lead_created",
         details: { funnel_id, slug, email: normalizedEmail },
       });
     }
 
     return new Response(
-      JSON.stringify({ contact_id: contactId, is_new: isNew }),
+      JSON.stringify({ lead_id: leadId, is_new: isNew }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
