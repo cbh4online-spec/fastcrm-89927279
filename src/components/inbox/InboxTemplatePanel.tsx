@@ -448,14 +448,16 @@ export function InboxTemplatePanel({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-            <FileText className="w-3 h-3" />
-            Templates
-          </Button>
-        )}
-      </SheetTrigger>
+      {!isControlled && (
+        <SheetTrigger asChild>
+          {trigger || (
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+              <FileText className="w-3 h-3" />
+              Templates
+            </Button>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
