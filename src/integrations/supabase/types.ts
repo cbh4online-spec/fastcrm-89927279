@@ -53501,6 +53501,41 @@ export type Database = {
           },
         ]
       }
+      twilio_connections: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          twilio_phone_number: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          twilio_phone_number: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          twilio_phone_number?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twilio_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_alerts: {
         Row: {
           alert_type: string
