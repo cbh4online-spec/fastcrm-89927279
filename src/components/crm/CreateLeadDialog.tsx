@@ -43,7 +43,15 @@ const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
   name: z.string().min(1, "Nome é obrigatório").max(100),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
+  phone: z
+    .string()
+    .max(20)
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || isValidPhone(val, "PT"),
+      { message: "Número de telefone inválido" },
+    ),
   source: z.string().max(50).optional().or(z.literal("")),
   status: z.enum(["new", "in_progress", "completed"]).default("new"),
   // Company fields

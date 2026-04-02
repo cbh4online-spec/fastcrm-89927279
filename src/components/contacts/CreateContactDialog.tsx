@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useContacts } from "@/hooks/useContacts";
+import { isValidPhone } from "@/utils/phone";
+import { toE164 } from "@/utils/phone";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
 import { useNavigate } from "react-router-dom";
