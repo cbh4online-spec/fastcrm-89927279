@@ -244,6 +244,9 @@ export default function HRTimeTrackingPage() {
             </Select>
           </div>
 
+          {/* Clock-ins Map */}
+          <ClockInsMap sessions={sessions} />
+
           {/* Quick clock actions */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
