@@ -1,38 +1,44 @@
 
 
-# Adicionar Controlo de Créditos IA ao Pricing & Módulos
+# Adicionar Assistência IA à Gestão de Planos (Portal Cliente)
 
 ## Diagnóstico
 
-A secção **Pricing & Módulos** já tem assistência IA funcional (botões "IA: Sugerir Preços", "Gerar Features IA", etc.), mas **não controla créditos**:
-
-1. O `useAIAssistant()` local não passa `workspace_id` ao edge function → o `aiGate` no backend é ignorado
-2. Não há verificação frontend de créditos (`useAIGate`) antes de chamar a IA
-3. Não há `triggerNoCreditsDialog` para utilizadores sem créditos
-4. Erros 402 (sem créditos) do edge function não são tratados
-
-## Solução
-
-Integrar o padrão de créditos já usado noutros módulos (Funnels, eBooks, etc.) no `PricingManagementSection`.
+As páginas de Planos de Manutenção do portal cliente (`ClientPlansPage`, `ClientPlanCreatePage`, `ClientPlanDetailPage`) não têm qualquer assistência IA. O padrão de créditos (`useAIGate` + `triggerNoCreditsDialog` + `useCreditWallet`) já existe noutros módulos e será reutilizado.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/super-admin/PricingManagementSection.tsx` | Actualizar `useAIAssistant()` para passar `workspace_id`, adicionar `useAIGate` + `triggerNoCreditsDialog`, tratar erro 402 |
+| `supabase/functions/pricing-ai-assistant/index.ts` | Adicionar 2 novas actions: `suggest_subscription_plan` e `optimize_subscription_plan` |
+| `src/pages/client/ClientPlanCreatePage.tsx` | Botão "IA: Sugerir Plano" que preenche nome, cadência e produtos recomendados com base no catálogo disponível |
+| `src/pages/client/ClientPlanDetailPage.tsx` | Botão "IA: Optimizar Plano" que sugere ajustes de produtos, quantidades e cadência para melhorar o valor do plano |
 
-### Detalhe
+### Novas actions na edge function
 
-1. **`useAIAssistant()` — passar workspace_id**: Obter o workspace_id do contexto (ou usar um valor global para super-admin) e incluí-lo no body da chamada ao edge function
+1. **`suggest_subscription_plan`** — Recebe o catálogo de produtos do workspace e sugere um plano completo (nome, cadência, produtos e quantidades) baseado em padrões de consumo típicos. Devolve JSON estruturado.
 
-2. **Verificação frontend com `useAIGate("medium")`**: Antes de cada chamada IA, verificar `canRun` / `showUpgrade`. Se `showUpgrade`, chamar `triggerNoCreditsDialog({ actionLabel: "..." })` e abortar
+2. **`optimize_subscription_plan`** — Recebe o plano actual (produtos, cadência, valor) e sugere melhorias: ajustar quantidades, trocar cadência, adicionar/remover produtos para optimizar custo-benefício.
 
-3. **Tratamento de erro 402**: No `useAIAssistant`, detectar resposta com `quota_exceeded` e disparar `triggerNoCreditsDialog`
+### Integração no ClientPlanCreatePage
 
-4. **Aplicar em todos os pontos de chamada IA**:
-   - Botão "IA: Sugerir Preços" no header (action `suggest_prices`)
-   - Botão "Gerar Features IA" no `PlanEditor` (action `generate_features`)
-   - Qualquer outra chamada IA existente na secção
+- Botão `Sparkles` "IA: Sugerir Plano" no header, ao lado de "Criar Plano de Manutenção"
+- Ao clicar: verifica créditos via `useAIGate("medium")`, chama edge function com lista de produtos disponíveis
+- Resposta preenche automaticamente nome, cadência e produtos seleccionados
+- `overageLabel` visível quando aplicável
+- Tratamento de erro 402 com `triggerNoCreditsDialog`
 
-5. **UX**: Mostrar `overageLabel` junto aos botões IA quando aplicável (ex: "Esta acção custa €0.05")
+### Integração no ClientPlanDetailPage
+
+- Botão "IA: Optimizar" na barra de acções (junto a Pausar/Retomar)
+- Apenas visível para planos em `draft` ou `active`
+- Sugere alterações como: ajustar quantidades, mudar cadência, adicionar produtos complementares
+- Resultado apresentado num Card com sugestões descritivas
+
+### Controlo de créditos (em ambas as páginas)
+
+- `useAIGate("medium")` para verificação frontend
+- `triggerNoCreditsDialog` quando sem créditos
+- `useCreditWallet` → `consumeCredits` após chamada bem-sucedida
+- Tratamento de erro 402 do edge function
 
