@@ -11,6 +11,7 @@ import { Form } from "@/components/ui/form";
 import { RHFormField, RHSelectField, RHTextareaField, RHFormActions } from "@/components/hr/form";
 import { jobOpeningSchema, type JobOpeningFormValues } from "@/schemas/hr/jobOpeningSchema";
 import { Plus, Briefcase, MapPin, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { JobPostingAIAssist, AIFieldButton, AIGenerateAllButton } from "@/components/hr/recruitment/JobPostingAIAssist";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 
