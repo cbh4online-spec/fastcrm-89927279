@@ -340,6 +340,13 @@ export function AIUsageSection() {
                         </p>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {ws.cycle_end
+                          ? new Date(ws.cycle_end).toLocaleDateString("pt-PT")
+                          : "—"}
+                      </span>
+                    </TableCell>
                     <TableCell>{getUsageStatus(ws.percentage, ws.is_abuse)}</TableCell>
                     <TableCell>
                       {(ws.is_abuse || ws.percentage >= 100) && (
