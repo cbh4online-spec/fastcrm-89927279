@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert, ScanFace, MapPin } from "lucide-react";
 import FaceCaptureDialog from "@/components/hr/FaceCaptureDialog";
+import ClockInsMap from "@/components/hr/ClockInsMap";
 import { format, subDays } from "date-fns";
 import { pt } from "date-fns/locale";
 
