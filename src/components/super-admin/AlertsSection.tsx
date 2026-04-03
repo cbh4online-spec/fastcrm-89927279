@@ -49,7 +49,12 @@ interface Incident {
   resolution_notes?: string;
 }
 
-export function AlertsSection() {
+interface AlertsSectionProps {
+  initialTab?: "alerts" | "incidents";
+}
+
+export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [statusFilter, setStatusFilter] = useState<string>("open");
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
