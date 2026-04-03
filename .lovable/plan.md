@@ -1,44 +1,47 @@
 
 
-# Adicionar Assistência IA à Gestão de Planos (Portal Cliente)
+# Corrigir Tabela de Uso de IA no Super Admin
 
 ## Diagnóstico
 
-As páginas de Planos de Manutenção do portal cliente (`ClientPlansPage`, `ClientPlanCreatePage`, `ClientPlanDetailPage`) não têm qualquer assistência IA. O padrão de créditos (`useAIGate` + `triggerNoCreditsDialog` + `useCreditWallet`) já existe noutros módulos e será reutilizado.
+A tabela mostra tudo a zeros porque consulta as fontes de dados erradas:
 
-## Alterações
+| O que faz (errado) | O que deveria fazer (correcto) |
+|---|---|
+| Lê `workspace_usage.ai_calls_used` → tabela vazia (0 registos) | Ler `workspace_plans.calls_used` e `workspace_plans.calls_included` → 10 registos activos com dados reais |
+| Lê `workspace_subscriptions.plan` para o nome do plano | Ler `workspace_plans.plan` (fonte de verdade) |
+| Lê `plan_features.ai_calls_limit` para limites | Usar `workspace_plans.calls_included` directamente (já tem o limite por workspace) |
+
+**Dados reais existentes**: 5.863 registos em `ai_call_log`, 10 `workspace_plans` activos (ex: METODOPARE com 5.598/10.000 calls usados).
+
+## Alteração
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/pricing-ai-assistant/index.ts` | Adicionar 2 novas actions: `suggest_subscription_plan` e `optimize_subscription_plan` |
-| `src/pages/client/ClientPlanCreatePage.tsx` | Botão "IA: Sugerir Plano" que preenche nome, cadência e produtos recomendados com base no catálogo disponível |
-| `src/pages/client/ClientPlanDetailPage.tsx` | Botão "IA: Optimizar Plano" que sugere ajustes de produtos, quantidades e cadência para melhorar o valor do plano |
+| `src/components/super-admin/AIUsageSection.tsx` | Reescrever a query para usar `workspace_plans` em vez de `workspace_usage` + `plan_features` |
 
-### Novas actions na edge function
+### Detalhe técnico
 
-1. **`suggest_subscription_plan`** — Recebe o catálogo de produtos do workspace e sugere um plano completo (nome, cadência, produtos e quantidades) baseado em padrões de consumo típicos. Devolve JSON estruturado.
+Substituir a query actual por:
 
-2. **`optimize_subscription_plan`** — Recebe o plano actual (produtos, cadência, valor) e sugere melhorias: ajustar quantidades, trocar cadência, adicionar/remover produtos para optimizar custo-benefício.
+1. **Buscar todos os workspaces** com join a `workspace_plans` (filtro `status = active`):
+   ```
+   workspaces → id, name
+   workspace_plans → plan, calls_used, calls_included, cycle_start, cycle_end
+   ```
 
-### Integração no ClientPlanCreatePage
+2. **Para workspaces sem plano activo** (Free): mostrar `0 / 0` com plano "free"
 
-- Botão `Sparkles` "IA: Sugerir Plano" no header, ao lado de "Criar Plano de Manutenção"
-- Ao clicar: verifica créditos via `useAIGate("medium")`, chama edge function com lista de produtos disponíveis
-- Resposta preenche automaticamente nome, cadência e produtos seleccionados
-- `overageLabel` visível quando aplicável
-- Tratamento de erro 402 com `triggerNoCreditsDialog`
+3. **Calcular percentage** a partir de `calls_used / calls_included` (já calculado correctamente na lógica existente, só muda a fonte)
 
-### Integração no ClientPlanDetailPage
+4. **Manter toda a lógica existente** de badges, filtros, abuse detection e limit dialog — apenas mudar de onde vêm os números
 
-- Botão "IA: Optimizar" na barra de acções (junto a Pausar/Retomar)
-- Apenas visível para planos em `draft` ou `active`
-- Sugere alterações como: ajustar quantidades, mudar cadência, adicionar produtos complementares
-- Resultado apresentado num Card com sugestões descritivas
+5. **Adicionar coluna `Ciclo`** com a data de fim do ciclo para contexto adicional
 
-### Controlo de créditos (em ambas as páginas)
+### Resultado esperado
 
-- `useAIGate("medium")` para verificação frontend
-- `triggerNoCreditsDialog` quando sem créditos
-- `useCreditWallet` → `consumeCredits` após chamada bem-sucedida
-- Tratamento de erro 402 do edge function
+- METODOPARE: 5.598 / 10.000 (56%) — Pro
+- Blecksen: 41 / 10.000 — Pro  
+- Workspaces Free: 0 / 0 — Free
+- KPIs do header com valores reais
 
