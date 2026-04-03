@@ -320,10 +320,9 @@ export function PricingManagementSection() {
   };
 
   const handleSuggestPrices = async () => {
-    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules });
+    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules }, "Sugerir Preços IA");
     if (result?.suggestions) {
       toast.success("Sugestões de preços recebidas! Revise e aplique.");
-      // Show suggestions in a simple way
       result.suggestions.forEach((s: any) => {
         toast.info(`${s.config_key}: €${s.price_monthly}/mês, €${s.price_yearly}/ano — ${s.reasoning}`, { duration: 10000 });
       });
