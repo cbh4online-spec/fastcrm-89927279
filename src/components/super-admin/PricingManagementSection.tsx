@@ -383,10 +383,13 @@ export function PricingManagementSection() {
           <h1 className="text-2xl font-bold text-foreground">Pricing & Módulos</h1>
           <p className="text-muted-foreground">Gerir preços, planos e módulos da plataforma com assistência IA</p>
         </div>
-        <Button onClick={handleSuggestPrices} disabled={aiLoading} variant="outline">
-          {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-          IA: Sugerir Preços
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSuggestPrices} disabled={aiLoading || !aiCanRun} variant="outline" title={aiOverageLabel}>
+            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            IA: Sugerir Preços
+            {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="plans">
