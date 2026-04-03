@@ -220,10 +220,17 @@ export function OverviewSection() {
           <h1 className="text-2xl font-bold text-foreground">Overview SaaS</h1>
           <p className="text-muted-foreground">Estado global do SaaS em tempo real.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          {dataUpdatedAt > 0 && (
+            <span className="text-xs text-muted-foreground">
+              Atualizado às {format(new Date(dataUpdatedAt), "HH:mm:ss", { locale: pt })}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
