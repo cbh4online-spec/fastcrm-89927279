@@ -52,9 +52,13 @@ const PLAN_PRICES: Record<string, number> = {
   trial: 0,
 };
 
-export function BillingSection() {
+interface BillingSectionProps {
+  initialTab?: "subscriptions" | "payments" | "events" | "sync";
+}
+
+export function BillingSection({ initialTab = "subscriptions" }: BillingSectionProps) {
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("subscriptions");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [syncingAll, setSyncingAll] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ done: 0, total: 0 });
   const queryClient = useQueryClient();
