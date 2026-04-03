@@ -43,6 +43,8 @@ export default function JobPostingsPage() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const { loading: aiLoading, run: aiRun } = JobPostingAIAssist({ form });
+
   const form = useForm<JobOpeningFormValues>({
     resolver: zodResolver(jobOpeningSchema),
     defaultValues: {
