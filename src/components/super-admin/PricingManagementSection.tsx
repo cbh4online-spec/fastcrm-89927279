@@ -21,27 +21,64 @@ import { useMarketplaceModulesAdmin, type MarketplaceModuleAdmin, type ModulePri
 import { EXTENSION_PACKS } from "@/config/extensionPacks";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 
 function useAIAssistant() {
   const [loading, setLoading] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const { canRun, showUpgrade, isOverage, overageLabel } = useAIGate("medium");
+  const { consumeCredits, canAfford } = useCreditWallet();
 
-  const callAI = async (action: string, context: unknown) => {
+  const callAI = async (action: string, context: unknown, actionLabel?: string) => {
+    // Credit gate check
+    if (showUpgrade || !canRun) {
+      triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+      return null;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
-        body: { action, context },
+        body: { action, context, workspace_id: currentWorkspace?.id },
       });
       if (error) throw error;
+
+      // Handle 402 / quota exceeded from edge function
+      if (data?.error && (data?.code === "quota_exceeded" || data?.code === "insufficient_credits")) {
+        triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+        return null;
+      }
+
+      // Consume credit on success
+      try {
+        await consumeCredits.mutateAsync({
+          actionKey: "ai_pricing_assistant",
+          referenceType: "pricing",
+          referenceId: action,
+          metadata: { action },
+        });
+      } catch {
+        // Credit consumption failure shouldn't block the result
+      }
+
       return data?.result;
     } catch (e: any) {
-      toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
+      const msg = e.message || "Erro desconhecido";
+      if (msg.includes("quota") || msg.includes("créditos") || msg.includes("402")) {
+        triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+      } else {
+        toast.error("Erro IA: " + msg);
+      }
       return null;
     } finally {
       setLoading(false);
     }
   };
 
-  return { callAI, loading };
+  return { callAI, loading, canRun, showUpgrade, isOverage, overageLabel };
 }
 
 // ─── Plan Card Editor ───
@@ -80,7 +117,7 @@ function PlanEditor({ config, onSave }: { config: PlatformPricingConfig; onSave:
   };
 
   const handleAIFeatures = async () => {
-    const result = await callAI("generate_features", { name, description, config_type: "plan", current_features: features });
+    const result = await callAI("generate_features", { name, description, config_type: "plan", current_features: features }, "Gerar Features IA");
     if (result?.features) {
       setFeatures(result.features);
       toast.success("Features geradas pela IA!");
@@ -272,7 +309,7 @@ export function PricingManagementSection() {
   const updateConfig = useUpdatePricingConfig();
   const createConfig = useCreatePricingConfig();
   const deleteConfig = useDeletePricingConfig();
-  const { callAI, loading: aiLoading } = useAIAssistant();
+  const { callAI, loading: aiLoading, canRun: aiCanRun, showUpgrade: aiShowUpgrade, isOverage: aiIsOverage, overageLabel: aiOverageLabel } = useAIAssistant();
   const { modules: marketplaceModules, isLoading: modulesLoading, updateModule, syncToLandingPage, parsePricing } = useMarketplaceModulesAdmin();
 
   const plans = allConfigs?.filter((c) => c.config_type === "plan") ?? [];
@@ -283,10 +320,9 @@ export function PricingManagementSection() {
   };
 
   const handleSuggestPrices = async () => {
-    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules });
+    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules }, "Sugerir Preços IA");
     if (result?.suggestions) {
       toast.success("Sugestões de preços recebidas! Revise e aplique.");
-      // Show suggestions in a simple way
       result.suggestions.forEach((s: any) => {
         toast.info(`${s.config_key}: €${s.price_monthly}/mês, €${s.price_yearly}/ano — ${s.reasoning}`, { duration: 10000 });
       });
@@ -347,10 +383,13 @@ export function PricingManagementSection() {
           <h1 className="text-2xl font-bold text-foreground">Pricing & Módulos</h1>
           <p className="text-muted-foreground">Gerir preços, planos e módulos da plataforma com assistência IA</p>
         </div>
-        <Button onClick={handleSuggestPrices} disabled={aiLoading} variant="outline">
-          {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-          IA: Sugerir Preços
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSuggestPrices} disabled={aiLoading || !aiCanRun} variant="outline" title={aiOverageLabel}>
+            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            IA: Sugerir Preços
+            {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="plans">
@@ -416,14 +455,15 @@ export function PricingManagementSection() {
         <TabsContent value="bundles" className="mt-6">
           <div className="flex justify-end mb-4 gap-2">
             <Button onClick={async () => {
-              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles });
+              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles }, "Criar Promoção IA");
               if (result) {
                 toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
                 toast.info(result.description || JSON.stringify(result), { duration: 15000 });
               }
-            }} variant="outline" size="sm" disabled={aiLoading}>
+            }} variant="outline" size="sm" disabled={aiLoading || !aiCanRun} title={aiOverageLabel}>
               {aiLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Brain className="h-3 w-3 mr-1" />}
               IA: Criar Promoção
+              {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
             </Button>
             <Button onClick={handleImportExtensionPacks} variant="outline" size="sm">
               <Package className="h-3 w-3 mr-1" /> Importar Extension Packs
