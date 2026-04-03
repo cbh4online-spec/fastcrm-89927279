@@ -396,21 +396,21 @@ export function useCreateProductsBatch() {
 
       const workspaceId = currentWorkspace.id;
 
-      // 1. Collect all SKUs and check duplicates in ONE query
+      // 1. Collect all SKUs and check existing ones in ONE query
       const skus = items.map(i => i.sku?.trim()).filter(Boolean) as string[];
-      let existingSkus = new Set<string>();
+      // Map lowercase SKU → existing product id
+      const existingSkuMap = new Map<string, string>();
       if (skus.length > 0) {
-        // Query in batches of 200 to avoid URL length limits
         for (let i = 0; i < skus.length; i += 200) {
           const batch = skus.slice(i, i + 200);
           const { data } = await supabase
             .from("products")
-            .select("sku")
+            .select("id, sku")
             .eq("workspace_id", workspaceId)
             .in("sku", batch);
           if (data) {
             for (const d of data) {
-              if (d.sku) existingSkus.add(d.sku.toLowerCase());
+              if (d.sku) existingSkuMap.set(d.sku.toLowerCase(), d.id);
             }
           }
         }
@@ -424,21 +424,17 @@ export function useCreateProductsBatch() {
         await ensureCategoryExists(cat, workspaceId);
       }
 
-      // 3. Filter out items with duplicate SKUs and prepare insert payload
+      // 3. Separate items into toInsert, toUpdate, skipped
       const toInsert: Record<string, any>[] = [];
+      const toUpdate: { id: string; data: Record<string, any> }[] = [];
       const skipped: { sku: string; reason: string }[] = [];
       const seenSkus = new Set<string>();
-      // Track image URLs per SKU for post-insert processing (supports multiple)
       const imageUrlsBySku = new Map<string, string[]>();
 
       for (const item of items) {
         const sku = item.sku?.trim();
         if (sku) {
           const lower = sku.toLowerCase();
-          if (existingSkus.has(lower)) {
-            skipped.push({ sku, reason: "SKU duplicado na base de dados" });
-            continue;
-          }
           if (seenSkus.has(lower)) {
             skipped.push({ sku, reason: "SKU duplicado no lote" });
             continue;
@@ -446,10 +442,9 @@ export function useCreateProductsBatch() {
           seenSkus.add(lower);
         }
 
-        // Extract image URLs before inserting (not columns in products table)
+        // Extract image URLs
         const imageUrl = item.image_url;
         const imageUrls = item.image_urls;
-        // Collect all unique image URLs for this SKU
         const allImages = new Set<string>();
         if (imageUrls) imageUrls.forEach(u => { if (u?.trim()) allImages.add(u.trim()); });
         if (imageUrl?.trim() && !allImages.has(imageUrl.trim())) allImages.add(imageUrl.trim());
@@ -459,15 +454,42 @@ export function useCreateProductsBatch() {
         }
 
         const { image_url: _imgUrl, image_urls: _imgUrls, ...itemWithoutImage } = item;
-        toInsert.push({
-          ...itemWithoutImage,
-          sku,
-          workspace_id: workspaceId,
-          created_by: user.id,
-        });
+
+        if (sku && existingSkuMap.has(sku.toLowerCase())) {
+          // Existing product → update
+          const existingId = existingSkuMap.get(sku.toLowerCase())!;
+          const { sku: _sku, ...updateData } = itemWithoutImage;
+          toUpdate.push({ id: existingId, data: updateData });
+        } else {
+          // New product → insert
+          toInsert.push({
+            ...itemWithoutImage,
+            sku,
+            workspace_id: workspaceId,
+            created_by: user.id,
+          });
+        }
       }
 
-      // 4. Insert in batches of 500
+      // 4. Update existing products in batches
+      let updated = 0;
+      const updatedProductIds: string[] = [];
+      for (const item of toUpdate) {
+        const { error } = await supabase
+          .from("products")
+          .update(item.data as any)
+          .eq("id", item.id)
+          .eq("workspace_id", workspaceId);
+        if (error) {
+          console.warn(`[PRODUCTS] Failed to update product ${item.id}:`, error.message);
+          skipped.push({ sku: item.data.name ?? item.id, reason: `Erro ao atualizar: ${error.message}` });
+        } else {
+          updated += 1;
+          updatedProductIds.push(item.id);
+        }
+      }
+
+      // 5. Insert new products in batches of 500
       let created = 0;
       const createdSkus: string[] = [];
       for (let i = 0; i < toInsert.length; i += 500) {
@@ -514,7 +536,7 @@ export function useCreateProductsBatch() {
         }
       }
 
-      // 5. Create product_images for items that had image URLs
+      // 6. Create product_images for NEW items that had image URLs
       const skusWithImages = createdSkus.filter(s => imageUrlsBySku.has(s.toLowerCase()));
       if (skusWithImages.length > 0) {
         try {
@@ -551,6 +573,48 @@ export function useCreateProductsBatch() {
         }
       }
 
+      // 7. Add images for UPDATED products (only new URLs, avoid duplicates)
+      const updatedSkusWithImages = toUpdate
+        .filter(u => {
+          const sku = items.find(i => existingSkuMap.get(i.sku?.trim()?.toLowerCase() ?? '') === u.id)?.sku?.trim();
+          return sku && imageUrlsBySku.has(sku.toLowerCase());
+        });
+      if (updatedSkusWithImages.length > 0) {
+        try {
+          const ids = updatedSkusWithImages.map(u => u.id);
+          // Get existing images for these products
+          const { data: existingImages } = await supabase
+            .from("product_images")
+            .select("product_id, url")
+            .in("product_id", ids);
+          const existingUrlSet = new Set(
+            (existingImages ?? []).map(img => `${img.product_id}::${img.url}`)
+          );
+          const newImageInserts: { workspace_id: string; product_id: string; url: string; position: number }[] = [];
+          for (const u of updatedSkusWithImages) {
+            const item = items.find(i => existingSkuMap.get(i.sku?.trim()?.toLowerCase() ?? '') === u.id);
+            const sku = item?.sku?.trim();
+            if (!sku) continue;
+            const imgUrls = imageUrlsBySku.get(sku.toLowerCase());
+            if (!imgUrls) continue;
+            const existingCount = (existingImages ?? []).filter(img => img.product_id === u.id).length;
+            let pos = existingCount;
+            for (const url of imgUrls) {
+              if (!existingUrlSet.has(`${u.id}::${url}`)) {
+                newImageInserts.push({ workspace_id: workspaceId, product_id: u.id, url, position: pos++ });
+              }
+            }
+          }
+          if (newImageInserts.length > 0) {
+            await supabase.from("product_images").insert(newImageInserts);
+            console.log(`[PRODUCTS] Added ${newImageInserts.length} new images to updated products`);
+          }
+        } catch (imgErr) {
+          console.warn("[PRODUCTS] Failed to add images to updated products:", imgErr);
+        }
+      }
+
+      return { created, updated, skipped };
       return { created, skipped };
     },
     onSuccess: (result) => {
