@@ -34,24 +34,40 @@ export function ClockInOutButton() {
   const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
   const { city, temperature, weatherCode, isLoading: weatherLoading } = useWeatherLocation();
 
-  const getLocation = (): Promise<{ lat: number; lng: number } | null> =>
-    new Promise((resolve) => {
-      if (!navigator.geolocation) return resolve(null);
+  const getLocation = async (): Promise<{ lat: number; lng: number; name: string | null } | null> => {
+    if (!navigator.geolocation) return null;
+    const coords = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
         () => resolve(null),
-        { timeout: 5000, enableHighAccuracy: false }
+        { timeout: 5000, enableHighAccuracy: true }
       );
     });
+    if (!coords) return null;
+    // Reverse geocoding via OpenStreetMap Nominatim for precise locality
+    let name: string | null = city || null;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=16&addressdetails=1`,
+        { headers: { "Accept-Language": "pt" } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const addr = data.address || {};
+        name = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || addr.municipality || name;
+      }
+    } catch { /* fallback to city from weather */ }
+    return { ...coords, name };
+  };
 
   const handleClock = async (entry_type: "clock_in" | "clock_out" | "break_start" | "break_end") => {
-    const coords = entry_type === "clock_in" ? await getLocation() : null;
+    const loc = entry_type === "clock_in" ? await getLocation() : null;
     clockAction.mutate({
       employee_id: employeeId!,
       entry_type,
       method: "app",
-      ...(coords ? { location_lat: coords.lat, location_lng: coords.lng } : {}),
-      ...(coords && city ? { location_name: city } : {}),
+      ...(loc ? { location_lat: loc.lat, location_lng: loc.lng } : {}),
+      ...(loc?.name ? { location_name: loc.name } : {}),
     });
   };
 
