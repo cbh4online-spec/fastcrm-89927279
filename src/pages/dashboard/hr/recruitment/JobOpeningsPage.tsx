@@ -82,7 +82,12 @@ export default function JobPostingsPage() {
             <Button><Plus className="h-4 w-4 mr-2" /> Nova Vaga</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Criar Vaga</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Criar Vaga</DialogTitle>
+                <AIGenerateAllButton loading={aiLoading} onRun={aiRun} />
+              </div>
+            </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -102,13 +107,31 @@ export default function JobPostingsPage() {
                   />
                   <RHFormField name="currency" label="Moeda" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <RHFormField name="salary_min" label="Salário mínimo" type="number" />
-                  <RHFormField name="salary_max" label="Salário máximo" type="number" />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">Salário</span>
+                    <AIFieldButton action="suggest_salary" loading={aiLoading} onRun={aiRun} label="Sugerir" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <RHFormField name="salary_min" label="Mínimo" type="number" />
+                    <RHFormField name="salary_max" label="Máximo" type="number" />
+                  </div>
                 </div>
-                <RHTextareaField name="description" label="Descrição" rows={5} placeholder="Descrição da vaga..." />
-                <RHTextareaField name="requirements_text" label="Requisitos (um por linha)" rows={4} placeholder="Ex: 3+ anos de experiência em React..." />
-                <RHTextareaField name="nice_to_have_text" label="Nice to have (um por linha)" rows={3} placeholder="Ex: Experiência com TypeScript..." />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">Descrição</span>
+                    <AIFieldButton action="generate_description" loading={aiLoading} onRun={aiRun} label="Gerar com IA" />
+                  </div>
+                  <RHTextareaField name="description" label="" rows={5} placeholder="Descrição da vaga..." />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">Requisitos</span>
+                    <AIFieldButton action="generate_requirements" loading={aiLoading} onRun={aiRun} label="Gerar com IA" />
+                  </div>
+                  <RHTextareaField name="requirements_text" label="" rows={4} placeholder="Ex: 3+ anos de experiência em React..." />
+                  <RHTextareaField name="nice_to_have_text" label="Nice to have (um por linha)" rows={3} placeholder="Ex: Experiência com TypeScript..." className="mt-3" />
+                </div>
                 <DialogFooter>
                   <RHFormActions onCancel={() => setDialogOpen(false)} isSubmitting={createJob.isPending} submitLabel="Criar Vaga" />
                 </DialogFooter>
