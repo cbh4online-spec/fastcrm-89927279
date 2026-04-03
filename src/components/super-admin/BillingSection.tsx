@@ -42,6 +42,101 @@ import {
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
+function PaymentsTab({ search }: { search: string }) {
+  const { data: payments, isLoading } = useQuery({
+    queryKey: ["super-admin-payments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*, workspaces (name)")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filtered = payments?.filter((p: any) =>
+    p.workspaces?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.stripe_payment_id?.toLowerCase().includes(search.toLowerCase()) ||
+    p.status?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case "succeeded":
+        return <Badge className="bg-success text-success-foreground">Sucesso</Badge>;
+      case "pending":
+        return <Badge variant="outline">Pendente</Badge>;
+      case "failed":
+        return <Badge className="bg-destructive text-destructive-foreground">Falhado</Badge>;
+      default:
+        return <Badge variant="outline">{status || "—"}</Badge>;
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12" />)}
+          </div>
+        ) : filtered && filtered.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Montante</TableHead>
+                <TableHead>Moeda</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Stripe ID</TableHead>
+                <TableHead>Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((p: any) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.workspaces?.name || "—"}</TableCell>
+                  <TableCell>{Number(p.amount).toLocaleString("pt-PT", { minimumFractionDigits: 2 })}</TableCell>
+                  <TableCell className="uppercase text-muted-foreground">{p.currency || "eur"}</TableCell>
+                  <TableCell>{getPaymentStatusBadge(p.status)}</TableCell>
+                  <TableCell>
+                    {p.stripe_payment_id ? (
+                      <a
+                        href={`https://dashboard.stripe.com/payments/${p.stripe_payment_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-mono text-primary hover:underline flex items-center gap-1"
+                      >
+                        {p.stripe_payment_id.slice(0, 16)}…
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {p.created_at ? format(new Date(p.created_at), "dd/MM/yyyy HH:mm", { locale: pt }) : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-12">
+            <DollarSign className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+            <p className="text-lg font-medium text-muted-foreground">Nenhum pagamento registado</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Os pagamentos processados pelo Stripe aparecerão aqui automaticamente.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 const PLAN_PRICES: Record<string, number> = {
   starter: 29,
   growth: 79,
@@ -52,9 +147,13 @@ const PLAN_PRICES: Record<string, number> = {
   trial: 0,
 };
 
-export function BillingSection() {
+interface BillingSectionProps {
+  initialTab?: "subscriptions" | "payments" | "events" | "sync";
+}
+
+export function BillingSection({ initialTab = "subscriptions" }: BillingSectionProps) {
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("subscriptions");
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [syncingAll, setSyncingAll] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ done: 0, total: 0 });
   const queryClient = useQueryClient();
@@ -275,6 +374,10 @@ export function BillingSection() {
             <CreditCard className="h-4 w-4" />
             Subscrições
           </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            Pagamentos
+          </TabsTrigger>
           <TabsTrigger value="events" className="gap-2">
             <Receipt className="h-4 w-4" />
             Eventos Stripe
@@ -423,6 +526,12 @@ export function BillingSection() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+
+        {/* Payments Tab */}
+        <TabsContent value="payments">
+          <PaymentsTab search={search} />
         </TabsContent>
 
         {/* Events Tab */}

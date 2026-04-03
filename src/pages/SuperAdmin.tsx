@@ -96,9 +96,11 @@ export default function SuperAdmin() {
       case "ai-usage":
         return <AIUsageSection />;
       case "subscriptions":
+        return <BillingSection initialTab="subscriptions" />;
       case "payments":
+        return <BillingSection initialTab="payments" />;
       case "stripe-sync":
-        return <BillingSection />;
+        return <BillingSection initialTab="sync" />;
       case "alerts":
       case "incidents":
         return <AlertsSection />;
