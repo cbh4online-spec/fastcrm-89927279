@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale } from "lucide-react";
+import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
