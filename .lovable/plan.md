@@ -1,24 +1,33 @@
 
 
-# Adicionar Filtro Rápido "Sem Custo" na Toolbar
+# Expandir Auto-Mapping do Preço de Custo no Importador de SKUs
 
-## Contexto
+## Diagnóstico
 
-Os KPI cards (linha 924) já permitem clicar para filtrar por "Sem custo", mas ficam abaixo da toolbar e não são muito evidentes. O pedido é adicionar um botão de filtro rápido mais visível e acessível directamente na toolbar.
+O importador já tem o campo `cost_price` como campo de sistema e já o persiste como `direct_cost` na base de dados (linha 688). O auto-mapping existe (linha 169) mas o regex é restritivo:
+
+```
+/^(cost|custo|cost.?price|preço.?custo|precio.?coste|prix.?achat)$/i
+```
+
+**Problemas identificados:**
+- `.?` só aceita 0-1 caracteres → "preço de custo" (com "de") não faz match
+- Falta: `custo_direto`, `direct_cost`, `purchase_price`, `preço_compra`, `unit_cost`, `custo_unitário`, `buying_price`, `net_cost`, `wholesale_price`
+- Headers com espaços ou underscores compostos falham
 
 ## Alteração
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/products/ProductsList.tsx` | Adicionar botão "Sem custo" como `leftActions` na Toolbar, ao lado do botão de sidebar |
+| `src/components/products/BatchSKUImportDialog.tsx` | Expandir o regex do `cost_price` no `AUTO_MAP_PATTERNS` |
 
 ### Detalhe
 
-Na prop `leftActions` da `Toolbar` (linhas 868-881), adicionar um botão toggle ao lado do botão de painel lateral:
+Substituir o regex da linha 169 por um padrão mais abrangente:
 
-- Ícone `AlertTriangle` + label "Sem custo" + badge com contagem (`productIndicators.noCost`)
-- Ao clicar, chama `handleFilterSelect("smart_no_cost")` (toggle on/off)
-- Estilo activo: `bg-warning/10 text-warning border-warning/30` quando `activeFilterId === "smart_no_cost"`
-- Estilo inactivo: `variant="ghost"` normal
-- Só aparece se `productIndicators.noCost > 0` para não ocupar espaço quando não há produtos sem custo
+```typescript
+[/^(cost|custo|cost.?price|preço.?(de.?)?custo|custo.?dire[tc]o|direct.?cost|purchase.?price|preço.?(de.?)?compra|precio.?(de.?)?coste|prix.?(d.?)?achat|unit.?cost|custo.?unit[aá]rio|buying.?price|net.?cost|wholesale.?price|p\.?c\.?)$/i, "cost_price"],
+```
+
+Variantes cobertas: `custo`, `custo direto`, `direct_cost`, `preço de custo`, `purchase price`, `preço de compra`, `unit cost`, `custo unitário`, `buying price`, `net cost`, `wholesale price`, `P.C.` (abreviatura comum em tabelas de fornecedores).
 
