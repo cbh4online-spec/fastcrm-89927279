@@ -23,23 +23,36 @@ export default function PublicProductSheet() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { generatePdf, isGenerating } = useProductPdfExport();
 
+  const isUuid = slug ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug) : false;
+
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["public-product", slug],
     queryFn: async () => {
       if (!slug) throw new Error("Slug não fornecido");
 
-      const { data, error } = await supabase
+      // Try by sheet_slug first (published products)
+      const { data: bySlug } = await supabase
         .from("products")
-        .select(`
-          *,
-          workspace:workspaces(id, name)
-        `)
+        .select(`*, workspace:workspaces(id, name)`)
         .eq("sheet_slug", slug)
         .eq("sheet_published", true)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      return data;
+      if (bySlug) return bySlug;
+
+      // Fallback: try by product ID (for QR codes of unpublished products)
+      if (isUuid) {
+        const { data: byId, error: idError } = await supabase
+          .from("products")
+          .select(`*, workspace:workspaces(id, name)`)
+          .eq("id", slug)
+          .maybeSingle();
+
+        if (idError) throw idError;
+        return byId;
+      }
+
+      return null;
     },
     enabled: !!slug,
   });

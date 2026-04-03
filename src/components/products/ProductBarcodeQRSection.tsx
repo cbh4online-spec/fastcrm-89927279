@@ -44,7 +44,8 @@ export function ProductBarcodeQRSection({
     ? `${getPublicBaseUrl()}/product/${sheetSlug}`
     : null;
 
-  const qrValue = publicUrl || `${getPublicBaseUrl()}/product/${productId}`;
+  // Always use a working URL: published slug if available, otherwise product ID
+  const qrValue = (sheetPublished && publicUrl) ? publicUrl : `${getPublicBaseUrl()}/product/${productId}`;
 
   const handleCopy = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text);
