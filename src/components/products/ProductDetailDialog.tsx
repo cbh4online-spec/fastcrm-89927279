@@ -287,7 +287,7 @@ export function ProductDetailDialog({
               </div>
             </div>
 
-            <ScrollArea className="max-h-[calc(90vh-180px)]">
+            <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
               <div className="px-5 pb-5 space-y-4">
                 {/* Bundle warning */}
                 {isBundle && (
@@ -607,7 +607,7 @@ export function ProductDetailDialog({
                   </TabsContent>
                 </Tabs>
               </div>
-            </ScrollArea>
+            </div>
           </TooltipProvider>
         </DialogContent>
       </Dialog>
