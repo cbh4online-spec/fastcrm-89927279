@@ -27428,7 +27428,9 @@ export type Database = {
       }
       hr_work_sessions: {
         Row: {
+          break_end_at: string | null
           break_minutes: number | null
+          break_start_at: string | null
           clock_in_at: string | null
           clock_out_at: string | null
           created_at: string | null
@@ -27437,6 +27439,7 @@ export type Database = {
           member_id: string | null
           notes: string | null
           session_date: string
+          session_type: string
           status: string | null
           total_minutes: number | null
           updated_at: string | null
@@ -27444,7 +27447,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          break_end_at?: string | null
           break_minutes?: number | null
+          break_start_at?: string | null
           clock_in_at?: string | null
           clock_out_at?: string | null
           created_at?: string | null
@@ -27453,6 +27458,7 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           session_date: string
+          session_type?: string
           status?: string | null
           total_minutes?: number | null
           updated_at?: string | null
@@ -27460,7 +27466,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          break_end_at?: string | null
           break_minutes?: number | null
+          break_start_at?: string | null
           clock_in_at?: string | null
           clock_out_at?: string | null
           created_at?: string | null
@@ -27469,6 +27477,7 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           session_date?: string
+          session_type?: string
           status?: string | null
           total_minutes?: number | null
           updated_at?: string | null
