@@ -64,7 +64,7 @@ export function GeofenceZonesTab() {
 
   const onSubmit = (values: ZoneFormValues) => {
     if (editingZone) {
-      updateZone.mutate({ id: editingZone.id, ...values }, { onSuccess: () => setDialogOpen(false) });
+      updateZone.mutate({ id: editingZone.id, ...values } as any, { onSuccess: () => setDialogOpen(false) });
     } else {
       createZone.mutate(values, { onSuccess: () => setDialogOpen(false) });
     }

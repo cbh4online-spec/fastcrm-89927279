@@ -269,6 +269,10 @@ export default function HRSettingsPage() {
         <TabsContent value="labor_rules">
           <LaborRulesTab />
         </TabsContent>
+
+        <TabsContent value="geofencing">
+          <GeofenceZonesTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
