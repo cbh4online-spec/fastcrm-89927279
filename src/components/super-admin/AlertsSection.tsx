@@ -81,18 +81,35 @@ export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
     },
   });
 
-  const { data: usageAlerts } = useQuery({
+  const { data: usageAlerts, isLoading: usageLoading, refetch: refetchAlerts } = useQuery({
     queryKey: ["super-admin-usage-alerts"],
     queryFn: async () => {
       const result = await supabase
         .from("usage_alerts")
-        .select("id, workspace_id, alert_type, resource_type, threshold_percent, current_usage, limit_value, message, created_at, is_dismissed")
+        .select("id, workspace_id, alert_type, resource_type, threshold_percent, current_usage, limit_value, message, created_at, is_dismissed, workspaces(name)")
         .eq("is_dismissed", false)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (result.error) throw result.error;
       return result.data || [];
+    },
+  });
+
+  const dismissAlert = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("usage_alerts")
+        .update({ is_dismissed: true })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-usage-alerts"] });
+      toast.success("Alerta dispensado");
+    },
+    onError: (error) => {
+      toast.error("Erro: " + error.message);
     },
   });
 
