@@ -1,48 +1,38 @@
 
 
-# Último Login e Tempo Despendido por Utilizador
+# Adicionar Assistência IA à Gestão de Planos
 
-## Objectivo
+## Diagnóstico
 
-Adicionar à tabela de Utilizadores no Super Admin duas novas colunas visíveis: **último login** (baseado em `last_activity_at` dos `session_time_logs`) e **tempo total despendido** (soma de `active_seconds`). Sem necessidade de novas tabelas — os dados já existem em `session_time_logs`.
+A secção **Planos** (`PlansSection.tsx`) permite editar limites e funcionalidades manualmente, mas não tem qualquer assistência IA. A secção vizinha **Pricing & Módulos** já usa um padrão funcional com `useAIAssistant()` + edge function `pricing-ai-assistant`.
+
+## Solução
+
+Reutilizar a edge function `pricing-ai-assistant` existente, adicionando duas novas actions, e integrar botões IA na `PlansSection`.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/super-admin/UsersSection.tsx` | Adicionar query para `session_time_logs`, agregar por `user_id`, mostrar 2 novas colunas na tabela |
+| `supabase/functions/pricing-ai-assistant/index.ts` | Adicionar 2 novas actions: `suggest_plan_limits` e `optimize_plan_balance` |
+| `src/components/super-admin/PlansSection.tsx` | Adicionar `useAIAssistant()`, botão "Sugerir Limites IA" no header, e botão "Optimizar com IA" no diálogo de edição |
 
-## Detalhe técnico
+### Novas actions na edge function
 
-### Nova query (dentro do `UsersSection`)
+1. **`suggest_plan_limits`** — recebe os 4 planos actuais e sugere limites competitivos baseados em benchmarks SaaS CRM (HubSpot, Pipedrive, etc). Devolve JSON com sugestões por plano.
 
-```sql
-SELECT user_id, 
-       MAX(last_activity_at) as last_seen,
-       SUM(active_seconds) as total_active_seconds,
-       SUM(total_seconds) as total_seconds
-FROM session_time_logs 
-GROUP BY user_id
-```
+2. **`optimize_plan_balance`** — recebe um plano específico e sugere ajustes de limites e features para equilibrar valor vs custo. Útil ao editar um plano individual.
 
-Será feita via `supabase.rpc` ou query directa com `.select()` + agrupação client-side (dado que a tabela tem poucos registos por utilizador).
+### Integração no PlansSection
 
-### Novas colunas na tabela
+1. **Header**: botão "Sugerir Limites IA" com ícone `Sparkles` — chama `suggest_plan_limits` com os 4 planos, mostra resultado num diálogo com sugestões lado a lado.
 
-1. **Último acesso** — mostra data/hora relativa (ex: "há 2h", "há 3 dias") usando `formatDistanceToNow` do date-fns, com tooltip do timestamp exacto
-2. **Tempo ativo** — mostra total de horas activas acumuladas (ex: "14h 33m"), formatado de forma legível
-
-### Integração no `EnrichedUser`
-
-Adicionar ao objecto `EnrichedUser`:
-- `lastSeen: string | null` — timestamp do último acesso
-- `totalActiveSeconds: number` — total de segundos activos
-- `totalSeconds: number` — total geral
+2. **Diálogo de edição**: botão "Optimizar com IA" — chama `optimize_plan_balance` com o plano em edição, pré-preenche os campos com as sugestões (o admin pode aceitar ou rejeitar cada valor antes de guardar).
 
 ### UX
 
-- Colunas adicionadas entre "Roles" e "Registado"
-- Utilizadores sem dados de sessão mostram "—"
-- Ícone `Clock` para tempo e `LogIn` para último acesso
-- Ordenação por último acesso (mais recente primeiro) como opção
+- Loading state com `Loader2` durante chamada IA
+- Sugestões apresentadas como diff visual (valor actual → sugerido) com badge "IA"
+- Botão "Aplicar Sugestões" para aceitar em batch, ou edição individual
+- Utilizadores sem créditos vêem mensagem de upgrade
 
