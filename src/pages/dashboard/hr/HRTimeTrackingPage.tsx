@@ -312,10 +312,10 @@ export default function HRTimeTrackingPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={8} className="text-center">A carregar...</TableCell></TableRow>
-                  ) : sessions.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
+                   {isLoading ? (
+                     <TableRow><TableCell colSpan={9} className="text-center">A carregar...</TableCell></TableRow>
+                   ) : sessions.length === 0 ? (
+                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
                   ) : sessions.map(s => {
                     const sessionTypeLabels: Record<string, string> = { morning: "Manhã", afternoon: "Tarde", extra: "Extra" };
                     return (
