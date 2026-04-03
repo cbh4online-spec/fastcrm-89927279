@@ -286,7 +286,10 @@ export function ProductDetailDialog({
               </div>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
               <div className="px-5 pb-5 space-y-4">
                 {/* Bundle warning */}
                 {isBundle && (
