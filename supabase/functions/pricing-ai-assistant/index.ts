@@ -16,8 +16,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { action, context } = await req.json();
-
+    const { action, context, workspace_id } = await req.json();
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
@@ -50,6 +49,16 @@ serve(async (req) => {
       case "optimize_pricing":
         systemPrompt = `Sou um analista de pricing SaaS. Analiso a estrutura de preços actual e recomendo optimizações. Respondo em JSON: {"analysis": string, "recommendations": [{"item": string, "current_price": number, "suggested_price": number, "reasoning": string}]}`;
         userPrompt = `Analisa esta estrutura de preços e recomenda optimizações:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera margens, competitividade e elasticidade de preço.`;
+        break;
+
+      case "suggest_plan_limits":
+        systemPrompt = `Sou um especialista em pricing e packaging de SaaS CRM B2B. Analiso planos existentes e sugiro limites competitivos baseados em benchmarks do mercado (HubSpot, Pipedrive, Monday CRM, Zoho CRM). Respondo em JSON com a estrutura: {"plans": [{"plan_id": string, "suggestions": {"leads_limit": number, "contacts_limit": number, "companies_limit": number, "opportunities_limit": number, "templates_limit": number, "automations_limit": number, "automation_executions_limit": number, "emails_limit": number, "whatsapp_limit": number, "instagram_limit": number, "ai_calls_limit": number, "storage_limit_mb": number, "users_limit": number}, "reasoning": string}]}. Usa -1 para ilimitado.`;
+        userPrompt = `Analisa estes 4 planos de CRM SaaS e sugere limites competitivos para cada um:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera:\n- Progressão lógica Free → Basic → Pro → Agency\n- Benchmarks de mercado (HubSpot Free/Starter/Pro/Enterprise, Pipedrive, Monday)\n- O plano Free deve ser atrativo mas limitante\n- O plano Agency deve ser generoso/ilimitado\n- Mantém coerência entre limites (ex: mais leads = mais emails)`;
+        break;
+
+      case "optimize_plan_balance":
+        systemPrompt = `Sou um consultor de produto SaaS especializado em otimização de planos. Analiso um plano individual e sugiro ajustes de limites e funcionalidades para equilibrar valor percebido vs custo operacional. Respondo em JSON: {"suggestions": {"leads_limit": number, "contacts_limit": number, "companies_limit": number, "opportunities_limit": number, "templates_limit": number, "automations_limit": number, "automation_executions_limit": number, "emails_limit": number, "whatsapp_limit": number, "instagram_limit": number, "ai_calls_limit": number, "storage_limit_mb": number, "users_limit": number, "inbox_enabled": boolean, "automations_enabled": boolean, "form_studio_enabled": boolean, "templates_enabled": boolean, "proposals_enabled": boolean, "ai_suggestions_enabled": boolean, "landing_pages_enabled": boolean, "integrations_enabled": boolean}, "reasoning": string, "changes": [{"field": string, "from": any, "to": any, "justification": string}]}. Usa -1 para ilimitado.`;
+        userPrompt = `Analisa este plano de CRM SaaS e sugere otimizações:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera:\n- Equilibrar valor percebido pelo cliente vs custo operacional\n- Benchmarks de mercado\n- Funcionalidades que devem estar ativas neste tier\n- Limites que podem estar demasiado altos ou baixos`;
         break;
 
       default:
