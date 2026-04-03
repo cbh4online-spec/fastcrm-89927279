@@ -1,50 +1,109 @@
 
 
-# Corrigir Filtragem de SKUs com HTML no Import em Lote
+# Refazer Sistema de Pica Ponto — Suporte a Múltiplas Sessões e Dinâmica Completa
 
-## Diagnóstico
+## Problema Identificado
 
-O parser de importação (linhas 406-415 do `BatchSKUImportDialog.tsx`) faz `sku.replace(/<[^>]*>/g, "")` para limpar tags HTML, mas o texto resultante (ex: "Western Digital", "Marca", "Capacidade", "SATA 6 Gb/s") passa os filtros e é tratado como SKU válido. O heurístico `looksDescriptive` é demasiado limitado — só apanha padrões como "265 g" ou palavras específicas hardcoded.
+A tabela `hr_work_sessions` tem uma constraint `UNIQUE (employee_id, session_date)` que impede mais do que uma sessão por dia. Quando o colaborador faz "Terminar" (clock-out), não consegue voltar a "Iniciar Trabalho" porque o insert falha silenciosamente.
 
-O problema raiz: quando o CSV vem de um scrape de página web, as células contêm fragmentos de HTML (`<li>`, `<td>`, `<strong>`) que não são dados de produto — são markup de layout.
+Além disso, faltam funcionalidades essenciais de controlo de ponto:
+- Pausas (almoço) com registo de início/fim
+- Tolerância configurável (ex: 5-10 min na entrada)
+- Múltiplas sessões diárias (manhã + tarde)
+- Resumo do dia com períodos visíveis
+- Estado visual claro do ponto (entrada manhã → pausa almoço → entrada tarde → saída)
 
 ## Solução
 
-Reforçar a filtragem de SKUs em duas camadas:
+### 1. Migração DB — Permitir múltiplas sessões por dia
 
-### 1. Rejeitar valores que vieram de tags HTML estruturais (`BatchSKUImportDialog.tsx`)
+- Remover constraint `UNIQUE (employee_id, session_date)`
+- Adicionar coluna `session_type` (text: 'morning', 'afternoon', 'extra') com default 'morning'
+- Adicionar coluna `break_start_at` e `break_end_at` (timestamptz) para registo preciso de pausas
 
-Antes de limpar o HTML, verificar se o valor original continha tags estruturais (`<td>`, `<th>`, `<li>`, `<tr>`, `<table>`, `<strong>` sozinho). Se sim, marcar como suspeito e aplicar validação extra.
+### 2. Edge Function `hr-clock-action` — Lógica multi-sessão
 
-### 2. Melhorar heurístico `looksDescriptive` 
+Reescrever a lógica para suportar o fluxo completo:
 
-Expandir o filtro para rejeitar valores que:
-- Contenham apenas palavras comuns em português/inglês (ex: "Marca", "Unidades", "Capacidade", "Interface", "Resolução", "Compatível")
-- Sejam nomes genéricos de marcas/atributos sem formato de SKU (sem números, sem hífens, sem padrão alfanumérico)
-- Tenham origem em tags `<td>`, `<th>`, `<li>` — indicando que são labels de tabela HTML, não dados de produto
+```text
+Iniciar Manhã → Pausa Almoço → Retomar (cria sessão tarde) → Terminar Dia
+```
 
-### 3. Adicionar flag visual para itens suspeitos
+- **clock_in**: Se não há sessão aberta hoje, cria nova (morning). Se existe sessão completa sem sessão afternoon, cria afternoon.
+- **break_start**: Marca `break_start_at` na sessão activa.
+- **break_end**: Marca `break_end_at`, calcula `break_minutes`. Opcionalmente cria nova sessão "afternoon".
+- **clock_out**: Fecha a sessão activa actual.
+- Validação: impedir clock_in se já há sessão aberta (incompleta).
 
-Na tabela de resultados, itens que passaram por limpeza HTML pesada mostram um badge "⚠ Verificar" para o utilizador poder desmarcar manualmente.
+### 3. ClockInOutButton — UI com estados completos
+
+Transformar o botão simples num mini-painel de ponto com 4 estados:
+
+| Estado | Botões Visíveis |
+|---|---|
+| Sem sessão activa | "Iniciar Trabalho" |
+| Em serviço (sem pausa) | "Pausa Almoço" + "Terminar" |
+| Em pausa | "Retomar Trabalho" |
+| Sessão da manhã completa, sem tarde | "Iniciar Tarde" |
+
+Mostrar resumo do dia: entradas/saídas anteriores, total acumulado.
+
+### 4. Tolerância na entrada
+
+- Ler `tolerance_minutes` das `hr_country_labor_rules` (campo existente ou novo no JSON `rules`)
+- No clock_in, comparar com hora de início do turno do colaborador
+- Se dentro da tolerância, registar normalmente; se fora, marcar como atraso (já existe anomalia `late_arrival`)
 
 ## Alterações
 
-| Ficheiro | Acção |
+| Ficheiro/Recurso | Acção |
 |---|---|
-| `src/components/products/BatchSKUImportDialog.tsx` | Reforçar filtragem de SKUs na função `confirmMapping` (linhas 405-416): adicionar detecção de tags estruturais HTML, expandir lista de palavras descritivas comuns, adicionar badge visual de alerta |
+| **Migração SQL** | DROP unique constraint, ADD `session_type`, `break_start_at`, `break_end_at` |
+| `supabase/functions/hr-clock-action/index.ts` | Reescrever lógica: suportar múltiplas sessões, pausas com timestamps, tolerância |
+| `src/components/hr/ClockInOutButton.tsx` | UI multi-estado: Iniciar, Pausa, Retomar, Terminar + resumo do dia |
+| `src/hooks/hr/useHRTimeEntries.ts` | Ajustar query para devolver múltiplas sessões por dia |
+| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Tabela de sessões mostra tipo (manhã/tarde) e pausas |
 
-### Detalhe técnico
+### Detalhe da migração
 
-**Novo filtro (antes da linha 408):**
-- Guardar se o valor original tinha tags HTML estruturais: `const hadHtmlTags = /<(td|th|li|tr|strong|em|b)\b/i.test(rawSku)`
-- Se `hadHtmlTags` e o texto limpo não tem formato de SKU (sem dígitos, sem hífens, sem underscores, < 3 caracteres alfanuméricos), rejeitar
+```sql
+-- Remove single-session-per-day constraint
+ALTER TABLE hr_work_sessions 
+  DROP CONSTRAINT hr_work_sessions_employee_id_session_date_key;
 
-**Heurístico expandido:**
-- Lista de stop-words: "marca", "unidades", "capacidade", "interface", "resolução", "compatível", "iluminação", "cor", "material", "peso", "dimensões", "garantia", "tipo", "modelo", "descrição", "preço", "stock", "categoria"
-- Rejeitar se o SKU limpo (lowercase) é exactamente uma stop-word
-- Rejeitar se o SKU limpo só tem espaços e letras sem nenhum dígito/hífen e veio de tag HTML
+-- Add session type and break timestamps
+ALTER TABLE hr_work_sessions
+  ADD COLUMN session_type text NOT NULL DEFAULT 'morning',
+  ADD COLUMN break_start_at timestamptz,
+  ADD COLUMN break_end_at timestamptz;
 
-**Badge visual:**
-- Itens que passaram mas tinham HTML recebem propriedade `suspicious: true`
-- Na tabela de resultados, mostrar badge amber "Verificar" ao lado do SKU
+-- Add unique constraint per employee + date + session_type
+ALTER TABLE hr_work_sessions
+  ADD CONSTRAINT hr_work_sessions_employee_date_type_key 
+  UNIQUE (employee_id, session_date, session_type);
+```
+
+### Detalhe do fluxo na Edge Function
+
+```text
+clock_in:
+  1. Buscar sessões de hoje para este employee
+  2. Se existe sessão incompleta (sem clock_out) → erro
+  3. Se não existem sessões → criar "morning"
+  4. Se existe "morning" completa e não existe "afternoon" → criar "afternoon"
+  5. Se existe "afternoon" completa → criar "extra"
+
+break_start:
+  1. Buscar sessão activa (sem clock_out)
+  2. Marcar break_start_at = now
+
+break_end:
+  1. Buscar sessão com break_start_at e sem break_end_at
+  2. Marcar break_end_at = now
+  3. Calcular break_minutes
+
+clock_out:
+  1. Buscar sessão activa
+  2. Fechar com clock_out_at, calcular totais
+```
 
