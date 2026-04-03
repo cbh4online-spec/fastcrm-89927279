@@ -279,6 +279,10 @@ export function BillingSection({ initialTab = "subscriptions" }: BillingSectionP
             <CreditCard className="h-4 w-4" />
             Subscrições
           </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            Pagamentos
+          </TabsTrigger>
           <TabsTrigger value="events" className="gap-2">
             <Receipt className="h-4 w-4" />
             Eventos Stripe
