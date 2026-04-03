@@ -148,7 +148,7 @@ const SYSTEM_FIELDS = [
   { key: "barcode", label: "Código de barras / EAN" },
   { key: "stock", label: "Stock" },
   { key: "weight", label: "Peso" },
-  { key: "image_url", label: "URL da Imagem" },
+  { key: "image_url", label: "URL da Imagem (múltiplas)" },
   { key: "model", label: "Modelo" },
   { key: "specifications", label: "Características / Specs" },
   { key: "related_products", label: "Produtos relacionados" },
