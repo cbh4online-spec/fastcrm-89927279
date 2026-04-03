@@ -43,7 +43,7 @@ export function useCreateGeofenceZone() {
   const wsId = currentWorkspace?.id;
 
   return useMutation({
-    mutationFn: async (zone: { name: string; latitude: number; longitude: number; radius_meters: number; address?: string }) => {
+    mutationFn: async (zone: { name: string; latitude: number; longitude: number; radius_meters: number; address?: string | null }) => {
       const { error } = await supabase
         .from("hr_geofence_zones" as any)
         .insert({ ...zone, workspace_id: wsId });
