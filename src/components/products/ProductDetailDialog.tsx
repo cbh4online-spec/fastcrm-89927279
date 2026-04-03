@@ -115,7 +115,14 @@ export function ProductDetailDialog({
   const deleteProduct = useDeleteProduct();
 
   const [heroIdx, setHeroIdx] = useState(0);
-  const mainImage = productImages?.[heroIdx];
+
+  // Fallback: if product_images table is empty, use product.images array
+  const fallbackImages: Array<{ id: string; url: string; alt_text: string | null }> =
+    (!productImages || productImages.length === 0) && product?.images && Array.isArray(product.images)
+      ? (product.images as string[]).map((url, i) => ({ id: `fallback-${i}`, url, alt_text: null }))
+      : [];
+  const displayImages = (productImages && productImages.length > 0) ? productImages : fallbackImages;
+  const mainImage = displayImages[heroIdx];
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
