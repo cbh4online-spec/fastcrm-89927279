@@ -607,7 +607,7 @@ export function ProductDetailDialog({
                   </TabsContent>
                 </Tabs>
               </div>
-            </ScrollArea>
+            </div>
           </TooltipProvider>
         </DialogContent>
       </Dialog>
