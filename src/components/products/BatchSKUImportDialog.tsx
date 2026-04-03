@@ -166,7 +166,7 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
   [/^(description_short|desc.?curta|short.?desc|resumo)$/i, "short_description"],
   [/^(desc|description|descrição|descricao|description_long|descripcion)$/i, "description"],
   [/^(pvp|recommended.?price|preço.?recomendado|msrp|rrp|pvp.?recomendado)$/i, "recommended_price"],
-  [/^(cost|custo|cost.?price|preço.?custo|precio.?coste|prix.?achat)$/i, "cost_price"],
+  [/^(cost|custo|cost.?price|preço.?(de.?)?custo|custo.?dire[tc]o|direct.?cost|purchase.?price|preço.?(de.?)?compra|precio.?(de.?)?coste|prix.?(d.?)?achat|unit.?cost|custo.?unit[aá]rio|buying.?price|net.?cost|wholesale.?price|p\.?c\.?)$/i, "cost_price"],
   [/^(price|preço|preco|precio|prix|tarifa|sell.?price)$/i, "price"],
   [/^(category|categoria|cat|famille|familia)$/i, "category"],
   [/^(subcategory|subcategoria|sub.?cat|sous.?famille)$/i, "subcategory"],
