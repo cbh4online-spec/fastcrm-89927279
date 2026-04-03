@@ -71,8 +71,10 @@ import {
   CheckCircle,
   PauseCircle,
   Send,
+  Clock,
+  LogIn,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
 import { WorkspaceMembersPanel } from "./WorkspaceMembersPanel";
@@ -94,11 +96,18 @@ interface WorkspaceMembership {
   workspace_name: string;
 }
 
+interface SessionStats {
+  lastSeen: string | null;
+  totalActiveSeconds: number;
+  totalSeconds: number;
+}
+
 interface EnrichedUser {
   userId: string;
   profile: UserProfile | null;
   memberships: WorkspaceMembership[];
   isSuperAdmin: boolean;
+  sessionStats: SessionStats;
 }
 
 const ROLE_OPTIONS = [
@@ -179,6 +188,38 @@ export function UsersSection() {
 
       if (error) throw error;
       return new Set(data?.map(r => r.user_id) || []);
+    },
+  });
+
+  // Fetch session time logs for all users
+  const { data: sessionLogs } = useQuery({
+    queryKey: ["super-admin-session-logs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("session_time_logs")
+        .select("user_id, last_activity_at, active_seconds, total_seconds");
+
+      if (error) throw error;
+
+      // Aggregate by user_id
+      const map = new Map<string, SessionStats>();
+      for (const log of data || []) {
+        const existing = map.get(log.user_id);
+        if (existing) {
+          if (log.last_activity_at && (!existing.lastSeen || log.last_activity_at > existing.lastSeen)) {
+            existing.lastSeen = log.last_activity_at;
+          }
+          existing.totalActiveSeconds += log.active_seconds || 0;
+          existing.totalSeconds += log.total_seconds || 0;
+        } else {
+          map.set(log.user_id, {
+            lastSeen: log.last_activity_at,
+            totalActiveSeconds: log.active_seconds || 0,
+            totalSeconds: log.total_seconds || 0,
+          });
+        }
+      }
+      return map;
     },
   });
 
@@ -343,6 +384,7 @@ export function UsersSection() {
       profile,
       memberships: userMemberships,
       isSuperAdmin: superAdmins?.has(profile.user_id) || false,
+      sessionStats: sessionLogs?.get(profile.user_id) || { lastSeen: null, totalActiveSeconds: 0, totalSeconds: 0 },
     };
   });
 
@@ -434,6 +476,14 @@ export function UsersSection() {
   const availableWorkspaces = selectedUser 
     ? (allWorkspaces || []).filter(ws => !selectedUser.memberships.some(m => m.workspace_id === ws.id))
     : [];
+
+  const formatActiveTime = (seconds: number) => {
+    if (seconds === 0) return "—";
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
 
   const handleRefresh = () => {
     refetch();
@@ -567,6 +617,8 @@ export function UsersSection() {
                   <TableHead>Status</TableHead>
                   <TableHead>Workspaces</TableHead>
                   <TableHead>Roles</TableHead>
+                  <TableHead>Último Acesso</TableHead>
+                  <TableHead>Tempo Ativo</TableHead>
                   <TableHead>Registado</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
@@ -630,6 +682,22 @@ export function UsersSection() {
                           <span key={role}>{getRoleBadge(role)}</span>
                         ))}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {user.sessionStats.lastSeen ? (
+                        <span className="flex items-center gap-1" title={format(new Date(user.sessionStats.lastSeen), "dd/MM/yyyy HH:mm:ss", { locale: pt })}>
+                          <LogIn className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(user.sessionStats.lastSeen), { addSuffix: true, locale: pt })}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {user.sessionStats.totalActiveSeconds > 0 ? (
+                        <span className="flex items-center gap-1" title={`${user.sessionStats.totalActiveSeconds}s ativos / ${user.sessionStats.totalSeconds}s total`}>
+                          <Clock className="h-3 w-3" />
+                          {formatActiveTime(user.sessionStats.totalActiveSeconds)}
+                        </span>
+                      ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {user.profile?.created_at 
