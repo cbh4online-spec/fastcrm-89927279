@@ -1,47 +1,53 @@
 
 
-# Corrigir Tabela de Uso de IA no Super Admin
+# Corrigir Billing & Stripe no Super Admin
 
 ## Diagnóstico
 
-A tabela mostra tudo a zeros porque consulta as fontes de dados erradas:
+A secção Billing & Stripe tem vários problemas:
 
-| O que faz (errado) | O que deveria fazer (correcto) |
+| Problema | Causa |
 |---|---|
-| Lê `workspace_usage.ai_calls_used` → tabela vazia (0 registos) | Ler `workspace_plans.calls_used` e `workspace_plans.calls_included` → 10 registos activos com dados reais |
-| Lê `workspace_subscriptions.plan` para o nome do plano | Ler `workspace_plans.plan` (fonte de verdade) |
-| Lê `plan_features.ai_calls_limit` para limites | Usar `workspace_plans.calls_included` directamente (já tem o limite por workspace) |
+| **Stripe IDs vazios** | `workspace_subscriptions` tem `stripe_customer_id` e `stripe_subscription_id` a NULL em todos os 8 registos — os planos foram criados manualmente, nunca via webhook Stripe |
+| **Eventos Stripe vazios** | `billing_events` tem 0 registos — o webhook (`stripe-webhook`) existe mas nunca foi chamado (nenhum webhook configurado no Stripe, `stripe_event_log` também vazio) |
+| **Dados desactualizados** | `workspace_subscriptions` mostra METODOPARE como "agency" mas em `workspace_plans` é "pro"; "Viagens com Propósito" aparece como "trialing" mas em `workspace_plans` é "free" |
+| **Sem Stripe Sync** | O menu "Stripe Sync" aponta para o mesmo `BillingSection` sem nenhuma funcionalidade de sincronização |
+| **Sem ações úteis** | Não há botões para sincronizar com Stripe, alterar plano, ou gerir subscrição |
+| **`workspace_stripe_config` vazio** | Nenhum workspace tem chave Stripe configurada |
 
-**Dados reais existentes**: 5.863 registos em `ai_call_log`, 10 `workspace_plans` activos (ex: METODOPARE com 5.598/10.000 calls usados).
+## Solução
 
-## Alteração
+Reescrever o `BillingSection` para usar `workspace_plans` como fonte primária (contém dados reais) e adicionar funcionalidades de gestão.
+
+## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/super-admin/AIUsageSection.tsx` | Reescrever a query para usar `workspace_plans` em vez de `workspace_usage` + `plan_features` |
+| `src/components/super-admin/BillingSection.tsx` | Reescrever queries + UI |
 
-### Detalhe técnico
+### Detalhe
 
-Substituir a query actual por:
+1. **Query principal**: Mudar de `workspace_subscriptions` para `workspace_plans` (10 registos activos com dados reais: plano, ciclo, uso de créditos)
+   - Join com `workspaces` para nome/slug
+   - Join com `workspace_subscriptions` para obter `stripe_customer_id` e `stripe_subscription_id` quando existirem
 
-1. **Buscar todos os workspaces** com join a `workspace_plans` (filtro `status = active`):
-   ```
-   workspaces → id, name
-   workspace_plans → plan, calls_used, calls_included, cycle_start, cycle_end
-   ```
+2. **Corrigir mapeamento de colunas**:
+   - Plano: `workspace_plans.plan` (fonte de verdade)
+   - Estado: `workspace_plans.status`
+   - Ciclo: `workspace_plans.cycle_end`
+   - Stripe IDs: de `workspace_subscriptions` (quando disponíveis, caso contrário mostrar "Não vinculado")
 
-2. **Para workspaces sem plano activo** (Free): mostrar `0 / 0` com plano "free"
+3. **Tab "Eventos Stripe"**: Manter, mas mostrar estado vazio informativo ("Nenhum evento registado. Configure o webhook Stripe para receber eventos.") em vez de tabela vazia
 
-3. **Calcular percentage** a partir de `calls_used / calls_included` (já calculado correctamente na lógica existente, só muda a fonte)
+4. **Acções por workspace** (menu `...`):
+   - "Ver no Stripe" (se tiver `stripe_customer_id`)
+   - "Alterar Plano" (dropdown: starter/growth/scale → actualiza `workspace_plans` e `workspace_subscriptions`)
+   - "Sincronizar com Stripe" (chama `check-subscription` edge function para re-verificar estado)
 
-4. **Manter toda a lógica existente** de badges, filtros, abuse detection e limit dialog — apenas mudar de onde vêm os números
+5. **KPIs no header**:
+   - Total subscrições activas
+   - Receita estimada (baseada nos planos)
+   - Workspaces sem Stripe vinculado
 
-5. **Adicionar coluna `Ciclo`** com a data de fim do ciclo para contexto adicional
-
-### Resultado esperado
-
-- METODOPARE: 5.598 / 10.000 (56%) — Pro
-- Blecksen: 41 / 10.000 — Pro  
-- Workspaces Free: 0 / 0 — Free
-- KPIs do header com valores reais
+6. **Stripe Sync tab** (3º tab): Painel com botão "Sincronizar Todos" que chama `check-subscription` para cada workspace, mostrando progresso
 
