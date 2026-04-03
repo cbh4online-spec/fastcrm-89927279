@@ -1,37 +1,79 @@
 
 
-# Corrigir Importação: Atualizar Produtos com SKU Duplicado
+# Geofencing: Alertas Automáticos de Pica Ponto Fora de Zona
 
 ## Diagnóstico
 
-O importador de produtos (`useProducts.ts`, função `bulkImportProducts`) verifica SKUs existentes na base de dados **antes** da inserção e salta todos os que já existem, marcando-os como "SKU duplicado na base de dados". Isto causou 1558 produtos rejeitados.
-
-O utilizador pretende que, quando um SKU já existe, os dados sejam **atualizados** em vez de ignorados.
+O sistema actual captura coordenadas GPS (lat/lng) em cada clock-in, mas **não existe qualquer definição de zonas permitidas nem validação geográfica**. Não há tabela de localizações autorizadas, nem lógica de verificação de distância.
 
 ## Solução
 
-Modificar a lógica de importação para fazer **upsert** dos produtos com SKU duplicado: atualizar campos existentes (nome, categoria, preço, descrição, etc.) mantendo o `id` original.
+Criar um sistema de geofencing com 3 componentes:
+
+1. **Tabela de zonas autorizadas** — locais permitidos por workspace, com coordenadas centro + raio
+2. **Validação na edge function** — ao fazer clock-in, calcular distância e gerar anomalia se fora de zona
+3. **UI de gestão** — CRUD de zonas nas definições de RH
 
 ## Alterações
 
-| Ficheiro | Acção |
+| Componente | Acção |
 |---|---|
-| `src/hooks/useProducts.ts` | Alterar `bulkImportProducts` para fazer upsert dos SKUs existentes em vez de os saltar |
+| **Migração SQL** | Criar tabela `hr_geofence_zones` (workspace_id, name, lat, lng, radius_meters, is_active) com RLS |
+| **Edge function `hr-clock-action`** | Após clock-in, buscar zonas activas do workspace → calcular distância Haversine → se fora de todas as zonas, inserir anomalia em `hr_attendance_anomalies` com tipo `outside_geofence` |
+| **Migração SQL** | Adicionar `outside_geofence` como valor possível no campo `anomaly_type` (actualmente é text, verificar constraint) |
+| **Hook `useHRGeofenceZones`** | CRUD de zonas — listar, criar, editar, eliminar |
+| **UI: GeofenceZonesTab** | Componente nas definições de RH para gerir zonas (nome, endereço, coordenadas, raio) com mapa visual opcional |
+| **Hook anomalias** | Actualizar tipo `AttendanceAnomaly` para incluir `outside_geofence` |
 
-### Detalhe técnico
+## Detalhe técnico
 
-Na função `bulkImportProducts`:
+### Tabela `hr_geofence_zones`
 
-1. **Remover o skip de duplicados** — em vez de adicionar ao array `skipped`, mover esses itens para um array `toUpdate`
-2. **Buscar IDs dos produtos existentes** — query por SKU para obter os `id` correspondentes
-3. **Atualizar em batch** — para cada produto existente, fazer `update` com os novos dados (nome, categoria, preço de venda, preço de custo, descrição, barcode, etc.)
-4. **Manter contadores separados** — reportar ao utilizador quantos foram criados vs. atualizados
-5. **Imagens** — se o ficheiro trouxer novas URLs de imagem, adicionar às `product_images` existentes (sem duplicar)
+```sql
+CREATE TABLE public.hr_geofence_zones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  latitude double precision NOT NULL,
+  longitude double precision NOT NULL,
+  radius_meters integer NOT NULL DEFAULT 200,
+  address text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+```
 
-O fluxo passa a ser:
-- SKU existe na DB → atualizar campos com dados do ficheiro
-- SKU duplicado no lote → saltar (manter comportamento actual)
-- SKU novo → inserir (manter comportamento actual)
+RLS: SELECT/INSERT/UPDATE/DELETE escopado por `workspace_members`.
 
-A mensagem de sucesso passará a mostrar: "X criados, Y atualizados, Z ignorados".
+### Lógica Haversine na edge function
+
+```text
+clock_in com lat/lng
+  → buscar zonas activas do workspace
+  → para cada zona, calcular distância (Haversine)
+  → se nenhuma zona está dentro do raio permitido:
+      → inserir anomalia "outside_geofence" severity "warning"
+      → devolver alerta no response (geofence_alert)
+  → se dentro de zona:
+      → continuar normalmente
+```
+
+A fórmula de Haversine calcula distância entre dois pontos geográficos com precisão suficiente para raios de 50m–5km.
+
+### UI nas Definições de RH
+
+Nova tab "Geofencing" na página de definições HR, com:
+- Lista de zonas com nome, endereço, raio
+- Botão adicionar zona (formulário com nome, endereço, coordenadas, raio em metros)
+- Toggle activo/inactivo
+- Eliminar zona
+
+### Fluxo do alerta
+
+Quando um colaborador pica ponto fora de zona:
+1. O clock-in é **aceite** (não bloqueado) — regista normalmente
+2. Uma anomalia `outside_geofence` é criada automaticamente
+3. O frontend recebe `geofence_alert` na resposta e mostra toast de aviso
+4. A anomalia aparece no painel de anomalias existente para resolução pelo gestor
 
