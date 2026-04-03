@@ -42,7 +42,7 @@ interface CriticalAlert {
 }
 
 export function OverviewSection() {
-  const { data: stats, isLoading: statsLoading, refetch } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["super-admin-overview"],
     queryFn: async () => {
       // Fetch workspaces with subscriptions
@@ -120,6 +120,8 @@ export function OverviewSection() {
         nearLimitWorkspaces: 0, // Would need quota calculation
       } as OverviewStats;
     },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: alerts, isLoading: alertsLoading } = useQuery({
