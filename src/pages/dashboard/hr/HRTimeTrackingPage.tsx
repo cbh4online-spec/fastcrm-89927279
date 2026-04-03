@@ -329,8 +329,16 @@ export default function HRTimeTrackingPage() {
                         </TableCell>
                         <TableCell>{s.clock_in_at ? format(new Date(s.clock_in_at), "HH:mm") : "—"}</TableCell>
                         <TableCell>{s.clock_out_at ? format(new Date(s.clock_out_at), "HH:mm") : "—"}</TableCell>
-                        <TableCell>{s.break_minutes > 0 ? `${s.break_minutes}m` : "—"}</TableCell>
-                        <TableCell>{s.worked_minutes != null ? `${Math.floor(s.worked_minutes / 60)}h ${s.worked_minutes % 60}m` : "—"}</TableCell>
+                         <TableCell>{s.break_minutes > 0 ? `${s.break_minutes}m` : "—"}</TableCell>
+                         <TableCell>
+                           {(s as any).clock_in_location_name ? (
+                             <div className="flex items-center gap-1 text-sm">
+                               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                               <span className="truncate max-w-[120px]">{(s as any).clock_in_location_name}</span>
+                             </div>
+                           ) : "—"}
+                         </TableCell>
+                         <TableCell>{s.worked_minutes != null ? `${Math.floor(s.worked_minutes / 60)}h ${s.worked_minutes % 60}m` : "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <Badge variant={s.status === "complete" ? "default" : "secondary"}>{s.status === "complete" ? "Completo" : "Incompleto"}</Badge>
