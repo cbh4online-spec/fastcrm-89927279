@@ -209,7 +209,7 @@ export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
             Central de monitorização e resposta a incidentes
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
+        <Button variant="outline" size="sm" onClick={() => { refetch(); refetchAlerts(); }}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar
         </Button>
@@ -221,10 +221,21 @@ export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Abertos</p>
-                <p className="text-3xl font-bold">{openCount}</p>
+                <p className="text-sm text-muted-foreground">Alertas Activos</p>
+                <p className="text-3xl font-bold">{usageAlerts?.length || 0}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Incidentes Abertos</p>
+                <p className="text-3xl font-bold">{openCount}</p>
+              </div>
+              <Clock className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -236,17 +247,6 @@ export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
                 <p className="text-3xl font-bold text-destructive">{criticalCount}</p>
               </div>
               <ShieldAlert className="h-8 w-8 text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Alertas Uso</p>
-                <p className="text-3xl font-bold">{usageAlerts?.length || 0}</p>
-              </div>
-              <Clock className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -270,98 +270,186 @@ export function AlertsSection({ initialTab = "alerts" }: AlertsSectionProps) {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filtrar por estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="open">Abertos</SelectItem>
-            <SelectItem value="investigating">A investigar</SelectItem>
-            <SelectItem value="resolved">Resolvidos</SelectItem>
-            <SelectItem value="dismissed">Dispensados</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "alerts" | "incidents")}>
+        <TabsList>
+          <TabsTrigger value="alerts">
+            Alertas de Uso
+            {(usageAlerts?.length || 0) > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{usageAlerts?.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="incidents">
+            Incidentes
+            {openCount > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{openCount}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Incidents List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Incidentes</CardTitle>
-          <CardDescription>
-            Lista de incidentes do sistema ordenados por data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16" />
-              ))}
-            </div>
-          ) : incidents && incidents.length > 0 ? (
-            <div className="space-y-3">
-              {incidents.map((incident) => (
-                <div
-                  key={incident.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {getSeverityBadge(incident.severity)}
-                        {getStatusBadge(incident.status)}
-                      </div>
-                      <p className="font-medium">{incident.title}</p>
-                      {incident.workspaces?.name && (
-                        <p className="text-sm text-muted-foreground">
-                          Workspace: {incident.workspaces.name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(incident.created_at), "dd MMM, HH:mm", { locale: pt })}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedIncident(incident)}
+        {/* Usage Alerts Tab */}
+        <TabsContent value="alerts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Alertas de Uso</CardTitle>
+              <CardDescription>
+                Alertas de consumo de recursos por workspace
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {usageLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-16" />
+                  ))}
+                </div>
+              ) : usageAlerts && usageAlerts.length > 0 ? (
+                <div className="space-y-3">
+                  {usageAlerts.map((alert: any) => (
+                    <div
+                      key={alert.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {incident.status === "open" && (
-                      <>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{alert.resource_type || alert.alert_type}</Badge>
+                          {alert.threshold_percent && (
+                            <Badge className={
+                              alert.current_usage / alert.limit_value >= 0.9
+                                ? "bg-destructive text-destructive-foreground"
+                                : "bg-warning text-warning-foreground"
+                            }>
+                              {Math.round((alert.current_usage / alert.limit_value) * 100)}%
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium">{alert.message || "Alerta de uso"}</p>
+                        {alert.workspaces?.name && (
+                          <p className="text-xs text-muted-foreground">
+                            Workspace: {alert.workspaces.name}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(alert.created_at), "dd MMM, HH:mm", { locale: pt })}
+                        </p>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => dismissIncident.mutate(incident.id)}
+                          onClick={() => dismissAlert.mutate(alert.id)}
                         >
                           Dispensar
                         </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Sem alertas de uso activos</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Incidents Tab */}
+        <TabsContent value="incidents">
+          {/* Filters */}
+          <div className="flex items-center gap-4 mb-4">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="open">Abertos</SelectItem>
+                <SelectItem value="investigating">A investigar</SelectItem>
+                <SelectItem value="resolved">Resolvidos</SelectItem>
+                <SelectItem value="dismissed">Dispensados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Incidentes</CardTitle>
+              <CardDescription>
+                Lista de incidentes do sistema ordenados por data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-16" />
+                  ))}
+                </div>
+              ) : incidents && incidents.length > 0 ? (
+                <div className="space-y-3">
+                  {incidents.map((incident) => (
+                    <div
+                      key={incident.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {getSeverityBadge(incident.severity)}
+                            {getStatusBadge(incident.status)}
+                          </div>
+                          <p className="font-medium">{incident.title}</p>
+                          {incident.workspaces?.name && (
+                            <p className="text-sm text-muted-foreground">
+                              Workspace: {incident.workspaces.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(incident.created_at), "dd MMM, HH:mm", { locale: pt })}
+                        </p>
                         <Button
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setSelectedIncident(incident)}
                         >
-                          Resolver
+                          <Eye className="h-4 w-4" />
                         </Button>
-                      </>
-                    )}
-                  </div>
+                        {incident.status === "open" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => dismissIncident.mutate(incident.id)}
+                            >
+                              Dispensar
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedIncident(incident)}
+                            >
+                              Resolver
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Sem incidentes {statusFilter !== "all" ? "com este estado" : ""}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Sem incidentes {statusFilter !== "all" ? "com este estado" : ""}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Incident Detail / Resolve Dialog */}
       <Dialog open={!!selectedIncident} onOpenChange={() => setSelectedIncident(null)}>
