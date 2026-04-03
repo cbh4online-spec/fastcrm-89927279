@@ -71,6 +71,8 @@ import {
   CheckCircle,
   PauseCircle,
   Send,
+  Clock,
+  LogIn,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
