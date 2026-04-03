@@ -11,8 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Minus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface SelectedProduct {
   product_id: string;
@@ -25,11 +29,15 @@ export default function ClientPlanCreatePage() {
   const navigate = useNavigate();
   const { clientUser } = useClientAuth();
   const { createPlan, creating } = useSubscriptionPlans();
+  const { currentWorkspace } = useWorkspace();
+  const { canRun, showUpgrade, overageLabel } = useAIGate("medium");
+  const { consumeCredits } = useCreditWallet();
   const [name, setName] = useState("");
   const [cadence, setCadence] = useState("monthly");
   const [approvalMode, setApprovalMode] = useState("approval_required");
   const [maxCycleValue, setMaxCycleValue] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Fetch products
   const { data: products = [] } = useQuery({
@@ -64,6 +72,56 @@ export default function ClientPlanCreatePage() {
 
   const cycleTotal = selectedProducts.reduce((s, p) => s + p.base_price * p.qty, 0);
 
+  const handleAISuggest = async () => {
+    if (showUpgrade || !canRun) {
+      triggerNoCreditsDialog({ actionLabel: "IA: Sugerir Plano" });
+      return;
+    }
+    if (products.length === 0) {
+      toast.error("Sem produtos disponíveis para sugestão");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
+        body: {
+          action: "suggest_subscription_plan",
+          workspace_id: currentWorkspace?.id,
+          context: { products: products.map((p: any) => ({ id: p.id, name: p.name, base_price: p.base_price, sku: p.sku })) },
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error === "quota_exceeded") {
+        triggerNoCreditsDialog({ actionLabel: "IA: Sugerir Plano" });
+        return;
+      }
+
+      const result = data?.result;
+      if (result) {
+        if (result.name) setName(result.name);
+        if (result.cadence && CADENCE_LABELS[result.cadence]) setCadence(result.cadence);
+        if (result.products?.length) {
+          const suggested: SelectedProduct[] = [];
+          for (const sp of result.products) {
+            const found = products.find((p: any) => p.id === sp.product_id);
+            if (found) {
+              suggested.push({ product_id: found.id, name: found.name, base_price: found.base_price, qty: sp.qty || 1 });
+            }
+          }
+          if (suggested.length > 0) setSelectedProducts(suggested);
+        }
+        await consumeCredits.mutateAsync({ actionKey: "ai_pricing_assistant", referenceType: "subscription_plan", metadata: { action: "suggest_subscription_plan" } });
+        toast.success("Sugestão IA aplicada!");
+      }
+    } catch (err) {
+      console.error("AI suggestion error:", err);
+      toast.error("Erro ao obter sugestão IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Nome do plano obrigatório"); return; }
     if (selectedProducts.length === 0) { toast.error("Adicione pelo menos 1 produto"); return; }
@@ -86,7 +144,22 @@ export default function ClientPlanCreatePage() {
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
 
-        <h1 className="text-2xl font-bold">Criar Plano de Manutenção</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Criar Plano de Manutenção</h1>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleAISuggest}
+              disabled={aiLoading || products.length === 0}
+            >
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              IA: Sugerir Plano
+            </Button>
+            {overageLabel && <span className="text-[10px] text-muted-foreground">{overageLabel}</span>}
+          </div>
+        </div>
 
         {/* Step 1: Details */}
         <Card>

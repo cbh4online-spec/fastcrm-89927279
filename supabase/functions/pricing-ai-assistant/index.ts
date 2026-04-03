@@ -61,6 +61,16 @@ serve(async (req) => {
         userPrompt = `Analisa este plano de CRM SaaS e sugere otimizações:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera:\n- Equilibrar valor percebido pelo cliente vs custo operacional\n- Benchmarks de mercado\n- Funcionalidades que devem estar ativas neste tier\n- Limites que podem estar demasiado altos ou baixos`;
         break;
 
+      case "suggest_subscription_plan":
+        systemPrompt = `Sou um especialista em planos de manutenção e subscrição B2B. Analiso o catálogo de produtos disponíveis e sugiro um plano de manutenção completo, otimizado para recorrência e retenção. Respondo sempre em JSON válido com a estrutura: {"name": string, "cadence": "monthly"|"bi-monthly"|"quarterly", "products": [{"product_id": string, "name": string, "qty": number, "reasoning": string}], "reasoning": string}`;
+        userPrompt = `Com base neste catálogo de produtos disponíveis, sugere um plano de manutenção recorrente ideal:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera:\n- Produtos complementares que façam sentido juntos\n- Quantidades típicas para uso recorrente\n- Cadência que maximize retenção e valor para o cliente\n- Nome descritivo e profissional para o plano`;
+        break;
+
+      case "optimize_subscription_plan":
+        systemPrompt = `Sou um consultor de optimização de planos de manutenção B2B. Analiso planos existentes e sugiro melhorias para maximizar valor e retenção. Respondo sempre em JSON válido com a estrutura: {"suggestions": [{"type": "add_product"|"remove_product"|"change_qty"|"change_cadence", "description": string, "product_name": string | null, "suggested_qty": number | null, "suggested_cadence": string | null, "reasoning": string}], "overall_analysis": string, "estimated_savings_percent": number | null}`;
+        userPrompt = `Analisa este plano de manutenção e sugere optimizações:\n\n${JSON.stringify(context, null, 2)}\n\nConsidera:\n- Se as quantidades estão adequadas ao ciclo\n- Se a cadência é a mais eficiente\n- Produtos complementares que podem estar em falta\n- Oportunidades de poupança ou melhoria de valor`;
+        break;
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400,
