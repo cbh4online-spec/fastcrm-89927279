@@ -1,48 +1,32 @@
 
 
-# Mapa Visual de Pica Pontos na Página de Time Tracking
+# Expandir Suporte a Múltiplas Imagens na Importação de Produtos
 
-## Objectivo
+## Diagnóstico
 
-Adicionar um card com mapa interactivo (Google Maps embed) na página de Controlo de Ponto que mostra marcadores para cada sessão com coordenadas GPS, permitindo visualizar onde cada colaborador picou o ponto.
+O sistema **já suporta** importação de múltiplas imagens:
+- Auto-mapeamento de colunas `image_1` a `image_5`
+- URLs separadas por `;` ou `,` numa única coluna
+- Múltiplas colunas podem ser mapeadas manualmente para "URL da Imagem"
+- Imagens são inseridas na tabela `product_images` com posição sequencial
+
+**Lacuna identificada**: O auto-mapeamento só reconhece até `image_5`. Ficheiros de catálogo típicos podem ter 10, 15 ou até 20 colunas de imagem. Colunas como `image_6`, `image_7`, etc. ficam como "ignorar" e requerem mapeamento manual — propenso a erro.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/hr/ClockInsMap.tsx` | **Criar** — componente de mapa com marcadores de pica pontos usando iframes do Google Maps (sem API key, embed estático) ou marcadores clicáveis |
-| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | **Editar** — adicionar o componente `ClockInsMap` entre os filtros e a tabela de sessões |
+| `src/components/products/BatchSKUImportDialog.tsx` | Expandir padrões de auto-mapeamento para reconhecer até `image_20` dinamicamente; melhorar label no dropdown para indicar que aceita múltiplas colunas |
 
-## Detalhe técnico
+### Detalhe técnico
 
-### Componente `ClockInsMap`
+1. **Substituir os 5 padrões estáticos** (`image_2` a `image_5`) por um **único padrão regex genérico** que captura `image_N` para qualquer N:
+   ```typescript
+   [/^(image|img|imagem|foto|photo|url.?image|image.?url)[\s._-]?(\d+)?$/i, "image_url"]
+   ```
+   Isto cobre automaticamente `image_1` até `image_99`, `foto_1`, `img2`, etc.
 
-- Recebe as `sessions` (já carregadas pelo hook `useHRWorkSessions`) como prop
-- Filtra sessões que têm `clock_in_lat` e `clock_in_lng` não nulos
-- Renderiza um Google Maps embed com marcadores para cada pica ponto:
-  - Usa a API estática do Google Maps (`/maps/embed`) com múltiplos pontos via query `q=lat,lng`
-  - Alternativa: renderizar um mapa via iframe centrado na média das coordenadas, com uma lista lateral clicável de marcadores
-- Cada marcador/item mostra: nome do colaborador, hora de entrada, localidade
-- Cores diferenciadas por estado (completo vs incompleto) ou por colaborador
-- Estado vazio: mensagem "Sem registos com localização neste período"
+2. **Actualizar label** no `AVAILABLE_FIELDS` de `"URL da Imagem"` para `"URL da Imagem (múltiplas)"` para tornar claro que várias colunas podem usar este campo.
 
-### Abordagem sem API key
-
-Como o Google Maps embed com múltiplos marcadores requer API key, usaremos **OpenStreetMap via Leaflet** (pacote `react-leaflet` + `leaflet`) que é gratuito e open-source:
-- Mapa centrado na média das coordenadas das sessões
-- Marcadores clicáveis com popup mostrando nome, hora e local
-- Cores por colaborador usando ícones customizados
-- Cluster de marcadores quando há muitos pontos próximos
-
-### Integração na página
-
-O card do mapa será inserido logo após os filtros de data/funcionário, antes do card "Registar Ponto":
-- Card com título "Mapa de Registos" e ícone MapPin
-- Altura fixa de ~400px
-- Colapsável para não ocupar espaço quando não necessário
-
-### Dependências
-
-- `leaflet` + `react-leaflet` (npm packages a instalar)
-- CSS do Leaflet importado no componente
+3. **Sem alterações** no hook `useProducts.ts` nem na tabela `product_images` — a lógica de persistência já está completa.
 
