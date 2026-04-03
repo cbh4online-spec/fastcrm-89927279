@@ -999,6 +999,12 @@ export function ProductsList() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <BulkCostDialog
+                  open={bulkCostOpen}
+                  onOpenChange={setBulkCostOpen}
+                  selectedIds={selectedIds}
+                  onComplete={() => setSelectedIds([])}
+                />
               </div>
             )}
 
