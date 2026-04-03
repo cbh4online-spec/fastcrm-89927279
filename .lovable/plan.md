@@ -1,34 +1,37 @@
 
 
-# Corrigir Imagens na Lista de Produtos
+# Corrigir Importação: Atualizar Produtos com SKU Duplicado
 
 ## Diagnóstico
 
-A lista de produtos usa `product.images` (coluna `images` da tabela `products`, tipo array de URLs) para mostrar thumbnails. No entanto, as imagens são geridas na tabela separada `product_images` — que é a fonte correcta usada pelo `ProductDetailDialog` via `useProductImages()`.
+O importador de produtos (`useProducts.ts`, função `bulkImportProducts`) verifica SKUs existentes na base de dados **antes** da inserção e salta todos os que já existem, marcando-os como "SKU duplicado na base de dados". Isto causou 1558 produtos rejeitados.
 
-Resultado: a coluna `images` na tabela `products` está vazia/null para a maioria dos produtos, mas as imagens existem na tabela `product_images`. Por isso aparecem ao editar mas não na lista.
+O utilizador pretende que, quando um SKU já existe, os dados sejam **atualizados** em vez de ignorados.
 
 ## Solução
 
-Modificar o hook `useProducts` para incluir um join com `product_images` (apenas a primeira imagem por produto, ordenada por `position`) e alimentar a thumbnail na lista a partir daí.
-
-**Abordagem**: Em vez de fazer N+1 queries, usar um subquery ou fazer um batch fetch das primeiras imagens de todos os produtos carregados, e injectar no resultado.
+Modificar a lógica de importação para fazer **upsert** dos produtos com SKU duplicado: atualizar campos existentes (nome, categoria, preço, descrição, etc.) mantendo o `id` original.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/hooks/useProducts.ts` | Após carregar produtos, buscar primeiras imagens da tabela `product_images` em batch e injectar no campo `images` de cada produto |
-| `src/components/products/ProductsList.tsx` | Nenhuma alteração necessária — já usa `product.images?.[0]` que passará a ter dados |
+| `src/hooks/useProducts.ts` | Alterar `bulkImportProducts` para fazer upsert dos SKUs existentes em vez de os saltar |
 
 ### Detalhe técnico
 
-No `useProducts`, após o fetch principal:
+Na função `bulkImportProducts`:
 
-1. Extrair todos os `product.id` do resultado
-2. Query `product_images` com `in("product_id", ids)`, `order("position")`, seleccionar `product_id, url`
-3. Agrupar por `product_id`, pegar a primeira URL de cada
-4. Popular `product.images = [firstUrl]` para cada produto
+1. **Remover o skip de duplicados** — em vez de adicionar ao array `skipped`, mover esses itens para um array `toUpdate`
+2. **Buscar IDs dos produtos existentes** — query por SKU para obter os `id` correspondentes
+3. **Atualizar em batch** — para cada produto existente, fazer `update` com os novos dados (nome, categoria, preço de venda, preço de custo, descrição, barcode, etc.)
+4. **Manter contadores separados** — reportar ao utilizador quantos foram criados vs. atualizados
+5. **Imagens** — se o ficheiro trouxer novas URLs de imagem, adicionar às `product_images` existentes (sem duplicar)
 
-Isto mantém a interface existente (`product.images?.[0]`) sem alterar nenhum componente de UI.
+O fluxo passa a ser:
+- SKU existe na DB → atualizar campos com dados do ficheiro
+- SKU duplicado no lote → saltar (manter comportamento actual)
+- SKU novo → inserir (manter comportamento actual)
+
+A mensagem de sucesso passará a mostrar: "X criados, Y atualizados, Z ignorados".
 
