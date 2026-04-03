@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -866,18 +867,39 @@ export function ProductsList() {
               sortValue={sortValue}
               onSortChange={setSortValue}
               leftActions={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-                  className="gap-2"
-                >
-                  {showFilterSidebar ? (
-                    <PanelLeftClose className="h-4 w-4" />
-                  ) : (
-                    <PanelLeft className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFilterSidebar(!showFilterSidebar)}
+                    className="gap-2"
+                  >
+                    {showFilterSidebar ? (
+                      <PanelLeftClose className="h-4 w-4" />
+                    ) : (
+                      <PanelLeft className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {productIndicators.noCost > 0 && (
+                    <Button
+                      variant={activeFilterId === "smart_no_cost" ? "outline" : "ghost"}
+                      size="sm"
+                      onClick={() => handleFilterSelect("smart_no_cost")}
+                      className={cn(
+                        "gap-2",
+                        activeFilterId === "smart_no_cost"
+                          ? "bg-warning/10 text-warning border-warning/30"
+                          : ""
+                      )}
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Sem custo</span>
+                      <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
+                        {productIndicators.noCost}
+                      </Badge>
+                    </Button>
                   )}
-                </Button>
+                </div>
               }
               rightActions={
                 <div className="flex items-center gap-2">
