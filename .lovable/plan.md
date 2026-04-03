@@ -1,49 +1,34 @@
 
 
-# Adicionar Localização às Sessões de Ponto
+# Corrigir Imagens na Lista de Produtos
 
 ## Diagnóstico
 
-A tabela `hr_time_entries` já tem `location_lat` e `location_lng`, mas a `hr_work_sessions` não guarda localização. O `ClockInOutButton` também não captura coordenadas do browser antes de enviar o clock action. Resultado: mesmo que a edge function receba lat/lng, não há dados a enviar nem onde os guardar na sessão.
+A lista de produtos usa `product.images` (coluna `images` da tabela `products`, tipo array de URLs) para mostrar thumbnails. No entanto, as imagens são geridas na tabela separada `product_images` — que é a fonte correcta usada pelo `ProductDetailDialog` via `useProductImages()`.
+
+Resultado: a coluna `images` na tabela `products` está vazia/null para a maioria dos produtos, mas as imagens existem na tabela `product_images`. Por isso aparecem ao editar mas não na lista.
 
 ## Solução
 
-### 1. Migração DB — Adicionar colunas de localização à `hr_work_sessions`
+Modificar o hook `useProducts` para incluir um join com `product_images` (apenas a primeira imagem por produto, ordenada por `position`) e alimentar a thumbnail na lista a partir daí.
 
-- `clock_in_lat` (numeric, nullable)
-- `clock_in_lng` (numeric, nullable)  
-- `clock_in_location_name` (text, nullable) — nome da cidade/local para exibição rápida
-
-### 2. Edge Function — Guardar localização no clock_in
-
-No bloco `clock_in` da `hr-clock-action`, passar `location_lat`, `location_lng` e opcionalmente `location_name` para o insert da sessão.
-
-### 3. ClockInOutButton — Capturar geolocalização do browser
-
-Usar `navigator.geolocation.getCurrentPosition()` antes de cada clock action para enviar coordenadas. Usar reverse geocoding simples (já existe `useWeatherLocation` que obtém cidade) para incluir o nome do local.
-
-### 4. UI — Mostrar localização na tabela de sessões e no resumo do dia
-
-Adicionar coluna "Local" na tabela de sessões com ícone `MapPin` + nome da cidade. No resumo do dia do `ClockInOutButton`, mostrar o local ao lado do horário.
+**Abordagem**: Em vez de fazer N+1 queries, usar um subquery ou fazer um batch fetch das primeiras imagens de todos os produtos carregados, e injectar no resultado.
 
 ## Alterações
 
-| Ficheiro/Recurso | Acção |
+| Ficheiro | Acção |
 |---|---|
-| **Migração SQL** | ADD `clock_in_lat`, `clock_in_lng`, `clock_in_location_name` a `hr_work_sessions` |
-| `supabase/functions/hr-clock-action/index.ts` | Guardar lat/lng/location_name no insert do clock_in |
-| `src/components/hr/ClockInOutButton.tsx` | Capturar geolocalização antes de enviar clock actions; passar lat/lng/location_name ao mutation |
-| `src/hooks/hr/useHRTimeEntries.ts` | Adicionar campos de localização ao tipo `HRWorkSession` |
-| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Coluna "Local" na tabela de sessões com `MapPin` + cidade |
+| `src/hooks/useProducts.ts` | Após carregar produtos, buscar primeiras imagens da tabela `product_images` em batch e injectar no campo `images` de cada produto |
+| `src/components/products/ProductsList.tsx` | Nenhuma alteração necessária — já usa `product.images?.[0]` que passará a ter dados |
 
 ### Detalhe técnico
 
-**Captura de geolocalização (ClockInOutButton):**
-- Função async `getLocation()` que retorna `{ lat, lng }` via `navigator.geolocation`
-- Timeout de 5s — se falhar, envia sem localização (não bloqueia o registo)
-- Usar a cidade já obtida pelo `useWeatherLocation` como `location_name`
+No `useProducts`, após o fetch principal:
 
-**Edge Function:**
-- No clock_in, incluir `clock_in_lat`, `clock_in_lng`, `clock_in_location_name` no insert
-- Campos opcionais — null se não enviados
+1. Extrair todos os `product.id` do resultado
+2. Query `product_images` com `in("product_id", ids)`, `order("position")`, seleccionar `product_id, url`
+3. Agrupar por `product_id`, pegar a primeira URL de cada
+4. Popular `product.images = [firstUrl]` para cada produto
+
+Isto mantém a interface existente (`product.images?.[0]`) sem alterar nenhum componente de UI.
 
