@@ -252,6 +252,7 @@ export function ProductsList() {
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkCostOpen, setBulkCostOpen] = useState(false);
 
   // Toggle store_published
   const toggleStorePublished = useMutation({
