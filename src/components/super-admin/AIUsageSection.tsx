@@ -308,6 +308,7 @@ export function AIUsageSection() {
                   <TableHead>Plano</TableHead>
                   <TableHead>Uso</TableHead>
                   <TableHead>Progresso</TableHead>
+                  <TableHead>Ciclo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
