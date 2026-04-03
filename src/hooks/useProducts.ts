@@ -620,11 +620,13 @@ export function useCreateProductsBatch() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
-      const msg = result.skipped.length > 0
-        ? `${result.created} produto(s) criado(s), ${result.skipped.length} ignorado(s) (duplicados)`
-        : `${result.created} produto(s) criado(s) com sucesso!`;
+      const parts: string[] = [];
+      if (result.created > 0) parts.push(`${result.created} criado(s)`);
+      if (result.updated > 0) parts.push(`${result.updated} atualizado(s)`);
+      if (result.skipped.length > 0) parts.push(`${result.skipped.length} ignorado(s)`);
+      const msg = parts.length > 0 ? parts.join(", ") : "Importação concluída";
       toast.success(msg);
-      console.log(`[PRODUCTS] Batch created: ${result.created}, skipped: ${result.skipped.length}`);
+      console.log(`[PRODUCTS] Batch import: ${result.created} created, ${result.updated} updated, ${result.skipped.length} skipped`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -632,7 +634,7 @@ export function useCreateProductsBatch() {
           entity_kind: 'product',
           entity_id: 'batch',
           source_module: 'sales-products',
-          payload: { created: result.created, skipped: result.skipped.length },
+          payload: { created: result.created, updated: result.updated, skipped: result.skipped.length },
         });
       }
     },
