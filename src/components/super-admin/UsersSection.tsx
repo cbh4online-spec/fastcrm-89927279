@@ -191,6 +191,38 @@ export function UsersSection() {
     },
   });
 
+  // Fetch session time logs for all users
+  const { data: sessionLogs } = useQuery({
+    queryKey: ["super-admin-session-logs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("session_time_logs")
+        .select("user_id, last_activity_at, active_seconds, total_seconds");
+
+      if (error) throw error;
+
+      // Aggregate by user_id
+      const map = new Map<string, SessionStats>();
+      for (const log of data || []) {
+        const existing = map.get(log.user_id);
+        if (existing) {
+          if (log.last_activity_at && (!existing.lastSeen || log.last_activity_at > existing.lastSeen)) {
+            existing.lastSeen = log.last_activity_at;
+          }
+          existing.totalActiveSeconds += log.active_seconds || 0;
+          existing.totalSeconds += log.total_seconds || 0;
+        } else {
+          map.set(log.user_id, {
+            lastSeen: log.last_activity_at,
+            totalActiveSeconds: log.active_seconds || 0,
+            totalSeconds: log.total_seconds || 0,
+          });
+        }
+      }
+      return map;
+    },
+  });
+
   // Fetch all workspaces for dropdown
   const { data: allWorkspaces } = useQuery({
     queryKey: ["super-admin-workspaces-list"],
