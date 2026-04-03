@@ -384,6 +384,7 @@ export function UsersSection() {
       profile,
       memberships: userMemberships,
       isSuperAdmin: superAdmins?.has(profile.user_id) || false,
+      sessionStats: sessionLogs?.get(profile.user_id) || { lastSeen: null, totalActiveSeconds: 0, totalSeconds: 0 },
     };
   });
 
