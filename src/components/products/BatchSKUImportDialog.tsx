@@ -713,6 +713,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       console.error("[BATCH_CREATE] Error:", err);
       setSummary({
         successCount: 0,
+        updatedCount: 0,
         errorCount: selected.length,
         failedSkus: [{ sku: "batch", error: err instanceof Error ? err.message : "Erro desconhecido" }],
       });
