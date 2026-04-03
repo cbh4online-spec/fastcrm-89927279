@@ -28,10 +28,9 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) return jsonResponse({ error: "Unauthorized" }, 401);
-    const userId = claimsData.claims.sub;
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return jsonResponse({ error: "Unauthorized" }, 401);
+    const userId = user.id;
 
     const { action, title, location, employment_type, remote_option, description, workspace_id } = await req.json();
 
