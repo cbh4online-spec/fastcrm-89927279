@@ -102,8 +102,9 @@ export default function SuperAdmin() {
       case "stripe-sync":
         return <BillingSection initialTab="sync" />;
       case "alerts":
+        return <AlertsSection initialTab="alerts" />;
       case "incidents":
-        return <AlertsSection />;
+        return <AlertsSection initialTab="incidents" />;
       case "blocks":
         return <WorkspacesSection />; // Filter for suspended
       case "moderation":
