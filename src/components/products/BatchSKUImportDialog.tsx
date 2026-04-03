@@ -703,6 +703,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       console.log("[BATCH_CREATE] Result:", JSON.stringify(result));
       setSummary({
         successCount: result.created,
+        updatedCount: result.updated ?? 0,
         errorCount: result.skipped.length,
         failedSkus: result.skipped.map(s => ({ sku: s.sku, error: s.reason })),
         lastCreatedProductId: undefined,
