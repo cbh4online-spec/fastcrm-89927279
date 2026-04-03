@@ -302,12 +302,13 @@ export default function HRTimeTrackingPage() {
                   <TableRow>
                     <TableHead>Funcionário</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Entrada</TableHead>
-                    <TableHead>Saída</TableHead>
-                    <TableHead>Pausa</TableHead>
-                    <TableHead>Horas Trab.</TableHead>
-                    <TableHead>Estado</TableHead>
+                     <TableHead>Período</TableHead>
+                     <TableHead>Entrada</TableHead>
+                     <TableHead>Saída</TableHead>
+                     <TableHead>Pausa</TableHead>
+                     <TableHead>Local</TableHead>
+                     <TableHead>Horas Trab.</TableHead>
+                     <TableHead>Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
