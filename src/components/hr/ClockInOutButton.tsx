@@ -127,16 +127,10 @@ export function ClockInOutButton() {
           <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
             {format(now, "HH:mm:ss", { locale: pt })}
           </p>
-          <p className="text-sm text-muted-foreground capitalize">
-            {format(now, "EEEE, d 'de' MMMM", { locale: pt })}
-          </p>
           {weatherText && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              {greeting}! {weatherText}
+              {weatherText}
             </p>
-          )}
-          {!weatherText && !weatherLoading && (
-            <p className="text-xs text-muted-foreground mt-0.5">{greeting}!</p>
           )}
         </div>
 
