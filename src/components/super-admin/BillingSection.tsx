@@ -433,6 +433,12 @@ export function BillingSection({ initialTab = "subscriptions" }: BillingSectionP
           </Card>
         </TabsContent>
 
+
+        {/* Payments Tab */}
+        <TabsContent value="payments">
+          <PaymentsTab search={search} />
+        </TabsContent>
+
         {/* Events Tab */}
         <TabsContent value="events">
           <Card>
