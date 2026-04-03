@@ -216,13 +216,23 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (ownerMember?.user_id) {
+          // Use auth.admin to get email — profiles table may not have it
+          let ownerEmail: string | null = null;
+          
+          // Try profiles first
           const { data: profile } = await supabaseClient
             .from("profiles")
             .select("email")
             .eq("id", ownerMember.user_id)
             .maybeSingle();
-
-          const ownerEmail = profile?.email;
+          
+          ownerEmail = profile?.email || null;
+          
+          // Fallback to auth.users if profiles has no email
+          if (!ownerEmail) {
+            const { data: authUser } = await supabaseClient.auth.admin.getUserById(ownerMember.user_id);
+            ownerEmail = authUser?.user?.email || null;
+          }
           if (ownerEmail) {
             logStep("Owner email found", { email: ownerEmail });
 
