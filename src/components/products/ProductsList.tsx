@@ -89,6 +89,7 @@ import { Toolbar } from "@/components/common/Toolbar";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
 import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
+import { BulkCostDialog } from "./BulkCostDialog";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
