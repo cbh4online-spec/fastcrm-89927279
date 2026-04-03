@@ -88,6 +88,12 @@ export function useClockAction() {
         const timeStr = hours > 0 ? `${hours}h ${remainMins}m` : `${remainMins}m`;
         toast.warning(`⚠️ ${name} excedeu o limite diário em ${timeStr}`);
       }
+
+      if (data?.geofence_alert?.outside) {
+        const zone = data.geofence_alert.nearest_zone || "desconhecida";
+        const dist = data.geofence_alert.distance_meters || 0;
+        toast.warning(`📍 Pica ponto fora de zona autorizada. Zona mais próxima: ${zone} (${dist}m)`);
+      }
     },
     onError: (error: any) => {
       const msg = error?.message || error?.context?.body?.error || "Erro ao registar";

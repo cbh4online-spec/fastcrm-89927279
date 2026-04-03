@@ -18,6 +18,18 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+/** Haversine distance in meters between two lat/lng points */
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000; // Earth radius in meters
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -83,6 +95,7 @@ serve(async (req) => {
     let overtime_alert: { exceeded: boolean; overtime_minutes: number; max_daily_minutes: number; worked_minutes: number } | null = null;
     let employee_name: string | null = null;
     let session_action: string | null = null;
+    let geofence_alert: { outside: boolean; distance_meters?: number; nearest_zone?: string } | null = null;
 
     if (entry_type === "clock_in") {
       // Determine session type
@@ -92,15 +105,63 @@ serve(async (req) => {
         sessionType = completedTypes.includes("afternoon") ? "extra" : "afternoon";
       }
 
-      await supabase.from("hr_work_sessions").insert({
+      const { data: insertedSession } = await supabase.from("hr_work_sessions").insert({
         workspace_id, employee_id, session_date: today,
         clock_in_at: now.toISOString(), status: "incomplete",
         session_type: sessionType,
         clock_in_lat: location_lat || null,
         clock_in_lng: location_lng || null,
         clock_in_location_name: location_name || null,
-      });
+      }).select("id").single();
+
       session_action = `clock_in_${sessionType}`;
+
+      // ── Geofencing check ──
+      if (location_lat && location_lng) {
+        const { data: zones } = await supabase
+          .from("hr_geofence_zones")
+          .select("id, name, latitude, longitude, radius_meters")
+          .eq("workspace_id", workspace_id)
+          .eq("is_active", true);
+
+        if (zones && zones.length > 0) {
+          let insideAny = false;
+          let minDistance = Infinity;
+          let nearestName = "";
+
+          for (const zone of zones) {
+            const dist = haversineMeters(location_lat, location_lng, zone.latitude, zone.longitude);
+            if (dist <= zone.radius_meters) {
+              insideAny = true;
+              break;
+            }
+            if (dist < minDistance) {
+              minDistance = dist;
+              nearestName = zone.name;
+            }
+          }
+
+          if (!insideAny) {
+            geofence_alert = {
+              outside: true,
+              distance_meters: Math.round(minDistance),
+              nearest_zone: nearestName,
+            };
+
+            // Create anomaly
+            await supabase.from("hr_attendance_anomalies").insert({
+              workspace_id,
+              employee_id,
+              anomaly_date: today,
+              anomaly_type: "outside_geofence",
+              severity: "warning",
+              description: `Pica ponto fora de zona autorizada. Distância à zona mais próxima (${nearestName}): ${Math.round(minDistance)}m`,
+              session_id: insertedSession?.id || null,
+              resolved: false,
+            });
+          }
+        }
+      }
 
     } else if (entry_type === "break_start" && activeSession) {
       await supabase.from("hr_work_sessions").update({
@@ -177,6 +238,7 @@ serve(async (req) => {
       overtime_alert,
       employee_name,
       session_action,
+      geofence_alert,
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {

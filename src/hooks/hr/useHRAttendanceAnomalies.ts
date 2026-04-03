@@ -8,7 +8,7 @@ export type AttendanceAnomaly = {
   workspace_id: string;
   employee_id: string;
   anomaly_date: string;
-  anomaly_type: "open_session" | "late_arrival" | "unjustified_absence";
+  anomaly_type: "open_session" | "late_arrival" | "unjustified_absence" | "outside_geofence";
   severity: "warning" | "critical";
   description: string | null;
   session_id: string | null;

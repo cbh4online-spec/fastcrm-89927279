@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale } from "lucide-react";
+import { Settings, Plus, Pencil, Trash2, Building2, Briefcase, FileText, Scale, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,7 @@ import { useHRDepartments, useCreateHRDepartment, useUpdateHRDepartment, useDele
 import { useHRJobTitles, useCreateHRJobTitle, useUpdateHRJobTitle, useDeleteHRJobTitle } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes, useCreateHRContractType, useUpdateHRContractType, useDeleteHRContractType } from "@/hooks/hr/useHRContractTypes";
 import { LaborRulesTab } from "@/components/hr/settings/LaborRulesTab";
+import { GeofenceZonesTab } from "@/components/hr/settings/GeofenceZonesTab";
 
 // ─── Shared schema for simple CRUD items ─────────────────────
 
@@ -226,6 +227,9 @@ export default function HRSettingsPage() {
           <TabsTrigger value="labor_rules" className="gap-1.5">
             <Scale className="h-4 w-4" /> Legislação
           </TabsTrigger>
+          <TabsTrigger value="geofencing" className="gap-1.5">
+            <MapPin className="h-4 w-4" /> Geofencing
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="departments">
@@ -264,6 +268,10 @@ export default function HRSettingsPage() {
 
         <TabsContent value="labor_rules">
           <LaborRulesTab />
+        </TabsContent>
+
+        <TabsContent value="geofencing">
+          <GeofenceZonesTab />
         </TabsContent>
       </Tabs>
     </div>
