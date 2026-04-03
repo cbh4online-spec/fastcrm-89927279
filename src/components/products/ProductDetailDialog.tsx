@@ -168,7 +168,7 @@ export function ProductDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           <TooltipProvider delayDuration={200}>
             {/* ═══ HERO HEADER — compacto ═══ */}
             <div className="relative bg-gradient-to-br from-muted/80 via-muted/40 to-background">
