@@ -58,7 +58,7 @@ interface BillingSectionProps {
 
 export function BillingSection({ initialTab = "subscriptions" }: BillingSectionProps) {
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
   const [syncingAll, setSyncingAll] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ done: 0, total: 0 });
   const queryClient = useQueryClient();
