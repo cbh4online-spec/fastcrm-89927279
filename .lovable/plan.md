@@ -1,56 +1,32 @@
 
 
-# Corrigir Stripe Sync
+# Separar Alertas e Incidentes no Super Admin
 
 ## Diagnóstico
 
-Dois problemas impedem o Stripe Sync de funcionar:
+O sidebar tem dois itens separados ("Alertas" e "Incidentes") mas ambos apontam para o mesmo `AlertsSection` sem distinção. O componente actual mistura tudo numa só vista focada em incidentes, ignorando os alertas de uso (`usage_alerts`). Ambas as tabelas existem e têm 0 registos, mas a UI deve estar preparada.
 
-### 1. Mismatch no nome do parâmetro
-- **Frontend** envia: `{ workspace_id: ws.workspaceId }`
-- **Edge function** espera: `const { workspaceId } = await req.json()`
-- Resultado: `workspaceId` é sempre `undefined` → erro "Workspace ID is required"
+## Solução
 
-### 2. Lógica de sync não procura clientes no Stripe
-A edge function `check-subscription` só verifica o Stripe se já existir um `stripe_subscription_id` na BD. Como **todos os 10 workspaces têm `stripe_customer_id` e `stripe_subscription_id` a NULL**, a função nunca contacta o Stripe — simplesmente devolve os dados locais sem vincular nada.
-
-Para o sync funcionar de verdade, precisa de:
-1. Procurar o cliente no Stripe pelo email do owner do workspace
-2. Se encontrar, obter a subscrição activa
-3. Guardar `stripe_customer_id` e `stripe_subscription_id` na BD
+Adicionar prop `initialTab` ao `AlertsSection` (padrão igual ao Billing) para separar as duas vistas.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/check-subscription/index.ts` | Corrigir nome do parâmetro (`workspace_id`); adicionar lookup de cliente Stripe por email do owner quando não há IDs |
-| `src/components/super-admin/BillingSection.tsx` | Nenhuma alteração necessária (já envia `workspace_id` correctamente) |
+| `src/components/super-admin/AlertsSection.tsx` | Adicionar tabs "Alertas" e "Incidentes" com prop `initialTab`; criar tab de Alertas de Uso com dados de `usage_alerts` |
+| `src/pages/SuperAdmin.tsx` | Passar `initialTab` diferente para cada caso |
 
-### Detalhe da Edge Function
+### Detalhe
 
-1. **Aceitar ambos os nomes**: `const workspaceId = body.workspace_id || body.workspaceId`
+1. **`SuperAdmin.tsx`**: 
+   - `case "alerts"` → `<AlertsSection initialTab="alerts" />`
+   - `case "incidents"` → `<AlertsSection initialTab="incidents" />`
 
-2. **Novo bloco de lookup** quando não há `stripe_subscription_id`:
-   - Obter o owner do workspace via `workspace_members` (role = owner) → `profiles.email`
-   - Chamar `stripe.customers.list({ email })` para encontrar o cliente
-   - Se encontrar, chamar `stripe.subscriptions.list({ customer, status: "active" })` 
-   - Guardar `stripe_customer_id` e `stripe_subscription_id` em `workspace_subscriptions`
-   - Actualizar `workspace_plans` se o plano Stripe diferir do local
+2. **`AlertsSection.tsx`** — reorganizar com Tabs:
+   - **Tab "Alertas de Uso"**: Query a `usage_alerts` (workspace_id, alert_type, resource_type, threshold_percent, current_usage, limit_value, message, is_dismissed). Mostrar tabela com: tipo de recurso, % uso, mensagem, data. Acção para dispensar alerta. KPIs movidos para reflectir alertas activos.
+   - **Tab "Incidentes"**: Manter a lista actual de `system_incidents` com filtros, resolução e dialog — tudo o que já existe.
+   - **KPIs no header**: Ajustar — Alertas Activos (usage_alerts não dispensados), Incidentes Abertos, Críticos, Resolvidos 24h.
 
-3. **Manter fallback** existente: se não encontrar nada no Stripe, devolver dados locais sem erro
-
-### Fluxo resultante
-
-```text
-Sync clicado
-  → check-subscription(workspace_id)
-  → Ler workspace_subscriptions
-  → Se tem stripe_subscription_id → verificar no Stripe (já existe)
-  → Se NÃO tem → obter email do owner
-    → stripe.customers.list(email)
-    → Se encontrou → stripe.subscriptions.list(customer)
-      → Guardar IDs na BD
-      → Devolver plano Stripe
-    → Se não → devolver dados locais
-```
+3. **Estado vazio**: Mensagens informativas em cada tab quando sem dados.
 
