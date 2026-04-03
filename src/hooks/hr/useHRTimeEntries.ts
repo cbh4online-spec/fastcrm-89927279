@@ -11,6 +11,9 @@ export type HRWorkSession = {
   clock_in_at: string | null;
   clock_out_at: string | null;
   break_minutes: number;
+  break_start_at: string | null;
+  break_end_at: string | null;
+  session_type: string;
   total_minutes: number | null;
   worked_minutes: number | null;
   status: "complete" | "incomplete" | "manual";
@@ -28,7 +31,8 @@ export function useHRWorkSessions(employeeId?: string, startDate?: string, endDa
         .from("hr_work_sessions" as any)
         .select("*, hr_employees(full_name, avatar_url, department)")
         .eq("workspace_id", wsId!)
-        .order("session_date", { ascending: false });
+        .order("session_date", { ascending: false })
+        .order("clock_in_at", { ascending: true });
       if (employeeId) q = q.eq("employee_id", employeeId);
       if (startDate) q = q.gte("session_date", startDate);
       if (endDate) q = q.lte("session_date", endDate);
@@ -58,11 +62,18 @@ export function useClockAction() {
       return res.data;
     },
     onSuccess: (data) => {
-      toast.success("Registo efetuado");
+      const labels: Record<string, string> = {
+        clock_in_morning: "Entrada manhã registada",
+        clock_in_afternoon: "Entrada tarde registada",
+        clock_in_extra: "Entrada extra registada",
+        break_start: "Pausa iniciada",
+        break_end: "Pausa terminada",
+        clock_out: "Saída registada",
+      };
+      toast.success(labels[data?.session_action] || "Registo efetuado");
       queryClient.invalidateQueries({ queryKey: ["hr-work-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["hr-time-entries"] });
 
-      // Show overtime alert if returned from clock-out
       if (data?.overtime_alert?.exceeded) {
         const mins = data.overtime_alert.overtime_minutes;
         const name = data.employee_name || "Funcionário";

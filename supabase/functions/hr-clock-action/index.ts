@@ -12,6 +12,12 @@ function errorResponse(message: string, status = 400) {
   });
 }
 
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -30,50 +36,92 @@ serve(async (req) => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
 
-    // 1. Query open session BEFORE any insert (for validation)
-    const { data: openSession } = await supabase
+    // Fetch all sessions for today
+    const { data: todaySessions } = await supabase
       .from("hr_work_sessions")
-      .select("id, clock_in_at, break_minutes, clock_out_at")
+      .select("id, clock_in_at, clock_out_at, break_minutes, break_start_at, break_end_at, session_type, status")
       .eq("employee_id", employee_id)
       .eq("session_date", today)
-      .is("clock_out_at", null)
-      .maybeSingle();
+      .order("clock_in_at", { ascending: true });
 
-    // 2. State validations per entry_type
+    const sessions = todaySessions || [];
+    const activeSession = sessions.find(s => s.clock_in_at && !s.clock_out_at);
+    const onBreak = activeSession?.break_start_at && !activeSession?.break_end_at;
+
+    // State validations
     if (entry_type === "clock_in") {
-      if (openSession) {
+      if (activeSession) {
         return errorResponse("Já existe uma sessão aberta. Faça clock-out primeiro.");
       }
     } else if (entry_type === "clock_out") {
-      if (!openSession) {
+      if (!activeSession) {
         return errorResponse("Nenhuma sessão aberta para terminar.");
       }
-    } else if (entry_type === "break_start" || entry_type === "break_end") {
-      if (!openSession) {
+      if (onBreak) {
+        return errorResponse("Termine a pausa antes de fazer clock-out.");
+      }
+    } else if (entry_type === "break_start") {
+      if (!activeSession) {
         return errorResponse("Nenhuma sessão aberta para registar pausa.");
+      }
+      if (onBreak) {
+        return errorResponse("Já está em pausa.");
+      }
+    } else if (entry_type === "break_end") {
+      if (!activeSession || !onBreak) {
+        return errorResponse("Não existe pausa activa para terminar.");
       }
     }
 
-    // 3. Insert time entry only after validation passes
+    // Insert time entry
     const { error: entryError } = await supabase.from("hr_time_entries").insert({
       workspace_id, employee_id, entry_type, recorded_at: now.toISOString(),
       method: method || "manual", location_lat, location_lng, notes
     });
     if (entryError) throw entryError;
 
-    // 4. Upsert work session
     let overtime_alert: { exceeded: boolean; overtime_minutes: number; max_daily_minutes: number; worked_minutes: number } | null = null;
     let employee_name: string | null = null;
+    let session_action: string | null = null;
 
     if (entry_type === "clock_in") {
+      // Determine session type
+      const completedTypes = sessions.filter(s => s.clock_out_at).map(s => s.session_type);
+      let sessionType = "morning";
+      if (completedTypes.includes("morning")) {
+        sessionType = completedTypes.includes("afternoon") ? "extra" : "afternoon";
+      }
+
       await supabase.from("hr_work_sessions").insert({
         workspace_id, employee_id, session_date: today,
-        clock_in_at: now.toISOString(), status: "incomplete"
+        clock_in_at: now.toISOString(), status: "incomplete",
+        session_type: sessionType
       });
-    } else if (entry_type === "clock_out" && openSession) {
-      const clockInTime = new Date(openSession.clock_in_at).getTime();
+      session_action = `clock_in_${sessionType}`;
+
+    } else if (entry_type === "break_start" && activeSession) {
+      await supabase.from("hr_work_sessions").update({
+        break_start_at: now.toISOString(),
+        updated_at: now.toISOString()
+      }).eq("id", activeSession.id);
+      session_action = "break_start";
+
+    } else if (entry_type === "break_end" && activeSession) {
+      const breakStartTime = new Date(activeSession.break_start_at).getTime();
+      const breakDurationMin = Math.round((now.getTime() - breakStartTime) / 60000);
+      const totalBreakMin = (activeSession.break_minutes || 0) + breakDurationMin;
+
+      await supabase.from("hr_work_sessions").update({
+        break_end_at: now.toISOString(),
+        break_minutes: totalBreakMin,
+        updated_at: now.toISOString()
+      }).eq("id", activeSession.id);
+      session_action = "break_end";
+
+    } else if (entry_type === "clock_out" && activeSession) {
+      const clockInTime = new Date(activeSession.clock_in_at).getTime();
       const totalMin = Math.round((now.getTime() - clockInTime) / 60000);
-      const breakMin = openSession.break_minutes || 0;
+      const breakMin = activeSession.break_minutes || 0;
       const workedMin = Math.max(0, totalMin - breakMin);
 
       await supabase.from("hr_work_sessions").update({
@@ -82,9 +130,15 @@ serve(async (req) => {
         worked_minutes: workedMin,
         status: "complete",
         updated_at: now.toISOString()
-      }).eq("id", openSession.id);
+      }).eq("id", activeSession.id);
 
-      // Fetch active labor rules to check daily limit
+      // Calculate total worked today across all sessions
+      const previousWorked = sessions
+        .filter(s => s.clock_out_at && s.id !== activeSession.id)
+        .reduce((sum, s) => sum + ((s as any).worked_minutes || 0), 0);
+      const totalWorkedToday = previousWorked + workedMin;
+
+      // Fetch labor rules for overtime check
       const { data: laborRule } = await supabase
         .from("hr_country_labor_rules")
         .select("rules")
@@ -94,7 +148,7 @@ serve(async (req) => {
 
       const maxDailyHours = (laborRule?.rules as any)?.max_daily_hours || 8;
       const maxDailyMin = maxDailyHours * 60;
-      const overtimeMin = Math.max(0, workedMin - maxDailyMin);
+      const overtimeMin = Math.max(0, totalWorkedToday - maxDailyMin);
 
       if (overtimeMin > 0) {
         const { data: emp } = await supabase
@@ -109,17 +163,17 @@ serve(async (req) => {
         exceeded: overtimeMin > 0,
         overtime_minutes: overtimeMin,
         max_daily_minutes: maxDailyMin,
-        worked_minutes: workedMin,
+        worked_minutes: totalWorkedToday,
       };
+      session_action = "clock_out";
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       recorded_at: now.toISOString(),
       overtime_alert,
       employee_name,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      session_action,
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
