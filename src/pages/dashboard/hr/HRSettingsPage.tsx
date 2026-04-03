@@ -227,6 +227,9 @@ export default function HRSettingsPage() {
           <TabsTrigger value="labor_rules" className="gap-1.5">
             <Scale className="h-4 w-4" /> Legislação
           </TabsTrigger>
+          <TabsTrigger value="geofencing" className="gap-1.5">
+            <MapPin className="h-4 w-4" /> Geofencing
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="departments">
