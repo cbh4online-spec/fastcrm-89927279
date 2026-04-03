@@ -96,11 +96,18 @@ interface WorkspaceMembership {
   workspace_name: string;
 }
 
+interface SessionStats {
+  lastSeen: string | null;
+  totalActiveSeconds: number;
+  totalSeconds: number;
+}
+
 interface EnrichedUser {
   userId: string;
   profile: UserProfile | null;
   memberships: WorkspaceMembership[];
   isSuperAdmin: boolean;
+  sessionStats: SessionStats;
 }
 
 const ROLE_OPTIONS = [
