@@ -26084,6 +26084,53 @@ export type Database = {
           },
         ]
       }
+      hr_geofence_zones: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_meters?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_geofence_zones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_interviews: {
         Row: {
           candidate_id: string
