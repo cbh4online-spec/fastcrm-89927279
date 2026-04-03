@@ -962,6 +962,10 @@ export function ProductsList() {
                   <Download className="h-4 w-4" />
                   Exportar
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Definir Custo
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleBulkArchive} className="gap-2">
                   <Archive className="h-4 w-4" />
                   Arquivar
