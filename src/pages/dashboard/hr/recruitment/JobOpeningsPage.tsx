@@ -43,8 +43,6 @@ export default function JobPostingsPage() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { loading: aiLoading, run: aiRun } = JobPostingAIAssist({ form });
-
   const form = useForm<JobOpeningFormValues>({
     resolver: zodResolver(jobOpeningSchema),
     defaultValues: {
@@ -53,6 +51,8 @@ export default function JobPostingsPage() {
       requirements_text: "", nice_to_have_text: "",
     },
   });
+
+  const { loading: aiLoading, run: aiRun } = JobPostingAIAssist({ form });
 
   const onSubmit = async (values: JobOpeningFormValues) => {
     await createJob.mutateAsync({
