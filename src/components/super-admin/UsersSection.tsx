@@ -684,6 +684,22 @@ export function UsersSection() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
+                      {user.sessionStats.lastSeen ? (
+                        <span className="flex items-center gap-1" title={format(new Date(user.sessionStats.lastSeen), "dd/MM/yyyy HH:mm:ss", { locale: pt })}>
+                          <LogIn className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(user.sessionStats.lastSeen), { addSuffix: true, locale: pt })}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {user.sessionStats.totalActiveSeconds > 0 ? (
+                        <span className="flex items-center gap-1" title={`${user.sessionStats.totalActiveSeconds}s ativos / ${user.sessionStats.totalSeconds}s total`}>
+                          <Clock className="h-3 w-3" />
+                          {formatActiveTime(user.sessionStats.totalActiveSeconds)}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
                       {user.profile?.created_at 
                         ? format(new Date(user.profile.created_at), "dd/MM/yyyy", { locale: pt })
                         : "-"
