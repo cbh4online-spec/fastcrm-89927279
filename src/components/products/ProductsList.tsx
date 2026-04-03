@@ -89,6 +89,7 @@ import { Toolbar } from "@/components/common/Toolbar";
 import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
 import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
 import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
+import { BulkCostDialog } from "./BulkCostDialog";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
@@ -252,6 +253,7 @@ export function ProductsList() {
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkCostOpen, setBulkCostOpen] = useState(false);
 
   // Toggle store_published
   const toggleStorePublished = useMutation({
@@ -962,6 +964,10 @@ export function ProductsList() {
                   <Download className="h-4 w-4" />
                   Exportar
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Definir Custo
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleBulkArchive} className="gap-2">
                   <Archive className="h-4 w-4" />
                   Arquivar
@@ -994,6 +1000,12 @@ export function ProductsList() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <BulkCostDialog
+                  open={bulkCostOpen}
+                  onOpenChange={setBulkCostOpen}
+                  selectedIds={selectedIds}
+                  onComplete={() => setSelectedIds([])}
+                />
               </div>
             )}
 
