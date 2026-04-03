@@ -309,7 +309,7 @@ export function PricingManagementSection() {
   const updateConfig = useUpdatePricingConfig();
   const createConfig = useCreatePricingConfig();
   const deleteConfig = useDeletePricingConfig();
-  const { callAI, loading: aiLoading } = useAIAssistant();
+  const { callAI, loading: aiLoading, canRun: aiCanRun, showUpgrade: aiShowUpgrade, isOverage: aiIsOverage, overageLabel: aiOverageLabel } = useAIAssistant();
   const { modules: marketplaceModules, isLoading: modulesLoading, updateModule, syncToLandingPage, parsePricing } = useMarketplaceModulesAdmin();
 
   const plans = allConfigs?.filter((c) => c.config_type === "plan") ?? [];
