@@ -1,32 +1,34 @@
 
 
-# Separar Alertas e Incidentes no Super Admin
+# Preenchimento em Massa do Preço de Custo
 
-## Diagnóstico
+## Contexto
 
-O sidebar tem dois itens separados ("Alertas" e "Incidentes") mas ambos apontam para o mesmo `AlertsSection` sem distinção. O componente actual mistura tudo numa só vista focada em incidentes, ignorando os alertas de uso (`usage_alerts`). Ambas as tabelas existem e têm 0 registos, mas a UI deve estar preparada.
-
-## Solução
-
-Adicionar prop `initialTab` ao `AlertsSection` (padrão igual ao Billing) para separar as duas vistas.
+A `ProductsList` já tem selecção múltipla com checkboxes e acções em massa (Exportar, Arquivar, Apagar). Falta apenas adicionar a acção de definir custo direto em massa.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/super-admin/AlertsSection.tsx` | Adicionar tabs "Alertas" e "Incidentes" com prop `initialTab`; criar tab de Alertas de Uso com dados de `usage_alerts` |
-| `src/pages/SuperAdmin.tsx` | Passar `initialTab` diferente para cada caso |
+| `src/components/products/BulkCostDialog.tsx` | **Novo** — Dialog modal para inserir o preço de custo a aplicar aos produtos seleccionados |
+| `src/components/products/ProductsList.tsx` | Adicionar botão "Definir Custo" na barra de acções em massa + estado e lógica |
 
 ### Detalhe
 
-1. **`SuperAdmin.tsx`**: 
-   - `case "alerts"` → `<AlertsSection initialTab="alerts" />`
-   - `case "incidents"` → `<AlertsSection initialTab="incidents" />`
+1. **`BulkCostDialog.tsx`** — Componente novo:
+   - Dialog com input numérico para o valor do custo direto (€)
+   - Mostrar quantos produtos serão afectados
+   - Botão "Aplicar" que executa `supabase.from("products").update({ direct_cost: valor }).in("id", selectedIds)`
+   - Invalidar query `["products"]` após sucesso
+   - Toast de confirmação com contagem
 
-2. **`AlertsSection.tsx`** — reorganizar com Tabs:
-   - **Tab "Alertas de Uso"**: Query a `usage_alerts` (workspace_id, alert_type, resource_type, threshold_percent, current_usage, limit_value, message, is_dismissed). Mostrar tabela com: tipo de recurso, % uso, mensagem, data. Acção para dispensar alerta. KPIs movidos para reflectir alertas activos.
-   - **Tab "Incidentes"**: Manter a lista actual de `system_incidents` com filtros, resolução e dialog — tudo o que já existe.
-   - **KPIs no header**: Ajustar — Alertas Activos (usage_alerts não dispensados), Incidentes Abertos, Críticos, Resolvidos 24h.
+2. **`ProductsList.tsx`** — Na barra de bulk actions (linha ~955-997):
+   - Novo estado `bulkCostOpen`
+   - Botão com ícone `DollarSign` e label "Definir Custo" entre Exportar e Arquivar
+   - Renderizar `<BulkCostDialog>` com props: `open`, `onOpenChange`, `selectedIds`, `onComplete` (limpa selecção + refetch)
 
-3. **Estado vazio**: Mensagens informativas em cada tab quando sem dados.
+### UX
+- Input com prefixo "€", tipo number, step 0.01
+- Indicação clara: "Aplicar a X produtos"
+- Após aplicar: limpar selecção, fechar dialog, toast sucesso
 
