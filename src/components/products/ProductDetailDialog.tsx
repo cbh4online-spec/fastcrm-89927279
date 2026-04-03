@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Tooltip,
@@ -169,7 +168,7 @@ export function ProductDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
           <TooltipProvider delayDuration={200}>
             {/* ═══ HERO HEADER — compacto ═══ */}
             <div className="relative bg-gradient-to-br from-muted/80 via-muted/40 to-background">
@@ -287,7 +286,10 @@ export function ProductDetailDialog({
               </div>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
               <div className="px-5 pb-5 space-y-4">
                 {/* Bundle warning */}
                 {isBundle && (
