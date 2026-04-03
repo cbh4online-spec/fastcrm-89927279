@@ -74,7 +74,33 @@ export function useProducts(filters?: {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Product[];
+      const products = (data ?? []) as Product[];
+
+      // Batch-fetch first image for each product from product_images table
+      if (products.length > 0) {
+        const ids = products.map(p => p.id);
+        const { data: imgData } = await supabase
+          .from("product_images")
+          .select("product_id, url")
+          .in("product_id", ids)
+          .order("position", { ascending: true });
+
+        if (imgData && imgData.length > 0) {
+          const firstImageByProduct = new Map<string, string>();
+          for (const img of imgData) {
+            if (!firstImageByProduct.has(img.product_id)) {
+              firstImageByProduct.set(img.product_id, img.url);
+            }
+          }
+          for (const product of products) {
+            if ((!product.images || product.images.length === 0) && firstImageByProduct.has(product.id)) {
+              product.images = [firstImageByProduct.get(product.id)!];
+            }
+          }
+        }
+      }
+
+      return products;
     },
     enabled: !!currentWorkspace?.id,
   });
