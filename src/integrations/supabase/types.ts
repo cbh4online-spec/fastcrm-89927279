@@ -27432,6 +27432,9 @@ export type Database = {
           break_minutes: number | null
           break_start_at: string | null
           clock_in_at: string | null
+          clock_in_lat: number | null
+          clock_in_lng: number | null
+          clock_in_location_name: string | null
           clock_out_at: string | null
           created_at: string | null
           employee_id: string
@@ -27451,6 +27454,9 @@ export type Database = {
           break_minutes?: number | null
           break_start_at?: string | null
           clock_in_at?: string | null
+          clock_in_lat?: number | null
+          clock_in_lng?: number | null
+          clock_in_location_name?: string | null
           clock_out_at?: string | null
           created_at?: string | null
           employee_id: string
@@ -27470,6 +27476,9 @@ export type Database = {
           break_minutes?: number | null
           break_start_at?: string | null
           clock_in_at?: string | null
+          clock_in_lat?: number | null
+          clock_in_lng?: number | null
+          clock_in_location_name?: string | null
           clock_out_at?: string | null
           created_at?: string | null
           employee_id?: string
