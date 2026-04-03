@@ -18,6 +18,9 @@ export type HRWorkSession = {
   worked_minutes: number | null;
   status: "complete" | "incomplete" | "manual";
   notes: string | null;
+  clock_in_lat: number | null;
+  clock_in_lng: number | null;
+  clock_in_location_name: string | null;
   hr_employees?: { full_name: string; avatar_url: string | null; department: string | null };
 };
 
