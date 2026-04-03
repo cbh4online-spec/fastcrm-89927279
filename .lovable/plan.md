@@ -1,109 +1,49 @@
 
 
-# Refazer Sistema de Pica Ponto — Suporte a Múltiplas Sessões e Dinâmica Completa
+# Adicionar Localização às Sessões de Ponto
 
-## Problema Identificado
+## Diagnóstico
 
-A tabela `hr_work_sessions` tem uma constraint `UNIQUE (employee_id, session_date)` que impede mais do que uma sessão por dia. Quando o colaborador faz "Terminar" (clock-out), não consegue voltar a "Iniciar Trabalho" porque o insert falha silenciosamente.
-
-Além disso, faltam funcionalidades essenciais de controlo de ponto:
-- Pausas (almoço) com registo de início/fim
-- Tolerância configurável (ex: 5-10 min na entrada)
-- Múltiplas sessões diárias (manhã + tarde)
-- Resumo do dia com períodos visíveis
-- Estado visual claro do ponto (entrada manhã → pausa almoço → entrada tarde → saída)
+A tabela `hr_time_entries` já tem `location_lat` e `location_lng`, mas a `hr_work_sessions` não guarda localização. O `ClockInOutButton` também não captura coordenadas do browser antes de enviar o clock action. Resultado: mesmo que a edge function receba lat/lng, não há dados a enviar nem onde os guardar na sessão.
 
 ## Solução
 
-### 1. Migração DB — Permitir múltiplas sessões por dia
+### 1. Migração DB — Adicionar colunas de localização à `hr_work_sessions`
 
-- Remover constraint `UNIQUE (employee_id, session_date)`
-- Adicionar coluna `session_type` (text: 'morning', 'afternoon', 'extra') com default 'morning'
-- Adicionar coluna `break_start_at` e `break_end_at` (timestamptz) para registo preciso de pausas
+- `clock_in_lat` (numeric, nullable)
+- `clock_in_lng` (numeric, nullable)  
+- `clock_in_location_name` (text, nullable) — nome da cidade/local para exibição rápida
 
-### 2. Edge Function `hr-clock-action` — Lógica multi-sessão
+### 2. Edge Function — Guardar localização no clock_in
 
-Reescrever a lógica para suportar o fluxo completo:
+No bloco `clock_in` da `hr-clock-action`, passar `location_lat`, `location_lng` e opcionalmente `location_name` para o insert da sessão.
 
-```text
-Iniciar Manhã → Pausa Almoço → Retomar (cria sessão tarde) → Terminar Dia
-```
+### 3. ClockInOutButton — Capturar geolocalização do browser
 
-- **clock_in**: Se não há sessão aberta hoje, cria nova (morning). Se existe sessão completa sem sessão afternoon, cria afternoon.
-- **break_start**: Marca `break_start_at` na sessão activa.
-- **break_end**: Marca `break_end_at`, calcula `break_minutes`. Opcionalmente cria nova sessão "afternoon".
-- **clock_out**: Fecha a sessão activa actual.
-- Validação: impedir clock_in se já há sessão aberta (incompleta).
+Usar `navigator.geolocation.getCurrentPosition()` antes de cada clock action para enviar coordenadas. Usar reverse geocoding simples (já existe `useWeatherLocation` que obtém cidade) para incluir o nome do local.
 
-### 3. ClockInOutButton — UI com estados completos
+### 4. UI — Mostrar localização na tabela de sessões e no resumo do dia
 
-Transformar o botão simples num mini-painel de ponto com 4 estados:
-
-| Estado | Botões Visíveis |
-|---|---|
-| Sem sessão activa | "Iniciar Trabalho" |
-| Em serviço (sem pausa) | "Pausa Almoço" + "Terminar" |
-| Em pausa | "Retomar Trabalho" |
-| Sessão da manhã completa, sem tarde | "Iniciar Tarde" |
-
-Mostrar resumo do dia: entradas/saídas anteriores, total acumulado.
-
-### 4. Tolerância na entrada
-
-- Ler `tolerance_minutes` das `hr_country_labor_rules` (campo existente ou novo no JSON `rules`)
-- No clock_in, comparar com hora de início do turno do colaborador
-- Se dentro da tolerância, registar normalmente; se fora, marcar como atraso (já existe anomalia `late_arrival`)
+Adicionar coluna "Local" na tabela de sessões com ícone `MapPin` + nome da cidade. No resumo do dia do `ClockInOutButton`, mostrar o local ao lado do horário.
 
 ## Alterações
 
 | Ficheiro/Recurso | Acção |
 |---|---|
-| **Migração SQL** | DROP unique constraint, ADD `session_type`, `break_start_at`, `break_end_at` |
-| `supabase/functions/hr-clock-action/index.ts` | Reescrever lógica: suportar múltiplas sessões, pausas com timestamps, tolerância |
-| `src/components/hr/ClockInOutButton.tsx` | UI multi-estado: Iniciar, Pausa, Retomar, Terminar + resumo do dia |
-| `src/hooks/hr/useHRTimeEntries.ts` | Ajustar query para devolver múltiplas sessões por dia |
-| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Tabela de sessões mostra tipo (manhã/tarde) e pausas |
+| **Migração SQL** | ADD `clock_in_lat`, `clock_in_lng`, `clock_in_location_name` a `hr_work_sessions` |
+| `supabase/functions/hr-clock-action/index.ts` | Guardar lat/lng/location_name no insert do clock_in |
+| `src/components/hr/ClockInOutButton.tsx` | Capturar geolocalização antes de enviar clock actions; passar lat/lng/location_name ao mutation |
+| `src/hooks/hr/useHRTimeEntries.ts` | Adicionar campos de localização ao tipo `HRWorkSession` |
+| `src/pages/dashboard/hr/HRTimeTrackingPage.tsx` | Coluna "Local" na tabela de sessões com `MapPin` + cidade |
 
-### Detalhe da migração
+### Detalhe técnico
 
-```sql
--- Remove single-session-per-day constraint
-ALTER TABLE hr_work_sessions 
-  DROP CONSTRAINT hr_work_sessions_employee_id_session_date_key;
+**Captura de geolocalização (ClockInOutButton):**
+- Função async `getLocation()` que retorna `{ lat, lng }` via `navigator.geolocation`
+- Timeout de 5s — se falhar, envia sem localização (não bloqueia o registo)
+- Usar a cidade já obtida pelo `useWeatherLocation` como `location_name`
 
--- Add session type and break timestamps
-ALTER TABLE hr_work_sessions
-  ADD COLUMN session_type text NOT NULL DEFAULT 'morning',
-  ADD COLUMN break_start_at timestamptz,
-  ADD COLUMN break_end_at timestamptz;
-
--- Add unique constraint per employee + date + session_type
-ALTER TABLE hr_work_sessions
-  ADD CONSTRAINT hr_work_sessions_employee_date_type_key 
-  UNIQUE (employee_id, session_date, session_type);
-```
-
-### Detalhe do fluxo na Edge Function
-
-```text
-clock_in:
-  1. Buscar sessões de hoje para este employee
-  2. Se existe sessão incompleta (sem clock_out) → erro
-  3. Se não existem sessões → criar "morning"
-  4. Se existe "morning" completa e não existe "afternoon" → criar "afternoon"
-  5. Se existe "afternoon" completa → criar "extra"
-
-break_start:
-  1. Buscar sessão activa (sem clock_out)
-  2. Marcar break_start_at = now
-
-break_end:
-  1. Buscar sessão com break_start_at e sem break_end_at
-  2. Marcar break_end_at = now
-  3. Calcular break_minutes
-
-clock_out:
-  1. Buscar sessão activa
-  2. Fechar com clock_out_at, calcular totais
-```
+**Edge Function:**
+- No clock_in, incluir `clock_in_lat`, `clock_in_lng`, `clock_in_location_name` no insert
+- Campos opcionais — null se não enviados
 
