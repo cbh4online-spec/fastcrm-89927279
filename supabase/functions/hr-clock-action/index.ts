@@ -27,7 +27,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { employee_id, workspace_id, entry_type, method, location_lat, location_lng, notes } = await req.json();
+    const { employee_id, workspace_id, entry_type, method, location_lat, location_lng, location_name, notes } = await req.json();
 
     if (!employee_id || !workspace_id || !entry_type) {
       return errorResponse("Missing required fields");
@@ -95,7 +95,10 @@ serve(async (req) => {
       await supabase.from("hr_work_sessions").insert({
         workspace_id, employee_id, session_date: today,
         clock_in_at: now.toISOString(), status: "incomplete",
-        session_type: sessionType
+        session_type: sessionType,
+        clock_in_lat: location_lat || null,
+        clock_in_lng: location_lng || null,
+        clock_in_location_name: location_name || null,
       });
       session_action = `clock_in_${sessionType}`;
 

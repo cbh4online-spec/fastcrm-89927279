@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Timer, AlertTriangle, Coffee, Play } from "lucide-react";
+import { LogIn, LogOut, Timer, AlertTriangle, Coffee, Play, MapPin } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/hr/useCurrentEmployee";
 import { useClockAction, useHRWorkSessions } from "@/hooks/hr/useHRTimeEntries";
 import { useWeatherLocation, getWeatherIcon } from "@/hooks/useWeatherLocation";
@@ -33,6 +33,27 @@ export function ClockInOutButton() {
   const today = format(new Date(), "yyyy-MM-dd");
   const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
   const { city, temperature, weatherCode, isLoading: weatherLoading } = useWeatherLocation();
+
+  const getLocation = (): Promise<{ lat: number; lng: number } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000, enableHighAccuracy: false }
+      );
+    });
+
+  const handleClock = async (entry_type: "clock_in" | "clock_out" | "break_start" | "break_end") => {
+    const coords = entry_type === "clock_in" ? await getLocation() : null;
+    clockAction.mutate({
+      employee_id: employeeId!,
+      entry_type,
+      method: "app",
+      ...(coords ? { location_lat: coords.lat, location_lng: coords.lng } : {}),
+      ...(coords && city ? { location_name: city } : {}),
+    });
+  };
 
   // Find active session (no clock_out_at)
   const activeSession = useMemo(
@@ -140,13 +161,7 @@ export function ClockInOutButton() {
             <Button
               size="lg"
               className="gap-2"
-              onClick={() =>
-                clockAction.mutate({
-                  employee_id: employeeId!,
-                  entry_type: "break_end",
-                  method: "app",
-                })
-              }
+              onClick={() => handleClock("break_end")}
               disabled={clockAction.isPending}
             >
               <Play className="h-5 w-5" />
@@ -158,13 +173,7 @@ export function ClockInOutButton() {
                 size="lg"
                 variant="outline"
                 className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                onClick={() =>
-                  clockAction.mutate({
-                    employee_id: employeeId!,
-                    entry_type: "break_start",
-                    method: "app",
-                  })
-                }
+                onClick={() => handleClock("break_start")}
                 disabled={clockAction.isPending}
               >
                 <Coffee className="h-5 w-5" />
@@ -174,13 +183,7 @@ export function ClockInOutButton() {
                 size="lg"
                 variant="destructive"
                 className="gap-2"
-                onClick={() =>
-                  clockAction.mutate({
-                    employee_id: employeeId!,
-                    entry_type: "clock_out",
-                    method: "app",
-                  })
-                }
+                onClick={() => handleClock("clock_out")}
                 disabled={clockAction.isPending}
               >
                 <LogOut className="h-5 w-5" />
@@ -191,13 +194,7 @@ export function ClockInOutButton() {
             <Button
               size="lg"
               className="gap-2"
-              onClick={() =>
-                clockAction.mutate({
-                  employee_id: employeeId!,
-                  entry_type: "clock_in",
-                  method: "app",
-                })
-              }
+              onClick={() => handleClock("clock_in")}
               disabled={clockAction.isPending || empLoading}
             >
               <LogIn className="h-5 w-5" />

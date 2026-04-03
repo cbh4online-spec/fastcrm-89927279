@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert, ScanFace } from "lucide-react";
+import { LogIn, LogOut, Users, AlertTriangle, Clock, UserX, CheckCircle2, ShieldAlert, ScanFace, MapPin } from "lucide-react";
 import FaceCaptureDialog from "@/components/hr/FaceCaptureDialog";
 import { format, subDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -302,19 +302,20 @@ export default function HRTimeTrackingPage() {
                   <TableRow>
                     <TableHead>Funcionário</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Entrada</TableHead>
-                    <TableHead>Saída</TableHead>
-                    <TableHead>Pausa</TableHead>
-                    <TableHead>Horas Trab.</TableHead>
-                    <TableHead>Estado</TableHead>
+                     <TableHead>Período</TableHead>
+                     <TableHead>Entrada</TableHead>
+                     <TableHead>Saída</TableHead>
+                     <TableHead>Pausa</TableHead>
+                     <TableHead>Local</TableHead>
+                     <TableHead>Horas Trab.</TableHead>
+                     <TableHead>Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={8} className="text-center">A carregar...</TableCell></TableRow>
-                  ) : sessions.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
+                   {isLoading ? (
+                     <TableRow><TableCell colSpan={9} className="text-center">A carregar...</TableCell></TableRow>
+                   ) : sessions.length === 0 ? (
+                     <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
                   ) : sessions.map(s => {
                     const sessionTypeLabels: Record<string, string> = { morning: "Manhã", afternoon: "Tarde", extra: "Extra" };
                     return (
@@ -328,8 +329,16 @@ export default function HRTimeTrackingPage() {
                         </TableCell>
                         <TableCell>{s.clock_in_at ? format(new Date(s.clock_in_at), "HH:mm") : "—"}</TableCell>
                         <TableCell>{s.clock_out_at ? format(new Date(s.clock_out_at), "HH:mm") : "—"}</TableCell>
-                        <TableCell>{s.break_minutes > 0 ? `${s.break_minutes}m` : "—"}</TableCell>
-                        <TableCell>{s.worked_minutes != null ? `${Math.floor(s.worked_minutes / 60)}h ${s.worked_minutes % 60}m` : "—"}</TableCell>
+                         <TableCell>{s.break_minutes > 0 ? `${s.break_minutes}m` : "—"}</TableCell>
+                         <TableCell>
+                           {(s as any).clock_in_location_name ? (
+                             <div className="flex items-center gap-1 text-sm">
+                               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                               <span className="truncate max-w-[120px]">{(s as any).clock_in_location_name}</span>
+                             </div>
+                           ) : "—"}
+                         </TableCell>
+                         <TableCell>{s.worked_minutes != null ? `${Math.floor(s.worked_minutes / 60)}h ${s.worked_minutes % 60}m` : "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <Badge variant={s.status === "complete" ? "default" : "secondary"}>{s.status === "complete" ? "Completo" : "Incompleto"}</Badge>

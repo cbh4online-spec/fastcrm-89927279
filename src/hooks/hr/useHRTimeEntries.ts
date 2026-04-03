@@ -18,6 +18,9 @@ export type HRWorkSession = {
   worked_minutes: number | null;
   status: "complete" | "incomplete" | "manual";
   notes: string | null;
+  clock_in_lat: number | null;
+  clock_in_lng: number | null;
+  clock_in_location_name: string | null;
   hr_employees?: { full_name: string; avatar_url: string | null; department: string | null };
 };
 
@@ -53,6 +56,9 @@ export function useClockAction() {
       employee_id: string;
       entry_type: "clock_in" | "clock_out" | "break_start" | "break_end";
       method?: "qr" | "manual" | "app";
+      location_lat?: number;
+      location_lng?: number;
+      location_name?: string;
       notes?: string;
     }) => {
       const res = await supabase.functions.invoke("hr-clock-action", {
