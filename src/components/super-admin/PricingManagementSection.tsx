@@ -21,27 +21,64 @@ import { useMarketplaceModulesAdmin, type MarketplaceModuleAdmin, type ModulePri
 import { EXTENSION_PACKS } from "@/config/extensionPacks";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 
 function useAIAssistant() {
   const [loading, setLoading] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const { canRun, showUpgrade, isOverage, overageLabel } = useAIGate("medium");
+  const { consumeCredits, canAfford } = useCreditWallet();
 
-  const callAI = async (action: string, context: unknown) => {
+  const callAI = async (action: string, context: unknown, actionLabel?: string) => {
+    // Credit gate check
+    if (showUpgrade || !canRun) {
+      triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+      return null;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
-        body: { action, context },
+        body: { action, context, workspace_id: currentWorkspace?.id },
       });
       if (error) throw error;
+
+      // Handle 402 / quota exceeded from edge function
+      if (data?.error && (data?.code === "quota_exceeded" || data?.code === "insufficient_credits")) {
+        triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+        return null;
+      }
+
+      // Consume credit on success
+      try {
+        await consumeCredits.mutateAsync({
+          actionKey: "ai_pricing_assistant",
+          referenceType: "pricing",
+          referenceId: action,
+          metadata: { action },
+        });
+      } catch {
+        // Credit consumption failure shouldn't block the result
+      }
+
       return data?.result;
     } catch (e: any) {
-      toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
+      const msg = e.message || "Erro desconhecido";
+      if (msg.includes("quota") || msg.includes("créditos") || msg.includes("402")) {
+        triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });
+      } else {
+        toast.error("Erro IA: " + msg);
+      }
       return null;
     } finally {
       setLoading(false);
     }
   };
 
-  return { callAI, loading };
+  return { callAI, loading, canRun, showUpgrade, isOverage, overageLabel };
 }
 
 // ─── Plan Card Editor ───
