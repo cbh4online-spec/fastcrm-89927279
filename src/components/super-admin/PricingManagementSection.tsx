@@ -117,7 +117,7 @@ function PlanEditor({ config, onSave }: { config: PlatformPricingConfig; onSave:
   };
 
   const handleAIFeatures = async () => {
-    const result = await callAI("generate_features", { name, description, config_type: "plan", current_features: features });
+    const result = await callAI("generate_features", { name, description, config_type: "plan", current_features: features }, "Gerar Features IA");
     if (result?.features) {
       setFeatures(result.features);
       toast.success("Features geradas pela IA!");
