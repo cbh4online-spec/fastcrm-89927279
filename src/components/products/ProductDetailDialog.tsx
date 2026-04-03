@@ -188,9 +188,9 @@ export function ProductDetailDialog({
                     </div>
                   )}
                   {/* Mini gallery thumbnails */}
-                  {productImages && productImages.length > 1 && (
+                  {displayImages.length > 1 && (
                     <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1 overflow-x-auto">
-                      {productImages.slice(0, 5).map((img, idx) => (
+                      {displayImages.slice(0, 5).map((img, idx) => (
                         <button
                           key={img.id}
                           onClick={() => setHeroIdx(idx)}
