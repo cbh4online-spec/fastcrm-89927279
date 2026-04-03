@@ -1,38 +1,38 @@
 
 
-# Adicionar Assistência IA à Gestão de Planos
+# Adicionar Controlo de Créditos IA ao Pricing & Módulos
 
 ## Diagnóstico
 
-A secção **Planos** (`PlansSection.tsx`) permite editar limites e funcionalidades manualmente, mas não tem qualquer assistência IA. A secção vizinha **Pricing & Módulos** já usa um padrão funcional com `useAIAssistant()` + edge function `pricing-ai-assistant`.
+A secção **Pricing & Módulos** já tem assistência IA funcional (botões "IA: Sugerir Preços", "Gerar Features IA", etc.), mas **não controla créditos**:
+
+1. O `useAIAssistant()` local não passa `workspace_id` ao edge function → o `aiGate` no backend é ignorado
+2. Não há verificação frontend de créditos (`useAIGate`) antes de chamar a IA
+3. Não há `triggerNoCreditsDialog` para utilizadores sem créditos
+4. Erros 402 (sem créditos) do edge function não são tratados
 
 ## Solução
 
-Reutilizar a edge function `pricing-ai-assistant` existente, adicionando duas novas actions, e integrar botões IA na `PlansSection`.
+Integrar o padrão de créditos já usado noutros módulos (Funnels, eBooks, etc.) no `PricingManagementSection`.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/pricing-ai-assistant/index.ts` | Adicionar 2 novas actions: `suggest_plan_limits` e `optimize_plan_balance` |
-| `src/components/super-admin/PlansSection.tsx` | Adicionar `useAIAssistant()`, botão "Sugerir Limites IA" no header, e botão "Optimizar com IA" no diálogo de edição |
+| `src/components/super-admin/PricingManagementSection.tsx` | Actualizar `useAIAssistant()` para passar `workspace_id`, adicionar `useAIGate` + `triggerNoCreditsDialog`, tratar erro 402 |
 
-### Novas actions na edge function
+### Detalhe
 
-1. **`suggest_plan_limits`** — recebe os 4 planos actuais e sugere limites competitivos baseados em benchmarks SaaS CRM (HubSpot, Pipedrive, etc). Devolve JSON com sugestões por plano.
+1. **`useAIAssistant()` — passar workspace_id**: Obter o workspace_id do contexto (ou usar um valor global para super-admin) e incluí-lo no body da chamada ao edge function
 
-2. **`optimize_plan_balance`** — recebe um plano específico e sugere ajustes de limites e features para equilibrar valor vs custo. Útil ao editar um plano individual.
+2. **Verificação frontend com `useAIGate("medium")`**: Antes de cada chamada IA, verificar `canRun` / `showUpgrade`. Se `showUpgrade`, chamar `triggerNoCreditsDialog({ actionLabel: "..." })` e abortar
 
-### Integração no PlansSection
+3. **Tratamento de erro 402**: No `useAIAssistant`, detectar resposta com `quota_exceeded` e disparar `triggerNoCreditsDialog`
 
-1. **Header**: botão "Sugerir Limites IA" com ícone `Sparkles` — chama `suggest_plan_limits` com os 4 planos, mostra resultado num diálogo com sugestões lado a lado.
+4. **Aplicar em todos os pontos de chamada IA**:
+   - Botão "IA: Sugerir Preços" no header (action `suggest_prices`)
+   - Botão "Gerar Features IA" no `PlanEditor` (action `generate_features`)
+   - Qualquer outra chamada IA existente na secção
 
-2. **Diálogo de edição**: botão "Optimizar com IA" — chama `optimize_plan_balance` com o plano em edição, pré-preenche os campos com as sugestões (o admin pode aceitar ou rejeitar cada valor antes de guardar).
-
-### UX
-
-- Loading state com `Loader2` durante chamada IA
-- Sugestões apresentadas como diff visual (valor actual → sugerido) com badge "IA"
-- Botão "Aplicar Sugestões" para aceitar em batch, ou edição individual
-- Utilizadores sem créditos vêem mensagem de upgrade
+5. **UX**: Mostrar `overageLabel` junto aos botões IA quando aplicável (ex: "Esta acção custa €0.05")
 
