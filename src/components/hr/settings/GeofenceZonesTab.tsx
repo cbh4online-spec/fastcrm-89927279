@@ -63,10 +63,17 @@ export function GeofenceZonesTab() {
   };
 
   const onSubmit = (values: ZoneFormValues) => {
+    const payload = {
+      name: values.name,
+      latitude: values.latitude,
+      longitude: values.longitude,
+      radius_meters: values.radius_meters,
+      address: values.address || undefined,
+    };
     if (editingZone) {
-      updateZone.mutate({ id: editingZone.id, ...values } as any, { onSuccess: () => setDialogOpen(false) });
+      updateZone.mutate({ id: editingZone.id, ...payload } as any, { onSuccess: () => setDialogOpen(false) });
     } else {
-      createZone.mutate(values, { onSuccess: () => setDialogOpen(false) });
+      createZone.mutate(payload, { onSuccess: () => setDialogOpen(false) });
     }
   };
 
