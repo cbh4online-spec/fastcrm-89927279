@@ -42,6 +42,7 @@ interface WorkspaceAIUsage {
   ai_limit: number;
   percentage: number;
   is_abuse: boolean;
+  cycle_end: string | null;
 }
 
 export function AIUsageSection() {
@@ -52,35 +53,27 @@ export function AIUsageSection() {
   const { data: usageData, isLoading, refetch } = useQuery({
     queryKey: ["super-admin-ai-usage"],
     queryFn: async () => {
-      // Fetch workspaces with usage and plan features
+      // Fetch workspaces with active workspace_plans (source of truth)
       const { data: workspaces, error } = await supabase
         .from("workspaces")
         .select(`
           id,
           name,
-          workspace_subscriptions (plan),
-          workspace_usage (ai_calls_used)
+          workspace_plans (plan, calls_used, calls_included, cycle_end, status)
         `);
 
       if (error) throw error;
 
-      // Fetch plan limits
-      const { data: planFeatures } = await supabase
-        .from("plan_features")
-        .select("plan_id, ai_calls_limit");
-
-      const limits: Record<string, number> = {};
-      planFeatures?.forEach((pf: any) => {
-        limits[pf.plan_id] = pf.ai_calls_limit || 100;
-      });
-
-      // Calculate usage stats
       const result: WorkspaceAIUsage[] = (workspaces || []).map((ws: any) => {
-        const plan = ws.workspace_subscriptions?.[0]?.plan || "free";
-        const used = ws.workspace_usage?.[0]?.ai_calls_used || 0;
-        const limit = limits[plan] || 100;
-        const percentage = Math.min(100, (used / limit) * 100);
-        
+        // Find the active plan for this workspace
+        const activePlan = (ws.workspace_plans || []).find(
+          (p: any) => p.status === "active"
+        );
+        const plan = activePlan?.plan || "free";
+        const used = activePlan?.calls_used || 0;
+        const limit = activePlan?.calls_included || 0;
+        const percentage = limit > 0 ? (used / limit) * 100 : 0;
+
         return {
           id: ws.id,
           name: ws.name,
@@ -88,7 +81,8 @@ export function AIUsageSection() {
           ai_calls_used: used,
           ai_limit: limit,
           percentage,
-          is_abuse: percentage > 150 || used > limit * 2,
+          is_abuse: limit > 0 && (percentage > 150 || used > limit * 2),
+          cycle_end: activePlan?.cycle_end || null,
         };
       });
 
@@ -314,6 +308,7 @@ export function AIUsageSection() {
                   <TableHead>Plano</TableHead>
                   <TableHead>Uso</TableHead>
                   <TableHead>Progresso</TableHead>
+                  <TableHead>Ciclo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -344,6 +339,13 @@ export function AIUsageSection() {
                           {Math.round(ws.percentage)}%
                         </p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {ws.cycle_end
+                          ? new Date(ws.cycle_end).toLocaleDateString("pt-PT")
+                          : "—"}
+                      </span>
                     </TableCell>
                     <TableCell>{getUsageStatus(ws.percentage, ws.is_abuse)}</TableCell>
                     <TableCell>
