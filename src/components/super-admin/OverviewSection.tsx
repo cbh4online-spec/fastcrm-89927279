@@ -188,6 +188,8 @@ export function OverviewSection() {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ).slice(0, 5);
     },
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const getSeverityColor = (severity: string) => {
