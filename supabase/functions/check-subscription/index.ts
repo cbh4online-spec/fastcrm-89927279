@@ -134,10 +134,12 @@ Deno.serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { workspaceId } = await req.json();
+    const body = await req.json();
+    const workspaceId = body.workspace_id || body.workspaceId;
     if (!workspaceId) {
       throw new Error("Workspace ID is required");
     }
+    logStep("Workspace ID resolved", { workspaceId });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -157,12 +159,12 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspaceId)
       .maybeSingle();
 
-    if (subscription?.stripe_subscription_id) {
-      // Verify with Stripe
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
-        apiVersion: "2025-08-27.basil" 
-      });
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+      apiVersion: "2025-08-27.basil" 
+    });
 
+    if (subscription?.stripe_subscription_id) {
+      // Already linked — verify with Stripe
       try {
         const stripeSubscription = await stripe.subscriptions.retrieve(
           subscription.stripe_subscription_id
@@ -199,6 +201,101 @@ Deno.serve(async (req) => {
         });
       } catch (stripeError) {
         logStep("Stripe error, falling back to database", { error: String(stripeError) });
+      }
+    } else {
+      // No stripe IDs — try to find customer by workspace owner email
+      logStep("No Stripe IDs found, attempting lookup by owner email");
+
+      try {
+        // Get workspace owner email
+        const { data: ownerMember } = await supabaseClient
+          .from("workspace_members")
+          .select("user_id")
+          .eq("workspace_id", workspaceId)
+          .eq("role", "owner")
+          .maybeSingle();
+
+        if (ownerMember?.user_id) {
+          const { data: profile } = await supabaseClient
+            .from("profiles")
+            .select("email")
+            .eq("id", ownerMember.user_id)
+            .maybeSingle();
+
+          const ownerEmail = profile?.email;
+          if (ownerEmail) {
+            logStep("Owner email found", { email: ownerEmail });
+
+            const customers = await stripe.customers.list({ email: ownerEmail, limit: 1 });
+            if (customers.data.length > 0) {
+              const customerId = customers.data[0].id;
+              logStep("Stripe customer found", { customerId });
+
+              const subscriptions = await stripe.subscriptions.list({
+                customer: customerId,
+                status: "active",
+                limit: 1,
+              });
+
+              if (subscriptions.data.length > 0) {
+                const stripeSub = subscriptions.data[0];
+                const productId = stripeSub.items.data[0]?.price.product as string;
+                const plan = PRODUCT_TO_PLAN[productId] || "starter";
+
+                // Save IDs to database
+                const updateData = {
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: stripeSub.id,
+                  status: stripeSub.status,
+                  plan: plan,
+                  current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+                  cancel_at_period_end: stripeSub.cancel_at_period_end,
+                };
+
+                if (subscription) {
+                  await supabaseClient
+                    .from("workspace_subscriptions")
+                    .update(updateData)
+                    .eq("id", subscription.id);
+                } else {
+                  await supabaseClient
+                    .from("workspace_subscriptions")
+                    .insert({ ...updateData, workspace_id: workspaceId });
+                }
+
+                logStep("Stripe IDs linked to workspace", { customerId, subscriptionId: stripeSub.id, plan });
+
+                return new Response(JSON.stringify({
+                  subscribed: true,
+                  plan: plan,
+                  limits: PLAN_LIMITS[plan],
+                  subscription_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+                  cancel_at_period_end: stripeSub.cancel_at_period_end,
+                }), {
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                  status: 200,
+                });
+              } else {
+                logStep("Stripe customer found but no active subscription");
+                // Still save customer ID for future use
+                if (subscription) {
+                  await supabaseClient
+                    .from("workspace_subscriptions")
+                    .update({ stripe_customer_id: customerId })
+                    .eq("id", subscription.id);
+                }
+              }
+            } else {
+              logStep("No Stripe customer found for owner email");
+            }
+          } else {
+            logStep("Owner profile has no email");
+          }
+        } else {
+          logStep("No owner found for workspace");
+        }
+      } catch (lookupError) {
+        logStep("Stripe lookup error, falling back to database", { error: String(lookupError) });
       }
     }
 
