@@ -455,14 +455,15 @@ export function PricingManagementSection() {
         <TabsContent value="bundles" className="mt-6">
           <div className="flex justify-end mb-4 gap-2">
             <Button onClick={async () => {
-              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles });
+              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles }, "Criar Promoção IA");
               if (result) {
                 toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
                 toast.info(result.description || JSON.stringify(result), { duration: 15000 });
               }
-            }} variant="outline" size="sm" disabled={aiLoading}>
+            }} variant="outline" size="sm" disabled={aiLoading || !aiCanRun} title={aiOverageLabel}>
               {aiLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Brain className="h-3 w-3 mr-1" />}
               IA: Criar Promoção
+              {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
             </Button>
             <Button onClick={handleImportExtensionPacks} variant="outline" size="sm">
               <Package className="h-3 w-3 mr-1" /> Importar Extension Packs
