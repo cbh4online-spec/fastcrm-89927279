@@ -95,7 +95,10 @@ serve(async (req) => {
       await supabase.from("hr_work_sessions").insert({
         workspace_id, employee_id, session_date: today,
         clock_in_at: now.toISOString(), status: "incomplete",
-        session_type: sessionType
+        session_type: sessionType,
+        clock_in_lat: location_lat || null,
+        clock_in_lng: location_lng || null,
+        clock_in_location_name: location_name || null,
       });
       session_action = `clock_in_${sessionType}`;
 

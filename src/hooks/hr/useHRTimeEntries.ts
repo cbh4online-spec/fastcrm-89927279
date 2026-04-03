@@ -56,6 +56,9 @@ export function useClockAction() {
       employee_id: string;
       entry_type: "clock_in" | "clock_out" | "break_start" | "break_end";
       method?: "qr" | "manual" | "app";
+      location_lat?: number;
+      location_lng?: number;
+      location_name?: string;
       notes?: string;
     }) => {
       const res = await supabase.functions.invoke("hr-clock-action", {
