@@ -264,6 +264,13 @@ export function useUpdateProduct() {
       if (input.b2b_published !== undefined) updateData.b2b_published = input.b2b_published;
       // Barcode
       if (input.barcode !== undefined) updateData.barcode = input.barcode;
+      // Sheet / storefront publishing
+      if (input.sheet_published !== undefined) updateData.sheet_published = input.sheet_published;
+      if (input.sheet_slug !== undefined) updateData.sheet_slug = input.sheet_slug;
+      if (input.store_published !== undefined) updateData.store_published = input.store_published;
+      if (input.commercial_description !== undefined) updateData.commercial_description = input.commercial_description;
+      if (input.benefits !== undefined) updateData.benefits = input.benefits;
+      if (input.conditions !== undefined) updateData.conditions = input.conditions;
 
       const { data, error } = await supabase
         .from("products")
