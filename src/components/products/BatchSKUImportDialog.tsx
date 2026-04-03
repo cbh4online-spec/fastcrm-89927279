@@ -126,6 +126,7 @@ type DialogPhase = "input" | "mapping" | "processing" | "results" | "summary";
 
 interface CreationSummary {
   successCount: number;
+  updatedCount: number;
   errorCount: number;
   failedSkus: { sku: string; error: string }[];
   lastCreatedProductId?: string;
