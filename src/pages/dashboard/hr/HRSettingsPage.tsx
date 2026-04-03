@@ -16,6 +16,7 @@ import { useHRDepartments, useCreateHRDepartment, useUpdateHRDepartment, useDele
 import { useHRJobTitles, useCreateHRJobTitle, useUpdateHRJobTitle, useDeleteHRJobTitle } from "@/hooks/hr/useHRJobTitles";
 import { useHRContractTypes, useCreateHRContractType, useUpdateHRContractType, useDeleteHRContractType } from "@/hooks/hr/useHRContractTypes";
 import { LaborRulesTab } from "@/components/hr/settings/LaborRulesTab";
+import { GeofenceZonesTab } from "@/components/hr/settings/GeofenceZonesTab";
 
 // ─── Shared schema for simple CRUD items ─────────────────────
 
