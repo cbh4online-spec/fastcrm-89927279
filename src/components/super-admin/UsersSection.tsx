@@ -617,6 +617,8 @@ export function UsersSection() {
                   <TableHead>Status</TableHead>
                   <TableHead>Workspaces</TableHead>
                   <TableHead>Roles</TableHead>
+                  <TableHead>Último Acesso</TableHead>
+                  <TableHead>Tempo Ativo</TableHead>
                   <TableHead>Registado</TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
