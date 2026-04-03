@@ -161,13 +161,7 @@ export function ClockInOutButton() {
             <Button
               size="lg"
               className="gap-2"
-              onClick={() =>
-                clockAction.mutate({
-                  employee_id: employeeId!,
-                  entry_type: "break_end",
-                  method: "app",
-                })
-              }
+              onClick={() => handleClock("break_end")}
               disabled={clockAction.isPending}
             >
               <Play className="h-5 w-5" />
@@ -179,13 +173,7 @@ export function ClockInOutButton() {
                 size="lg"
                 variant="outline"
                 className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900/20"
-                onClick={() =>
-                  clockAction.mutate({
-                    employee_id: employeeId!,
-                    entry_type: "break_start",
-                    method: "app",
-                  })
-                }
+                onClick={() => handleClock("break_start")}
                 disabled={clockAction.isPending}
               >
                 <Coffee className="h-5 w-5" />
@@ -195,13 +183,7 @@ export function ClockInOutButton() {
                 size="lg"
                 variant="destructive"
                 className="gap-2"
-                onClick={() =>
-                  clockAction.mutate({
-                    employee_id: employeeId!,
-                    entry_type: "clock_out",
-                    method: "app",
-                  })
-                }
+                onClick={() => handleClock("clock_out")}
                 disabled={clockAction.isPending}
               >
                 <LogOut className="h-5 w-5" />
@@ -212,13 +194,7 @@ export function ClockInOutButton() {
             <Button
               size="lg"
               className="gap-2"
-              onClick={() =>
-                clockAction.mutate({
-                  employee_id: employeeId!,
-                  entry_type: "clock_in",
-                  method: "app",
-                })
-              }
+              onClick={() => handleClock("clock_in")}
               disabled={clockAction.isPending || empLoading}
             >
               <LogIn className="h-5 w-5" />
