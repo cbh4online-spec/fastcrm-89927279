@@ -1,34 +1,24 @@
 
 
-# Preenchimento em Massa do Preço de Custo
+# Adicionar Filtro Rápido "Sem Custo" na Toolbar
 
 ## Contexto
 
-A `ProductsList` já tem selecção múltipla com checkboxes e acções em massa (Exportar, Arquivar, Apagar). Falta apenas adicionar a acção de definir custo direto em massa.
+Os KPI cards (linha 924) já permitem clicar para filtrar por "Sem custo", mas ficam abaixo da toolbar e não são muito evidentes. O pedido é adicionar um botão de filtro rápido mais visível e acessível directamente na toolbar.
 
-## Alterações
+## Alteração
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/products/BulkCostDialog.tsx` | **Novo** — Dialog modal para inserir o preço de custo a aplicar aos produtos seleccionados |
-| `src/components/products/ProductsList.tsx` | Adicionar botão "Definir Custo" na barra de acções em massa + estado e lógica |
+| `src/components/products/ProductsList.tsx` | Adicionar botão "Sem custo" como `leftActions` na Toolbar, ao lado do botão de sidebar |
 
 ### Detalhe
 
-1. **`BulkCostDialog.tsx`** — Componente novo:
-   - Dialog com input numérico para o valor do custo direto (€)
-   - Mostrar quantos produtos serão afectados
-   - Botão "Aplicar" que executa `supabase.from("products").update({ direct_cost: valor }).in("id", selectedIds)`
-   - Invalidar query `["products"]` após sucesso
-   - Toast de confirmação com contagem
+Na prop `leftActions` da `Toolbar` (linhas 868-881), adicionar um botão toggle ao lado do botão de painel lateral:
 
-2. **`ProductsList.tsx`** — Na barra de bulk actions (linha ~955-997):
-   - Novo estado `bulkCostOpen`
-   - Botão com ícone `DollarSign` e label "Definir Custo" entre Exportar e Arquivar
-   - Renderizar `<BulkCostDialog>` com props: `open`, `onOpenChange`, `selectedIds`, `onComplete` (limpa selecção + refetch)
-
-### UX
-- Input com prefixo "€", tipo number, step 0.01
-- Indicação clara: "Aplicar a X produtos"
-- Após aplicar: limpar selecção, fechar dialog, toast sucesso
+- Ícone `AlertTriangle` + label "Sem custo" + badge com contagem (`productIndicators.noCost`)
+- Ao clicar, chama `handleFilterSelect("smart_no_cost")` (toggle on/off)
+- Estilo activo: `bg-warning/10 text-warning border-warning/30` quando `activeFilterId === "smart_no_cost"`
+- Estilo inactivo: `variant="ghost"` normal
+- Só aparece se `productIndicators.noCost > 0` para não ocupar espaço quando não há produtos sem custo
 
