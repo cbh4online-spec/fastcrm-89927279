@@ -1,33 +1,26 @@
 
 
-# Corrigir Edge Function `hr-job-ai-assist`
+# Ativar Atualização Automática no Overview SaaS
 
 ## Diagnóstico
 
-A edge function falha com `TypeError: supabase.auth.getClaims is not a function`. A versão `@supabase/supabase-js@2.49.1` importada via esm.sh não suporta `getClaims()`. Todas as outras edge functions do projecto usam `getUser()`.
+As duas queries do `OverviewSection` (`super-admin-overview` e `super-admin-critical-alerts`) usam `useQuery` sem `refetchInterval`. Os dados só carregam ao montar o componente ou ao clicar manualmente em "Atualizar".
 
-## Alteração
+## Solução
+
+Adicionar `refetchInterval` às queries para polling automático, e indicar visualmente quando os dados foram atualizados pela última vez.
+
+## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/hr-job-ai-assist/index.ts` | Substituir `getClaims()` por `getUser()` — padrão do projecto |
+| `src/components/super-admin/OverviewSection.tsx` | Adicionar `refetchInterval: 30000` (30s) a ambas as queries + indicador "última atualização" |
 
 ### Detalhe
 
-Linhas 31-34: substituir:
-```typescript
-const token = authHeader.replace("Bearer ", "");
-const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-if (claimsError || !claimsData?.claims) return jsonResponse({ error: "Unauthorized" }, 401);
-const userId = claimsData.claims.sub;
-```
+1. **Polling automático**: adicionar `refetchInterval: 30_000` às duas queries (`super-admin-overview` e `super-admin-critical-alerts`) para actualizar a cada 30 segundos
+2. **Indicador visual**: junto ao botão "Atualizar", mostrar timestamp da última actualização (ex: "Atualizado às 15:52") usando `dataUpdatedAt` do react-query
+3. **Refetch on focus**: adicionar `refetchOnWindowFocus: true` para actualizar quando o utilizador volta ao separador
 
-Por:
-```typescript
-const { data: { user }, error: authError } = await supabase.auth.getUser();
-if (authError || !user) return jsonResponse({ error: "Unauthorized" }, 401);
-const userId = user.id;
-```
-
-Sem mais alterações necessárias — o resto da função está correcto.
+Sem alterações de base de dados nem novos ficheiros.
 
