@@ -34,6 +34,27 @@ export function ClockInOutButton() {
   const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
   const { city, temperature, weatherCode, isLoading: weatherLoading } = useWeatherLocation();
 
+  const getLocation = (): Promise<{ lat: number; lng: number } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000, enableHighAccuracy: false }
+      );
+    });
+
+  const handleClock = async (entry_type: "clock_in" | "clock_out" | "break_start" | "break_end") => {
+    const coords = entry_type === "clock_in" ? await getLocation() : null;
+    clockAction.mutate({
+      employee_id: employeeId!,
+      entry_type,
+      method: "app",
+      ...(coords ? { location_lat: coords.lat, location_lng: coords.lng } : {}),
+      ...(coords && city ? { location_name: city } : {}),
+    });
+  };
+
   // Find active session (no clock_out_at)
   const activeSession = useMemo(
     () => sessions.find((s) => s.clock_in_at && !s.clock_out_at),
