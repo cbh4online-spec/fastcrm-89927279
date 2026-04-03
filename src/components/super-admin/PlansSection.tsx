@@ -24,6 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Package,
@@ -37,6 +43,8 @@ import {
   MessageSquare,
   Brain,
   Zap,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 interface PlanFeature {
@@ -65,6 +73,39 @@ interface PlanFeature {
   integrations_enabled: boolean;
 }
 
+interface AISuggestion {
+  plan_id: string;
+  suggestions: Record<string, number>;
+  reasoning: string;
+}
+
+const limitFields = [
+  { key: "leads_limit", label: "Leads" },
+  { key: "contacts_limit", label: "Contactos" },
+  { key: "companies_limit", label: "Empresas" },
+  { key: "opportunities_limit", label: "Oportunidades" },
+  { key: "templates_limit", label: "Templates" },
+  { key: "automations_limit", label: "Automações" },
+  { key: "automation_executions_limit", label: "Exec. Automações" },
+  { key: "emails_limit", label: "Emails/mês" },
+  { key: "whatsapp_limit", label: "WhatsApp/mês" },
+  { key: "instagram_limit", label: "Instagram/mês" },
+  { key: "ai_calls_limit", label: "IA Calls/mês" },
+  { key: "storage_limit_mb", label: "Storage (MB)" },
+  { key: "users_limit", label: "Utilizadores" },
+];
+
+const featureFields = [
+  { key: "inbox_enabled", label: "Inbox" },
+  { key: "automations_enabled", label: "Automações" },
+  { key: "form_studio_enabled", label: "Form Studio" },
+  { key: "templates_enabled", label: "Templates" },
+  { key: "proposals_enabled", label: "Propostas" },
+  { key: "ai_suggestions_enabled", label: "IA Suggestions" },
+  { key: "landing_pages_enabled", label: "Landing Pages" },
+  { key: "integrations_enabled", label: "Integrações" },
+];
+
 const defaultPlanFeature: Partial<PlanFeature> = {
   leads_limit: 100,
   contacts_limit: 100,
@@ -91,6 +132,11 @@ const defaultPlanFeature: Partial<PlanFeature> = {
 
 export function PlansSection() {
   const [editPlan, setEditPlan] = useState<PlanFeature | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[] | null>(null);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
+  const [optimizeSuggestion, setOptimizeSuggestion] = useState<Record<string, any> | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: plans, isLoading, refetch } = useQuery({
@@ -118,7 +164,6 @@ export function PlansSection() {
 
       if (error) throw error;
 
-      // Log action
       await supabase.rpc("log_admin_action", {
         p_action_type: "plan_updated",
         p_target_type: "plan_features",
@@ -130,11 +175,96 @@ export function PlansSection() {
       queryClient.invalidateQueries({ queryKey: ["super-admin-plans"] });
       toast.success("Plano atualizado");
       setEditPlan(null);
+      setOptimizeSuggestion(null);
     },
     onError: (error) => {
       toast.error("Erro: " + error.message);
     },
   });
+
+  const handleSuggestAllLimits = async () => {
+    if (!plans?.length) return;
+    setIsSuggesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
+        body: {
+          action: "suggest_plan_limits",
+          context: plans.map((p) => ({
+            plan_id: p.plan_id,
+            ...Object.fromEntries(limitFields.map((f) => [f.key, (p as any)[f.key]])),
+          })),
+        },
+      });
+      if (error) throw error;
+      const result = data?.result;
+      if (result?.plans) {
+        setAiSuggestions(result.plans);
+        setShowSuggestionsDialog(true);
+      } else {
+        toast.error("Resposta IA inesperada");
+      }
+    } catch (e: any) {
+      toast.error("Erro IA: " + (e.message || "Tente novamente"));
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleOptimizePlan = async () => {
+    if (!editPlan) return;
+    setIsOptimizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
+        body: {
+          action: "optimize_plan_balance",
+          context: {
+            plan_id: editPlan.plan_id,
+            ...Object.fromEntries(limitFields.map((f) => [f.key, (editPlan as any)[f.key]])),
+            ...Object.fromEntries(featureFields.map((f) => [f.key, (editPlan as any)[f.key]])),
+          },
+        },
+      });
+      if (error) throw error;
+      const result = data?.result;
+      if (result?.suggestions) {
+        setOptimizeSuggestion(result);
+        toast.success("Sugestões IA geradas");
+      } else {
+        toast.error("Resposta IA inesperada");
+      }
+    } catch (e: any) {
+      toast.error("Erro IA: " + (e.message || "Tente novamente"));
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const applyOptimizeSuggestions = () => {
+    if (!editPlan || !optimizeSuggestion?.suggestions) return;
+    const suggestions = optimizeSuggestion.suggestions;
+    const updated = { ...editPlan };
+    for (const key of Object.keys(suggestions)) {
+      if (key in updated) {
+        (updated as any)[key] = suggestions[key];
+      }
+    }
+    setEditPlan(updated);
+    setOptimizeSuggestion(null);
+    toast.success("Sugestões aplicadas — reveja e guarde");
+  };
+
+  const applySuggestionToPlan = (suggestion: AISuggestion) => {
+    const plan = plans?.find((p) => p.plan_id === suggestion.plan_id);
+    if (!plan) return;
+    const updated = { ...plan };
+    for (const key of Object.keys(suggestion.suggestions)) {
+      if (key in updated) {
+        (updated as any)[key] = suggestion.suggestions[key];
+      }
+    }
+    setEditPlan(updated);
+    setShowSuggestionsDialog(false);
+  };
 
   const getPlanBadge = (planId: string) => {
     switch (planId) {
@@ -162,10 +292,25 @@ export function PlansSection() {
             Configurar limites e funcionalidades por plano
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSuggestAllLimits}
+            disabled={isSuggesting || !plans?.length}
+          >
+            {isSuggesting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Sugerir Limites IA
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Plans Overview */}
@@ -349,16 +494,7 @@ export function PlansSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  { key: "inbox_enabled", label: "Inbox" },
-                  { key: "automations_enabled", label: "Automações" },
-                  { key: "form_studio_enabled", label: "Form Studio" },
-                  { key: "templates_enabled", label: "Templates" },
-                  { key: "proposals_enabled", label: "Propostas" },
-                  { key: "ai_suggestions_enabled", label: "IA Suggestions" },
-                  { key: "landing_pages_enabled", label: "Landing Pages" },
-                  { key: "integrations_enabled", label: "Integrações" },
-                ].map((feature) => (
+                {featureFields.map((feature) => (
                   <TableRow key={feature.key}>
                     <TableCell>{feature.label}</TableCell>
                     {plans?.map((p) => (
@@ -379,47 +515,118 @@ export function PlansSection() {
       </Card>
 
       {/* Edit Plan Dialog */}
-      <Dialog open={!!editPlan} onOpenChange={() => setEditPlan(null)}>
+      <Dialog open={!!editPlan} onOpenChange={() => { setEditPlan(null); setOptimizeSuggestion(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Plano {editPlan?.plan_id}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Editar Plano {editPlan?.plan_id}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOptimizePlan}
+                disabled={isOptimizing}
+                className="ml-auto"
+              >
+                {isOptimizing ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-1" />
+                )}
+                Optimizar com IA
+              </Button>
+            </DialogTitle>
             <DialogDescription>
               Alterações afetam novos workspaces. Existentes mantêm limites atuais.
             </DialogDescription>
           </DialogHeader>
+
+          {/* AI Optimization Banner */}
+          {optimizeSuggestion && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Sugestões IA</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setOptimizeSuggestion(null)}>
+                    Descartar
+                  </Button>
+                  <Button size="sm" onClick={applyOptimizeSuggestions}>
+                    Aplicar Todas
+                  </Button>
+                </div>
+              </div>
+              {optimizeSuggestion.reasoning && (
+                <p className="text-xs text-muted-foreground">{optimizeSuggestion.reasoning}</p>
+              )}
+              {optimizeSuggestion.changes?.length > 0 && (
+                <div className="space-y-1">
+                  {optimizeSuggestion.changes.map((c: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+                        <Sparkles className="w-2.5 h-2.5" /> IA
+                      </Badge>
+                      <span className="text-muted-foreground">{c.field}:</span>
+                      <span className="line-through text-destructive">{formatLimit(c.from)}</span>
+                      <span>→</span>
+                      <span className="font-medium text-primary">{formatLimit(c.to)}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-muted-foreground cursor-help">ⓘ</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs text-xs">{c.justification}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {editPlan && (
             <div className="space-y-6">
               {/* Limits */}
               <div>
                 <h4 className="font-medium mb-3">Limites</h4>
                 <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { key: "leads_limit", label: "Leads" },
-                    { key: "contacts_limit", label: "Contactos" },
-                    { key: "companies_limit", label: "Empresas" },
-                    { key: "opportunities_limit", label: "Oportunidades" },
-                    { key: "templates_limit", label: "Templates" },
-                    { key: "automations_limit", label: "Automações" },
-                    { key: "emails_limit", label: "Emails/mês" },
-                    { key: "whatsapp_limit", label: "WhatsApp/mês" },
-                    { key: "ai_calls_limit", label: "IA Calls/mês" },
-                    { key: "users_limit", label: "Utilizadores" },
-                    { key: "storage_limit_mb", label: "Storage (MB)" },
-                  ].map((field) => (
-                    <div key={field.key}>
-                      <Label className="text-xs">{field.label}</Label>
-                      <Input
-                        type="number"
-                        value={(editPlan as any)[field.key]}
-                        onChange={(e) =>
-                          setEditPlan({
-                            ...editPlan,
-                            [field.key]: parseInt(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
+                  {limitFields.map((field) => {
+                    const hasSuggestion = optimizeSuggestion?.suggestions?.[field.key] !== undefined &&
+                      optimizeSuggestion.suggestions[field.key] !== (editPlan as any)[field.key];
+                    return (
+                      <div key={field.key} className="relative">
+                        <Label className="text-xs">{field.label}</Label>
+                        <Input
+                          type="number"
+                          value={(editPlan as any)[field.key]}
+                          onChange={(e) =>
+                            setEditPlan({
+                              ...editPlan,
+                              [field.key]: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className={hasSuggestion ? "border-primary/50" : ""}
+                        />
+                        {hasSuggestion && (
+                          <button
+                            onClick={() =>
+                              setEditPlan({
+                                ...editPlan,
+                                [field.key]: optimizeSuggestion.suggestions[field.key],
+                              })
+                            }
+                            className="absolute right-1 top-6 text-[10px] text-primary hover:underline cursor-pointer"
+                          >
+                            → {formatLimit(optimizeSuggestion.suggestions[field.key])}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -427,42 +634,112 @@ export function PlansSection() {
               <div>
                 <h4 className="font-medium mb-3">Funcionalidades</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { key: "inbox_enabled", label: "Inbox" },
-                    { key: "automations_enabled", label: "Automações" },
-                    { key: "form_studio_enabled", label: "Form Studio" },
-                    { key: "templates_enabled", label: "Templates" },
-                    { key: "proposals_enabled", label: "Propostas" },
-                    { key: "ai_suggestions_enabled", label: "IA Suggestions" },
-                    { key: "landing_pages_enabled", label: "Landing Pages" },
-                    { key: "integrations_enabled", label: "Integrações" },
-                  ].map((feature) => (
-                    <div
-                      key={feature.key}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <Label>{feature.label}</Label>
-                      <Switch
-                        checked={(editPlan as any)[feature.key]}
-                        onCheckedChange={(checked) =>
-                          setEditPlan({
-                            ...editPlan,
-                            [feature.key]: checked,
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
+                  {featureFields.map((feature) => {
+                    const hasSuggestion = optimizeSuggestion?.suggestions?.[feature.key] !== undefined &&
+                      optimizeSuggestion.suggestions[feature.key] !== (editPlan as any)[feature.key];
+                    return (
+                      <div
+                        key={feature.key}
+                        className={`flex items-center justify-between p-3 border rounded-lg ${hasSuggestion ? "border-primary/50 bg-primary/5" : ""}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Label>{feature.label}</Label>
+                          {hasSuggestion && (
+                            <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+                              <Sparkles className="w-2.5 h-2.5" />
+                              {optimizeSuggestion.suggestions[feature.key] ? "Ativar" : "Desativar"}
+                            </Badge>
+                          )}
+                        </div>
+                        <Switch
+                          checked={(editPlan as any)[feature.key]}
+                          onCheckedChange={(checked) =>
+                            setEditPlan({
+                              ...editPlan,
+                              [feature.key]: checked,
+                            })
+                          }
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditPlan(null)}>
+            <Button variant="outline" onClick={() => { setEditPlan(null); setOptimizeSuggestion(null); }}>
               Cancelar
             </Button>
             <Button onClick={() => editPlan && updatePlan.mutate(editPlan)}>
               Guardar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Suggestions Dialog (all plans) */}
+      <Dialog open={showSuggestionsDialog} onOpenChange={setShowSuggestionsDialog}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Sugestões IA — Limites por Plano
+            </DialogTitle>
+            <DialogDescription>
+              Sugestões baseadas em benchmarks de mercado (HubSpot, Pipedrive, Monday CRM). Selecione um plano para editar com os valores sugeridos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {aiSuggestions?.map((suggestion) => {
+              const currentPlan = plans?.find((p) => p.plan_id === suggestion.plan_id);
+              return (
+                <Card key={suggestion.plan_id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      {getPlanBadge(suggestion.plan_id)}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => applySuggestionToPlan(suggestion)}
+                      >
+                        Editar com sugestões
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-4 gap-2 text-xs">
+                      {limitFields.map((field) => {
+                        const current = currentPlan ? (currentPlan as any)[field.key] : null;
+                        const suggested = suggestion.suggestions[field.key];
+                        if (suggested === undefined) return null;
+                        const changed = current !== suggested;
+                        return (
+                          <div key={field.key} className={`p-2 rounded border ${changed ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+                            <div className="text-muted-foreground">{field.label}</div>
+                            <div className="font-mono font-medium">
+                              {changed && current !== null && (
+                                <span className="text-destructive line-through mr-1">{formatLimit(current)}</span>
+                              )}
+                              <span className={changed ? "text-primary" : ""}>{formatLimit(suggested)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {suggestion.reasoning && (
+                      <p className="text-xs text-muted-foreground italic">{suggestion.reasoning}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSuggestionsDialog(false)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
