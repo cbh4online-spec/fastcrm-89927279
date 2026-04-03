@@ -1,53 +1,30 @@
 
 
-# Corrigir Billing & Stripe no Super Admin
+# Corrigir Navegação Billing: Pagamentos como Tab Separado
 
 ## Diagnóstico
 
-A secção Billing & Stripe tem vários problemas:
+O sidebar tem 3 itens (Subscrições, Pagamentos, Stripe Sync) que todos abrem o mesmo `BillingSection` sem seleccionar o tab correcto. O tab "Pagamentos" não existe — só há "Subscrições", "Eventos Stripe" e "Stripe Sync".
 
-| Problema | Causa |
-|---|---|
-| **Stripe IDs vazios** | `workspace_subscriptions` tem `stripe_customer_id` e `stripe_subscription_id` a NULL em todos os 8 registos — os planos foram criados manualmente, nunca via webhook Stripe |
-| **Eventos Stripe vazios** | `billing_events` tem 0 registos — o webhook (`stripe-webhook`) existe mas nunca foi chamado (nenhum webhook configurado no Stripe, `stripe_event_log` também vazio) |
-| **Dados desactualizados** | `workspace_subscriptions` mostra METODOPARE como "agency" mas em `workspace_plans` é "pro"; "Viagens com Propósito" aparece como "trialing" mas em `workspace_plans` é "free" |
-| **Sem Stripe Sync** | O menu "Stripe Sync" aponta para o mesmo `BillingSection` sem nenhuma funcionalidade de sincronização |
-| **Sem ações úteis** | Não há botões para sincronizar com Stripe, alterar plano, ou gerir subscrição |
-| **`workspace_stripe_config` vazio** | Nenhum workspace tem chave Stripe configurada |
-
-## Solução
-
-Reescrever o `BillingSection` para usar `workspace_plans` como fonte primária (contém dados reais) e adicionar funcionalidades de gestão.
+A tabela `payments` existe na BD (com colunas: id, workspace_id, opportunity_id, stripe_payment_id, amount, currency, status) mas tem 0 registos. Mesmo assim, deve existir a UI para quando houver dados.
 
 ## Alterações
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/super-admin/BillingSection.tsx` | Reescrever queries + UI |
+| `src/components/super-admin/BillingSection.tsx` | Aceitar prop `initialTab`, adicionar tab "Pagamentos" com query à tabela `payments` |
+| `src/pages/SuperAdmin.tsx` | Passar `initialTab` ao `BillingSection` conforme o item clicado no sidebar |
 
 ### Detalhe
 
-1. **Query principal**: Mudar de `workspace_subscriptions` para `workspace_plans` (10 registos activos com dados reais: plano, ciclo, uso de créditos)
-   - Join com `workspaces` para nome/slug
-   - Join com `workspace_subscriptions` para obter `stripe_customer_id` e `stripe_subscription_id` quando existirem
+1. **`BillingSection`** recebe prop opcional `initialTab: "subscriptions" | "payments" | "events" | "sync"` e usa-a como valor inicial do `activeTab`
 
-2. **Corrigir mapeamento de colunas**:
-   - Plano: `workspace_plans.plan` (fonte de verdade)
-   - Estado: `workspace_plans.status`
-   - Ciclo: `workspace_plans.cycle_end`
-   - Stripe IDs: de `workspace_subscriptions` (quando disponíveis, caso contrário mostrar "Não vinculado")
+2. **Novo tab "Pagamentos"**: Query à tabela `payments` com join a `workspaces` para nome. Tabela com colunas: Workspace, Montante, Moeda, Estado, Stripe ID, Data. Estado vazio informativo quando sem dados.
 
-3. **Tab "Eventos Stripe"**: Manter, mas mostrar estado vazio informativo ("Nenhum evento registado. Configure o webhook Stripe para receber eventos.") em vez de tabela vazia
+3. **`SuperAdmin.tsx`**: Mapear os 3 section IDs para o mesmo componente mas com tabs diferentes:
+   - `"subscriptions"` → `<BillingSection initialTab="subscriptions" />`
+   - `"payments"` → `<BillingSection initialTab="payments" />`
+   - `"stripe-sync"` → `<BillingSection initialTab="sync" />`
 
-4. **Acções por workspace** (menu `...`):
-   - "Ver no Stripe" (se tiver `stripe_customer_id`)
-   - "Alterar Plano" (dropdown: starter/growth/scale → actualiza `workspace_plans` e `workspace_subscriptions`)
-   - "Sincronizar com Stripe" (chama `check-subscription` edge function para re-verificar estado)
-
-5. **KPIs no header**:
-   - Total subscrições activas
-   - Receita estimada (baseada nos planos)
-   - Workspaces sem Stripe vinculado
-
-6. **Stripe Sync tab** (3º tab): Painel com botão "Sincronizar Todos" que chama `check-subscription` para cada workspace, mostrando progresso
+4. **Tabs finais**: Subscrições | Pagamentos | Eventos Stripe | Stripe Sync
 
