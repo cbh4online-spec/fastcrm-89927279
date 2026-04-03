@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useSubscriptionPlans, CADENCE_LABELS, PLAN_STATUS_CONFIG, RUN_STATUS_CONFIG } from "@/hooks/client-portal/useSubscriptionPlans";
@@ -5,14 +6,34 @@ import { usePlanActions } from "@/hooks/client-portal/usePlanActions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pause, Play, X, Loader2, History } from "lucide-react";
+import { ArrowLeft, Pause, Play, X, Loader2, History, Sparkles, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAIGate } from "@/hooks/useAIGate";
+import { triggerNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
+interface AISuggestion {
+  type: string;
+  description: string;
+  product_name: string | null;
+  suggested_qty: number | null;
+  suggested_cadence: string | null;
+  reasoning: string;
+}
 
 export default function ClientPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { plans, isLoading } = useSubscriptionPlans();
   const { pause, resume, cancel, activate, updating } = usePlanActions();
+  const { currentWorkspace } = useWorkspace();
+  const { canRun, showUpgrade, overageLabel } = useAIGate("medium");
+  const { consumeCredits } = useCreditWallet();
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<{ suggestions: AISuggestion[]; overall_analysis: string } | null>(null);
 
   const plan = plans.find((p) => p.id === id);
 
@@ -36,6 +57,51 @@ export default function ClientPlanDetailPage() {
 
   const statusConf = PLAN_STATUS_CONFIG[plan.status] || PLAN_STATUS_CONFIG.draft;
   const recentRuns = (plan.runs || []).sort((a, b) => new Date(b.run_at).getTime() - new Date(a.run_at).getTime()).slice(0, 5);
+  const canOptimize = plan.status === "draft" || plan.status === "active";
+
+  const handleAIOptimize = async () => {
+    if (showUpgrade || !canRun) {
+      triggerNoCreditsDialog({ actionLabel: "IA: Optimizar Plano" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
+        body: {
+          action: "optimize_subscription_plan",
+          workspace_id: currentWorkspace?.id,
+          context: {
+            name: plan.name,
+            cadence: plan.cadence,
+            status: plan.status,
+            items: (plan.items || []).map((i) => ({
+              product_name: i.product?.name,
+              qty: i.qty,
+              price: i.price_override ?? i.product?.base_price ?? 0,
+            })),
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error === "quota_exceeded") {
+        triggerNoCreditsDialog({ actionLabel: "IA: Optimizar Plano" });
+        return;
+      }
+
+      const result = data?.result;
+      if (result) {
+        setAiSuggestions({ suggestions: result.suggestions || [], overall_analysis: result.overall_analysis || "" });
+        await consumeCredits.mutateAsync({ actionKey: "ai_pricing_assistant", referenceType: "subscription_plan", referenceId: plan.id, metadata: { action: "optimize_subscription_plan" } });
+        toast.success("Análise IA concluída!");
+      }
+    } catch (err) {
+      console.error("AI optimize error:", err);
+      toast.error("Erro ao optimizar com IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <ClientLayout>
@@ -58,7 +124,7 @@ export default function ClientPlanDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {plan.status === "draft" && (
             <Button onClick={() => activate(plan.id)} disabled={updating}>
               <Play className="h-4 w-4 mr-2" /> Ativar
@@ -74,12 +140,46 @@ export default function ClientPlanDetailPage() {
               <Play className="h-4 w-4 mr-2" /> Retomar
             </Button>
           )}
+          {canOptimize && (
+            <div className="flex flex-col items-start gap-0.5">
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleAIOptimize} disabled={aiLoading}>
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                IA: Optimizar
+              </Button>
+              {overageLabel && <span className="text-[10px] text-muted-foreground">{overageLabel}</span>}
+            </div>
+          )}
           {plan.status !== "cancelled" && (
             <Button variant="destructive" onClick={() => cancel(plan.id)} disabled={updating}>
               <X className="h-4 w-4 mr-2" /> Cancelar
             </Button>
           )}
         </div>
+
+        {/* AI Suggestions */}
+        {aiSuggestions && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-primary" /> Sugestões IA
+              </CardTitle>
+              {aiSuggestions.overall_analysis && (
+                <CardDescription>{aiSuggestions.overall_analysis}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {aiSuggestions.suggestions.map((s, i) => (
+                <div key={i} className="p-3 border rounded-lg bg-background">
+                  <p className="text-sm font-medium">{s.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{s.reasoning}</p>
+                </div>
+              ))}
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setAiSuggestions(null)}>
+                Fechar sugestões
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Products */}
         <Card>
