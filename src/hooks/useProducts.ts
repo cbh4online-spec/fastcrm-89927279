@@ -615,7 +615,6 @@ export function useCreateProductsBatch() {
       }
 
       return { created, updated, skipped };
-      return { created, skipped };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });

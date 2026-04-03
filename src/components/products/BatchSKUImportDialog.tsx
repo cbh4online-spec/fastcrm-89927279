@@ -42,6 +42,7 @@ import {
   ArrowRight,
   Globe,
   ScanLine,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -126,6 +127,7 @@ type DialogPhase = "input" | "mapping" | "processing" | "results" | "summary";
 
 interface CreationSummary {
   successCount: number;
+  updatedCount: number;
   errorCount: number;
   failedSkus: { sku: string; error: string }[];
   lastCreatedProductId?: string;
@@ -702,6 +704,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       console.log("[BATCH_CREATE] Result:", JSON.stringify(result));
       setSummary({
         successCount: result.created,
+        updatedCount: result.updated ?? 0,
         errorCount: result.skipped.length,
         failedSkus: result.skipped.map(s => ({ sku: s.sku, error: s.reason })),
         lastCreatedProductId: undefined,
@@ -711,6 +714,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       console.error("[BATCH_CREATE] Error:", err);
       setSummary({
         successCount: 0,
+        updatedCount: 0,
         errorCount: selected.length,
         failedSkus: [{ sku: "batch", error: err instanceof Error ? err.message : "Erro desconhecido" }],
       });
@@ -1196,18 +1200,39 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           {/* Phase: Summary */}
           {phase === "summary" && summary && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid gap-3 ${summary.updatedCount > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
                 <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
                   <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                   <p className="text-2xl font-bold text-emerald-400">{summary.successCount}</p>
-                  <p className="text-xs text-emerald-500">Produtos criados</p>
+                  <p className="text-xs text-emerald-500">Criados</p>
                 </div>
+                {summary.updatedCount > 0 && (
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                    <RefreshCw className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-blue-400">{summary.updatedCount}</p>
+                    <p className="text-xs text-blue-500">Atualizados</p>
+                  </div>
+                )}
                 <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
                   <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-destructive">{summary.errorCount + (summary.failedSkus.length - summary.errorCount)}</p>
+                  <p className="text-2xl font-bold text-destructive">{summary.failedSkus.length}</p>
                   <p className="text-xs text-destructive">Falhas</p>
                 </div>
               </div>
+
+              {/* Show failure reasons inline */}
+              {summary.failedSkus.length > 0 && summary.failedSkus.length <= 10 && (
+                <div className="rounded-lg border p-3 space-y-1 max-h-40 overflow-auto">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Detalhes das falhas:</p>
+                  {summary.failedSkus.map((f, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <span className="font-mono text-destructive shrink-0">{f.sku}</span>
+                      <span className="text-muted-foreground">— {f.error}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {summary.failedSkus.length > 0 && (
                 <Button variant="outline" size="sm" onClick={downloadErrorReport} className="w-full">
                   <Download className="h-4 w-4 mr-2" />
