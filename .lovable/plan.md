@@ -1,84 +1,59 @@
 
 
-# Plano: Pedido de Preço (Price on Request)
+# Plano: Corrigir AI Sales Coach — Dados Vazios
 
 ## Diagnóstico
 
-Não existe nenhum mecanismo para ocultar o preço de um produto na loja mantendo-o visível. Já existe um `StoreOfferDialog` para "Fazer Oferta" que pode servir de base, mas a lógica é diferente — aqui o cliente pede cotação sem ver preço.
+O ecrã mostra dados na barra de overview (Score 33/100, €37,5 em risco, 1 crítico, 2 parados) porque o `pipeline_risk_reports` tem 4 registos válidos. **O problema principal é a tab "Deal Intelligence" que mostra 0 deals.**
+
+| Tabela | Registos | Estado |
+|---|---|---|
+| `pipeline_risk_reports` | 4 (1 válido) | ✅ Funciona |
+| `multi_pipeline_intel_reports` | 4 (1 válido) | ✅ Funciona |
+| `deal_intelligence_reports` | **0** | ❌ Vazio |
+| `opportunities` (activas) | 10+ | Existem deals para analisar |
+
+**Causa raiz**: Os relatórios de Deal Intelligence só são gerados individualmente — o utilizador tem de ir ao detalhe de cada oportunidade e clicar "Analisar". Não existe nenhum mecanismo de geração em massa a partir do Sales Coach. Isto torna a tab inútil até que alguém visite cada deal individualmente.
 
 ## Solução
 
-### Passo 1 — Migração DB
+Adicionar **geração em massa** de Deal Intelligence directamente na tab, e melhorar o botão "Analisar Pipeline" para também gerar relatórios por deal.
 
-- Adicionar coluna `price_on_request` (boolean, default false) à tabela `products`
-- Criar tabela `store_price_requests` para armazenar os pedidos:
+### Passo 1 — Botão "Analisar Todos os Deals" na tab Deal Intelligence
 
-```text
-store_price_requests
-├── id (uuid, PK)
-├── workspace_id (uuid, FK workspaces)
-├── product_id (uuid, FK products)
-├── customer_name (text)
-├── customer_email (text)
-├── customer_phone (text, nullable)
-├── message (text, nullable)
-├── status (text: 'pending' | 'replied' | 'closed', default 'pending')
-├── admin_notes (text, nullable)
-├── created_at (timestamptz)
-└── updated_at (timestamptz)
-```
+Na `DealIntelligenceTab`, adicionar um botão que itera sobre as oportunidades activas e chama `deal-intelligence-ai` para cada uma (em paralelo controlado, max 3 simultâneos para respeitar rate limits).
 
-- RLS: INSERT para anon/authenticated, SELECT/UPDATE escopado por workspace via membership
+### Passo 2 — Hook `useBulkDealIntelligence`
 
-### Passo 2 — Storefront: Ocultar preço + botão "Pedir Preço"
+Criar hook que:
+1. Busca oportunidades activas do workspace (`status = 'open'`)
+2. Para cada uma sem relatório válido, chama `deal-intelligence-ai`
+3. Reporta progresso (X de Y analisados)
+4. Invalida queries ao completar
 
-**StoreProductCard.tsx**: Quando `price_on_request = true`:
-- Substituir bloco de preço por label "Preço sob consulta"
-- Esconder botões "Adicionar ao Carrinho" e "Quick Buy"
-- Manter Quick View, Wishlist e Compare
+### Passo 3 — Melhorar a lista de deals
 
-**StoreProductPage.tsx**: Quando `price_on_request = true`:
-- Substituir preço por "Preço sob consulta"
-- Substituir secção de quantidade + Add to Cart por botão "Pedir Preço" que abre dialog
-- Esconder Sticky Add to Cart e Mobile Conversion Bar
+- Mostrar o nome da oportunidade (fazer join com `opportunities.title`) em vez de `coaching_summary?.slice(0,40)` ou UUID truncado
+- Adicionar o stage e valor ao card de cada deal
 
-### Passo 3 — StorePriceRequestDialog (novo componente)
+### Passo 4 — Integrar no "Analisar Pipeline"
 
-Dialog similar ao StoreOfferDialog mas sem campo de preço:
-- Campos: Nome, Email, Telefone (opcional), Mensagem (opcional)
-- Submit insere em `store_price_requests`
-- Mensagem de confirmação após envio
-
-### Passo 4 — Backoffice
-
-- No formulário de produto, adicionar toggle "Preço sob consulta" (`price_on_request`)
-- Na área de loja/admin, criar secção ou tab para listar pedidos de preço recebidos com filtros por estado (pendente/respondido/fechado)
-
-### Passo 5 — Hook e tipo
-
-- Adicionar `price_on_request` ao interface `StoreProduct`
-- Criar hook `useStorePriceRequests` para CRUD dos pedidos
-- Incluir `price_on_request` no select query de `useStoreProducts`
+Quando o utilizador clica "Analisar Pipeline" na overview bar, além de `pipeline_risk` e `multi_pipeline`, também disparar a geração em massa dos deals (com indicador de progresso).
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | `price_on_request` + tabela `store_price_requests` + RLS |
-| `src/components/store/StorePriceRequestDialog.tsx` | **Criar** |
-| `src/hooks/useStorePriceRequests.ts` | **Criar** |
-| `src/hooks/useStoreProducts.ts` | Adicionar campo ao interface e query |
-| `src/components/store/StoreProductCard.tsx` | Condicional preço/carrinho |
-| `src/pages/store/StoreProductPage.tsx` | Condicional preço/carrinho + dialog |
-| `src/components/store/StoreQuickViewModal.tsx` | Condicional preço |
-| `src/components/store/StoreStickyAddToCart.tsx` | Esconder se price_on_request |
-| `src/components/store/StoreMobileConversionBar.tsx` | Esconder se price_on_request |
-| Formulário de produto (backoffice) | Toggle price_on_request |
+| `src/hooks/useBulkDealIntelligence.ts` | **Criar** — hook de geração em massa com progresso |
+| `src/pages/AISalesCoachPage.tsx` | **Modificar** — adicionar botão bulk na tab Deal Intelligence + melhorar lista de deals + integrar no "Analisar Pipeline" |
+| `src/hooks/useDealIntelligenceCoach.ts` | **Modificar** — adicionar query de oportunidades activas |
 
-## Critérios de aceitação
-- Produto com `price_on_request = true` não mostra preço em nenhuma vista da loja
-- Botão "Pedir Preço" abre formulário e grava pedido na DB
-- Produto continua visível, pesquisável e comparável
-- Toggle funcional no backoffice
-- Pedidos de preço listados no admin
+## Critérios de Aceitação
+
+- Botão "Analisar Todos" gera relatórios para todas as oportunidades activas
+- Indicador de progresso visível durante geração (ex: "3/10 analisados")
+- Tab Deal Intelligence populada após análise
+- Lista de deals mostra nome, stage, valor e health score
+- Rate limiting respeitado (max 3 chamadas simultâneas)
+- Estado de erro tratado por deal individual (não bloqueia os restantes)
 
