@@ -43,8 +43,8 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
     queryClient.prefetchQuery({
       queryKey: ["store-product", product.id],
       queryFn: async () => {
-        const { data } = await supabase
-          .from("products")
+        const { data } = await (supabase
+          .from("products") as any)
           .select("*")
           .eq("id", product.id)
           .eq("store_visible", true)
