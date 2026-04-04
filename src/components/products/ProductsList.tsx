@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,11 +45,16 @@ import { ProductsPagination } from "./table/ProductsPagination";
 import { ProductsDashboard } from "./ProductsDashboard";
 import { ProductsExportDialog } from "./ProductsExportDialog";
 import { CatalogInsights } from "./CatalogInsights";
+import { ProductComparisonSheet } from "./ProductComparisonSheet";
+import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
+import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
+import { CatalogAutomations } from "./CatalogAutomations";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
   const state = useProductsListState();
   const [exportOpen, setExportOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
