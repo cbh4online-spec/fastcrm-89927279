@@ -29,9 +29,9 @@ export default function IntelligencePage() {
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <div className="p-4 md:p-6 space-y-4">
           <div>
-            <h1 className="text-2xl font-bold">Intelligence</h1>
+            <h1 className="text-2xl font-bold">Inteligência</h1>
             <p className="text-sm text-muted-foreground">
-              AI-powered insights, assistance, and automation.
+              Insights, assistência e automação com IA.
             </p>
           </div>
 
@@ -42,22 +42,21 @@ export default function IntelligencePage() {
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="overview" className="gap-1.5">
                 <LayoutDashboard className="h-4 w-4" />
-                Overview
+                Visão Geral
               </TabsTrigger>
               <TabsTrigger value="assist" className="gap-1.5">
                 <MessageSquare className="h-4 w-4" />
-                Assist
+                Assistente
               </TabsTrigger>
               <TabsTrigger value="analyze" className="gap-1.5">
                 <BarChart3 className="h-4 w-4" />
-                Analyze
+                Análise
               </TabsTrigger>
               <TabsTrigger value="automate" className="gap-1.5">
                 <Zap className="h-4 w-4" />
-                Automate
+                Automação
               </TabsTrigger>
 
-              {/* Extension intelligence tabs */}
               {extensionCapabilities.map((cap) => (
                 <TabsTrigger key={cap.key} value={cap.key} className="gap-1.5">
                   <cap.icon className="h-4 w-4" />
@@ -79,7 +78,6 @@ export default function IntelligencePage() {
               <AutomateTab />
             </TabsContent>
 
-            {/* Extension intelligence content */}
             {extensionCapabilities.map((cap) => (
               <TabsContent key={cap.key} value={cap.key}>
                 <Card>
@@ -102,7 +100,6 @@ export default function IntelligencePage() {
                       variant="outline"
                       className="mt-4"
                       onClick={() => {
-                        // Navigate to the module's dedicated page if it exists
                         if (cap.key === "lead-enrichment") navigate("/dashboard/lead-enricher");
                         else if (cap.key === "pro-prospecting") navigate("/dashboard/prospecting/professionals");
                         else if (cap.key === "seo-analysis") navigate("/dashboard/seo");

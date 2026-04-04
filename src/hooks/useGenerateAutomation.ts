@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
 interface ConversationContext {
@@ -39,25 +40,29 @@ interface GenerateAutomationInput {
 }
 
 export function useGenerateAutomation() {
+  const { currentWorkspace } = useWorkspace();
+
   return useMutation({
     mutationFn: async (input: GenerateAutomationInput): Promise<GeneratedAutomation> => {
+      if (!currentWorkspace) throw new Error("Sem workspace ativo");
+
       const { data, error } = await supabase.functions.invoke("ai-generate-automation", {
-        body: input,
+        body: { ...input, workspace_id: currentWorkspace.id },
       });
 
       if (error) throw error;
-      if (!data?.automation) throw new Error("No automation generated");
+      if (data?.error) throw new Error(data.error);
+      if (!data?.automation) throw new Error("Nenhuma automação gerada");
 
       return data.automation;
     },
     onError: (error) => {
-      console.error("Error generating automation:", error);
+      console.error("Erro ao gerar automação:", error);
       toast.error("Erro ao gerar automação. Tente novamente.");
     },
   });
 }
 
-// Natural language examples for the UI
 export const automationExamples = [
   {
     text: "Se contacto não responder em 2 dias → enviar follow-up",

@@ -1,10 +1,10 @@
+import { createClient } from "@supabase/supabase-js";
 import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface ConversationContext {
@@ -20,45 +20,79 @@ interface ConversationContext {
   aiSentiment?: string;
 }
 
-interface GeneratedAutomation {
-  name: string;
-  description: string;
-  trigger: string;
-  trigger_config?: Record<string, unknown>;
-  conditions: Array<{
-    field_name: string;
-    operator: string;
-    value: string | null;
-  }>;
-  actions: Array<{
-    action_type: string;
-    config: Record<string, unknown>;
-  }>;
-  explanation: string;
-  natural_language_summary: string;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { conversation, userRequest } = await req.json() as {
+    // --- Auth: validate JWT ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = userData.user.id;
+
+    const { conversation, userRequest, workspace_id } = await req.json() as {
       conversation?: ConversationContext;
       userRequest?: string;
+      workspace_id?: string;
     };
 
-    // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'light', 'ai-generate-automation');
-      if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 200,
+    if (!workspace_id) {
+      return new Response(JSON.stringify({ error: "workspace_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Verify workspace membership ---
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(supabaseUrl, serviceKey);
+
+    const { data: membership } = await serviceClient
+      .from("workspace_members")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!membership) {
+      // Check super admin
+      const isSuperAdmin = userData.user.app_metadata?.is_super_admin === true;
+      if (!isSuperAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
+
+    // AI Gate check
+    const gate = await aiGate(workspace_id, 'light', 'ai-generate-automation');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -105,13 +139,7 @@ RULES:
 2. Always include an explanation in Portuguese
 3. Provide a natural language summary in Portuguese
 4. Never auto-send without user approval - all automations require confirmation
-5. Focus on helpful, non-intrusive automations
-
-Common patterns:
-- "Se contacto não responder em X dias → enviar follow-up"
-- "Se pedir preço → criar oportunidade"
-- "Se mensagem recebida → notificar responsável"
-- "Se proposta visualizada → criar tarefa de follow-up"`;
+5. Focus on helpful, non-intrusive automations`;
 
     let userPrompt = "";
     
@@ -166,14 +194,8 @@ Use the generate_automation function to create the automation.`;
               parameters: {
                 type: "object",
                 properties: {
-                  name: {
-                    type: "string",
-                    description: "Name for the automation rule in Portuguese",
-                  },
-                  description: {
-                    type: "string",
-                    description: "Brief description of what the automation does in Portuguese",
-                  },
+                  name: { type: "string", description: "Name for the automation rule in Portuguese" },
+                  description: { type: "string", description: "Brief description in Portuguese" },
                   trigger: {
                     type: "string",
                     enum: [
@@ -183,55 +205,33 @@ Use the generate_automation function to create the automation.`;
                       "conversation_no_reply", "proposal_viewed", "proposal_paid",
                       "tag_added", "tag_removed"
                     ],
-                    description: "The trigger type for the automation",
                   },
-                  trigger_config: {
-                    type: "object",
-                    description: "Configuration for the trigger (e.g., no_response_hours, channels, tag_name)",
-                  },
+                  trigger_config: { type: "object" },
                   conditions: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
                         field_name: { type: "string" },
-                        operator: { 
-                          type: "string",
-                          enum: ["equals", "not_equals", "contains", "not_contains", "greater_than", "less_than", "is_empty", "is_not_empty"]
-                        },
+                        operator: { type: "string", enum: ["equals", "not_equals", "contains", "not_contains", "greater_than", "less_than", "is_empty", "is_not_empty"] },
                         value: { type: "string" },
                       },
                       required: ["field_name", "operator"],
                     },
-                    description: "Optional conditions to filter when the automation runs",
                   },
                   actions: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        action_type: { 
-                          type: "string",
-                          enum: [
-                            "send_template_message", "create_task", "create_opportunity",
-                            "add_tag", "assign_owner", "change_lead_status",
-                            "move_opportunity_stage", "notify_user"
-                          ]
-                        },
+                        action_type: { type: "string", enum: ["send_template_message", "create_task", "create_opportunity", "add_tag", "assign_owner", "change_lead_status", "move_opportunity_stage", "notify_user"] },
                         config: { type: "object" },
                       },
                       required: ["action_type", "config"],
                     },
-                    description: "Actions to execute when the automation triggers",
                   },
-                  explanation: {
-                    type: "string",
-                    description: "Detailed explanation of what this automation does and why, in Portuguese",
-                  },
-                  natural_language_summary: {
-                    type: "string",
-                    description: "Plain language summary like 'Se X acontecer → fazer Y' in Portuguese",
-                  },
+                  explanation: { type: "string", description: "Detailed explanation in Portuguese" },
+                  natural_language_summary: { type: "string", description: "Plain language summary in Portuguese" },
                 },
                 required: ["name", "description", "trigger", "actions", "explanation", "natural_language_summary"],
                 additionalProperties: false,
@@ -247,13 +247,13 @@ Use the generate_automation function to create the automation.`;
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de pedidos excedido. Tente novamente mais tarde." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
           JSON.stringify({ error: "Créditos de IA insuficientes." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
@@ -268,7 +268,7 @@ Use the generate_automation function to create the automation.`;
       throw new Error("Invalid AI response format");
     }
 
-    const automation: GeneratedAutomation = JSON.parse(toolCall.function.arguments);
+    const automation = JSON.parse(toolCall.function.arguments);
 
     return new Response(
       JSON.stringify({ automation }),
