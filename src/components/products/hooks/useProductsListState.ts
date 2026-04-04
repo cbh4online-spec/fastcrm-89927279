@@ -515,6 +515,7 @@ export function useProductsListState() {
       operational_cost: p.operational_cost,
       status: "active" as const,
       workspace_id: currentWorkspace!.id,
+      created_by: user!.id,
       short_description: p.short_description,
       images: p.images,
     }));
