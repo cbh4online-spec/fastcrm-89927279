@@ -28,6 +28,8 @@ const StoreCouponsPage = lazy(() => import("@/pages/StoreCouponsPage"));
 const StoreReviewsPage = lazy(() => import("@/pages/StoreReviewsPage"));
 const StoreAnalyticsPage = lazy(() => import("@/pages/StoreAnalyticsPage"));
 const StoreReturnsPage = lazy(() => import("@/pages/StoreReturnsPage"));
+const ProductCatalogListPage = lazy(() => import("@/pages/ProductCatalogListPage"));
+const ProductCatalogEditorPage = lazy(() => import("@/pages/ProductCatalogEditorPage"));
 
 // Client portal pages
 const ClientLoginPage = lazy(() => import("@/pages/client/ClientLoginPage"));
