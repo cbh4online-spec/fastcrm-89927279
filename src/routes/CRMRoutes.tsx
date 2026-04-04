@@ -67,6 +67,7 @@ export default function CRMRoutesV2() {
                     {StudentJourneyRoutes()}
                     {CheckoutAdminRoutes()}
                     {C2CDashboardRoutes()}
+                    {AffiliateRoutes()}
                     {StoreAdminRoutes()}
                     {B2BAdminRoutes()}
                     {HelpdeskRoutes()}
