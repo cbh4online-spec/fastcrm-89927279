@@ -303,6 +303,7 @@ export function ProductsList() {
               onClearSelection={() => state.setSelectedIds([])}
               onBulkPublish={state.handleBulkPublish}
               onBulkDuplicate={state.handleBulkDuplicate}
+              onCompare={() => setCompareOpen(true)}
             />
 
             <ProductsDataTable
