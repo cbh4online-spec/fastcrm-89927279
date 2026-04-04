@@ -22,3 +22,33 @@
 - `ProductLifecycleTab.tsx` já completo com workflow visual
 - Estados: Rascunho → Em Revisão → Ativo → Descontinuado → Arquivado
 - Changelog e notificações automáticas integrados
+
+## Fase 7 — Bundles, Pricing Rules, Storefront & Alertas de Stock ✅
+
+### 1. Bundles & Kits de Produtos ✅
+**Tabelas:** `product_bundles`, `product_bundle_items`
+**Componente:** `src/components/products/BundlesManager.tsx`
+**Hook:** `src/hooks/useBundles.ts`
+- CRUD completo de bundles com desconto (% ou fixo)
+- Gestão de itens do bundle com selecção de produtos
+- Cálculo de preço total e toggle de estado
+
+### 2. Pricing Rules & Descontos Automáticos ✅
+**Tabela:** `pricing_rules`
+**Componente:** `src/components/products/PricingRulesManager.tsx`
+**Hook:** `src/hooks/usePricingRules.ts`
+- 4 tipos de regra: volume, cliente, período, categoria
+- Motor de cálculo `applyPricingRules()` por prioridade
+- Toggle de activação e gestão de datas
+
+### 3. Alertas de Stock & Reposição ✅
+**Tabela:** `stock_alerts`
+**Componente:** `src/components/products/StockAlertsManager.tsx`
+**Hook:** `src/hooks/useStockAlerts.ts`
+- Threshold por produto com 3 estados (active/acknowledged/resolved)
+- Dashboard de produtos com stock baixo (auto-refresh 60s)
+- Acções rápidas: confirmar, resolver, remover
+
+### 4. Integração ✅
+- 3 novos tabs no ProductsList: Bundles, Regras de Preço, Alertas Stock
+- RLS em todas as tabelas por workspace_id

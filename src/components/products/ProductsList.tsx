@@ -50,6 +50,9 @@ import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsMa
 import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
 import { CatalogAutomations } from "./CatalogAutomations";
 import { ProductImportWizard } from "./ProductImportWizard";
+import { BundlesManager } from "./BundlesManager";
+import { PricingRulesManager } from "./PricingRulesManager";
+import { StockAlertsManager } from "./StockAlertsManager";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
@@ -338,6 +341,9 @@ export function ProductsList() {
 
         {state.activeTab === "categories" && <CategoriesTabContent />}
         {state.activeTab === "pricing" && <PricingTabContent />}
+        {state.activeTab === "bundles" && <BundlesManager />}
+        {state.activeTab === "pricing-rules" && <PricingRulesManager />}
+        {state.activeTab === "stock-alerts" && <StockAlertsManager />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 
