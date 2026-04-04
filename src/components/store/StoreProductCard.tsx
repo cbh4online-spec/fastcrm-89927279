@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import { supabase } from "@/integrations/supabase/client";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
