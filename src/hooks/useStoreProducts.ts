@@ -25,6 +25,7 @@ export interface StoreProduct {
   store_category_id: string | null;
   specifications: Record<string, string> | null;
   demo_video_url: string | null;
+  price_on_request?: boolean;
 }
 
 export interface StoreCategory {
