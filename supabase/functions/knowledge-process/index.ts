@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body: ProcessRequest = await req.json();
+    const body: ProcessRequest & { workspace_id?: string } = await req.json();
+    const { sourceId, sourceType, content, url, knowledgeBaseType, workspace_id } = body;
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
@@ -105,7 +106,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-    const { sourceId, sourceType, content, url, knowledgeBaseType } = body;
 
     console.log("[AI-KNOWLEDGE] PROCESS_START", { sourceId, sourceType, url, knowledgeBaseType });
 
