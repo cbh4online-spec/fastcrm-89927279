@@ -27,6 +27,7 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
+import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
 import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
