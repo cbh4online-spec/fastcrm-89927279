@@ -64,6 +64,8 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
+// Add-to-cart animation trigger counter
+
 function getEstimatedDelivery(): string {
   let date = addDays(new Date(), 3);
   // Skip weekends
