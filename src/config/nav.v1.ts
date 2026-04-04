@@ -173,6 +173,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingCart, group: "Loja Online", moduleSlug: "online-store" },
   { name: "Categorias", href: "/dashboard/store-categories", icon: FolderOpen, group: "Loja Online", moduleSlug: "online-store" },
   { name: "Cupões", href: "/dashboard/store-coupons", icon: Ticket, group: "Loja Online", moduleSlug: "online-store" },
+  { name: "Avaliações", href: "/dashboard/store-reviews", icon: MessageSquare, group: "Loja Online", moduleSlug: "online-store" },
   { name: "Analytics", href: "/dashboard/store-analytics", icon: BarChart3, group: "Loja Online", moduleSlug: "online-store" },
   { name: "Definições Loja", href: "/dashboard/store-settings", icon: Settings, group: "Loja Online", moduleSlug: "online-store" },
 

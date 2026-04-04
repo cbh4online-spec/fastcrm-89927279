@@ -131,6 +131,7 @@ export function StoreAdminRoutes() {
       <Route path="/dashboard/store-products" element={<StoreProductsAdminPage />} />
       <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
       <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
+      <Route path="/dashboard/store-reviews" element={<StoreReviewsPage />} />
       <Route path="/dashboard/store-analytics" element={<StoreAnalyticsPage />} />
     </>
   );
