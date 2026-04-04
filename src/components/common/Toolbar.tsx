@@ -76,6 +76,7 @@ export function Toolbar({
   onColumnToggle,
   leftActions,
   rightActions,
+  searchInputRef,
   className,
 }: ToolbarProps) {
   const [localSearch, setLocalSearch] = useState(searchValue);
