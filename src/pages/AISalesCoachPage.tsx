@@ -34,11 +34,18 @@ function CoachOverviewBar() {
   const { data: overview } = useSalesCoachOverview();
   const genRisk = useGeneratePipelineRisk();
   const genMulti = useGenerateMultiPipelineIntel();
-  const isAnalyzing = genRisk.isPending || genMulti.isPending;
+  const { analyzeAll, progress: bulkProgress } = useBulkDealIntelligence();
+  const { fetch: fetchOpps } = useActiveOpportunities();
+  const isAnalyzing = genRisk.isPending || genMulti.isPending || bulkProgress.isRunning;
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     genRisk.mutate(undefined);
     genMulti.mutate();
+    // Also trigger bulk deal analysis
+    const opps = await fetchOpps();
+    if (opps.length > 0) {
+      analyzeAll(opps.map((o) => o.id));
+    }
   };
 
   const healthColor = (score: number) =>
