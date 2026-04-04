@@ -194,6 +194,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="general" className="gap-1"><Store className="h-4 w-4" /> Geral</TabsTrigger>
               <TabsTrigger value="branding" className="gap-1"><Palette className="h-4 w-4" /> Branding</TabsTrigger>
               <TabsTrigger value="notifications" className="gap-1"><Bell className="h-4 w-4" /> Notificações</TabsTrigger>
+              <TabsTrigger value="payments" className="gap-1"><CreditCard className="h-4 w-4" /> Pagamentos</TabsTrigger>
               <TabsTrigger value="shipping" className="gap-1"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
               <TabsTrigger value="growth" className="gap-1"><TrendingUp className="h-4 w-4" /> Crescimento</TabsTrigger>
               <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
