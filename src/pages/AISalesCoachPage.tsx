@@ -666,17 +666,45 @@ function MetricCard({ label, value, sub, icon, color }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AISalesCoachPage() {
+  const { data: riskReport } = usePipelineRisk();
+  const { data: multiReport } = useMultiPipelineIntel();
+  const { data: dealReports } = useAllDealReports();
+  const { fetch: fetchOppsForExport } = useActiveOpportunities();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { exportSalesCoachPdf } = await import("@/utils/exportSalesCoachPdf");
+      const opps = await fetchOppsForExport();
+      exportSalesCoachPdf({
+        riskReport: riskReport ?? null,
+        multiReport: multiReport ?? null,
+        dealReports: dealReports ?? [],
+        opportunities: opps,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            AI Sales Coach
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Intelligence estratégica sobre o pipeline de vendas
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <TrendingUp className="h-6 w-6 text-primary" />
+              AI Sales Coach
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Intelligence estratégica sobre o pipeline de vendas
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            Exportar PDF
+          </Button>
         </div>
 
         <CoachOverviewBar />
