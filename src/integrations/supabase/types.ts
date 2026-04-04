@@ -51538,6 +51538,116 @@ export type Database = {
           },
         ]
       }
+      store_traffic_alert_rules: {
+        Row: {
+          comparison_period_hours: number
+          comparison_type: string
+          cooldown_hours: number
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          metric_type: string
+          notify_email: string | null
+          threshold_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          comparison_period_hours?: number
+          comparison_type?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          metric_type?: string
+          notify_email?: string | null
+          threshold_value?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          comparison_period_hours?: number
+          comparison_type?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          metric_type?: string
+          notify_email?: string | null
+          threshold_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_traffic_alert_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_traffic_alerts_log: {
+        Row: {
+          comparison_period_hours: number
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metric_type: string
+          metric_value: number
+          resolved_at: string | null
+          rule_id: string
+          threshold_value: number
+          workspace_id: string
+        }
+        Insert: {
+          comparison_period_hours: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metric_type: string
+          metric_value: number
+          resolved_at?: string | null
+          rule_id: string
+          threshold_value: number
+          workspace_id: string
+        }
+        Update: {
+          comparison_period_hours?: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metric_type?: string
+          metric_value?: number
+          resolved_at?: string | null
+          rule_id?: string
+          threshold_value?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_traffic_alerts_log_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "store_traffic_alert_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_traffic_alerts_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_visitor_sessions: {
         Row: {
           ai_classified_at: string | null
