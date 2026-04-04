@@ -270,6 +270,15 @@ export function ProductsList() {
                   products={state.products}
                   formatCurrency={state.formatCurrency}
                 />
+                <CatalogAutomations
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                  onFilterSelect={state.handleFilterSelect}
+                />
+                <ProductsAnalyticsDashboard
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
                 <ProductsDashboard
                   products={state.products}
                   formatCurrency={state.formatCurrency}
