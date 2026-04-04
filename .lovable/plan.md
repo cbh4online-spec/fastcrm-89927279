@@ -1,51 +1,56 @@
-## Fase 4 — Personalização, Exportação Avançada, Auditoria & Inteligência
+## Fase 5 — Comparação, Presets, Analytics Avançado & Automações de Catálogo
 
-### 1. Personalização avançada de colunas
-**Ficheiro:** `src/components/common/ColumnSelector.tsx` + `ProductsDataTable.tsx`
+### 1. Comparação de produtos (side-by-side)
+**Ficheiro:** `src/components/products/ProductComparisonSheet.tsx` (novo)
 
-- Drag-to-reorder colunas no seletor (já usa `@dnd-kit`)
-- Persistir larguras de colunas em localStorage (já implementado via `useColumnWidths`)
-- Botão "Repor predefinições" para reset completo de ordem + visibilidade + larguras
-- Preset de layouts guardados pelo utilizador (ex: "Vista Financeira", "Vista Catálogo")
+- Sheet/Dialog com comparação lado-a-lado de 2-3 produtos selecionados
+- Diff visual: preço, custo, margem, categoria, status, specs, imagens
+- Highlight automático de diferenças entre produtos
+- Botão "Comparar" nas bulk actions (ProductBulkActions.tsx)
+- Mínimo 2, máximo 3 produtos selecionados para activar
 
-### 2. Exportação/Importação avançada
-**Ficheiro novo:** `src/components/products/ProductsExportDialog.tsx`
+### 2. Presets de layout salvos
+**Ficheiro:** `src/components/products/table/LayoutPresetsManager.tsx` (novo)
 
-- Exportar com filtros activos (apenas produtos visíveis)
-- Exportar para Excel (.xlsx) com `exceljs` (já instalado) + CSV
-- Selecção de colunas a exportar
-- Formatação profissional no Excel (headers, cores, auto-width)
+- Guardar configurações de colunas (visibilidade + ordem + larguras) como presets nomeados
+- Presets built-in: "Vista Completa", "Vista Financeira", "Vista Catálogo"
+- Presets custom do utilizador persistidos em localStorage
+- Dropdown no toolbar para trocar rapidamente entre layouts
+- Botão "Guardar vista actual" + "Eliminar preset"
 
-### 3. Auditoria e histórico de produto
-**Ficheiros:** `src/components/products/ProductActivityLog.tsx`
+### 3. Dashboard analítico avançado
+**Ficheiro:** `src/components/products/ProductsAnalyticsDashboard.tsx` (novo)
 
-- Consultar `activity_logs` para mostrar histórico de alterações
-- Timeline visual com diff de campos (preço anterior → novo preço)
-- Mostrar quem alterou e quando
-- Integrar na tab de detalhes do produto (ProductDetailDialog)
+- Gráfico de distribuição por categoria (pie/donut via recharts)
+- Gráfico de distribuição por status (bar chart)
+- Top 10 produtos por margem (horizontal bar)
+- Evolução de preços médios ao longo do tempo (line chart, se dados disponíveis)
+- KPIs: total produtos, preço médio, margem média, % com imagem, % com custo
+- Toggle para mostrar/esconder no topo da listagem
 
-### 4. Inteligência de catálogo
-**Ficheiro novo:** `src/components/products/CatalogInsights.tsx`
+### 4. Automações de catálogo
+**Ficheiro:** `src/components/products/CatalogAutomations.tsx` (novo)
 
-- Alertas automáticos no dashboard:
-  - Produtos com preço desactualizado (>90 dias sem alteração de preço)
-  - Produtos sem venda associada (cruzar com deals se disponível)
+- Regras automáticas configuráveis:
+  - Alerta de preço desatualizado (>N dias sem alteração)
+  - Alerta de produto sem imagem
+  - Alerta de margem negativa ou abaixo do threshold
   - Sugestão de preço baseada em margem-alvo do workspace
-- Comparação lado-a-lado de 2-3 produtos selecionados
-- Mini-card com "saúde" do catálogo (score 0-100)
+- Painel de alertas activos com contagem e severidade
+- Possibilidade de dispensar/snooze alertas individuais
+- Integração com CatalogInsights existente
 
 ### Ordem de execução
-1. Exportação avançada (valor imediato, independente)
-2. Personalização de colunas (UX refinement)
-3. Auditoria/histórico (depende de activity_logs existente)
-4. Inteligência de catálogo (feature final)
+1. Comparação de produtos (independente, valor imediato)
+2. Presets de layout (UX, independente)
+3. Dashboard analítico (visualização, depende de dados)
+4. Automações de catálogo (lógica de negócio, integra com insights)
 
 ### Ficheiros a alterar/criar
-- `src/components/products/ProductsExportDialog.tsx` (novo)
-- `src/components/products/ProductActivityLog.tsx` (novo)
-- `src/components/products/CatalogInsights.tsx` (novo)
 - `src/components/products/ProductComparisonSheet.tsx` (novo)
-- `src/components/products/ProductsList.tsx` — integrar export + insights
-- `src/components/products/ProductDetailDialog.tsx` — integrar activity log
-- `src/components/products/hooks/useProductsListState.ts` — export avançado
+- `src/components/products/table/LayoutPresetsManager.tsx` (novo)
+- `src/components/products/ProductsAnalyticsDashboard.tsx` (novo)
+- `src/components/products/CatalogAutomations.tsx` (novo)
 - `src/components/products/table/ProductBulkActions.tsx` — botão comparar
+- `src/components/products/ProductsList.tsx` — integrar presets + analytics + automações
+- `src/components/products/hooks/useProductsListState.ts` — suporte a presets
