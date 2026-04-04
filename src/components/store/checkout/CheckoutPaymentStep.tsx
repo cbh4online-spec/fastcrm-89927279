@@ -1,7 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
 import type { CTTShippingOption } from "./useCheckoutPricing";
 
@@ -48,29 +46,8 @@ export function CheckoutPaymentStep({
           </button>
         </div>
         <p className="text-sm">{formData.name}</p>
+        <p className="text-sm text-muted-foreground">{formData.email}</p>
         <p className="text-sm text-muted-foreground">{formData.phone}</p>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Email para recibo</h2>
-        <div className="space-y-2">
-          <Label htmlFor="email" className="flex items-center gap-1.5">
-            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-            Email *
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="o-seu@email.com"
-            value={formData.email}
-            onChange={(e) => onFieldChange("email", e.target.value)}
-            onBlur={onEmailBlur}
-            required
-            autoFocus
-            className={fieldErrors.email ? "border-destructive" : ""}
-          />
-          {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
-        </div>
       </div>
 
       <CheckoutShippingSection

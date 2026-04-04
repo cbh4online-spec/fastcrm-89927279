@@ -13,6 +13,7 @@ import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
 import { StoreMobileConversionBar } from "@/components/store/StoreMobileConversionBar";
 import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
+import { StoreOfferCountdown } from "@/components/store/StoreOfferCountdown";
 import { StoreAddToCartAnimation } from "@/components/store/StoreAddToCartAnimation";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { PriceHistoryChart } from "@/components/store/PriceHistoryChart";
@@ -472,6 +473,11 @@ export default function StoreProductPage() {
                     </Badge>
                   )}
                 </div>
+
+                {/* Urgency Countdown for time-limited offers */}
+                {pricing?.isDiscounted && (product as any).offer_ends_at && (
+                  <StoreOfferCountdown endsAt={(product as any).offer_ends_at} />
+                )}
 
                 {/* Stock status */}
                 {isOutOfStock ? (

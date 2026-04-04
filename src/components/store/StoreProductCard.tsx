@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame, GitCompareArrows, User, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import { supabase } from "@/integrations/supabase/client";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
@@ -30,9 +32,28 @@ interface StoreProductCardProps {
 export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0, reviewStats, salesCounts }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
+  const queryClient = useQueryClient();
   const { addItem: addToCompare, removeItem: removeFromCompare, isInCompare, isFull: compareFull } = useStoreCompare();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Prefetch product data on hover for instant PDP navigation
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    queryClient.prefetchQuery({
+      queryKey: ["store-product", product.id],
+      queryFn: async () => {
+        const { data } = await (supabase
+          .from("products") as any)
+          .select("*")
+          .eq("id", product.id)
+          .eq("store_visible", true)
+          .single();
+        return data;
+      },
+      staleTime: 30_000,
+    });
+  }, [product.id, queryClient]);
   const inCompare = isInCompare(product.id);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
@@ -87,7 +108,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
       >
         <div
           className="relative overflow-hidden rounded-2xl border bg-card h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 hover:border-primary/20"
-          onMouseEnter={() => setIsHovered(true)}
+          onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Image with crossfade on hover */}
