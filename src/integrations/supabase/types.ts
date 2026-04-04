@@ -41538,6 +41538,8 @@ export type Database = {
           name: string
           parent_id: string | null
           position: number | null
+          slug: string | null
+          store_visible: boolean
           updated_at: string
           workspace_id: string
         }
@@ -41552,6 +41554,8 @@ export type Database = {
           name: string
           parent_id?: string | null
           position?: number | null
+          slug?: string | null
+          store_visible?: boolean
           updated_at?: string
           workspace_id: string
         }
@@ -41566,6 +41570,8 @@ export type Database = {
           name?: string
           parent_id?: string | null
           position?: number | null
+          slug?: string | null
+          store_visible?: boolean
           updated_at?: string
           workspace_id?: string
         }
@@ -43603,7 +43609,7 @@ export type Database = {
             foreignKeyName: "products_store_category_id_fkey"
             columns: ["store_category_id"]
             isOneToOne: false
-            referencedRelation: "store_categories"
+            referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
           {

@@ -31,11 +31,15 @@ export interface StoreCategory {
   id: string;
   workspace_id: string;
   name: string;
-  slug: string;
+  slug: string | null;
   description: string | null;
   position: number;
   is_active: boolean;
   image_url: string | null;
+  color: string | null;
+  icon: string | null;
+  store_visible: boolean;
+  product_count?: number;
 }
 
 interface UseStoreProductsOptions {
@@ -189,18 +193,42 @@ export function useStoreProduct(productId: string | undefined, workspaceId?: str
 
 export function useStoreCategories(workspaceId: string) {
   return useQuery({
-    queryKey: ["store-categories-db", workspaceId],
+    queryKey: ["store-categories-unified", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("store_categories")
-        .select("*")
+      // Fetch active + store_visible categories from product_categories
+      const { data: cats, error } = await (supabase as any)
+        .from("product_categories")
+        .select("id, workspace_id, name, slug, description, position, is_active, image_url, color, icon, store_visible")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true)
+        .eq("store_visible", true)
         .order("position", { ascending: true })
         .order("name", { ascending: true });
 
       if (error) throw error;
-      return (data || []) as StoreCategory[];
+
+      // Fetch product counts per category (only published + active)
+      const { data: products, error: pErr } = await supabase
+        .from("products")
+        .select("store_category_id")
+        .eq("workspace_id", workspaceId)
+        .eq("store_published", true)
+        .eq("status", "active")
+        .not("store_category_id", "is", null);
+
+      if (pErr) throw pErr;
+
+      const counts: Record<string, number> = {};
+      (products || []).forEach((p: any) => {
+        if (p.store_category_id) {
+          counts[p.store_category_id] = (counts[p.store_category_id] || 0) + 1;
+        }
+      });
+
+      // Only return categories with at least 1 published product
+      return ((cats || []) as StoreCategory[])
+        .map((c) => ({ ...c, product_count: counts[c.id] || 0 }))
+        .filter((c) => c.product_count > 0);
     },
     enabled: !!workspaceId,
   });

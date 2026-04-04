@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, MoreHorizontal, Package, Eye, ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, MoreHorizontal, Package, Eye, ImageIcon, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -21,8 +21,11 @@ import {
   useProductCategoriesList,
   useProductCountByCategory,
   useDeleteProductCategory,
+  useUpdateProductCategory,
   ProductCategory,
 } from "@/hooks/useProductCategories";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryDialog } from "./CategoryDialog";
 import { CategoryProductsSheet } from "./CategoryProductsSheet";
 import { CreateProductDialog } from "./CreateProductDialog";
@@ -43,6 +46,7 @@ export function CategoriesTabContent() {
   const { data: categories, isLoading } = useProductCategoriesList();
   const { data: productCounts } = useProductCountByCategory();
   const deleteCategory = useDeleteProductCategory();
+  const updateCategory = useUpdateProductCategory();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
@@ -128,6 +132,7 @@ export function CategoriesTabContent() {
                 <TableHead>Descrição</TableHead>
                 <TableHead className="text-center">Produtos</TableHead>
                 <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-center">Loja</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -177,6 +182,23 @@ export function CategoriesTabContent() {
                     <Badge variant={category.is_active ? "default" : "secondary"}>
                       {category.is_active ? "Ativo" : "Inativo"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-flex" onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={category.store_visible ?? true}
+                            onCheckedChange={(checked) =>
+                              updateCategory.mutate({ id: category.id, store_visible: checked })
+                            }
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {category.store_visible !== false ? "Visível na loja" : "Oculta da loja"}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
