@@ -308,7 +308,7 @@ export default function StoreProductPage() {
                             : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
                         )}
                       >
-                        {images[0] && <img src={images[0]} alt="" className="h-full w-full object-cover" />}
+                        {images[0] && <img src={images[0]} alt="" className="h-full w-full object-cover" loading="lazy" width={56} height={56} />}
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <Play className="h-5 w-5 text-white fill-white" />
                         </div>
@@ -325,7 +325,7 @@ export default function StoreProductPage() {
                             : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
                         )}
                       >
-                        <img src={img} alt="" className="h-full w-full object-cover" />
+                        <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" width={56} height={56} />
                       </button>
                     ))}
                   </div>
