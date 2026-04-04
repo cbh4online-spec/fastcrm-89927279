@@ -13,6 +13,7 @@ import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
 import { StoreMobileConversionBar } from "@/components/store/StoreMobileConversionBar";
 import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
+import { StoreOfferCountdown } from "@/components/store/StoreOfferCountdown";
 import { StoreAddToCartAnimation } from "@/components/store/StoreAddToCartAnimation";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { PriceHistoryChart } from "@/components/store/PriceHistoryChart";
