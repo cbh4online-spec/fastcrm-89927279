@@ -97,7 +97,8 @@ export function useUpsertProgramTier() {
   return useMutation({
     mutationFn: async (tier: Record<string, unknown>) => {
       const payload = { ...tier, workspace_id: currentWorkspace!.id };
-      const { data, error } = payload.id
+      const hasId = "id" in payload && payload.id;
+      const { data, error } = hasId
         ? await (supabase as any).from("affiliate_program_tiers").update(payload).eq("id", payload.id).select().single()
         : await (supabase as any).from("affiliate_program_tiers").insert(payload).select().single();
       if (error) throw error;
