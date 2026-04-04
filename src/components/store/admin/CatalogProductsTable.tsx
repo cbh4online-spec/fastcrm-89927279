@@ -85,9 +85,9 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
           ) : products.length === 0 ? (
-            <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
+            <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
           ) : (
             products.map((product) => {
               const imgIdx = product.primary_image_index ?? 0;
