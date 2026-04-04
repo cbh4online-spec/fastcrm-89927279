@@ -48,10 +48,13 @@ export function useBundleItems(bundleId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_bundle_items")
-        .select("*, product:products(id, name, price, images)")
+        .select("*, product:products(id, name, base_price, images)")
         .eq("bundle_id", bundleId!);
       if (error) throw error;
-      return data as BundleItem[];
+      return (data || []).map((d: any) => ({
+        ...d,
+        product: d.product ? { ...d.product, price: d.product.base_price } : undefined,
+      })) as BundleItem[];
     },
     enabled: !!bundleId,
   });
