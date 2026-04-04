@@ -9,8 +9,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    strictPort: true,
     hmr: {
       overlay: false,
+      protocol: "wss",
+      clientPort: 443,
     },
   },
   plugins: [
