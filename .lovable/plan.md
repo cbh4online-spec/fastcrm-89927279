@@ -1,44 +1,57 @@
 
 1. Diagnóstico
-- O problema principal não parece ser React, router ou uma exceção runtime da app.
-- O sinal mais forte está no arranque do dev server: o log mostra `Port 8080 is in use, trying another one...` e depois o Vite sobe em `http://localhost:8081/`.
-- Ao mesmo tempo, os erros de consola mostram o preview a tentar falar com `localhost:8080` por HTTP/WebSocket. Isto cria um desencontro entre a porta esperada pelo preview e a porta real do Vite.
-- Resultado provável: o preview fica sem conseguir carregar corretamente nenhuma página.
+- O problema actual não está nas páginas React, nas rotas nem na lógica de negócio.
+- O problema está no arranque do dev server: a porta 8080 já está ocupada quando o servidor gerido tenta arrancar.
+- Evidência:
+  - `vite.config.ts` já está com `port: 8080` e `strictPort: true`.
+  - O log em `/tmp/dev-server-logs/dev-server.log` mostra várias tentativas do processo gerido a arrancar com `vite --port "8080"` e a falhar com `Error: Port 8080 is already in use`.
+  - Antes dessas falhas, o mesmo log já mostra um Vite “ready” em `http://localhost:8080/`, o que indica um processo órfão/paralelo já preso à porta.
+  - A consola do browser mostra `[vite] server connection lost. Polling for restart...`, consistente com preview a apontar para um servidor que cai/reinicia ou fica desalinhado com o processo gerido.
 
-2. O que confirmei no código
-- `vite.config.ts` está fixado em `port: 8080`, mas sem `strictPort: true`.
-- Quando a 8080 está ocupada, o Vite muda automaticamente para 8081.
-- `server.hmr` só tem `overlay: false`; não há configuração explícita para ambiente com proxy/preview.
-- `App.tsx`, `main.tsx` e as rotas principais parecem estruturalmente válidas.
-- Não encontrei runtime errors da app que expliquem um ecrã branco total.
+2. Do I know what the issue is?
+- Sim.
+- O problema exacto é: existe um processo Vite extra/orfão a ocupar a porta 8080, e o dev server gerido pelo ambiente deixa de conseguir arrancar. Como `strictPort: true` está activo, ele falha explicitamente em vez de mudar para 8081. Isso é correcto do ponto de vista técnico, mas deixa o preview sem servidor estável.
 
-3. Decisão técnica
-- Tratar isto como problema de configuração do ambiente de preview/dev, não como bug funcional das páginas.
-- A correção deve impedir “fallback” silencioso de porta e alinhar o HMR com o host do preview.
+3. Ficheiros/sinais isolados
+- `vite.config.ts` — configuração actual do servidor
+- `package.json` — script `dev` é normal (`vite`), sem customizações suspeitas
+- `src/main.tsx` — já remove service workers no preview/iframe, portanto não parece ser o causador
+- `/tmp/dev-server-logs/dev-server.log` — principal prova do conflito real
 
-4. Plano de implementação
-- Atualizar `vite.config.ts` para endurecer a configuração do servidor:
-  - adicionar `strictPort: true`
-  - configurar `hmr.clientPort` para o porto esperado pelo preview
-  - configurar `hmr.protocol` para `wss` no contexto do preview
-- Opcionalmente ajustar `host` para uma configuração mais compatível com o proxy do preview, se necessário após a primeira correção.
-- Evitar que o Vite mude automaticamente para 8081, porque isso quebra o contrato com o preview.
-- Rever se existe algum processo ou configuração no projeto que esteja a causar ocupação recorrente da 8080; se não houver causa no código, a proteção com `strictPort` já evita o estado “app invisível mas servidor vivo noutra porta”.
+4. Decisões técnicas
+- Manter `strictPort: true`. Não devo removê-lo, porque isso só esconderia o problema e faria o Vite saltar para 8081, voltando a quebrar o preview.
+- Tratar primeiro como problema operacional do ambiente, não como bug da aplicação.
+- Só fazer novo ajuste de código se, depois de libertar a porta, continuar a haver instabilidade no proxy/HMR.
 
-5. Critérios de aceitação
-- O preview volta a abrir `/`, `/dashboard` e a rota atual sem ecrã vazio.
-- Deixam de aparecer erros repetidos de websocket do Vite.
-- O carregamento inicial funciona sem depender de refreshes múltiplos.
-- A navegação entre páginas volta a ser visível no preview.
+5. Plano de implementação
+- Passo 1: localizar e terminar o processo órfão que está a usar a porta 8080.
+- Passo 2: garantir que fica apenas um único processo Vite gerido pelo ambiente a arrancar em 8080.
+- Passo 3: validar novamente o preview na rota `/` e numa rota interna, confirmando que a app monta.
+- Passo 4: se o preview continuar instável mesmo com a porta livre:
+  - simplificar `server.host` em `vite.config.ts` de `"::"` para `true` ou `0.0.0.0`
+  - manter `port: 8080`
+  - manter `strictPort: true`
+  - manter HMR com `protocol: "wss"` e `clientPort: 443`
+- Passo 5: rever se houve algum arranque manual de Vite fora do fluxo normal e evitar voltar a criar processos paralelos no sandbox.
 
-6. Riscos e pontos a validar
-- Se houver um processo externo a ocupar 8080, com `strictPort: true` o servidor vai falhar explicitamente em vez de mudar para 8081. Isso é melhor para diagnóstico, mas pode exigir reinício limpo do sandbox.
-- Pode ser necessário um segundo ajuste fino no `hmr` se o proxy do preview exigir host/porta/protocolo mais específicos.
-- Depois da correção, convém validar o preview em rota raiz e numa rota interna autenticada.
+6. O que não vou fazer
+- Não vou mexer nas páginas, rotas ou componentes da app sem estabilizar primeiro o servidor.
+- Não vou remover `strictPort`.
+- Não vou assumir que a culpa é do React sem evidência de runtime error.
 
-7. Ficheiro a alterar
-- `vite.config.ts`
+7. Critérios de aceitação
+- O log do dev server deixa de mostrar o ciclo repetido de `Port 8080 is already in use`.
+- Fica apenas um arranque Vite activo em 8080.
+- O preview volta a abrir a rota `/` com conteúdo visível.
+- A consola deixa de mostrar repetidamente `server connection lost. Polling for restart...`.
+- Uma rota interna também abre sem ecrã em branco.
 
-8. Resumo prático
-- O preview não abre porque o servidor de desenvolvimento saiu de 8080 para 8081, mas o ambiente do preview continua a tentar usar 8080.
-- A correção deve bloquear essa troca automática e ajustar o HMR para o ambiente de preview.
+8. Riscos e pontos a validar
+- Se o processo que ocupa 8080 for do próprio sandbox e não apenas um Vite órfão, pode ser necessário reinício limpo do ambiente.
+- Se, depois de libertar a porta, ainda houver falhas no preview, o problema secundário poderá ser binding/host do Vite e aí faz sentido o ajuste em `server.host`.
+- Neste momento, não encontrei evidência de que `App.tsx`, `main.tsx` ou `index.html` sejam a causa raiz.
+
+9. Resumo prático
+- O preview não abre outra vez porque a porta 8080 ficou ocupada por um processo paralelo.
+- O servidor gerido tenta arrancar, falha por causa do `strictPort`, e o browser fica à espera de um restart que não estabiliza.
+- A correcção certa é libertar a 8080 e voltar a ter apenas um único Vite gerido; só depois, se necessário, afinar `host` no `vite.config.ts`.
