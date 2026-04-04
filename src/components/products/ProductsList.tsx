@@ -338,6 +338,9 @@ export function ProductsList() {
 
         {state.activeTab === "categories" && <CategoriesTabContent />}
         {state.activeTab === "pricing" && <PricingTabContent />}
+        {state.activeTab === "bundles" && <BundlesManager />}
+        {state.activeTab === "pricing-rules" && <PricingRulesManager />}
+        {state.activeTab === "stock-alerts" && <StockAlertsManager />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 

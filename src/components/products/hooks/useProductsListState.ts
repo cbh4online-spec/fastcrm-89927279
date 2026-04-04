@@ -59,6 +59,9 @@ export const pageTabs = [
   { id: "products", label: "Produtos" },
   { id: "categories", label: "Categorias" },
   { id: "pricing", label: "Tabelas de Preço" },
+  { id: "bundles", label: "Bundles" },
+  { id: "pricing-rules", label: "Regras de Preço" },
+  { id: "stock-alerts", label: "Alertas Stock" },
   { id: "settings", label: "Configurações" },
 ];
 
