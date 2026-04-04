@@ -42,6 +42,7 @@ import { ProductHealthIndicators } from "./table/ProductHealthIndicators";
 import { ProductBulkActions } from "./table/ProductBulkActions";
 import { ProductsDataTable } from "./table/ProductsDataTable";
 import { ProductsPagination } from "./table/ProductsPagination";
+import { ProductsDashboard } from "./ProductsDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
