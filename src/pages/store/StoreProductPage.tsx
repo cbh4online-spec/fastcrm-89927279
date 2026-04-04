@@ -157,6 +157,7 @@ export default function StoreProductPage() {
       },
       quantity
     );
+    setCartAnimTrigger((c) => c + 1);
   };
 
   if (isLoading) {
