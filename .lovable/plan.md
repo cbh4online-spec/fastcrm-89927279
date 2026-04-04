@@ -1,86 +1,73 @@
 
 
-# Plano: Auditoria e Correção do Módulo de Intelligence
+# Plano: Unificar Categorias — Produto + Loja
 
 ## Diagnóstico
 
-Após análise detalhada de todo o módulo de Intelligence (página, subcomponentes, hooks, edge functions), identifiquei **7 problemas** que afetam a funcionalidade:
+Existem **3 sistemas de categorias desconectados**:
+
+| Sistema | Tabela | Uso atual |
+|---|---|---|
+| 1. Texto livre | `products.category` (text) | Preenchido nos produtos ("Câmeras de Segurança", "SaaS") |
+| 2. Categorias de produto | `product_categories` (tabela) | 18+ registos com imagens, usadas no backoffice (tab Categorias) |
+| 3. Categorias de loja | `store_categories` (tabela) | 1 registo, usadas no storefront — **zero produtos ligados** |
+
+**Resultado**: Os produtos têm `store_category_id = NULL` para todos. A loja mostra categorias vazias ou ignora-as. O cliente não consegue filtrar por categoria.
+
+A `product_categories` é a tabela mais rica (imagens, parent_id para hierarquia, posição, cores, ícones) e já está integrada no módulo de produtos. A `store_categories` é uma duplicação empobrecida.
 
 ---
 
-### Problemas Identificados
+## Solução: `product_categories` como fonte única
 
-**1. BUG CRÍTICO — `ai-generate-automation` referencia variável inexistente**
-Na linha 53 do edge function, o código faz `typeof workspaceId !== 'undefined'` e `typeof workspace_id !== 'undefined'`, mas nenhuma dessas variáveis é extraída do request body ou headers. O aiGate nunca executa, o que significa que não há controlo de quota nesta função.
+Eliminar `store_categories` e usar `product_categories` como sistema central tanto para backoffice como para loja.
 
-**2. BUG — `ai-generate-automation` não valida autenticação**
-A edge function não verifica JWT nem workspace membership. Qualquer pessoa com o anon key pode gerar automações — falha de segurança.
+### Passo 1 — Migração de dados
+- Adicionar coluna `slug` e `store_visible` (bool, default true) à tabela `product_categories`
+- Migrar os produtos: mapear `products.category` (texto) → `product_categories.id` e preencher `store_category_id` com o ID correspondente (match por nome)
+- Gerar slugs automáticos a partir do nome
 
-**3. BUG — `intelligence-panel` usa `getClaims` (API instável)**
-O `getClaims` não é um método standard do Supabase JS client. Deve usar `getUser()` para validação de JWT, que é o padrão documentado e fiável.
+### Passo 2 — Actualizar storefront para usar `product_categories`
+- Alterar `useStoreCategories` para consultar `product_categories` (com `is_active = true` e `store_visible = true`)
+- Alterar `StoreCategoryCarousel` e `StoreCategoryNav` para usar o novo tipo
+- Alterar `useStoreProducts` para filtrar por `store_category_id` ligado a `product_categories`
+- Adicionar contagem de produtos por categoria no carousel (badge com count)
 
-**4. BUG — Tab "Automate" → botão "Save Automation" é fake**
-O botão "Save Automation" (linha 131) faz apenas `toast.success()` sem guardar nada na base de dados. A automação gerada é descartada.
+### Passo 3 — Actualizar backoffice
+- Na tab Categorias do módulo Produtos, adicionar toggle "Visível na Loja" (`store_visible`)
+- Remover a página `StoreCategoriesPage` separada (ou redirecionar para tab Categorias)
+- No formulário de criação/edição de produto, usar select ligado a `product_categories` em vez de texto livre
 
-**5. UX — Textos misturados PT/EN na página Intelligence**
-O título é "Intelligence", as tabs são "Overview", "Assist", "Analyze", "Automate" (EN), mas o conteúdo é maioritariamente PT. Inconsistência de idioma.
+### Passo 4 — Melhorar UX do storefront
+- Mostrar apenas categorias com pelo menos 1 produto publicado
+- Imagens das categorias vindas de `product_categories.image_url`
+- Contagem de produtos visível em cada card de categoria
+- Suporte a subcategorias via `parent_id` (futuro, estrutura já existe)
 
-**6. UX — Tab "Analyze" mostra estado vazio sem orientação**
-Quando não há forecast, mostra "No forecast available" sem explicar o que é necessário (ter oportunidades abertas no pipeline). O utilizador não sabe por onde começar.
-
-**7. FUNCIONAL — `compute-revenue-forecast` não é chamado automaticamente**
-O forecast requer trigger manual via botão. Não há schedule/cron nem regeneração automática quando os dados do pipeline mudam.
-
----
-
-### Plano de Implementação
-
-#### Passo 1 — Corrigir autenticação e aiGate no `ai-generate-automation`
-- Extrair `workspace_id` do body do request
-- Adicionar validação JWT via `getUser()`
-- Verificar membership no workspace
-- Corrigir referência ao aiGate com a variável correcta
-
-#### Passo 2 — Substituir `getClaims` por `getUser` no `intelligence-panel`
-- Usar `supabase.auth.getUser()` (padrão seguro e documentado)
-- Manter a validação de workspace_id
-
-#### Passo 3 — Implementar persistência real na tab "Automate"
-- No clique "Save Automation", inserir na tabela `automations` existente
-- Redirecionar para `/dashboard/automations` após guardar com sucesso
-- Tratar erros e mostrar feedback adequado
-
-#### Passo 4 — Traduzir toda a página Intelligence para PT-PT
-- Título: "Inteligência"
-- Tabs: "Visão Geral", "Assistente", "Análise", "Automação"
-- Conteúdo da tab Analyze: traduzir "Best Case" → "Melhor Cenário", etc.
-- Conteúdo da tab Automate: traduzir "Quick examples" → "Exemplos rápidos", etc.
-
-#### Passo 5 — Melhorar estado vazio na tab "Analyze"
-- Mostrar explicação clara: "É necessário ter oportunidades abertas no pipeline para gerar previsões de receita."
-- Link direto para criar oportunidade
-
-#### Passo 6 — Adicionar regeneração automática do forecast
-- Chamar `compute-revenue-forecast` via invalidação quando pipeline muda (já existe trigger `trg_invalidate_deal_intel`)
-- Adicionar auto-refresh no hook com `refetchInterval` quando o forecast tem mais de 24h
+### Passo 5 — Limpeza
+- Deprecar hooks `useAdminStoreCategories` (substituir por `useProductCategoriesList`)
+- Remover referências à tabela `store_categories` no código
 
 ---
 
-### Ficheiros Afetados
+## Ficheiros Afetados
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/ai-generate-automation/index.ts` | Corrigir auth + aiGate |
-| `supabase/functions/intelligence-panel/index.ts` | Substituir getClaims por getUser |
-| `src/pages/IntelligencePage.tsx` | Traduzir para PT-PT |
-| `src/components/intelligence/AnalyzeTab.tsx` | Traduzir + melhorar estado vazio |
-| `src/components/intelligence/AutomateTab.tsx` | Persistência real + tradução |
-| `src/hooks/useRevenueForecast.ts` | Auto-refresh condicional |
+| Migração SQL | Adicionar `slug`+`store_visible` a `product_categories`; mapear produtos |
+| `src/hooks/useStoreProducts.ts` | `useStoreCategories` → consultar `product_categories` |
+| `src/components/store/sections/StoreCategoryCarousel.tsx` | Adaptar tipo + mostrar count |
+| `src/components/store/sections/StoreCategoryNav.tsx` | Adaptar tipo |
+| `src/components/store/StoreFilterSidebar.tsx` | Adaptar tipo de categorias |
+| `src/components/products/CategoriesTabContent.tsx` | Adicionar toggle "Visível na Loja" |
+| `src/hooks/useProductCategories.ts` | Adicionar campo `slug`/`store_visible` ao tipo |
+| `src/hooks/useAdminStoreCategories.ts` | Deprecar/remover |
+| `src/pages/StoreCategoriesPage.tsx` | Redirecionar ou remover |
 
-### Critérios de Aceitação
-- Todas as edge functions validam JWT e workspace membership
-- Automações geradas são guardadas na BD
-- Interface 100% em PT-PT
-- Estados vazios com orientação clara
-- Forecast auto-refresh quando stale (>24h)
+## Critérios de Aceitação
+- Todas as categorias visíveis na loja vêm de `product_categories`
+- Produtos automaticamente ligados às categorias correctas
+- Filtrar por categoria na loja devolve produtos reais
+- Categorias sem produtos publicados não aparecem na loja
+- Toggle "Visível na Loja" funcional no backoffice
 
