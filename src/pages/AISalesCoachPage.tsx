@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, TrendingUp, AlertTriangle, Target, Zap, RefreshCw, ShieldAlert, BarChart3, Brain, ArrowUpRight, ArrowDownRight, Minus, Search, PlayCircle } from "lucide-react";
+import { Loader2, TrendingUp, AlertTriangle, Target, Zap, RefreshCw, ShieldAlert, BarChart3, Brain, ArrowUpRight, ArrowDownRight, Minus, Search, PlayCircle, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
