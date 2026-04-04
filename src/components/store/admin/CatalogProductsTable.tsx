@@ -132,6 +132,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                         <TooltipContent>{product.price_on_request ? "Preço oculto — clientes pedem cotação" : "Preço visível na loja"}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMoveOrder(product.id, product.store_sort_order, "up")}><ArrowUp className="h-3 w-3" /></Button>
