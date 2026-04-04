@@ -12,7 +12,8 @@ export const checkoutStep1Schema = z.object({
 });
 
 export const checkoutStep2Schema = z.object({
-  email: z.string().trim().min(1, "Preencha o email").email("Email inválido").max(255, "Email demasiado longo"),
+  // Step 2 now validates nothing extra (email moved to step 1)
+  // Can be extended for shipping address validation later
 });
 
 export type CheckoutStep1Data = z.infer<typeof checkoutStep1Schema>;
