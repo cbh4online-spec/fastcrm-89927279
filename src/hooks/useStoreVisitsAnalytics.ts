@@ -39,6 +39,18 @@ interface AiIntentEntry {
   percentage: number;
 }
 
+interface ScrollDepthBucket {
+  range: string;
+  count: number;
+  percentage: number;
+}
+
+interface ExitPageEntry {
+  page: string;
+  exits: number;
+  percentage: number;
+}
+
 interface VisitsKPIs {
   totalViews: number;
   uniqueSessions: number;
@@ -46,6 +58,7 @@ interface VisitsKPIs {
   avgTimeOnSite: number;
   bounceRate: number;
   conversionRate: number;
+  avgScrollDepth: number;
 }
 
 export function useStoreVisitsAnalytics(days: number) {
