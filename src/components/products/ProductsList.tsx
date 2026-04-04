@@ -42,6 +42,7 @@ import { ProductHealthIndicators } from "./table/ProductHealthIndicators";
 import { ProductBulkActions } from "./table/ProductBulkActions";
 import { ProductsDataTable } from "./table/ProductsDataTable";
 import { ProductsPagination } from "./table/ProductsPagination";
+import { ProductsDashboard } from "./ProductsDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
@@ -235,11 +236,17 @@ export function ProductsList() {
             />
 
             {state.products && state.products.length > 0 && (
-              <ProductHealthIndicators
-                productIndicators={state.productIndicators}
-                activeFilterId={state.activeFilterId}
-                onFilterSelect={state.handleFilterSelect}
-              />
+              <>
+                <ProductsDashboard
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
+                <ProductHealthIndicators
+                  productIndicators={state.productIndicators}
+                  activeFilterId={state.activeFilterId}
+                  onFilterSelect={state.handleFilterSelect}
+                />
+              </>
             )}
 
             <ProductBulkActions
@@ -252,10 +259,12 @@ export function ProductsList() {
               onBulkArchive={state.handleBulkArchive}
               onBulkDelete={() => state.deleteProductsBatch.mutateAsync(state.selectedIds)}
               onClearSelection={() => state.setSelectedIds([])}
+              onBulkPublish={state.handleBulkPublish}
+              onBulkDuplicate={state.handleBulkDuplicate}
             />
 
             <ProductsDataTable
-              products={state.paginatedProducts}
+              products={state.filteredProducts}
               isLoading={state.isLoading}
               selectedIds={state.selectedIds}
               onSelectAll={state.handleSelectAll}
@@ -274,14 +283,8 @@ export function ProductsList() {
               formatCurrency={state.formatCurrency}
               toggleStorePublished={state.toggleStorePublished}
               onInlinePriceUpdate={(id, field, value) => state.updateProductPrice.mutate({ id, field, value })}
-            />
-
-            <ProductsPagination
-              currentPage={state.currentPage}
-              totalPages={state.totalPages}
-              pageSize={state.pageSize}
-              onPageChange={state.setCurrentPage}
-              onPageSizeChange={state.setPageSize}
+              isFilteredEmpty={state.filtersActive && state.filteredProducts.length === 0 && !state.isLoading}
+              onClearFilters={state.handleClearFilters}
             />
           </>
         )}

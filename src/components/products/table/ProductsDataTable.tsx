@@ -1,19 +1,23 @@
-import { RefObject } from "react";
+import { RefObject, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Plus, MoreHorizontal, Edit, Archive, RotateCcw, Package,
-  Loader2, Eye, Trash2, ImageOff, TrendingDown,
+  Loader2, Eye, Trash2, ImageOff, TrendingDown, Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -35,7 +39,6 @@ interface ProductsDataTableProps {
   onArchive: (product: Product) => void;
   onDelete: (product: Product) => void;
   onCreate: () => void;
-  // columns
   columnOrder: string[];
   visibleColumns: Set<string>;
   colWidths: {
@@ -44,13 +47,14 @@ interface ProductsDataTableProps {
     autoFitColumn: (id: string, ref: RefObject<HTMLTableElement | null>) => void;
   };
   tableRef: RefObject<HTMLTableElement | null>;
-  // helpers
   getProductTypeLabel: (code: string) => string;
   getBillingTypeLabel: (code: string) => string;
   formatCurrency: (value: number, currency?: string) => string;
   toggleStorePublished: { mutate: (args: { id: string; published: boolean }) => void };
-  // inline editing
   onInlinePriceUpdate?: (id: string, field: "base_price" | "direct_cost", value: number) => void;
+  /** True when search/filters are active but returned 0 results */
+  isFilteredEmpty?: boolean;
+  onClearFilters?: () => void;
 }
 
 function RenderProductCell({
@@ -133,9 +137,20 @@ function RenderProductCell({
       if (product.base_price && product.direct_cost) {
         const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
         return (
-          <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
-            {margin.toFixed(1)}%
-          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
+                  {margin.toFixed(1)}%
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Preço: {formatCurrency(product.base_price, product.currency)}</p>
+                <p>Custo: {formatCurrency(product.direct_cost, product.currency)}</p>
+                <p>Lucro: {formatCurrency(product.base_price - product.direct_cost, product.currency)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       }
       return <span>-</span>;
@@ -147,10 +162,21 @@ function RenderProductCell({
       return <Badge variant={product.status === "active" ? "default" : "secondary"}>{productStatusLabels[product.status]}</Badge>;
     case "store_published":
       return (
-        <Switch
-          checked={!!(product as any).store_published}
-          onCheckedChange={(checked) => toggleStorePublished.mutate({ id: product.id, published: checked })}
-        />
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Switch
+                  checked={!!(product as any).store_published}
+                  onCheckedChange={(checked) => toggleStorePublished.mutate({ id: product.id, published: checked })}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {(product as any).store_published ? "Visível na loja online — clique para ocultar" : "Oculto da loja online — clique para publicar"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     case "b2b_published":
       return (product as any).b2b_published !== false ? (
@@ -179,6 +205,8 @@ function RenderProductCell({
   }
 }
 
+const ROW_HEIGHT = 48;
+
 export function ProductsDataTable({
   products,
   isLoading,
@@ -199,27 +227,54 @@ export function ProductsDataTable({
   formatCurrency,
   toggleStorePublished,
   onInlinePriceUpdate,
+  isFilteredEmpty,
+  onClearFilters,
 }: ProductsDataTableProps) {
   const visibleCols = columnOrder.filter((colId) => visibleColumns.has(colId));
   const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate };
 
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: products.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 8,
+  });
+
   return (
-    <Card className="overflow-x-hidden">
+    <Card className="overflow-hidden flex-1 min-h-0 flex flex-col">
       {isLoading ? (
         <div className="p-8 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
         </div>
       ) : !products?.length ? (
         <div className="p-12 text-center text-muted-foreground">
-          <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <h3 className="text-lg font-medium mb-2">Ainda não tens produtos.</h3>
-          <p className="text-sm mb-4">Cria o primeiro produto para usares em propostas e negócios.</p>
-          <Button onClick={onCreate}>
-            <Plus className="h-4 w-4 mr-2" /> Criar Produto
-          </Button>
+          {isFilteredEmpty ? (
+            <>
+              <Search className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <h3 className="text-lg font-medium mb-2">Nenhum resultado encontrado</h3>
+              <p className="text-sm mb-4">Os filtros aplicados não retornaram resultados. Tenta ajustar os critérios de pesquisa.</p>
+              {onClearFilters && (
+                <Button variant="outline" onClick={onClearFilters}>
+                  Limpar filtros
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <h3 className="text-lg font-medium mb-2">Ainda não tens produtos.</h3>
+              <p className="text-sm mb-4">Cria o primeiro produto para usares em propostas e negócios.</p>
+              <Button onClick={onCreate}>
+                <Plus className="h-4 w-4 mr-2" /> Criar Produto
+              </Button>
+            </>
+          )}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto flex-1 min-h-0 flex flex-col">
+          {/* Sticky header */}
           <Table ref={tableRef} style={{ tableLayout: "fixed", width: "auto" }}>
             <TableHeader>
               <TableRow>
@@ -254,57 +309,88 @@ export function ProductsDataTable({
                 <TableHead className="w-[50px]" style={{ width: 50 }} />
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell style={{ width: 50 }}>
-                    <Checkbox
-                      checked={selectedIds.includes(product.id)}
-                      onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
-                    />
-                  </TableCell>
-                  {visibleCols.map((colId) => {
-                    const w = colWidths.getWidth(colId);
-                    return (
-                      <TableCell
-                        key={colId}
-                        data-col-id={colId}
-                        style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                      >
-                        <RenderProductCell product={product} columnId={colId} helpers={helpers} />
-                      </TableCell>
-                    );
-                  })}
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onOpenDetail(product)}>
-                          <Eye className="h-4 w-4 mr-2" /> Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEdit(product)}>
-                          <Edit className="h-4 w-4 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onArchive(product)}>
-                          {product.status === "active" ? (
-                            <><Archive className="h-4 w-4 mr-2" /> Arquivar</>
-                          ) : (
-                            <><RotateCcw className="h-4 w-4 mr-2" /> Reativar</>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onDelete(product)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
           </Table>
+
+          {/* Virtualized body */}
+          <div
+            ref={parentRef}
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+            style={{ maxHeight: "calc(100vh - 380px)" }}
+          >
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const product = products[virtualRow.index];
+                return (
+                  <div
+                    key={product.id}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    className="flex items-center border-b border-border hover:bg-muted/50 transition-colors"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                      height: ROW_HEIGHT,
+                    }}
+                  >
+                    <div className="flex items-center px-4" style={{ width: 50, minWidth: 50 }}>
+                      <Checkbox
+                        checked={selectedIds.includes(product.id)}
+                        onCheckedChange={(checked) => onSelectOne(product.id, checked as boolean)}
+                      />
+                    </div>
+                    {visibleCols.map((colId) => {
+                      const w = colWidths.getWidth(colId);
+                      return (
+                        <div
+                          key={colId}
+                          data-col-id={colId}
+                          className="flex items-center px-4 text-sm"
+                          style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                        >
+                          <RenderProductCell product={product} columnId={colId} helpers={helpers} />
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center px-2" style={{ width: 50, minWidth: 50 }}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onOpenDetail(product)}>
+                            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(product)}>
+                            <Edit className="h-4 w-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onArchive(product)}>
+                            {product.status === "active" ? (
+                              <><Archive className="h-4 w-4 mr-2" /> Arquivar</>
+                            ) : (
+                              <><RotateCcw className="h-4 w-4 mr-2" /> Reativar</>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onDelete(product)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Row count footer */}
+          <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
+            {products.length} produto{products.length !== 1 ? "s" : ""}
+            {selectedIds.length > 0 && ` · ${selectedIds.length} selecionado${selectedIds.length !== 1 ? "s" : ""}`}
+          </div>
         </div>
       )}
     </Card>
