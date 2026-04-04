@@ -15,6 +15,7 @@ import { StoreIdentitySettings } from "@/components/store-settings/sections/Stor
 import { StoreBrandingSettings } from "@/components/store-settings/sections/StoreBrandingSettings";
 import { StoreNotificationSettings } from "@/components/store-settings/sections/StoreNotificationSettings";
 import { StoreGrowthSettings } from "@/components/store-settings/sections/StoreGrowthSettings";
+import { StorePaymentSettings } from "@/components/store-settings/sections/StorePaymentSettings";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
