@@ -185,6 +185,7 @@ export function ProductsList() {
               sortOptions={sortOptions}
               sortValue={state.sortValue}
               onSortChange={state.setSortValue}
+              searchInputRef={state.searchInputRef}
               leftActions={
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" onClick={() => state.setShowFilterSidebar(!state.showFilterSidebar)} className="gap-2">
