@@ -27,6 +27,7 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
+  const isPriceOnRequest = !!product.price_on_request;
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
   const productHref = getStorefrontItemPath(workspaceSlug, product as any);
 
