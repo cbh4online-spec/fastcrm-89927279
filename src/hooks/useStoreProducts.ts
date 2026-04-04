@@ -31,11 +31,15 @@ export interface StoreCategory {
   id: string;
   workspace_id: string;
   name: string;
-  slug: string;
+  slug: string | null;
   description: string | null;
   position: number;
   is_active: boolean;
   image_url: string | null;
+  color: string | null;
+  icon: string | null;
+  store_visible: boolean;
+  product_count?: number;
 }
 
 interface UseStoreProductsOptions {
