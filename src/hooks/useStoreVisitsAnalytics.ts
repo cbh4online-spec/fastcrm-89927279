@@ -102,6 +102,9 @@ export function useStoreVisitsAnalytics(days: number) {
         ai_intent: string | null;
         started_at: string;
         products_viewed: string[] | null;
+        scroll_depth_max: number | null;
+        exit_page: string | null;
+        pages_history: string[] | null;
       }>;
     },
   });
