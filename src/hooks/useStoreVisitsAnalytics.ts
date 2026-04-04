@@ -249,6 +249,40 @@ export function useStoreVisitsAnalytics(days: number) {
     }))
     .sort((a, b) => b.count - a.count);
 
+  // Scroll Depth Buckets
+  const scrollBuckets = [
+    { range: "0-25%", min: 0, max: 25 },
+    { range: "26-50%", min: 26, max: 50 },
+    { range: "51-75%", min: 51, max: 75 },
+    { range: "76-100%", min: 76, max: 100 },
+  ];
+  const scrollDepthDistribution: ScrollDepthBucket[] = scrollBuckets.map((bucket) => {
+    const count = sessions.filter((s) => {
+      const d = s.scroll_depth_max ?? 0;
+      return d >= bucket.min && d <= bucket.max;
+    }).length;
+    return {
+      range: bucket.range,
+      count,
+      percentage: uniqueSessions > 0 ? (count / uniqueSessions) * 100 : 0,
+    };
+  });
+
+  // Exit Pages
+  const exitMap = new Map<string, number>();
+  for (const s of sessions) {
+    const page = s.exit_page || s.pages_history?.[s.pages_history.length - 1] || "desconhecido";
+    exitMap.set(page, (exitMap.get(page) || 0) + 1);
+  }
+  const exitPages: ExitPageEntry[] = Array.from(exitMap.entries())
+    .map(([page, exits]) => ({
+      page,
+      exits,
+      percentage: uniqueSessions > 0 ? (exits / uniqueSessions) * 100 : 0,
+    }))
+    .sort((a, b) => b.exits - a.exits)
+    .slice(0, 15);
+
   return {
     kpis,
     dailyVisits,
@@ -257,6 +291,8 @@ export function useStoreVisitsAnalytics(days: number) {
     topPages,
     referrers,
     aiIntents,
+    scrollDepthDistribution,
+    exitPages,
     isLoading,
   };
 }
