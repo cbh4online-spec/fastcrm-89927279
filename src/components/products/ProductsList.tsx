@@ -240,8 +240,15 @@ export function ProductsList() {
                         state.colWidths.autoFitAll(visibleColIds, state.tableRef);
                       }}>Ajustar automaticamente</DropdownMenuItem>
                       <DropdownMenuItem onClick={state.colWidths.resetWidths}>Repor larguras padrão</DropdownMenuItem>
-                    </DropdownMenuContent>
+                  </DropdownMenuContent>
                   </DropdownMenu>
+                  <LayoutPresetsManager
+                    visibleColumns={state.visibleColumns}
+                    columnOrder={state.columnOrder}
+                    columnWidths={state.colWidths.widths}
+                    onApplyPreset={handleApplyPreset}
+                    storageKey="products-table-columns"
+                  />
                   <ColumnSelector
                     columns={PRODUCT_COLUMNS}
                     visibleColumns={state.visibleColumns}
