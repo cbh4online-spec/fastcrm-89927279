@@ -817,7 +817,7 @@ export function ProductsList() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
         {/* Page Header */}
         <PageHeader
           title="Produtos"
