@@ -344,6 +344,7 @@ export function ProductsList() {
         {state.activeTab === "bundles" && <BundlesManager />}
         {state.activeTab === "pricing-rules" && <PricingRulesManager />}
         {state.activeTab === "stock-alerts" && <StockAlertsManager />}
+        {state.activeTab === "reports" && <ProductReportsTab />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 
