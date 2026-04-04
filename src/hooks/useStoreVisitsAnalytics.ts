@@ -138,6 +138,9 @@ export function useStoreVisitsAnalytics(days: number) {
   const bounceRate = uniqueSessions > 0 ? (bounceSessions / uniqueSessions) * 100 : 0;
   const convertedSessions = sessions.filter((s) => s.converted).length;
   const conversionRate = uniqueSessions > 0 ? (convertedSessions / uniqueSessions) * 100 : 0;
+  const avgScrollDepth = uniqueSessions > 0
+    ? sessions.reduce((s, x) => s + (x.scroll_depth_max || 0), 0) / uniqueSessions
+    : 0;
 
   const kpis: VisitsKPIs = {
     totalViews,
@@ -146,6 +149,7 @@ export function useStoreVisitsAnalytics(days: number) {
     avgTimeOnSite,
     bounceRate,
     conversionRate,
+    avgScrollDepth,
   };
 
   // Daily visits
