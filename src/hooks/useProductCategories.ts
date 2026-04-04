@@ -13,6 +13,8 @@ export interface ProductCategory {
   image_url: string | null;
   position: number;
   is_active: boolean;
+  slug: string | null;
+  store_visible: boolean;
   created_at: string;
   updated_at: string;
 }
