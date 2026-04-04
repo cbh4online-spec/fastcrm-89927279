@@ -67,18 +67,21 @@ export function StoreOrderTracking({
 
       if (error) throw error;
 
-      // Send tracking notification email
+      // Send tracking notification email via transactional email system
       if (number) {
         try {
-          await supabase.functions.invoke("send-tracking-notification", {
+          await supabase.functions.invoke("send-transactional-email", {
             body: {
-              orderId,
-              customerEmail,
-              customerName,
-              orderNumber,
-              trackingNumber: number,
-              trackingCarrier: carrierConfig?.label || carrier,
-              trackingUrl: finalUrl,
+              templateName: "order-shipped",
+              recipientEmail: customerEmail,
+              idempotencyKey: `order-shipped-${orderId}`,
+              templateData: {
+                customerName,
+                orderNumber,
+                trackingNumber: number,
+                trackingCarrier: carrierConfig?.label || carrier,
+                trackingUrl: finalUrl,
+              },
             },
           });
         } catch (emailErr) {
