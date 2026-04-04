@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, MoreHorizontal, Package, Eye, ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, MoreHorizontal, Package, Eye, ImageIcon, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
