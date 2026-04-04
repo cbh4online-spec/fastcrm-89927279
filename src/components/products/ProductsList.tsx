@@ -798,7 +798,7 @@ export function ProductsList() {
 
 
   return (
-    <div className="flex h-full -m-6">
+    <div className="flex h-full min-h-0 -m-6">
       {/* Filter Sidebar - only show on products tab */}
       {activeTab === "products" && (
         <FilterSidebar
