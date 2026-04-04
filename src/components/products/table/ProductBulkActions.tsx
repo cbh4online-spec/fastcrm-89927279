@@ -30,6 +30,7 @@ interface ProductBulkActionsProps {
   onClearSelection: () => void;
   onBulkPublish?: (published: boolean) => void;
   onBulkDuplicate?: () => void;
+  onCompare?: () => void;
 }
 
 export function ProductBulkActions({
