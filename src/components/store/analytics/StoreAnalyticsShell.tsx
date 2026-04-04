@@ -20,6 +20,7 @@ import { StoreCustomersTab } from "./StoreCustomersTab";
 import { StoreCouponsTab } from "./StoreCouponsTab";
 import { StoreInventoryTab } from "./StoreInventoryTab";
 import { StoreFinancialTab } from "./StoreFinancialTab";
+import { StoreVisitsTab } from "./StoreVisitsTab";
 
 export function StoreAnalyticsShell() {
   const [period, setPeriod] = useState(30);

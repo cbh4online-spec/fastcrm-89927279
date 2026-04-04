@@ -59,7 +59,7 @@ export function useStoreVisitsAnalytics(days: number) {
         .select("id, product_id, session_id, created_at")
         .gte("created_at", cutoff);
       if (error) throw error;
-      return (data || []) as Array<{
+      return (data || []) as unknown as Array<{
         id: string;
         product_id: string | null;
         session_id: string | null;
@@ -76,7 +76,7 @@ export function useStoreVisitsAnalytics(days: number) {
         .select("*")
         .gte("started_at", cutoff);
       if (error) throw error;
-      return (data || []) as Array<{
+      return (data || []) as unknown as Array<{
         session_id: string;
         pages_viewed: number;
         time_on_site_seconds: number;
