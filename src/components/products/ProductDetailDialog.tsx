@@ -84,6 +84,7 @@ import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
+import { ProductActivityLog } from "./ProductActivityLog";
 import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
@@ -361,6 +362,9 @@ export function ProductDetailDialog({
                       <TabsTrigger value="price-history" className="text-xs px-2.5 py-1 h-7">
                         <TrendingUp className="h-3 w-3 mr-1" />Preços
                       </TabsTrigger>
+                      <TabsTrigger value="audit" className="text-xs px-2.5 py-1 h-7">
+                        <History className="h-3 w-3 mr-1" />Auditoria
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -606,6 +610,10 @@ export function ProductDetailDialog({
                       costPrice={product.direct_cost}
                       currency={product.currency}
                     />
+                  </TabsContent>
+
+                  <TabsContent value="audit" className="mt-4">
+                    <ProductActivityLog productId={product.id} />
                   </TabsContent>
                 </Tabs>
               </div>

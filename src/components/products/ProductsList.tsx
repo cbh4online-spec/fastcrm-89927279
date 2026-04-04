@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import {
   Plus, PanelLeft, PanelLeftClose, Store, RefreshCw,
   Upload, ScanLine, Columns, AlertTriangle, Trash2,
   Package, Repeat, FileBox, Tag, CircleDollarSign,
-  Calendar, Layers,
+  Calendar, Layers, Download,
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
@@ -43,10 +43,13 @@ import { ProductBulkActions } from "./table/ProductBulkActions";
 import { ProductsDataTable } from "./table/ProductsDataTable";
 import { ProductsPagination } from "./table/ProductsPagination";
 import { ProductsDashboard } from "./ProductsDashboard";
+import { ProductsExportDialog } from "./ProductsExportDialog";
+import { CatalogInsights } from "./CatalogInsights";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
   const state = useProductsListState();
+  const [exportOpen, setExportOpen] = useState(false);
 
   // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
@@ -168,6 +171,7 @@ export function ProductsList() {
           onTabChange={state.setActiveTab}
           actions={state.activeTab === "products" ? [
             { label: "Scan", icon: <ScanLine className="h-4 w-4" />, onClick: () => state.setScannerOpen(true), variant: "outline" as const },
+            { label: "Exportar", icon: <Download className="h-4 w-4" />, onClick: () => setExportOpen(true), variant: "outline" as const },
             { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const },
             { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
           ] : undefined}
@@ -237,6 +241,10 @@ export function ProductsList() {
 
             {state.products && state.products.length > 0 && (
               <>
+                <CatalogInsights
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
                 <ProductsDashboard
                   products={state.products}
                   formatCurrency={state.formatCurrency}
@@ -309,6 +317,15 @@ export function ProductsList() {
         />
       )}
       <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
+      <ProductsExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        products={state.products || []}
+        filteredProducts={state.filteredProducts}
+        formatCurrency={state.formatCurrency}
+        getProductTypeLabel={state.getProductTypeLabel}
+        getBillingTypeLabel={state.getBillingTypeLabel}
+      />
 
       <AlertDialog
         open={!!state.deleteConfirmProduct}
