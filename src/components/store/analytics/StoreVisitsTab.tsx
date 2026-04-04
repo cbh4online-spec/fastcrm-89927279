@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KPICard } from "./KPICard";
 import { fadeIn } from "./AnalyticsChartHelpers";
-import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown } from "lucide-react";
+import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut } from "lucide-react";
 import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
