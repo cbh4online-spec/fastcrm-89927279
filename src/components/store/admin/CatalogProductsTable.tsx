@@ -78,6 +78,7 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
             <TableHead className="text-right">Preço</TableHead>
             <TableHead className="text-center">Publicado</TableHead>
             <TableHead className="text-center">Destaque</TableHead>
+            <TableHead className="text-center">Preço sob consulta</TableHead>
             <TableHead className="text-center">Ordem</TableHead>
             <TableHead className="w-10" />
           </TableRow>
