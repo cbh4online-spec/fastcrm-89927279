@@ -32,9 +32,28 @@ interface StoreProductCardProps {
 export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlistProductIds = [], tierPricing, index = 0, reviewStats, salesCounts }: StoreProductCardProps) {
   const { addItem } = useStoreCart();
   const toggleWishlist = useToggleWishlist();
+  const queryClient = useQueryClient();
   const { addItem: addToCompare, removeItem: removeFromCompare, isInCompare, isFull: compareFull } = useStoreCompare();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Prefetch product data on hover for instant PDP navigation
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    queryClient.prefetchQuery({
+      queryKey: ["store-product", product.id],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", product.id)
+          .eq("store_visible", true)
+          .single();
+        return data;
+      },
+      staleTime: 30_000,
+    });
+  }, [product.id, queryClient]);
   const inCompare = isInCompare(product.id);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
