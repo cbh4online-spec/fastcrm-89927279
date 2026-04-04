@@ -1,30 +1,56 @@
-## Fase 5 — Comparação, Presets, Analytics Avançado & Automações de Catálogo ✅
+## Fase 6 — Importação Avançada, Drag-to-Reorder, Variantes & Workflow de Aprovação
 
-### 1. Comparação de produtos (side-by-side) ✅
-**Ficheiro:** `src/components/products/ProductComparisonSheet.tsx`
-- Sheet com comparação lado-a-lado de 2-3 produtos selecionados
-- Diff visual: preço, custo, margem, categoria, status, specs, imagens
-- Highlight automático de diferenças entre produtos
-- Botão "Comparar" nas bulk actions (min 2, max 3 selecionados)
+### 1. Importação avançada de produtos
+**Ficheiro:** `src/components/products/ProductImportWizard.tsx` (novo)
 
-### 2. Presets de layout salvos ✅
-**Ficheiro:** `src/components/products/table/LayoutPresetsManager.tsx`
-- Presets built-in: "Vista Completa", "Vista Financeira", "Vista Catálogo"
-- Presets custom persistidos em localStorage
-- Dropdown no toolbar para trocar rapidamente
-- Guardar/eliminar presets custom
+- Wizard multi-step: Upload → Preview → Mapeamento de colunas → Validação → Confirmação
+- Suporte a CSV e Excel (xlsx) via `exceljs` + `papaparse`
+- Preview dos primeiros 10 registos com highlighting de erros
+- Auto-detecção de colunas (nome, preço, sku, categoria)
+- Resumo pré-confirmação: total, novos, erros, warnings
+- Validação: campos obrigatórios, formato de preço, SKU duplicados
+- Inserção em batch com progress bar
 
-### 3. Dashboard analítico avançado ✅
-**Ficheiro:** `src/components/products/ProductsAnalyticsDashboard.tsx`
-- Gráfico de distribuição por categoria (donut via recharts)
-- Gráfico de distribuição por status (bar chart)
-- Top 10 produtos por margem (horizontal bar)
-- KPIs: total, preço médio, margem média, % com imagem, % com custo
-- Collapsible toggle
+### 2. Drag-to-reorder colunas
+**Ficheiro:** `src/components/common/ColumnSelector.tsx` (refactor)
 
-### 4. Automações de catálogo ✅
-**Ficheiro:** `src/components/products/CatalogAutomations.tsx`
-- Alertas automáticos: preço desatualizado, sem imagem, margem negativa, margem baixa, sugestão de preço
-- Cards clicáveis que ativam filtros correspondentes
-- Dismiss/snooze persistido em localStorage
-- Badges de severidade (critical/warning/info)
+- Adicionar drag handles com `@dnd-kit/sortable` (já instalado)
+- Reordenar colunas via drag-and-drop no seletor
+- Botão "Repor predefinições" que reseta ordem + visibilidade + larguras
+- Persistir ordem em localStorage (já parcialmente implementado)
+
+### 3. Variantes de produto
+**Tabela:** `product_variants` (nova migração)
+**Ficheiro:** `src/components/products/ProductVariantsManager.tsx` (existe, refactor)
+
+- Tabela `product_variants` com: product_id, variant_name, variant_value, sku, price_override, stock_quantity, sort_order
+- UI: tabela editável inline no detalhe do produto
+- Adicionar/remover variantes (ex: Cor → Azul, Vermelho; Tamanho → S, M, L)
+- Preço override por variante (herda do produto-pai se vazio)
+- RLS: workspace_id scope
+
+### 4. Workflow de aprovação/lifecycle
+**Ficheiros:** Refactor `useProductLifecycle.ts` + novo `ProductLifecyclePanel.tsx`
+
+- Painel visual de workflow no detalhe do produto
+- Estados: Rascunho → Em Revisão → Ativo → Descontinuado → Arquivado
+- Transições controladas com validação (ex: não pode publicar sem preço)
+- Notificação automática ao submeter para revisão (já existe via `admin_notifications`)
+- Timeline de transições de estado integrada com o changelog existente
+- Badges de estado coloridos na tabela principal
+
+### Ordem de execução
+1. Drag-to-reorder colunas (mais simples, UX imediato)
+2. Importação avançada (valor alto, complexidade média)
+3. Variantes de produto (requer migração DB)
+4. Workflow de aprovação (integração com lifecycle existente)
+
+### Ficheiros a alterar/criar
+- `src/components/common/ColumnSelector.tsx` — drag-to-reorder + reset
+- `src/components/products/ProductImportWizard.tsx` (novo)
+- `src/components/products/ProductVariantsManager.tsx` (refactor)
+- `src/components/products/ProductLifecyclePanel.tsx` (novo)
+- `src/components/products/ProductDetailDialog.tsx` — integrar variantes + lifecycle
+- `src/components/products/ProductsList.tsx` — integrar import wizard
+- `src/hooks/useProductLifecycle.ts` — adicionar validações de transição
+- Migração: tabela `product_variants` com RLS
