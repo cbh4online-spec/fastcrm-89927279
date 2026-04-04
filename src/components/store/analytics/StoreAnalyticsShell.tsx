@@ -8,7 +8,7 @@ import { StoreCartsTab } from "@/components/store/StoreCartsTab";
 import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import {
   BarChart3, DollarSign, Package, Users, Tag,
-  ShoppingCart, Layers, CalendarIcon,
+  ShoppingCart, Layers, CalendarIcon, Eye,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -20,6 +20,7 @@ import { StoreCustomersTab } from "./StoreCustomersTab";
 import { StoreCouponsTab } from "./StoreCouponsTab";
 import { StoreInventoryTab } from "./StoreInventoryTab";
 import { StoreFinancialTab } from "./StoreFinancialTab";
+import { StoreVisitsTab } from "./StoreVisitsTab";
 
 export function StoreAnalyticsShell() {
   const [period, setPeriod] = useState(30);
@@ -132,6 +133,9 @@ export function StoreAnalyticsShell() {
           <TabsTrigger value="financial" className="gap-1.5 text-xs sm:text-sm">
             <DollarSign className="h-3.5 w-3.5" /> Financeiro
           </TabsTrigger>
+          <TabsTrigger value="visits" className="gap-1.5 text-xs sm:text-sm">
+            <Eye className="h-3.5 w-3.5" /> Visitas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
@@ -164,6 +168,9 @@ export function StoreAnalyticsShell() {
 
         <TabsContent value="financial" className="space-y-6 mt-6">
           <StoreFinancialTab checkoutFunnel={checkoutFunnel} customerLTV={customerLTV} bundleRevenue={bundleRevenue} />
+        </TabsContent>
+        <TabsContent value="visits" className="space-y-6 mt-6">
+          <StoreVisitsTab days={effectiveDays} />
         </TabsContent>
       </Tabs>
     </div>
