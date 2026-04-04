@@ -95,6 +95,7 @@ function parseSortValue(sortValue: string): { sortBy: string; sortDirection: "as
 
 export function useProductsListState() {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // --- UI state ---
