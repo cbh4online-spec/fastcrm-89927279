@@ -183,6 +183,23 @@ export function CategoriesTabContent() {
                       {category.is_active ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-flex" onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            checked={category.store_visible ?? true}
+                            onCheckedChange={(checked) =>
+                              updateCategory.mutate({ id: category.id, store_visible: checked })
+                            }
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {category.store_visible !== false ? "Visível na loja" : "Oculta da loja"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
