@@ -27,6 +27,7 @@ interface ColumnSelectorProps {
   columnOrder: string[];
   onVisibleColumnsChange: (columns: Set<string>) => void;
   onColumnOrderChange: (order: string[]) => void;
+  onResetWidths?: () => void;
   storageKey?: string;
 }
 
