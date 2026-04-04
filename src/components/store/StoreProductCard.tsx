@@ -256,28 +256,32 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                   <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
                 </Button>
               )}
-              {/* Quick Buy */}
-              <StoreQuickBuyButton
-                product={{
-                  id: product.id,
-                  name: product.name,
-                  price: effectivePrice,
-                  currency: product.currency,
-                  image: imageUrl,
-                  sku: product.sku || undefined,
-                }}
-                workspaceSlug={workspaceSlug}
-                disabled={!canAddToCart}
-                compact
-              />
-              <Button
-                size="icon"
-                className="h-10 w-10 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
-                onClick={handleAddToCart}
-                disabled={!canAddToCart}
-              >
-                <ShoppingBag className="h-4 w-4" />
-              </Button>
+              {/* Quick Buy & Cart — hidden for price_on_request */}
+              {!isPriceOnRequest && (
+                <>
+                  <StoreQuickBuyButton
+                    product={{
+                      id: product.id,
+                      name: product.name,
+                      price: effectivePrice,
+                      currency: product.currency,
+                      image: imageUrl,
+                      sku: product.sku || undefined,
+                    }}
+                    workspaceSlug={workspaceSlug}
+                    disabled={!canAddToCart}
+                    compact
+                  />
+                  <Button
+                    size="icon"
+                    className="h-10 w-10 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
+                    onClick={handleAddToCart}
+                    disabled={!canAddToCart}
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
