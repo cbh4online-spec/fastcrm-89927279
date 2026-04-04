@@ -49,12 +49,14 @@ import { ProductComparisonSheet } from "./ProductComparisonSheet";
 import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
 import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
 import { CatalogAutomations } from "./CatalogAutomations";
+import { ProductImportWizard } from "./ProductImportWizard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
   const state = useProductsListState();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   const comparisonProducts = useMemo(() => {
     if (!state.products) return [];
