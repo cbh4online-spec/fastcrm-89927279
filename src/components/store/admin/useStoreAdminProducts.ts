@@ -200,7 +200,7 @@ export function useStoreAdminProducts(search: string) {
   return {
     products, isLoading, suggestions,
     updateProduct, applySuggestion, dismissSuggestion,
-    togglePublish, toggleFeatured, moveOrder,
+    togglePublish, toggleFeatured, togglePriceOnRequest, moveOrder,
     updateSinglePrice, updateAllPrices,
     loadingPrices, bulkProgress,
     publishedCount: products.filter(p => p.store_published).length,
