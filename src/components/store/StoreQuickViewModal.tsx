@@ -145,31 +145,42 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
             )}
 
             <div className="mt-auto space-y-3">
-              {/* Quantity */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Qtd:</span>
-                <div className="flex items-center border rounded-lg overflow-hidden">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="w-10 text-center text-sm font-medium">{quantity}</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(quantity + 1)}>
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
+              {isPriceOnRequest ? (
+                <Button variant="outline" className="w-full gap-2" asChild>
+                  <Link to={productHref}>
+                    <ExternalLink className="h-4 w-4" />
+                    Ver Detalhes e Pedir Preço
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  {/* Quantity */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">Qtd:</span>
+                    <div className="flex items-center border rounded-lg overflow-hidden">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(quantity + 1)}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
 
-              <Button className="w-full gap-2" onClick={handleAddToCart} disabled={isOutOfStock}>
-                <ShoppingBag className="h-4 w-4" />
-                Adicionar ao Carrinho
-              </Button>
+                  <Button className="w-full gap-2" onClick={handleAddToCart} disabled={isOutOfStock}>
+                    <ShoppingBag className="h-4 w-4" />
+                    Adicionar ao Carrinho
+                  </Button>
 
-              <Button variant="outline" className="w-full gap-2" asChild>
-                <Link to={productHref}>
-                  <ExternalLink className="h-4 w-4" />
-                  Ver Detalhes
-                </Link>
-              </Button>
+                  <Button variant="outline" className="w-full gap-2" asChild>
+                    <Link to={productHref}>
+                      <ExternalLink className="h-4 w-4" />
+                      Ver Detalhes
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

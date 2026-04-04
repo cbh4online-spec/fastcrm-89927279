@@ -773,20 +773,22 @@ export default function StoreProductPage() {
           productContext={{ name: product.name, category: product.category || undefined }}
         />
 
-        {/* Mobile Conversion Bar */}
-        <StoreMobileConversionBar
-          product={{
-            id: product.id,
-            name: product.name,
-            price: pricing?.price ?? product.base_price,
-            currency: product.currency,
-            image: images[primaryIndex] || images[0],
-            sku: product.sku || undefined,
-          }}
-          workspaceSlug={wsSlug}
-          isOutOfStock={isOutOfStock}
-          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
-        />
+        {/* Mobile Conversion Bar — hidden for price on request */}
+        {!isPriceOnRequest && (
+          <StoreMobileConversionBar
+            product={{
+              id: product.id,
+              name: product.name,
+              price: pricing?.price ?? product.base_price,
+              currency: product.currency,
+              image: images[primaryIndex] || images[0],
+              sku: product.sku || undefined,
+            }}
+            workspaceSlug={wsSlug}
+            isOutOfStock={isOutOfStock}
+            triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+          />
+        )}
 
         {/* Add to Cart Animation */}
         <StoreAddToCartAnimation trigger={cartAnimTrigger} />
