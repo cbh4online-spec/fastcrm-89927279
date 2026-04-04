@@ -222,6 +222,10 @@ export default function StoreSettingsPage() {
               <StoreNotificationSettings form={form} setForm={setForm} />
             </TabsContent>
 
+            <TabsContent value="payments" className="mt-4">
+              <StorePaymentSettings />
+            </TabsContent>
+
             <TabsContent value="shipping" className="mt-4">
               <ShippingMethodsManager />
             </TabsContent>
