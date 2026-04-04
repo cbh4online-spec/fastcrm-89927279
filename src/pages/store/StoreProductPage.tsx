@@ -105,7 +105,6 @@ export default function StoreProductPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [cartAnimTrigger, setCartAnimTrigger] = useState(0);
-  const [showVideo, setShowVideo] = useState(false);
   const { workspaceId: resolvedWsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
