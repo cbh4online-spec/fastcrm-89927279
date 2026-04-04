@@ -1,61 +1,84 @@
 
 
-# Plano: Tab "Visitas" no Analytics da Loja
+# Plano: Pedido de Preço (Price on Request)
 
 ## Diagnóstico
 
-O analytics da loja tem tabs de Vendas, Produtos, Clientes, etc., mas **falta completamente o componente de análise de visitas/tráfego**. Existem duas tabelas com dados relevantes já a ser populadas:
-
-| Tabela | Dados | Registos |
-|---|---|---|
-| `store_page_views` | Views por produto (product_id, session_id, created_at) | 55 views, 7 sessões, 11 produtos |
-| `store_visitor_sessions` | Sessões completas (pages_viewed, time_on_site, device, UTM, referrer, AI intent) | 6 sessões |
-
-Os dados existem mas **não são apresentados em nenhum dashboard**.
+Não existe nenhum mecanismo para ocultar o preço de um produto na loja mantendo-o visível. Já existe um `StoreOfferDialog` para "Fazer Oferta" que pode servir de base, mas a lógica é diferente — aqui o cliente pede cotação sem ver preço.
 
 ## Solução
 
-Criar uma nova tab **"Visitas"** no `StoreAnalyticsShell` com os seguintes módulos:
+### Passo 1 — Migração DB
 
-### KPIs principais
-- Total de visitas (page views)
-- Sessões únicas
-- Páginas por sessão (média)
-- Tempo médio no site
-- Taxa de bounce (sessões com 1 página)
-- Taxa de conversão (sessões com `converted = true`)
+- Adicionar coluna `price_on_request` (boolean, default false) à tabela `products`
+- Criar tabela `store_price_requests` para armazenar os pedidos:
 
-### Gráficos e tabelas
+```text
+store_price_requests
+├── id (uuid, PK)
+├── workspace_id (uuid, FK workspaces)
+├── product_id (uuid, FK products)
+├── customer_name (text)
+├── customer_email (text)
+├── customer_phone (text, nullable)
+├── message (text, nullable)
+├── status (text: 'pending' | 'replied' | 'closed', default 'pending')
+├── admin_notes (text, nullable)
+├── created_at (timestamptz)
+└── updated_at (timestamptz)
+```
 
-1. **Visitas diárias** — Gráfico de área com views e sessões únicas por dia
-2. **Dispositivos** — Donut chart (desktop vs mobile vs tablet) via `device_type`
-3. **Fontes de tráfego** — Tabela com UTM source/medium, sessões, conversão
-4. **Páginas mais vistas** — Ranking de produtos por views, com CTR (views → encomenda)
-5. **Referrers** — Top referrers externos
-6. **Intenção AI** — Distribuição de `ai_intent` (browsing, buying, comparing, etc.)
+- RLS: INSERT para anon/authenticated, SELECT/UPDATE escopado por workspace via membership
 
-## Ficheiros a criar/modificar
+### Passo 2 — Storefront: Ocultar preço + botão "Pedir Preço"
+
+**StoreProductCard.tsx**: Quando `price_on_request = true`:
+- Substituir bloco de preço por label "Preço sob consulta"
+- Esconder botões "Adicionar ao Carrinho" e "Quick Buy"
+- Manter Quick View, Wishlist e Compare
+
+**StoreProductPage.tsx**: Quando `price_on_request = true`:
+- Substituir preço por "Preço sob consulta"
+- Substituir secção de quantidade + Add to Cart por botão "Pedir Preço" que abre dialog
+- Esconder Sticky Add to Cart e Mobile Conversion Bar
+
+### Passo 3 — StorePriceRequestDialog (novo componente)
+
+Dialog similar ao StoreOfferDialog mas sem campo de preço:
+- Campos: Nome, Email, Telefone (opcional), Mensagem (opcional)
+- Submit insere em `store_price_requests`
+- Mensagem de confirmação após envio
+
+### Passo 4 — Backoffice
+
+- No formulário de produto, adicionar toggle "Preço sob consulta" (`price_on_request`)
+- Na área de loja/admin, criar secção ou tab para listar pedidos de preço recebidos com filtros por estado (pendente/respondido/fechado)
+
+### Passo 5 — Hook e tipo
+
+- Adicionar `price_on_request` ao interface `StoreProduct`
+- Criar hook `useStorePriceRequests` para CRUD dos pedidos
+- Incluir `price_on_request` no select query de `useStoreProducts`
+
+## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/store/analytics/StoreVisitsTab.tsx` | **Criar** — novo componente com todos os módulos de visitas |
-| `src/hooks/useStoreVisitsAnalytics.ts` | **Criar** — hook dedicado que agrega dados de `store_page_views` + `store_visitor_sessions` |
-| `src/components/store/analytics/StoreAnalyticsShell.tsx` | **Modificar** — adicionar tab "Visitas" com ícone Eye |
-
-## Estrutura técnica do hook
-
-```typescript
-// useStoreVisitsAnalytics(days)
-// Query 1: store_page_views → views diárias, top produtos
-// Query 2: store_visitor_sessions → sessões, dispositivos, UTM, referrers, AI intent
-// Retorna: { kpis, dailyVisits, deviceBreakdown, trafficSources, topPages, referrers, aiIntents }
-```
+| Migração SQL | `price_on_request` + tabela `store_price_requests` + RLS |
+| `src/components/store/StorePriceRequestDialog.tsx` | **Criar** |
+| `src/hooks/useStorePriceRequests.ts` | **Criar** |
+| `src/hooks/useStoreProducts.ts` | Adicionar campo ao interface e query |
+| `src/components/store/StoreProductCard.tsx` | Condicional preço/carrinho |
+| `src/pages/store/StoreProductPage.tsx` | Condicional preço/carrinho + dialog |
+| `src/components/store/StoreQuickViewModal.tsx` | Condicional preço |
+| `src/components/store/StoreStickyAddToCart.tsx` | Esconder se price_on_request |
+| `src/components/store/StoreMobileConversionBar.tsx` | Esconder se price_on_request |
+| Formulário de produto (backoffice) | Toggle price_on_request |
 
 ## Critérios de aceitação
-- Tab "Visitas" visível e funcional no analytics da loja
-- KPIs calculados a partir de dados reais das duas tabelas
-- Gráfico de visitas diárias com período configurável (usa o selector já existente)
-- Breakdown por dispositivo, fonte UTM e referrer
-- Ranking de produtos por visualizações
-- Estados vazios, loading e erro tratados
+- Produto com `price_on_request = true` não mostra preço em nenhuma vista da loja
+- Botão "Pedir Preço" abre formulário e grava pedido na DB
+- Produto continua visível, pesquisável e comparável
+- Toggle funcional no backoffice
+- Pedidos de preço listados no admin
 
