@@ -592,7 +592,7 @@ export function useProductsListState() {
     bulkDeleteOpen, setBulkDeleteOpen,
     bulkCostOpen, setBulkCostOpen,
     handleArchive, handleDeleteConfirm,
-    handleBulkExport, handleBulkArchive,
+    handleBulkExport, handleBulkArchive, handleBulkPublish, handleBulkDuplicate,
     visibleColumns, setVisibleColumns, columnOrder, setColumnOrder,
     colWidths, tableRef,
     searchInputRef,
