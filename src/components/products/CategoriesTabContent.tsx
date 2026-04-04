@@ -46,6 +46,7 @@ export function CategoriesTabContent() {
   const { data: categories, isLoading } = useProductCategoriesList();
   const { data: productCounts } = useProductCountByCategory();
   const deleteCategory = useDeleteProductCategory();
+  const updateCategory = useUpdateProductCategory();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
