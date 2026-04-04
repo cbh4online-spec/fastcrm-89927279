@@ -27,6 +27,7 @@ interface ColumnSelectorProps {
   columnOrder: string[];
   onVisibleColumnsChange: (columns: Set<string>) => void;
   onColumnOrderChange: (order: string[]) => void;
+  onResetWidths?: () => void;
   storageKey?: string;
 }
 
@@ -43,6 +44,7 @@ export function ColumnSelector({
   columnOrder,
   onVisibleColumnsChange,
   onColumnOrderChange,
+  onResetWidths,
   storageKey = "table-columns",
 }: ColumnSelectorProps) {
   const [open, setOpen] = useState(false);
@@ -82,6 +84,7 @@ export function ColumnSelector({
     );
     onVisibleColumnsChange(defaultColumns);
     onColumnOrderChange(columns.map(c => c.id));
+    onResetWidths?.();
   };
 
   const handleSelectAll = (category: string, selected: boolean) => {

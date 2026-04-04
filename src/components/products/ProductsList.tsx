@@ -49,12 +49,14 @@ import { ProductComparisonSheet } from "./ProductComparisonSheet";
 import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
 import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
 import { CatalogAutomations } from "./CatalogAutomations";
+import { ProductImportWizard } from "./ProductImportWizard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
   const state = useProductsListState();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   const comparisonProducts = useMemo(() => {
     if (!state.products) return [];
@@ -190,6 +192,7 @@ export function ProductsList() {
           actions={state.activeTab === "products" ? [
             { label: "Scan", icon: <ScanLine className="h-4 w-4" />, onClick: () => state.setScannerOpen(true), variant: "outline" as const },
             { label: "Exportar", icon: <Download className="h-4 w-4" />, onClick: () => setExportOpen(true), variant: "outline" as const },
+            { label: "Importar", icon: <Upload className="h-4 w-4" />, onClick: () => setImportWizardOpen(true), variant: "outline" as const },
             { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const },
             { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
           ] : undefined}
@@ -255,6 +258,7 @@ export function ProductsList() {
                     columnOrder={state.columnOrder}
                     onVisibleColumnsChange={state.setVisibleColumns}
                     onColumnOrderChange={state.setColumnOrder}
+                    onResetWidths={state.colWidths.resetWidths}
                     storageKey="products-table-columns"
                   />
                   <Button variant="ghost" size="sm" onClick={() => state.refetch()} className="gap-2">
@@ -352,6 +356,7 @@ export function ProductsList() {
         />
       )}
       <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
+      <ProductImportWizard open={importWizardOpen} onOpenChange={setImportWizardOpen} />
       <ProductsExportDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
