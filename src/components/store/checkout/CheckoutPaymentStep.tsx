@@ -1,7 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
 import type { CTTShippingOption } from "./useCheckoutPricing";
 
