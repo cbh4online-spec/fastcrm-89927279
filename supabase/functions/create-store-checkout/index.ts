@@ -623,6 +623,31 @@ Deno.serve(async (req) => {
         .eq("id", reservationId);
     }
 
+    // ── BANK TRANSFER: skip Stripe, return order info ──
+    if (paymentMethod === "bank_transfer") {
+      logStep("Bank transfer order created", { orderId });
+
+      // Fetch order number
+      let orderNumber = "";
+      if (orderId) {
+        const { data: orderData } = await supabaseClient
+          .from("store_orders")
+          .select("order_number")
+          .eq("id", orderId)
+          .single();
+        orderNumber = orderData?.order_number || orderId;
+      }
+
+      return new Response(JSON.stringify({
+        bankTransfer: true,
+        orderId,
+        orderNumber,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // ── Create Stripe Checkout Session ──
     const sessionConfig: Record<string, unknown> = {
       customer: customerId,
@@ -648,10 +673,19 @@ Deno.serve(async (req) => {
       },
     };
 
+    // Configure payment method types based on selected payment method
     if (sessionMode === "payment") {
       sessionConfig.shipping_address_collection = {
         allowed_countries: ["PT", "ES", "FR", "DE", "IT", "GB", "US", "BR"],
       };
+
+      if (paymentMethod === "mbway") {
+        sessionConfig.payment_method_types = ["mbway"];
+      } else if (paymentMethod === "multibanco") {
+        sessionConfig.payment_method_types = ["multibanco"];
+      } else {
+        sessionConfig.payment_method_types = ["card"];
+      }
     }
 
     if (sessionMode === "subscription") {
@@ -666,7 +700,7 @@ Deno.serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionConfig as any);
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url, paymentMethod });
 
     // Update order and reservation with stripe_session_id
     if (orderId) {
