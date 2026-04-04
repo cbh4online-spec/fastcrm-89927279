@@ -5,7 +5,7 @@ import { useStoreSettings, useUpsertStoreSettings } from "@/hooks/useStoreSettin
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag } from "lucide-react";
+import { Store, Palette, Bell, Save, Loader2, Truck, TrendingUp, ShoppingBag, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StoreShareCard } from "@/components/store-settings/StoreShareCard";
@@ -15,6 +15,7 @@ import { StoreIdentitySettings } from "@/components/store-settings/sections/Stor
 import { StoreBrandingSettings } from "@/components/store-settings/sections/StoreBrandingSettings";
 import { StoreNotificationSettings } from "@/components/store-settings/sections/StoreNotificationSettings";
 import { StoreGrowthSettings } from "@/components/store-settings/sections/StoreGrowthSettings";
+import { StorePaymentSettings } from "@/components/store-settings/sections/StorePaymentSettings";
 
 export default function StoreSettingsPage() {
   const { currentWorkspace } = useWorkspace();
@@ -193,6 +194,7 @@ export default function StoreSettingsPage() {
               <TabsTrigger value="general" className="gap-1"><Store className="h-4 w-4" /> Geral</TabsTrigger>
               <TabsTrigger value="branding" className="gap-1"><Palette className="h-4 w-4" /> Branding</TabsTrigger>
               <TabsTrigger value="notifications" className="gap-1"><Bell className="h-4 w-4" /> Notificações</TabsTrigger>
+              <TabsTrigger value="payments" className="gap-1"><CreditCard className="h-4 w-4" /> Pagamentos</TabsTrigger>
               <TabsTrigger value="shipping" className="gap-1"><Truck className="h-4 w-4" /> Envio</TabsTrigger>
               <TabsTrigger value="growth" className="gap-1"><TrendingUp className="h-4 w-4" /> Crescimento</TabsTrigger>
               <TabsTrigger value="marketplace" className="gap-1"><ShoppingBag className="h-4 w-4" /> Marketplace</TabsTrigger>
@@ -218,6 +220,10 @@ export default function StoreSettingsPage() {
 
             <TabsContent value="notifications" className="space-y-4 mt-4">
               <StoreNotificationSettings form={form} setForm={setForm} />
+            </TabsContent>
+
+            <TabsContent value="payments" className="mt-4">
+              <StorePaymentSettings />
             </TabsContent>
 
             <TabsContent value="shipping" className="mt-4">

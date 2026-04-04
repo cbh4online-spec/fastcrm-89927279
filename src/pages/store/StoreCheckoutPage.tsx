@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
@@ -18,6 +19,9 @@ import { CheckoutPaymentStep } from "@/components/store/checkout/CheckoutPayment
 import { CheckoutSummaryCard } from "@/components/store/checkout/CheckoutSummaryCard";
 import { useCheckoutForm } from "@/components/store/checkout/useCheckoutForm";
 import { useCheckoutPricing } from "@/components/store/checkout/useCheckoutPricing";
+import { CheckoutBankTransferInfo } from "@/components/store/checkout/CheckoutBankTransferInfo";
+import { formatMoney } from "@/lib/money";
+import type { PaymentMethodType } from "@/components/store/checkout/CheckoutPaymentMethodPicker";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -28,8 +32,14 @@ export default function StoreCheckoutPage() {
   const { data: storeSettings } = usePublicStoreSettings(wsId || "");
   const storeName = storeSettings?.store_name || "Loja";
 
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>("stripe_card");
+  const [bankTransferOrder, setBankTransferOrder] = useState<{ orderNumber: string; bankDetails: any } | null>(null);
+
   const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
   const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
+
+  const paymentMethods = (storeSettings as any)?.payment_methods || { stripe_card: true };
+  const bankTransferDetails = (storeSettings as any)?.bank_transfer_details || {};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +63,7 @@ export default function StoreCheckoutPage() {
           shippingCost: pricing.effectiveShippingCost,
           shippingMethodName: pricing.selectedCttOption?.name || undefined,
           abandonedCartId: abandonedCartId || undefined,
+          paymentMethod: selectedPaymentMethod,
           successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
           cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
         },
@@ -64,6 +75,13 @@ export default function StoreCheckoutPage() {
       if (data?.paidWithGiftCard) {
         clearCart();
         window.location.href = `/store/${wsSlug}/success`;
+      } else if (data?.bankTransfer) {
+        // Bank transfer: show info, don't redirect
+        clearCart();
+        setBankTransferOrder({
+          orderNumber: data.orderNumber,
+          bankDetails: bankTransferDetails,
+        });
       } else if (data?.url) {
         trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: pricing.finalTotal });
         clearCart();
@@ -78,6 +96,30 @@ export default function StoreCheckoutPage() {
       form.setIsProcessing(false);
     }
   };
+
+  // Bank transfer confirmation view
+  if (bankTransferOrder) {
+    return (
+      <div className="min-h-screen bg-background">
+        <StoreHeader workspaceSlug={wsSlug} />
+        <div className="container mx-auto px-4 py-12 max-w-lg text-center space-y-6">
+          <CheckCircle2 className="h-16 w-16 text-primary mx-auto" />
+          <h2 className="text-2xl font-bold">Encomenda registada!</h2>
+          <p className="text-muted-foreground">
+            Complete o pagamento por transferência bancária para que possamos processar a sua encomenda.
+          </p>
+          <CheckoutBankTransferInfo
+            bankDetails={bankTransferOrder.bankDetails}
+            orderTotal={formatMoney(pricing.finalTotal)}
+            orderNumber={bankTransferOrder.orderNumber}
+          />
+          <Link to={`/store/${wsSlug}`}>
+            <Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Voltar à Loja</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -148,6 +190,9 @@ export default function StoreCheckoutPage() {
                   cttOptions={pricing.cttOptions}
                   selectedShippingId={pricing.selectedShippingId}
                   onSelectShipping={pricing.setSelectedShippingId}
+                  enabledPaymentMethods={paymentMethods}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  onSelectPaymentMethod={setSelectedPaymentMethod}
                 />
               )}
               <TrustBadges />

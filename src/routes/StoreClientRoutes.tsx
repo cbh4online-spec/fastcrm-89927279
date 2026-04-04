@@ -16,6 +16,7 @@ const StoreDigitalAssetsPage = lazy(() => import("@/pages/store/StoreDigitalAsse
 const StoreLoyaltyPage = lazy(() => import("@/pages/store/StoreLoyaltyPage"));
 const StoreReferralPage = lazy(() => import("@/pages/store/StoreReferralPage"));
 const StoreGiftCardsPage = lazy(() => import("@/pages/store/StoreGiftCardsPage"));
+const StoreOrderTrackingPage = lazy(() => import("@/pages/store/StoreOrderTrackingPage"));
 
 // Store admin pages (dashboard)
 const StoreOrdersPage = lazy(() => import("@/pages/StoreOrdersPage"));
@@ -78,6 +79,7 @@ export function StoreRoutes() {
         <Route path=":workspaceSlug/loyalty" element={<StoreLoyaltyPage />} />
         <Route path=":workspaceSlug/referrals" element={<StoreReferralPage />} />
         <Route path=":workspaceSlug/gift-cards" element={<StoreGiftCardsPage />} />
+        <Route path=":workspaceSlug/order/:orderId" element={<StoreOrderTrackingPage />} />
       </Routes>
     </StoreCartProvider>
   );

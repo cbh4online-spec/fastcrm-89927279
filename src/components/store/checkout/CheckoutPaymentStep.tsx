@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Lock, Loader2 } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
+import { CheckoutPaymentMethodPicker, type PaymentMethodType } from "./CheckoutPaymentMethodPicker";
 import type { CTTShippingOption } from "./useCheckoutPricing";
+
+const BUTTON_LABELS: Record<PaymentMethodType, string> = {
+  stripe_card: "Pagar com Cartão",
+  mbway: "Pagar com MB Way",
+  multibanco: "Pagar com Multibanco",
+  bank_transfer: "Confirmar Encomenda",
+};
 
 interface CheckoutPaymentStepProps {
   formData: { name: string; phone: string; email: string };
@@ -18,6 +26,10 @@ interface CheckoutPaymentStepProps {
   cttOptions: CTTShippingOption[];
   selectedShippingId: string;
   onSelectShipping: (id: string) => void;
+  // Payment methods
+  enabledPaymentMethods: Record<string, boolean>;
+  selectedPaymentMethod: PaymentMethodType;
+  onSelectPaymentMethod: (method: PaymentMethodType) => void;
 }
 
 export function CheckoutPaymentStep({
@@ -34,7 +46,12 @@ export function CheckoutPaymentStep({
   cttOptions,
   selectedShippingId,
   onSelectShipping,
+  enabledPaymentMethods,
+  selectedPaymentMethod,
+  onSelectPaymentMethod,
 }: CheckoutPaymentStepProps) {
+  const buttonLabel = BUTTON_LABELS[selectedPaymentMethod] || "Pagar";
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {/* Summary of step 1 data */}
@@ -59,6 +76,12 @@ export function CheckoutPaymentStep({
         onSelectShipping={onSelectShipping}
       />
 
+      <CheckoutPaymentMethodPicker
+        enabledMethods={enabledPaymentMethods}
+        selected={selectedPaymentMethod}
+        onSelect={onSelectPaymentMethod}
+      />
+
       <Button
         type="submit"
         size="lg"
@@ -66,12 +89,12 @@ export function CheckoutPaymentStep({
         disabled={isProcessing || !formData.email.trim()}
       >
         {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {isProcessing ? "A redirecionar para o Stripe..." : "Pagar com Stripe"}
+        {isProcessing ? "A processar..." : buttonLabel}
       </Button>
 
       <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
         <Lock className="h-3 w-3" />
-        Pagamento seguro processado pelo Stripe
+        Pagamento seguro
       </p>
     </form>
   );
