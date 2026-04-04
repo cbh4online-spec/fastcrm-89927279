@@ -62,6 +62,7 @@ export const pageTabs = [
   { id: "bundles", label: "Bundles" },
   { id: "pricing-rules", label: "Regras de Preço" },
   { id: "stock-alerts", label: "Alertas Stock" },
+  { id: "reports", label: "Relatórios" },
   { id: "settings", label: "Configurações" },
 ];
 
