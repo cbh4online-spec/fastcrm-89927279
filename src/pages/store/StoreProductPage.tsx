@@ -11,6 +11,9 @@ import { StoreVisitorTracker } from "@/components/store/StoreVisitorTracker";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreImageZoom } from "@/components/store/StoreImageZoom";
 import { StoreStickyAddToCart } from "@/components/store/StoreStickyAddToCart";
+import { StoreMobileConversionBar } from "@/components/store/StoreMobileConversionBar";
+import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
+import { StoreAddToCartAnimation } from "@/components/store/StoreAddToCartAnimation";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { PriceHistoryChart } from "@/components/store/PriceHistoryChart";
 import { PriceComparisonWidget } from "@/components/store/PriceComparisonWidget";
@@ -61,6 +64,8 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
+// Add-to-cart animation trigger counter
+
 function getEstimatedDelivery(): string {
   let date = addDays(new Date(), 3);
   // Skip weekends
@@ -99,6 +104,7 @@ export default function StoreProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
+  const [cartAnimTrigger, setCartAnimTrigger] = useState(0);
   const { workspaceId: resolvedWsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
@@ -150,6 +156,7 @@ export default function StoreProductPage() {
       },
       quantity
     );
+    setCartAnimTrigger((c) => c + 1);
   };
 
   if (isLoading) {
@@ -531,9 +538,25 @@ export default function StoreProductPage() {
                   >
                     <ShoppingBag className="h-5 w-5" />
                     Adicionar ao Carrinho
-                  </Button>
+                    </Button>
 
-                   {/* Make Offer button */}
+                    {/* Quick Buy */}
+                    <StoreQuickBuyButton
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        price: pricing?.price ?? product.base_price,
+                        currency: product.currency,
+                        image: images[primaryIndex] || images[0],
+                        sku: product.sku || undefined,
+                      }}
+                      workspaceSlug={wsSlug}
+                      disabled={isOutOfStock}
+                      quantity={quantity}
+                      className="w-full h-12 text-base"
+                    />
+
+                     {/* Make Offer button */}
                   <StoreOfferDialog
                     productId={product.id}
                     productName={product.name}
@@ -699,6 +722,24 @@ export default function StoreProductPage() {
           workspaceSlug={wsSlug}
           productContext={{ name: product.name, category: product.category || undefined }}
         />
+
+        {/* Mobile Conversion Bar */}
+        <StoreMobileConversionBar
+          product={{
+            id: product.id,
+            name: product.name,
+            price: pricing?.price ?? product.base_price,
+            currency: product.currency,
+            image: images[primaryIndex] || images[0],
+            sku: product.sku || undefined,
+          }}
+          workspaceSlug={wsSlug}
+          isOutOfStock={isOutOfStock}
+          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+        />
+
+        {/* Add to Cart Animation */}
+        <StoreAddToCartAnimation trigger={cartAnimTrigger} />
       </div>
     </>
     </StoreVatProvider>

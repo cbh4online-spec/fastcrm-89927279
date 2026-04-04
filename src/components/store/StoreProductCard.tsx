@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame, GitCompareArrows, User } from "lucide-react";
+import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame, GitCompareArrows, User, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { StoreProductConditionBadge } from "@/components/store/StoreProductCondi
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { useStoreCompare } from "@/contexts/StoreCompareContext";
+import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
@@ -213,6 +214,20 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                   <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
                 </Button>
               )}
+              {/* Quick Buy */}
+              <StoreQuickBuyButton
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  price: effectivePrice,
+                  currency: product.currency,
+                  image: imageUrl,
+                  sku: product.sku || undefined,
+                }}
+                workspaceSlug={workspaceSlug}
+                disabled={!canAddToCart}
+                compact
+              />
               <Button
                 size="icon"
                 className="h-10 w-10 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
