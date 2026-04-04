@@ -1,116 +1,88 @@
 
-# Plano: Sistema de Afiliados Transversal
 
-## Visão Geral
+# Catálogo de Produtos (Flipbook Style)
 
-Criar um motor de afiliados completo que permita a qualquer pessoa registar-se como afiliado, partilhar links de referência e ganhar comissões sobre vendas geradas em **todos os módulos** (Loja, Marketplace, Subscrições SaaS, módulos futuros).
+## Conceito
+Criar um módulo de **Catálogo Digital de Produtos** que reutiliza a engine do Flipbook (react-pageflip) para gerar catálogos visuais folheáveis a partir dos produtos da loja. O admin configura o catálogo no backoffice e partilha um link público ou embeddable.
 
----
+## Arquitectura
 
-## Arquitectura de Dados (12 tabelas)
+### 1. Base de Dados (2 tabelas novas)
 
-### Tabelas Core
+**`product_catalogs`** — definição do catálogo
+- `id`, `workspace_id`, `title`, `subtitle`, `cover_image`, `slug` (único), `description`
+- `style_tokens` (jsonb) — cores, fontes, estilo visual (mesmo formato dos eBooks)
+- `settings` (jsonb) — produtos por página, layout, mostrar preços, mostrar descrição, watermark
+- `status` (draft/published), `is_public` (boolean)
+- `created_by`, `created_at`, `updated_at`
 
-| Tabela | Função |
-|---|---|
-| `affiliate_programs` | Programas configuráveis por workspace (ex: "Programa Loja", "Programa SaaS"). Cada programa tem nome, comissão default (% ou valor fixo), cookie duration, min payout, status |
-| `affiliate_program_tiers` | Tiers multinível por programa (ex: Bronze 10%, Silver 15%, Gold 20%). Threshold de volume para upgrade automático |
-| `affiliate_program_rules` | Regras de comissão por módulo/produto/categoria. Permite override granular da comissão default do programa |
-| `affiliates` | Registo de afiliados. Campos: user_id (nullable para guests), email, name, status (pending/active/suspended/rejected), affiliate_code (único), parent_affiliate_id (para multinível), current_tier_id, workspace_id |
-| `affiliate_links` | Links de tracking gerados. Campos: affiliate_id, url, campaign_name, utm_params, click_count |
-| `affiliate_clicks` | Log de cliques com IP, user_agent, referrer, landing_page, timestamp |
-| `affiliate_conversions` | Conversões rastreadas. Campos: affiliate_id, order_id (nullable), subscription_id (nullable), source_module (store/marketplace/saas), gross_amount, commission_amount, commission_rate, status (pending/approved/rejected/paid), level (1 ou 2 para multinível) |
-| `affiliate_balances` | Saldo actual do afiliado (earned, pending, paid, available) |
-| `affiliate_payouts` | Histórico de pagamentos. Campos: affiliate_id, amount, method (stripe/manual/credit), status (pending/processing/completed/failed), processed_by, stripe_payout_id |
-| `affiliate_payout_methods` | Métodos de pagamento configurados pelo afiliado (IBAN, PayPal, Stripe Connect account) |
-| `affiliate_notifications` | Notificações ao afiliado (nova venda, payout processado, tier upgrade) |
-| `affiliate_settings` | Configurações globais por workspace (auto-approve, cookie days, min payout threshold, terms & conditions URL) |
+**`product_catalog_items`** — produtos incluídos e ordem
+- `id`, `catalog_id` (FK), `product_id` (FK para products), `sort_order`
+- `custom_title`, `custom_description`, `custom_image` — overrides opcionais
+- `page_break_before` (boolean) — forçar nova página
 
-### RLS
-- Todas as tabelas escopadas por `workspace_id`
-- Afiliados só vêem os seus próprios dados (affiliate_id = current user)
-- Admin do workspace vê tudo do workspace
-- Payouts: INSERT/UPDATE apenas via service_role (Edge Functions)
+RLS: escopado por workspace_id via catalog.
 
----
+### 2. Backend — Edge Function `ai-catalog-suggest`
+- Ação `generate_layout`: a IA recebe lista de produtos e sugere agrupamento por categoria, ordem e estilo visual adequado.
+- Ação `generate_descriptions`: a IA gera descrições de catálogo otimizadas para cada produto.
 
-## Módulos Frontend
+### 3. Frontend — Backoffice
 
-### 1. Portal do Afiliado (público/autenticado)
-- **Página de registo** (`/affiliate/register`) — formulário público self-service
-- **Dashboard do afiliado** (`/affiliate/dashboard`) — KPIs, gráficos, links, conversões, saldo, payouts
-- **Gerador de links** — criar links com UTMs customizados por produto/página
-- **Histórico de conversões** — tabela filtável com status
-- **Métodos de pagamento** — configurar IBAN/PayPal/Stripe para receber
-- **Materiais** — banners, textos, recursos de marketing (fase futura)
+**`ProductCatalogListPage.tsx`** — lista de catálogos com CRUD
+- Criar, duplicar, eliminar catálogos
+- Estado (rascunho/publicado), link de partilha
 
-### 2. Admin de Afiliados (dashboard interno)
-- **Gestão de programas** — CRUD de programas, tiers e regras de comissão
-- **Lista de afiliados** — aprovar/rejeitar/suspender, ver performance
-- **Conversões** — aprovar/rejeitar conversões pendentes
-- **Payouts** — processar pagamentos, ver histórico
-- **Analytics** — top afiliados, receita gerada, ROI por programa
-- **Configurações** — cookie duration, auto-approve, min payout, T&C
+**`ProductCatalogEditorPage.tsx`** — editor do catálogo
+- Drag-and-drop para adicionar/reordenar produtos
+- Seletor de produtos da loja (filtro por categoria)
+- Personalização visual (cores, fontes) reutilizando `StyleTokens` dos eBooks
+- Preview em tempo real do flipbook
+- Botões IA: "Sugerir layout", "Gerar descrições"
+- Configurações: produtos por página (1, 2, 4), mostrar preços, watermark
 
-### 3. Tracking Engine (Edge Functions)
-- **`affiliate-track-click`** — regista clique, define cookie (30 dias default)
-- **`affiliate-register-conversion`** — chamado internamente pelo checkout da loja, marketplace e subscrições. Calcula comissão com base nas regras do programa, aplica multinível (nível 2 = % da comissão do nível 1)
-- **`affiliate-process-payout`** — processa payouts manuais ou automáticos via Stripe
+### 4. Frontend — Visualização Pública
 
-### 4. Integração nos Módulos Existentes
-- **Store Checkout** (`create-store-checkout`) — ao finalizar compra, verificar cookie de afiliado e chamar `affiliate-register-conversion`
-- **Marketplace Orders** — mesma lógica para vendas C2C
-- **Subscrições SaaS** — comissão recorrente no primeiro pagamento ou em todas as renovações (configurável)
+**`StoreCatalogViewPage.tsx`** — rota pública `/store/:slug/catalog/:catalogSlug`
+- Reutiliza `PageFlipBook` (react-pageflip) para renderizar
+- Páginas geradas dinamicamente: capa → índice por categoria → páginas de produtos → contracapa
+- Toolbar com navegação, fullscreen, zoom (reutiliza `FlipbookToolbar`)
+- Responsivo com fallback compacto em mobile
 
----
+### 5. Componente de Página de Produto para Flipbook
 
-## Fases de Implementação
+**`CatalogFlipbookPage.tsx`** — novo tipo de página
+- Layout 1 produto: imagem grande + nome + preço + descrição + CTA
+- Layout 2 produtos: grid lado a lado
+- Layout 4 produtos: grid compacto com thumbnails
+- Herda CSS variables do sistema de eBooks (--ebook-primary, etc.)
 
-### Fase 1 — Infraestrutura (este plano)
-1. Migração DB: criar as 12 tabelas + RLS + triggers
-2. Hook `useAffiliatePrograms` + `useAffiliates` + `useAffiliateConversions`
-3. Portal do afiliado: registo + dashboard + links
-4. Admin: gestão de programas + afiliados + conversões
-5. Edge Function `affiliate-track-click` + tracking via cookie
-6. Edge Function `affiliate-register-conversion`
-7. Integração no checkout da loja
-
-### Fase 2 — Expansão (futuro)
-- Payouts automáticos via Stripe Connect
-- Integração Marketplace + SaaS
-- Materiais de marketing
-- Relatórios avançados
-
----
+### 6. Rotas
+- Backoffice: `/dashboard/store/catalogs` e `/dashboard/store/catalogs/:id/edit`
+- Público: `/store/:workspaceSlug/catalog/:catalogSlug`
 
 ## Ficheiros a Criar/Modificar
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/migrations/...` | Criar 12 tabelas + RLS + triggers |
-| `src/hooks/useAffiliates.ts` | Hook CRUD para afiliados |
-| `src/hooks/useAffiliatePrograms.ts` | Hook CRUD para programas e regras |
-| `src/hooks/useAffiliateConversions.ts` | Hook para conversões e payouts |
-| `src/hooks/useAffiliateTracking.ts` | Hook de tracking (cookie read/write) |
-| `src/pages/AffiliateRegisterPage.tsx` | Página pública de registo |
-| `src/pages/AffiliateDashboardPage.tsx` | Dashboard do afiliado |
-| `src/pages/AffiliateAdminPage.tsx` | Admin de afiliados (workspace) |
-| `src/components/affiliates/...` | Componentes UI (tabs, cards, tabelas) |
-| `supabase/functions/affiliate-track-click/index.ts` | Edge Function tracking |
-| `supabase/functions/affiliate-register-conversion/index.ts` | Edge Function conversões |
-| `src/routes/...` | Adicionar rotas de afiliados |
+| Migration SQL (2 tabelas + RLS) | Criar |
+| `src/hooks/useProductCatalogs.ts` | Criar — CRUD + query |
+| `src/hooks/useAICatalog.ts` | Criar — chamadas à edge function |
+| `src/pages/ProductCatalogListPage.tsx` | Criar — listagem |
+| `src/pages/ProductCatalogEditorPage.tsx` | Criar — editor |
+| `src/pages/store/StoreCatalogViewPage.tsx` | Criar — leitor público |
+| `src/components/catalog/CatalogFlipbookPage.tsx` | Criar — renderização de página |
+| `src/components/catalog/CatalogProductPicker.tsx` | Criar — seletor de produtos |
+| `src/components/catalog/CatalogStyleEditor.tsx` | Criar — personalização visual |
+| `supabase/functions/ai-catalog-suggest/index.ts` | Criar — IA |
+| `src/routes/StoreRoutes.tsx` | Modificar — rota pública |
+| Rotas dashboard | Modificar — rotas backoffice |
 
----
+## Fluxo do Utilizador
+1. Admin vai a **Loja → Catálogos** → clica "Novo Catálogo"
+2. Define título, capa e estilo visual
+3. Adiciona produtos (manual ou IA sugere agrupamento)
+4. Pré-visualiza o flipbook em tempo real
+5. Publica → obtém link partilhável
+6. Clientes acedem ao catálogo folheável na loja
 
-## Critérios de Aceitação
-
-- [ ] Qualquer pessoa pode registar-se como afiliado via portal público
-- [ ] Afiliado recebe código único e pode gerar links personalizados
-- [ ] Cliques em links são rastreados com cookie de 30 dias
-- [ ] Conversões registadas automaticamente no checkout
-- [ ] Comissão calculada com base nas regras do programa (% ou fixo)
-- [ ] Multinível: afiliado de nível 2 recebe % configurável
-- [ ] Admin pode aprovar/rejeitar afiliados e conversões
-- [ ] Saldos calculados correctamente (pending vs available)
-- [ ] Dashboard do afiliado com KPIs e histórico
-- [ ] RLS garante isolamento total de dados entre workspaces e afiliados
