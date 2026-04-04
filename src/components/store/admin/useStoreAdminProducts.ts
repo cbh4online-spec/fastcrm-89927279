@@ -153,6 +153,11 @@ export function useStoreAdminProducts(search: string) {
     toast.success(!current ? "Produto marcado como destaque" : "Destaque removido");
   };
 
+  const togglePriceOnRequest = (id: string, current: boolean) => {
+    updateProduct.mutate({ id, price_on_request: !current });
+    toast.success(!current ? "Preço sob consulta ativado" : "Preço visível na loja");
+  };
+
   const moveOrder = (id: string, currentOrder: number | null, direction: "up" | "down") => {
     const newOrder = (currentOrder || 0) + (direction === "up" ? -1 : 1);
     updateProduct.mutate({ id, store_sort_order: Math.max(0, newOrder) });
