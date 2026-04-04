@@ -133,6 +133,9 @@ export function StoreAnalyticsShell() {
           <TabsTrigger value="financial" className="gap-1.5 text-xs sm:text-sm">
             <DollarSign className="h-3.5 w-3.5" /> Financeiro
           </TabsTrigger>
+          <TabsTrigger value="visits" className="gap-1.5 text-xs sm:text-sm">
+            <Eye className="h-3.5 w-3.5" /> Visitas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
