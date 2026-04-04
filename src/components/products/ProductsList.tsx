@@ -817,7 +817,7 @@ export function ProductsList() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6">
+      <div className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
         {/* Page Header */}
         <PageHeader
           title="Produtos"
@@ -1032,7 +1032,7 @@ export function ProductsList() {
             )}
 
             {/* Table */}
-            <Card className="flex-1 overflow-hidden">
+            <Card className="overflow-hidden">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
