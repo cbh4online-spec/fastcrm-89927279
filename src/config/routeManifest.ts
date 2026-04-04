@@ -23,7 +23,7 @@
  */
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, Newspaper, Gauge, Bell,
+  LayoutDashboard, Newspaper, Gauge, Bell, RotateCcw,
   Users, UserCheck, Building2, TrendingUp, GitBranch,
   MessageSquare, Briefcase, UserPlus, Zap, Phone,
   Inbox, Calendar, Send, FileText,
