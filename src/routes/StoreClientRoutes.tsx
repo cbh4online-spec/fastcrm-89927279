@@ -79,6 +79,7 @@ export function StoreRoutes() {
         <Route path=":workspaceSlug/loyalty" element={<StoreLoyaltyPage />} />
         <Route path=":workspaceSlug/referrals" element={<StoreReferralPage />} />
         <Route path=":workspaceSlug/gift-cards" element={<StoreGiftCardsPage />} />
+        <Route path=":workspaceSlug/order/:orderId" element={<StoreOrderTrackingPage />} />
       </Routes>
     </StoreCartProvider>
   );
