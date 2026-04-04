@@ -21,8 +21,11 @@ import {
   useProductCategoriesList,
   useProductCountByCategory,
   useDeleteProductCategory,
+  useUpdateProductCategory,
   ProductCategory,
 } from "@/hooks/useProductCategories";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CategoryDialog } from "./CategoryDialog";
 import { CategoryProductsSheet } from "./CategoryProductsSheet";
 import { CreateProductDialog } from "./CreateProductDialog";

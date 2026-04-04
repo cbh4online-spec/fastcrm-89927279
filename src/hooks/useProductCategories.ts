@@ -26,6 +26,8 @@ export interface CreateProductCategoryInput {
   icon?: string;
   image_url?: string;
   is_active?: boolean;
+  store_visible?: boolean;
+  slug?: string;
 }
 
 export interface UpdateProductCategoryInput extends Partial<CreateProductCategoryInput> {
