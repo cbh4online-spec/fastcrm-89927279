@@ -169,6 +169,9 @@ export function StoreAnalyticsShell() {
         <TabsContent value="financial" className="space-y-6 mt-6">
           <StoreFinancialTab checkoutFunnel={checkoutFunnel} customerLTV={customerLTV} bundleRevenue={bundleRevenue} />
         </TabsContent>
+        <TabsContent value="visits" className="space-y-6 mt-6">
+          <StoreVisitsTab days={effectiveDays} />
+        </TabsContent>
       </Tabs>
     </div>
   );
