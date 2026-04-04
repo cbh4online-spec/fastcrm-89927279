@@ -236,11 +236,17 @@ export function ProductsList() {
             />
 
             {state.products && state.products.length > 0 && (
-              <ProductHealthIndicators
-                productIndicators={state.productIndicators}
-                activeFilterId={state.activeFilterId}
-                onFilterSelect={state.handleFilterSelect}
-              />
+              <>
+                <ProductsDashboard
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
+                <ProductHealthIndicators
+                  productIndicators={state.productIndicators}
+                  activeFilterId={state.activeFilterId}
+                  onFilterSelect={state.handleFilterSelect}
+                />
+              </>
             )}
 
             <ProductBulkActions
@@ -253,10 +259,12 @@ export function ProductsList() {
               onBulkArchive={state.handleBulkArchive}
               onBulkDelete={() => state.deleteProductsBatch.mutateAsync(state.selectedIds)}
               onClearSelection={() => state.setSelectedIds([])}
+              onBulkPublish={state.handleBulkPublish}
+              onBulkDuplicate={state.handleBulkDuplicate}
             />
 
             <ProductsDataTable
-              products={state.paginatedProducts}
+              products={state.filteredProducts}
               isLoading={state.isLoading}
               selectedIds={state.selectedIds}
               onSelectAll={state.handleSelectAll}
@@ -275,14 +283,8 @@ export function ProductsList() {
               formatCurrency={state.formatCurrency}
               toggleStorePublished={state.toggleStorePublished}
               onInlinePriceUpdate={(id, field, value) => state.updateProductPrice.mutate({ id, field, value })}
-            />
-
-            <ProductsPagination
-              currentPage={state.currentPage}
-              totalPages={state.totalPages}
-              pageSize={state.pageSize}
-              onPageChange={state.setCurrentPage}
-              onPageSizeChange={state.setPageSize}
+              isFilteredEmpty={state.filtersActive && state.filteredProducts.length === 0 && !state.isLoading}
+              onClearFilters={state.handleClearFilters}
             />
           </>
         )}
