@@ -171,6 +171,7 @@ export function ProductsList() {
           onTabChange={state.setActiveTab}
           actions={state.activeTab === "products" ? [
             { label: "Scan", icon: <ScanLine className="h-4 w-4" />, onClick: () => state.setScannerOpen(true), variant: "outline" as const },
+            { label: "Exportar", icon: <Download className="h-4 w-4" />, onClick: () => setExportOpen(true), variant: "outline" as const },
             { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const },
             { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
           ] : undefined}
