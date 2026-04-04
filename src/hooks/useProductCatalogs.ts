@@ -169,7 +169,7 @@ export function useCreateCatalog() {
           style_tokens: input.style_tokens || {},
           settings: { products_per_page: 2, show_prices: true, show_descriptions: true, watermark: false, ...input.settings } as unknown as Record<string, unknown>,
           created_by: user.id,
-        })
+        }])
         .select()
         .single();
       if (error) throw error;
