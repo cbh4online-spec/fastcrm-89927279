@@ -49,6 +49,7 @@ import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./
 
 export function ProductsList() {
   const state = useProductsListState();
+  const [exportOpen, setExportOpen] = useState(false);
 
   // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
