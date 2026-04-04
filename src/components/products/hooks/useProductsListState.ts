@@ -481,6 +481,51 @@ export function useProductsListState() {
     toast.success(`${selected.length} produtos arquivados`);
   }, [products, selectedIds, archiveProduct]);
 
+  // --- Bulk publish/unpublish ---
+  const handleBulkPublish = useCallback(async (published: boolean) => {
+    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
+    if (selected.length === 0) return;
+    const { error } = await supabase
+      .from("products")
+      .update({ store_published: published } as any)
+      .in("id", selectedIds);
+    if (error) {
+      toast.error("Erro ao atualizar visibilidade em massa");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    setSelectedIds([]);
+    toast.success(`${selected.length} produtos ${published ? "publicados" : "removidos"} da loja`);
+  }, [products, selectedIds, queryClient]);
+
+  // --- Bulk duplicate ---
+  const handleBulkDuplicate = useCallback(async () => {
+    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
+    if (selected.length === 0) return;
+    const copies = selected.map((p) => ({
+      name: `${p.name} (cópia)`,
+      product_type: p.product_type,
+      category: p.category,
+      base_price: p.base_price,
+      currency: p.currency,
+      billing_type: p.billing_type,
+      direct_cost: p.direct_cost,
+      operational_cost: p.operational_cost,
+      status: "active" as const,
+      workspace_id: currentWorkspace!.id,
+      short_description: p.short_description,
+      images: p.images,
+    }));
+    const { error } = await supabase.from("products").insert(copies);
+    if (error) {
+      toast.error("Erro ao duplicar produtos: " + error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    setSelectedIds([]);
+    toast.success(`${selected.length} produtos duplicados`);
+  }, [products, selectedIds, currentWorkspace, queryClient]);
+
   const formatCurrency = useCallback((value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(value);
   }, []);
