@@ -122,6 +122,17 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     </Button>
                   </TableCell>
                   <TableCell className="text-center">
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Switch checked={product.price_on_request} onCheckedChange={() => onTogglePriceOnRequest(product.id, product.price_on_request)} />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{product.price_on_request ? "Preço oculto — clientes pedem cotação" : "Preço visível na loja"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMoveOrder(product.id, product.store_sort_order, "up")}><ArrowUp className="h-3 w-3" /></Button>
                       <span className="text-xs text-muted-foreground w-6 text-center">{product.store_sort_order ?? "—"}</span>
