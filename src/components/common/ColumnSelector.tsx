@@ -84,6 +84,7 @@ export function ColumnSelector({
     );
     onVisibleColumnsChange(defaultColumns);
     onColumnOrderChange(columns.map(c => c.id));
+    onResetWidths?.();
   };
 
   const handleSelectAll = (category: string, selected: boolean) => {
