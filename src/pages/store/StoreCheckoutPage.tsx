@@ -190,6 +190,9 @@ export default function StoreCheckoutPage() {
                   cttOptions={pricing.cttOptions}
                   selectedShippingId={pricing.selectedShippingId}
                   onSelectShipping={pricing.setSelectedShippingId}
+                  enabledPaymentMethods={paymentMethods}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  onSelectPaymentMethod={setSelectedPaymentMethod}
                 />
               )}
               <TrustBadges />
