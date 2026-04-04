@@ -25,6 +25,7 @@ const StoreSettingsPage = lazy(() => import("@/pages/StoreSettingsPage"));
 const StoreProductsAdminPage = lazy(() => import("@/pages/StoreProductsAdminPage"));
 const StoreCategoriesPage = lazy(() => import("@/pages/StoreCategoriesPage"));
 const StoreCouponsPage = lazy(() => import("@/pages/StoreCouponsPage"));
+const StoreReviewsPage = lazy(() => import("@/pages/StoreReviewsPage"));
 const StoreAnalyticsPage = lazy(() => import("@/pages/StoreAnalyticsPage"));
 
 // Client portal pages
