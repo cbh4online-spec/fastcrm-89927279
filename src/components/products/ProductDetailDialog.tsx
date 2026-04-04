@@ -611,6 +611,10 @@ export function ProductDetailDialog({
                       currency={product.currency}
                     />
                   </TabsContent>
+
+                  <TabsContent value="audit" className="mt-4">
+                    <ProductActivityLog productId={product.id} />
+                  </TabsContent>
                 </Tabs>
               </div>
             </div>
