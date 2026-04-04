@@ -41,9 +41,9 @@ export function useSaveGeneratedAutomation() {
           name: automation.name,
           description: automation.description,
           trigger_type: automation.trigger,
-          trigger_config: automation.trigger_config || {},
-          conditions: automation.conditions || [],
-          actions: automation.actions || [],
+          trigger_config: (automation.trigger_config || {}) as any,
+          conditions: (automation.conditions || []) as any,
+          actions: (automation.actions || []) as any,
           is_active: false,
         })
         .select("id")
