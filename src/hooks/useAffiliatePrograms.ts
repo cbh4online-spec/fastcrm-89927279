@@ -62,7 +62,8 @@ export function useUpsertAffiliateProgram() {
   return useMutation({
     mutationFn: async (program: Record<string, unknown>) => {
       const payload = { ...program, workspace_id: currentWorkspace!.id };
-      const { data, error } = payload.id
+      const hasId = "id" in payload && payload.id;
+      const { data, error } = hasId
         ? await (supabase as any).from("affiliate_programs").update(payload).eq("id", payload.id).select().single()
         : await (supabase as any).from("affiliate_programs").insert(payload).select().single();
       if (error) throw error;
