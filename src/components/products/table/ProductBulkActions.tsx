@@ -45,6 +45,7 @@ export function ProductBulkActions({
   onClearSelection,
   onBulkPublish,
   onBulkDuplicate,
+  onCompare,
 }: ProductBulkActionsProps) {
   if (selectedIds.length === 0) return null;
 
