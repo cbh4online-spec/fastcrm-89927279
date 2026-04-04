@@ -50,6 +50,9 @@ import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsMa
 import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
 import { CatalogAutomations } from "./CatalogAutomations";
 import { ProductImportWizard } from "./ProductImportWizard";
+import { BundlesManager } from "./BundlesManager";
+import { PricingRulesManager } from "./PricingRulesManager";
+import { StockAlertsManager } from "./StockAlertsManager";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
