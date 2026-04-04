@@ -9,6 +9,7 @@ import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
