@@ -413,7 +413,6 @@ export default function StoreProductPage() {
                   )}
                 </div>
               )}
-              </div>
 
               {product.short_description && (
                 <p className="text-muted-foreground leading-relaxed">
