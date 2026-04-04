@@ -269,30 +269,13 @@ export function ProductsList() {
             />
 
             {state.products && state.products.length > 0 && (
-              <>
-                <CatalogInsights
-                  products={state.products}
-                  formatCurrency={state.formatCurrency}
-                />
-                <CatalogAutomations
-                  products={state.products}
-                  formatCurrency={state.formatCurrency}
-                  onFilterSelect={state.handleFilterSelect}
-                />
-                <ProductsAnalyticsDashboard
-                  products={state.products}
-                  formatCurrency={state.formatCurrency}
-                />
-                <ProductsDashboard
-                  products={state.products}
-                  formatCurrency={state.formatCurrency}
-                />
-                <ProductHealthIndicators
-                  productIndicators={state.productIndicators}
-                  activeFilterId={state.activeFilterId}
-                  onFilterSelect={state.handleFilterSelect}
-                />
-              </>
+              <ProductsCatalogSummary
+                products={state.products}
+                formatCurrency={state.formatCurrency}
+                productIndicators={state.productIndicators}
+                activeFilterId={state.activeFilterId}
+                onFilterSelect={state.handleFilterSelect}
+              />
             )}
 
             <ProductBulkActions
