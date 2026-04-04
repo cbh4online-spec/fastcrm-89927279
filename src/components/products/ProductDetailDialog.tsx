@@ -84,6 +84,7 @@ import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
 import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
+import { ProductActivityLog } from "./ProductActivityLog";
 import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
