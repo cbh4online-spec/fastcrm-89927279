@@ -241,6 +241,10 @@ export function ProductsList() {
 
             {state.products && state.products.length > 0 && (
               <>
+                <CatalogInsights
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
                 <ProductsDashboard
                   products={state.products}
                   formatCurrency={state.formatCurrency}
