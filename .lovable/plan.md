@@ -1,54 +1,36 @@
-## Fase 6 — Importação Avançada, Drag-to-Reorder, Variantes & Lifecycle ✅
+## Fase 8 — Storefront, Fornecedores & Compras, Analytics e Faturação
 
-### 1. Importação avançada de produtos ✅
-**Ficheiro:** `src/components/products/ProductImportWizard.tsx` (novo)
-- Wizard multi-step: Upload → Mapeamento → Preview → Importação → Resultado
-- Suporte CSV e Excel (.xlsx) via papaparse + exceljs
-- Auto-detecção de colunas (nome, preço, sku, categoria, etc.)
-- Validação com erros por linha e resumo pré-confirmação
-- Inserção em batch de 100 com progress bar
+### 1. Catálogo Público / Storefront (melhorias)
+**Componente:** `src/components/products/PublicCatalogEnhancements.tsx`
+- Integrar bundles no storefront com badge "Kit"
+- Mostrar preço original riscado + preço com regras aplicadas
+- Filtro por bundle/kit na listagem pública
 
-### 2. Drag-to-reorder colunas ✅
-**Ficheiro:** `src/components/common/ColumnSelector.tsx` (já existia)
-- Drag-and-drop nativo já implementado com handles visuais
-- Botão "Reset" agora reseta ordem + visibilidade + larguras
-- Prop `onResetWidths` passada para resetar larguras via `useColumnWidths`
+### 2. Gestão de Fornecedores & Compras
+**Tabelas:** `purchase_orders`, `purchase_order_items`, `goods_receipts`
+- Criar encomendas de compra a fornecedores existentes (tabela suppliers já existe)
+- Itens da encomenda ligados a produtos com qty e preço unitário
+- Receção de stock: confirmar entregas parciais/totais com atualização automática de stock
+- Histórico de custos por produto/fornecedor
 
-### 3. Variantes de produto ✅ (já existia)
-- Tabela `product_variants` já existente no DB
-- `ProductVariantsManager.tsx` já completo com CRUD inline
+### 3. Relatórios & Analytics de Produto
+**Componente:** `src/components/products/ProductReportsTab.tsx`
+- Top sellers por receita e quantidade
+- Margem média por categoria (gráfico)
+- Tendências de preço (linha temporal)
+- Previsão de stock baseada em velocidade de venda
+- Utiliza dados existentes da edge function `compute-product-analytics`
 
-### 4. Workflow de aprovação/lifecycle ✅ (já existia)
-- `ProductLifecycleTab.tsx` já completo com workflow visual
-- Estados: Rascunho → Em Revisão → Ativo → Descontinuado → Arquivado
-- Changelog e notificações automáticas integrados
+### 4. Integração com Faturação
+**Componente:** melhorias em hooks existentes
+- Sync de preços produto → linhas de fatura
+- Campo de taxa de imposto por produto (IVA)
+- Auto-completar produto ao criar linha de fatura
 
-## Fase 7 — Bundles, Pricing Rules, Storefront & Alertas de Stock ✅
-
-### 1. Bundles & Kits de Produtos ✅
-**Tabelas:** `product_bundles`, `product_bundle_items`
-**Componente:** `src/components/products/BundlesManager.tsx`
-**Hook:** `src/hooks/useBundles.ts`
-- CRUD completo de bundles com desconto (% ou fixo)
-- Gestão de itens do bundle com selecção de produtos
-- Cálculo de preço total e toggle de estado
-
-### 2. Pricing Rules & Descontos Automáticos ✅
-**Tabela:** `pricing_rules`
-**Componente:** `src/components/products/PricingRulesManager.tsx`
-**Hook:** `src/hooks/usePricingRules.ts`
-- 4 tipos de regra: volume, cliente, período, categoria
-- Motor de cálculo `applyPricingRules()` por prioridade
-- Toggle de activação e gestão de datas
-
-### 3. Alertas de Stock & Reposição ✅
-**Tabela:** `stock_alerts`
-**Componente:** `src/components/products/StockAlertsManager.tsx`
-**Hook:** `src/hooks/useStockAlerts.ts`
-- Threshold por produto com 3 estados (active/acknowledged/resolved)
-- Dashboard de produtos com stock baixo (auto-refresh 60s)
-- Acções rápidas: confirmar, resolver, remover
-
-### 4. Integração ✅
-- 3 novos tabs no ProductsList: Bundles, Regras de Preço, Alertas Stock
-- RLS em todas as tabelas por workspace_id
+### Ordem de implementação
+1. Migration DB (purchase_orders, purchase_order_items, goods_receipts + campo tax_rate em products)
+2. Hooks para compras e receções
+3. UI de gestão de compras
+4. Tab de relatórios/analytics
+5. Melhorias storefront (bundles + pricing rules)
+6. Integração faturação
