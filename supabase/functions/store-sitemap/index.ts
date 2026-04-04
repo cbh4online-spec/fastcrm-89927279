@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       .from("products")
       .select("id, updated_at")
       .eq("workspace_id", ws.id)
-      .eq("store_visible", true)
+      .eq("store_published", true)
       .order("updated_at", { ascending: false })
       .limit(1000);
 
