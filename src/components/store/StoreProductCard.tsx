@@ -13,6 +13,7 @@ import { StoreProductConditionBadge } from "@/components/store/StoreProductCondi
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { useStoreCompare } from "@/contexts/StoreCompareContext";
+import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 
 interface StoreProductCardProps {
