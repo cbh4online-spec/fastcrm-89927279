@@ -56,6 +56,12 @@ export function ProductBulkActions({
       </span>
       <div className="flex-1" />
 
+      {onCompare && selectedIds.length >= 2 && selectedIds.length <= 3 && (
+        <Button variant="outline" size="sm" onClick={onCompare} className="gap-2">
+          <ArrowUpDown className="h-4 w-4" /> Comparar
+        </Button>
+      )}
+
       <Button variant="outline" size="sm" onClick={onBulkExport} className="gap-2">
         <Download className="h-4 w-4" /> Exportar
       </Button>
