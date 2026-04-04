@@ -50759,6 +50759,7 @@ export type Database = {
           opportunity_id: string | null
           order_number: string
           paid_at: string | null
+          payment_method: string | null
           pricing_breakdown: Json | null
           refunded_at: string | null
           shipped_at: string | null
@@ -50805,6 +50806,7 @@ export type Database = {
           opportunity_id?: string | null
           order_number: string
           paid_at?: string | null
+          payment_method?: string | null
           pricing_breakdown?: Json | null
           refunded_at?: string | null
           shipped_at?: string | null
@@ -50851,6 +50853,7 @@ export type Database = {
           opportunity_id?: string | null
           order_number?: string
           paid_at?: string | null
+          payment_method?: string | null
           pricing_breakdown?: Json | null
           refunded_at?: string | null
           shipped_at?: string | null
@@ -51308,6 +51311,7 @@ export type Database = {
       store_settings: {
         Row: {
           accent_color: string | null
+          bank_transfer_details: Json | null
           banner_url: string | null
           c2c_allow_mixed_cart: boolean | null
           c2c_default_commission_rate: number | null
@@ -51322,6 +51326,7 @@ export type Database = {
           id: string
           logo_url: string | null
           notification_email: string | null
+          payment_methods: Json
           prices_include_vat: boolean
           primary_color: string | null
           show_categories: boolean | null
@@ -51335,6 +51340,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          bank_transfer_details?: Json | null
           banner_url?: string | null
           c2c_allow_mixed_cart?: boolean | null
           c2c_default_commission_rate?: number | null
@@ -51349,6 +51355,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           notification_email?: string | null
+          payment_methods?: Json
           prices_include_vat?: boolean
           primary_color?: string | null
           show_categories?: boolean | null
@@ -51362,6 +51369,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          bank_transfer_details?: Json | null
           banner_url?: string | null
           c2c_allow_mixed_cart?: boolean | null
           c2c_default_commission_rate?: number | null
@@ -51376,6 +51384,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           notification_email?: string | null
+          payment_methods?: Json
           prices_include_vat?: boolean
           primary_color?: string | null
           show_categories?: boolean | null
