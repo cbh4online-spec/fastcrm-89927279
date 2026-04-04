@@ -108,7 +108,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
       >
         <div
           className="relative overflow-hidden rounded-2xl border bg-card h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 hover:border-primary/20"
-          onMouseEnter={() => setIsHovered(true)}
+          onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Image with crossfade on hover */}
