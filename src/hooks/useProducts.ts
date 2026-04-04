@@ -41,6 +41,10 @@ export function useProducts(filters?: {
   productType?: string;
   category?: string;
   search?: string;
+  billingType?: string;
+  storePublished?: boolean;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
 }) {
   const { currentWorkspace } = useWorkspace();
 
@@ -52,9 +56,20 @@ export function useProducts(filters?: {
       let query = supabase
         .from("products")
         .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .order("updated_at", { ascending: false });
+        .eq("workspace_id", currentWorkspace.id);
 
+      // --- Server-side sorting ---
+      const sortCol = filters?.sortBy || "updated_at";
+      const sortAsc = filters?.sortDirection === "asc";
+      if (sortCol === "name") {
+        query = query.order("name", { ascending: sortAsc });
+      } else if (sortCol === "base_price") {
+        query = query.order("base_price", { ascending: sortAsc });
+      } else {
+        query = query.order("updated_at", { ascending: sortAsc });
+      }
+
+      // --- Server-side filters ---
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
@@ -65,6 +80,14 @@ export function useProducts(filters?: {
 
       if (filters?.category && filters.category !== "all") {
         query = query.eq("category", filters.category);
+      }
+
+      if (filters?.billingType && filters.billingType !== "all") {
+        query = query.eq("billing_type", filters.billingType);
+      }
+
+      if (filters?.storePublished !== undefined) {
+        query = query.eq("store_published" as any, filters.storePublished);
       }
 
       if (filters?.search) {
