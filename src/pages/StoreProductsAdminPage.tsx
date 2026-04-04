@@ -83,6 +83,7 @@ export default function StoreProductsAdminPage() {
                 isLoading={admin.isLoading}
                 onTogglePublish={admin.togglePublish}
                 onToggleFeatured={admin.toggleFeatured}
+                onTogglePriceOnRequest={admin.togglePriceOnRequest}
                 onMoveOrder={admin.moveOrder}
                 onEdit={(id: string) => setEditProductId(id)}
               />

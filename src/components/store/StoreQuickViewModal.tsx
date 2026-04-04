@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Minus, Plus, ExternalLink, Star, Check } from "lucide-react";
+import { ShoppingBag, Minus, Plus, ExternalLink, Star, Check, MessageSquareText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
   const primaryIndex = product.primary_image_index ?? 0;
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
+  const isPriceOnRequest = !!product.price_on_request;
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
   const productHref = getStorefrontItemPath(workspaceSlug, product as any);
 
@@ -105,18 +106,27 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
               </div>
             )}
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
-              <StoreVatLabel />
-              {isDiscounted && (
-                <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-              )}
-              {product.billing_type === "recurring" && (
-                <span className="text-xs text-muted-foreground">/mês</span>
-              )}
-            </div>
-            {discountLabel && (
-              <Badge variant="outline" className="text-[10px] w-fit">{discountLabel}</Badge>
+            {isPriceOnRequest ? (
+              <div className="flex items-center gap-2">
+                <MessageSquareText className="h-5 w-5 text-primary" />
+                <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+                  <StoreVatLabel />
+                  {isDiscounted && (
+                    <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                  )}
+                  {product.billing_type === "recurring" && (
+                    <span className="text-xs text-muted-foreground">/mês</span>
+                  )}
+                </div>
+                {discountLabel && (
+                  <Badge variant="outline" className="text-[10px] w-fit">{discountLabel}</Badge>
+                )}
+              </>
             )}
 
             {product.short_description && (
@@ -135,31 +145,42 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
             )}
 
             <div className="mt-auto space-y-3">
-              {/* Quantity */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Qtd:</span>
-                <div className="flex items-center border rounded-lg overflow-hidden">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="w-10 text-center text-sm font-medium">{quantity}</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(quantity + 1)}>
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
+              {isPriceOnRequest ? (
+                <Button variant="outline" className="w-full gap-2" asChild>
+                  <Link to={productHref}>
+                    <ExternalLink className="h-4 w-4" />
+                    Ver Detalhes e Pedir Preço
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  {/* Quantity */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium">Qtd:</span>
+                    <div className="flex items-center border rounded-lg overflow-hidden">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => setQuantity(quantity + 1)}>
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
 
-              <Button className="w-full gap-2" onClick={handleAddToCart} disabled={isOutOfStock}>
-                <ShoppingBag className="h-4 w-4" />
-                Adicionar ao Carrinho
-              </Button>
+                  <Button className="w-full gap-2" onClick={handleAddToCart} disabled={isOutOfStock}>
+                    <ShoppingBag className="h-4 w-4" />
+                    Adicionar ao Carrinho
+                  </Button>
 
-              <Button variant="outline" className="w-full gap-2" asChild>
-                <Link to={productHref}>
-                  <ExternalLink className="h-4 w-4" />
-                  Ver Detalhes
-                </Link>
-              </Button>
+                  <Button variant="outline" className="w-full gap-2" asChild>
+                    <Link to={productHref}>
+                      <ExternalLink className="h-4 w-4" />
+                      Ver Detalhes
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

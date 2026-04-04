@@ -29,6 +29,7 @@ export interface ProductStoreData {
   stock_status: string | null;
   stock_quantity: number | null;
   variants_count: number;
+  price_on_request: boolean;
 }
 
 export interface PriceSuggestion {
@@ -56,7 +57,7 @@ export function useStoreAdminProducts(search: string) {
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("products")
-        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, product_variants(count)")
+        .select("id, name, sku, category, base_price, currency, status, store_published, store_featured, store_sort_order, images, primary_image_index, competitor_price_low, competitor_source, brand_logo_url, specifications, direct_cost, operational_cost, short_description, product_condition, stock_status, stock_quantity, price_on_request, product_variants(count)")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active")
         .order("store_sort_order", { ascending: true, nullsFirst: false })
@@ -152,6 +153,11 @@ export function useStoreAdminProducts(search: string) {
     toast.success(!current ? "Produto marcado como destaque" : "Destaque removido");
   };
 
+  const togglePriceOnRequest = (id: string, current: boolean) => {
+    updateProduct.mutate({ id, price_on_request: !current });
+    toast.success(!current ? "Preço sob consulta ativado" : "Preço visível na loja");
+  };
+
   const moveOrder = (id: string, currentOrder: number | null, direction: "up" | "down") => {
     const newOrder = (currentOrder || 0) + (direction === "up" ? -1 : 1);
     updateProduct.mutate({ id, store_sort_order: Math.max(0, newOrder) });
@@ -194,7 +200,7 @@ export function useStoreAdminProducts(search: string) {
   return {
     products, isLoading, suggestions,
     updateProduct, applySuggestion, dismissSuggestion,
-    togglePublish, toggleFeatured, moveOrder,
+    togglePublish, toggleFeatured, togglePriceOnRequest, moveOrder,
     updateSinglePrice, updateAllPrices,
     loadingPrices, bulkProgress,
     publishedCount: products.filter(p => p.store_published).length,

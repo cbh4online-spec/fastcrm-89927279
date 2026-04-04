@@ -43346,6 +43346,7 @@ export type Database = {
           order_multiple: number | null
           pack_size: number | null
           partner_notes: string | null
+          price_on_request: boolean
           primary_image_index: number | null
           product_condition: string | null
           product_type: string
@@ -43446,6 +43447,7 @@ export type Database = {
           order_multiple?: number | null
           pack_size?: number | null
           partner_notes?: string | null
+          price_on_request?: boolean
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
@@ -43546,6 +43548,7 @@ export type Database = {
           order_multiple?: number | null
           pack_size?: number | null
           partner_notes?: string | null
+          price_on_request?: boolean
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
@@ -50988,6 +50991,70 @@ export type Database = {
           },
           {
             foreignKeyName: "store_page_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_price_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          message: string | null
+          product_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          product_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          product_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_price_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_price_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_price_requests_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

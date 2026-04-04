@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck } from "lucide-react";
+import { Package, Star, ArrowUp, ArrowDown, Loader2, Pencil, ImageIcon, Layers, PackageCheck, MessageSquareText } from "lucide-react";
 import type { ProductStoreData } from "./useStoreAdminProducts";
 
 interface CatalogProductsTableProps {
@@ -11,6 +11,7 @@ interface CatalogProductsTableProps {
   isLoading: boolean;
   onTogglePublish: (id: string, current: boolean) => void;
   onToggleFeatured: (id: string, current: boolean) => void;
+  onTogglePriceOnRequest: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
   onEdit: (productId: string) => void;
 }
@@ -64,7 +65,7 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onMoveOrder, onEdit }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit }: CatalogProductsTableProps) {
   const navigate = useNavigate();
   return (
     <div className="border rounded-lg">
@@ -77,15 +78,16 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
             <TableHead className="text-right">Preço</TableHead>
             <TableHead className="text-center">Publicado</TableHead>
             <TableHead className="text-center">Destaque</TableHead>
+            <TableHead className="text-center">Preço sob consulta</TableHead>
             <TableHead className="text-center">Ordem</TableHead>
             <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+            <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
           ) : products.length === 0 ? (
-            <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
+            <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Sem produtos ativos</TableCell></TableRow>
           ) : (
             products.map((product) => {
               const imgIdx = product.primary_image_index ?? 0;
@@ -118,6 +120,18 @@ export function CatalogProductsTable({ products, isLoading, onTogglePublish, onT
                     <Button variant={product.store_featured ? "default" : "ghost"} size="icon" className="h-8 w-8" onClick={() => onToggleFeatured(product.id, product.store_featured)} disabled={!product.store_published}>
                       <Star className={`h-4 w-4 ${product.store_featured ? "fill-current" : ""}`} />
                     </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Switch checked={product.price_on_request} onCheckedChange={() => onTogglePriceOnRequest(product.id, product.price_on_request)} />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{product.price_on_request ? "Preço oculto — clientes pedem cotação" : "Preço visível na loja"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">

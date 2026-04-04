@@ -27,6 +27,7 @@ import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing"
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreOfferDialog } from "@/components/store/StoreOfferDialog";
+import { StorePriceRequestDialog } from "@/components/store/StorePriceRequestDialog";
 import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWidget";
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
@@ -60,6 +61,7 @@ import {
   Eye,
   RotateCcw,
   Lock,
+  MessageSquareText,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -111,6 +113,7 @@ export default function StoreProductPage() {
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
   const storeName = storeSettings?.store_name || "Loja";
   const isOutOfStock = product?.stock_status === "out_of_stock";
+  const isPriceOnRequest = !!product?.price_on_request;
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
   const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
   const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
@@ -224,16 +227,18 @@ export default function StoreProductPage() {
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
         <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
 
-        {/* Sticky Add to Cart bar */}
-        <StoreStickyAddToCart
-          name={product.name}
-          price={pricing?.price ?? product.base_price}
-          currency={product.currency}
-          image={images[primaryIndex] || images[0]}
-          isOutOfStock={isOutOfStock}
-          onAddToCart={handleAddToCart}
-          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
-        />
+        {/* Sticky Add to Cart bar — hidden for price on request */}
+        {!isPriceOnRequest && (
+          <StoreStickyAddToCart
+            name={product.name}
+            price={pricing?.price ?? product.base_price}
+            currency={product.currency}
+            image={images[primaryIndex] || images[0]}
+            isOutOfStock={isOutOfStock}
+            onAddToCart={handleAddToCart}
+            triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+          />
+        )}
 
         <div className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
@@ -382,25 +387,32 @@ export default function StoreProductPage() {
               </div>
 
               {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
-              <div className="lg:hidden">
-                <div className="flex items-baseline gap-2">
-                   <span className="text-3xl font-bold text-primary">
-                     €{(pricing?.price ?? product.base_price).toFixed(2)}
-                   </span>
-                   <StoreVatLabel />
-                  {pricing?.isDiscounted && (
-                    <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-                  )}
-                  {product.billing_type === "recurring" && (
-                    <span className="text-muted-foreground">/mês</span>
+              {isPriceOnRequest ? (
+                <div className="lg:hidden flex items-center gap-2">
+                  <MessageSquareText className="h-5 w-5 text-primary" />
+                  <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
+                </div>
+              ) : (
+                <div className="lg:hidden">
+                  <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-primary">
+                       €{(pricing?.price ?? product.base_price).toFixed(2)}
+                     </span>
+                     <StoreVatLabel />
+                    {pricing?.isDiscounted && (
+                      <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                    )}
+                    {product.billing_type === "recurring" && (
+                      <span className="text-muted-foreground">/mês</span>
+                    )}
+                  </div>
+                  {pricing?.discountLabel && (
+                    <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                      {pricing.discountLabel}
+                    </Badge>
                   )}
                 </div>
-                {pricing?.discountLabel && (
-                  <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
-                    {pricing.discountLabel}
-                  </Badge>
-                )}
-              </div>
+              )}
 
               {product.short_description && (
                 <p className="text-muted-foreground leading-relaxed">
@@ -454,131 +466,163 @@ export default function StoreProductPage() {
             >
               <div className="lg:sticky lg:top-24 space-y-4 border rounded-2xl p-5 bg-card shadow-sm">
                 {/* Price in Buy Box (desktop only) */}
-                <div className="hidden lg:block">
-                  <div className="flex items-baseline gap-2">
-                     <span className="text-3xl font-bold text-primary">
-                       €{(pricing?.price ?? product.base_price).toFixed(2)}
-                     </span>
-                     <StoreVatLabel />
-                    {pricing?.isDiscounted && (
-                      <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-                    )}
-                    {product.billing_type === "recurring" && (
-                      <span className="text-muted-foreground">/mês</span>
+                {isPriceOnRequest ? (
+                  <div className="hidden lg:flex items-center gap-2">
+                    <MessageSquareText className="h-5 w-5 text-primary" />
+                    <span className="text-xl font-semibold text-primary">Preço sob consulta</span>
+                  </div>
+                ) : (
+                  <div className="hidden lg:block">
+                    <div className="flex items-baseline gap-2">
+                       <span className="text-3xl font-bold text-primary">
+                         €{(pricing?.price ?? product.base_price).toFixed(2)}
+                       </span>
+                       <StoreVatLabel />
+                      {pricing?.isDiscounted && (
+                        <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                      )}
+                      {product.billing_type === "recurring" && (
+                        <span className="text-muted-foreground">/mês</span>
+                      )}
+                    </div>
+                    {pricing?.discountLabel && (
+                      <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                        {pricing.discountLabel}
+                      </Badge>
                     )}
                   </div>
-                  {pricing?.discountLabel && (
-                    <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
-                      {pricing.discountLabel}
-                    </Badge>
-                  )}
-                </div>
+                )}
 
                 {/* Urgency Countdown for time-limited offers */}
-                {pricing?.isDiscounted && (product as any).offer_ends_at && (
+                {!isPriceOnRequest && pricing?.isDiscounted && (product as any).offer_ends_at && (
                   <StoreOfferCountdown endsAt={(product as any).offer_ends_at} />
                 )}
 
                 {/* Stock status */}
-                {isOutOfStock ? (
-                  <Badge variant="secondary">Esgotado</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                    <Check className="h-3 w-3 mr-1" />
-                    Em stock
-                  </Badge>
+                {!isPriceOnRequest && (
+                  isOutOfStock ? (
+                    <Badge variant="secondary">Esgotado</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                      <Check className="h-3 w-3 mr-1" />
+                      Em stock
+                    </Badge>
+                  )
                 )}
 
                 {/* Delivery */}
-                <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
-                  <Truck className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground">
-                    Entrega estimada: <span className="font-semibold text-foreground">{getEstimatedDelivery()}</span>
-                  </span>
-                </div>
-
-                {/* Quantity + Add to Cart */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium">Qtd:</span>
-                    <div className="flex items-center border rounded-xl overflow-hidden">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-none"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-10 text-center font-medium text-sm">{quantity}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-none"
-                        onClick={() => setQuantity(quantity + 1)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-xl ml-auto"
-                      onClick={() => product && toggleWishlist.mutate({
-                        productId: product.id,
-                        workspaceId: (product as any).workspace_id,
-                        isInWishlist,
-                      })}
-                    >
-                      <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
-                    </Button>
+                {!isPriceOnRequest && (
+                  <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-xl p-3">
+                    <Truck className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-muted-foreground">
+                      Entrega estimada: <span className="font-semibold text-foreground">{getEstimatedDelivery()}</span>
+                    </span>
                   </div>
+                )}
 
-                  <Button
-                    ref={addToCartRef}
-                    size="lg"
-                    className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
-                    onClick={handleAddToCart}
-                    disabled={isOutOfStock}
-                  >
-                    <ShoppingBag className="h-5 w-5" />
-                    Adicionar ao Carrinho
-                    </Button>
+                {/* Quantity + Add to Cart OR Price Request */}
+                <div className="space-y-3">
+                  {isPriceOnRequest ? (
+                    <>
+                      <StorePriceRequestDialog
+                        productId={product.id}
+                        productName={product.name}
+                        workspaceId={(product as any).workspace_id}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-xl"
+                        onClick={() => product && toggleWishlist.mutate({
+                          productId: product.id,
+                          workspaceId: (product as any).workspace_id,
+                          isInWishlist,
+                        })}
+                      >
+                        <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">Qtd:</span>
+                        <div className="flex items-center border rounded-xl overflow-hidden">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-none"
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-10 text-center font-medium text-sm">{quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-none"
+                            onClick={() => setQuantity(quantity + 1)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
 
-                    {/* Quick Buy */}
-                    <StoreQuickBuyButton
-                      product={{
-                        id: product.id,
-                        name: product.name,
-                        price: pricing?.price ?? product.base_price,
-                        currency: product.currency,
-                        image: images[primaryIndex] || images[0],
-                        sku: product.sku || undefined,
-                      }}
-                      workspaceSlug={wsSlug}
-                      disabled={isOutOfStock}
-                      quantity={quantity}
-                      className="w-full h-12 text-base"
-                    />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-xl ml-auto"
+                          onClick={() => product && toggleWishlist.mutate({
+                            productId: product.id,
+                            workspaceId: (product as any).workspace_id,
+                            isInWishlist,
+                          })}
+                        >
+                          <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
+                        </Button>
+                      </div>
 
-                     {/* Make Offer button */}
-                  <StoreOfferDialog
-                    productId={product.id}
-                    productName={product.name}
-                    originalPrice={pricing?.price ?? product.base_price}
-                    currency={product.currency}
-                    workspaceId={(product as any).workspace_id}
-                  />
+                      <Button
+                        ref={addToCartRef}
+                        size="lg"
+                        className="w-full gap-2 text-base h-12 rounded-xl transition-transform duration-200 active:scale-[0.98]"
+                        onClick={handleAddToCart}
+                        disabled={isOutOfStock}
+                      >
+                        <ShoppingBag className="h-5 w-5" />
+                        Adicionar ao Carrinho
+                      </Button>
 
-                  {/* Price & Stock Alerts */}
-                  <StoreProductAlertWidget
-                    productId={product.id}
-                    workspaceId={(product as any).workspace_id}
-                    productName={product.name}
-                    currentPrice={pricing?.price ?? product.base_price}
-                    isOutOfStock={isOutOfStock}
-                  />
+                      <StoreQuickBuyButton
+                        product={{
+                          id: product.id,
+                          name: product.name,
+                          price: pricing?.price ?? product.base_price,
+                          currency: product.currency,
+                          image: images[primaryIndex] || images[0],
+                          sku: product.sku || undefined,
+                        }}
+                        workspaceSlug={wsSlug}
+                        disabled={isOutOfStock}
+                        quantity={quantity}
+                        className="w-full h-12 text-base"
+                      />
+
+                      <StoreOfferDialog
+                        productId={product.id}
+                        productName={product.name}
+                        originalPrice={pricing?.price ?? product.base_price}
+                        currency={product.currency}
+                        workspaceId={(product as any).workspace_id}
+                      />
+
+                      <StoreProductAlertWidget
+                        productId={product.id}
+                        workspaceId={(product as any).workspace_id}
+                        productName={product.name}
+                        currentPrice={pricing?.price ?? product.base_price}
+                        isOutOfStock={isOutOfStock}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Trust signals — compact inline */}
@@ -729,20 +773,22 @@ export default function StoreProductPage() {
           productContext={{ name: product.name, category: product.category || undefined }}
         />
 
-        {/* Mobile Conversion Bar */}
-        <StoreMobileConversionBar
-          product={{
-            id: product.id,
-            name: product.name,
-            price: pricing?.price ?? product.base_price,
-            currency: product.currency,
-            image: images[primaryIndex] || images[0],
-            sku: product.sku || undefined,
-          }}
-          workspaceSlug={wsSlug}
-          isOutOfStock={isOutOfStock}
-          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
-        />
+        {/* Mobile Conversion Bar — hidden for price on request */}
+        {!isPriceOnRequest && (
+          <StoreMobileConversionBar
+            product={{
+              id: product.id,
+              name: product.name,
+              price: pricing?.price ?? product.base_price,
+              currency: product.currency,
+              image: images[primaryIndex] || images[0],
+              sku: product.sku || undefined,
+            }}
+            workspaceSlug={wsSlug}
+            isOutOfStock={isOutOfStock}
+            triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+          />
+        )}
 
         {/* Add to Cart Animation */}
         <StoreAddToCartAnimation trigger={cartAnimTrigger} />
