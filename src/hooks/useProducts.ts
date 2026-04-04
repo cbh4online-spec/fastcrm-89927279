@@ -87,7 +87,7 @@ export function useProducts(filters?: {
       }
 
       if (filters?.storePublished !== undefined) {
-        query = query.eq("store_published" as any, filters.storePublished);
+        query = (query as any).eq("store_published", filters.storePublished);
       }
 
       if (filters?.search) {
