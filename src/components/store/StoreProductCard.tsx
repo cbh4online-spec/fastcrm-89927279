@@ -116,14 +116,17 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             {imageUrl ? (
               <div className="relative h-full w-full">
                 <img
-                  src={imageUrl}
-                  alt={product.name}
-                  className={cn(
-                    "absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-110",
-                    isHovered && secondImageUrl ? "opacity-0" : "opacity-100"
-                  )}
-                  loading="lazy"
-                />
+                   src={imageUrl}
+                   alt={product.name}
+                   width={400}
+                   height={400}
+                   className={cn(
+                     "absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-110",
+                     isHovered && secondImageUrl ? "opacity-0" : "opacity-100"
+                   )}
+                   loading="lazy"
+                   decoding="async"
+                 />
                 {secondImageUrl && (
                   <img
                     src={secondImageUrl}
