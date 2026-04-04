@@ -53,7 +53,7 @@ export function StoreCategoryCarousel({ categories, selectedCategoryId, onSelect
                     : "hover:scale-[1.02]"
                 }`}
               >
-                {/* Background: image or gradient fallback */}
+                {/* Background: image, color or gradient fallback */}
                 {cat.image_url ? (
                   <>
                     <img
