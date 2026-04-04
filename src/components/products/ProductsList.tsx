@@ -272,6 +272,7 @@ export function ProductsList() {
               getBillingTypeLabel={state.getBillingTypeLabel}
               formatCurrency={state.formatCurrency}
               toggleStorePublished={state.toggleStorePublished}
+              onInlinePriceUpdate={(id, field, value) => state.updateProductPrice.mutate({ id, field, value })}
             />
 
             <ProductsPagination
