@@ -32,8 +32,14 @@ export default function StoreCheckoutPage() {
   const { data: storeSettings } = usePublicStoreSettings(wsId || "");
   const storeName = storeSettings?.store_name || "Loja";
 
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>("stripe_card");
+  const [bankTransferOrder, setBankTransferOrder] = useState<{ orderNumber: string; bankDetails: any } | null>(null);
+
   const form = useCheckoutForm({ wsId, wsSlug, items, subtotal });
   const pricing = useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmail: form.formData.email });
+
+  const paymentMethods = (storeSettings as any)?.payment_methods || { stripe_card: true };
+  const bankTransferDetails = (storeSettings as any)?.bank_transfer_details || {};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
