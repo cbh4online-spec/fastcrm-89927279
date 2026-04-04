@@ -117,7 +117,8 @@ export function useUpsertProgramRule() {
   return useMutation({
     mutationFn: async (rule: Record<string, unknown>) => {
       const payload = { ...rule, workspace_id: currentWorkspace!.id };
-      const { data, error } = payload.id
+      const hasId = "id" in payload && payload.id;
+      const { data, error } = hasId
         ? await (supabase as any).from("affiliate_program_rules").update(payload).eq("id", payload.id).select().single()
         : await (supabase as any).from("affiliate_program_rules").insert(payload).select().single();
       if (error) throw error;
