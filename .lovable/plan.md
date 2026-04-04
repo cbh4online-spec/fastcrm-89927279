@@ -1,59 +1,116 @@
 
+# Plano: Sistema de Afiliados Transversal
 
-# Plano: Corrigir AI Sales Coach — Dados Vazios
+## Visão Geral
 
-## Diagnóstico
+Criar um motor de afiliados completo que permita a qualquer pessoa registar-se como afiliado, partilhar links de referência e ganhar comissões sobre vendas geradas em **todos os módulos** (Loja, Marketplace, Subscrições SaaS, módulos futuros).
 
-O ecrã mostra dados na barra de overview (Score 33/100, €37,5 em risco, 1 crítico, 2 parados) porque o `pipeline_risk_reports` tem 4 registos válidos. **O problema principal é a tab "Deal Intelligence" que mostra 0 deals.**
+---
 
-| Tabela | Registos | Estado |
-|---|---|---|
-| `pipeline_risk_reports` | 4 (1 válido) | ✅ Funciona |
-| `multi_pipeline_intel_reports` | 4 (1 válido) | ✅ Funciona |
-| `deal_intelligence_reports` | **0** | ❌ Vazio |
-| `opportunities` (activas) | 10+ | Existem deals para analisar |
+## Arquitectura de Dados (12 tabelas)
 
-**Causa raiz**: Os relatórios de Deal Intelligence só são gerados individualmente — o utilizador tem de ir ao detalhe de cada oportunidade e clicar "Analisar". Não existe nenhum mecanismo de geração em massa a partir do Sales Coach. Isto torna a tab inútil até que alguém visite cada deal individualmente.
+### Tabelas Core
 
-## Solução
+| Tabela | Função |
+|---|---|
+| `affiliate_programs` | Programas configuráveis por workspace (ex: "Programa Loja", "Programa SaaS"). Cada programa tem nome, comissão default (% ou valor fixo), cookie duration, min payout, status |
+| `affiliate_program_tiers` | Tiers multinível por programa (ex: Bronze 10%, Silver 15%, Gold 20%). Threshold de volume para upgrade automático |
+| `affiliate_program_rules` | Regras de comissão por módulo/produto/categoria. Permite override granular da comissão default do programa |
+| `affiliates` | Registo de afiliados. Campos: user_id (nullable para guests), email, name, status (pending/active/suspended/rejected), affiliate_code (único), parent_affiliate_id (para multinível), current_tier_id, workspace_id |
+| `affiliate_links` | Links de tracking gerados. Campos: affiliate_id, url, campaign_name, utm_params, click_count |
+| `affiliate_clicks` | Log de cliques com IP, user_agent, referrer, landing_page, timestamp |
+| `affiliate_conversions` | Conversões rastreadas. Campos: affiliate_id, order_id (nullable), subscription_id (nullable), source_module (store/marketplace/saas), gross_amount, commission_amount, commission_rate, status (pending/approved/rejected/paid), level (1 ou 2 para multinível) |
+| `affiliate_balances` | Saldo actual do afiliado (earned, pending, paid, available) |
+| `affiliate_payouts` | Histórico de pagamentos. Campos: affiliate_id, amount, method (stripe/manual/credit), status (pending/processing/completed/failed), processed_by, stripe_payout_id |
+| `affiliate_payout_methods` | Métodos de pagamento configurados pelo afiliado (IBAN, PayPal, Stripe Connect account) |
+| `affiliate_notifications` | Notificações ao afiliado (nova venda, payout processado, tier upgrade) |
+| `affiliate_settings` | Configurações globais por workspace (auto-approve, cookie days, min payout threshold, terms & conditions URL) |
 
-Adicionar **geração em massa** de Deal Intelligence directamente na tab, e melhorar o botão "Analisar Pipeline" para também gerar relatórios por deal.
+### RLS
+- Todas as tabelas escopadas por `workspace_id`
+- Afiliados só vêem os seus próprios dados (affiliate_id = current user)
+- Admin do workspace vê tudo do workspace
+- Payouts: INSERT/UPDATE apenas via service_role (Edge Functions)
 
-### Passo 1 — Botão "Analisar Todos os Deals" na tab Deal Intelligence
+---
 
-Na `DealIntelligenceTab`, adicionar um botão que itera sobre as oportunidades activas e chama `deal-intelligence-ai` para cada uma (em paralelo controlado, max 3 simultâneos para respeitar rate limits).
+## Módulos Frontend
 
-### Passo 2 — Hook `useBulkDealIntelligence`
+### 1. Portal do Afiliado (público/autenticado)
+- **Página de registo** (`/affiliate/register`) — formulário público self-service
+- **Dashboard do afiliado** (`/affiliate/dashboard`) — KPIs, gráficos, links, conversões, saldo, payouts
+- **Gerador de links** — criar links com UTMs customizados por produto/página
+- **Histórico de conversões** — tabela filtável com status
+- **Métodos de pagamento** — configurar IBAN/PayPal/Stripe para receber
+- **Materiais** — banners, textos, recursos de marketing (fase futura)
 
-Criar hook que:
-1. Busca oportunidades activas do workspace (`status = 'open'`)
-2. Para cada uma sem relatório válido, chama `deal-intelligence-ai`
-3. Reporta progresso (X de Y analisados)
-4. Invalida queries ao completar
+### 2. Admin de Afiliados (dashboard interno)
+- **Gestão de programas** — CRUD de programas, tiers e regras de comissão
+- **Lista de afiliados** — aprovar/rejeitar/suspender, ver performance
+- **Conversões** — aprovar/rejeitar conversões pendentes
+- **Payouts** — processar pagamentos, ver histórico
+- **Analytics** — top afiliados, receita gerada, ROI por programa
+- **Configurações** — cookie duration, auto-approve, min payout, T&C
 
-### Passo 3 — Melhorar a lista de deals
+### 3. Tracking Engine (Edge Functions)
+- **`affiliate-track-click`** — regista clique, define cookie (30 dias default)
+- **`affiliate-register-conversion`** — chamado internamente pelo checkout da loja, marketplace e subscrições. Calcula comissão com base nas regras do programa, aplica multinível (nível 2 = % da comissão do nível 1)
+- **`affiliate-process-payout`** — processa payouts manuais ou automáticos via Stripe
 
-- Mostrar o nome da oportunidade (fazer join com `opportunities.title`) em vez de `coaching_summary?.slice(0,40)` ou UUID truncado
-- Adicionar o stage e valor ao card de cada deal
+### 4. Integração nos Módulos Existentes
+- **Store Checkout** (`create-store-checkout`) — ao finalizar compra, verificar cookie de afiliado e chamar `affiliate-register-conversion`
+- **Marketplace Orders** — mesma lógica para vendas C2C
+- **Subscrições SaaS** — comissão recorrente no primeiro pagamento ou em todas as renovações (configurável)
 
-### Passo 4 — Integrar no "Analisar Pipeline"
+---
 
-Quando o utilizador clica "Analisar Pipeline" na overview bar, além de `pipeline_risk` e `multi_pipeline`, também disparar a geração em massa dos deals (com indicador de progresso).
+## Fases de Implementação
 
-## Ficheiros
+### Fase 1 — Infraestrutura (este plano)
+1. Migração DB: criar as 12 tabelas + RLS + triggers
+2. Hook `useAffiliatePrograms` + `useAffiliates` + `useAffiliateConversions`
+3. Portal do afiliado: registo + dashboard + links
+4. Admin: gestão de programas + afiliados + conversões
+5. Edge Function `affiliate-track-click` + tracking via cookie
+6. Edge Function `affiliate-register-conversion`
+7. Integração no checkout da loja
+
+### Fase 2 — Expansão (futuro)
+- Payouts automáticos via Stripe Connect
+- Integração Marketplace + SaaS
+- Materiais de marketing
+- Relatórios avançados
+
+---
+
+## Ficheiros a Criar/Modificar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/hooks/useBulkDealIntelligence.ts` | **Criar** — hook de geração em massa com progresso |
-| `src/pages/AISalesCoachPage.tsx` | **Modificar** — adicionar botão bulk na tab Deal Intelligence + melhorar lista de deals + integrar no "Analisar Pipeline" |
-| `src/hooks/useDealIntelligenceCoach.ts` | **Modificar** — adicionar query de oportunidades activas |
+| `supabase/migrations/...` | Criar 12 tabelas + RLS + triggers |
+| `src/hooks/useAffiliates.ts` | Hook CRUD para afiliados |
+| `src/hooks/useAffiliatePrograms.ts` | Hook CRUD para programas e regras |
+| `src/hooks/useAffiliateConversions.ts` | Hook para conversões e payouts |
+| `src/hooks/useAffiliateTracking.ts` | Hook de tracking (cookie read/write) |
+| `src/pages/AffiliateRegisterPage.tsx` | Página pública de registo |
+| `src/pages/AffiliateDashboardPage.tsx` | Dashboard do afiliado |
+| `src/pages/AffiliateAdminPage.tsx` | Admin de afiliados (workspace) |
+| `src/components/affiliates/...` | Componentes UI (tabs, cards, tabelas) |
+| `supabase/functions/affiliate-track-click/index.ts` | Edge Function tracking |
+| `supabase/functions/affiliate-register-conversion/index.ts` | Edge Function conversões |
+| `src/routes/...` | Adicionar rotas de afiliados |
+
+---
 
 ## Critérios de Aceitação
 
-- Botão "Analisar Todos" gera relatórios para todas as oportunidades activas
-- Indicador de progresso visível durante geração (ex: "3/10 analisados")
-- Tab Deal Intelligence populada após análise
-- Lista de deals mostra nome, stage, valor e health score
-- Rate limiting respeitado (max 3 chamadas simultâneas)
-- Estado de erro tratado por deal individual (não bloqueia os restantes)
-
+- [ ] Qualquer pessoa pode registar-se como afiliado via portal público
+- [ ] Afiliado recebe código único e pode gerar links personalizados
+- [ ] Cliques em links são rastreados com cookie de 30 dias
+- [ ] Conversões registadas automaticamente no checkout
+- [ ] Comissão calculada com base nas regras do programa (% ou fixo)
+- [ ] Multinível: afiliado de nível 2 recebe % configurável
+- [ ] Admin pode aprovar/rejeitar afiliados e conversões
+- [ ] Saldos calculados correctamente (pending vs available)
+- [ ] Dashboard do afiliado com KPIs e histórico
+- [ ] RLS garante isolamento total de dados entre workspaces e afiliados
