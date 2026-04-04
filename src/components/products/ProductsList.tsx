@@ -361,6 +361,14 @@ export function ProductsList() {
         getProductTypeLabel={state.getProductTypeLabel}
         getBillingTypeLabel={state.getBillingTypeLabel}
       />
+      <ProductComparisonSheet
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        products={comparisonProducts}
+        formatCurrency={state.formatCurrency}
+        getProductTypeLabel={state.getProductTypeLabel}
+        getBillingTypeLabel={state.getBillingTypeLabel}
+      />
 
       <AlertDialog
         open={!!state.deleteConfirmProduct}
