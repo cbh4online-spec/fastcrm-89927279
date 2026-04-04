@@ -1,32 +1,11 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -40,290 +19,47 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Archive,
-  RotateCcw,
-  Package,
-  Loader2,
-  Eye,
-  PanelLeft,
-  PanelLeftClose,
-  Store,
-  RefreshCw,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  Layers,
-  Calendar,
-  CircleDollarSign,
-  Repeat,
-  FileBox,
-  Clock,
-  Upload,
-  GraduationCap,
-  Boxes,
-  Box,
-  Tag,
-  Trash2,
-  Settings,
-  ScanLine,
-  Columns,
-  AlertTriangle,
-  ImageOff,
-  DollarSign,
-  TrendingDown,
+  Plus, PanelLeft, PanelLeftClose, Store, RefreshCw,
+  Upload, ScanLine, Columns, AlertTriangle, Trash2,
+  Package, Repeat, FileBox, Tag, CircleDollarSign,
+  Calendar, Layers,
 } from "lucide-react";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
-import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct, useDeleteProductsBatch } from "@/hooks/useProducts";
-import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Toolbar } from "@/components/common/Toolbar";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
 import { BatchSKUImportDialog } from "./BatchSKUImportDialog";
 import { CategoriesTabContent } from "./CategoriesTabContent";
 import { PricingTabContent } from "./PricingTabContent";
 import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Toolbar } from "@/components/common/Toolbar";
-import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
-import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
-import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
-import { BulkCostDialog } from "./BulkCostDialog";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { ColumnSelector } from "@/components/common/ColumnSelector";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
-import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
-import { useColumnWidths } from "@/hooks/useColumnWidths";
-import { useWorkspaceTags } from "@/hooks/useProductTags";
-import {
-  productTypeLabels,
-  productStatusLabels,
-  billingTypeLabels,
-  type Product,
-  type ProductType,
-  type BillingType,
-} from "@/types/product";
-import { toast } from "sonner";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-// Column configuration for products table
-const PRODUCT_COLUMNS: ColumnConfig[] = [
-  { id: "name", label: "Nome", category: "basic", defaultVisible: true },
-  { id: "sku", label: "SKU", category: "basic", defaultVisible: false },
-  { id: "product_type", label: "Tipo", category: "basic", defaultVisible: true },
-  { id: "category", label: "Categoria", category: "basic", defaultVisible: true },
-  { id: "base_price", label: "Preço", category: "business", defaultVisible: true },
-  { id: "direct_cost", label: "Custo Direto", category: "business", defaultVisible: false },
-  { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
-  { id: "margin", label: "Margem", category: "business", defaultVisible: false },
-  { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
-  { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
-  { id: "status", label: "Estado", category: "basic", defaultVisible: true },
-  { id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true },
-  { id: "b2b_published", label: "Portal B2B", category: "basic", defaultVisible: true },
-  { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
-  { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
-  { id: "validity_days", label: "Validade (dias)", category: "business", defaultVisible: false },
-  { id: "tax_rate_estimate_pct", label: "Taxa IVA", category: "business", defaultVisible: false },
-  { id: "commission_default", label: "Comissão", category: "business", defaultVisible: false },
-  { id: "delivery_mode", label: "Modo Entrega", category: "business", defaultVisible: false },
-  { id: "created_at", label: "Criado em", category: "basic", defaultVisible: false },
-  { id: "updated_at", label: "Atualizado", category: "basic", defaultVisible: true },
-];
-
-const INITIAL_COL_WIDTHS: Record<string, number> = {
-  name: 220,
-  sku: 120,
-  product_type: 100,
-  category: 130,
-  base_price: 90,
-  direct_cost: 100,
-  operational_cost: 100,
-  margin: 80,
-  billing_type: 100,
-  billing_frequency: 100,
-  status: 90,
-  store_published: 90,
-  b2b_published: 80,
-  total_units: 80,
-  unit_duration: 90,
-  validity_days: 90,
-  tax_rate_estimate_pct: 80,
-  commission_default: 90,
-  delivery_mode: 100,
-  created_at: 110,
-  updated_at: 110,
-};
-
-const pageTabs = [
-  { id: "products", label: "Produtos" },
-  { id: "categories", label: "Categorias" },
-  { id: "pricing", label: "Tabelas de Preço" },
-  { id: "settings", label: "Configurações" },
-];
-
-const sortOptions = [
-  { value: "name_asc", label: "Nome (A-Z)" },
-  { value: "name_desc", label: "Nome (Z-A)" },
-  { value: "price_asc", label: "Preço (menor)" },
-  { value: "price_desc", label: "Preço (maior)" },
-  { value: "updated_desc", label: "Mais recentes" },
-  { value: "updated_asc", label: "Mais antigos" },
-];
+// Sub-components
+import { ProductHealthIndicators } from "./table/ProductHealthIndicators";
+import { ProductBulkActions } from "./table/ProductBulkActions";
+import { ProductsDataTable } from "./table/ProductsDataTable";
+import { ProductsPagination } from "./table/ProductsPagination";
+import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
-  const { currentWorkspace } = useWorkspace();
-  const [statusFilter, setStatusFilter] = useState<string>("active");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [batchImportOpen, setBatchImportOpen] = useState(false);
-  const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanResultOpen, setScanResultOpen] = useState(false);
-  const [scannedBarcode, setScannedBarcode] = useState("");
-  const { lookup, isLoading: scanLoading, result: scanResult, reset: resetScan } = useBarcodeLookup(currentWorkspace?.id);
+  const state = useProductsListState();
 
-  const handleBarcodeScan = useCallback(async (barcode: string) => {
-    setScannedBarcode(barcode);
-    setScanResultOpen(true);
-    await lookup(barcode);
-  }, [lookup]);
-  
-  // New state for reorganized UI
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [activeTab, setActiveTab] = useState("products");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
-  const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
-  const [sortValue, setSortValue] = useState("updated_desc");
-
-  // Column preferences with persistence
-  const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences(
-    "products-table-columns",
-    PRODUCT_COLUMNS
-  );
-
-  // Column widths with resize support
-  const colWidths = useColumnWidths("products-table-columns", INITIAL_COL_WIDTHS);
-  const tableRef = useRef<HTMLTableElement | null>(null);
-
-  // Global mouse move/up for resize dragging
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => colWidths.onMouseMove(e);
-    const handleUp = () => colWidths.onMouseUp();
-    document.addEventListener("mousemove", handleMove);
-    document.addEventListener("mouseup", handleUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMove);
-      document.removeEventListener("mouseup", handleUp);
-    };
-  }, [colWidths.onMouseMove, colWidths.onMouseUp]);
-
-  // Debounce search for API calls
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  
-  // Use searchValue for sidebar filtering
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    // Debounce the API search
-    const timeout = setTimeout(() => setDebouncedSearch(value), 300);
-    return () => clearTimeout(timeout);
-  };
-
-  const { data: products, isLoading, refetch } = useProducts({
-    status: statusFilter,
-    productType: typeFilter,
-    category: categoryFilter,
-    search: debouncedSearch || undefined,
-  });
-
-  const { data: categories } = useProductCategories();
-  const { data: workspaceTags } = useWorkspaceTags();
-  const { data: productTypesConfig } = useProductTypes();
-  const { data: billingTypesConfig } = useBillingTypes();
-  const archiveProduct = useArchiveProduct();
-  const deleteProduct = useDeleteProduct();
-  const deleteProductsBatch = useDeleteProductsBatch();
-  const queryClient = useQueryClient();
-  const [storeFilter, setStoreFilter] = useState<string>("all");
-  const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [bulkCostOpen, setBulkCostOpen] = useState(false);
-
-  // Toggle store_published
-  const toggleStorePublished = useMutation({
-    mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ store_published: published } as any)
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    },
-    onError: () => {
-      toast.error("Erro ao atualizar visibilidade na loja");
-    },
-  });
-
-  // Tag filter: get product IDs for selected tag
-  const activeTagName = activeFilterId?.startsWith("tag_") ? activeFilterId.replace("tag_", "") : null;
-  const { data: tagProductIds } = useQuery({
-    queryKey: ["tag-product-ids", currentWorkspace?.id, activeTagName],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("product_tags")
-        .select("product_id")
-        .eq("workspace_id", currentWorkspace!.id)
-        .eq("tag", activeTagName!);
-      return (data || []).map((d: any) => d.product_id as string);
-    },
-    enabled: !!activeTagName && !!currentWorkspace?.id,
-  });
-
-  // Helper para obter label do tipo de produto
-  const getProductTypeLabel = (typeCode: string) => {
-    const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
-    if (dynamicType) return dynamicType.label;
-    if (typeCode in productTypeLabels) {
-      return productTypeLabels[typeCode as ProductType];
-    }
-    return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
-  };
-
-  // Helper para obter label do tipo de cobrança
-  const getBillingTypeLabel = (typeCode: string) => {
-    const dynamicType = billingTypesConfig?.find(t => t.code === typeCode);
-    if (dynamicType) return dynamicType.label;
-    if (typeCode in billingTypeLabels) {
-      return billingTypeLabels[typeCode as BillingType];
-    }
-    return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
-  };
-
-  // Filter groups for sidebar - dynamic from config
+  // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
-    // Build type items dynamically from productTypesConfig
-    const typeItems = productTypesConfig?.filter(t => t.is_active).map(type => ({
+    const typeItems = state.productTypesConfig?.filter(t => t.is_active).map(type => ({
       id: `type_${type.code}`,
       label: type.label,
       icon: <Package className="h-4 w-4" />
     })) || [
-      // Fallback static items if config not loaded
       { id: "type_simple", label: "Simples", icon: <Package className="h-4 w-4" /> },
       { id: "type_recurring", label: "Recorrente", icon: <Repeat className="h-4 w-4" /> },
       { id: "type_composite", label: "Bundle", icon: <FileBox className="h-4 w-4" /> },
     ];
 
-    // Build billing items dynamically from billingTypesConfig
-    const billingItems = billingTypesConfig?.filter(t => t.is_active).map(type => ({
+    const billingItems = state.billingTypesConfig?.filter(t => t.is_active).map(type => ({
       id: `billing_${type.code}`,
       label: type.label,
     })) || [
@@ -331,23 +67,17 @@ export function ProductsList() {
       { id: "billing_recurring", label: "Recorrente" },
     ];
 
-    // Build category items dynamically (inside useMemo to prevent duplication)
-    const validCategories = categories?.filter(
+    const validCategories = state.categories?.filter(
       (cat): cat is string => typeof cat === "string" && cat.length > 0
     ) || [];
 
     const groups: FilterGroup[] = [
       {
-        id: "type",
-        label: "Tipo",
-        icon: <Layers className="h-4 w-4" />,
-        defaultOpen: true,
-        items: typeItems,
+        id: "type", label: "Tipo", icon: <Layers className="h-4 w-4" />,
+        defaultOpen: true, items: typeItems,
       },
       {
-        id: "status",
-        label: "Estado",
-        icon: <Tag className="h-4 w-4" />,
+        id: "status", label: "Estado", icon: <Tag className="h-4 w-4" />,
         defaultOpen: true,
         items: [
           { id: "status_active", label: "Ativos" },
@@ -355,9 +85,7 @@ export function ProductsList() {
         ],
       },
       {
-        id: "store",
-        label: "Loja Online",
-        icon: <Store className="h-4 w-4" />,
+        id: "store", label: "Loja Online", icon: <Store className="h-4 w-4" />,
         defaultOpen: false,
         items: [
           { id: "store_yes", label: "Publicados na Loja" },
@@ -366,48 +94,31 @@ export function ProductsList() {
       },
     ];
 
-    // Add categories if they exist
     if (validCategories.length > 0) {
       groups.push({
-        id: "category",
-        label: "Categoria",
-        icon: <Tag className="h-4 w-4" />,
+        id: "category", label: "Categoria", icon: <Tag className="h-4 w-4" />,
         defaultOpen: false,
-        items: validCategories.map((cat) => ({
-          id: `cat_${cat}`,
-          label: cat,
-        })),
+        items: validCategories.map((cat) => ({ id: `cat_${cat}`, label: cat })),
       });
     }
 
-    // Add tags if they exist
-    const tagItems = ((workspaceTags || []) as string[]).map((t: string) => ({
-      id: `tag_${t}`,
-      label: t,
+    const tagItems = ((state.workspaceTags || []) as string[]).map((t: string) => ({
+      id: `tag_${t}`, label: t,
     }));
     if (tagItems.length > 0) {
       groups.push({
-        id: "tags",
-        label: "Tags",
-        icon: <Tag className="h-4 w-4" />,
-        defaultOpen: false,
-        items: tagItems,
+        id: "tags", label: "Tags", icon: <Tag className="h-4 w-4" />,
+        defaultOpen: false, items: tagItems,
       });
     }
 
-    // Add remaining groups
     groups.push(
       {
-        id: "billing",
-        label: "Cobrança",
-        icon: <CircleDollarSign className="h-4 w-4" />,
-        defaultOpen: false,
-        items: billingItems,
+        id: "billing", label: "Cobrança", icon: <CircleDollarSign className="h-4 w-4" />,
+        defaultOpen: false, items: billingItems,
       },
       {
-        id: "smart",
-        label: "Filtros Inteligentes",
-        icon: <Calendar className="h-4 w-4" />,
+        id: "smart", label: "Filtros Inteligentes", icon: <Calendar className="h-4 w-4" />,
         defaultOpen: false,
         items: [
           { id: "smart_recent", label: "Atualizados recentemente" },
@@ -427,476 +138,68 @@ export function ProductsList() {
     );
 
     return groups;
-  }, [productTypesConfig, billingTypesConfig, categories, workspaceTags]);
-
-  // Filter and search - apply all filters including smart filters and billing
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
-    
-    let result = products;
-    
-    // Apply search filter
-    if (searchValue) {
-      const lower = searchValue.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name?.toLowerCase().includes(lower) ||
-          p.sku?.toLowerCase().includes(lower) ||
-          p.category?.toLowerCase().includes(lower)
-      );
-    }
-    
-    // Apply smart filters (local filtering)
-    if (activeFilterId?.startsWith("smart_")) {
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      
-      switch (activeFilterId) {
-        case "smart_recent":
-          result = result.filter((p) => {
-            const updated = new Date(p.updated_at);
-            return updated >= sevenDaysAgo;
-          });
-          break;
-        case "smart_high_price":
-          result = result.filter((p) => (p.base_price || 0) > 100);
-          break;
-        case "smart_low_price":
-          result = result.filter((p) => (p.base_price || 0) < 50);
-          break;
-        case "smart_invalid_sku":
-          result = result.filter((p) => {
-            if (!p.sku) return false;
-            const sku = p.sku;
-            if (/<[^>]+>/.test(sku)) return true;
-            if (/^\d+[\s.,]*[a-zA-Zµ°]{1,5}$/.test(sku.trim())) return true;
-            if (sku.split(/\s+/).length > 3) return true;
-            if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|BaseT)/i.test(sku.trim())) return true;
-            return false;
-          });
-          break;
-        case "smart_no_price":
-          result = result.filter((p) => !p.base_price || p.base_price === 0);
-          break;
-        case "smart_no_cost":
-          result = result.filter((p) => !p.direct_cost || p.direct_cost === 0);
-          break;
-        case "smart_negative_margin":
-          result = result.filter((p) => p.direct_cost && p.direct_cost > p.base_price);
-          break;
-        case "smart_low_margin":
-          result = result.filter((p) => {
-            if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
-            const margin = ((p.base_price - p.direct_cost) / p.base_price) * 100;
-            return margin > 0 && margin < 15;
-          });
-          break;
-        case "smart_no_image":
-          result = result.filter((p) => !p.images || p.images.length === 0);
-          break;
-        case "smart_no_sku":
-          result = result.filter((p) => !p.sku || p.sku.trim() === "");
-          break;
-        case "smart_no_category":
-          result = result.filter((p) => !p.category || p.category.trim() === "");
-          break;
-        case "smart_no_description":
-          result = result.filter((p) => !p.short_description && !p.commercial_description);
-          break;
-      }
-    }
-    
-    // Apply billing type filter (local filtering since API doesn't support it)
-    if (activeFilterId?.startsWith("billing_")) {
-      const billingCode = activeFilterId.replace("billing_", "");
-      result = result.filter((p) => p.billing_type === billingCode);
-    }
-
-    // Apply tag filter
-    if (activeFilterId?.startsWith("tag_") && tagProductIds) {
-      result = result.filter((p) => tagProductIds.includes(p.id));
-    }
-
-    // Apply store filter
-    if (activeFilterId === "store_yes") {
-      result = result.filter((p) => !!(p as any).store_published);
-    } else if (activeFilterId === "store_no") {
-      result = result.filter((p) => !(p as any).store_published);
-    }
-    
-    return result;
-  }, [products, searchValue, activeFilterId, tagProductIds]);
-
-  // Pagination
-  const totalProducts = filteredProducts.length;
-  const totalPages = Math.ceil(totalProducts / pageSize);
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredProducts.slice(start, start + pageSize);
-  }, [filteredProducts, currentPage, pageSize]);
-
-  // Product health indicators
-  const productIndicators = useMemo(() => {
-    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0 };
-    const noPrice = products.filter(p => !p.base_price || p.base_price === 0).length;
-    const noCost = products.filter(p => !p.direct_cost || p.direct_cost === 0).length;
-    const negativeMargin = products.filter(p => p.direct_cost && p.direct_cost > p.base_price).length;
-    const lowMargin = products.filter(p => {
-      if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
-      const m = ((p.base_price - p.direct_cost) / p.base_price) * 100;
-      return m > 0 && m < 15;
-    }).length;
-    const noImage = products.filter(p => !p.images || p.images.length === 0).length;
-    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
-  }, [products]);
-
-  const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || !!activeFilterId;
-
-  const formatCurrency = (value: number, currency = "EUR") => {
-    return new Intl.NumberFormat("pt-PT", {
-      style: "currency",
-      currency,
-    }).format(value);
-  };
-
-  // Render cell content based on column id
-  const renderProductCell = (product: Product, columnId: string, onOpenDetail: (product: Product) => void) => {
-    switch (columnId) {
-      case "name": {
-        const hasNoPrice = !product.base_price || product.base_price === 0;
-        const hasNegativeMargin = product.direct_cost && product.direct_cost > product.base_price;
-        const hasLowMargin = product.base_price && product.direct_cost && product.base_price > 0 &&
-          (() => { const m = ((product.base_price - product.direct_cost!) / product.base_price) * 100; return m > 0 && m < 15; })();
-        const hasNoImage = !product.images || product.images.length === 0;
-        return (
-          <button
-            type="button"
-            onClick={() => onOpenDetail(product)}
-            className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline transition-colors"
-          >
-            {product.images?.[0] ? (
-              <img
-                src={product.images[0]}
-                alt={product.name}
-                className="w-8 h-8 rounded object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-            )}
-            <span className="truncate">{product.name}</span>
-            {hasNoPrice && (
-              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-destructive" title="Sem preço definido" />
-            )}
-            {hasNegativeMargin && (
-              <span className="flex-shrink-0" title="Margem negativa">
-                <TrendingDown className="h-3 w-3 text-destructive" />
-              </span>
-            )}
-            {hasLowMargin && !hasNegativeMargin && (
-              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-warning" title="Margem baixa (<15%)" />
-            )}
-          </button>
-        );
-      }
-      case "sku":
-        return product.sku ? (
-          <button
-            type="button"
-            onClick={() => onOpenDetail(product)}
-            className="text-muted-foreground hover:text-primary hover:underline transition-colors"
-          >
-            {product.sku}
-          </button>
-        ) : "-";
-      case "product_type":
-        return (
-          <Badge variant="outline">
-            {getProductTypeLabel(product.product_type)}
-          </Badge>
-        );
-      case "category":
-        return product.category ? (
-          <button
-            type="button"
-            onClick={() => onOpenDetail(product)}
-            className="hover:text-primary hover:underline transition-colors"
-          >
-            {product.category}
-          </button>
-        ) : "-";
-      case "base_price":
-        return formatCurrency(product.base_price, product.currency);
-      case "direct_cost":
-        return product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-";
-      case "operational_cost":
-        return product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-";
-      case "margin":
-        if (product.base_price && product.direct_cost) {
-          const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
-          return (
-            <span className={margin >= 30 ? "text-green-600" : margin >= 15 ? "text-yellow-600" : "text-destructive"}>
-              {margin.toFixed(1)}%
-            </span>
-          );
-        }
-        return "-";
-      case "billing_type":
-        return getBillingTypeLabel(product.billing_type);
-      case "billing_frequency":
-        return product.billing_frequency || "-";
-      case "status":
-        return (
-          <Badge variant={product.status === "active" ? "default" : "secondary"}>
-            {productStatusLabels[product.status]}
-          </Badge>
-        );
-      case "store_published":
-        return (
-          <Switch
-            checked={!!(product as any).store_published}
-            onCheckedChange={(checked) => toggleStorePublished.mutate({ id: product.id, published: checked })}
-          />
-        );
-      case "b2b_published":
-        return (product as any).b2b_published !== false ? (
-          <Badge variant="outline" className="text-green-600 border-green-300">
-            Publicado
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-muted-foreground">
-            Oculto
-          </Badge>
-        );
-      case "total_units":
-        return product.total_units ?? "-";
-      case "unit_duration":
-        return product.unit_duration ? `${product.unit_duration} min` : "-";
-      case "validity_days":
-        return product.validity_days ? `${product.validity_days} dias` : "-";
-      case "tax_rate_estimate_pct":
-        return product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-";
-      case "commission_default":
-        return product.commission_default ? `${product.commission_default}%` : "-";
-      case "delivery_mode":
-        return product.delivery_mode || "-";
-      case "created_at":
-        return format(new Date(product.created_at), "dd/MM/yyyy", { locale: pt });
-      case "updated_at":
-        return format(new Date(product.updated_at), "dd/MM/yyyy", { locale: pt });
-      default:
-        return "-";
-    }
-  };
-
-  const handleArchive = async (product: Product) => {
-    await archiveProduct.mutateAsync({
-      id: product.id,
-      archive: product.status === "active",
-    });
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteConfirmProduct) return;
-    await deleteProduct.mutateAsync(deleteConfirmProduct.id);
-    setDeleteConfirmProduct(null);
-  };
-
-  const handleFilterSelect = (filterId: string) => {
-    // Toggle off if clicking the same filter
-    if (activeFilterId === filterId) {
-      setActiveFilterId(undefined);
-      // Reset the corresponding filter
-      if (filterId.startsWith("type_")) {
-        setTypeFilter("all");
-      } else if (filterId.startsWith("status_")) {
-        setStatusFilter("active");
-      } else if (filterId.startsWith("cat_")) {
-        setCategoryFilter("all");
-      } else if (filterId.startsWith("smart_")) {
-        // Reset smart filters
-      }
-      return;
-    }
-
-    setActiveFilterId(filterId);
-    // Apply filter logic based on filterId
-    if (filterId.startsWith("type_")) {
-      const type = filterId.replace("type_", "");
-      setTypeFilter(type);
-    } else if (filterId.startsWith("status_")) {
-      const status = filterId.replace("status_", "");
-      setStatusFilter(status);
-    } else if (filterId.startsWith("cat_")) {
-      const cat = filterId.replace("cat_", "");
-      setCategoryFilter(cat);
-    } else if (filterId.startsWith("smart_")) {
-      // Handle smart filters locally
-    }
-  };
-
-  const handleClearFilters = () => {
-    setActiveFilterId(undefined);
-    setStatusFilter("active");
-    setTypeFilter("all");
-    setCategoryFilter("all");
-    setSearchValue("");
-    setDebouncedSearch("");
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(paginatedProducts.map((p) => p.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedIds((prev) => [...prev, id]);
-    } else {
-      setSelectedIds((prev) => prev.filter((i) => i !== id));
-    }
-  };
-
-  const handleBulkExport = () => {
-    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
-    if (selected.length === 0) return;
-    const csv = [
-      ["Nome", "Tipo", "Categoria", "Preço", "Cobrança", "Estado"].join(","),
-      ...selected.map((p) =>
-        [
-          p.name,
-          getProductTypeLabel(p.product_type),
-          p.category || "",
-          p.base_price,
-          getBillingTypeLabel(p.billing_type),
-          productStatusLabels[p.status],
-        ].join(",")
-      ),
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `produtos_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    toast.success(`${selected.length} produtos exportados`);
-  };
-
-  const handleBulkArchive = async () => {
-    const selected = products?.filter((p) => selectedIds.includes(p.id)) || [];
-    if (selected.length === 0) return;
-    for (const p of selected) {
-      await archiveProduct.mutateAsync({ id: p.id, archive: true });
-    }
-    setSelectedIds([]);
-    toast.success(`${selected.length} produtos arquivados`);
-  };
-
+  }, [state.productTypesConfig, state.billingTypesConfig, state.categories, state.workspaceTags]);
 
   return (
     <div className="flex h-full min-h-0 -m-6">
-      {/* Filter Sidebar - only show on products tab */}
-      {activeTab === "products" && (
+      {/* Filter Sidebar */}
+      {state.activeTab === "products" && (
         <FilterSidebar
           filterGroups={filterGroups}
-          activeFilterId={activeFilterId}
-          onFilterSelect={handleFilterSelect}
+          activeFilterId={state.activeFilterId}
+          onFilterSelect={state.handleFilterSelect}
           onClearFilter={() => {
-            setActiveFilterId(undefined);
-            setStatusFilter("active");
-            setTypeFilter("all");
-            setCategoryFilter("all");
+            state.handleClearFilters();
           }}
-          isOpen={showFilterSidebar}
-          onClose={() => setShowFilterSidebar(false)}
+          isOpen={state.showFilterSidebar}
+          onClose={() => state.setShowFilterSidebar(false)}
         />
       )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
-        {/* Page Header */}
         <PageHeader
           title="Produtos"
-          count={activeTab === "products" ? totalProducts : undefined}
+          count={state.activeTab === "products" ? state.totalProducts : undefined}
           description="Gerencie os seus produtos e serviços"
           tabs={pageTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          actions={activeTab === "products" ? [
-            {
-              label: "Scan",
-              icon: <ScanLine className="h-4 w-4" />,
-              onClick: () => setScannerOpen(true),
-              variant: "outline" as const,
-            },
-            {
-              label: "Importar SKUs",
-              icon: <Upload className="h-4 w-4" />,
-              onClick: () => setBatchImportOpen(true),
-              variant: "outline" as const,
-            },
-            {
-              label: "Criar Produto",
-              icon: <Plus className="h-4 w-4" />,
-              onClick: () => setCreateOpen(true),
-            },
+          activeTab={state.activeTab}
+          onTabChange={state.setActiveTab}
+          actions={state.activeTab === "products" ? [
+            { label: "Scan", icon: <ScanLine className="h-4 w-4" />, onClick: () => state.setScannerOpen(true), variant: "outline" as const },
+            { label: "Importar SKUs", icon: <Upload className="h-4 w-4" />, onClick: () => state.setBatchImportOpen(true), variant: "outline" as const },
+            { label: "Criar Produto", icon: <Plus className="h-4 w-4" />, onClick: () => state.setCreateOpen(true) },
           ] : undefined}
         />
 
-        {/* Products Tab Content */}
-        {activeTab === "products" && (
+        {state.activeTab === "products" && (
           <>
-            {/* Toolbar */}
             <Toolbar
-              searchValue={searchValue}
+              searchValue={state.searchValue}
               searchPlaceholder="Pesquisar produtos..."
-              onSearchChange={(value) => {
-                setSearchValue(value);
-                // Debounce for API
-                setTimeout(() => setDebouncedSearch(value), 300);
-              }}
+              onSearchChange={state.setSearchValue}
               showFilters={true}
-              filtersActive={filtersActive}
-              onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-              onClearFilters={handleClearFilters}
+              filtersActive={state.filtersActive}
+              onToggleFilters={() => state.setShowFilterSidebar(!state.showFilterSidebar)}
+              onClearFilters={state.handleClearFilters}
               sortOptions={sortOptions}
-              sortValue={sortValue}
-              onSortChange={setSortValue}
+              sortValue={state.sortValue}
+              onSortChange={state.setSortValue}
               leftActions={
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-                    className="gap-2"
-                  >
-                    {showFilterSidebar ? (
-                      <PanelLeftClose className="h-4 w-4" />
-                    ) : (
-                      <PanelLeft className="h-4 w-4" />
-                    )}
+                  <Button variant="ghost" size="sm" onClick={() => state.setShowFilterSidebar(!state.showFilterSidebar)} className="gap-2">
+                    {state.showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
                   </Button>
-                  {productIndicators.noCost > 0 && (
+                  {state.productIndicators.noCost > 0 && (
                     <Button
-                      variant={activeFilterId === "smart_no_cost" ? "outline" : "ghost"}
+                      variant={state.activeFilterId === "smart_no_cost" ? "outline" : "ghost"}
                       size="sm"
-                      onClick={() => handleFilterSelect("smart_no_cost")}
-                      className={cn(
-                        "gap-2",
-                        activeFilterId === "smart_no_cost"
-                          ? "bg-warning/10 text-warning border-warning/30"
-                          : ""
-                      )}
+                      onClick={() => state.handleFilterSelect("smart_no_cost")}
+                      className={cn("gap-2", state.activeFilterId === "smart_no_cost" ? "bg-warning/10 text-warning border-warning/30" : "")}
                     >
                       <AlertTriangle className="h-4 w-4" />
                       <span className="hidden sm:inline">Sem custo</span>
-                      <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
-                        {productIndicators.noCost}
-                      </Badge>
+                      <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">{state.productIndicators.noCost}</Badge>
                     </Button>
                   )}
                 </div>
@@ -905,397 +208,137 @@ export function ProductsList() {
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Columns className="h-4 w-4" />
-                        Largura
-                      </Button>
+                      <Button variant="ghost" size="sm" className="gap-2"><Columns className="h-4 w-4" /> Largura</Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => {
-                        const visibleColIds = columnOrder.filter(c => visibleColumns.has(c));
-                        colWidths.autoFitAll(visibleColIds, tableRef);
-                      }}>
-                        Ajustar automaticamente
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={colWidths.resetWidths}>
-                        Repor larguras padrão
-                      </DropdownMenuItem>
+                        const visibleColIds = state.columnOrder.filter(c => state.visibleColumns.has(c));
+                        state.colWidths.autoFitAll(visibleColIds, state.tableRef);
+                      }}>Ajustar automaticamente</DropdownMenuItem>
+                      <DropdownMenuItem onClick={state.colWidths.resetWidths}>Repor larguras padrão</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <ColumnSelector
                     columns={PRODUCT_COLUMNS}
-                    visibleColumns={visibleColumns}
-                    columnOrder={columnOrder}
-                    onVisibleColumnsChange={setVisibleColumns}
-                    onColumnOrderChange={setColumnOrder}
+                    visibleColumns={state.visibleColumns}
+                    columnOrder={state.columnOrder}
+                    onVisibleColumnsChange={state.setVisibleColumns}
+                    onColumnOrderChange={state.setColumnOrder}
                     storageKey="products-table-columns"
                   />
-                  <Button variant="ghost" size="sm" onClick={() => refetch()} className="gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => state.refetch()} className="gap-2">
                     <RefreshCw className="h-4 w-4" />
                   </Button>
                 </div>
               }
             />
 
-            {/* Product Health Indicators */}
-            {products && products.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
-                {[
-                  { label: "Total", value: productIndicators.total, icon: <Package className="h-3.5 w-3.5" />, filter: undefined, variant: "default" as const },
-                  { label: "Sem preço", value: productIndicators.noPrice, icon: <DollarSign className="h-3.5 w-3.5" />, filter: "smart_no_price", variant: "destructive" as const },
-                  { label: "Sem custo", value: productIndicators.noCost, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_no_cost", variant: "warning" as const },
-                  { label: "Margem negativa", value: productIndicators.negativeMargin, icon: <TrendingDown className="h-3.5 w-3.5" />, filter: "smart_negative_margin", variant: "destructive" as const },
-                  { label: "Margem baixa", value: productIndicators.lowMargin, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_low_margin", variant: "warning" as const },
-                  { label: "Sem imagem", value: productIndicators.noImage, icon: <ImageOff className="h-3.5 w-3.5" />, filter: "smart_no_image", variant: "default" as const },
-                ].map((ind) => (
-                  <button
-                    key={ind.label}
-                    onClick={() => ind.filter && handleFilterSelect(ind.filter)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${
-                      activeFilterId === ind.filter
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card hover:bg-muted/50"
-                    } ${ind.filter ? "cursor-pointer" : "cursor-default"}`}
-                  >
-                    <span className={
-                      ind.variant === "destructive" && ind.value > 0
-                        ? "text-destructive"
-                        : ind.variant === "warning" && ind.value > 0
-                          ? "text-warning"
-                          : "text-muted-foreground"
-                    }>
-                      {ind.icon}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-lg font-bold leading-none">{ind.value}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{ind.label}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {state.products && state.products.length > 0 && (
+              <ProductHealthIndicators
+                productIndicators={state.productIndicators}
+                activeFilterId={state.activeFilterId}
+                onFilterSelect={state.handleFilterSelect}
+              />
             )}
 
-            {/* Bulk Actions */}
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
-                </span>
-                <div className="flex-1" />
-                <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Exportar
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Definir Custo
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleBulkArchive} className="gap-2">
-                  <Archive className="h-4 w-4" />
-                  Arquivar
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(true)} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
-                  <Trash2 className="h-4 w-4" />
-                  Apagar
-                </Button>
+            <ProductBulkActions
+              selectedIds={state.selectedIds}
+              bulkDeleteOpen={state.bulkDeleteOpen}
+              setBulkDeleteOpen={state.setBulkDeleteOpen}
+              bulkCostOpen={state.bulkCostOpen}
+              setBulkCostOpen={state.setBulkCostOpen}
+              onBulkExport={state.handleBulkExport}
+              onBulkArchive={state.handleBulkArchive}
+              onBulkDelete={() => state.deleteProductsBatch.mutateAsync(state.selectedIds)}
+              onClearSelection={() => state.setSelectedIds([])}
+            />
 
-                <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Apagar {selectedIds.length} produto{selectedIds.length !== 1 ? "s" : ""}?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação é permanente e não pode ser revertida. Os produtos selecionados serão apagados definitivamente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={async () => {
-                          await deleteProductsBatch.mutateAsync(selectedIds);
-                          setSelectedIds([]);
-                          setBulkDeleteOpen(false);
-                        }}
-                      >
-                        Apagar permanentemente
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <BulkCostDialog
-                  open={bulkCostOpen}
-                  onOpenChange={setBulkCostOpen}
-                  selectedIds={selectedIds}
-                  onComplete={() => setSelectedIds([])}
-                />
-              </div>
-            )}
+            <ProductsDataTable
+              products={state.paginatedProducts}
+              isLoading={state.isLoading}
+              selectedIds={state.selectedIds}
+              onSelectAll={state.handleSelectAll}
+              onSelectOne={state.handleSelectOne}
+              onOpenDetail={state.setDetailProduct}
+              onEdit={state.setEditProduct}
+              onArchive={state.handleArchive}
+              onDelete={state.setDeleteConfirmProduct}
+              onCreate={() => state.setCreateOpen(true)}
+              columnOrder={state.columnOrder}
+              visibleColumns={state.visibleColumns}
+              colWidths={state.colWidths}
+              tableRef={state.tableRef}
+              getProductTypeLabel={state.getProductTypeLabel}
+              getBillingTypeLabel={state.getBillingTypeLabel}
+              formatCurrency={state.formatCurrency}
+              toggleStorePublished={state.toggleStorePublished}
+            />
 
-            {/* Table */}
-            <Card className="overflow-x-hidden">
-              {isLoading ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                </div>
-              ) : !paginatedProducts?.length ? (
-                <div className="p-12 text-center text-muted-foreground">
-                  <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                  <h3 className="text-lg font-medium mb-2">Ainda não tens produtos.</h3>
-                  <p className="text-sm mb-4">
-                    Cria o primeiro produto para usares em propostas e negócios.
-                  </p>
-                  <Button onClick={() => setCreateOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Produto
-                  </Button>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                <Table ref={tableRef} style={{ tableLayout: "fixed", width: "auto" }}>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px]" style={{ width: 50 }}>
-                        <Checkbox
-                          checked={
-                            paginatedProducts.length > 0 &&
-                            paginatedProducts.every((p) => selectedIds.includes(p.id))
-                          }
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                      {columnOrder
-                        .filter((colId) => visibleColumns.has(colId))
-                        .map((colId) => {
-                          const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
-                          if (!col) return null;
-                          const w = colWidths.getWidth(col.id);
-                          return (
-                            <TableHead
-                              key={col.id}
-                              data-col-id={col.id}
-                              className="relative select-none"
-                              style={{ width: w, minWidth: 60, maxWidth: 600 }}
-                            >
-                              <span className="truncate block pr-2">{col.label}</span>
-                              {/* Resize handle */}
-                              <div
-                                className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group hover:bg-primary/20 z-10"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  colWidths.startResize(col.id, e.clientX);
-                                }}
-                                onDoubleClick={() => colWidths.autoFitColumn(col.id, tableRef)}
-                              >
-                                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-border group-hover:bg-primary transition-colors" />
-                              </div>
-                            </TableHead>
-                          );
-                        })}
-                      <TableHead className="w-[50px]" style={{ width: 50 }}></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell style={{ width: 50 }}>
-                          <Checkbox
-                            checked={selectedIds.includes(product.id)}
-                            onCheckedChange={(checked) =>
-                              handleSelectOne(product.id, checked as boolean)
-                            }
-                          />
-                        </TableCell>
-                        {columnOrder
-                          .filter((colId) => visibleColumns.has(colId))
-                          .map((colId) => {
-                            const w = colWidths.getWidth(colId);
-                            return (
-                              <TableCell
-                                key={colId}
-                                data-col-id={colId}
-                                style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                              >
-                                {renderProductCell(product, colId, setDetailProduct)}
-                              </TableCell>
-                            );
-                          })}
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setDetailProduct(product)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setEditProduct(product)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleArchive(product)}>
-                                {product.status === "active" ? (
-                                  <>
-                                    <Archive className="h-4 w-4 mr-2" />
-                                    Arquivar
-                                  </>
-                                ) : (
-                                  <>
-                                    <RotateCcw className="h-4 w-4 mr-2" />
-                                    Reativar
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => setDeleteConfirmProduct(product)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                </div>
-              )}
-            </Card>
-
-            {/* Pagination */}
-            {totalPages > 0 && (
-              <div className="flex items-center justify-between pt-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Mostrar</span>
-                  <Select
-                    value={pageSize.toString()}
-                    onValueChange={(v) => {
-                      setPageSize(Number(v));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="w-[70px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      {PAGE_SIZE_OPTIONS.map((size) => (
-                        <SelectItem key={size} value={size.toString()}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-muted-foreground">por página</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage <= 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <ProductsPagination
+              currentPage={state.currentPage}
+              totalPages={state.totalPages}
+              pageSize={state.pageSize}
+              onPageChange={state.setCurrentPage}
+              onPageSizeChange={state.setPageSize}
+            />
           </>
         )}
 
-        {/* Categories Tab Content */}
-        {activeTab === "categories" && <CategoriesTabContent />}
-
-        {/* Pricing Tab Content */}
-        {activeTab === "pricing" && <PricingTabContent />}
-
-        {/* Settings Tab Content */}
-        {activeTab === "settings" && <ProductSettingsTabContent />}
+        {state.activeTab === "categories" && <CategoriesTabContent />}
+        {state.activeTab === "pricing" && <PricingTabContent />}
+        {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 
-      <CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />
-
+      {/* Dialogs */}
+      <CreateProductDialog open={state.createOpen} onOpenChange={state.setCreateOpen} />
       <CreateProductDialog
-        open={!!editProduct}
-        onOpenChange={(open) => !open && setEditProduct(null)}
-        product={editProduct ?? undefined}
+        open={!!state.editProduct}
+        onOpenChange={(open) => !open && state.setEditProduct(null)}
+        product={state.editProduct ?? undefined}
       />
-
-      {detailProduct && (
+      {state.detailProduct && (
         <ProductDetailDialog
-          open={!!detailProduct}
-          onOpenChange={(open) => !open && setDetailProduct(null)}
-          productId={detailProduct.id}
+          open={!!state.detailProduct}
+          onOpenChange={(open) => !open && state.setDetailProduct(null)}
+          productId={state.detailProduct.id}
         />
       )}
+      <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
 
-      <BatchSKUImportDialog
-        open={batchImportOpen}
-        onOpenChange={setBatchImportOpen}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={!!deleteConfirmProduct} 
-        onOpenChange={(open) => !open && setDeleteConfirmProduct(null)}
+      <AlertDialog
+        open={!!state.deleteConfirmProduct}
+        onOpenChange={(open) => !open && state.setDeleteConfirmProduct(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar produto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem a certeza que pretende eliminar o produto "{deleteConfirmProduct?.name}"? 
+              Tem a certeza que pretende eliminar o produto "{state.deleteConfirmProduct?.name}"?
               Esta ação é irreversível e irá remover permanentemente o produto do sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm}
+            <AlertDialogAction
+              onClick={state.handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
+              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Barcode Scanner */}
-      <BarcodeScannerModal
-        open={scannerOpen}
-        onOpenChange={setScannerOpen}
-        onScan={handleBarcodeScan}
-      />
+      <BarcodeScannerModal open={state.scannerOpen} onOpenChange={state.setScannerOpen} onScan={state.handleBarcodeScan} />
       <BarcodeResultPanel
-        open={scanResultOpen}
-        onOpenChange={(v) => {
-          setScanResultOpen(v);
-          if (!v) resetScan();
-        }}
-        result={scanResult}
-        barcode={scannedBarcode}
-        isLoading={scanLoading}
+        open={state.scanResultOpen}
+        onOpenChange={(v) => { state.setScanResultOpen(v); if (!v) state.resetScan(); }}
+        result={state.scanResult}
+        barcode={state.scannedBarcode}
+        isLoading={state.scanLoading}
         onOpenProduct={(id) => {
-          const p = products?.find(pr => pr.id === id);
-          if (p) setDetailProduct(p);
+          const p = state.products?.find(pr => pr.id === id);
+          if (p) state.setDetailProduct(p);
         }}
         onQuickCreate={(barcode) => {
           window.open(`/mqpc?barcode=${encodeURIComponent(barcode)}`, "_blank");
