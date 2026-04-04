@@ -1,67 +1,60 @@
 
-# Fase 10 — Completar Conversão + Checkout Ultra-Otimizado + Sales Analytics
+# Fase 11 — SEO & Performance
 
-## O que ficou por completar da Fase 9
-1. **Email no Step 1 do checkout** — O schema foi atualizado mas o UI do `CheckoutLeadStep` ainda não mostra o campo email
-2. **Urgency countdown no Buy Box** — Falta countdown de `pricing_rules` com `ends_at` no PDP
-3. **Prefetch de produto no hover** — Card ainda não faz prefetch
+## 1. Meta Tags Dinâmicas por Página
+- Garantir que TODAS as páginas públicas da loja têm `<title>`, `<meta description>`, Open Graph e Twitter Cards dinâmicos
+- Componente `StoreSeoHead` já existe — auditar cobertura e completar páginas em falta (home, categoria, wishlist, orders)
+- Canonical URLs em todas as páginas
 
-## Fase 10 — Novas funcionalidades
+## 2. Dados Estruturados (JSON-LD)
+- Product schema já existe — adicionar:
+  - `Organization` na homepage da loja
+  - `BreadcrumbList` em todas as páginas de navegação
+  - `ItemList` na listagem de produtos
+  - `FAQPage` se existirem FAQs
 
-### 1. Checkout Step 1 com Email (corrigir)
-- Adicionar campo email ao `CheckoutLeadStep.tsx`
-- Step 2 passa a ser só envio + pagamento (sem email)
-- Captura email mais cedo para abandoned cart recovery
+## 3. Sitemap Dinâmico
+- Edge function `store-sitemap` que gera XML sitemap com:
+  - Páginas estáticas da loja
+  - Todos os produtos publicados (com lastmod)
+  - Prioridades e changefreq adequados
+- robots.txt com referência ao sitemap
 
-### 2. Urgency Countdown no Buy Box
-- Quando produto tem `pricing_rules` com `ends_at`, mostrar countdown no Buy Box
-- "Oferta termina em X:XX:XX" com animação pulsante
-- Novo componente `StoreOfferCountdown.tsx`
+## 4. Image Optimization
+- Lazy loading com `loading="lazy"` em todas as imagens de produto
+- `srcset` / tamanhos responsivos nas imagens principais
+- Placeholder blur/skeleton durante carregamento
+- Dimensões explícitas (width/height) para evitar CLS
 
-### 3. Product Card Prefetch
-- Ao fazer hover no card, prefetch dos dados do produto via `queryClient.prefetchQuery`
-- Navegação instantânea para PDP
+## 5. Code Splitting & Lazy Loading
+- Auditar routes — garantir que todas usam `lazy()` 
+- Prefetch de rotas críticas (checkout, PDP) — já parcialmente feito
+- Separar chunks de admin vs storefront
 
-### 4. Dashboard de Vendas da Loja
-- Nova tab "Vendas" no painel admin com:
-  - Revenue diário/semanal/mensal (LineChart)
-  - Top 10 produtos vendidos (BarChart)
-  - Taxa de conversão (visitors → orders)
-  - AOV (Average Order Value) trend
-  - Carrinhos abandonados vs convertidos
-- Hook `useStoreAnalytics` que agrega dados de `store_orders`
-
-### 5. Checkout UX Polish
-- Thumbnails dos produtos no summary card
-- Badges de segurança mais proeminentes
-- Animação de progresso entre steps
-- Auto-focus inteligente
-
-### 6. Abandoned Cart Dashboard
-- Listar carrinhos abandonados no admin
-- Ver contacto + items + valor
-- Ação rápida de reenviar email de recuperação
+## 6. Core Web Vitals
+- Reduzir CLS: dimensões explícitas em imagens e skeletons
+- Reduzir LCP: priorizar hero image com `fetchpriority="high"`
+- Reduzir INP: debounce em inputs de pesquisa, virtualização em listas longas
 
 ## Ficheiros
 
 ```
 Novos:
-├── StoreOfferCountdown.tsx          (countdown urgency)
-├── StoreSalesAnalytics.tsx          (dashboard vendas)
-├── useStoreAnalytics.ts             (hook dados vendas)
-├── StoreAbandonedCartsTab.tsx       (admin abandoned carts)
+├── supabase/functions/store-sitemap/   (edge function sitemap XML)
+├── StoreOrganizationSchema.tsx         (JSON-LD Organization)
+├── StoreItemListSchema.tsx             (JSON-LD ItemList)
 
 Modificados:
-├── CheckoutLeadStep.tsx             (+ campo email)
-├── CheckoutPaymentStep.tsx          (remover email, só envio+pagamento)
-├── StoreProductCard.tsx             (prefetch on hover)
-├── StoreProductPage.tsx             (countdown urgency)
-├── CheckoutSummaryCard.tsx          (thumbnails)
+├── StorePage.tsx                       (SEO head, JSON-LD, lazy images)
+├── StoreProductPage.tsx                (image optimization, fetchpriority)
+├── StoreProductCard.tsx                (lazy loading images, dimensions)
+├── ProductSeoHead.tsx                  (auditar e completar)
+├── StoreLayout/Header                  (preconnect hints)
 ```
 
 ## Critérios de Aceitação
-- Email capturado no step 1 do checkout
-- Countdown visível quando produto tem regra com data de fim
-- Prefetch funcional — PDP abre instantaneamente após hover
-- Dashboard de vendas com 4+ KPIs e gráficos
-- Abandoned carts listados com ações rápidas
+- Lighthouse Performance ≥ 85, SEO ≥ 95 nas páginas da loja
+- Todas as páginas públicas com meta tags + OG completos
+- Sitemap acessível em `/api/store-sitemap`
+- Imagens com lazy loading + dimensões explícitas
+- JSON-LD válido (testar com Google Rich Results)
