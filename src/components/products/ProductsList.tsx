@@ -356,6 +356,7 @@ export function ProductsList() {
         />
       )}
       <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
+      <ProductImportWizard open={importWizardOpen} onOpenChange={setImportWizardOpen} />
       <ProductsExportDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
