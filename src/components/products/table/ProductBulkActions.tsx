@@ -9,7 +9,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Download, DollarSign, Archive, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -22,6 +28,8 @@ interface ProductBulkActionsProps {
   onBulkArchive: () => void;
   onBulkDelete: () => Promise<unknown>;
   onClearSelection: () => void;
+  onBulkPublish?: (published: boolean) => void;
+  onBulkDuplicate?: () => void;
 }
 
 export function ProductBulkActions({
@@ -34,6 +42,8 @@ export function ProductBulkActions({
   onBulkArchive,
   onBulkDelete,
   onClearSelection,
+  onBulkPublish,
+  onBulkDuplicate,
 }: ProductBulkActionsProps) {
   if (selectedIds.length === 0) return null;
 
@@ -43,15 +53,45 @@ export function ProductBulkActions({
         {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
       </span>
       <div className="flex-1" />
+
       <Button variant="outline" size="sm" onClick={onBulkExport} className="gap-2">
         <Download className="h-4 w-4" /> Exportar
       </Button>
+
       <Button variant="outline" size="sm" onClick={() => setBulkCostOpen(true)} className="gap-2">
         <DollarSign className="h-4 w-4" /> Definir Custo
       </Button>
+
+      {/* Bulk publish/unpublish */}
+      {onBulkPublish && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Store className="h-4 w-4" /> Loja <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onBulkPublish(true)}>
+              Publicar na loja
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onBulkPublish(false)}>
+              Remover da loja
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {/* Duplicate */}
+      {onBulkDuplicate && (
+        <Button variant="outline" size="sm" onClick={onBulkDuplicate} className="gap-2">
+          <Copy className="h-4 w-4" /> Duplicar
+        </Button>
+      )}
+
       <Button variant="outline" size="sm" onClick={onBulkArchive} className="gap-2">
         <Archive className="h-4 w-4" /> Arquivar
       </Button>
+
       <Button
         variant="outline"
         size="sm"
