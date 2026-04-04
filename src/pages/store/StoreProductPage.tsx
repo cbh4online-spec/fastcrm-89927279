@@ -227,16 +227,18 @@ export default function StoreProductPage() {
         <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
         <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
 
-        {/* Sticky Add to Cart bar */}
-        <StoreStickyAddToCart
-          name={product.name}
-          price={pricing?.price ?? product.base_price}
-          currency={product.currency}
-          image={images[primaryIndex] || images[0]}
-          isOutOfStock={isOutOfStock}
-          onAddToCart={handleAddToCart}
-          triggerRef={addToCartRef as React.RefObject<HTMLElement>}
-        />
+        {/* Sticky Add to Cart bar — hidden for price on request */}
+        {!isPriceOnRequest && (
+          <StoreStickyAddToCart
+            name={product.name}
+            price={pricing?.price ?? product.base_price}
+            currency={product.currency}
+            image={images[primaryIndex] || images[0]}
+            isOutOfStock={isOutOfStock}
+            onAddToCart={handleAddToCart}
+            triggerRef={addToCartRef as React.RefObject<HTMLElement>}
+          />
+        )}
 
         <div className="container mx-auto px-4 py-6">
           {/* Breadcrumb */}
