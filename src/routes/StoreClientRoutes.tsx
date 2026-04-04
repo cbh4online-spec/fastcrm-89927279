@@ -16,6 +16,7 @@ const StoreDigitalAssetsPage = lazy(() => import("@/pages/store/StoreDigitalAsse
 const StoreLoyaltyPage = lazy(() => import("@/pages/store/StoreLoyaltyPage"));
 const StoreReferralPage = lazy(() => import("@/pages/store/StoreReferralPage"));
 const StoreGiftCardsPage = lazy(() => import("@/pages/store/StoreGiftCardsPage"));
+const StoreOrderTrackingPage = lazy(() => import("@/pages/store/StoreOrderTrackingPage"));
 
 // Store admin pages (dashboard)
 const StoreOrdersPage = lazy(() => import("@/pages/StoreOrdersPage"));
