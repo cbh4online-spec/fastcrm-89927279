@@ -60,7 +60,7 @@ export function useStoreProducts({ workspaceId, categoryId, category, search, fe
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition")
+        .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, created_at, workspace_id, product_condition, price_on_request")
         .eq("workspace_id", workspaceId)
         .eq("store_published", true)
         .eq("status", "active");
