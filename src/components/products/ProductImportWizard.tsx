@@ -257,7 +257,7 @@ export function ProductImportWizard({ open, onOpenChange }: Props) {
         return record;
       });
 
-      const { error } = await supabase.from("products").insert(records);
+      const { error } = await supabase.from("products").insert(records as any);
       if (error) {
         errors += batch.length;
         console.warn("Import batch error:", error);
