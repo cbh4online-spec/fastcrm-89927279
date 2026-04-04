@@ -1,26 +1,71 @@
 
 
-## Problema
+## Diagnóstico
 
-Ao mudar o "Mostrar X por página" na lista de Produtos, o selector não funciona correctamente e o scroll bloqueia. Duas causas identificadas:
+A hierarquia de layout que contém a tabela de produtos tem um problema clássico de CSS flexbox: containers flex sem `min-h-0`, o que impede o scroll de funcionar.
 
-1. **SelectContent sem z-index** — O dropdown do page size (linha 1185) não tem `className="bg-popover z-50"`, ao contrário de componentes idênticos noutras tabelas. O popover fica escondido por trás de elementos com overflow ou z-index superior, impedindo a selecção.
+**Cadeia de scroll actual:**
+```text
+<main class="flex-1 overflow-auto p-6">           ← DashboardLayout (scrollável)
+  <div class="flex h-full -m-6">                  ← ProductsList root (linha 801)
+    <div class="flex-1 flex flex-col p-6           ← Conteúdo principal (linha 820)
+                overflow-y-auto">
+      <Card class="overflow-hidden">               ← Card da tabela (linha 1035)
+        <div class="overflow-x-auto">              ← Wrapper horizontal (linha 1053)
+          <Table>                                   ← Tabela de produtos
+```
 
-2. **Limite de 1000 registos do Supabase** — O hook `useProducts` (em `src/hooks/useProducts.ts`) não define `.limit()` nem paginação server-side. O Supabase devolve no máximo 1000 linhas por defeito. O screenshot confirma "1000 registos" exactos, o que sugere que existem mais produtos que não são carregados.
+**Causa raiz:** Em flexbox, um filho com `flex-1` não encolhe abaixo do tamanho do seu conteúdo a menos que tenha `min-height: 0` (ou `min-h-0` em Tailwind). Sem isto, o div da linha 801 e o div da linha 820 expandem-se para acomodar todo o conteúdo da tabela em vez de activar o scroll. O resultado é que o conteúdo fica cortado pelo `overflow-hidden` do Card ou pelo `overflow-hidden` do layout pai (`h-screen`), mostrando apenas as primeiras linhas visíveis.
 
-## Plano
+## Plano de implementação
 
-### 1. Corrigir o SelectContent do page size
-**Ficheiro:** `src/components/products/ProductsList.tsx` (linha 1185)
+### 1. Corrigir o container raiz do ProductsList (linha 801)
+**Ficheiro:** `src/components/products/ProductsList.tsx`
 
-Adicionar `className="bg-popover z-50"` ao `<SelectContent>` da paginação, tal como já existe nas tabelas de contactos e empresas. Isto garante que o dropdown aparece acima de todos os outros elementos.
+Alterar de:
+```tsx
+<div className="flex h-full -m-6">
+```
+Para:
+```tsx
+<div className="flex h-full min-h-0 -m-6">
+```
 
-### 2. Aumentar o limite da query de produtos
-**Ficheiro:** `src/hooks/useProducts.ts` (linha ~52-74)
+### 2. Corrigir o container principal do conteúdo (linha 820)
+**Ficheiro:** `src/components/products/ProductsList.tsx`
 
-Adicionar `.limit(5000)` (ou outro valor adequado) à query Supabase, para ultrapassar o limite default de 1000 e carregar todos os produtos do workspace. Alternativa: implementar paginação server-side, mas dado o padrão actual (client-side slice), o `.limit()` elevado é a solução mais simples e consistente.
+Alterar de:
+```tsx
+<div className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
+```
+Para:
+```tsx
+<div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
+```
+
+### 3. Garantir que o Card não corta a tabela verticalmente (linha 1035)
+**Ficheiro:** `src/components/products/ProductsList.tsx`
+
+O `overflow-hidden` no Card está a cortar linhas que excedem a altura visível. Deve permitir crescer naturalmente dentro do container scrollável:
+
+Alterar de:
+```tsx
+<Card className="overflow-hidden">
+```
+Para:
+```tsx
+<Card className="overflow-x-hidden">
+```
+
+Isto mantém o clip horizontal (para a tabela wide) mas permite que o Card cresça verticalmente sem cortar linhas.
 
 ### Ficheiros a alterar
-- `src/components/products/ProductsList.tsx` — z-index no SelectContent
-- `src/hooks/useProducts.ts` — `.limit()` na query
+- `src/components/products/ProductsList.tsx` — 3 alterações de classes CSS (linhas 801, 820, 1035)
+
+### Critérios de aceitação
+- Ao seleccionar 10, 25, 50 ou 100 por página, todas as linhas são visíveis via scroll vertical
+- O scroll horizontal da tabela continua a funcionar
+- O dropdown de page size abre e permite seleccionar qualquer opção
+- A paginação (botões anterior/seguinte) continua funcional
+- O layout não quebra em viewports mais pequenos
 
