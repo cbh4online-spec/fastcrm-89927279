@@ -38,22 +38,18 @@ import { ColumnSelector } from "@/components/common/ColumnSelector";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 
 // Sub-components
-import { ProductHealthIndicators } from "./table/ProductHealthIndicators";
 import { ProductBulkActions } from "./table/ProductBulkActions";
 import { ProductsDataTable } from "./table/ProductsDataTable";
 import { ProductsPagination } from "./table/ProductsPagination";
-import { ProductsDashboard } from "./ProductsDashboard";
 import { ProductsExportDialog } from "./ProductsExportDialog";
-import { CatalogInsights } from "./CatalogInsights";
 import { ProductComparisonSheet } from "./ProductComparisonSheet";
 import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
-import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
-import { CatalogAutomations } from "./CatalogAutomations";
 import { ProductImportWizard } from "./ProductImportWizard";
 import { BundlesManager } from "./BundlesManager";
 import { PricingRulesManager } from "./PricingRulesManager";
 import { StockAlertsManager } from "./StockAlertsManager";
 import { ProductReportsTab } from "./ProductReportsTab";
+import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
