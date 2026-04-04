@@ -51,9 +51,8 @@ interface ToolbarProps {
   columns?: ColumnOption[];
   onColumnToggle?: (columnId: string) => void;
   
-  // Custom actions
-  leftActions?: ReactNode;
-  rightActions?: ReactNode;
+  // Search ref for keyboard shortcuts
+  searchInputRef?: RefObject<HTMLInputElement | null>;
   
   className?: string;
 }
