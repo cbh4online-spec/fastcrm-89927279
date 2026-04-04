@@ -20,7 +20,7 @@ interface ProductBulkActionsProps {
   setBulkCostOpen: (open: boolean) => void;
   onBulkExport: () => void;
   onBulkArchive: () => void;
-  onBulkDelete: () => Promise<void>;
+  onBulkDelete: () => Promise<unknown>;
   onClearSelection: () => void;
 }
 
