@@ -332,30 +332,39 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 {product.short_description}
               </p>
             )}
-            <div className="flex items-baseline gap-2 pt-2 mt-auto">
-              <span className="text-lg font-bold text-primary">
-                €{effectivePrice.toFixed(2)}
-              </span>
-              <StoreVatLabel />
-              {isDiscounted && (
-                <>
-                  <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-                  {savingsPercent > 0 && (
-                    <Badge className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-0">
-                      <Flame className="h-2.5 w-2.5 mr-0.5" />
-                      -{savingsPercent}%
-                    </Badge>
+            {isPriceOnRequest ? (
+              <div className="flex items-center gap-2 pt-2 mt-auto">
+                <MessageSquareText className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">Preço sob consulta</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2 pt-2 mt-auto">
+                  <span className="text-lg font-bold text-primary">
+                    €{effectivePrice.toFixed(2)}
+                  </span>
+                  <StoreVatLabel />
+                  {isDiscounted && (
+                    <>
+                      <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                      {savingsPercent > 0 && (
+                        <Badge className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-0">
+                          <Flame className="h-2.5 w-2.5 mr-0.5" />
+                          -{savingsPercent}%
+                        </Badge>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-              {product.billing_type === "recurring" && (
-                <span className="text-xs text-muted-foreground">/mês</span>
-              )}
-            </div>
-            {discountLabel && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1 w-fit" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
-                {discountLabel}
-              </Badge>
+                  {product.billing_type === "recurring" && (
+                    <span className="text-xs text-muted-foreground">/mês</span>
+                  )}
+                </div>
+                {discountLabel && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1 w-fit" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                    {discountLabel}
+                  </Badge>
+                )}
+              </>
             )}
 
             {/* Stock urgency bar */}
