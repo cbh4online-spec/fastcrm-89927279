@@ -142,6 +142,21 @@ export default function StorePage() {
               fetchNextPage={fetchNextPage}
             />
 
+            {/* Personalized Recommendations */}
+            {showHero && recentlyViewed.length > 0 && (
+              <div className="container mx-auto px-4">
+                <StorePersonalizedSection
+                  recentlyViewed={recentlyViewed}
+                  allProducts={allProducts}
+                  workspaceSlug={wsSlug}
+                  workspaceId={wsId}
+                  tierPricing={tierPricing}
+                  reviewStats={reviewStats}
+                  salesCounts={salesCounts}
+                />
+              </div>
+            )}
+
             <StoreFooter
               workspaceSlug={wsSlug}
               storeName={storeName}
@@ -159,6 +174,14 @@ export default function StorePage() {
             )}
             <StoreCompareBar />
             <StoreCompareModal workspaceSlug={wsSlug} tierPricing={tierPricing} reviewStats={reviewStats} />
+
+            {/* FOMO Notifications */}
+            {wsId && allProducts.length > 0 && (
+              <StoreLiveSalesNotification workspaceId={wsId} products={allProducts} />
+            )}
+
+            {/* Exit Intent Popup */}
+            <StoreExitIntentPopup workspaceSlug={wsSlug} />
           </div>
         </>
       </StoreCompareProvider>
