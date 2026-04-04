@@ -1,36 +1,36 @@
-## Fase 8 — Storefront, Fornecedores & Compras, Analytics e Faturação
+## Fase 6 — Importação Avançada, Drag-to-Reorder, Variantes & Lifecycle ✅
 
-### 1. Catálogo Público / Storefront (melhorias)
-**Componente:** `src/components/products/PublicCatalogEnhancements.tsx`
-- Integrar bundles no storefront com badge "Kit"
-- Mostrar preço original riscado + preço com regras aplicadas
-- Filtro por bundle/kit na listagem pública
+### 1. Importação avançada de produtos ✅
+### 2. Drag-to-reorder colunas ✅
+### 3. Variantes de produto ✅
+### 4. Workflow de aprovação/lifecycle ✅
 
-### 2. Gestão de Fornecedores & Compras
-**Tabelas:** `purchase_orders`, `purchase_order_items`, `goods_receipts`
-- Criar encomendas de compra a fornecedores existentes (tabela suppliers já existe)
-- Itens da encomenda ligados a produtos com qty e preço unitário
-- Receção de stock: confirmar entregas parciais/totais com atualização automática de stock
-- Histórico de custos por produto/fornecedor
+## Fase 7 — Bundles, Pricing Rules, Storefront & Alertas de Stock ✅
 
-### 3. Relatórios & Analytics de Produto
+### 1. Bundles & Kits de Produtos ✅
+### 2. Pricing Rules & Descontos Automáticos ✅
+### 3. Alertas de Stock & Reposição ✅
+
+## Fase 8 — Storefront, Relatórios, Compras & Faturação ✅
+
+### 1. Relatórios & Analytics de Produto ✅
 **Componente:** `src/components/products/ProductReportsTab.tsx`
-- Top sellers por receita e quantidade
-- Margem média por categoria (gráfico)
-- Tendências de preço (linha temporal)
-- Previsão de stock baseada em velocidade de venda
-- Utiliza dados existentes da edge function `compute-product-analytics`
+- KPIs: produtos em propostas, taxa conversão média, margem média, inativos
+- Gráficos: top produtos por receita, margem por produto, receita por categoria (pie), tendências de preço (line)
+- Tabela de taxas de conversão proposta → fatura
+- Lista de produtos inativos com dias de inatividade
+- Dados da edge function `compute-product-analytics`
 
-### 4. Integração com Faturação
-**Componente:** melhorias em hooks existentes
-- Sync de preços produto → linhas de fatura
-- Campo de taxa de imposto por produto (IVA)
-- Auto-completar produto ao criar linha de fatura
+### 2. Melhorias Storefront ✅
+**Componente:** `src/components/products/StorefrontEnhancements.tsx`
+- `StorefrontPriceDisplay`: preço original riscado + preço com regras aplicadas
+- `StorefrontBundleBadge`: badge "Kit" para bundles
+- Motor `applyPricingRules()` integrado
 
-### Ordem de implementação
-1. Migration DB (purchase_orders, purchase_order_items, goods_receipts + campo tax_rate em products)
-2. Hooks para compras e receções
-3. UI de gestão de compras
-4. Tab de relatórios/analytics
-5. Melhorias storefront (bundles + pricing rules)
-6. Integração faturação
+### 3. Gestão de Compras ✅ (já existia)
+- `useProcurement.ts` com CRUD completo para POs e goods receipts
+- `PurchaseOrderForm.tsx`, `GoodsReceiptForm.tsx` já existentes em procurement/
+
+### 4. Integração com Faturação ✅ (já existia)
+- Campo `tax_rate` já na tabela products
+- Tab "Relatórios" adicionada ao ProductsList
