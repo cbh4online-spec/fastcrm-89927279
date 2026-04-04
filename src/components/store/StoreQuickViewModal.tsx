@@ -106,18 +106,27 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
               </div>
             )}
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
-              <StoreVatLabel />
-              {isDiscounted && (
-                <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-              )}
-              {product.billing_type === "recurring" && (
-                <span className="text-xs text-muted-foreground">/mês</span>
-              )}
-            </div>
-            {discountLabel && (
-              <Badge variant="outline" className="text-[10px] w-fit">{discountLabel}</Badge>
+            {isPriceOnRequest ? (
+              <div className="flex items-center gap-2">
+                <MessageSquareText className="h-5 w-5 text-primary" />
+                <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+                  <StoreVatLabel />
+                  {isDiscounted && (
+                    <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                  )}
+                  {product.billing_type === "recurring" && (
+                    <span className="text-xs text-muted-foreground">/mês</span>
+                  )}
+                </div>
+                {discountLabel && (
+                  <Badge variant="outline" className="text-[10px] w-fit">{discountLabel}</Badge>
+                )}
+              </>
             )}
 
             {product.short_description && (
