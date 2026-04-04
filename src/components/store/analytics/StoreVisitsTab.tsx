@@ -53,7 +53,7 @@ interface StoreVisitsTabProps {
 export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisitsTabProps) {
   const {
     kpis, dailyVisits, deviceBreakdown, trafficSources,
-    topPages, referrers, aiIntents, isLoading,
+    topPages, referrers, aiIntents, scrollDepthDistribution, exitPages, isLoading,
   } = useStoreVisitsAnalytics(days);
 
   if (isLoading) {
