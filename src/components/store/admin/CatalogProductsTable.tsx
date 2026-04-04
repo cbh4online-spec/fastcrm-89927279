@@ -11,6 +11,7 @@ interface CatalogProductsTableProps {
   isLoading: boolean;
   onTogglePublish: (id: string, current: boolean) => void;
   onToggleFeatured: (id: string, current: boolean) => void;
+  onTogglePriceOnRequest: (id: string, current: boolean) => void;
   onMoveOrder: (id: string, currentOrder: number | null, direction: "up" | "down") => void;
   onEdit: (productId: string) => void;
 }
