@@ -538,9 +538,25 @@ export default function StoreProductPage() {
                   >
                     <ShoppingBag className="h-5 w-5" />
                     Adicionar ao Carrinho
-                  </Button>
+                    </Button>
 
-                   {/* Make Offer button */}
+                    {/* Quick Buy */}
+                    <StoreQuickBuyButton
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        price: pricing?.price ?? product.base_price,
+                        currency: product.currency,
+                        image: images[primaryIndex] || images[0],
+                        sku: product.sku || undefined,
+                      }}
+                      workspaceSlug={wsSlug}
+                      disabled={isOutOfStock}
+                      quantity={quantity}
+                      className="w-full h-12 text-base"
+                    />
+
+                     {/* Make Offer button */}
                   <StoreOfferDialog
                     productId={product.id}
                     productName={product.name}
