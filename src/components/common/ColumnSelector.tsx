@@ -44,6 +44,7 @@ export function ColumnSelector({
   columnOrder,
   onVisibleColumnsChange,
   onColumnOrderChange,
+  onResetWidths,
   storageKey = "table-columns",
 }: ColumnSelectorProps) {
   const [open, setOpen] = useState(false);
