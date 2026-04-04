@@ -1,24 +1,36 @@
-## Fase 6 — Importação Avançada, Drag-to-Reorder, Variantes & Lifecycle ✅
+## Fase 7 — Bundles, Pricing Rules, Storefront & Alertas de Stock
 
-### 1. Importação avançada de produtos ✅
-**Ficheiro:** `src/components/products/ProductImportWizard.tsx` (novo)
-- Wizard multi-step: Upload → Mapeamento → Preview → Importação → Resultado
-- Suporte CSV e Excel (.xlsx) via papaparse + exceljs
-- Auto-detecção de colunas (nome, preço, sku, categoria, etc.)
-- Validação com erros por linha e resumo pré-confirmação
-- Inserção em batch de 100 com progress bar
+### 1. Bundles & Kits de Produtos
+**Tabelas:** `product_bundles`, `product_bundle_items`
+- Criar bundle com nome, descrição, desconto (% ou valor fixo)
+- Associar N produtos com quantidade por item
+- Preço calculado = soma dos itens - desconto
+- Stock do bundle = mínimo do stock dos componentes
+- UI: tab "Bundles" no detalhe do produto + gestão dedicada
 
-### 2. Drag-to-reorder colunas ✅
-**Ficheiro:** `src/components/common/ColumnSelector.tsx` (já existia)
-- Drag-and-drop nativo já implementado com handles visuais
-- Botão "Reset" agora reseta ordem + visibilidade + larguras
-- Prop `onResetWidths` passada para resetar larguras via `useColumnWidths`
+### 2. Pricing Rules & Descontos Automáticos
+**Tabela:** `pricing_rules`
+- Tipos de regra: volume (qty >= X), cliente/segmento, período (data início/fim), categoria
+- Campos: rule_type, condition_json, discount_type (percentage/fixed), discount_value, priority, is_active
+- Motor de cálculo: função que aplica regras por prioridade ao preço base
+- UI: página de gestão de regras com preview de impacto
 
-### 3. Variantes de produto ✅ (já existia)
-- Tabela `product_variants` já existente no DB
-- `ProductVariantsManager.tsx` já completo com CRUD inline
+### 3. Catálogo Público / Storefront (melhorias)
+- Integrar bundles no storefront existente
+- Mostrar preços com regras aplicadas (preço original riscado + preço final)
+- Filtro por bundle/kit na listagem
+- Badge "Kit" nos cards de produto
 
-### 4. Workflow de aprovação/lifecycle ✅ (já existia)
-- `ProductLifecycleTab.tsx` já completo com workflow visual
-- Estados: Rascunho → Em Revisão → Ativo → Descontinuado → Arquivado
-- Changelog e notificações automáticas integrados
+### 4. Alertas de Stock & Reposição
+**Tabela:** `stock_alerts`
+- Configurar threshold mínimo por produto
+- Notificação automática quando stock <= threshold (via trigger DB)
+- Dashboard de alertas ativos com ação rápida de reposição
+- Sugestão de quantidade baseada em histórico de vendas (média últimos 3 meses)
+
+### Ordem de implementação
+1. Migration DB (bundles + pricing_rules + stock_alerts)
+2. Hooks e componentes de Bundles
+3. Motor de Pricing Rules
+4. Alertas de Stock
+5. Integração no Storefront
