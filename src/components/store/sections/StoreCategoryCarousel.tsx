@@ -67,11 +67,16 @@ export function StoreCategoryCarousel({ categories, selectedCategoryId, onSelect
                   <div className={`absolute inset-0 bg-gradient-to-br ${CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length]}`} />
                 )}
 
-                {/* Label */}
-                <div className="relative z-10 flex items-end justify-center h-full pb-3 px-2">
+                {/* Label + Count */}
+                <div className="relative z-10 flex flex-col items-center justify-end h-full pb-2.5 px-2 gap-0.5">
                   <span className="text-sm font-semibold text-white text-center leading-tight line-clamp-2 drop-shadow-md">
                     {cat.name}
                   </span>
+                  {cat.product_count != null && cat.product_count > 0 && (
+                    <span className="text-[10px] font-medium text-white/80 drop-shadow-sm">
+                      {cat.product_count} produto{cat.product_count !== 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
               </button>
             ))}
