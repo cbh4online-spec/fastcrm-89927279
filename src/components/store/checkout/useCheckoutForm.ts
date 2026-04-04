@@ -78,7 +78,7 @@ export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFo
       if (parsed) setFormData((p) => ({ ...p, phone: parsed.formatInternational() }));
     } catch {}
 
-    captureLead({ name: formData.name, phone: formData.phone });
+    captureLead({ name: formData.name, phone: formData.phone, email: formData.email || undefined });
     trackEvent("begin_checkout", { workspaceSlug: wsSlug, subtotal, itemCount: items.length });
     setStep(2);
   };
