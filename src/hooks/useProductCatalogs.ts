@@ -159,7 +159,7 @@ export function useCreateCatalog() {
       if (!user) throw new Error("Não autenticado");
       const { data, error } = await supabase
         .from("product_catalogs")
-        .insert({
+        .insert([{
           workspace_id: input.workspace_id,
           title: input.title,
           slug: input.slug,
