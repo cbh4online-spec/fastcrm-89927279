@@ -798,7 +798,7 @@ export function ProductsList() {
 
 
   return (
-    <div className="flex h-full -m-6">
+    <div className="flex h-full min-h-0 -m-6">
       {/* Filter Sidebar - only show on products tab */}
       {activeTab === "products" && (
         <FilterSidebar
@@ -817,7 +817,7 @@ export function ProductsList() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
         {/* Page Header */}
         <PageHeader
           title="Produtos"
@@ -1032,7 +1032,7 @@ export function ProductsList() {
             )}
 
             {/* Table */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-x-hidden">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
