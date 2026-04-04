@@ -317,6 +317,15 @@ export function ProductsList() {
         />
       )}
       <BatchSKUImportDialog open={state.batchImportOpen} onOpenChange={state.setBatchImportOpen} />
+      <ProductsExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        products={state.products || []}
+        filteredProducts={state.filteredProducts}
+        formatCurrency={state.formatCurrency}
+        getProductTypeLabel={state.getProductTypeLabel}
+        getBillingTypeLabel={state.getBillingTypeLabel}
+      />
 
       <AlertDialog
         open={!!state.deleteConfirmProduct}
