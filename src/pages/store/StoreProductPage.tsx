@@ -387,24 +387,32 @@ export default function StoreProductPage() {
               </div>
 
               {/* Price — visible on mobile/tablet, hidden on lg (shown in Buy Box) */}
-              <div className="lg:hidden">
-                <div className="flex items-baseline gap-2">
-                   <span className="text-3xl font-bold text-primary">
-                     €{(pricing?.price ?? product.base_price).toFixed(2)}
-                   </span>
-                   <StoreVatLabel />
-                  {pricing?.isDiscounted && (
-                    <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
-                  )}
-                  {product.billing_type === "recurring" && (
-                    <span className="text-muted-foreground">/mês</span>
+              {isPriceOnRequest ? (
+                <div className="lg:hidden flex items-center gap-2">
+                  <MessageSquareText className="h-5 w-5 text-primary" />
+                  <span className="text-lg font-semibold text-primary">Preço sob consulta</span>
+                </div>
+              ) : (
+                <div className="lg:hidden">
+                  <div className="flex items-baseline gap-2">
+                     <span className="text-3xl font-bold text-primary">
+                       €{(pricing?.price ?? product.base_price).toFixed(2)}
+                     </span>
+                     <StoreVatLabel />
+                    {pricing?.isDiscounted && (
+                      <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                    )}
+                    {product.billing_type === "recurring" && (
+                      <span className="text-muted-foreground">/mês</span>
+                    )}
+                  </div>
+                  {pricing?.discountLabel && (
+                    <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
+                      {pricing.discountLabel}
+                    </Badge>
                   )}
                 </div>
-                {pricing?.discountLabel && (
-                  <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
-                    {pricing.discountLabel}
-                  </Badge>
-                )}
+              )}
               </div>
 
               {product.short_description && (
