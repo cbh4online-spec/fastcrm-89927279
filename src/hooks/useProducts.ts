@@ -71,7 +71,7 @@ export function useProducts(filters?: {
         query = query.or(`name.ilike.%${filters.search}%,category.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(5000);
 
       if (error) throw error;
       const products = (data ?? []) as Product[];

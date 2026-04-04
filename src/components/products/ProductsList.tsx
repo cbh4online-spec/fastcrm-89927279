@@ -1182,7 +1182,7 @@ export function ProductsList() {
                     <SelectTrigger className="w-[70px] h-8">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       {PAGE_SIZE_OPTIONS.map((size) => (
                         <SelectItem key={size} value={size.toString()}>
                           {size}
