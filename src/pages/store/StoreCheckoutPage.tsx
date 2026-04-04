@@ -97,6 +97,30 @@ export default function StoreCheckoutPage() {
     }
   };
 
+  // Bank transfer confirmation view
+  if (bankTransferOrder) {
+    return (
+      <div className="min-h-screen bg-background">
+        <StoreHeader workspaceSlug={wsSlug} />
+        <div className="container mx-auto px-4 py-12 max-w-lg text-center space-y-6">
+          <CheckCircle2 className="h-16 w-16 text-primary mx-auto" />
+          <h2 className="text-2xl font-bold">Encomenda registada!</h2>
+          <p className="text-muted-foreground">
+            Complete o pagamento por transferência bancária para que possamos processar a sua encomenda.
+          </p>
+          <CheckoutBankTransferInfo
+            bankDetails={bankTransferOrder.bankDetails}
+            orderTotal={formatMoney(pricing.finalTotal)}
+            orderNumber={bankTransferOrder.orderNumber}
+          />
+          <Link to={`/store/${wsSlug}`}>
+            <Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Voltar à Loja</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
