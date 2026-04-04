@@ -216,64 +216,120 @@ function PipelineRiskTab() {
 // ── Deal Intelligence Tab ─────────────────────────────────────────────────────
 function DealIntelligenceTab() {
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [opportunities, setOpportunities] = useState<Array<{id: string; title: string; stage_name: string; value: number}>>([]);
   const { data: allReports, isLoading } = useAllDealReports();
   const { data: selectedReport } = useDealIntelligenceReport(selectedDealId ?? undefined);
-  const generateMutation = useGenerateDealIntelligenceReport();
+  const { analyzeAll, progress } = useBulkDealIntelligence();
+  const { fetch: fetchOpps } = useActiveOpportunities();
 
-  const severityIcon: Record<string, string> = { critical: '🔴', high: '🟠', medium: '🟡', low: '🔵' };
+  // Fetch opportunities on mount
+  useEffect(() => {
+    fetchOpps().then(setOpportunities);
+  }, [fetchOpps]);
+
+  const handleBulkAnalyze = () => {
+    const ids = opportunities.map((o) => o.id);
+    if (ids.length === 0) {
+      return;
+    }
+    analyzeAll(ids);
+  };
+
+  // Build enriched deal list: merge reports with opportunity info
+  const enrichedDeals = (allReports ?? []).map((r) => {
+    const opp = opportunities.find((o) => o.id === r.opportunity_id);
+    return {
+      ...r,
+      opp_title: opp?.title ?? r.coaching_summary?.slice(0, 40) ?? r.opportunity_id.slice(0, 8),
+      opp_stage: opp?.stage_name ?? '',
+      opp_value: opp?.value ?? 0,
+    };
+  });
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Deal List */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground">Deals Analisados ({allReports?.length ?? 0})</h3>
-        {allReports && allReports.length > 0 ? (
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-            {allReports.map(r => (
-              <button
-                key={r.id}
-                onClick={() => setSelectedDealId(r.opportunity_id)}
-                className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                  selectedDealId === r.opportunity_id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium truncate">{r.coaching_summary?.slice(0, 40) ?? r.opportunity_id.slice(0, 8)}</span>
-                  <Badge variant="outline" className={r.health_score >= 70 ? 'text-green-500' : r.health_score >= 40 ? 'text-amber-500' : 'text-red-500'}>
-                    {r.health_score}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Win: {r.win_probability}%</span>
-                  <span>·</span>
-                  <span>{r.sentiment}</span>
-                </div>
-              </button>
-            ))}
+    <div className="space-y-4">
+      {/* Bulk Analyze Bar */}
+      <Card>
+        <CardContent className="pt-4 flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">
+              {enrichedDeals.length > 0
+                ? `${enrichedDeals.length} deals analisados`
+                : `${opportunities.length} oportunidades activas por analisar`}
+            </p>
+            {progress.isRunning && (
+              <div className="mt-2 space-y-1">
+                <Progress value={progress.total > 0 ? ((progress.completed + progress.failed) / progress.total) * 100 : 0} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  {progress.completed + progress.failed}/{progress.total} processados
+                  {progress.failed > 0 && <span className="text-destructive"> ({progress.failed} erros)</span>}
+                </p>
+              </div>
+            )}
           </div>
-        ) : (
-          <Card className="text-center py-8">
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Sem análises. Use o botão no detalhe de cada oportunidade.</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          <Button onClick={handleBulkAnalyze} disabled={progress.isRunning || opportunities.length === 0} size="sm">
+            {progress.isRunning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+            {progress.isRunning ? 'A analisar...' : 'Analisar Todos os Deals'}
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Deal Detail Panel */}
-      <div className="lg:col-span-2">
-        {selectedReport ? (
-          <DealIntelligencePanel report={selectedReport} />
-        ) : (
-          <Card className="text-center py-16">
-            <CardContent>
-              <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">Seleccione um deal para ver a análise detalhada</p>
-            </CardContent>
-          </Card>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Deal List */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">Deals Analisados ({enrichedDeals.length})</h3>
+          {enrichedDeals.length > 0 ? (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {enrichedDeals.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedDealId(r.opportunity_id)}
+                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                    selectedDealId === r.opportunity_id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium truncate">{r.opp_title}</span>
+                    <Badge variant="outline" className={r.health_score >= 70 ? 'text-green-500' : r.health_score >= 40 ? 'text-amber-500' : 'text-red-500'}>
+                      {r.health_score}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {r.opp_stage && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{r.opp_stage}</Badge>}
+                    {r.opp_value > 0 && <span>€{r.opp_value.toLocaleString('pt-PT')}</span>}
+                    <span>·</span>
+                    <span>Win: {r.win_probability}%</span>
+                    <span>·</span>
+                    <span>{r.sentiment}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Card className="text-center py-8">
+              <CardContent>
+                <PlayCircle className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Sem análises. Clique em "Analisar Todos os Deals" para começar.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Deal Detail Panel */}
+        <div className="lg:col-span-2">
+          {selectedReport ? (
+            <DealIntelligencePanel report={selectedReport} />
+          ) : (
+            <Card className="text-center py-16">
+              <CardContent>
+                <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Seleccione um deal para ver a análise detalhada</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
