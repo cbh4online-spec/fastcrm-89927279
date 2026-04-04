@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown } from "lucide-react";
+import { Download, DollarSign, Archive, Trash2, Store, Copy, ChevronDown, ArrowUpDown } from "lucide-react";
 import { BulkCostDialog } from "../BulkCostDialog";
 
 interface ProductBulkActionsProps {
@@ -30,6 +30,7 @@ interface ProductBulkActionsProps {
   onClearSelection: () => void;
   onBulkPublish?: (published: boolean) => void;
   onBulkDuplicate?: () => void;
+  onCompare?: () => void;
 }
 
 export function ProductBulkActions({
@@ -44,6 +45,7 @@ export function ProductBulkActions({
   onClearSelection,
   onBulkPublish,
   onBulkDuplicate,
+  onCompare,
 }: ProductBulkActionsProps) {
   if (selectedIds.length === 0) return null;
 
@@ -53,6 +55,12 @@ export function ProductBulkActions({
         {selectedIds.length} {selectedIds.length === 1 ? "selecionado" : "selecionados"}
       </span>
       <div className="flex-1" />
+
+      {onCompare && selectedIds.length >= 2 && selectedIds.length <= 3 && (
+        <Button variant="outline" size="sm" onClick={onCompare} className="gap-2">
+          <ArrowUpDown className="h-4 w-4" /> Comparar
+        </Button>
+      )}
 
       <Button variant="outline" size="sm" onClick={onBulkExport} className="gap-2">
         <Download className="h-4 w-4" /> Exportar

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,11 +45,29 @@ import { ProductsPagination } from "./table/ProductsPagination";
 import { ProductsDashboard } from "./ProductsDashboard";
 import { ProductsExportDialog } from "./ProductsExportDialog";
 import { CatalogInsights } from "./CatalogInsights";
+import { ProductComparisonSheet } from "./ProductComparisonSheet";
+import { LayoutPresetsManager, type LayoutPreset } from "./table/LayoutPresetsManager";
+import { ProductsAnalyticsDashboard } from "./ProductsAnalyticsDashboard";
+import { CatalogAutomations } from "./CatalogAutomations";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
   const state = useProductsListState();
   const [exportOpen, setExportOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  const comparisonProducts = useMemo(() => {
+    if (!state.products) return [];
+    return state.products.filter(p => state.selectedIds.includes(p.id));
+  }, [state.products, state.selectedIds]);
+
+  const handleApplyPreset = useCallback((preset: LayoutPreset) => {
+    state.setVisibleColumns(new Set(preset.visibleColumns));
+    state.setColumnOrder(preset.columnOrder);
+    if (Object.keys(preset.columnWidths).length > 0) {
+      Object.entries(preset.columnWidths).forEach(([col, w]) => state.colWidths.setWidth(col, w));
+    }
+  }, [state.setVisibleColumns, state.setColumnOrder, state.colWidths]);
 
   // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
@@ -222,8 +240,15 @@ export function ProductsList() {
                         state.colWidths.autoFitAll(visibleColIds, state.tableRef);
                       }}>Ajustar automaticamente</DropdownMenuItem>
                       <DropdownMenuItem onClick={state.colWidths.resetWidths}>Repor larguras padrão</DropdownMenuItem>
-                    </DropdownMenuContent>
+                  </DropdownMenuContent>
                   </DropdownMenu>
+                  <LayoutPresetsManager
+                    visibleColumns={state.visibleColumns}
+                    columnOrder={state.columnOrder}
+                    columnWidths={state.colWidths.widths}
+                    onApplyPreset={handleApplyPreset}
+                    storageKey="products-table-columns"
+                  />
                   <ColumnSelector
                     columns={PRODUCT_COLUMNS}
                     visibleColumns={state.visibleColumns}
@@ -242,6 +267,15 @@ export function ProductsList() {
             {state.products && state.products.length > 0 && (
               <>
                 <CatalogInsights
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                />
+                <CatalogAutomations
+                  products={state.products}
+                  formatCurrency={state.formatCurrency}
+                  onFilterSelect={state.handleFilterSelect}
+                />
+                <ProductsAnalyticsDashboard
                   products={state.products}
                   formatCurrency={state.formatCurrency}
                 />
@@ -269,6 +303,7 @@ export function ProductsList() {
               onClearSelection={() => state.setSelectedIds([])}
               onBulkPublish={state.handleBulkPublish}
               onBulkDuplicate={state.handleBulkDuplicate}
+              onCompare={() => setCompareOpen(true)}
             />
 
             <ProductsDataTable
@@ -322,6 +357,14 @@ export function ProductsList() {
         onOpenChange={setExportOpen}
         products={state.products || []}
         filteredProducts={state.filteredProducts}
+        formatCurrency={state.formatCurrency}
+        getProductTypeLabel={state.getProductTypeLabel}
+        getBillingTypeLabel={state.getBillingTypeLabel}
+      />
+      <ProductComparisonSheet
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        products={comparisonProducts}
         formatCurrency={state.formatCurrency}
         getProductTypeLabel={state.getProductTypeLabel}
         getBillingTypeLabel={state.getBillingTypeLabel}
