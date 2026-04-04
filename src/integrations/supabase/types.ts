@@ -51251,8 +51251,11 @@ export type Database = {
           id: string
           is_approved: boolean | null
           is_verified_purchase: boolean | null
+          moderated_at: string | null
+          moderated_by: string | null
           product_id: string
           rating: number
+          rejection_reason: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -51264,8 +51267,11 @@ export type Database = {
           id?: string
           is_approved?: boolean | null
           is_verified_purchase?: boolean | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           product_id: string
           rating: number
+          rejection_reason?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -51277,8 +51283,11 @@ export type Database = {
           id?: string
           is_approved?: boolean | null
           is_verified_purchase?: boolean | null
+          moderated_at?: string | null
+          moderated_by?: string | null
           product_id?: string
           rating?: number
+          rejection_reason?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string

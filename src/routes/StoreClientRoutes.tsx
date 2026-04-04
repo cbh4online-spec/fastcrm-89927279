@@ -25,6 +25,7 @@ const StoreSettingsPage = lazy(() => import("@/pages/StoreSettingsPage"));
 const StoreProductsAdminPage = lazy(() => import("@/pages/StoreProductsAdminPage"));
 const StoreCategoriesPage = lazy(() => import("@/pages/StoreCategoriesPage"));
 const StoreCouponsPage = lazy(() => import("@/pages/StoreCouponsPage"));
+const StoreReviewsPage = lazy(() => import("@/pages/StoreReviewsPage"));
 const StoreAnalyticsPage = lazy(() => import("@/pages/StoreAnalyticsPage"));
 
 // Client portal pages
@@ -130,6 +131,7 @@ export function StoreAdminRoutes() {
       <Route path="/dashboard/store-products" element={<StoreProductsAdminPage />} />
       <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
       <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
+      <Route path="/dashboard/store-reviews" element={<StoreReviewsPage />} />
       <Route path="/dashboard/store-analytics" element={<StoreAnalyticsPage />} />
     </>
   );

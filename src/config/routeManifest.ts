@@ -222,6 +222,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("store-products",   "Produtos",       "/dashboard/store-products",   Package,      "loja-online", { moduleSlug: "online-store" }),
   e("store-categories", "Categorias",     "/dashboard/store-categories", Layers,       "loja-online", { moduleSlug: "online-store" }),
   e("store-coupons",    "Cupões",         "/dashboard/store-coupons",    CreditCard,   "loja-online", { moduleSlug: "online-store" }),
+  e("store-reviews",    "Avaliações",     "/dashboard/store-reviews",    MessageSquare,"loja-online", { moduleSlug: "online-store" }),
   e("store-analytics",  "Analíticas",     "/dashboard/store-analytics",  BarChart3,    "loja-online", { moduleSlug: "online-store" }),
   e("store-settings",   "Definições",     "/dashboard/store-settings",   Settings,     "loja-online", { moduleSlug: "online-store" }),
 
