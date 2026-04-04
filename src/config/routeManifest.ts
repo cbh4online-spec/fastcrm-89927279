@@ -23,7 +23,7 @@
  */
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, Newspaper, Gauge, Bell,
+  LayoutDashboard, Newspaper, Gauge, Bell, RotateCcw,
   Users, UserCheck, Building2, TrendingUp, GitBranch,
   MessageSquare, Briefcase, UserPlus, Zap, Phone,
   Inbox, Calendar, Send, FileText,
@@ -223,6 +223,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("store-categories", "Categorias",     "/dashboard/store-categories", Layers,       "loja-online", { moduleSlug: "online-store" }),
   e("store-coupons",    "Cupões",         "/dashboard/store-coupons",    CreditCard,   "loja-online", { moduleSlug: "online-store" }),
   e("store-reviews",    "Avaliações",     "/dashboard/store-reviews",    MessageSquare,"loja-online", { moduleSlug: "online-store" }),
+  e("store-returns",   "Devoluções",     "/dashboard/store-returns",    RotateCcw,    "loja-online", { moduleSlug: "online-store" }),
   e("store-analytics",  "Analíticas",     "/dashboard/store-analytics",  BarChart3,    "loja-online", { moduleSlug: "online-store" }),
   e("store-settings",   "Definições",     "/dashboard/store-settings",   Settings,     "loja-online", { moduleSlug: "online-store" }),
 
