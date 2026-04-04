@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct, useDeleteProductsBatch } from "@/hooks/useProducts";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useColumnPreferences, ColumnConfig } from "@/components/common/ColumnSelector";
