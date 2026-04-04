@@ -132,6 +132,7 @@ export function CategoriesTabContent() {
                 <TableHead>Descrição</TableHead>
                 <TableHead className="text-center">Produtos</TableHead>
                 <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-center">Loja</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
