@@ -61,6 +61,30 @@ async function findWorkspaceByMarketplaceSlug(slug: string): Promise<PublicMarke
   };
 }
 
+async function findWorkspaceByStoreSlug(slug: string): Promise<PublicMarketplaceWorkspace | null> {
+  const { data: storeData } = await supabase
+    .from("store_settings")
+    .select("workspace_id, store_slug")
+    .eq("store_slug", slug)
+    .limit(1)
+    .maybeSingle();
+
+  if (!storeData?.workspace_id) return null;
+
+  const { data: workspaceData } = await supabase
+    .from("workspaces")
+    .select("id, name, slug")
+    .eq("id", storeData.workspace_id)
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    id: storeData.workspace_id,
+    name: workspaceData?.name || slug,
+    slug: workspaceData?.slug || storeData.store_slug || slug,
+  };
+}
+
 async function findWorkspaceByWorkspaceSlug(slug: string): Promise<PublicMarketplaceWorkspace | null> {
   const { data } = await supabase
     .from("workspaces")
@@ -90,6 +114,11 @@ export function usePublicMarketplaceWorkspace(routeSlug?: string) {
       for (const slug of slugCandidates) {
         const byMarketplace = await findWorkspaceByMarketplaceSlug(slug);
         if (byMarketplace) return byMarketplace;
+      }
+
+      for (const slug of slugCandidates) {
+        const byStore = await findWorkspaceByStoreSlug(slug);
+        if (byStore) return byStore;
       }
 
       for (const slug of slugCandidates) {

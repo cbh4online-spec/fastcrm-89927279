@@ -8,6 +8,7 @@ import { useStoreCart } from "@/contexts/StoreCartContext";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
 
 interface StoreCompareModalProps {
   workspaceSlug: string;
@@ -141,13 +142,14 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
                 <th className="w-[140px] p-3 text-left text-sm font-medium text-muted-foreground align-top" />
                 {items.map((product) => {
                   const imageUrl = product.images?.[product.primary_image_index ?? 0] || product.images?.[0];
+                  const productHref = getStorefrontItemPath(workspaceSlug, product as any);
                   return (
                     <th
                       key={product.id}
                       className="p-3 text-center align-top min-w-[200px]"
                     >
                       <div className="space-y-3">
-                        <Link to={`/store/${workspaceSlug}/product/${product.id}`} onClick={() => setIsOpen(false)}>
+                        <Link to={productHref} onClick={() => setIsOpen(false)}>
                           <div className="mx-auto w-32 h-32 rounded-xl overflow-hidden bg-muted">
                             {imageUrl ? (
                               <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
@@ -159,7 +161,7 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
                           </div>
                         </Link>
                         <Link
-                          to={`/store/${workspaceSlug}/product/${product.id}`}
+                          to={productHref}
                           onClick={() => setIsOpen(false)}
                           className="block font-semibold text-sm hover:text-primary transition-colors"
                         >
