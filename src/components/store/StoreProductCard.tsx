@@ -47,7 +47,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
           .from("products") as any)
           .select("*")
           .eq("id", product.id)
-          .eq("store_visible", true)
+          .eq("store_published", true)
           .single();
         return data;
       },
