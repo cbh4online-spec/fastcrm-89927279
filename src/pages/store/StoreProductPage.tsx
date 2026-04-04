@@ -325,7 +325,7 @@ export default function StoreProductPage() {
                             : "border-transparent hover:border-muted-foreground/30 opacity-70 hover:opacity-100"
                         )}
                       >
-                        <img src={img} alt="" className="h-full w-full object-cover" />
+                        <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" width={56} height={56} />
                       </button>
                     ))}
                   </div>

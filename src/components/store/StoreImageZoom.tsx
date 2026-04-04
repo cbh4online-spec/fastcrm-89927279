@@ -38,6 +38,10 @@ export function StoreImageZoom({ src, alt }: StoreImageZoomProps) {
           transition={{ duration: 0.3 }}
           src={src}
           alt={alt}
+          width={800}
+          height={800}
+          fetchPriority="high"
+          decoding="async"
           className="h-full w-full object-cover"
         />
 
