@@ -53,6 +53,7 @@ import { ProductImportWizard } from "./ProductImportWizard";
 import { BundlesManager } from "./BundlesManager";
 import { PricingRulesManager } from "./PricingRulesManager";
 import { StockAlertsManager } from "./StockAlertsManager";
+import { ProductReportsTab } from "./ProductReportsTab";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
 
 export function ProductsList() {
