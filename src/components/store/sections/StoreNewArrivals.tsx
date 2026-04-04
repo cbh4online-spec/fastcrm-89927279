@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
 
 interface StoreNewArrivalsProps {
   products: StoreProduct[];
@@ -47,6 +48,7 @@ export function StoreNewArrivals({ products, workspaceSlug }: StoreNewArrivalsPr
         {newProducts.map((product, i) => {
           const imgIdx = product.primary_image_index ?? 0;
           const img = product.images?.[imgIdx] || product.images?.[0];
+          const productHref = getStorefrontItemPath(workspaceSlug, product as any);
 
           return (
             <motion.div
@@ -56,7 +58,7 @@ export function StoreNewArrivals({ products, workspaceSlug }: StoreNewArrivalsPr
               transition={{ duration: 0.4, delay: i * 0.07 }}
             >
               <Link
-                to={`/store/${workspaceSlug}/product/${product.id}`}
+                to={productHref}
                 className="group block"
               >
                 <div className="relative rounded-2xl overflow-hidden border bg-card transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/20">

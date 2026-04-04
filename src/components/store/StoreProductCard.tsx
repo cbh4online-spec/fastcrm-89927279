@@ -17,6 +17,7 @@ import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
 import { useStoreCompare } from "@/contexts/StoreCompareContext";
 import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
 
 interface StoreProductCardProps {
   product: StoreProduct;
@@ -36,24 +37,36 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const { addItem: addToCompare, removeItem: removeFromCompare, isInCompare, isFull: compareFull } = useStoreCompare();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const isC2CListing = Boolean((product as any)._isC2C);
+  const productHref = getStorefrontItemPath(workspaceSlug, product as any);
+  const productWorkspaceId = product.workspace_id || workspaceId;
 
   // Prefetch product data on hover for instant PDP navigation
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
+
+    if (isC2CListing) return;
+
     queryClient.prefetchQuery({
-      queryKey: ["store-product", product.id],
+      queryKey: ["store-product", product.id, productWorkspaceId || ""],
       queryFn: async () => {
-        const { data } = await (supabase
+        let query = (supabase
           .from("products") as any)
           .select("*")
           .eq("id", product.id)
           .eq("store_published", true)
-          .single();
+          .eq("status", "active");
+
+        if (productWorkspaceId) {
+          query = query.eq("workspace_id", productWorkspaceId);
+        }
+
+        const { data } = await query.maybeSingle();
         return data;
       },
       staleTime: 30_000,
     });
-  }, [product.id, queryClient]);
+  }, [isC2CListing, product.id, productWorkspaceId, queryClient]);
   const inCompare = isInCompare(product.id);
   const isInWishlist = wishlistProductIds.includes(product.id);
   const primaryIndex = product.primary_image_index ?? 0;
@@ -103,7 +116,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
       transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
     >
       <Link
-        to={`/store/${workspaceSlug}/product/${product.id}`}
+        to={productHref}
         className="group block h-full"
       >
         <div

@@ -161,21 +161,27 @@ export function useInfiniteStoreProducts({ workspaceId, categoryId, category, se
   });
 }
 
-export function useStoreProduct(productId: string | undefined) {
+export function useStoreProduct(productId: string | undefined, workspaceId?: string) {
   return useQuery({
-    queryKey: ["store-product", productId],
+    queryKey: ["store-product", productId, workspaceId || ""],
     queryFn: async () => {
       if (!productId) return null;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select("id, name, product_type, category, base_price, currency, billing_type, short_description, commercial_description, images, primary_image_index, benefits, sku, stock_status, stock_quantity, track_stock, store_featured, store_sort_order, store_category_id, specifications, demo_video_url, workspace_id, created_at, product_condition")
         .eq("id", productId)
         .eq("store_published", true)
-        .single();
+        .eq("status", "active");
+
+      if (workspaceId) {
+        query = query.eq("workspace_id", workspaceId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
-      return data as StoreProduct & { workspace_id: string };
+      return (data || null) as (StoreProduct & { workspace_id: string }) | null;
     },
     enabled: !!productId,
   });

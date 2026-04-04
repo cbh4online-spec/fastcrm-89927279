@@ -10,6 +10,7 @@ import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { cn } from "@/lib/utils";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
 import type { StoreProduct } from "@/hooks/useStoreProducts";
+import { getStorefrontItemPath } from "@/utils/getStorefrontItemPath";
 
 interface StoreQuickViewModalProps {
   product: StoreProduct;
@@ -27,6 +28,7 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+  const productHref = getStorefrontItemPath(workspaceSlug, product as any);
 
   const reviewData = reviewStats?.get(product.id);
   const reviewCount = reviewData?.count || 0;
@@ -153,7 +155,7 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
               </Button>
 
               <Button variant="outline" className="w-full gap-2" asChild>
-                <Link to={`/store/${workspaceSlug}/product/${product.id}`}>
+                <Link to={productHref}>
                   <ExternalLink className="h-4 w-4" />
                   Ver Detalhes
                 </Link>

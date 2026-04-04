@@ -80,8 +80,10 @@ export default function StoreSellerPage() {
     primary_image_index: 0,
     product_condition: l.condition,
     workspace_id: wsId,
+    _isC2C: true,
     _sellerId: seller?.id,
     _sellerName: seller?.display_name,
+    _sellerSlug: seller?.slug,
   }));
 
   if (sellerLoading) {

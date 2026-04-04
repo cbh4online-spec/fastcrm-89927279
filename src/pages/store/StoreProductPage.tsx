@@ -100,13 +100,13 @@ export default function StoreProductPage() {
     workspaceSlug: string;
     productId: string;
   }>();
-  const { data: product, isLoading } = useStoreProduct(productId);
+  const { workspaceId: resolvedWsId, slug: wsSlug, isLoading: isResolving } = useResolveStoreWorkspace(workspaceSlug);
+  const { data: product, isLoading: isProductLoading } = useStoreProduct(productId, resolvedWsId);
   const { addItem } = useStoreCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [cartAnimTrigger, setCartAnimTrigger] = useState(0);
-  const { workspaceId: resolvedWsId, slug: wsSlug } = useResolveStoreWorkspace(workspaceSlug);
   const { data: tierPricing } = useStoreTierPricing(resolvedWsId);
   const { data: storeSettings } = usePublicStoreSettings(resolvedWsId || "");
   const storeName = storeSettings?.store_name || "Loja";
@@ -160,7 +160,7 @@ export default function StoreProductPage() {
     setCartAnimTrigger((c) => c + 1);
   };
 
-  if (isLoading) {
+  if (isResolving || isProductLoading) {
     return (
       <div className="min-h-screen bg-background">
         <StoreHeader workspaceSlug={wsSlug} />
