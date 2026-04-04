@@ -51,6 +51,12 @@ export function useRevenueForecast() {
     },
     enabled: !!currentWorkspace,
     staleTime: 5 * 60 * 1000,
+    refetchInterval: (query) => {
+      const latest = query.state.data?.[0];
+      if (!latest) return false;
+      const age = Date.now() - new Date(latest.generated_at).getTime();
+      return age > 24 * 60 * 60 * 1000 ? 10 * 60 * 1000 : false;
+    },
   });
 
   const latest = data?.[0] ?? null;

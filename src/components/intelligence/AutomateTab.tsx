@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useGenerateAutomation, automationExamples } from "@/hooks/useGenerateAutomation";
+import { useSaveGeneratedAutomation } from "@/hooks/useSaveGeneratedAutomation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Loader2, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Zap, Loader2, Sparkles, ArrowRight, CheckCircle2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export function AutomateTab() {
   const [request, setRequest] = useState("");
   const generateAutomation = useGenerateAutomation();
+  const saveAutomation = useSaveGeneratedAutomation();
 
   const handleGenerate = (text: string) => {
     if (!text.trim()) return;
@@ -24,14 +26,19 @@ export function AutomateTab() {
     );
   };
 
+  const handleSave = () => {
+    if (!generateAutomation.data) return;
+    saveAutomation.mutate(generateAutomation.data);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Generator */}
+      {/* Gerador */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            AI Automation Generator
+            Gerador de Automações com IA
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -39,7 +46,7 @@ export function AutomateTab() {
             <Input
               value={request}
               onChange={(e) => setRequest(e.target.value)}
-              placeholder="Describe the automation you want to create..."
+              placeholder="Descreva a automação que quer criar..."
               onKeyDown={(e) => e.key === "Enter" && handleGenerate(request)}
               disabled={generateAutomation.isPending}
             />
@@ -53,13 +60,13 @@ export function AutomateTab() {
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Generate
+              Gerar
             </Button>
           </div>
 
-          {/* Examples */}
+          {/* Exemplos */}
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">Quick examples:</p>
+            <p className="text-xs text-muted-foreground font-medium">Exemplos rápidos:</p>
             <div className="flex flex-wrap gap-2">
               {automationExamples.slice(0, 4).map((ex, i) => (
                 <button
@@ -79,7 +86,7 @@ export function AutomateTab() {
         </CardContent>
       </Card>
 
-      {/* Generated Result */}
+      {/* Resultado Gerado */}
       {generateAutomation.data && (
         <Card className="border-primary/30">
           <CardHeader className="pb-3">
@@ -99,7 +106,7 @@ export function AutomateTab() {
 
               {generateAutomation.data.conditions?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">Conditions:</p>
+                  <p className="text-xs font-medium text-muted-foreground">Condições:</p>
                   {generateAutomation.data.conditions.map((c: any, i: number) => (
                     <p key={i} className="text-xs text-muted-foreground ml-2">
                       • {c.field_name} {c.operator} {c.value}
@@ -110,7 +117,7 @@ export function AutomateTab() {
 
               {generateAutomation.data.actions?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">Actions:</p>
+                  <p className="text-xs font-medium text-muted-foreground">Ações:</p>
                   {generateAutomation.data.actions.map((a: any, i: number) => (
                     <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground ml-2">
                       <ArrowRight className="h-3 w-3" />
@@ -128,10 +135,15 @@ export function AutomateTab() {
             <Button
               size="sm"
               className="gap-1.5"
-              onClick={() => toast.success("Automation saved! Go to Automations to activate it.")}
+              onClick={handleSave}
+              disabled={saveAutomation.isPending}
             >
-              <Zap className="h-3.5 w-3.5" />
-              Save Automation
+              {saveAutomation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              Guardar Automação
             </Button>
           </CardContent>
         </Card>
