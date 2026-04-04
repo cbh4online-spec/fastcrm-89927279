@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Helmet } from "react-helmet-async";
@@ -18,6 +19,9 @@ import { CheckoutPaymentStep } from "@/components/store/checkout/CheckoutPayment
 import { CheckoutSummaryCard } from "@/components/store/checkout/CheckoutSummaryCard";
 import { useCheckoutForm } from "@/components/store/checkout/useCheckoutForm";
 import { useCheckoutPricing } from "@/components/store/checkout/useCheckoutPricing";
+import { CheckoutBankTransferInfo } from "@/components/store/checkout/CheckoutBankTransferInfo";
+import { formatMoney } from "@/lib/money";
+import type { PaymentMethodType } from "@/components/store/checkout/CheckoutPaymentMethodPicker";
 
 export default function StoreCheckoutPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
