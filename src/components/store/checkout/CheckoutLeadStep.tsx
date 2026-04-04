@@ -1,10 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { User, Phone, ChevronRight } from "lucide-react";
+import { User, Phone, Mail, ChevronRight } from "lucide-react";
 
 interface CheckoutLeadStepProps {
-  formData: { name: string; phone: string };
+  formData: { name: string; phone: string; email: string };
   fieldErrors: Record<string, string>;
   isStep1Valid: () => boolean;
   onFieldChange: (field: string, value: string) => void;
@@ -35,6 +35,26 @@ export function CheckoutLeadStep({ formData, fieldErrors, isStep1Valid, onFieldC
             {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
           </div>
           <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              Email *
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="o-seu@email.com"
+              value={formData.email}
+              onChange={(e) => onFieldChange("email", e.target.value)}
+              required
+              className={fieldErrors.email ? "border-destructive" : ""}
+            />
+            {fieldErrors.email ? (
+              <p className="text-xs text-destructive">{fieldErrors.email}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Para recibo e atualizações da encomenda</p>
+            )}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="phone" className="flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" />
               Telefone *
@@ -48,11 +68,7 @@ export function CheckoutLeadStep({ formData, fieldErrors, isStep1Valid, onFieldC
               required
               className={fieldErrors.phone ? "border-destructive" : ""}
             />
-            {fieldErrors.phone ? (
-              <p className="text-xs text-destructive">{fieldErrors.phone}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">Para podermos contactar sobre a sua encomenda</p>
-            )}
+            {fieldErrors.phone && <p className="text-xs text-destructive">{fieldErrors.phone}</p>}
           </div>
         </div>
       </div>
