@@ -16,6 +16,7 @@ import { HelpdeskRoutes } from "@/routes/HelpdeskRoutes";
 import { TicketsRoutes } from "@/routes/TicketsRoutes";
 import { HRRoutes } from "@/routes/HRRoutes";
 import { C2CDashboardRoutes } from "@/routes/C2CRoutes";
+import { AffiliateRoutes } from "@/routes/AffiliateRoutes";
 import { AccountBriefRoutes } from "@/routes/AccountBriefRoutes";
 import { PerformanceRoutes } from "@/routes/PerformanceRoutes";
 import { CheckoutAdminRoutes } from "@/routes/CheckoutRoutes";
@@ -66,6 +67,7 @@ export default function CRMRoutesV2() {
                     {StudentJourneyRoutes()}
                     {CheckoutAdminRoutes()}
                     {C2CDashboardRoutes()}
+                    {AffiliateRoutes()}
                     {StoreAdminRoutes()}
                     {B2BAdminRoutes()}
                     {HelpdeskRoutes()}
