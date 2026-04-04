@@ -36,6 +36,7 @@ export function StoreRoutes() {
         <Route path=":workspaceSlug/recover/:token" element={<StoreRecoverCartPage />} />
         <Route path=":workspaceSlug/seller/:sellerSlug" element={<StoreSellerPage />} />
         <Route path=":workspaceSlug/order/:orderId" element={<StoreOrderTrackingPage />} />
+        <Route path=":workspaceSlug/catalog/:catalogSlug" element={<StoreCatalogViewPage />} />
       </Routes>
     </StoreCartProvider>
   );
