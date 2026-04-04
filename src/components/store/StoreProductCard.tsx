@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { MessageSquareText } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Star, Package, Heart, Eye, TrendingUp, Flame, GitCompareArrows, User, Zap } from "lucide-react";
 import { motion } from "framer-motion";
