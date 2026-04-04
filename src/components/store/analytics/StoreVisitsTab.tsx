@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KPICard } from "./KPICard";
 import { fadeIn } from "./AnalyticsChartHelpers";
-import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown } from "lucide-react";
+import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut } from "lucide-react";
 import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -52,7 +53,7 @@ interface StoreVisitsTabProps {
 export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisitsTabProps) {
   const {
     kpis, dailyVisits, deviceBreakdown, trafficSources,
-    topPages, referrers, aiIntents, isLoading,
+    topPages, referrers, aiIntents, scrollDepthDistribution, exitPages, isLoading,
   } = useStoreVisitsAnalytics(days);
 
   if (isLoading) {
@@ -229,9 +230,61 @@ export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisits
         </motion.div>
       </div>
 
+      {/* Scroll Depth & Exit Pages */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Scroll Depth */}
+        <motion.div {...fadeIn} transition={{ delay: 0.35 }}>
+          <Card className="h-full">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><ArrowDown className="h-4 w-4 text-muted-foreground" /> Profundidade de Scroll</CardTitle></CardHeader>
+            <CardContent>
+              <div className="mb-3 text-sm text-muted-foreground">Scroll médio: <span className="font-medium text-foreground">{kpis.avgScrollDepth.toFixed(0)}%</span></div>
+              {scrollDepthDistribution.every((b) => b.count === 0) ? (
+                <p className="text-muted-foreground text-sm text-center py-8">Sem dados de scroll.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={scrollDepthDistribution}>
+                    <XAxis dataKey="range" tick={{ fontSize: 11 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: any) => [`${v} sessões`, 'Sessões']} />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Exit Pages */}
+        <motion.div {...fadeIn} transition={{ delay: 0.4 }}>
+          <Card className="h-full">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><LogOut className="h-4 w-4 text-muted-foreground" /> Páginas de Saída</CardTitle></CardHeader>
+            <CardContent>
+              {exitPages.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">Sem dados.</p>
+              ) : (
+                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                  {exitPages.map((e, i) => (
+                    <div key={e.page} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-muted-foreground w-5 text-right shrink-0">{i + 1}.</span>
+                        <span className="truncate">{e.page}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="font-medium">{e.exits}</span>
+                        <span className="text-xs text-muted-foreground">({e.percentage.toFixed(0)}%)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
       {/* AI Intent */}
       {aiIntents.length > 0 && (
-        <motion.div {...fadeIn} transition={{ delay: 0.35 }}>
+        <motion.div {...fadeIn} transition={{ delay: 0.45 }}>
           <Card>
             <CardHeader><CardTitle className="text-base">Intenção do Visitante (AI)</CardTitle></CardHeader>
             <CardContent>

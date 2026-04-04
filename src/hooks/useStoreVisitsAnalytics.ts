@@ -39,6 +39,18 @@ interface AiIntentEntry {
   percentage: number;
 }
 
+interface ScrollDepthBucket {
+  range: string;
+  count: number;
+  percentage: number;
+}
+
+interface ExitPageEntry {
+  page: string;
+  exits: number;
+  percentage: number;
+}
+
 interface VisitsKPIs {
   totalViews: number;
   uniqueSessions: number;
@@ -46,6 +58,7 @@ interface VisitsKPIs {
   avgTimeOnSite: number;
   bounceRate: number;
   conversionRate: number;
+  avgScrollDepth: number;
 }
 
 export function useStoreVisitsAnalytics(days: number) {
@@ -89,6 +102,9 @@ export function useStoreVisitsAnalytics(days: number) {
         ai_intent: string | null;
         started_at: string;
         products_viewed: string[] | null;
+        scroll_depth_max: number | null;
+        exit_page: string | null;
+        pages_history: string[] | null;
       }>;
     },
   });
@@ -122,6 +138,9 @@ export function useStoreVisitsAnalytics(days: number) {
   const bounceRate = uniqueSessions > 0 ? (bounceSessions / uniqueSessions) * 100 : 0;
   const convertedSessions = sessions.filter((s) => s.converted).length;
   const conversionRate = uniqueSessions > 0 ? (convertedSessions / uniqueSessions) * 100 : 0;
+  const avgScrollDepth = uniqueSessions > 0
+    ? sessions.reduce((s, x) => s + (x.scroll_depth_max || 0), 0) / uniqueSessions
+    : 0;
 
   const kpis: VisitsKPIs = {
     totalViews,
@@ -130,6 +149,7 @@ export function useStoreVisitsAnalytics(days: number) {
     avgTimeOnSite,
     bounceRate,
     conversionRate,
+    avgScrollDepth,
   };
 
   // Daily visits
@@ -229,6 +249,40 @@ export function useStoreVisitsAnalytics(days: number) {
     }))
     .sort((a, b) => b.count - a.count);
 
+  // Scroll Depth Buckets
+  const scrollBuckets = [
+    { range: "0-25%", min: 0, max: 25 },
+    { range: "26-50%", min: 26, max: 50 },
+    { range: "51-75%", min: 51, max: 75 },
+    { range: "76-100%", min: 76, max: 100 },
+  ];
+  const scrollDepthDistribution: ScrollDepthBucket[] = scrollBuckets.map((bucket) => {
+    const count = sessions.filter((s) => {
+      const d = s.scroll_depth_max ?? 0;
+      return d >= bucket.min && d <= bucket.max;
+    }).length;
+    return {
+      range: bucket.range,
+      count,
+      percentage: uniqueSessions > 0 ? (count / uniqueSessions) * 100 : 0,
+    };
+  });
+
+  // Exit Pages
+  const exitMap = new Map<string, number>();
+  for (const s of sessions) {
+    const page = s.exit_page || s.pages_history?.[s.pages_history.length - 1] || "desconhecido";
+    exitMap.set(page, (exitMap.get(page) || 0) + 1);
+  }
+  const exitPages: ExitPageEntry[] = Array.from(exitMap.entries())
+    .map(([page, exits]) => ({
+      page,
+      exits,
+      percentage: uniqueSessions > 0 ? (exits / uniqueSessions) * 100 : 0,
+    }))
+    .sort((a, b) => b.exits - a.exits)
+    .slice(0, 15);
+
   return {
     kpis,
     dailyVisits,
@@ -237,6 +291,8 @@ export function useStoreVisitsAnalytics(days: number) {
     topPages,
     referrers,
     aiIntents,
+    scrollDepthDistribution,
+    exitPages,
     isLoading,
   };
 }

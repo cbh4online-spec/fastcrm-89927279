@@ -5,6 +5,7 @@ const SESSION_KEY = "store_view_session_id";
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLASSIFY_PRODUCTS_THRESHOLD = 3;
 const CLASSIFY_TIME_THRESHOLD = 120; // 2 minutes
+const SCROLL_THROTTLE_MS = 1_000;
 
 function getSessionId(): string {
   let sid = localStorage.getItem(SESSION_KEY);
@@ -31,6 +32,18 @@ function getUTMParams(): { utm_source?: string; utm_medium?: string; utm_campaig
   };
 }
 
+function getScrollDepthPercent(): number {
+  const docHeight = Math.max(
+    document.body.scrollHeight,
+    document.documentElement.scrollHeight
+  );
+  const viewportHeight = window.innerHeight;
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+  if (docHeight <= viewportHeight) return 100;
+  return Math.min(100, Math.round(((scrollTop + viewportHeight) / docHeight) * 100));
+}
+
 interface UseStoreVisitorTrackingOptions {
   workspaceId: string | undefined;
   currentPage: string;
@@ -42,8 +55,11 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
   const startTime = useRef(Date.now());
   const productsViewed = useRef<Set<string>>(new Set());
   const pagesCount = useRef(0);
+  const pagesHistory = useRef<string[]>([]);
+  const maxScrollDepth = useRef(0);
   const classifyTriggered = useRef(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>();
+  const scrollThrottleRef = useRef<ReturnType<typeof setTimeout>>();
 
   const upsertSession = useCallback(async (extraFields: Record<string, any> = {}) => {
     if (!workspaceId) return;
@@ -58,6 +74,9 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       products_viewed: productsArray,
       time_on_site_seconds: timeOnSite,
       last_activity_at: new Date().toISOString(),
+      scroll_depth_max: maxScrollDepth.current,
+      exit_page: currentPage,
+      pages_history: pagesHistory.current,
       ...extraFields,
     };
 
@@ -70,7 +89,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     }
 
     return { timeOnSite, productsCount: productsArray.length };
-  }, [workspaceId]);
+  }, [workspaceId, currentPage]);
 
   const triggerClassification = useCallback(async () => {
     if (!workspaceId || classifyTriggered.current) return;
@@ -85,15 +104,24 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       });
     } catch (err) {
       console.warn("[ECOMMERCE] VISITOR_CLASSIFY_FAILED", (err as Error).message);
-      classifyTriggered.current = false; // allow retry
+      classifyTriggered.current = false;
     }
   }, [workspaceId]);
 
-  // Initial session creation
+  // Initial session creation + page tracking
   useEffect(() => {
     if (!workspaceId) return;
 
     pagesCount.current += 1;
+
+    // Add to pages history (deduplicate consecutive)
+    const lastPage = pagesHistory.current[pagesHistory.current.length - 1];
+    if (lastPage !== currentPage) {
+      pagesHistory.current = [...pagesHistory.current, currentPage].slice(-50); // keep last 50
+    }
+
+    // Reset scroll depth for new page
+    maxScrollDepth.current = getScrollDepthPercent();
 
     const isFirstPage = pagesCount.current === 1;
     const utmParams = getUTMParams();
@@ -112,6 +140,62 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     upsertSession(initFields);
   }, [workspaceId, currentPage, upsertSession]);
 
+  // Scroll depth tracking
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    const handleScroll = () => {
+      const depth = getScrollDepthPercent();
+      if (depth > maxScrollDepth.current) {
+        maxScrollDepth.current = depth;
+      }
+
+      // Throttled upsert on significant scroll
+      if (scrollThrottleRef.current) return;
+      scrollThrottleRef.current = setTimeout(() => {
+        scrollThrottleRef.current = undefined;
+      }, SCROLL_THROTTLE_MS);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
+    };
+  }, [workspaceId]);
+
+  // Track exit page on beforeunload
+  useEffect(() => {
+    if (!workspaceId) return;
+
+    const handleBeforeUnload = () => {
+      const timeOnSite = Math.floor((Date.now() - startTime.current) / 1000);
+      const productsArray = Array.from(productsViewed.current);
+
+      const payload = JSON.stringify({
+        workspace_id: workspaceId,
+        session_id: sessionId.current,
+        pages_viewed: pagesCount.current,
+        products_viewed: productsArray,
+        time_on_site_seconds: timeOnSite,
+        last_activity_at: new Date().toISOString(),
+        scroll_depth_max: maxScrollDepth.current,
+        exit_page: currentPage,
+        pages_history: pagesHistory.current,
+      });
+
+      // Use sendBeacon for reliable exit tracking
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/store_visitor_sessions?on_conflict=workspace_id,session_id`;
+      navigator.sendBeacon(
+        url,
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [workspaceId, currentPage]);
+
   // Track product views
   useEffect(() => {
     if (!productId || !workspaceId) return;
@@ -120,7 +204,6 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     productsViewed.current.add(productId);
     upsertSession().then((result) => {
       if (!result) return;
-      // Check classification thresholds
       if (
         result.productsCount >= CLASSIFY_PRODUCTS_THRESHOLD ||
         result.timeOnSite >= CLASSIFY_TIME_THRESHOLD
@@ -130,7 +213,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     });
   }, [productId, workspaceId, upsertSession, triggerClassification]);
 
-  // Heartbeat
+  // Heartbeat (includes scroll depth + exit page automatically via upsertSession)
   useEffect(() => {
     if (!workspaceId) return;
 
@@ -138,7 +221,6 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       const result = await upsertSession();
       if (!result) return;
 
-      // Check time-based classification threshold
       if (result.timeOnSite >= CLASSIFY_TIME_THRESHOLD) {
         triggerClassification();
       }

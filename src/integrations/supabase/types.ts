@@ -51552,12 +51552,15 @@ export type Database = {
           converted: boolean | null
           created_at: string | null
           device_type: string | null
+          exit_page: string | null
           first_page: string | null
           id: string
           last_activity_at: string | null
+          pages_history: string[] | null
           pages_viewed: number | null
           products_viewed: string[] | null
           referrer: string | null
+          scroll_depth_max: number | null
           session_id: string
           started_at: string | null
           time_on_site_seconds: number | null
@@ -51579,12 +51582,15 @@ export type Database = {
           converted?: boolean | null
           created_at?: string | null
           device_type?: string | null
+          exit_page?: string | null
           first_page?: string | null
           id?: string
           last_activity_at?: string | null
+          pages_history?: string[] | null
           pages_viewed?: number | null
           products_viewed?: string[] | null
           referrer?: string | null
+          scroll_depth_max?: number | null
           session_id: string
           started_at?: string | null
           time_on_site_seconds?: number | null
@@ -51606,12 +51612,15 @@ export type Database = {
           converted?: boolean | null
           created_at?: string | null
           device_type?: string | null
+          exit_page?: string | null
           first_page?: string | null
           id?: string
           last_activity_at?: string | null
+          pages_history?: string[] | null
           pages_viewed?: number | null
           products_viewed?: string[] | null
           referrer?: string | null
+          scroll_depth_max?: number | null
           session_id?: string
           started_at?: string | null
           time_on_site_seconds?: number | null
