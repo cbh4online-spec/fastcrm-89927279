@@ -74,6 +74,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const secondImageUrl = product.images?.length > 1 ? product.images?.find((_, i) => i !== primaryIndex) : null;
   const isOutOfStock = product.stock_status === "out_of_stock";
+  const isPriceOnRequest = !!product.price_on_request;
   const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
 
   // Popular badge (>25 sales)
