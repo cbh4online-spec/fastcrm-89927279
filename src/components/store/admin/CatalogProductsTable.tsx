@@ -65,7 +65,7 @@ function ProductIndicators({ product }: { product: ProductStoreData }) {
   );
 }
 
-export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onMoveOrder, onEdit }: CatalogProductsTableProps) {
+export function CatalogProductsTable({ products, isLoading, onTogglePublish, onToggleFeatured, onTogglePriceOnRequest, onMoveOrder, onEdit }: CatalogProductsTableProps) {
   const navigate = useNavigate();
   return (
     <div className="border rounded-lg">
