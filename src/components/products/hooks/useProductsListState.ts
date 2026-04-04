@@ -78,6 +78,20 @@ function escapeCsvField(value: string | number | undefined | null): string {
   return str;
 }
 
+/** Parse sortValue (e.g. "name_asc") into sortBy + sortDirection */
+function parseSortValue(sortValue: string): { sortBy: string; sortDirection: "asc" | "desc" } {
+  switch (sortValue) {
+    case "name_asc": return { sortBy: "name", sortDirection: "asc" };
+    case "name_desc": return { sortBy: "name", sortDirection: "desc" };
+    case "price_asc": return { sortBy: "base_price", sortDirection: "asc" };
+    case "price_desc": return { sortBy: "base_price", sortDirection: "desc" };
+    case "updated_asc": return { sortBy: "updated_at", sortDirection: "asc" };
+    case "updated_desc":
+    default:
+      return { sortBy: "updated_at", sortDirection: "desc" };
+  }
+}
+
 export function useProductsListState() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
@@ -86,6 +100,8 @@ export function useProductsListState() {
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [billingFilter, setBillingFilter] = useState<string>("all");
+  const [storePublishedFilter, setStorePublishedFilter] = useState<boolean | undefined>(undefined);
   const [createOpen, setCreateOpen] = useState(false);
   const [batchImportOpen, setBatchImportOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -108,6 +124,9 @@ export function useProductsListState() {
 
   // --- Debounce search (proper cleanup via hook) ---
   const debouncedSearch = useDebounce(searchValue, 300);
+
+  // --- Parse sort into server params ---
+  const { sortBy, sortDirection } = parseSortValue(sortValue);
 
   // --- Barcode ---
   const { lookup, isLoading: scanLoading, result: scanResult, reset: resetScan } = useBarcodeLookup(currentWorkspace?.id);
@@ -137,13 +156,29 @@ export function useProductsListState() {
     };
   }, [colWidths.onMouseMove, colWidths.onMouseUp]);
 
-  // --- Data queries ---
+  // --- Data queries (server-side sort + filter) ---
+  const productsQueryKey = useMemo(() => ["products", currentWorkspace?.id, {
+    status: statusFilter,
+    productType: typeFilter,
+    category: categoryFilter,
+    search: debouncedSearch || undefined,
+    billingType: billingFilter !== "all" ? billingFilter : undefined,
+    storePublished: storePublishedFilter,
+    sortBy,
+    sortDirection,
+  }], [currentWorkspace?.id, statusFilter, typeFilter, categoryFilter, debouncedSearch, billingFilter, storePublishedFilter, sortBy, sortDirection]);
+
   const { data: products, isLoading, refetch } = useProducts({
     status: statusFilter,
     productType: typeFilter,
     category: categoryFilter,
     search: debouncedSearch || undefined,
+    billingType: billingFilter !== "all" ? billingFilter : undefined,
+    storePublished: storePublishedFilter,
+    sortBy,
+    sortDirection,
   });
+
   const { data: categories } = useProductCategories();
   const { data: workspaceTags } = useWorkspaceTags();
   const { data: productTypesConfig } = useProductTypes();
@@ -154,6 +189,7 @@ export function useProductsListState() {
   const deleteProduct = useDeleteProduct();
   const deleteProductsBatch = useDeleteProductsBatch();
 
+  // --- Optimistic toggle store_published ---
   const toggleStorePublished = useMutation({
     mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
       const { error } = await supabase
@@ -162,8 +198,62 @@ export function useProductsListState() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
-    onError: () => toast.error("Erro ao atualizar visibilidade na loja"),
+    onMutate: async ({ id, published }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      // Snapshot previous value
+      const previousProducts = queryClient.getQueryData<Product[]>(productsQueryKey);
+      // Optimistically update
+      if (previousProducts) {
+        queryClient.setQueryData<Product[]>(productsQueryKey, 
+          previousProducts.map(p => p.id === id ? { ...p, store_published: published } as any : p)
+        );
+      }
+      return { previousProducts };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback
+      if (context?.previousProducts) {
+        queryClient.setQueryData(productsQueryKey, context.previousProducts);
+      }
+      toast.error("Erro ao atualizar visibilidade na loja");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+
+  // --- Optimistic inline price update ---
+  const updateProductPrice = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: "base_price" | "direct_cost"; value: number }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, field, value }) => {
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      const previousProducts = queryClient.getQueryData<Product[]>(productsQueryKey);
+      if (previousProducts) {
+        queryClient.setQueryData<Product[]>(productsQueryKey,
+          previousProducts.map(p => p.id === id ? { ...p, [field]: value } : p)
+        );
+      }
+      return { previousProducts };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(productsQueryKey, context.previousProducts);
+      }
+      toast.error("Erro ao atualizar preço");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+    onSuccess: () => {
+      toast.success("Preço atualizado");
+    },
   });
 
   // --- Tag filter query ---
@@ -196,12 +286,13 @@ export function useProductsListState() {
     return typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
   }, [billingTypesConfig]);
 
-  // --- Filtered products ---
+  // --- Filtered products (only smart/tag filters remain client-side) ---
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     let result = products;
 
-    if (searchValue) {
+    // Client-side search (for immediate feedback while debounce is pending)
+    if (searchValue && searchValue !== debouncedSearch) {
       const lower = searchValue.toLowerCase();
       result = result.filter(
         (p) =>
@@ -211,6 +302,7 @@ export function useProductsListState() {
       );
     }
 
+    // Smart filters (client-side only — calculated fields)
     if (activeFilterId?.startsWith("smart_")) {
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -266,23 +358,13 @@ export function useProductsListState() {
       }
     }
 
-    if (activeFilterId?.startsWith("billing_")) {
-      const billingCode = activeFilterId.replace("billing_", "");
-      result = result.filter((p) => p.billing_type === billingCode);
-    }
-
+    // Tag filter (client-side join)
     if (activeFilterId?.startsWith("tag_") && tagProductIds) {
       result = result.filter((p) => tagProductIds.includes(p.id));
     }
 
-    if (activeFilterId === "store_yes") {
-      result = result.filter((p) => !!(p as any).store_published);
-    } else if (activeFilterId === "store_no") {
-      result = result.filter((p) => !(p as any).store_published);
-    }
-
     return result;
-  }, [products, searchValue, activeFilterId, tagProductIds]);
+  }, [products, searchValue, debouncedSearch, activeFilterId, tagProductIds]);
 
   // --- Pagination ---
   const totalProducts = filteredProducts.length;
@@ -307,7 +389,7 @@ export function useProductsListState() {
     return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
   }, [products]);
 
-  const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || !!activeFilterId;
+  const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || billingFilter !== "all" || storePublishedFilter !== undefined || !!activeFilterId;
 
   // --- Handlers ---
   const handleFilterSelect = useCallback((filterId: string) => {
@@ -316,12 +398,18 @@ export function useProductsListState() {
       if (filterId.startsWith("type_")) setTypeFilter("all");
       else if (filterId.startsWith("status_")) setStatusFilter("active");
       else if (filterId.startsWith("cat_")) setCategoryFilter("all");
+      else if (filterId.startsWith("billing_")) setBillingFilter("all");
+      else if (filterId === "store_yes" || filterId === "store_no") setStorePublishedFilter(undefined);
       return;
     }
     setActiveFilterId(filterId);
+    setCurrentPage(1);
     if (filterId.startsWith("type_")) setTypeFilter(filterId.replace("type_", ""));
     else if (filterId.startsWith("status_")) setStatusFilter(filterId.replace("status_", ""));
     else if (filterId.startsWith("cat_")) setCategoryFilter(filterId.replace("cat_", ""));
+    else if (filterId.startsWith("billing_")) setBillingFilter(filterId.replace("billing_", ""));
+    else if (filterId === "store_yes") setStorePublishedFilter(true);
+    else if (filterId === "store_no") setStorePublishedFilter(false);
   }, [activeFilterId]);
 
   const handleClearFilters = useCallback(() => {
@@ -329,6 +417,8 @@ export function useProductsListState() {
     setStatusFilter("active");
     setTypeFilter("all");
     setCategoryFilter("all");
+    setBillingFilter("all");
+    setStorePublishedFilter(undefined);
     setSearchValue("");
   }, []);
 
@@ -395,28 +485,52 @@ export function useProductsListState() {
     return new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(value);
   }, []);
 
+  // --- Keyboard shortcuts ---
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Ctrl/Cmd+F → focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === "f" && activeTab === "products") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // Escape → clear selection or close sidebar
+      if (e.key === "Escape") {
+        if (selectedIds.length > 0) {
+          setSelectedIds([]);
+        } else if (showFilterSidebar) {
+          setShowFilterSidebar(false);
+        }
+      }
+      // Ctrl/Cmd+A → select all on current page
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && activeTab === "products") {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+        e.preventDefault();
+        setSelectedIds(paginatedProducts.map(p => p.id));
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [activeTab, selectedIds.length, showFilterSidebar, paginatedProducts]);
+
   return {
-    // workspace
     currentWorkspace,
-    // data
     products, isLoading, refetch,
     categories, workspaceTags, productTypesConfig, billingTypesConfig,
     filteredProducts, paginatedProducts, totalProducts, totalPages,
     productIndicators,
-    // mutations
     toggleStorePublished, archiveProduct, deleteProduct, deleteProductsBatch,
-    // filters
-    statusFilter, typeFilter, categoryFilter, storeFilter,
+    updateProductPrice,
+    statusFilter, typeFilter, categoryFilter, billingFilter, storeFilter,
+    storePublishedFilter,
     activeFilterId, filtersActive,
     handleFilterSelect, handleClearFilters,
     setStatusFilter, setTypeFilter, setCategoryFilter, setStoreFilter,
-    // search & sort
     searchValue, setSearchValue, sortValue, setSortValue,
-    // pagination
     currentPage, setCurrentPage, pageSize, setPageSize,
-    // selection
     selectedIds, setSelectedIds, handleSelectAll, handleSelectOne,
-    // UI toggles
     activeTab, setActiveTab,
     showFilterSidebar, setShowFilterSidebar,
     createOpen, setCreateOpen,
@@ -429,13 +543,11 @@ export function useProductsListState() {
     deleteConfirmProduct, setDeleteConfirmProduct,
     bulkDeleteOpen, setBulkDeleteOpen,
     bulkCostOpen, setBulkCostOpen,
-    // actions
     handleArchive, handleDeleteConfirm,
     handleBulkExport, handleBulkArchive,
-    // columns
     visibleColumns, setVisibleColumns, columnOrder, setColumnOrder,
     colWidths, tableRef,
-    // helpers
+    searchInputRef,
     getProductTypeLabel, getBillingTypeLabel, formatCurrency,
   };
 }

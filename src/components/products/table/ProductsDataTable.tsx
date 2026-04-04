@@ -21,7 +21,8 @@ import {
   productStatusLabels,
   type Product,
 } from "@/types/product";
-import type { ColumnConfig } from "@/components/common/ColumnSelector";
+import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
+import { InlinePriceEditor } from "./InlinePriceEditor";
 
 interface ProductsDataTableProps {
   products: Product[];
@@ -48,14 +49,20 @@ interface ProductsDataTableProps {
   getBillingTypeLabel: (code: string) => string;
   formatCurrency: (value: number, currency?: string) => string;
   toggleStorePublished: { mutate: (args: { id: string; published: boolean }) => void };
+  // inline editing
+  onInlinePriceUpdate?: (id: string, field: "base_price" | "direct_cost", value: number) => void;
 }
 
-function renderProductCell(
-  product: Product,
-  columnId: string,
-  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished">
-) {
-  const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished } = helpers;
+function RenderProductCell({
+  product,
+  columnId,
+  helpers,
+}: {
+  product: Product;
+  columnId: string;
+  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate">;
+}) {
+  const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate } = helpers;
 
   switch (columnId) {
     case "name": {
@@ -88,7 +95,7 @@ function renderProductCell(
         <button type="button" onClick={() => onOpenDetail(product)} className="text-muted-foreground hover:text-primary hover:underline transition-colors">
           {product.sku}
         </button>
-      ) : "-";
+      ) : <span>-</span>;
     case "product_type":
       return <Badge variant="outline">{getProductTypeLabel(product.product_type)}</Badge>;
     case "category":
@@ -96,13 +103,32 @@ function renderProductCell(
         <button type="button" onClick={() => onOpenDetail(product)} className="hover:text-primary hover:underline transition-colors">
           {product.category}
         </button>
-      ) : "-";
+      ) : <span>-</span>;
     case "base_price":
-      return formatCurrency(product.base_price, product.currency);
+      return onInlinePriceUpdate ? (
+        <InlinePriceEditor
+          value={product.base_price}
+          currency={product.currency}
+          formatCurrency={formatCurrency}
+          onSave={(v) => onInlinePriceUpdate(product.id, "base_price", v)}
+        />
+      ) : (
+        <span>{formatCurrency(product.base_price, product.currency)}</span>
+      );
     case "direct_cost":
-      return product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-";
+      if (!product.direct_cost && !onInlinePriceUpdate) return <span>-</span>;
+      return onInlinePriceUpdate ? (
+        <InlinePriceEditor
+          value={product.direct_cost || 0}
+          currency={product.currency}
+          formatCurrency={formatCurrency}
+          onSave={(v) => onInlinePriceUpdate(product.id, "direct_cost", v)}
+        />
+      ) : (
+        <span>{product.direct_cost ? formatCurrency(product.direct_cost, product.currency) : "-"}</span>
+      );
     case "operational_cost":
-      return product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-";
+      return <span>{product.operational_cost ? formatCurrency(product.operational_cost, product.currency) : "-"}</span>;
     case "margin":
       if (product.base_price && product.direct_cost) {
         const margin = ((product.base_price - product.direct_cost) / product.base_price) * 100;
@@ -112,11 +138,11 @@ function renderProductCell(
           </span>
         );
       }
-      return "-";
+      return <span>-</span>;
     case "billing_type":
-      return getBillingTypeLabel(product.billing_type);
+      return <span>{getBillingTypeLabel(product.billing_type)}</span>;
     case "billing_frequency":
-      return product.billing_frequency || "-";
+      return <span>{product.billing_frequency || "-"}</span>;
     case "status":
       return <Badge variant={product.status === "active" ? "default" : "secondary"}>{productStatusLabels[product.status]}</Badge>;
     case "store_published":
@@ -133,23 +159,23 @@ function renderProductCell(
         <Badge variant="outline" className="text-muted-foreground">Oculto</Badge>
       );
     case "total_units":
-      return product.total_units ?? "-";
+      return <span>{product.total_units ?? "-"}</span>;
     case "unit_duration":
-      return product.unit_duration ? `${product.unit_duration} min` : "-";
+      return <span>{product.unit_duration ? `${product.unit_duration} min` : "-"}</span>;
     case "validity_days":
-      return product.validity_days ? `${product.validity_days} dias` : "-";
+      return <span>{product.validity_days ? `${product.validity_days} dias` : "-"}</span>;
     case "tax_rate_estimate_pct":
-      return product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-";
+      return <span>{product.tax_rate_estimate_pct ? `${product.tax_rate_estimate_pct}%` : "-"}</span>;
     case "commission_default":
-      return product.commission_default ? `${product.commission_default}%` : "-";
+      return <span>{product.commission_default ? `${product.commission_default}%` : "-"}</span>;
     case "delivery_mode":
-      return product.delivery_mode || "-";
+      return <span>{product.delivery_mode || "-"}</span>;
     case "created_at":
-      return format(new Date(product.created_at), "dd/MM/yyyy", { locale: pt });
+      return <span>{format(new Date(product.created_at), "dd/MM/yyyy", { locale: pt })}</span>;
     case "updated_at":
-      return format(new Date(product.updated_at), "dd/MM/yyyy", { locale: pt });
+      return <span>{format(new Date(product.updated_at), "dd/MM/yyyy", { locale: pt })}</span>;
     default:
-      return "-";
+      return <span>-</span>;
   }
 }
 
@@ -172,33 +198,10 @@ export function ProductsDataTable({
   getBillingTypeLabel,
   formatCurrency,
   toggleStorePublished,
+  onInlinePriceUpdate,
 }: ProductsDataTableProps) {
   const visibleCols = columnOrder.filter((colId) => visibleColumns.has(colId));
-  const COLUMNS: ColumnConfig[] = [
-    { id: "name", label: "Nome", category: "basic", defaultVisible: true },
-    { id: "sku", label: "SKU", category: "basic", defaultVisible: false },
-    { id: "product_type", label: "Tipo", category: "basic", defaultVisible: true },
-    { id: "category", label: "Categoria", category: "basic", defaultVisible: true },
-    { id: "base_price", label: "Preço", category: "business", defaultVisible: true },
-    { id: "direct_cost", label: "Custo Direto", category: "business", defaultVisible: false },
-    { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
-    { id: "margin", label: "Margem", category: "business", defaultVisible: false },
-    { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
-    { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
-    { id: "status", label: "Estado", category: "basic", defaultVisible: true },
-    { id: "store_published", label: "Loja Online", category: "basic", defaultVisible: true },
-    { id: "b2b_published", label: "Portal B2B", category: "basic", defaultVisible: true },
-    { id: "total_units", label: "Unidades", category: "business", defaultVisible: false },
-    { id: "unit_duration", label: "Duração", category: "business", defaultVisible: false },
-    { id: "validity_days", label: "Validade (dias)", category: "business", defaultVisible: false },
-    { id: "tax_rate_estimate_pct", label: "Taxa IVA", category: "business", defaultVisible: false },
-    { id: "commission_default", label: "Comissão", category: "business", defaultVisible: false },
-    { id: "delivery_mode", label: "Modo Entrega", category: "business", defaultVisible: false },
-    { id: "created_at", label: "Criado em", category: "basic", defaultVisible: false },
-    { id: "updated_at", label: "Atualizado", category: "basic", defaultVisible: true },
-  ];
-
-  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished };
+  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate };
 
   return (
     <Card className="overflow-x-hidden">
@@ -227,7 +230,7 @@ export function ProductsDataTable({
                   />
                 </TableHead>
                 {visibleCols.map((colId) => {
-                  const col = COLUMNS.find((c) => c.id === colId);
+                  const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
                   if (!col) return null;
                   const w = colWidths.getWidth(col.id);
                   return (
@@ -268,7 +271,7 @@ export function ProductsDataTable({
                         data-col-id={colId}
                         style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                       >
-                        {renderProductCell(product, colId, helpers)}
+                        <RenderProductCell product={product} columnId={colId} helpers={helpers} />
                       </TableCell>
                     );
                   })}

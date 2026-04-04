@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,9 @@ interface ToolbarProps {
   leftActions?: ReactNode;
   rightActions?: ReactNode;
   
+  // Search ref for keyboard shortcuts
+  searchInputRef?: RefObject<HTMLInputElement | null>;
+  
   className?: string;
 }
 
@@ -73,6 +76,7 @@ export function Toolbar({
   onColumnToggle,
   leftActions,
   rightActions,
+  searchInputRef,
   className,
 }: ToolbarProps) {
   const [localSearch, setLocalSearch] = useState(searchValue);
@@ -171,6 +175,7 @@ export function Toolbar({
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              ref={searchInputRef}
               type="text"
               placeholder={searchPlaceholder}
               value={localSearch}
