@@ -1032,7 +1032,7 @@ export function ProductsList() {
             )}
 
             {/* Table */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-x-hidden">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
