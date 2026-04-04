@@ -258,6 +258,7 @@ export function ProductsList() {
                     columnOrder={state.columnOrder}
                     onVisibleColumnsChange={state.setVisibleColumns}
                     onColumnOrderChange={state.setColumnOrder}
+                    onResetWidths={state.colWidths.resetWidths}
                     storageKey="products-table-columns"
                   />
                   <Button variant="ghost" size="sm" onClick={() => state.refetch()} className="gap-2">
