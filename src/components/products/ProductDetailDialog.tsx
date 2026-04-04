@@ -362,6 +362,9 @@ export function ProductDetailDialog({
                       <TabsTrigger value="price-history" className="text-xs px-2.5 py-1 h-7">
                         <TrendingUp className="h-3 w-3 mr-1" />Preços
                       </TabsTrigger>
+                      <TabsTrigger value="audit" className="text-xs px-2.5 py-1 h-7">
+                        <History className="h-3 w-3 mr-1" />Auditoria
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
