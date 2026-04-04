@@ -8,7 +8,7 @@ import { StoreCartsTab } from "@/components/store/StoreCartsTab";
 import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import {
   BarChart3, DollarSign, Package, Users, Tag,
-  ShoppingCart, Layers, CalendarIcon,
+  ShoppingCart, Layers, CalendarIcon, Eye,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
