@@ -1,71 +1,95 @@
 
+## Fase 2 — Performance & UX Avançada na Tabela de Produtos
 
-## Diagnóstico
+### 1. Virtualização da tabela com @tanstack/react-virtual
+**Ficheiro:** `src/components/products/table/ProductsDataTable.tsx`
 
-A hierarquia de layout que contém a tabela de produtos tem um problema clássico de CSS flexbox: containers flex sem `min-h-0`, o que impede o scroll de funcionar.
+- Substituir o `<TableBody>` por um container virtualizado usando `useVirtualizer` (já instalado como dependência)
+- Renderizar apenas as linhas visíveis no viewport + overscan de 5 linhas
+- Manter o suporte a colunas resizáveis e checkbox de seleção
+- Remover a paginação client-side (passa a scroll contínuo com virtualização)
+- Manter a opção de pageSize como "batch size" para a query ao servidor
 
-**Cadeia de scroll actual:**
-```text
-<main class="flex-1 overflow-auto p-6">           ← DashboardLayout (scrollável)
-  <div class="flex h-full -m-6">                  ← ProductsList root (linha 801)
-    <div class="flex-1 flex flex-col p-6           ← Conteúdo principal (linha 820)
-                overflow-y-auto">
-      <Card class="overflow-hidden">               ← Card da tabela (linha 1035)
-        <div class="overflow-x-auto">              ← Wrapper horizontal (linha 1053)
-          <Table>                                   ← Tabela de produtos
+**Impacto:** Tabela com 5000+ produtos sem lag; DOM reduzido de ~5000 rows para ~30.
+
+### 2. Optimistic Updates nos toggles (Store Published, Archive)
+**Ficheiro:** `src/components/products/hooks/useProductsListState.ts`
+
+- No `toggleStorePublished` mutation: adicionar `onMutate` para atualizar o cache local imediatamente
+- Rollback automático via `onError` se o servidor falhar
+- Aplicar o mesmo padrão ao toggle de `b2b_published`
+- Feedback visual: o Switch muda instantaneamente, sem esperar pelo servidor
+
+```typescript
+// Padrão optimistic update:
+onMutate: async ({ id, published }) => {
+  await queryClient.cancelQueries({ queryKey: ["products"] });
+  const previous = queryClient.getQueryData(["products", ...]);
+  queryClient.setQueryData(["products", ...], (old) => 
+    old?.map(p => p.id === id ? { ...p, store_published: published } : p)
+  );
+  return { previous };
+},
+onError: (err, vars, context) => {
+  queryClient.setQueryData(["products", ...], context?.previous);
+},
+onSettled: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
 ```
 
-**Causa raiz:** Em flexbox, um filho com `flex-1` não encolhe abaixo do tamanho do seu conteúdo a menos que tenha `min-height: 0` (ou `min-h-0` em Tailwind). Sem isto, o div da linha 801 e o div da linha 820 expandem-se para acomodar todo o conteúdo da tabela em vez de activar o scroll. O resultado é que o conteúdo fica cortado pelo `overflow-hidden` do Card ou pelo `overflow-hidden` do layout pai (`h-screen`), mostrando apenas as primeiras linhas visíveis.
+### 3. Filtros e ordenação server-side
+**Ficheiros:** `src/hooks/useProducts.ts` + `src/components/products/hooks/useProductsListState.ts`
 
-## Plano de implementação
+- Adicionar parâmetros `sortBy` e `sortDirection` ao hook `useProducts`
+- Mover filtros de billing_type e store_published para a query SQL (em vez de filtrar localmente)
+- Manter filtros "smart" (margem negativa, sem imagem, etc.) como client-side pois dependem de lógica calculada
+- Adicionar paginação server-side com `range()` do Supabase para cursor-based loading
 
-### 1. Corrigir o container raiz do ProductsList (linha 801)
-**Ficheiro:** `src/components/products/ProductsList.tsx`
-
-Alterar de:
-```tsx
-<div className="flex h-full -m-6">
-```
-Para:
-```tsx
-<div className="flex h-full min-h-0 -m-6">
-```
-
-### 2. Corrigir o container principal do conteúdo (linha 820)
-**Ficheiro:** `src/components/products/ProductsList.tsx`
-
-Alterar de:
-```tsx
-<div className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
-```
-Para:
-```tsx
-<div className="flex-1 flex flex-col min-w-0 min-h-0 p-6 overflow-y-auto">
+**Alterações na query:**
+```typescript
+let query = supabase.from("products").select("*", { count: "exact" });
+if (sortBy === "name") query = query.order("name", { ascending: sortDirection === "asc" });
+if (billingType) query = query.eq("billing_type", billingType);
+if (storePublished !== undefined) query = query.eq("store_published", storePublished);
+query = query.range(offset, offset + pageSize - 1);
 ```
 
-### 3. Garantir que o Card não corta a tabela verticalmente (linha 1035)
-**Ficheiro:** `src/components/products/ProductsList.tsx`
+### 4. Atalhos de teclado + Inline editing
+**Ficheiros novos:**
+- `src/components/products/table/InlinePriceEditor.tsx`
+- `src/components/products/hooks/useProductKeyboardShortcuts.ts`
 
-O `overflow-hidden` no Card está a cortar linhas que excedem a altura visível. Deve permitir crescer naturalmente dentro do container scrollável:
+**Atalhos:**
+- `Ctrl+F` / `Cmd+F` → Focar na barra de pesquisa
+- `Escape` → Limpar seleção / fechar filtros
+- `Ctrl+A` → Selecionar todos na página
+- `Delete` → Abrir diálogo de apagar (com seleção ativa)
 
-Alterar de:
-```tsx
-<Card className="overflow-hidden">
-```
-Para:
-```tsx
-<Card className="overflow-x-hidden">
-```
+**Inline editing:**
+- Duplo-clique nas colunas `base_price` e `direct_cost` → Abre input inline
+- Enter para confirmar, Escape para cancelar
+- Mutation com optimistic update para feedback instantâneo
+- Validação: preço >= 0, formato numérico
 
-Isto mantém o clip horizontal (para a tabela wide) mas permite que o Card cresça verticalmente sem cortar linhas.
+### Ficheiros a alterar/criar
+- `src/components/products/table/ProductsDataTable.tsx` — virtualização + inline editing
+- `src/components/products/hooks/useProductsListState.ts` — optimistic updates
+- `src/hooks/useProducts.ts` — server-side filters/sort/pagination
+- `src/components/products/table/InlinePriceEditor.tsx` — novo componente
+- `src/components/products/hooks/useProductKeyboardShortcuts.ts` — novo hook
+- `src/components/products/table/ProductsPagination.tsx` — adaptar para server-side
+- `src/components/products/ProductsList.tsx` — wiring dos novos parâmetros
 
-### Ficheiros a alterar
-- `src/components/products/ProductsList.tsx` — 3 alterações de classes CSS (linhas 801, 820, 1035)
+### Ordem de execução
+1. Server-side filtering + sorting (fundação para virtualização)
+2. Optimistic updates (independente, rápido)
+3. Virtualização (depende de server-side pagination)
+4. Inline editing + keyboard shortcuts (UX final)
 
 ### Critérios de aceitação
-- Ao seleccionar 10, 25, 50 ou 100 por página, todas as linhas são visíveis via scroll vertical
-- O scroll horizontal da tabela continua a funcionar
-- O dropdown de page size abre e permite seleccionar qualquer opção
-- A paginação (botões anterior/seguinte) continua funcional
-- O layout não quebra em viewports mais pequenos
-
+- [ ] 5000 produtos renderizam sem lag visível (<16ms por frame)
+- [ ] Toggles de loja/B2B reflectem-se instantaneamente no UI
+- [ ] Ordenação por nome/preço/data acontece no servidor
+- [ ] Filtros billing_type e store_published são SQL-side
+- [ ] Duplo-clique em preço/custo permite edição inline
+- [ ] Ctrl+F foca pesquisa, Escape limpa seleção
+- [ ] Rollback visual se o servidor rejeitar um toggle
