@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Eye, Save, Globe, Sparkles, Trash2, GripVertical } from "lucide-react";
 import { useProductCatalog, useUpdateCatalog, useProductCatalogItems, useAddCatalogItem, useRemoveCatalogItem, useReorderCatalogItems } from "@/hooks/useProductCatalogs";
 import { useAICatalog } from "@/hooks/useAICatalog";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CatalogProductPicker } from "@/components/catalog/CatalogProductPicker";
 import { CatalogStyleEditor } from "@/components/catalog/CatalogStyleEditor";
 import { CatalogFlipbookPage, CatalogCoverPage, CatalogBackPage } from "@/components/catalog/CatalogFlipbookPage";

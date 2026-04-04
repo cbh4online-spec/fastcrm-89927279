@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, BookOpen, Trash2, ExternalLink, Copy, Edit } from "lucide-react";
 import { useProductCatalogs, useCreateCatalog, useDeleteCatalog } from "@/hooks/useProductCatalogs";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toSlug } from "@/utils/slug";
 import { toast } from "sonner";
 
