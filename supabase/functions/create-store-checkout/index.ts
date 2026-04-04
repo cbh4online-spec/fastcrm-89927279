@@ -101,7 +101,10 @@ Deno.serve(async (req) => {
       couponCode,
       mode: checkoutMode,
       abandonedCartId,
+      paymentMethod: requestedPaymentMethod,
     } = await req.json();
+
+    const paymentMethod = requestedPaymentMethod || "stripe_card";
 
     logStep("Request body", {
       workspaceId,
