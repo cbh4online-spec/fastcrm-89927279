@@ -8,15 +8,15 @@ interface CatalogPageProps {
   pageNumber: number;
 }
 
-function formatPrice(price: number, currency?: string | null) {
+function formatPrice(price: number, currency?: string) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: currency || "EUR" }).format(price);
 }
 
-function ProductCard({ item, size }: { item: ProductCatalogItem; size: "full" | "half" | "quarter" }) {
+function ProductCard({ item, size, showPrice, showDesc }: { item: ProductCatalogItem; size: "full" | "half" | "quarter"; showPrice?: boolean; showDesc?: boolean }) {
   const p = item.product;
   if (!p) return null;
   const title = item.custom_title || p.name;
-  const desc = item.custom_description || p.description;
+  const desc = item.custom_description || p.short_description;
   const img = item.custom_image || p.images?.[0];
   const isCompact = size === "quarter";
   const isHalf = size === "half";
@@ -31,17 +31,19 @@ function ProductCard({ item, size }: { item: ProductCatalogItem; size: "full" | 
       <h3 className={`font-bold leading-tight ${isCompact ? "text-xs" : isHalf ? "text-sm" : "text-base"}`} style={{ color: "var(--ebook-primary, #1a1a2e)" }}>
         {title}
       </h3>
-      {desc && !isCompact && (
+      {showDesc !== false && desc && !isCompact && (
         <p className={`text-muted-foreground leading-snug line-clamp-3 ${isHalf ? "text-[10px]" : "text-xs"}`}>
           {desc}
         </p>
       )}
-      <p className={`font-bold ${isCompact ? "text-xs" : "text-sm"}`} style={{ color: "var(--ebook-accent, #e94560)" }}>
-        {p.compare_at_price && p.compare_at_price > p.price && (
-          <span className="line-through opacity-50 mr-1 font-normal">{formatPrice(p.compare_at_price, p.currency)}</span>
-        )}
-        {formatPrice(p.price, p.currency)}
-      </p>
+      {showPrice !== false && (
+        <p className={`font-bold ${isCompact ? "text-xs" : "text-sm"}`} style={{ color: "var(--ebook-accent, #e94560)" }}>
+          {p.pvp_recommended && p.pvp_recommended > p.base_price && (
+            <span className="line-through opacity-50 mr-1 font-normal">{formatPrice(p.pvp_recommended, p.currency)}</span>
+          )}
+          {formatPrice(p.base_price, p.currency)}
+        </p>
+      )}
     </div>
   );
 }
@@ -61,14 +63,14 @@ export function CatalogFlipbookPage({ items, settings, pageWidth, pageHeight, pa
     >
       {perPage === 1 && items[0] && (
         <div className="flex-1 flex flex-col justify-center p-6">
-          <ProductCard item={items[0]} size="full" />
+          <ProductCard item={items[0]} size="full" showPrice={settings.show_prices} showDesc={settings.show_descriptions} />
         </div>
       )}
 
       {perPage === 2 && (
         <div className="flex-1 grid grid-rows-2 gap-2 p-4">
           {items.map((item) => (
-            <ProductCard key={item.id} item={item} size="half" />
+            <ProductCard key={item.id} item={item} size="half" showPrice={settings.show_prices} showDesc={settings.show_descriptions} />
           ))}
         </div>
       )}
@@ -76,18 +78,16 @@ export function CatalogFlipbookPage({ items, settings, pageWidth, pageHeight, pa
       {perPage === 4 && (
         <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-2 p-3">
           {items.map((item) => (
-            <ProductCard key={item.id} item={item} size="quarter" />
+            <ProductCard key={item.id} item={item} size="quarter" showPrice={settings.show_prices} showDesc={settings.show_descriptions} />
           ))}
         </div>
       )}
 
-      {/* Page number */}
       <div className="text-center pb-2 text-[10px] text-muted-foreground">{pageNumber}</div>
     </div>
   );
 }
 
-// Cover page component
 export function CatalogCoverPage({ title, subtitle, coverImage, pageWidth, pageHeight }: {
   title: string;
   subtitle?: string | null;
@@ -122,7 +122,6 @@ export function CatalogCoverPage({ title, subtitle, coverImage, pageWidth, pageH
   );
 }
 
-// Back cover
 export function CatalogBackPage({ title, pageWidth, pageHeight }: {
   title: string;
   pageWidth: number;

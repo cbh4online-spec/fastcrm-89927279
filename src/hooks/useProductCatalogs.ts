@@ -36,15 +36,14 @@ export interface ProductCatalogItem {
   custom_image: string | null;
   page_break_before: boolean;
   created_at: string;
-  // joined product data
   product?: {
     id: string;
     name: string;
-    description: string | null;
-    price: number;
-    compare_at_price: number | null;
+    short_description: string | null;
+    base_price: number;
+    pvp_recommended: number | null;
     images: string[] | null;
-    currency: string | null;
+    currency: string;
   };
 }
 
@@ -59,7 +58,7 @@ export function useProductCatalogs(workspaceId: string | undefined) {
         .eq("workspace_id", workspaceId)
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as ProductCatalog[];
+      return (data || []) as unknown as ProductCatalog[];
     },
     enabled: !!workspaceId,
   });
@@ -76,7 +75,7 @@ export function useProductCatalog(catalogId: string | undefined) {
         .eq("id", catalogId)
         .single();
       if (error) throw error;
-      return data as ProductCatalog;
+      return data as unknown as ProductCatalog;
     },
     enabled: !!catalogId,
   });
@@ -87,7 +86,6 @@ export function useProductCatalogBySlug(workspaceSlug: string | undefined, catal
     queryKey: ["product-catalog-slug", workspaceSlug, catalogSlug],
     queryFn: async () => {
       if (!workspaceSlug || !catalogSlug) return null;
-      // First find workspace by slug
       const { data: ws, error: wsErr } = await supabase
         .from("workspaces")
         .select("id")
@@ -104,7 +102,7 @@ export function useProductCatalogBySlug(workspaceSlug: string | undefined, catal
         .eq("is_public", true)
         .single();
       if (error) throw error;
-      return data as ProductCatalog;
+      return data as unknown as ProductCatalog;
     },
     enabled: !!workspaceSlug && !!catalogSlug,
   });
@@ -117,11 +115,28 @@ export function useProductCatalogItems(catalogId: string | undefined) {
       if (!catalogId) return [];
       const { data, error } = await supabase
         .from("product_catalog_items")
-        .select("*, product:products(id, name, description, price, compare_at_price, images, currency)")
+        .select("*, product:products(id, name, short_description, base_price, pvp_recommended, images, currency)")
         .eq("catalog_id", catalogId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return (data || []) as ProductCatalogItem[];
+      return (data || []) as unknown as ProductCatalogItem[];
+    },
+    enabled: !!catalogId,
+  });
+}
+
+export function usePublicCatalogItems(catalogId: string | undefined) {
+  return useQuery({
+    queryKey: ["public-catalog-items", catalogId],
+    queryFn: async () => {
+      if (!catalogId) return [];
+      const { data, error } = await supabase
+        .from("product_catalog_items")
+        .select("*, product:products(id, name, short_description, base_price, pvp_recommended, images, currency)")
+        .eq("catalog_id", catalogId)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as unknown as ProductCatalogItem[];
     },
     enabled: !!catalogId,
   });
@@ -152,13 +167,13 @@ export function useCreateCatalog() {
           description: input.description || null,
           cover_image: input.cover_image || null,
           style_tokens: input.style_tokens || {},
-          settings: { products_per_page: 2, show_prices: true, show_descriptions: true, watermark: false, ...input.settings },
+          settings: { products_per_page: 2, show_prices: true, show_descriptions: true, watermark: false, ...input.settings } as unknown as Record<string, unknown>,
           created_by: user.id,
         })
         .select()
         .single();
       if (error) throw error;
-      return data as ProductCatalog;
+      return data as unknown as ProductCatalog;
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["product-catalogs", vars.workspace_id] });

@@ -20,15 +20,15 @@ export function CatalogProductPicker({ workspaceId, excludeProductIds, onAdd }: 
     queryFn: async () => {
       let q = supabase
         .from("products")
-        .select("id, name, price, images, currency")
+        .select("id, name, base_price, images, currency")
         .eq("workspace_id", workspaceId)
-        .eq("is_active", true)
+        .eq("status", "active")
         .order("name")
         .limit(50);
       if (search) q = q.ilike("name", `%${search}%`);
       const { data, error } = await q;
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as { id: string; name: string; base_price: number; images: string[] | null; currency: string }[];
     },
     enabled: !!workspaceId,
   });
@@ -51,7 +51,7 @@ export function CatalogProductPicker({ workspaceId, excludeProductIds, onAdd }: 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{p.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Intl.NumberFormat("pt-PT", { style: "currency", currency: p.currency || "EUR" }).format(p.price)}
+                  {new Intl.NumberFormat("pt-PT", { style: "currency", currency: p.currency || "EUR" }).format(p.base_price)}
                 </p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => onAdd(p.id)}>
