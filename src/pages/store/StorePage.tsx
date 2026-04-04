@@ -86,7 +86,7 @@ export default function StorePage() {
     <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
       <StoreCompareProvider>
         <>
-          <StoreSeoHead storeName={storeName} wsSlug={wsSlug} storeSettings={storeSettings} />
+          <StoreSeoHead storeName={storeName} wsSlug={wsSlug} storeSettings={storeSettings} products={allProducts} />
 
           <div className="min-h-screen bg-background">
             <StoreVisitorTracker workspaceId={wsId} currentPage={`/store/${wsSlug}`} />
