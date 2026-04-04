@@ -56,6 +56,19 @@ export function ProductsList() {
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
+  const comparisonProducts = useMemo(() => {
+    if (!state.products) return [];
+    return state.products.filter(p => state.selectedIds.includes(p.id));
+  }, [state.products, state.selectedIds]);
+
+  const handleApplyPreset = useCallback((preset: LayoutPreset) => {
+    state.setVisibleColumns(new Set(preset.visibleColumns));
+    state.setColumnOrder(preset.columnOrder);
+    if (Object.keys(preset.columnWidths).length > 0) {
+      Object.entries(preset.columnWidths).forEach(([col, w]) => state.colWidths.setWidth(col, w));
+    }
+  }, [state.setVisibleColumns, state.setColumnOrder, state.colWidths]);
+
   // --- Filter groups for sidebar ---
   const filterGroups: FilterGroup[] = useMemo(() => {
     const typeItems = state.productTypesConfig?.filter(t => t.is_active).map(type => ({
