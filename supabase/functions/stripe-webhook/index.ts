@@ -339,6 +339,38 @@ async function handleStoreOrderCompleted(
 
   logStore("Store order payment processing complete", { orderId });
 
+  // Send order confirmation email (non-blocking)
+  try {
+    const { data: orderData } = await supabase
+      .from("store_orders")
+      .select("customer_email, customer_name, order_number, total, currency, items")
+      .eq("id", orderId)
+      .single();
+
+    if (orderData?.customer_email) {
+      const items = orderData.items as Array<{ name: string; quantity: number }> | null;
+      const itemsSummary = items?.map((i: any) => `${i.quantity}× ${i.name}`).join(", ") || "";
+      const totalFormatted = `€${Number(orderData.total || 0).toFixed(2).replace(".", ",")}`;
+
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "order-confirmation",
+          recipientEmail: orderData.customer_email,
+          idempotencyKey: `order-confirm-${orderId}`,
+          templateData: {
+            customerName: orderData.customer_name,
+            orderNumber: orderData.order_number,
+            total: totalFormatted,
+            itemsSummary,
+          },
+        },
+      });
+      logStore("Order confirmation email sent", { orderId });
+    }
+  } catch (emailErr) {
+    logStore("Order confirmation email failed (non-blocking)", { error: String(emailErr) });
+  }
+
   // ── MARKETPLACE WALLET CREDIT ──
   try {
     const { data: mkOrders } = await supabase

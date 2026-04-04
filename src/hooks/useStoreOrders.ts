@@ -102,9 +102,28 @@ export function useUpdateStoreOrderStatus() {
       }
 
       // Send status notification email (non-blocking)
-      supabase.functions.invoke("send-order-status-notification", {
-        body: { orderId: id, newStatus: status, oldStatus },
-      }).catch((err) => console.warn("[ORDERS] Status notification email failed:", err));
+      if (status === "delivered") {
+        // Fetch order details for the email
+        const { data: orderData } = await supabase
+          .from("store_orders")
+          .select("customer_email, customer_name, order_number")
+          .eq("id", id)
+          .single();
+
+        if (orderData?.customer_email) {
+          supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "order-delivered",
+              recipientEmail: orderData.customer_email,
+              idempotencyKey: `order-delivered-${id}`,
+              templateData: {
+                customerName: orderData.customer_name,
+                orderNumber: orderData.order_number,
+              },
+            },
+          }).catch((err) => console.warn("[ORDERS] Delivered notification email failed:", err));
+        }
+      }
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["store-orders"] });
