@@ -95,7 +95,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
   const soldLabel = soldCount >= 500 ? "500+" : soldCount >= 100 ? "100+" : soldCount >= 50 ? "50+" : soldCount >= 10 ? `${soldCount}+` : null;
 
-  const canAddToCart = !isOutOfStock && !(product.track_stock && product.stock_quantity != null && product.stock_quantity <= 0);
+  const canAddToCart = !isPriceOnRequest && !isOutOfStock && !(product.track_stock && product.stock_quantity != null && product.stock_quantity <= 0);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
