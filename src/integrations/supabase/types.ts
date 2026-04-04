@@ -42288,6 +42288,123 @@ export type Database = {
           },
         ]
       }
+      product_catalog_items: {
+        Row: {
+          catalog_id: string
+          created_at: string
+          custom_description: string | null
+          custom_image: string | null
+          custom_title: string | null
+          id: string
+          page_break_before: boolean
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string
+          custom_description?: string | null
+          custom_image?: string | null
+          custom_title?: string | null
+          id?: string
+          page_break_before?: boolean
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string
+          custom_description?: string | null
+          custom_image?: string | null
+          custom_title?: string | null
+          id?: string
+          page_break_before?: boolean
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_catalog_items_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_catalog_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_catalog_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_catalogs: {
+        Row: {
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_public: boolean
+          settings: Json
+          slug: string
+          status: string
+          style_tokens: Json
+          subtitle: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          settings?: Json
+          slug: string
+          status?: string
+          style_tokens?: Json
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          settings?: Json
+          slug?: string
+          status?: string
+          style_tokens?: Json
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_catalogs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           color: string | null
