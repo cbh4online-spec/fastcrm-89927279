@@ -63,6 +63,7 @@ export default function StoreCheckoutPage() {
           shippingCost: pricing.effectiveShippingCost,
           shippingMethodName: pricing.selectedCttOption?.name || undefined,
           abandonedCartId: abandonedCartId || undefined,
+          paymentMethod: selectedPaymentMethod,
           successUrl: `${getPublicBaseUrl()}/store/${wsSlug}/success`,
           cancelUrl: `${getPublicBaseUrl()}/store/${wsSlug}/cancel`,
         },
@@ -74,6 +75,13 @@ export default function StoreCheckoutPage() {
       if (data?.paidWithGiftCard) {
         clearCart();
         window.location.href = `/store/${wsSlug}/success`;
+      } else if (data?.bankTransfer) {
+        // Bank transfer: show info, don't redirect
+        clearCart();
+        setBankTransferOrder({
+          orderNumber: data.orderNumber,
+          bankDetails: bankTransferDetails,
+        });
       } else if (data?.url) {
         trackEvent("checkout_redirect_stripe", { workspaceSlug: wsSlug, total: pricing.finalTotal });
         clearCart();
