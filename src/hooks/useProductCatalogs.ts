@@ -166,8 +166,8 @@ export function useCreateCatalog() {
           subtitle: input.subtitle || null,
           description: input.description || null,
           cover_image: input.cover_image || null,
-          style_tokens: input.style_tokens || {},
-          settings: { products_per_page: 2, show_prices: true, show_descriptions: true, watermark: false, ...input.settings } as unknown as Record<string, unknown>,
+          style_tokens: (input.style_tokens || {}) as any,
+          settings: { products_per_page: 2, show_prices: true, show_descriptions: true, watermark: false, ...input.settings } as any,
           created_by: user.id,
         }])
         .select()
