@@ -474,6 +474,11 @@ export default function StoreProductPage() {
                   )}
                 </div>
 
+                {/* Urgency Countdown for time-limited offers */}
+                {pricing?.isDiscounted && (product as any).offer_ends_at && (
+                  <StoreOfferCountdown endsAt={(product as any).offer_ends_at} />
+                )}
+
                 {/* Stock status */}
                 {isOutOfStock ? (
                   <Badge variant="secondary">Esgotado</Badge>
