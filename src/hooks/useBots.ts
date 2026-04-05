@@ -53,6 +53,7 @@ export const AGENT_ROLES = [
   { value: "meeting_setter", label: "Agendador de Reuniões" },
   { value: "human_handoff_router", label: "Router para Humano" },
   { value: "revenue_supervisor", label: "Supervisor de Revenue" },
+  { value: "sdr_outbound", label: "SDR Outbound" },
 ] as const;
 
 export interface CreateBotData {
