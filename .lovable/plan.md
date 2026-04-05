@@ -1,25 +1,36 @@
 
-# Polir Fases SDR
+# SDR — Iteração 2: Detalhe e Operações
 
-## 1. Seed para campanhas existentes
-As campanhas criadas antes do trigger não têm fases. Criar botão "Gerar fases padrão" no `SDRStageSettings` que chama a função `seed_sdr_default_stages` via RPC quando não existem fases.
+## 1. Detalhe de Campanha inline
+O tab Pipeline mostra apenas uma tabela básica. Adicionar:
+- KPIs da campanha seleccionada (reply rate, meeting rate, conversion rate) como cards no topo
+- Indicador de progresso da campanha (enrolled vs converted)
+- Botão para editar nome/descrição inline
 
-## 2. Drag-and-drop para reordenar fases
-Usar `@dnd-kit/sortable` (já instalado) no `SDRStageSettings` para arrastar e reordenar fases, persistindo a nova ordem via `reorderStages`.
+## 2. Acções em Prospects
+Na tabela de prospects, adicionar:
+- Dropdown de acção por linha: mover para outra fase, marcar como opt-out, abrir detalhe
+- Bulk actions: seleccionar múltiplos e mover de fase em lote
+- Pesquisa por nome/email na tabela
 
-## 3. Melhorias UX no pipeline
-- Mostrar estado vazio amigável no tab Pipeline quando não há campanha seleccionada
-- Filtro por fase na tabela de prospects (clicar numa fase do pipeline filtra a tabela)
-- Contador de fases no tab "Fases"
-- Feedback visual no funil quando não há dados
+## 3. Configurações de Campanha
+Criar drawer/modal de configurações por campanha:
+- Auto-enroll toggle + score mínimo
+- Seleccionar sequência (multichannel_sequences)
+- Seleccionar AI Employee
+- A/B testing config básico (variantes)
 
-## 4. Seed global de workspace
-Se o workspace não tem fases globais (campaign_id = null), criar automaticamente ao entrar no `SDRStageSettings`. Isto garante que o fallback funciona.
+## 4. Melhorias UX gerais
+- Tabs Pipeline e Funil acessíveis sem seleccionar campanha (mostram dados globais)
+- Pesquisa de campanhas no tab Campanhas
+- Contagem de prospects no tab Pipeline
+- Badge de campanha activa/pausada mais visível
 
 ## Ficheiros a modificar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/sdr/SDRStageSettings.tsx` | Drag-and-drop + botão seed + auto-seed |
-| `src/hooks/useSDRPipelineStages.ts` | Adicionar `seedDefaults` mutation via RPC |
-| `src/pages/SDRDashboardPage.tsx` | Filtro por fase + empty states melhorados |
+| `src/pages/SDRDashboardPage.tsx` | KPIs de campanha, pesquisa, tabs sem disabled |
+| `src/components/sdr/SDRPipelineView.tsx` | Melhorias visuais menores |
+| `src/components/sdr/SDRProspectActions.tsx` | **Novo** — dropdown + bulk actions |
+| `src/components/sdr/SDRCampaignSettings.tsx` | **Novo** — drawer de configurações |
