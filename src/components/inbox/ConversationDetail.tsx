@@ -29,6 +29,7 @@ import {
   Calendar,
   Clock,
   UserPlus,
+  ArrowLeft,
 } from "lucide-react";
 import { useCreateLead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
@@ -217,8 +218,18 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Compact Header */}
-      <div className="px-4 py-2.5 border-b border-border flex items-center justify-between bg-card">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="px-2 md:px-4 py-2.5 border-b border-border flex items-center justify-between bg-card">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="h-8 w-8 p-0 flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          )}
           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             <ChannelIcon className="w-4 h-4 text-muted-foreground" />
           </div>
