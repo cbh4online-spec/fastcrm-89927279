@@ -29,6 +29,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type ViewMode = "list" | "columns";
 
 export function InboxView() {
+  const isMobile = useIsMobile();
   const { data: whatsappConnection } = useWhatsAppQRConnection();
   const [searchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -145,19 +146,28 @@ export function InboxView() {
   // In columns mode, if a conversation is selected, show the detail
   const showDetail = viewMode === "list" || selectedConversationId;
 
+  // On mobile, force list view mode
+  const effectiveViewMode = isMobile ? "list" : viewMode;
+  // On mobile, show detail when a conversation is selected (master-detail)
+  const mobileShowDetail = isMobile && !!selectedConversationId;
+
+  const handleMobileBack = useCallback(() => {
+    setSelectedConversationId(null);
+  }, []);
+
   return (
     <TooltipProvider>
-      <div className="h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden bg-background">
+      <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)] flex flex-col rounded-lg border border-border overflow-hidden bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-border bg-card px-2 md:px-4 py-2 min-h-[44px]">
+          <div className="flex items-center gap-1 md:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSidebar(!showSidebar)}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
                 </Button>
@@ -203,8 +213,8 @@ export function InboxView() {
           </div>
 
           {/* Center: Search (columns mode) or Metrics */}
-          {viewMode === "columns" ? (
-            <div className="flex-1 max-w-md mx-4">
+          {effectiveViewMode === "columns" ? (
+            <div className="flex-1 max-w-md mx-2 md:mx-4 hidden md:block">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -220,14 +230,14 @@ export function InboxView() {
           )}
 
           <div className="flex items-center gap-1">
-            {/* View mode toggle */}
+            {/* View mode toggle - hidden on mobile */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleViewMode}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   {viewMode === "columns" ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
                 </Button>
@@ -240,7 +250,7 @@ export function InboxView() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowShortcuts(true)}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   <Keyboard className="w-4 h-4" />
                 </Button>
@@ -253,7 +263,7 @@ export function InboxView() {
                   variant={showContextPanel ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setShowContextPanel(!showContextPanel)}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 hidden md:inline-flex"
                 >
                   {showContextPanel ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
                 </Button>
@@ -265,7 +275,7 @@ export function InboxView() {
 
         {/* Main Layout */}
         <div className="flex-1 flex overflow-hidden">
-          {/* LEFT — Sidebar */}
+          {/* LEFT — Sidebar (hidden on mobile) */}
           {showSidebar && (
             <div className="w-56 flex-shrink-0 border-r border-border hidden lg:block">
               <InboxSidebar
@@ -277,7 +287,7 @@ export function InboxView() {
             </div>
           )}
 
-          {viewMode === "columns" ? (
+          {effectiveViewMode === "columns" ? (
             <>
               {/* Multi-column view */}
               <div className={cn(
@@ -297,14 +307,18 @@ export function InboxView() {
                 <div className={cn(
                   "flex-1 min-w-0 xl:max-w-[50%] border-l border-border"
                 )}>
-                  <ConversationDetail conversationId={selectedConversationId} />
+                  <ConversationDetail conversationId={selectedConversationId} onBack={isMobile ? handleMobileBack : undefined} />
                 </div>
               )}
             </>
           ) : (
             <>
-              {/* Classic list view */}
-              <div className={cn("flex-shrink-0 border-r border-border", showSidebar ? "w-80" : "w-96")}>
+              {/* Classic list view - master-detail on mobile */}
+              <div className={cn(
+                "flex-shrink-0 border-r border-border",
+                isMobile ? "w-full" : (showSidebar ? "w-80" : "w-96"),
+                mobileShowDetail && "hidden"
+              )}>
                 <ConversationList
                   selectedId={selectedConversationId}
                   onSelect={setSelectedConversationId}
@@ -313,13 +327,16 @@ export function InboxView() {
                   channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
                 />
               </div>
-              <div className="flex-1 min-w-0">
-                <ConversationDetail conversationId={selectedConversationId} />
+              <div className={cn(
+                "flex-1 min-w-0",
+                isMobile && !mobileShowDetail && "hidden"
+              )}>
+                <ConversationDetail conversationId={selectedConversationId} onBack={isMobile ? handleMobileBack : undefined} />
               </div>
             </>
           )}
 
-          {/* RIGHT — Context Panel */}
+          {/* RIGHT — Context Panel (hidden on mobile) */}
           {showContextPanel && (
             <div className="w-80 flex-shrink-0 border-l border-border hidden xl:block">
               <InboxContextPanel
