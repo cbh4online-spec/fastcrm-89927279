@@ -129,6 +129,22 @@ export function useSDRPipelineStages(campaignId?: string | null) {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const seedDefaults = useMutation({
+    mutationFn: async (targetCampaignId?: string | null) => {
+      if (!workspaceId) throw new Error("No workspace");
+      const { error } = await supabase.rpc("seed_sdr_default_stages" as any, {
+        p_workspace_id: workspaceId,
+        p_campaign_id: targetCampaignId ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sdr-pipeline-stages"] });
+      toast.success("Fases padrão criadas");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // Active (non-terminal, non-negative) stages for pipeline flow
   const activeStages = stages.filter((s) => !s.is_negative);
   const terminalStages = stages.filter((s) => s.is_terminal);
@@ -142,5 +158,6 @@ export function useSDRPipelineStages(campaignId?: string | null) {
     createStage,
     deleteStage,
     reorderStages,
+    seedDefaults,
   };
 }
