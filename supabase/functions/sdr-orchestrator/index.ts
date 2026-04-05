@@ -5,7 +5,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface SDRRequest {
-  action: "enroll_prospect" | "process_reply" | "check_campaign" | "auto_enroll_scan" | "update_status";
+  action: "enroll_prospect" | "enroll_in_sequence" | "process_reply" | "check_campaign" | "auto_enroll_scan" | "update_status" | "pause_sequence" | "resume_sequence";
   workspace_id: string;
   campaign_id?: string;
   prospect_data?: {
@@ -97,6 +97,15 @@ Deno.serve(async (req: Request) => {
       case "update_status":
         result = await updateEnrollmentStatus(supabase, body);
         break;
+      case "enroll_in_sequence":
+        result = await enrollInSequence(supabase, body);
+        break;
+      case "pause_sequence":
+        result = await pauseResumeSequence(supabase, body, "paused");
+        break;
+      case "resume_sequence":
+        result = await pauseResumeSequence(supabase, body, "sequenced");
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,
@@ -172,12 +181,13 @@ async function enrollProspect(supabase: any, body: SDRRequest) {
     .update({ total_enrolled: campaign.total_enrolled + 1 })
     .eq("id", campaign_id);
 
-  // If campaign has a sequence, try to enrich and enroll in sequence
+  // If campaign has a sequence, enroll in sequence automatically
   if (campaign.sequence_id) {
-    await supabase
-      .from("sdr_enrollments")
-      .update({ status: "sequenced" })
-      .eq("id", enrollment.id);
+    await enrollInSequence(supabase, {
+      ...body,
+      enrollment_id: enrollment.id,
+      action: "enroll_in_sequence",
+    });
   }
 
   return { enrolled: true, enrollment_id: enrollment.id };
@@ -333,6 +343,70 @@ async function updateEnrollmentStatus(supabase: any, body: SDRRequest) {
     .update(updateData)
     .eq("id", enrollment_id)
     .eq("workspace_id", workspace_id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ─── ENROLL IN SEQUENCE ──────────────────────────────────────
+async function enrollInSequence(supabase: any, body: SDRRequest) {
+  const { enrollment_id, campaign_id, workspace_id } = body;
+  if (!enrollment_id) throw new Error("enrollment_id required");
+
+  const cid = campaign_id || (await supabase.from("sdr_enrollments").select("campaign_id").eq("id", enrollment_id).single()).data?.campaign_id;
+  if (!cid) throw new Error("Cannot determine campaign_id");
+
+  const { data: campaign } = await supabase
+    .from("sdr_campaigns")
+    .select("sequence_id")
+    .eq("id", cid)
+    .single();
+
+  if (!campaign?.sequence_id) throw new Error("Campaign has no sequence");
+
+  // Get first step to calculate next_send_at
+  const { data: steps } = await supabase
+    .from("multichannel_sequence_steps")
+    .select("id, delay_hours, delay_days, step_order")
+    .eq("sequence_id", campaign.sequence_id)
+    .eq("is_active", true)
+    .order("step_order")
+    .limit(1);
+
+  const firstStep = steps?.[0];
+  const delayMs = firstStep
+    ? ((firstStep.delay_days || 0) * 86400 + (firstStep.delay_hours || 0) * 3600) * 1000
+    : 0;
+
+  const nextSendAt = new Date(Date.now() + delayMs).toISOString();
+
+  await supabase
+    .from("sdr_enrollments")
+    .update({
+      status: "sequenced",
+      current_step: 0,
+      next_send_at: nextSendAt,
+    })
+    .eq("id", enrollment_id);
+
+  return { sequenced: true, enrollment_id, next_send_at: nextSendAt };
+}
+
+// ─── PAUSE / RESUME SEQUENCE ─────────────────────────────────
+async function pauseResumeSequence(supabase: any, body: SDRRequest, targetStatus: string) {
+  const { enrollment_id, workspace_id } = body;
+  if (!enrollment_id) throw new Error("enrollment_id required");
+
+  const fromStatus = targetStatus === "paused" ? "sequenced" : "paused";
+
+  const { data, error } = await supabase
+    .from("sdr_enrollments")
+    .update({ status: targetStatus })
+    .eq("id", enrollment_id)
+    .eq("workspace_id", workspace_id)
+    .eq("status", fromStatus)
     .select()
     .single();
 

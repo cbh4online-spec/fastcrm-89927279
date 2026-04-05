@@ -1,100 +1,47 @@
 
+# SDR — Iteração 4: Automação e Execução de Sequências ✅
 
-# SDR — Iteração 4: Automação e Execução de Sequências
+## 1. ✅ Tabela `sdr_sequence_step_logs`
+- Registos de execução por step: status, timestamps (sent/opened/clicked/replied), erros
+- Colunas `current_step` e `next_send_at` adicionadas a `sdr_enrollments`
+- RLS: SELECT para membros, INSERT/UPDATE para service_role
 
-## Contexto
+## 2. ✅ Edge Function `sdr-sequence-executor`
+- Processador batch: busca enrollments com `next_send_at <= now()` e status `sequenced`
+- Executa steps por canal (email → `email-send`, WhatsApp → `ghl-send-message`)
+- Regista logs, avança step, calcula próximo envio
+- Modo single_step para execução imediata
 
-A iteração 3 criou a UI para associar sequências a campanhas e configurar A/B testing, mas a execução real dos passos ainda não está ligada. A `sdr_enrollments` já tem `sequence_enrollment_id` e a `email_sequence_enrollments` já gere estado por contacto (current_step, next_send_at, status). O objectivo é fechar o ciclo: enrollment automático → execução de steps → tracking → pause/resume.
+## 3. ✅ `sdr-orchestrator` — action `enroll_in_sequence`
+- Cria enrollment em sequência quando prospect inscrito em campanha com sequence_id
+- Calcula next_send_at baseado no delay do primeiro step
+- Actions `pause_sequence` / `resume_sequence` adicionadas
 
----
+## 4. ✅ Hook `useSDRSequenceExecution`
+- `useSDRStepLogs` — logs de execução por enrollment
+- `useSDRSequenceMetricsData` — métricas agregadas por step
+- `usePauseResumeSequence` — pause/resume com invalidation de cache
 
-## Plano de Implementação
+## 5. ✅ UI: Pause/Resume + Step info em SDRProspectActions
+- Botões "Pausar sequência" / "Retomar sequência" no dropdown
+- Coluna "Step" com step actual e próximo envio agendado
+- Status "paused" e "completed" adicionados
 
-### 1. Tabela de bridge: `sdr_sequence_step_logs`
-Migração para criar tabela que regista cada execução de step para um enrollment SDR:
-- `id`, `sdr_enrollment_id`, `sequence_step_id`, `channel`, `status` (sent/failed/skipped/opened/clicked/replied), `sent_at`, `opened_at`, `clicked_at`, `replied_at`, `error_message`, `metadata` (jsonb)
-- RLS: workspace_id scoped
+## 6. ✅ SDRSequenceMetrics com funnel por step
+- Mini-funnel: enviados, abertos, clicados, respondidos por step
+- Taxa de abertura por step
 
-### 2. Actualizar `sdr-orchestrator` — nova action `enroll_in_sequence`
-Quando um prospect é inscrito numa campanha com `sequence_id`:
-- Criar `email_sequence_enrollment` (ou multichannel equivalente)
-- Ligar via `sdr_enrollments.sequence_enrollment_id`
-- Atribuir variante A/B se configurado
-- Calcular `next_send_at` do primeiro step
+## 7. ✅ Trigger.dev job actualizado
+- `sequence-step-processor` agora invoca `sdr-sequence-executor` em vez de `auto-followup-scheduler`
 
-### 3. Nova Edge Function `sdr-sequence-executor`
-Processador periódico (invocado pelo Trigger.dev job existente `sequence-step-processor`):
-- Busca `sdr_enrollments` com status `sequenced` e `next_send_at <= now()`
-- Para cada: busca o step actual da sequência
-- Executa a acção conforme canal (email → `email-send`, WhatsApp → `ghl-send-message`)
-- Regista em `sdr_sequence_step_logs`
-- Avança `current_step`, calcula próximo `next_send_at`
-- Se último step → marca enrollment como `completed`
-- Verifica condições de saída (reply detectada → pausa automática)
-
-### 4. Tracking de opens/clicks/replies
-- Actualizar `email-webhook` para detectar opens/clicks em emails SDR e actualizar `sdr_sequence_step_logs`
-- Quando reply detectada: actualizar `sdr_enrollments.status` → `replied` e pausar sequência
-
-### 5. UI: Pause/Resume por prospect
-Em `SDRProspectActions.tsx`:
-- Botão "Pausar sequência" / "Retomar sequência" para enrollments com status `sequenced`
-- Mostra step actual e próximo envio agendado
-- Timeline visual dos steps executados (usando `sdr_sequence_step_logs`)
-
-### 6. UI: Métricas de execução no dashboard
-Actualizar `SDRSequenceMetrics.tsx`:
-- Adicionar métricas por step (enviados, abertos, clicados, respondidos)
-- Taxa de drop-off entre steps (mini-funnel)
-- Tempo médio entre steps
-
-### 7. Actualizar Trigger.dev job
-Modificar `trigger/jobs/sequences.ts` para invocar `sdr-sequence-executor` em vez de `auto-followup-scheduler`.
-
----
-
-## Estrutura Técnica
-
-```text
-┌─────────────────┐     ┌──────────────────────┐
-│  SDR Campaign    │────▶│ Multichannel Sequence │
-│  (sequence_id)   │     │ (steps + templates)   │
-└────────┬────────┘     └──────────┬───────────┘
-         │                         │
-    enrollment                step config
-         │                         │
-┌────────▼────────┐     ┌──────────▼───────────┐
-│ sdr_enrollments  │────▶│ sdr_sequence_step_logs│
-│ (prospect state) │     │ (execution history)   │
-└────────┬────────┘     └──────────────────────┘
-         │
-    next_send_at
-         │
-┌────────▼────────┐
-│ sdr-sequence-   │──▶ email-send / ghl-send
-│ executor (EF)   │
-└─────────────────┘
-```
-
----
-
-## Ficheiros
+## Ficheiros modificados/criados
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Criar `sdr_sequence_step_logs`, adicionar `current_step`/`next_send_at` a `sdr_enrollments` |
-| `supabase/functions/sdr-sequence-executor/index.ts` | **Novo** — processador de steps |
-| `supabase/functions/sdr-orchestrator/index.ts` | Nova action `enroll_in_sequence` |
-| `trigger/jobs/sequences.ts` | Apontar para `sdr-sequence-executor` |
-| `src/components/sdr/SDRProspectActions.tsx` | Pause/resume + timeline de steps |
-| `src/components/sdr/SDRSequenceMetrics.tsx` | Métricas por step + mini-funnel |
-| `src/hooks/useSDRSequenceExecution.ts` | **Novo** — hook para step logs e pause/resume |
-
-## Critérios de Aceitação
-- Prospect inscrito em campanha com sequência → enrollment criado + primeiro step agendado
-- Steps executados automaticamente conforme delay configurado
-- Reply detectada → sequência pausada automaticamente
-- Operador pode pausar/retomar manualmente
-- Timeline de execução visível por prospect
-- Métricas de step-level no dashboard
-
+| Migração SQL | `sdr_sequence_step_logs` + colunas em `sdr_enrollments` |
+| `supabase/functions/sdr-sequence-executor/index.ts` | **Novo** |
+| `supabase/functions/sdr-orchestrator/index.ts` | Actions enroll/pause/resume |
+| `trigger/jobs/sequences.ts` | Aponta para `sdr-sequence-executor` |
+| `src/hooks/useSDRSequenceExecution.ts` | **Novo** |
+| `src/components/sdr/SDRProspectActions.tsx` | Pause/resume + step info |
+| `src/components/sdr/SDRSequenceMetrics.tsx` | Funnel por step |

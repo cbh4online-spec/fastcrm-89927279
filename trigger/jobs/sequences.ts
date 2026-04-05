@@ -8,7 +8,8 @@ export const sequenceStepProcessor = schedules.task({
   maxDuration: 600,
   run: async () => {
     logger.info('Sequence step processor started')
-    const result = await invokeEdgeFunction('auto-followup-scheduler', {
+    const result = await invokeEdgeFunction('sdr-sequence-executor', {
+      mode: 'batch',
       triggered_by: 'schedule',
     })
     logger.info('Sequence step processor completed', { result })
