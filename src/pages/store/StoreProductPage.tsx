@@ -87,6 +87,38 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 
+// Spec icon mapping
+const SPEC_ICON_MAP: Record<string, LucideIcon> = {
+  brand: Tag, marca: Tag, fabricante: Tag,
+  weight: Scale, peso: Scale, massa: Scale,
+  resolution: Monitor, resolução: Monitor, resolucao: Monitor,
+  audio: Volume2, som: Volume2,
+  power: Zap, potência: Zap, potencia: Zap, voltagem: Zap,
+  sensor: Eye,
+  storage: HardDrive, armazenamento: HardDrive, memória: HardDrive, memoria: HardDrive,
+  connectivity: Wifi, conectividade: Wifi, wifi: Wifi, bluetooth: Wifi,
+  protection: Shield, proteção: Shield, protecao: Shield, ip: Shield,
+  temperature: Thermometer, temperatura: Thermometer,
+  lens: Aperture, lente: Aperture, abertura: Aperture,
+  compression: FileCode, compressão: FileCode, codec: FileCode,
+  nightvision: Moon, visãonoturna: Moon, infravermelho: Moon, ir: Moon,
+  wdr: Sun, hdr: Sun,
+  compatibility: Puzzle, compatibilidade: Puzzle,
+  dimensions: Ruler, dimensões: Ruler, tamanho: Ruler, size: Ruler,
+  color: Palette, cor: Palette,
+  speed: Clock, velocidade: Clock, fps: Clock,
+  processor: Cpu, processador: Cpu, chipset: Cpu,
+  battery: Battery, bateria: Battery, autonomia: Battery,
+};
+
+function getSpecIcon(key: string): LucideIcon {
+  const normalized = key.toLowerCase().replace(/[^a-záàâãéèêíïóôõúç]/g, "");
+  for (const [mapKey, icon] of Object.entries(SPEC_ICON_MAP)) {
+    if (normalized.includes(mapKey)) return icon;
+  }
+  return Info;
+}
+
 // Add-to-cart animation trigger counter
 
 function getEstimatedDelivery(): string {
