@@ -194,7 +194,14 @@ export default function SDRDashboardPage() {
               <LineChart className="h-3.5 w-3.5 mr-1" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="compliance">
+              <ShieldBan className="h-3.5 w-3.5 mr-1" />
+              Compliance
+            </TabsTrigger>
             <TabsTrigger value="stages">
+              <Settings2 className="h-3.5 w-3.5 mr-1" />
+              Fases ({dynamicStages.length})
+            </TabsTrigger>
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Fases ({dynamicStages.length})
             </TabsTrigger>
