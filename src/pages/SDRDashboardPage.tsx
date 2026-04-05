@@ -202,9 +202,6 @@ export default function SDRDashboardPage() {
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Fases ({dynamicStages.length})
             </TabsTrigger>
-              <Settings2 className="h-3.5 w-3.5 mr-1" />
-              Fases ({dynamicStages.length})
-            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
