@@ -1,89 +1,62 @@
 
 
-# Funcionalidades Complementares ao Motor de Inteligência de Preços
+# Preços com IVA (B2C) vs sem IVA (B2B/Revenda)
 
-## Estado Atual
+## Diagnóstico
 
-Já implementado:
-- Tabelas `product_pricing_rules` e `product_market_research` com RLS
-- Edge function `ai-market-price-research` (Firecrawl + Gemini)
-- `MarginProtectionCard` e `MarketResearchPanel` no detalhe do produto
-- `MarginStatusBadge` para a listagem
-- Hook `useProductPricingIntelligence` com regras e pesquisa
+O sistema já tem as peças necessárias mas não as conecta:
+- `StoreVatContext` controla a label "c/ IVA" vs "+ IVA (X%)" — mas usa apenas o setting da loja (`prices_include_vat`), ignorando se o utilizador é B2B
+- `useStoreTierPricing` já deteta se o utilizador é B2B (`isB2B: true`) — mas não influencia a apresentação de IVA
+- O Portal do Cliente (`/client/*`) já mostra "s/ IVA" hardcoded — está correto
+- O Partner Center (`/partner/*`) já trabalha com `unit_price_net` — está correto
+- **Problema**: Na loja pública, um cliente B2B vê preços "c/ IVA" quando devia ver "s/ IVA"
 
-**Ainda não implementado** (previsto no plano original):
-- Página de gestão de regras de margem por categoria (PricingRulesSettings)
-- Coluna "vs Mercado" na listagem de produtos
-- Badges de alerta de margem na `ProductsDataTable`
+## Plano de Implementação
 
-## Funcionalidades Recomendadas (por ordem de impacto)
+### 1. Expandir `StoreVatContext` para aceitar override B2B
 
-### 1. Gestão de Regras de Margem (Configurações)
-**Prioridade: Alta — sem isto, as regras ficam apenas com o fallback de 10%**
+Adicionar prop `forceExcludeVat` ao `StoreVatProvider`. Quando `true`, o contexto reporta `pricesIncludeVat: false` independentemente do setting da loja.
 
-- Nova secção em Configurações > Produtos: `PricingRulesSettings.tsx`
-- CRUD de regras por categoria com presets (Electrónica 15%, Acessórios 30%, Alimentar 25%)
-- Formulário: categoria (dropdown das existentes), margem mínima %, target %, máxima %
-- Tabela de regras ativas com toggle on/off
+### 2. Passar `isB2B` do tier pricing para o `StoreVatProvider`
 
-### 2. Alertas de Margem na Listagem de Produtos
-**Prioridade: Alta — visibilidade imediata de problemas**
+Em `StorePage.tsx` e `StoreProductPage.tsx`, já se usa `useStoreTierPricing`. Passar `tierPricing?.isB2B` ao provider para forçar preços sem IVA para clientes B2B.
 
-- Integrar `MarginStatusBadge` como coluna "Status" na `ProductsDataTable`
-- Ordenação por status (danger primeiro)
-- Filtro rápido: "Mostrar apenas produtos com margem em risco"
-- Counter no header: "12 produtos abaixo da margem mínima"
+### 3. Ajustar cálculo de preço no `StoreProductCard`
 
-### 3. Bloqueio Hard ao Guardar Produto
-**Prioridade: Alta — critério de aceitação do plano original**
+Quando `isB2B`, os preços do tier já vêm como `price_net`. Garantir que o `StoreVatLabel` mostra "s/ IVA" e que o preço apresentado é o líquido (sem VAT).
 
-- Validação no formulário de edição: impedir guardar se preço < custo (toast + disable botão)
-- Warning modal se preço < custo × (1 + min_margin): "Tem a certeza? Margem abaixo do recomendado"
-- Override apenas para admin (com registo em audit log)
+### 4. Ajustar checkout da loja
 
-### 4. Dashboard de Saúde de Preços
-**Prioridade: Média — visão executiva**
+Garantir que no carrinho e checkout, se o utilizador é B2B, os preços são apresentados sem IVA com o total de IVA discriminado separadamente.
 
-- Widget no dashboard principal ou na tab Relatórios de Produtos
-- KPIs: % produtos saudáveis vs warning vs danger, margem média do catálogo, valor em risco (receita de produtos com margem negativa)
-- Gráfico de distribuição de margens por categoria (Recharts)
-- Top 10 produtos com pior margem
+## Ficheiros a alterar
 
-### 5. Repricing Automático Sugerido
-**Prioridade: Média — automação inteligente**
+| Ficheiro | Alteração |
+|----------|-----------|
+| `src/contexts/StoreVatContext.tsx` | Adicionar lógica de override quando `isB2B` |
+| `src/pages/store/StorePage.tsx` | Passar `isB2B` ao `StoreVatProvider` |
+| `src/pages/store/StoreProductPage.tsx` | Passar `isB2B` ao `StoreVatProvider` |
+| `src/components/store/StoreVatLabel.tsx` | Ajustar label para B2B: "s/ IVA" em vez de "+ IVA (23%)" |
+| `src/components/store/StoreCartDrawer.tsx` | Discriminar IVA separadamente para B2B |
 
-- Batch action: "Sugerir preços para X produtos com margem baixa"
-- Usa regra da categoria + dados de mercado (se existirem) para calcular preço sugerido
-- Preview em tabela antes de aplicar: preço atual → preço sugerido → nova margem
-- Aplicação em massa com confirmação
+## Lógica
 
-### 6. Monitorização Periódica de Mercado
-**Prioridade: Média — manter dados frescos**
+```text
+SE utilizador é B2B (tier pricing ativo):
+  → Preços apresentados = preço líquido (sem IVA)
+  → Label = "s/ IVA"
+  → No checkout: subtotal + IVA discriminado + total
 
-- Trigger.dev job semanal para re-pesquisar preços dos top N produtos
-- Notificação quando preço de mercado muda >10%
-- Histórico de evolução de preço de mercado (sparkline no detalhe)
+SE utilizador é B2C (consumidor final):
+  → Preços apresentados = preço com IVA (conforme setting da loja)
+  → Label = "c/ IVA" ou "+ IVA (23%)"
+```
 
-### 7. Alertas por Email/Notificação
-**Prioridade: Baixa — complementar**
+## Critérios de Aceitação
 
-- Notificação quando um produto é editado para margem abaixo do mínimo
-- Resumo semanal: "5 produtos precisam de revisão de preço"
-- Integração com o sistema de notificações existente
-
-## Ficheiros a Criar/Alterar
-
-| # | Ficheiro | Ação |
-|---|---------|------|
-| 1 | `src/components/products/pricing/PricingRulesSettings.tsx` | Criar |
-| 2 | `src/components/products/table/ProductsDataTable.tsx` | Alterar (coluna status + filtro) |
-| 3 | `src/components/products/ProductDetailDialog.tsx` | Alterar (validação save) |
-| 4 | `src/components/products/pricing/PricingHealthDashboard.tsx` | Criar |
-| 5 | `src/components/products/pricing/BatchRepricingPanel.tsx` | Criar |
-| 6 | `trigger/jobs/market-price-monitor.ts` | Criar |
-| 7 | Rota de Settings | Alterar (adicionar tab Regras de Margem) |
-
-## Recomendação
-
-Sugiro implementar pela ordem **1 → 2 → 3 → 4**, que cobre a base funcional completa: definir regras, visualizar problemas, bloquear erros, e ter visão executiva. Os itens 5-7 são extensões de automação para uma segunda fase.
+- Cliente B2C vê preços com IVA incluído e label "c/ IVA"
+- Cliente B2B autenticado com tier vê preços sem IVA e label "s/ IVA"
+- Checkout B2B discrimina subtotal líquido, valor de IVA, e total bruto
+- Portal do Cliente e Partner Center mantêm comportamento atual (sem IVA)
+- Sem regressões na loja pública para visitantes não autenticados
 
