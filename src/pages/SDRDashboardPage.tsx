@@ -309,6 +309,7 @@ export default function SDRDashboardPage() {
                           onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
                           onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
                           onDelete={(id) => deleteCampaign.mutate(id)}
+                          onOpenSettings={handleOpenSettings}
                         />
                       ))}
                   </div>
@@ -502,21 +503,51 @@ export default function SDRDashboardPage() {
         </Tabs>
       </div>
 
-      {/* Create Campaign Dialog */}
+      {/* Create Campaign Dialog — Expanded Wizard */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Campanha SDR</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Nome</label>
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Outbound Q2 — SaaS Portugal" />
+              <Label>Nome</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Outbound Q2 — SaaS Portugal" className="mt-1" />
             </div>
             <div>
-              <label className="text-sm font-medium">Descrição</label>
-              <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Objectivo e público-alvo da campanha..." rows={3} />
+              <Label>Descrição</Label>
+              <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Objectivo e público-alvo da campanha..." rows={2} className="mt-1" />
             </div>
+            <div>
+              <Label>Sequência Multi-Canal</Label>
+              <Select value={newSequenceId} onValueChange={setNewSequenceId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sem sequência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem sequência (configurar depois)</SelectItem>
+                  {sequences.map((seq: any) => (
+                    <SelectItem key={seq.id} value={seq.id}>
+                      {seq.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">Pode alterar nas configurações da campanha</p>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+              <div>
+                <Label>Auto-enroll</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Inscrever prospects com score elevado</p>
+              </div>
+              <Switch checked={newAutoEnroll} onCheckedChange={setNewAutoEnroll} />
+            </div>
+            {newAutoEnroll && (
+              <div>
+                <Label>Score mínimo</Label>
+                <Input type="number" min={0} max={100} value={newMinScore} onChange={(e) => setNewMinScore(Number(e.target.value))} className="mt-1 w-28" />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
