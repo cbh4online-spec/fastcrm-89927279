@@ -45,6 +45,14 @@ export function SDRCampaignSettings({
     const cfg = campaign.ab_testing_config as any;
     return cfg?.variants || [{ name: "A", weight: 100 }];
   });
+  const [aiPersonalization, setAiPersonalization] = useState(() => {
+    const s = campaign.settings as any;
+    return s?.ai_personalization || false;
+  });
+  const [personalizationLevel, setPersonalizationLevel] = useState(() => {
+    const s = campaign.settings as any;
+    return s?.personalization_level || "light";
+  });
 
   // Fetch available sequences
   const { data: sequences = [] } = useQuery({
@@ -70,6 +78,9 @@ export function SDRCampaignSettings({
     setSequenceId(campaign.sequence_id || "none");
     const cfg = campaign.ab_testing_config as any;
     setAbVariants(cfg?.variants || [{ name: "A", weight: 100 }]);
+    const s = campaign.settings as any;
+    setAiPersonalization(s?.ai_personalization || false);
+    setPersonalizationLevel(s?.personalization_level || "light");
   }, [campaign]);
 
   const addVariant = () => {
