@@ -6,10 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3 } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
+import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
 import { SDRPipelineView } from "@/components/sdr/SDRPipelineView";
+import { SDRConversionFunnel } from "@/components/sdr/SDRConversionFunnel";
+import { SDRStageSettings } from "@/components/sdr/SDRStageSettings";
 import { SDRCampaignCard } from "@/components/sdr/SDRCampaignCard";
 import { SDRActivityFeed } from "@/components/sdr/SDRActivityFeed";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
