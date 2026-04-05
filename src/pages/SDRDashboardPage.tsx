@@ -136,7 +136,7 @@ export default function SDRDashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Rocket className="h-6 w-6 text-primary" />
@@ -146,9 +146,31 @@ export default function SDRDashboardPage() {
               Orquestre prospecção, enriquecimento e outreach automatizado com IA
             </p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nova Campanha
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Quick campaign selector */}
+            <Select
+              value={selectedCampaignId || "all"}
+              onValueChange={(v) => setSelectedCampaignId(v === "all" ? null : v)}
+            >
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Todas as campanhas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as campanhas</SelectItem>
+                {campaigns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setShowCreate(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Nova Campanha
+            </Button>
+          </div>
         </div>
 
         {/* Global KPIs */}
