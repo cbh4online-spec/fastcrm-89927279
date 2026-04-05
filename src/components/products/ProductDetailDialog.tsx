@@ -409,6 +409,25 @@ export function ProductDetailDialog({
                       </Card>
                     </div>
 
+                    {/* Margin Protection & Market Research */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <MarginProtectionCard
+                        price={product.base_price}
+                        cost={product.direct_cost}
+                        category={product.category}
+                      />
+                      <MarketResearchPanel
+                        productId={product.id}
+                        workspaceId={currentWorkspace?.id || ""}
+                        productName={product.name}
+                        sku={product.sku || undefined}
+                        category={product.category || undefined}
+                        barcode={product.barcode || undefined}
+                        currentPrice={product.base_price}
+                        costPrice={product.direct_cost || undefined}
+                      />
+                    </div>
+
                     {/* Metadata grid — tabela limpa */}
                     <Card className="p-3">
                       <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
