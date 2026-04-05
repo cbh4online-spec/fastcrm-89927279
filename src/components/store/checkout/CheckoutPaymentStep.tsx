@@ -4,7 +4,6 @@ import { Lock, Loader2, Info } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
 import { CheckoutPaymentMethodPicker, type PaymentMethodType } from "./CheckoutPaymentMethodPicker";
 import type { CTTShippingOption } from "./useCheckoutPricing";
-import type { CTTShippingOption } from "./useCheckoutPricing";
 
 const BUTTON_LABELS: Record<PaymentMethodType, string> = {
   stripe_card: "Pagar com Cartão",
