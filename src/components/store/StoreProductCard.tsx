@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import { StorePromoBadge } from "@/components/store/StorePromoBadge";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
@@ -75,7 +76,8 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const secondImageUrl = product.images?.length > 1 ? product.images?.find((_, i) => i !== primaryIndex) : null;
   const isOutOfStock = product.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product.price_on_request;
-  const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+  const pricing = getStorePrice(product.base_price, product.id, tierPricing, product);
+  const { price: effectivePrice, isDiscounted, discountLabel } = pricing;
 
   // Popular badge (>25 sales)
   const soldCount = salesCounts?.get(product.id) || 0;
