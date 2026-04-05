@@ -57,6 +57,7 @@ export function PipelineTriggersPanel() {
       const { data, error } = await supabase
         .from('pipeline_stages')
         .select('id, name, pipeline_id')
+        .eq('workspace_id', currentWorkspace.id)
         .order('position', { ascending: true });
       if (error) throw error;
       return data || [];
