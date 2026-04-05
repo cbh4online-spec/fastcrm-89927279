@@ -30,6 +30,9 @@ interface CheckoutPaymentStepProps {
   enabledPaymentMethods: Record<string, boolean>;
   selectedPaymentMethod: PaymentMethodType;
   onSelectPaymentMethod: (method: PaymentMethodType) => void;
+  // Legal consent
+  acceptTerms?: boolean;
+  onAcceptTermsChange?: (v: boolean) => void;
 }
 
 export function CheckoutPaymentStep({
