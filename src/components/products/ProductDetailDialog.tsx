@@ -89,6 +89,9 @@ import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
+import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
+import { Search as SearchIcon } from "lucide-react";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -404,6 +407,25 @@ export function ProductDetailDialog({
                           <p className="text-sm text-muted-foreground mt-2">Não definido</p>
                         )}
                       </Card>
+                    </div>
+
+                    {/* Margin Protection & Market Research */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <MarginProtectionCard
+                        price={product.base_price}
+                        cost={product.direct_cost}
+                        category={product.category}
+                      />
+                      <MarketResearchPanel
+                        productId={product.id}
+                        workspaceId={currentWorkspace?.id || ""}
+                        productName={product.name}
+                        sku={product.sku || undefined}
+                        category={product.category || undefined}
+                        barcode={(product as any).barcode || undefined}
+                        currentPrice={product.base_price}
+                        costPrice={product.direct_cost || undefined}
+                      />
                     </div>
 
                     {/* Metadata grid — tabela limpa */}

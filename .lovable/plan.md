@@ -1,47 +1,62 @@
 
+# Plano: Motor de Inteligência de Preços & Proteção de Margem
 
-# Plano: Corrigir Responsive Mobile da Página de Detalhe de Oportunidade
+## Visão Geral
+Sistema dual: (1) Pesquisa de mercado via IA para análise competitiva de preços, (2) Regras automáticas de margem mínima por categoria que impedem venda abaixo do custo.
 
-## Diagnóstico
+## Componente 1: Regras de Margem Mínima (Proteção)
 
-A partir do screenshot (página de detalhe do deal "Certificação" em mobile ~393px), identifico:
+### Base de Dados
+- Tabela `product_pricing_rules`: `workspace_id`, `category`, `min_margin_pct` (margem mínima %), `max_margin_pct`, `target_margin_pct`, `applies_to` (all/category/product), `product_id?`, `is_active`
+- RLS escopado por workspace
 
-1. **Header Actions overflow** — 6 botões inline (Compor email, Copy, Share, Expand, Star, More) ocupam demasiado espaço horizontal ao lado do título
-2. **TabsList com 11+ tabs** — wrapping em múltiplas linhas consome ~100px+ de altura vertical, empurrando o conteúdo para fora do viewport
-3. **Sidebar always visible** — `OpportunityDetailSidebar` renderiza abaixo do conteúdo em mobile, adicionando scroll extenso sem possibilidade de colapsar
+### Frontend — Listagem de Produtos
+- Alerta visual (badge vermelho) em produtos com margem negativa ou abaixo da margem mínima da categoria
+- Coluna "Status Preço" com ícones: ✅ saudável, ⚠️ abaixo do target, 🔴 abaixo do custo
 
-## Ficheiros a Alterar
+### Frontend — Detalhe do Produto
+- Card "Proteção de Margem" mostrando: margem atual, margem mínima da categoria, preço mínimo sugerido (custo × (1 + min_margin))
+- Validação ao guardar: toast de aviso se preço < custo × (1 + min_margin), bloqueio se preço < custo
 
-### 1. `src/components/opportunities/OpportunityDetailPage.tsx`
-- **Header actions**: Em mobile, esconder botões individuais (Copy, Share, Expand, Star) — manter apenas "Compor email" e "⋯" (MoreHorizontal). Já existe o dropdown com Copy URL/ID, basta mover os outros para lá
-- **TabsList**: Converter para scroll horizontal com `overflow-x-auto` e `flex-nowrap` em vez de `flex-wrap`, impedindo que as tabs ocupem múltiplas linhas
-- **Sidebar**: Esconder sidebar em mobile (`hidden lg:block`) — o conteúdo essencial (etapa, valor, empresa) já aparece nos Highlights Cards
+### Gestão de Regras
+- Secção em Configurações > Produtos para definir margens mínimas por categoria
+- Presets por tipo de produto (ex: Electrónica 15-25%, Acessórios 30-50%)
 
-### 2. `src/components/opportunities/detail/OpportunityHeaderActions.tsx`
-- Agrupar botões secundários (ClipboardCopy, Share2, Maximize2, Star) dentro de `hidden md:flex` ou movê-los para o dropdown existente (MoreHorizontal)
-- Em mobile: mostrar apenas "Compor email" (compacto, só ícone) + "⋯"
+## Componente 2: Pesquisa de Mercado com IA
 
-### 3. `src/components/opportunities/detail/OpportunityStagesStepper.tsx`
-- Já tem `ScrollArea` horizontal — sem alterações necessárias
+### Edge Function `ai-market-price-research`
+- Recebe: nome do produto, SKU, categoria, EAN/barcode
+- Usa Lovable AI (gemini-3-flash-preview) com tool calling para extrair dados estruturados
+- Pesquisa via Firecrawl (já configurado) por preços de concorrentes em PT
+- Retorna: preço médio mercado, range min-max, concorrentes encontrados, margem sugerida
 
-## Alterações Técnicas
+### Base de Dados
+- Tabela `product_market_research`: `product_id`, `workspace_id`, `market_avg_price`, `market_min_price`, `market_max_price`, `competitors_json` (nome, preço, url), `suggested_price`, `suggested_margin_pct`, `research_date`, `model_used`
 
-```text
-OpportunityDetailPage.tsx
-├── TabsList: flex-wrap → flex-nowrap + overflow-x-auto
-├── Sidebar: adicionar hidden lg:block
-└── Title row: gap mais compacto em mobile
+### Frontend — Detalhe do Produto
+- Botão "🔍 Analisar Mercado" no card de preço
+- Painel de resultados: preço médio, range, lista de concorrentes, sugestão de preço com margem segura
+- Histórico de pesquisas anteriores
 
-OpportunityHeaderActions.tsx
-├── Botões Copy/Share/Expand/Star → hidden md:inline-flex
-└── Mobile: apenas Mail icon-only + MoreHorizontal
-```
+### Frontend — Listagem
+- Coluna opcional "vs Mercado" mostrando posição relativa (acima/abaixo/inline)
+
+## Ficheiros a Criar/Alterar
+
+### Novos
+1. `supabase/functions/ai-market-price-research/index.ts` — Edge function de pesquisa
+2. `src/hooks/useProductPricingIntelligence.ts` — Hook para pesquisa e regras
+3. `src/components/products/pricing/MarketResearchPanel.tsx` — Painel de resultados
+4. `src/components/products/pricing/MarginProtectionCard.tsx` — Card de proteção
+5. `src/components/products/pricing/PricingRulesSettings.tsx` — Gestão de regras
+
+### Alterados
+6. `src/components/products/table/ProductsDataTable.tsx` — Badges de alerta de margem
+7. Detalhe do produto — Adicionar tab/secção de inteligência de preços
 
 ## Critérios de Aceitação
-
-- Sem overflow horizontal em ecrãs ≤ 414px
-- Tabs navegáveis por scroll horizontal (1 linha)
-- Header compacto com acesso a todas as ações via dropdown
-- Conteúdo principal (Highlights + Stages) visível sem scroll excessivo
-- Desktop sem alterações visuais
-
+- Nunca permitir guardar produto com preço < custo (bloqueio hard)
+- Aviso visual quando margem < margem mínima da categoria
+- Pesquisa de mercado retorna resultados em < 15s
+- Resultados persistidos para consulta futura
+- Desktop e mobile funcional
