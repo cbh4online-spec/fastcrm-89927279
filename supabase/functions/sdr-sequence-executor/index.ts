@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -76,7 +77,7 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
   // Get campaign to find sequence_id
   const { data: campaign } = await supabase
     .from("sdr_campaigns")
-    .select("sequence_id, workspace_id")
+    .select("sequence_id, workspace_id, settings, ai_employee_id")
     .eq("id", enrollment.campaign_id)
     .single();
 
@@ -110,17 +111,52 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     return;
   }
 
+  // --- Personalization: call sdr-message-generator ---
+  let personalizedSubject = step.subject || "Follow-up";
+  let personalizedBody = step.body_html || step.content || "";
+  let aiUsed = false;
+
+  try {
+    const genResponse = await fetch(`${supabaseUrl}/functions/v1/sdr-message-generator`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        enrollment_id: enrollment.id,
+        step_id: step.id,
+        workspace_id: enrollment.workspace_id,
+        channel: step.channel,
+        template_subject: personalizedSubject,
+        template_body: personalizedBody,
+        step_number: currentStepIndex + 1,
+      }),
+    });
+
+    if (genResponse.ok) {
+      const genResult = await genResponse.json();
+      personalizedSubject = genResult.subject || personalizedSubject;
+      personalizedBody = genResult.body || personalizedBody;
+      aiUsed = genResult.ai_used || false;
+    } else {
+      console.warn(`[sdr-sequence-executor] message-generator returned ${genResponse.status}, using original template`);
+      await genResponse.text(); // consume body
+    }
+  } catch (genErr) {
+    console.warn("[sdr-sequence-executor] message-generator call failed, using original template:", genErr);
+  }
+
   // Execute the step based on channel
   let sendStatus = "sent";
   let errorMessage: string | null = null;
 
   try {
     if (step.channel === "email") {
-      await executeEmailStep(supabase, enrollment, step);
+      await executeEmailStep(supabase, enrollment, step, personalizedSubject, personalizedBody);
     } else if (step.channel === "whatsapp") {
-      await executeWhatsAppStep(supabase, enrollment, step);
+      await executeWhatsAppStep(supabase, enrollment, step, personalizedBody);
     } else {
-      // Other channels: log as sent (placeholder)
       console.log(`[sdr-sequence-executor] Channel ${step.channel} step executed (placeholder)`);
     }
   } catch (err) {
@@ -137,6 +173,7 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     sent_at: sendStatus === "sent" ? new Date().toISOString() : null,
     error_message: errorMessage,
     workspace_id: enrollment.workspace_id,
+    metadata: { ai_used: aiUsed },
   });
 
   // Advance to next step
@@ -152,7 +189,6 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
       .update({ current_step: nextStepIndex, next_send_at: nextSendAt })
       .eq("id", enrollment.id);
   } else {
-    // Last step done
     await supabase
       .from("sdr_enrollments")
       .update({ status: "completed", next_send_at: null, current_step: nextStepIndex })
@@ -160,18 +196,20 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
   }
 }
 
-async function executeEmailStep(supabase: any, enrollment: any, step: any) {
+async function executeEmailStep(
+  supabase: any,
+  enrollment: any,
+  step: any,
+  subject: string,
+  bodyHtml: string
+) {
   if (!enrollment.prospect_email) throw new Error("No email for prospect");
 
-  const subject = step.subject || "Follow-up";
-  const bodyHtml = step.body_html || step.content || "";
-
-  // Invoke email-send edge function
-  const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/email-send`, {
+  const response = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      Authorization: `Bearer ${serviceRoleKey}`,
     },
     body: JSON.stringify({
       to: enrollment.prospect_email,
@@ -191,16 +229,19 @@ async function executeEmailStep(supabase: any, enrollment: any, step: any) {
   }
 }
 
-async function executeWhatsAppStep(supabase: any, enrollment: any, step: any) {
+async function executeWhatsAppStep(
+  supabase: any,
+  enrollment: any,
+  step: any,
+  message: string
+) {
   if (!enrollment.prospect_phone) throw new Error("No phone for prospect");
 
-  const message = step.whatsapp_template || step.content || "";
-
-  const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/ghl-send-message`, {
+  const response = await fetch(`${supabaseUrl}/functions/v1/ghl-send-message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      Authorization: `Bearer ${serviceRoleKey}`,
     },
     body: JSON.stringify({
       phone: enrollment.prospect_phone,
