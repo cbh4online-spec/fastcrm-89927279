@@ -134,6 +134,30 @@ export function SDRProspectActions({
     return <Badge variant={cfg.variant}>{stageInfo?.label || cfg.label}</Badge>;
   };
 
+  const handlePreviewMessage = async (enrollment: SDREnrollment) => {
+    setPreviewEnrollment(enrollment);
+    setPreviewLoading(true);
+    setPreviewResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("sdr-message-generator", {
+        body: {
+          enrollment_id: enrollment.id,
+          workspace_id: (enrollment as any).workspace_id || campaignId,
+          channel: enrollment.channel || "email",
+          template_subject: "Follow-up: {{prospect_name}}",
+          template_body: "Olá {{prospect_name}}, queria falar consigo sobre {{company}}.",
+          preview: true,
+        },
+      });
+      if (error) throw error;
+      setPreviewResult(data);
+    } catch (err: any) {
+      toast.error("Erro ao gerar preview: " + (err.message || "erro desconhecido"));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
