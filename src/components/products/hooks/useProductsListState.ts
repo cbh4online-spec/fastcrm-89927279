@@ -31,6 +31,7 @@ export const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "direct_cost", label: "Custo Direto", category: "business", defaultVisible: false },
   { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
   { id: "margin", label: "Margem", category: "business", defaultVisible: false },
+  { id: "margin_status", label: "Saúde Margem", category: "business", defaultVisible: true },
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: true },
