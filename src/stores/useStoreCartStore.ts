@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
 import { calcSubtotal, moneyToNumber } from "@/lib/money";
+import { trackStoreEvent } from "@/lib/storeTracking";
 
 export interface CartItem {
   productId: string;
