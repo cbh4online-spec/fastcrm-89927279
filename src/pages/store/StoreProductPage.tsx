@@ -167,7 +167,7 @@ export default function StoreProductPage() {
   const storeName = storeSettings?.store_name || "Loja";
   const isOutOfStock = product?.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product?.price_on_request;
-  const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing) : null;
+  const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing, product) : null;
   const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
   const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
   const toggleWishlist = useToggleWishlist();
