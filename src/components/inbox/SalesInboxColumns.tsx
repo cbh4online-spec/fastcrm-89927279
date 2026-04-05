@@ -85,9 +85,9 @@ export function SalesInboxColumns({ conversations, selectedId, onSelect, search 
   }, [conversations, search]);
 
   return (
-    <div className="flex h-full divide-x divide-border">
+    <div className="flex h-full divide-x divide-border overflow-x-auto snap-x snap-mandatory md:overflow-x-visible">
       {columns.map((col) => (
-        <div key={col.title} className="flex-1 min-w-0 flex flex-col">
+        <div key={col.title} className="min-w-[80vw] md:min-w-0 flex-1 flex flex-col snap-start">
           {/* Column Header */}
           <div className="px-3 py-2 border-b border-border bg-muted/30 flex-shrink-0">
             <div className="flex items-center justify-between">
