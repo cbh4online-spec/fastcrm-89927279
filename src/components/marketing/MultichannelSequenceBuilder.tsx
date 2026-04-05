@@ -367,6 +367,45 @@ export function MultichannelSequenceBuilder() {
                         <div className="mt-2 space-y-2">
                           {step.channel === 'email' && (
                             <>
+                              {emailTemplates.length > 0 && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                                      <FileText className="h-3 w-3" />
+                                      Usar template
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-64 p-0" align="start">
+                                    <ScrollArea className="max-h-48">
+                                      <div className="p-1">
+                                        {emailTemplates
+                                          .filter((t) => t.channel === 'email' || !t.channel)
+                                          .map((tpl) => (
+                                            <button
+                                              key={tpl.id}
+                                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted transition-colors"
+                                              onClick={() => {
+                                                updateStep(idx, {
+                                                  subject: tpl.subject || step.subject,
+                                                  body_html: tpl.body_html || tpl.body || step.body_html,
+                                                });
+                                                toast.success(`Template "${tpl.name}" aplicado`);
+                                              }}
+                                            >
+                                              <span className="font-medium">{tpl.name}</span>
+                                              {tpl.subject && (
+                                                <span className="block text-[11px] text-muted-foreground truncate">{tpl.subject}</span>
+                                              )}
+                                            </button>
+                                          ))}
+                                        {emailTemplates.filter((t) => t.channel === 'email' || !t.channel).length === 0 && (
+                                          <p className="text-xs text-muted-foreground px-3 py-2">Sem templates de email</p>
+                                        )}
+                                      </div>
+                                    </ScrollArea>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               <Input
                                 placeholder="Assunto do email"
                                 value={step.subject}
