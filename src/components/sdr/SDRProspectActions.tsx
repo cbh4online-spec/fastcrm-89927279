@@ -212,6 +212,7 @@ export function SDRProspectActions({
                   <TableHead>Email</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Step</TableHead>
                   <TableHead>Variante</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="w-10" />
@@ -230,6 +231,23 @@ export function SDRProspectActions({
                     <TableCell className="text-sm">{e.prospect_email || "—"}</TableCell>
                     <TableCell className="text-sm capitalize">{e.channel || "—"}</TableCell>
                     <TableCell>{statusBadge(e.status)}</TableCell>
+                    <TableCell>
+                      {(e.status === "sequenced" || e.status === "paused") ? (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-[10px]">
+                            Step {((e as any).current_step || 0) + 1}
+                          </Badge>
+                          {(e as any).next_send_at && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {format(new Date((e as any).next_send_at), "dd/MM HH:mm")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{e.message_variant || "—"}</Badge>
                     </TableCell>
