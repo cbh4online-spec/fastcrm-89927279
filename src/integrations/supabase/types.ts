@@ -44320,6 +44320,7 @@ export type Database = {
           category: string | null
           commercial_description: string | null
           commission_default: number | null
+          compare_at_price: number | null
           competitor_price_low: number | null
           competitor_source: string | null
           conditions: string | null
@@ -44351,6 +44352,7 @@ export type Database = {
           line: string | null
           location: string | null
           low_stock_threshold: number
+          lowest_price_30d: number | null
           metadata: Json | null
           min_order_quantity: number | null
           moq: number | null
@@ -44363,6 +44365,9 @@ export type Database = {
           primary_image_index: number | null
           product_condition: string | null
           product_type: string
+          promo_end_at: string | null
+          promo_label: string | null
+          promo_start_at: string | null
           published_at: string | null
           pvp_recommended: number | null
           recommended_frequency: string | null
@@ -44421,6 +44426,7 @@ export type Database = {
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null
+          compare_at_price?: number | null
           competitor_price_low?: number | null
           competitor_source?: string | null
           conditions?: string | null
@@ -44452,6 +44458,7 @@ export type Database = {
           line?: string | null
           location?: string | null
           low_stock_threshold?: number
+          lowest_price_30d?: number | null
           metadata?: Json | null
           min_order_quantity?: number | null
           moq?: number | null
@@ -44464,6 +44471,9 @@ export type Database = {
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
+          promo_end_at?: string | null
+          promo_label?: string | null
+          promo_start_at?: string | null
           published_at?: string | null
           pvp_recommended?: number | null
           recommended_frequency?: string | null
@@ -44522,6 +44532,7 @@ export type Database = {
           category?: string | null
           commercial_description?: string | null
           commission_default?: number | null
+          compare_at_price?: number | null
           competitor_price_low?: number | null
           competitor_source?: string | null
           conditions?: string | null
@@ -44553,6 +44564,7 @@ export type Database = {
           line?: string | null
           location?: string | null
           low_stock_threshold?: number
+          lowest_price_30d?: number | null
           metadata?: Json | null
           min_order_quantity?: number | null
           moq?: number | null
@@ -44565,6 +44577,9 @@ export type Database = {
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
+          promo_end_at?: string | null
+          promo_label?: string | null
+          promo_start_at?: string | null
           published_at?: string | null
           pvp_recommended?: number | null
           recommended_frequency?: string | null

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStorePrice } from "@/hooks/useStoreTierPricing";
 import { StoreProductBadges } from "@/components/store/StoreProductBadges";
 import { StoreVatLabel } from "@/components/store/StoreVatLabel";
+import { StorePromoBadge } from "@/components/store/StorePromoBadge";
 import { StoreProductConditionBadge } from "@/components/store/StoreProductConditionBadge";
 import { StoreQuickViewModal } from "@/components/store/StoreQuickViewModal";
 import { useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
@@ -75,7 +76,8 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const secondImageUrl = product.images?.length > 1 ? product.images?.find((_, i) => i !== primaryIndex) : null;
   const isOutOfStock = product.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product.price_on_request;
-  const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+  const pricing = getStorePrice(product.base_price, product.id, tierPricing, product);
+  const { price: effectivePrice, isDiscounted, discountLabel } = pricing;
 
   // Popular badge (>25 sales)
   const soldCount = salesCounts?.get(product.id) || 0;
@@ -86,7 +88,9 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const stockPercent = showStockBar ? Math.min((product.stock_quantity! / 20) * 100, 100) : 0;
 
   // Savings percentage
-  const savingsPercent = isDiscounted ? Math.round(((product.base_price - effectivePrice) / product.base_price) * 100) : 0;
+  const savingsPercent = pricing.isPromo && pricing.savingsPercent
+    ? pricing.savingsPercent
+    : isDiscounted ? Math.round(((product.base_price - effectivePrice) / product.base_price) * 100) : 0;
 
   // Review stats
   const reviewData = reviewStats?.get(product.id);
@@ -177,9 +181,18 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 createdAt={product.created_at}
                 trackStock={product.track_stock}
                 stockQuantity={product.stock_quantity}
-                isDiscounted={isDiscounted}
+                isDiscounted={isDiscounted && !pricing.isPromo}
                 compact
               />
+              {pricing.isPromo && pricing.lowestPrice30d && (
+                <StorePromoBadge
+                  promoLabel={pricing.promoLabel}
+                  promoEndAt={pricing.promoEndAt}
+                  savingsPercent={savingsPercent}
+                  lowestPrice30d={pricing.lowestPrice30d}
+                  compact
+                />
+              )}
               <StoreProductConditionBadge condition={(product as any).product_condition} compact />
             </div>
 
@@ -344,7 +357,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                     €{effectivePrice.toFixed(2)}
                   </span>
                   <StoreVatLabel />
-                  {isDiscounted && (
+                  {isDiscounted && !pricing.isPromo && (
                     <>
                       <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
                       {savingsPercent > 0 && (
@@ -355,11 +368,25 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                       )}
                     </>
                   )}
+                  {pricing.isPromo && pricing.lowestPrice30d && (
+                    <span className="text-sm text-muted-foreground line-through">€{pricing.lowestPrice30d.toFixed(2)}</span>
+                  )}
+                  {pricing.isPromo && savingsPercent > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-0">
+                      <Flame className="h-2.5 w-2.5 mr-0.5" />
+                      -{savingsPercent}%
+                    </Badge>
+                  )}
                   {product.billing_type === "recurring" && (
                     <span className="text-xs text-muted-foreground">/mês</span>
                   )}
                 </div>
-                {discountLabel && (
+                {pricing.isPromo && pricing.lowestPrice30d && (
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    Preço mais baixo últimos 30 dias: €{pricing.lowestPrice30d.toFixed(2)}
+                  </p>
+                )}
+                {discountLabel && !pricing.isPromo && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1 w-fit" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
                     {discountLabel}
                   </Badge>

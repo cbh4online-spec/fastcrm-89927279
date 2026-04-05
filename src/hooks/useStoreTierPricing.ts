@@ -88,34 +88,73 @@ export function useStoreTierPricing(workspaceId: string) {
 }
 
 /**
- * Get the effective price for a product considering tier pricing.
+ * Check if a product is currently on an active promotion.
+ */
+function isPromoActive(product: { compare_at_price?: number | null; promo_start_at?: string | null; promo_end_at?: string | null }): boolean {
+  if (!product.compare_at_price) return false;
+  const now = new Date();
+  if (product.promo_start_at && now < new Date(product.promo_start_at)) return false;
+  if (product.promo_end_at && now > new Date(product.promo_end_at)) return false;
+  return true;
+}
+
+export interface StorePriceResult {
+  price: number;
+  isDiscounted: boolean;
+  discountLabel?: string;
+  isPromo?: boolean;
+  compareAtPrice?: number;
+  lowestPrice30d?: number;
+  promoLabel?: string | null;
+  promoEndAt?: string | null;
+  savingsPercent?: number;
+}
+
+/**
+ * Get the effective price for a product considering tier pricing AND promotions.
+ * Priority: B2B tier pricing > active promotion > base price.
  */
 export function getStorePrice(
   basePrice: number,
   productId: string,
-  tierPricing?: StoreTierPricing | null
-): { price: number; isDiscounted: boolean; discountLabel?: string } {
-  if (!tierPricing?.isB2B || !tierPricing.tier) {
-    return { price: basePrice, isDiscounted: false };
+  tierPricing?: StoreTierPricing | null,
+  product?: { compare_at_price?: number | null; promo_start_at?: string | null; promo_end_at?: string | null; promo_label?: string | null; lowest_price_30d?: number | null }
+): StorePriceResult {
+  // B2B tier pricing takes priority
+  if (tierPricing?.isB2B && tierPricing.tier) {
+    const tierPrice = tierPricing.tierPrices.get(productId);
+    if (tierPrice !== undefined) {
+      return {
+        price: tierPrice,
+        isDiscounted: tierPrice < basePrice,
+        discountLabel: tierPricing.tier.name,
+      };
+    }
+
+    if (tierPricing.tier.discount_percentage > 0) {
+      const discounted = basePrice * (1 - tierPricing.tier.discount_percentage / 100);
+      return {
+        price: discounted,
+        isDiscounted: true,
+        discountLabel: `${tierPricing.tier.name} (-${tierPricing.tier.discount_percentage}%)`,
+      };
+    }
   }
 
-  // Check for specific tier price
-  const tierPrice = tierPricing.tierPrices.get(productId);
-  if (tierPrice !== undefined) {
-    return {
-      price: tierPrice,
-      isDiscounted: tierPrice < basePrice,
-      discountLabel: tierPricing.tier.name,
-    };
-  }
+  // Check for active promotion (Omnibus Directive compliant)
+  if (product && isPromoActive(product)) {
+    const omnibusRef = product.lowest_price_30d ?? product.compare_at_price!;
+    const savingsPercent = omnibusRef > 0 ? Math.round(((omnibusRef - basePrice) / omnibusRef) * 100) : 0;
 
-  // Apply tier discount percentage
-  if (tierPricing.tier.discount_percentage > 0) {
-    const discounted = basePrice * (1 - tierPricing.tier.discount_percentage / 100);
     return {
-      price: discounted,
+      price: basePrice,
       isDiscounted: true,
-      discountLabel: `${tierPricing.tier.name} (-${tierPricing.tier.discount_percentage}%)`,
+      isPromo: true,
+      compareAtPrice: product.compare_at_price!,
+      lowestPrice30d: omnibusRef,
+      promoLabel: product.promo_label,
+      promoEndAt: product.promo_end_at,
+      savingsPercent: Math.max(savingsPercent, 0),
     };
   }
 

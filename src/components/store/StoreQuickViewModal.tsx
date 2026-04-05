@@ -28,7 +28,8 @@ export function StoreQuickViewModal({ product, workspaceSlug, tierPricing, revie
   const imageUrl = product.images?.[primaryIndex] || product.images?.[0];
   const isOutOfStock = product.stock_status === "out_of_stock";
   const isPriceOnRequest = !!product.price_on_request;
-  const { price: effectivePrice, isDiscounted, discountLabel } = getStorePrice(product.base_price, product.id, tierPricing);
+  const pricing = getStorePrice(product.base_price, product.id, tierPricing, product);
+  const { price: effectivePrice, isDiscounted, discountLabel } = pricing;
   const productHref = getStorefrontItemPath(workspaceSlug, product as any);
 
   const reviewData = reviewStats?.get(product.id);
