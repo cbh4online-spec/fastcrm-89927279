@@ -27,6 +27,8 @@ import {
 } from "@/types/product";
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
+import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
+import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 
 interface ProductsDataTableProps {
   products: Product[];
