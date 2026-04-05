@@ -425,6 +425,11 @@ export default function SDRDashboardPage() {
             <SDRAnalyticsDashboard campaignId={selectedCampaignId} campaigns={campaigns} />
           </TabsContent>
 
+          {/* Compliance Tab */}
+          <TabsContent value="compliance" className="space-y-4">
+            <SDRSuppressionManager />
+          </TabsContent>
+
           {/* Stages Settings Tab */}
           <TabsContent value="stages" className="space-y-4">
             <SDRStageSettings campaignId={selectedCampaignId} />
