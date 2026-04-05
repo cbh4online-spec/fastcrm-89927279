@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap, LineChart } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap, LineChart, ShieldBan } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
@@ -20,6 +20,7 @@ import { SDRCampaignSettings } from "@/components/sdr/SDRCampaignSettings";
 import { SDRSequenceMetrics } from "@/components/sdr/SDRSequenceMetrics";
 import { MultichannelSequenceBuilder } from "@/components/marketing/MultichannelSequenceBuilder";
 import { SDRAnalyticsDashboard } from "@/components/sdr/SDRAnalyticsDashboard";
+import { SDRSuppressionManager } from "@/components/sdr/SDRSuppressionManager";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Badge } from "@/components/ui/badge";
 import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
@@ -192,6 +193,10 @@ export default function SDRDashboardPage() {
             <TabsTrigger value="analytics">
               <LineChart className="h-3.5 w-3.5 mr-1" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="compliance">
+              <ShieldBan className="h-3.5 w-3.5 mr-1" />
+              Compliance
             </TabsTrigger>
             <TabsTrigger value="stages">
               <Settings2 className="h-3.5 w-3.5 mr-1" />
@@ -415,6 +420,11 @@ export default function SDRDashboardPage() {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">
             <SDRAnalyticsDashboard campaignId={selectedCampaignId} campaigns={campaigns} />
+          </TabsContent>
+
+          {/* Compliance Tab */}
+          <TabsContent value="compliance" className="space-y-4">
+            <SDRSuppressionManager />
           </TabsContent>
 
           {/* Stages Settings Tab */}

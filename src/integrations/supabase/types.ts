@@ -48629,6 +48629,54 @@ export type Database = {
           },
         ]
       }
+      sdr_suppressions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          notes: string | null
+          reason: string
+          source_enrollment_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          source_enrollment_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          source_enrollment_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_suppressions_source_enrollment_id_fkey"
+            columns: ["source_enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_suppressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_comparisons: {
         Row: {
           content: Json | null
