@@ -348,6 +348,39 @@ export function SDRProspectActions({
           </div>
         )}
       </CardContent>
+      {/* Preview message dialog */}
+      <Dialog open={!!previewEnrollment} onOpenChange={(o) => !o && setPreviewEnrollment(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização de Mensagem</DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">A gerar mensagem personalizada...</span>
+            </div>
+          ) : previewResult ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Assunto</p>
+                <p className="text-sm font-medium p-2 rounded bg-muted/50">{previewResult.subject}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Corpo</p>
+                <div className="text-sm p-3 rounded bg-muted/50 whitespace-pre-wrap">{previewResult.body}</div>
+              </div>
+              {previewResult.ai_used && (
+                <Badge variant="outline" className="text-[10px]">
+                  <Eye className="h-2.5 w-2.5 mr-1" />
+                  Personalizado por IA
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">Sem dados de preview</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
