@@ -1,12 +1,18 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap, LineChart, ShieldBan } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap, LineChart, ShieldBan, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
@@ -27,16 +33,34 @@ import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SDRDashboardPage() {
+  const { currentWorkspace } = useWorkspace();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useSDRCampaigns();
   const { data: aggStats, isLoading: aggLoading } = useSDRAggregatedStats();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newSequenceId, setNewSequenceId] = useState("none");
+  const [newAutoEnroll, setNewAutoEnroll] = useState(false);
+  const [newMinScore, setNewMinScore] = useState(70);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [campaignSearch, setCampaignSearch] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+
+  // Fetch sequences for quick-select in create dialog
+  const { data: sequences = [] } = useQuery({
+    queryKey: ["sequences-for-sdr", currentWorkspace?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("multichannel_sequences")
+        .select("id, name, status")
+        .eq("workspace_id", currentWorkspace!.id)
+        .order("name");
+      return data || [];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
@@ -75,9 +99,31 @@ export default function SDRDashboardPage() {
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createCampaign.mutate({ name: newName, description: newDesc || undefined }, {
-      onSuccess: () => { setShowCreate(false); setNewName(""); setNewDesc(""); },
+    const createData: any = { name: newName, description: newDesc || undefined };
+    if (newSequenceId !== "none") createData.sequence_id = newSequenceId;
+    if (newAutoEnroll) {
+      createData.auto_enroll_enabled = true;
+      createData.auto_enroll_min_score = newMinScore;
+    }
+    createCampaign.mutate(createData, {
+      onSuccess: (data: any) => {
+        setShowCreate(false);
+        setNewName("");
+        setNewDesc("");
+        setNewSequenceId("none");
+        setNewAutoEnroll(false);
+        setNewMinScore(70);
+        if (data?.id) {
+          setSelectedCampaignId(data.id);
+          setActiveTab("pipeline");
+        }
+      },
     });
+  };
+
+  const handleOpenSettings = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setShowSettings(true);
   };
 
   const handleSaveCampaignSettings = (updates: any) => {
@@ -90,7 +136,7 @@ export default function SDRDashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Rocket className="h-6 w-6 text-primary" />
@@ -100,9 +146,31 @@ export default function SDRDashboardPage() {
               Orquestre prospecção, enriquecimento e outreach automatizado com IA
             </p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nova Campanha
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Quick campaign selector */}
+            <Select
+              value={selectedCampaignId || "all"}
+              onValueChange={(v) => setSelectedCampaignId(v === "all" ? null : v)}
+            >
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Todas as campanhas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as campanhas</SelectItem>
+                {campaigns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full ${c.status === "active" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setShowCreate(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Nova Campanha
+            </Button>
+          </div>
         </div>
 
         {/* Global KPIs */}
@@ -241,6 +309,7 @@ export default function SDRDashboardPage() {
                           onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
                           onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
                           onDelete={(id) => deleteCampaign.mutate(id)}
+                          onOpenSettings={handleOpenSettings}
                         />
                       ))}
                   </div>
@@ -300,6 +369,7 @@ export default function SDRDashboardPage() {
                     onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
                     onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
                     onDelete={(id) => deleteCampaign.mutate(id)}
+                    onOpenSettings={handleOpenSettings}
                   />
                 ))}
               </div>
@@ -434,21 +504,51 @@ export default function SDRDashboardPage() {
         </Tabs>
       </div>
 
-      {/* Create Campaign Dialog */}
+      {/* Create Campaign Dialog — Expanded Wizard */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Campanha SDR</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Nome</label>
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Outbound Q2 — SaaS Portugal" />
+              <Label>Nome</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Outbound Q2 — SaaS Portugal" className="mt-1" />
             </div>
             <div>
-              <label className="text-sm font-medium">Descrição</label>
-              <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Objectivo e público-alvo da campanha..." rows={3} />
+              <Label>Descrição</Label>
+              <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Objectivo e público-alvo da campanha..." rows={2} className="mt-1" />
             </div>
+            <div>
+              <Label>Sequência Multi-Canal</Label>
+              <Select value={newSequenceId} onValueChange={setNewSequenceId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sem sequência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem sequência (configurar depois)</SelectItem>
+                  {sequences.map((seq: any) => (
+                    <SelectItem key={seq.id} value={seq.id}>
+                      {seq.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">Pode alterar nas configurações da campanha</p>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+              <div>
+                <Label>Auto-enroll</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Inscrever prospects com score elevado</p>
+              </div>
+              <Switch checked={newAutoEnroll} onCheckedChange={setNewAutoEnroll} />
+            </div>
+            {newAutoEnroll && (
+              <div>
+                <Label>Score mínimo</Label>
+                <Input type="number" min={0} max={100} value={newMinScore} onChange={(e) => setNewMinScore(Number(e.target.value))} className="mt-1 w-28" />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>

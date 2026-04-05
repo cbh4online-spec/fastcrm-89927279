@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Play, Pause, Trash2, BarChart3 } from "lucide-react";
+import { MoreHorizontal, Play, Pause, Trash2, BarChart3, Settings2 } from "lucide-react";
 import type { SDRCampaign } from "@/hooks/useSDRCampaigns";
 
 interface SDRCampaignCardProps {
@@ -10,6 +10,7 @@ interface SDRCampaignCardProps {
   onSelect: (id: string) => void;
   onToggleStatus: (id: string, newStatus: "active" | "paused") => void;
   onDelete: (id: string) => void;
+  onOpenSettings?: (id: string) => void;
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -19,7 +20,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   completed: { label: "Concluída", variant: "secondary" },
 };
 
-export function SDRCampaignCard({ campaign, onSelect, onToggleStatus, onDelete }: SDRCampaignCardProps) {
+export function SDRCampaignCard({ campaign, onSelect, onToggleStatus, onDelete, onOpenSettings }: SDRCampaignCardProps) {
   const sc = statusConfig[campaign.status] || statusConfig.draft;
   const replyRate = campaign.total_enrolled > 0
     ? ((campaign.total_replied / campaign.total_enrolled) * 100).toFixed(1)
@@ -37,8 +38,19 @@ export function SDRCampaignCard({ campaign, onSelect, onToggleStatus, onDelete }
             <p className="text-xs text-muted-foreground line-clamp-1">{campaign.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Badge variant={sc.variant}>{sc.label}</Badge>
+          {onOpenSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); onOpenSettings(campaign.id); }}
+              title="Configurações"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-7 w-7">
