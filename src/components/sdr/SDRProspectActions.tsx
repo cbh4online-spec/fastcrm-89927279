@@ -70,6 +70,9 @@ export function SDRProspectActions({
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkMoving, setBulkMoving] = useState(false);
+  const [previewEnrollment, setPreviewEnrollment] = useState<SDREnrollment | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{ subject: string; body: string; ai_used: boolean } | null>(null);
 
   const filtered = useMemo(() => {
     let list = stageFilter
