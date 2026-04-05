@@ -62,10 +62,62 @@ import {
   RotateCcw,
   Lock,
   MessageSquareText,
+  Tag,
+  Scale,
+  Monitor,
+  Volume2,
+  Zap,
+  HardDrive,
+  Wifi,
+  Thermometer,
+  Aperture,
+  FileCode,
+  Moon,
+  Sun,
+  Puzzle,
+  Ruler,
+  Palette,
+  Clock,
+  Cpu,
+  Battery,
+  Info,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+
+// Spec icon mapping
+const SPEC_ICON_MAP: Record<string, LucideIcon> = {
+  brand: Tag, marca: Tag, fabricante: Tag,
+  weight: Scale, peso: Scale, massa: Scale,
+  resolution: Monitor, resolução: Monitor, resolucao: Monitor,
+  audio: Volume2, som: Volume2,
+  power: Zap, potência: Zap, potencia: Zap, voltagem: Zap,
+  sensor: Eye,
+  storage: HardDrive, armazenamento: HardDrive, memória: HardDrive, memoria: HardDrive,
+  connectivity: Wifi, conectividade: Wifi, wifi: Wifi, bluetooth: Wifi,
+  protection: Shield, proteção: Shield, protecao: Shield, ip: Shield,
+  temperature: Thermometer, temperatura: Thermometer,
+  lens: Aperture, lente: Aperture, abertura: Aperture,
+  compression: FileCode, compressão: FileCode, codec: FileCode,
+  nightvision: Moon, visãonoturna: Moon, infravermelho: Moon, ir: Moon,
+  wdr: Sun, hdr: Sun,
+  compatibility: Puzzle, compatibilidade: Puzzle,
+  dimensions: Ruler, dimensões: Ruler, tamanho: Ruler, size: Ruler,
+  color: Palette, cor: Palette,
+  speed: Clock, velocidade: Clock, fps: Clock,
+  processor: Cpu, processador: Cpu, chipset: Cpu,
+  battery: Battery, bateria: Battery, autonomia: Battery,
+};
+
+function getSpecIcon(key: string): LucideIcon {
+  const normalized = key.toLowerCase().replace(/[^a-záàâãéèêíïóôõúç]/g, "");
+  for (const [mapKey, icon] of Object.entries(SPEC_ICON_MAP)) {
+    if (normalized.includes(mapKey)) return icon;
+  }
+  return Info;
+}
 
 // Add-to-cart animation trigger counter
 
@@ -681,20 +733,25 @@ export default function StoreProductPage() {
           {/* Specifications */}
           {Object.keys(specs).length > 0 && (
             <div className="mt-12">
-              <h2 className="text-xl font-semibold mb-4">Especificações</h2>
-              <div className="border rounded-xl overflow-hidden">
-                {Object.entries(specs).map(([key, value], i) => (
-                  <div
-                    key={key}
-                    className={cn(
-                      "flex justify-between px-4 py-3 text-sm",
-                      i % 2 === 0 ? "bg-muted/30" : "bg-background"
-                    )}
-                  >
-                    <span className="font-medium">{key}</span>
-                    <span className="text-muted-foreground">{value}</span>
-                  </div>
-                ))}
+              <h2 className="text-xl font-semibold mb-6">Especificações</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {Object.entries(specs).map(([key, value]) => {
+                  const SpecIcon = getSpecIcon(key);
+                  return (
+                    <div
+                      key={key}
+                      className="group flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 text-primary group-hover:from-primary/25 group-hover:to-primary/10 transition-colors">
+                        <SpecIcon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">{key}</p>
+                        <p className="text-sm font-semibold text-foreground mt-0.5 break-words">{value}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
