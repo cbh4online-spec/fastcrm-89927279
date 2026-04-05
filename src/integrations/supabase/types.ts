@@ -48351,6 +48351,7 @@ export type Database = {
           contact_id: string | null
           converted_at: string | null
           created_at: string
+          current_step: number | null
           enrichment_data: Json | null
           failure_reason: string | null
           id: string
@@ -48358,6 +48359,7 @@ export type Database = {
           meeting_set_at: string | null
           message_variant: string | null
           metadata: Json | null
+          next_send_at: string | null
           opted_out_at: string | null
           prospect_email: string | null
           prospect_id: string | null
@@ -48375,6 +48377,7 @@ export type Database = {
           contact_id?: string | null
           converted_at?: string | null
           created_at?: string
+          current_step?: number | null
           enrichment_data?: Json | null
           failure_reason?: string | null
           id?: string
@@ -48382,6 +48385,7 @@ export type Database = {
           meeting_set_at?: string | null
           message_variant?: string | null
           metadata?: Json | null
+          next_send_at?: string | null
           opted_out_at?: string | null
           prospect_email?: string | null
           prospect_id?: string | null
@@ -48399,6 +48403,7 @@ export type Database = {
           contact_id?: string | null
           converted_at?: string | null
           created_at?: string
+          current_step?: number | null
           enrichment_data?: Json | null
           failure_reason?: string | null
           id?: string
@@ -48406,6 +48411,7 @@ export type Database = {
           meeting_set_at?: string | null
           message_variant?: string | null
           metadata?: Json | null
+          next_send_at?: string | null
           opted_out_at?: string | null
           prospect_email?: string | null
           prospect_id?: string | null
@@ -48487,6 +48493,72 @@ export type Database = {
           },
           {
             foreignKeyName: "sdr_pipeline_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sdr_sequence_step_logs: {
+        Row: {
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          replied_at: string | null
+          sdr_enrollment_id: string
+          sent_at: string | null
+          sequence_step_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          replied_at?: string | null
+          sdr_enrollment_id: string
+          sent_at?: string | null
+          sequence_step_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          replied_at?: string | null
+          sdr_enrollment_id?: string
+          sent_at?: string | null
+          sequence_step_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_sequence_step_logs_sdr_enrollment_id_fkey"
+            columns: ["sdr_enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_sequence_step_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
