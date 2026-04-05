@@ -89,7 +89,7 @@ export function useSDRCampaigns() {
   });
 
   const updateCampaign = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<SDRCampaign> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string; status?: string; auto_enroll_enabled?: boolean; auto_enroll_min_score?: number; sequence_id?: string; ai_employee_id?: string }) => {
       const { data, error } = await supabase
         .from("sdr_campaigns")
         .update(updates)
