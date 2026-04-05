@@ -248,6 +248,79 @@ export function SDRCampaignSettings({
 
           <Separator />
 
+          {/* AI Personalization */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Personalização por IA
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Gerar conteúdo personalizado para cada prospect
+                </p>
+              </div>
+              <Switch checked={aiPersonalization} onCheckedChange={setAiPersonalization} />
+            </div>
+            {aiPersonalization && (
+              <div className="space-y-3 pl-1">
+                <div>
+                  <Label>Nível de personalização</Label>
+                  <Select value={personalizationLevel} onValueChange={setPersonalizationLevel}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        <span className="flex flex-col">
+                          <span>Leve — Merge Variables</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="medium">
+                        <span className="flex flex-col">
+                          <span>Médio — Reescrita parcial</span>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="total">
+                        <span className="flex flex-col">
+                          <span>Total — Geração completa</span>
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {personalizationLevel === "light" && "Substitui variáveis como {{prospect_name}}, {{company}}"}
+                    {personalizationLevel === "medium" && "Reescreve parcialmente usando IA + contexto de negócio"}
+                    {personalizationLevel === "total" && "Gera mensagem completamente personalizada por IA"}
+                  </p>
+                </div>
+
+                {/* Merge variables reference */}
+                <div className="p-3 rounded-lg bg-muted/30 space-y-1.5">
+                  <p className="text-xs font-medium">Variáveis disponíveis</p>
+                  <div className="flex flex-wrap gap-1">
+                    {["{{prospect_name}}", "{{prospect_email}}", "{{company}}", "{{campaign_name}}", "{{step_number}}", "{{sender_name}}"].map((v) => (
+                      <Badge
+                        key={v}
+                        variant="outline"
+                        className="text-[10px] cursor-pointer hover:bg-muted"
+                        onClick={() => {
+                          navigator.clipboard.writeText(v);
+                          toast.success(`${v} copiado`);
+                        }}
+                      >
+                        <Copy className="h-2 w-2 mr-0.5" />
+                        {v}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Stats summary */}
           <div className="space-y-2">
             <Label>Métricas</Label>
