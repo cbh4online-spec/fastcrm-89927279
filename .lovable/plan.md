@@ -1,39 +1,47 @@
 
 
-# Plano: Corrigir Visualização de Produtos em Mobile
+# Plano: Corrigir Responsive Mobile da Página de Detalhe de Oportunidade
 
 ## Diagnóstico
 
-A partir do screenshot, os produtos **existem** (footer mostra "1000 produtos") mas o corpo da tabela virtualizada é invisível. A causa raiz:
+A partir do screenshot (página de detalhe do deal "Certificação" em mobile ~393px), identifico:
 
-1. **Altura insuficiente para o scroll virtualizado**: `ProductsDataTable` usa `maxHeight: "calc(100vh - 380px)"` — os 380px assumem header desktop. Em mobile, com PageHeader + Toolbar (2 linhas de botões) + CatalogSummary (métricas + chips a ocupar 3+ linhas de wrap) + tabs, o conteúdo acima ultrapassa 500px, deixando a tabela com **altura negativa ou zero**.
-
-2. **Toolbar e Summary não colapsam em mobile**: Todos os botões de ação (Scan, Exportar, Importar, SKUs, Criar), chips de filtro, métricas e selectores de layout ficam visíveis, cada um numa nova linha de wrap.
-
-3. **Filter Sidebar abre por defeito** (`showFilterSidebar: true`), consumindo espaço lateral mesmo em mobile.
+1. **Header Actions overflow** — 6 botões inline (Compor email, Copy, Share, Expand, Star, More) ocupam demasiado espaço horizontal ao lado do título
+2. **TabsList com 11+ tabs** — wrapping em múltiplas linhas consome ~100px+ de altura vertical, empurrando o conteúdo para fora do viewport
+3. **Sidebar always visible** — `OpportunityDetailSidebar` renderiza abaixo do conteúdo em mobile, adicionando scroll extenso sem possibilidade de colapsar
 
 ## Ficheiros a Alterar
 
-### 1. `src/components/products/table/ProductsDataTable.tsx`
-- Remover `maxHeight` fixo — substituir por `flex-1 min-h-0` que respeita o container flex
-- Garantir que o container pai propaga a altura disponível corretamente
+### 1. `src/components/opportunities/OpportunityDetailPage.tsx`
+- **Header actions**: Em mobile, esconder botões individuais (Copy, Share, Expand, Star) — manter apenas "Compor email" e "⋯" (MoreHorizontal). Já existe o dropdown com Copy URL/ID, basta mover os outros para lá
+- **TabsList**: Converter para scroll horizontal com `overflow-x-auto` e `flex-nowrap` em vez de `flex-wrap`, impedindo que as tabs ocupem múltiplas linhas
+- **Sidebar**: Esconder sidebar em mobile (`hidden lg:block`) — o conteúdo essencial (etapa, valor, empresa) já aparece nos Highlights Cards
 
-### 2. `src/components/products/ProductsList.tsx`
-- Em mobile: esconder botões secundários do PageHeader (Scan, Exportar, Importar SKUs) — manter apenas "Criar Produto"
-- Esconder Toolbar actions secundárias (Largura, Presets, ColumnSelector) em mobile
-- Esconder `ProductsCatalogSummary` em mobile ou mostrar versão compacta (apenas health score + total)
+### 2. `src/components/opportunities/detail/OpportunityHeaderActions.tsx`
+- Agrupar botões secundários (ClipboardCopy, Share2, Maximize2, Star) dentro de `hidden md:flex` ou movê-los para o dropdown existente (MoreHorizontal)
+- Em mobile: mostrar apenas "Compor email" (compacto, só ícone) + "⋯"
 
-### 3. `src/components/products/ProductsCatalogSummary.tsx`
-- Em mobile: mostrar apenas 1 linha compacta (health score + valor total + contagem)
-- Esconder chips de filtro e botão Analytics em mobile
+### 3. `src/components/opportunities/detail/OpportunityStagesStepper.tsx`
+- Já tem `ScrollArea` horizontal — sem alterações necessárias
 
-### 4. `src/components/products/hooks/useProductsListState.ts`
-- `showFilterSidebar` default `false` em mobile (detectar via `window.innerWidth`)
+## Alterações Técnicas
+
+```text
+OpportunityDetailPage.tsx
+├── TabsList: flex-wrap → flex-nowrap + overflow-x-auto
+├── Sidebar: adicionar hidden lg:block
+└── Title row: gap mais compacto em mobile
+
+OpportunityHeaderActions.tsx
+├── Botões Copy/Share/Expand/Star → hidden md:inline-flex
+└── Mobile: apenas Mail icon-only + MoreHorizontal
+```
 
 ## Critérios de Aceitação
 
-- Tabela de produtos visível e scrollável em ecrãs ≤ 414px
-- Sem overflow horizontal
-- Todas as funções críticas acessíveis (criar, pesquisar, ver detalhe)
+- Sem overflow horizontal em ecrãs ≤ 414px
+- Tabs navegáveis por scroll horizontal (1 linha)
+- Header compacto com acesso a todas as ações via dropdown
+- Conteúdo principal (Highlights + Stages) visível sem scroll excessivo
 - Desktop sem alterações visuais
 
