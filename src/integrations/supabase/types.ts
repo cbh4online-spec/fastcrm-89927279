@@ -43108,6 +43108,76 @@ export type Database = {
           },
         ]
       }
+      product_market_research: {
+        Row: {
+          competitors_json: Json | null
+          created_at: string
+          id: string
+          market_avg_price: number | null
+          market_max_price: number | null
+          market_min_price: number | null
+          model_used: string | null
+          product_id: string
+          research_date: string
+          research_source: string | null
+          suggested_margin_pct: number | null
+          suggested_price: number | null
+          workspace_id: string
+        }
+        Insert: {
+          competitors_json?: Json | null
+          created_at?: string
+          id?: string
+          market_avg_price?: number | null
+          market_max_price?: number | null
+          market_min_price?: number | null
+          model_used?: string | null
+          product_id: string
+          research_date?: string
+          research_source?: string | null
+          suggested_margin_pct?: number | null
+          suggested_price?: number | null
+          workspace_id: string
+        }
+        Update: {
+          competitors_json?: Json | null
+          created_at?: string
+          id?: string
+          market_avg_price?: number | null
+          market_max_price?: number | null
+          market_min_price?: number | null
+          model_used?: string | null
+          product_id?: string
+          research_date?: string
+          research_source?: string | null
+          suggested_margin_pct?: number | null
+          suggested_price?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_market_research_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_market_research_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_market_research_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_price_history: {
         Row: {
           change_type: string | null
@@ -43168,6 +43238,70 @@ export type Database = {
           },
           {
             foreignKeyName: "product_price_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_pricing_rules: {
+        Row: {
+          applies_to: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          max_margin_pct: number | null
+          min_margin_pct: number
+          product_id: string | null
+          target_margin_pct: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          applies_to?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_margin_pct?: number | null
+          min_margin_pct?: number
+          product_id?: string | null
+          target_margin_pct?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          applies_to?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_margin_pct?: number | null
+          min_margin_pct?: number
+          product_id?: string | null
+          target_margin_pct?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_pricing_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_pricing_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_pricing_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
