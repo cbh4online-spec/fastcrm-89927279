@@ -36,6 +36,14 @@ export default function SDRDashboardPage() {
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
+  const { stages: dynamicStages, activeStages } = useSDRPipelineStages(selectedCampaignId);
+
+  // Build enrollment counts by stage key
+  const enrollmentCounts: Record<string, number> = {};
+  for (const e of enrollments) {
+    enrollmentCounts[e.status] = (enrollmentCounts[e.status] || 0) + 1;
+  }
+  const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
 
   // Pipeline stats from aggregated data or campaign enrollments
   const pipelineStats = selectedCampaignId && stats
