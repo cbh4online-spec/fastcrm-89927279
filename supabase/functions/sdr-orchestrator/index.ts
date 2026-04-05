@@ -5,7 +5,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface SDRRequest {
-  action: "enroll_prospect" | "process_reply" | "check_campaign" | "auto_enroll_scan" | "update_status";
+  action: "enroll_prospect" | "enroll_in_sequence" | "process_reply" | "check_campaign" | "auto_enroll_scan" | "update_status" | "pause_sequence" | "resume_sequence";
   workspace_id: string;
   campaign_id?: string;
   prospect_data?: {
@@ -97,6 +97,15 @@ Deno.serve(async (req: Request) => {
       case "update_status":
         result = await updateEnrollmentStatus(supabase, body);
         break;
+      case "enroll_in_sequence":
+        result = await enrollInSequence(supabase, body);
+        break;
+      case "pause_sequence":
+        result = await pauseResumeSequence(supabase, body, "paused");
+        break;
+      case "resume_sequence":
+        result = await pauseResumeSequence(supabase, body, "sequenced");
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400,
@@ -172,12 +181,13 @@ async function enrollProspect(supabase: any, body: SDRRequest) {
     .update({ total_enrolled: campaign.total_enrolled + 1 })
     .eq("id", campaign_id);
 
-  // If campaign has a sequence, try to enrich and enroll in sequence
+  // If campaign has a sequence, enroll in sequence automatically
   if (campaign.sequence_id) {
-    await supabase
-      .from("sdr_enrollments")
-      .update({ status: "sequenced" })
-      .eq("id", enrollment.id);
+    await enrollInSequence(supabase, {
+      ...body,
+      enrollment_id: enrollment.id,
+      action: "enroll_in_sequence",
+    });
   }
 
   return { enrolled: true, enrollment_id: enrollment.id };
