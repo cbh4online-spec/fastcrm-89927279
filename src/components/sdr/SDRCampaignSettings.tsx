@@ -109,6 +109,7 @@ export function SDRCampaignSettings({
   };
 
   const handleSave = () => {
+    const currentSettings = (campaign.settings || {}) as Record<string, any>;
     onSave({
       id: campaign.id,
       name: name.trim(),
@@ -117,6 +118,11 @@ export function SDRCampaignSettings({
       auto_enroll_min_score: autoEnroll ? minScore : null,
       sequence_id: sequenceId === "none" ? null : sequenceId,
       ab_testing_config: { variants: abVariants } as any,
+      settings: {
+        ...currentSettings,
+        ai_personalization: aiPersonalization,
+        personalization_level: personalizationLevel,
+      } as any,
     } as any);
   };
 
