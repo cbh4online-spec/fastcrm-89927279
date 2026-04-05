@@ -48270,6 +48270,170 @@ export type Database = {
           },
         ]
       }
+      sdr_campaigns: {
+        Row: {
+          ab_testing_config: Json | null
+          ai_employee_id: string | null
+          auto_enroll_enabled: boolean
+          auto_enroll_min_score: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          sequence_id: string | null
+          settings: Json | null
+          status: string
+          target_filters: Json | null
+          total_converted: number
+          total_enrolled: number
+          total_meetings: number
+          total_replied: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ab_testing_config?: Json | null
+          ai_employee_id?: string | null
+          auto_enroll_enabled?: boolean
+          auto_enroll_min_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sequence_id?: string | null
+          settings?: Json | null
+          status?: string
+          target_filters?: Json | null
+          total_converted?: number
+          total_enrolled?: number
+          total_meetings?: number
+          total_replied?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ab_testing_config?: Json | null
+          ai_employee_id?: string | null
+          auto_enroll_enabled?: boolean
+          auto_enroll_min_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sequence_id?: string | null
+          settings?: Json | null
+          status?: string
+          target_filters?: Json | null
+          total_converted?: number
+          total_enrolled?: number
+          total_meetings?: number
+          total_replied?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sdr_enrollments: {
+        Row: {
+          campaign_id: string
+          channel: string | null
+          contact_id: string | null
+          converted_at: string | null
+          created_at: string
+          enrichment_data: Json | null
+          failure_reason: string | null
+          id: string
+          lead_id: string | null
+          meeting_set_at: string | null
+          message_variant: string | null
+          metadata: Json | null
+          opted_out_at: string | null
+          prospect_email: string | null
+          prospect_id: string | null
+          prospect_name: string | null
+          prospect_phone: string | null
+          reply_detected_at: string | null
+          sequence_enrollment_id: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          channel?: string | null
+          contact_id?: string | null
+          converted_at?: string | null
+          created_at?: string
+          enrichment_data?: Json | null
+          failure_reason?: string | null
+          id?: string
+          lead_id?: string | null
+          meeting_set_at?: string | null
+          message_variant?: string | null
+          metadata?: Json | null
+          opted_out_at?: string | null
+          prospect_email?: string | null
+          prospect_id?: string | null
+          prospect_name?: string | null
+          prospect_phone?: string | null
+          reply_detected_at?: string | null
+          sequence_enrollment_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          channel?: string | null
+          contact_id?: string | null
+          converted_at?: string | null
+          created_at?: string
+          enrichment_data?: Json | null
+          failure_reason?: string | null
+          id?: string
+          lead_id?: string | null
+          meeting_set_at?: string | null
+          message_variant?: string | null
+          metadata?: Json | null
+          opted_out_at?: string | null
+          prospect_email?: string | null
+          prospect_id?: string | null
+          prospect_name?: string | null
+          prospect_phone?: string | null
+          reply_detected_at?: string | null
+          sequence_enrollment_id?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_enrollments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_enrollments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_comparisons: {
         Row: {
           content: Json | null

@@ -8,6 +8,7 @@ const ProfessionalProspecting = lazy(() => import("@/pages/ProfessionalProspecti
 const CompetitorTrackerPage = lazy(() => import("@/pages/CompetitorTrackerPage"));
 const LeadEnricher = lazy(() => import("@/pages/LeadEnricher"));
 const FastMatchDiscoveryPage = lazy(() => import("@/pages/fastmatch/FastMatchDiscoveryPage"));
+const SDRDashboardPage = lazy(() => import("@/pages/SDRDashboardPage"));
 
 export function ProspectingRoutes() {
   return (
@@ -19,6 +20,7 @@ export function ProspectingRoutes() {
       <Route path="/dashboard/competitors" element={<CompetitorTrackerPage />} />
       <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
       <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
+      <Route path="/dashboard/sdr" element={<SDRDashboardPage />} />
     </>
   );
 }
