@@ -11,6 +11,7 @@ import {
   ThankYouRenderer, CountdownRenderer, BookingRenderer,
   UpsellRenderer, DownsellRenderer, BridgeRenderer,
 } from "@/components/funnels/step-renderers";
+import { FunnelLegalFooter } from "@/components/funnels/FunnelLegalFooter";
 import type { Json } from "@/integrations/supabase/types";
 
 interface FunnelData {
@@ -462,6 +463,8 @@ export default function PublicFunnelPage() {
           </div>
         )}
       </div>
+
+      <FunnelLegalFooter />
     </div>
   );
 }
