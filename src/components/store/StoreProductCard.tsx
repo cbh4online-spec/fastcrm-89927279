@@ -348,7 +348,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                     €{effectivePrice.toFixed(2)}
                   </span>
                   <StoreVatLabel />
-                  {isDiscounted && (
+                  {isDiscounted && !pricing.isPromo && (
                     <>
                       <span className="text-sm text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
                       {savingsPercent > 0 && (
@@ -359,11 +359,25 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                       )}
                     </>
                   )}
+                  {pricing.isPromo && pricing.lowestPrice30d && (
+                    <span className="text-sm text-muted-foreground line-through">€{pricing.lowestPrice30d.toFixed(2)}</span>
+                  )}
+                  {pricing.isPromo && savingsPercent > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-destructive/10 text-destructive border-0">
+                      <Flame className="h-2.5 w-2.5 mr-0.5" />
+                      -{savingsPercent}%
+                    </Badge>
+                  )}
                   {product.billing_type === "recurring" && (
                     <span className="text-xs text-muted-foreground">/mês</span>
                   )}
                 </div>
-                {discountLabel && (
+                {pricing.isPromo && pricing.lowestPrice30d && (
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    Preço mais baixo últimos 30 dias: €{pricing.lowestPrice30d.toFixed(2)}
+                  </p>
+                )}
+                {discountLabel && !pricing.isPromo && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1 w-fit" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
                     {discountLabel}
                   </Badge>
