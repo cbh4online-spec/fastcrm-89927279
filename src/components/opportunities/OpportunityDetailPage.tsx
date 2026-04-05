@@ -408,20 +408,22 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
         </div>
 
         {/* Sidebar - hidden on mobile */}
-        <OpportunityDetailSidebar
-          opportunity={opportunity}
-          stages={stages}
-          intelligence={intelligence}
-          intelligenceLoading={intelligenceLoading}
-          leads={leadOptions}
-          contacts={contactOptions}
-          companies={companyOptions}
-          isLoadingLeads={isLoadingLeads}
-          isLoadingContacts={isLoadingContacts}
-          isLoadingCompanies={isLoadingCompanies}
-          onUpdate={handleUpdate}
-          sidebarOrder={sidebarOrder}
-        />
+        <div className="hidden lg:block">
+          <OpportunityDetailSidebar
+            opportunity={opportunity}
+            stages={stages}
+            intelligence={intelligence}
+            intelligenceLoading={intelligenceLoading}
+            leads={leadOptions}
+            contacts={contactOptions}
+            companies={companyOptions}
+            isLoadingLeads={isLoadingLeads}
+            isLoadingContacts={isLoadingContacts}
+            isLoadingCompanies={isLoadingCompanies}
+            onUpdate={handleUpdate}
+            sidebarOrder={sidebarOrder}
+          />
+        </div>
       </div>
 
       <OpportunityLayoutConfigDialog
