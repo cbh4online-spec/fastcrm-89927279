@@ -184,6 +184,10 @@ export default function SDRDashboardPage() {
               )}
             </TabsTrigger>
             <TabsTrigger value="funnel">Funil</TabsTrigger>
+            <TabsTrigger value="sequences">
+              <Zap className="h-3.5 w-3.5 mr-1" />
+              Sequências
+            </TabsTrigger>
             <TabsTrigger value="stages">
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Fases ({dynamicStages.length})
