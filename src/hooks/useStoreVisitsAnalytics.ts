@@ -51,6 +51,22 @@ interface ExitPageEntry {
   percentage: number;
 }
 
+interface ConsentBreakdown {
+  analyticsGranted: number;
+  analyticsDenied: number;
+  marketingGranted: number;
+  marketingDenied: number;
+  totalWithConsent: number;
+  analyticsRate: number;
+  marketingRate: number;
+}
+
+interface EventTypeEntry {
+  eventType: string;
+  count: number;
+  percentage: number;
+}
+
 interface VisitsKPIs {
   totalViews: number;
   uniqueSessions: number;
@@ -105,6 +121,27 @@ export function useStoreVisitsAnalytics(days: number) {
         scroll_depth_max: number | null;
         exit_page: string | null;
         pages_history: string[] | null;
+        consent_analytics: boolean | null;
+        consent_marketing: boolean | null;
+        gdpr_visitor_id: string | null;
+      }>;
+    },
+  });
+
+  // Fetch tracking events
+  const eventsQuery = useQuery({
+    queryKey: ["store-tracking-events", days],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_tracking_events" as any)
+        .select("id, event_type, event_data, created_at")
+        .gte("created_at", cutoff);
+      if (error) throw error;
+      return (data || []) as unknown as Array<{
+        id: string;
+        event_type: string;
+        event_data: Record<string, unknown> | null;
+        created_at: string;
       }>;
     },
   });
@@ -121,10 +158,11 @@ export function useStoreVisitsAnalytics(days: number) {
     },
   });
 
-  const isLoading = pageViewsQuery.isLoading || sessionsQuery.isLoading || productNamesQuery.isLoading;
+  const isLoading = pageViewsQuery.isLoading || sessionsQuery.isLoading || productNamesQuery.isLoading || eventsQuery.isLoading;
 
   const views = pageViewsQuery.data || [];
   const sessions = sessionsQuery.data || [];
+  const events = eventsQuery.data || [];
   const productMap = new Map((productNamesQuery.data || []).map((p) => [p.id, p.name]));
 
   // KPIs
@@ -283,6 +321,36 @@ export function useStoreVisitsAnalytics(days: number) {
     .sort((a, b) => b.exits - a.exits)
     .slice(0, 15);
 
+  // Consent Breakdown
+  const sessionsWithConsent = sessions.filter((s) => s.consent_analytics !== null);
+  const analyticsGranted = sessionsWithConsent.filter((s) => s.consent_analytics === true).length;
+  const analyticsDenied = sessionsWithConsent.filter((s) => s.consent_analytics === false).length;
+  const marketingGranted = sessionsWithConsent.filter((s) => s.consent_marketing === true).length;
+  const marketingDenied = sessionsWithConsent.filter((s) => s.consent_marketing === false).length;
+  const consentBreakdown: ConsentBreakdown = {
+    analyticsGranted,
+    analyticsDenied,
+    marketingGranted,
+    marketingDenied,
+    totalWithConsent: sessionsWithConsent.length,
+    analyticsRate: sessionsWithConsent.length > 0 ? (analyticsGranted / sessionsWithConsent.length) * 100 : 0,
+    marketingRate: sessionsWithConsent.length > 0 ? (marketingGranted / sessionsWithConsent.length) * 100 : 0,
+  };
+
+  // Event Type Breakdown
+  const eventTypeMap = new Map<string, number>();
+  for (const e of events) {
+    eventTypeMap.set(e.event_type, (eventTypeMap.get(e.event_type) || 0) + 1);
+  }
+  const totalEvents = events.length;
+  const eventTypes: EventTypeEntry[] = Array.from(eventTypeMap.entries())
+    .map(([eventType, count]) => ({
+      eventType,
+      count,
+      percentage: totalEvents > 0 ? (count / totalEvents) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
   return {
     kpis,
     dailyVisits,
@@ -293,6 +361,9 @@ export function useStoreVisitsAnalytics(days: number) {
     aiIntents,
     scrollDepthDistribution,
     exitPages,
+    consentBreakdown,
+    eventTypes,
+    totalEvents,
     isLoading,
   };
 }

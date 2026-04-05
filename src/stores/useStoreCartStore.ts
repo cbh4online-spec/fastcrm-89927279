@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
 import { calcSubtotal, moneyToNumber } from "@/lib/money";
+import { trackStoreEvent } from "@/lib/storeTracking";
 
 export interface CartItem {
   productId: string;
@@ -120,6 +121,16 @@ function createCartStore(wsSlug: string) {
               quantity,
               currency: item.currency,
             });
+            // DB event tracking
+            const wsId = state._wsId;
+            if (wsId) {
+              trackStoreEvent(wsId, "add_to_cart", {
+                productId: item.productId,
+                quantity,
+                price: item.price,
+                currency: item.currency,
+              });
+            }
             return { items: newItems, isOpen: true, ...derived };
           });
         },
@@ -136,6 +147,14 @@ function createCartStore(wsSlug: string) {
                 productId,
                 productName: removed.name,
               });
+              const wsId = state._wsId;
+              if (wsId) {
+                trackStoreEvent(wsId, "remove_from_cart", {
+                  productId,
+                  price: removed.price,
+                  currency: removed.currency,
+                });
+              }
             }
             return { items: newItems, ...derived };
           });
@@ -154,8 +173,12 @@ function createCartStore(wsSlug: string) {
         },
 
         clearCart: () => {
+          const wsId = get()._wsId;
           debouncedSync(wsSlug, [], 0);
           trackEvent("cart_cleared", { workspaceSlug: wsSlug });
+          if (wsId) {
+            trackStoreEvent(wsId, "cart_cleared", {});
+          }
           set({ items: [], totalItems: 0, subtotal: 0 });
         },
 
