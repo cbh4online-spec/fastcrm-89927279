@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +29,18 @@ import {
   Trash2,
   ArrowDown,
   Zap,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface CommunicationTemplate {
+  id: string;
+  name: string;
+  channel: string;
+  subject: string | null;
+  body: string | null;
+  body_html: string | null;
+}
 
 interface SequenceStep {
   id?: string;
