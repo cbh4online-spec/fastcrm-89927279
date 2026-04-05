@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
-import { Package, Truck, CheckCircle2, Clock, ExternalLink, MapPin, CreditCard } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, ExternalLink, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatMoney } from "@/lib/money";
@@ -31,7 +31,7 @@ export default function StoreOrderTrackingPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_orders")
-        .select("id, order_number, status, customer_name, items, subtotal, discount_amount, shipping_cost, total, currency, created_at, paid_at, shipped_at, completed_at, tracking_number, tracking_carrier, tracking_url, shipping_method_name, shipping_address, payment_method")
+        .select("id, order_number, status, items, subtotal, discount_amount, shipping_cost, total, currency, created_at, paid_at, shipped_at, completed_at, tracking_number, tracking_carrier, tracking_url, shipping_method_name")
         .eq("id", orderId!)
         .single();
       if (error) throw error;
@@ -90,7 +90,6 @@ export default function StoreOrderTrackingPage() {
   const StatusIcon = statusConfig.icon;
   const currentStepIdx = TIMELINE_STEPS.indexOf(status);
   const items = (order.items as any[]) || [];
-  const shippingAddr = order.shipping_address as Record<string, string> | null;
 
   return (
     <>
@@ -188,24 +187,7 @@ export default function StoreOrderTrackingPage() {
             </div>
           )}
 
-          {/* Shipping address */}
-          {shippingAddr && (
-            <div className="rounded-lg border p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold">Morada de entrega</h3>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {shippingAddr.line1 && <p>{shippingAddr.line1}</p>}
-                {shippingAddr.line2 && <p>{shippingAddr.line2}</p>}
-                <p>
-                  {[shippingAddr.postal_code, shippingAddr.city].filter(Boolean).join(" ")}
-                  {shippingAddr.state ? `, ${shippingAddr.state}` : ""}
-                </p>
-                {shippingAddr.country && <p>{shippingAddr.country}</p>}
-              </div>
-            </div>
-          )}
+          {/* Shipping address removed from public view for privacy */}
 
           {/* Items */}
           <div className="rounded-lg border p-4 space-y-4">
