@@ -50,10 +50,13 @@ import { PricingRulesManager } from "./PricingRulesManager";
 import { StockAlertsManager } from "./StockAlertsManager";
 import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
+import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 
 export function ProductsList() {
   const state = useProductsListState();
+  const { data: pricingRules = [] } = usePricingRules();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
@@ -315,6 +318,7 @@ export function ProductsList() {
               onInlinePriceUpdate={(id, field, value) => state.updateProductPrice.mutate({ id, field, value })}
               isFilteredEmpty={state.filtersActive && state.filteredProducts.length === 0 && !state.isLoading}
               onClearFilters={state.handleClearFilters}
+              pricingRules={pricingRules}
             />
           </>
         )}
@@ -325,6 +329,7 @@ export function ProductsList() {
         {state.activeTab === "pricing-rules" && <PricingRulesManager />}
         {state.activeTab === "stock-alerts" && <StockAlertsManager />}
         {state.activeTab === "reports" && <ProductReportsTab />}
+        {state.activeTab === "health" && <PricingHealthDashboard />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 

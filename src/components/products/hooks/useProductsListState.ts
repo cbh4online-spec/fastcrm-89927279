@@ -31,6 +31,7 @@ export const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "direct_cost", label: "Custo Direto", category: "business", defaultVisible: false },
   { id: "operational_cost", label: "Custo Operacional", category: "business", defaultVisible: false },
   { id: "margin", label: "Margem", category: "business", defaultVisible: false },
+  { id: "margin_status", label: "Saúde Margem", category: "business", defaultVisible: true },
   { id: "billing_type", label: "Cobrança", category: "business", defaultVisible: true },
   { id: "billing_frequency", label: "Frequência", category: "business", defaultVisible: false },
   { id: "status", label: "Estado", category: "basic", defaultVisible: true },
@@ -48,7 +49,7 @@ export const PRODUCT_COLUMNS: ColumnConfig[] = [
 
 export const INITIAL_COL_WIDTHS: Record<string, number> = {
   name: 220, sku: 120, product_type: 100, category: 130,
-  base_price: 90, direct_cost: 100, operational_cost: 100, margin: 80,
+  base_price: 90, direct_cost: 100, operational_cost: 100, margin: 80, margin_status: 90,
   billing_type: 100, billing_frequency: 100, status: 90,
   store_published: 90, b2b_published: 80, total_units: 80,
   unit_duration: 90, validity_days: 90, tax_rate_estimate_pct: 80,
@@ -62,6 +63,7 @@ export const pageTabs = [
   { id: "bundles", label: "Bundles" },
   { id: "pricing-rules", label: "Regras de Preço" },
   { id: "stock-alerts", label: "Alertas Stock" },
+  { id: "health", label: "Saúde Preços" },
   { id: "reports", label: "Relatórios" },
   { id: "settings", label: "Configurações" },
 ];

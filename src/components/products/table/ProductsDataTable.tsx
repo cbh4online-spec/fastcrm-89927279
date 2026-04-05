@@ -27,6 +27,8 @@ import {
 } from "@/types/product";
 import { PRODUCT_COLUMNS } from "../hooks/useProductsListState";
 import { InlinePriceEditor } from "./InlinePriceEditor";
+import { MarginStatusBadge } from "../pricing/MarginStatusBadge";
+import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 
 interface ProductsDataTableProps {
   products: Product[];
@@ -55,6 +57,7 @@ interface ProductsDataTableProps {
   /** True when search/filters are active but returned 0 results */
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
+  pricingRules?: import("@/hooks/useProductPricingIntelligence").PricingRule[];
 }
 
 function RenderProductCell({
@@ -64,7 +67,7 @@ function RenderProductCell({
 }: {
   product: Product;
   columnId: string;
-  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate">;
+  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate" | "pricingRules">;
 }) {
   const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate } = helpers;
 
@@ -154,6 +157,16 @@ function RenderProductCell({
         );
       }
       return <span>-</span>;
+    case "margin_status":
+      return (
+        <MarginStatusBadge
+          price={product.base_price}
+          cost={product.direct_cost}
+          category={product.category}
+          rules={helpers.pricingRules || []}
+          compact={false}
+        />
+      );
     case "billing_type":
       return <span>{getBillingTypeLabel(product.billing_type)}</span>;
     case "billing_frequency":
@@ -229,9 +242,10 @@ export function ProductsDataTable({
   onInlinePriceUpdate,
   isFilteredEmpty,
   onClearFilters,
+  pricingRules,
 }: ProductsDataTableProps) {
   const visibleCols = columnOrder.filter((colId) => visibleColumns.has(colId));
-  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate };
+  const helpers = { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate, pricingRules };
 
   const parentRef = useRef<HTMLDivElement>(null);
 

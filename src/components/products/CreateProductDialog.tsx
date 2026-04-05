@@ -137,6 +137,7 @@ export function CreateProductDialog({
   const [laborIncludedInPrice, setLaborIncludedInPrice] = useState(true);
   const [laborNotes, setLaborNotes] = useState("");
   const [showCostWarning, setShowCostWarning] = useState(false);
+  const [showMarginWarning, setShowMarginWarning] = useState(false);
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
@@ -479,13 +480,28 @@ export function CreateProductDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if missing cost price when there's a sale price
     const priceValue = parseFloat(basePrice) || 0;
     const costValue = parseFloat(directCost) || 0;
     
+    // Hard block: price below cost
+    if (priceValue > 0 && costValue > 0 && priceValue < costValue) {
+      toast.error("O preço de venda não pode ser inferior ao custo. Corrija antes de guardar.");
+      return;
+    }
+
+    // Warning: no cost defined
     if (priceValue > 0 && costValue === 0) {
       setShowCostWarning(true);
       return;
+    }
+
+    // Warning: margin below 10% threshold
+    if (priceValue > 0 && costValue > 0) {
+      const marginPct = ((priceValue - costValue) / costValue) * 100;
+      if (marginPct < 10) {
+        setShowMarginWarning(true);
+        return;
+      }
     }
     
     await handleActualSubmit();
@@ -493,6 +509,11 @@ export function CreateProductDialog({
 
   const handleConfirmWithoutCost = async () => {
     setShowCostWarning(false);
+    await handleActualSubmit();
+  };
+
+  const handleConfirmLowMargin = async () => {
+    setShowMarginWarning(false);
     await handleActualSubmit();
   };
 
@@ -1281,6 +1302,34 @@ export function CreateProductDialog({
               </AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmWithoutCost}>
                 Gravar Sem Custo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Low margin warning */}
+        <AlertDialog open={showMarginWarning} onOpenChange={setShowMarginWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Margem abaixo do recomendado
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p>
+                  A margem deste produto ({grossMarginPct.toFixed(1)}%) está abaixo do mínimo recomendado (10%).
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <p>Preço: {new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(price)}</p>
+                  <p>Custo: {new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(cost)}</p>
+                  <p className="font-medium mt-1">Margem: {grossMarginPct.toFixed(1)}%</p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Corrigir Preço</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmLowMargin}>
+                Guardar Mesmo Assim
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
