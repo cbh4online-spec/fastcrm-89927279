@@ -71,11 +71,18 @@ export function useSDRCampaigns() {
   });
 
   const createCampaign = useMutation({
-    mutationFn: async (input: { name: string; description?: string }) => {
+    mutationFn: async (input: { name: string; description?: string; sequence_id?: string; auto_enroll_enabled?: boolean; auto_enroll_min_score?: number }) => {
       if (!workspaceId) throw new Error("No workspace");
       const { data, error } = await supabase
         .from("sdr_campaigns")
-        .insert({ workspace_id: workspaceId, name: input.name, description: input.description || null })
+        .insert({
+          workspace_id: workspaceId,
+          name: input.name,
+          description: input.description || null,
+          sequence_id: input.sequence_id || null,
+          auto_enroll_enabled: input.auto_enroll_enabled || false,
+          auto_enroll_min_score: input.auto_enroll_min_score ?? 70,
+        })
         .select()
         .single();
       if (error) throw error;
