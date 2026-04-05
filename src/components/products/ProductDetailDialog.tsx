@@ -89,6 +89,9 @@ import { useProductImages } from "@/hooks/useProductImages";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
+import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
+import { Search as SearchIcon } from "lucide-react";
 
 interface ProductDetailDialogProps {
   open: boolean;
