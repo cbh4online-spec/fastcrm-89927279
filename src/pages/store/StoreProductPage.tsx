@@ -569,8 +569,8 @@ export default function StoreProductPage() {
                 )}
 
                 {/* Urgency Countdown for time-limited offers */}
-                {!isPriceOnRequest && pricing?.isDiscounted && (product as any).offer_ends_at && (
-                  <StoreOfferCountdown endsAt={(product as any).offer_ends_at} />
+                {!isPriceOnRequest && pricing?.isDiscounted && ((product as any).offer_ends_at || pricing?.promoEndAt) && (
+                  <StoreOfferCountdown endsAt={(product as any).offer_ends_at || pricing.promoEndAt} />
                 )}
 
                 {/* Stock status */}
