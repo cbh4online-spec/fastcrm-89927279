@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
-import { Package, Truck, CheckCircle2, Clock, ExternalLink, MapPin, CreditCard } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, ExternalLink, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { formatMoney } from "@/lib/money";
