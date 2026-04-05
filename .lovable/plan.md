@@ -1,47 +1,54 @@
-# SDR — Iteração 7: Compliance, Opt-out, Bounces e Throttling
+
+
+# Plano: Corrigir Responsive Mobile da Inbox
 
 ## Diagnóstico
 
-O módulo SDR tem `opted_out_at` nos enrollments e o orchestrator consegue marcar status `opted_out`, mas falta:
-- **Suppression check antes do envio**: O `sdr-sequence-executor` não verifica `campaign_suppressions` nem `suppressed_emails` antes de enviar
-- **Unsubscribe link nos emails SDR**: Emails de sequência não incluem link de opt-out
-- **Bounce handling para SDR**: Bounces do marketing-webhook não propagam para enrollments SDR
-- **Throttling de envio**: Sem rate limiting — pode enviar centenas de emails de uma vez
-- **UI de gestão de opt-outs**: Sem vista para ver/gerir contactos que fizeram opt-out
-- **Compliance footer**: Sem informação GDPR/CAN-SPAM nos emails de sequência
+A partir do screenshot e análise do código, identifico os seguintes problemas no mobile:
 
-## Implementação
+1. **Header da InboxView** — Botões, métricas e pesquisa todos em linha, causando overflow horizontal
+2. **SalesInboxColumns** — 4 colunas lado a lado (`flex`) impossíveis de usar em ecrãs < 768px
+3. **Lista de conversas** — Larguras fixas (`w-80`/`w-96`) que não se adaptam ao mobile
+4. **Painel de detalhe** — Não tem lógica de navegação mobile (mostrar lista OU detalhe, não ambos)
+5. **InboxMetricsBar** — Métricas + ferramentas inline sem wrap para mobile
 
-### 1. Migração: tabela `sdr_suppressions`
-Tabela dedicada de supressões SDR (bounces, complaints, opt-outs manuais) com workspace scope.
-Campos: workspace_id, email, reason (hard_bounce | complaint | manual_optout | unsubscribe), source_enrollment_id, created_at.
+## Plano de Implementação
 
-### 2. sdr-sequence-executor: Suppression check + Throttling
-- Antes de enviar, verificar se o email está em `sdr_suppressions` OU `suppressed_emails`
-- Se suprimido: skip step, logar motivo, marcar enrollment como `opted_out`
-- Throttling: processar em batches de 20, com delay de 500ms entre envios
-- Adicionar unsubscribe link e compliance footer ao corpo do email
+### 1. InboxView — Layout mobile-first
+- **Header**: Esconder botões secundários (atalhos, toggle view, painel CRM) em `hidden md:flex`; manter apenas sidebar toggle e compose
+- **Pesquisa**: Em mobile, mover para baixo do header ou tornar colapsável
+- **Lista/Detalhe**: Implementar padrão master-detail mobile:
+  - Mobile (`< lg`): Mostrar lista OU detalhe (nunca ambos)
+  - Quando `selectedConversationId` está definido → esconder lista, mostrar detalhe com botão voltar
+  - Quando sem selecção → mostrar lista full-width
+- **ConversationList**: Remover largura fixa, usar `w-full` em mobile
 
-### 3. sdr-orchestrator: Bounce propagation
-- Ao receber webhook de bounce/complaint, verificar se o email tem enrollment SDR activo
-- Se sim: marcar enrollment como `opted_out`, criar registo em `sdr_suppressions`
+### 2. SalesInboxColumns — Scrollável horizontal ou empilhado
+- Em mobile (`< md`): Converter para layout vertical empilhado com accordion/tabs por grupo
+- Ou: Scroll horizontal com snap para cada coluna (cada coluna ocupa ~85vw)
 
-### 4. UI: SDRSuppressionManager
-- Lista de emails suprimidos com filtros (reason, data)
-- Acção: remover supressão (com confirmação)
-- Acção: adicionar supressão manual
-- KPIs: total suprimidos, por motivo, tendência
+### 3. InboxMetricsBar — Compactar
+- Em mobile: Mostrar apenas contadores essenciais (abertas + não lidas)
+- Esconder botões de sync e toggles em `hidden md:flex`
 
-### 5. UI: Opt-out rate no dashboard
-- Adicionar opt-out rate aos KPIs existentes das campanhas
-- Coluna opt-out no SDRAnalyticsDashboard
+### 4. ConversationDetail — Botão voltar
+- Adicionar botão `← Voltar` no topo do detalhe quando em mobile
+- Ao clicar, limpar `selectedConversationId`
 
-### Ficheiros
+## Ficheiros a Modificar
 
-| Ficheiro | Acção |
+| Ficheiro | Alteração |
 |---|---|
-| `supabase/functions/sdr-sequence-executor/index.ts` | Suppression check + throttling + unsubscribe link |
-| `supabase/functions/sdr-orchestrator/index.ts` | Bounce propagation para enrollments |
-| `src/components/sdr/SDRSuppressionManager.tsx` | **Novo** — gestão de supressões |
-| `src/pages/SDRDashboardPage.tsx` | Adicionar tab "Compliance" |
-| `src/components/sdr/SDRAnalyticsDashboard.tsx` | Adicionar opt-out rate |
+| `src/components/inbox/InboxView.tsx` | Layout master-detail mobile, header responsive |
+| `src/components/inbox/SalesInboxColumns.tsx` | Scroll horizontal com snap em mobile |
+| `src/components/inbox/InboxMetricsBar.tsx` | Compactar para mobile |
+| `src/components/inbox/ConversationDetail.tsx` | Botão voltar em mobile |
+
+## Critérios de Aceitação
+
+- Nenhum overflow horizontal em ecrãs ≤ 414px
+- Navegação lista → detalhe → lista funcional em mobile
+- Todos os elementos visíveis e clicáveis sem sobreposição
+- Header não ultrapassa 1 linha em mobile
+- Columns view usável em mobile (scroll horizontal ou tabs)
+
