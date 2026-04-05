@@ -1,6 +1,21 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const CONSENT_STORAGE_KEY = "gdpr_consent";
+const GDPR_VISITOR_ID_KEY = "gdpr_visitor_id";
+
+function getConsentState() {
+  try {
+    const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as { analytics: boolean; marketing: boolean; hasConsented: boolean };
+  } catch {}
+  return { analytics: false, marketing: false, hasConsented: false };
+}
+
+function getGdprVisitorId(): string | null {
+  return localStorage.getItem(GDPR_VISITOR_ID_KEY) || null;
+}
+
 const SESSION_KEY = "store_view_session_id";
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLASSIFY_PRODUCTS_THRESHOLD = 3;
@@ -67,6 +82,9 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     const timeOnSite = Math.floor((Date.now() - startTime.current) / 1000);
     const productsArray = Array.from(productsViewed.current);
 
+    const consent = getConsentState();
+    const gdprVisitorId = getGdprVisitorId();
+
     const sessionData = {
       workspace_id: workspaceId,
       session_id: sessionId.current,
@@ -77,6 +95,9 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       scroll_depth_max: maxScrollDepth.current,
       exit_page: currentPage,
       pages_history: pagesHistory.current,
+      consent_analytics: consent.analytics,
+      consent_marketing: consent.marketing,
+      gdpr_visitor_id: gdprVisitorId,
       ...extraFields,
     };
 
