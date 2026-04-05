@@ -14,6 +14,7 @@ import { LandingFinalCTA } from "@/components/landing-fastcrm/LandingFinalCTA";
 import { LandingFAQSection } from "@/components/landing-fastcrm/LandingFAQSection";
 import { LandingFooter } from "@/components/landing-fastcrm/LandingFooter";
 import { LandingStickyHeader } from "@/components/landing-fastcrm/LandingStickyHeader";
+import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 
 export default function FastCRMLanding() {
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function FastCRMLanding() {
           <LandingFAQSection />
         </main>
         <LandingFooter />
+        <StoreCookieConsent />
       </div>
     </>
   );
