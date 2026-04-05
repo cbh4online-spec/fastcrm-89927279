@@ -6,40 +6,45 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, TrendingUp, MessageSquare, Calendar, Trophy } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3 } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
+import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { SDRPipelineView } from "@/components/sdr/SDRPipelineView";
 import { SDRCampaignCard } from "@/components/sdr/SDRCampaignCard";
+import { SDRActivityFeed } from "@/components/sdr/SDRActivityFeed";
+import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function SDRDashboardPage() {
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useSDRCampaigns();
+  const { data: aggStats, isLoading: aggLoading } = useSDRAggregatedStats();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
 
-  // Global stats across all campaigns
-  const globalStats = {
-    enrolled: campaigns.reduce((s, c) => s + c.total_enrolled, 0),
-    enriching: 0,
-    sequenced: 0,
-    replied: campaigns.reduce((s, c) => s + c.total_replied, 0),
-    meetingSet: campaigns.reduce((s, c) => s + c.total_meetings, 0),
-    converted: campaigns.reduce((s, c) => s + c.total_converted, 0),
-    optedOut: 0,
-    total: campaigns.reduce((s, c) => s + c.total_enrolled, 0),
-  };
-
-  const globalReplyRate = globalStats.total > 0 ? ((globalStats.replied / globalStats.total) * 100).toFixed(1) : "0.0";
-  const globalMeetingRate = globalStats.total > 0 ? ((globalStats.meetingSet / globalStats.total) * 100).toFixed(1) : "0.0";
-  const globalConversionRate = globalStats.total > 0 ? ((globalStats.converted / globalStats.total) * 100).toFixed(1) : "0.0";
+  // Pipeline stats from aggregated data or campaign enrollments
+  const pipelineStats = selectedCampaignId && stats
+    ? stats
+    : {
+        enrolled: aggStats?.totalEnrolled ?? 0,
+        enriching: aggStats?.totalEnriching ?? 0,
+        sequenced: aggStats?.totalSequenced ?? 0,
+        replied: aggStats?.totalReplied ?? 0,
+        meetingSet: aggStats?.totalMeetings ?? 0,
+        converted: aggStats?.totalConverted ?? 0,
+        optedOut: aggStats?.totalOptedOut ?? 0,
+        total: (aggStats?.totalEnrolled ?? 0) + (aggStats?.totalEnriching ?? 0) + (aggStats?.totalSequenced ?? 0) + (aggStats?.totalReplied ?? 0) + (aggStats?.totalMeetings ?? 0) + (aggStats?.totalConverted ?? 0),
+      };
 
   const handleCreate = () => {
     if (!newName.trim()) return;
@@ -84,45 +89,130 @@ export default function SDRDashboardPage() {
         </div>
 
         {/* Global KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <TrendingUp className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-              <p className="text-2xl font-bold">{globalStats.total}</p>
-              <p className="text-xs text-muted-foreground">Total Enrolled</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <MessageSquare className="h-5 w-5 mx-auto text-amber-500 mb-1" />
-              <p className="text-2xl font-bold">{globalReplyRate}%</p>
-              <p className="text-xs text-muted-foreground">Reply Rate</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <Calendar className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
-              <p className="text-2xl font-bold">{globalMeetingRate}%</p>
-              <p className="text-xs text-muted-foreground">Meeting Rate</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <Trophy className="h-5 w-5 mx-auto text-green-600 mb-1" />
-              <p className="text-2xl font-bold">{globalConversionRate}%</p>
-              <p className="text-xs text-muted-foreground">Conversion Rate</p>
-            </CardContent>
-          </Card>
-        </div>
+        <KPIGrid columns={4}>
+          <KPICard
+            title="Total Enrolled"
+            value={pipelineStats.total}
+            icon={<Users className="h-4 w-4" />}
+            variant="primary"
+            description="Prospects no pipeline"
+          />
+          <KPICard
+            title="Reply Rate"
+            value={`${aggStats?.replyRate.toFixed(1) ?? "0.0"}%`}
+            icon={<MessageSquare className="h-4 w-4" />}
+            variant="warning"
+            description="Taxa de resposta"
+          />
+          <KPICard
+            title="Meeting Rate"
+            value={`${aggStats?.meetingRate.toFixed(1) ?? "0.0"}%`}
+            icon={<Calendar className="h-4 w-4" />}
+            variant="success"
+            description="Taxa de reuniões"
+          />
+          <KPICard
+            title="Conversion Rate"
+            value={`${aggStats?.conversionRate.toFixed(1) ?? "0.0"}%`}
+            icon={<Trophy className="h-4 w-4" />}
+            variant="success"
+            description="Taxa de conversão"
+          />
+        </KPIGrid>
 
-        <Tabs defaultValue="campaigns" className="space-y-4">
+        {/* Secondary metrics */}
+        {aggStats && (aggStats.outreachPending > 0 || aggStats.outreachSent > 0 || aggStats.activeSequences > 0) && (
+          <div className="grid grid-cols-3 gap-3">
+            <Card>
+              <CardContent className="flex items-center gap-3 py-3">
+                <Send className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-semibold">{aggStats.outreachSent}</p>
+                  <p className="text-[11px] text-muted-foreground">Mensagens enviadas</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 py-3">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-semibold">{aggStats.outreachPending}</p>
+                  <p className="text-[11px] text-muted-foreground">Na fila de envio</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-3 py-3">
+                <Rocket className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-semibold">{aggStats.activeSequences}</p>
+                  <p className="text-[11px] text-muted-foreground">Sequências activas</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="campaigns">Campanhas ({campaigns.length})</TabsTrigger>
             <TabsTrigger value="pipeline" disabled={!selectedCampaignId}>
               Pipeline {selectedCampaign ? `— ${selectedCampaign.name}` : ""}
             </TabsTrigger>
           </TabsList>
 
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SDRPipelineView stats={pipelineStats} />
+            </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Campaigns summary */}
+              <div className="lg:col-span-2 space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Campanhas Activas
+                </h3>
+                {campaigns.filter((c) => c.status === "active").length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center">
+                      <p className="text-sm text-muted-foreground">Nenhuma campanha activa</p>
+                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowCreate(true)}>
+                        <Plus className="h-3 w-3 mr-1" /> Criar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {campaigns
+                      .filter((c) => c.status === "active")
+                      .slice(0, 4)
+                      .map((campaign) => (
+                        <SDRCampaignCard
+                          key={campaign.id}
+                          campaign={campaign}
+                          onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
+                          onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
+                          onDelete={(id) => deleteCampaign.mutate(id)}
+                        />
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Activity feed */}
+              <div>
+                <SDRActivityFeed />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Campaigns Tab */}
           <TabsContent value="campaigns" className="space-y-4">
             {isLoading ? (
               <div className="flex justify-center py-12">
@@ -147,7 +237,7 @@ export default function SDRDashboardPage() {
                   <SDRCampaignCard
                     key={campaign.id}
                     campaign={campaign}
-                    onSelect={setSelectedCampaignId}
+                    onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
                     onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
                     onDelete={(id) => deleteCampaign.mutate(id)}
                   />
@@ -156,6 +246,7 @@ export default function SDRDashboardPage() {
             )}
           </TabsContent>
 
+          {/* Pipeline Tab */}
           <TabsContent value="pipeline" className="space-y-4">
             {selectedCampaign && stats && (
               <>
@@ -190,7 +281,7 @@ export default function SDRDashboardPage() {
                               <TableCell className="text-sm capitalize">{e.channel || "—"}</TableCell>
                               <TableCell>{statusBadge(e.status)}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="text-xs">{e.message_variant}</Badge>
+                                <Badge variant="outline" className="text-xs">{e.message_variant || "—"}</Badge>
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground">
                                 {format(new Date(e.created_at), "dd MMM", { locale: pt })}
