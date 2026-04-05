@@ -60,7 +60,8 @@ export function SDRProspectActions({
   campaignId,
 }: SDRProspectActionsProps) {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const { pauseSequence, resumeSequence } = usePauseResumeSequence();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkMoving, setBulkMoving] = useState(false);
 
