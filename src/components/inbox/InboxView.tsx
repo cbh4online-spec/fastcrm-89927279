@@ -24,6 +24,7 @@ import { InboxMetricsBar } from "./InboxMetricsBar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewMode = "list" | "columns";
 
