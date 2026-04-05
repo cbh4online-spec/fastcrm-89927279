@@ -336,7 +336,10 @@ async function updateEnrollmentStatus(supabase: any, body: SDRRequest) {
 
   if (new_status === "meeting_set") updateData.meeting_set_at = new Date().toISOString();
   if (new_status === "converted") updateData.converted_at = new Date().toISOString();
-  if (new_status === "opted_out") updateData.opted_out_at = new Date().toISOString();
+  if (new_status === "opted_out") {
+    updateData.opted_out_at = new Date().toISOString();
+    updateData.next_send_at = null;
+  }
 
   const { data, error } = await supabase
     .from("sdr_enrollments")
@@ -347,6 +350,20 @@ async function updateEnrollmentStatus(supabase: any, body: SDRRequest) {
     .single();
 
   if (error) throw error;
+
+  // If opting out, also create a suppression record
+  if (new_status === "opted_out" && data?.prospect_email) {
+    await supabase.from("sdr_suppressions").upsert(
+      {
+        workspace_id,
+        email: data.prospect_email.toLowerCase(),
+        reason: "manual_optout",
+        source_enrollment_id: enrollment_id,
+      },
+      { onConflict: "workspace_id,email", ignoreDuplicates: true }
+    );
+  }
+
   return data;
 }
 
