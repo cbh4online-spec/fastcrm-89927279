@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
@@ -15,11 +15,10 @@ import { SDRConversionFunnel } from "@/components/sdr/SDRConversionFunnel";
 import { SDRStageSettings } from "@/components/sdr/SDRStageSettings";
 import { SDRCampaignCard } from "@/components/sdr/SDRCampaignCard";
 import { SDRActivityFeed } from "@/components/sdr/SDRActivityFeed";
+import { SDRProspectActions } from "@/components/sdr/SDRProspectActions";
+import { SDRCampaignSettings } from "@/components/sdr/SDRCampaignSettings";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
 import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -31,9 +30,9 @@ export default function SDRDashboardPage() {
   const [newDesc, setNewDesc] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [pipelineMode, setPipelineMode] = useState<"pipeline" | "funnel">("pipeline");
-  const [showStageSettings, setShowStageSettings] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const [campaignSearch, setCampaignSearch] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
@@ -44,10 +43,6 @@ export default function SDRDashboardPage() {
   for (const e of enrollments) {
     enrollmentCounts[e.status] = (enrollmentCounts[e.status] || 0) + 1;
   }
-
-  const filteredEnrollments = stageFilter
-    ? enrollments.filter((e) => e.status === stageFilter)
-    : enrollments;
 
   // Pipeline stats from aggregated data or campaign enrollments
   const pipelineStats = selectedCampaignId && stats
@@ -63,6 +58,17 @@ export default function SDRDashboardPage() {
         total: (aggStats?.totalEnrolled ?? 0) + (aggStats?.totalEnriching ?? 0) + (aggStats?.totalSequenced ?? 0) + (aggStats?.totalReplied ?? 0) + (aggStats?.totalMeetings ?? 0) + (aggStats?.totalConverted ?? 0),
       };
 
+  // Campaign search filter
+  const filteredCampaigns = useMemo(() => {
+    if (!campaignSearch.trim()) return campaigns;
+    const q = campaignSearch.toLowerCase();
+    return campaigns.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.description || "").toLowerCase().includes(q)
+    );
+  }, [campaigns, campaignSearch]);
+
   const handleCreate = () => {
     if (!newName.trim()) return;
     createCampaign.mutate({ name: newName, description: newDesc || undefined }, {
@@ -70,20 +76,10 @@ export default function SDRDashboardPage() {
     });
   };
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-      enrolled: { label: "Enrolled", variant: "outline" },
-      enriching: { label: "Enriquecendo", variant: "secondary" },
-      sequenced: { label: "Em Sequência", variant: "default" },
-      replied: { label: "Respondeu", variant: "secondary" },
-      positive_reply: { label: "Reply +", variant: "default" },
-      meeting_set: { label: "Reunião", variant: "default" },
-      converted: { label: "Convertido", variant: "default" },
-      opted_out: { label: "Opt-out", variant: "destructive" },
-      failed: { label: "Falhou", variant: "destructive" },
-    };
-    const cfg = map[status] || { label: status, variant: "outline" as const };
-    return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
+  const handleSaveCampaignSettings = (updates: any) => {
+    updateCampaign.mutate(updates, {
+      onSuccess: () => setShowSettings(false),
+    });
   };
 
   return (
@@ -174,16 +170,21 @@ export default function SDRDashboardPage() {
           <TabsList>
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="campaigns">Campanhas ({campaigns.length})</TabsTrigger>
-            <TabsTrigger value="pipeline" disabled={!selectedCampaignId}>
+            <TabsTrigger value="pipeline">
               <GitBranch className="h-3.5 w-3.5 mr-1" />
-              Pipeline {selectedCampaign ? `— ${selectedCampaign.name}` : ""}
+              Pipeline
+              {selectedCampaign ? (
+                <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1.5">
+                  {selectedCampaign.name}
+                </Badge>
+              ) : (
+                <span className="ml-1 text-muted-foreground text-[10px]">(global)</span>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="funnel" disabled={!selectedCampaignId}>
-              Funil
-            </TabsTrigger>
+            <TabsTrigger value="funnel">Funil</TabsTrigger>
             <TabsTrigger value="stages">
               <Settings2 className="h-3.5 w-3.5 mr-1" />
-              Fases
+              Fases ({dynamicStages.length})
             </TabsTrigger>
           </TabsList>
 
@@ -239,26 +240,44 @@ export default function SDRDashboardPage() {
 
           {/* Campaigns Tab */}
           <TabsContent value="campaigns" className="space-y-4">
+            {/* Search bar */}
+            {campaigns.length > 0 && (
+              <div className="relative max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Pesquisar campanhas..."
+                  value={campaignSearch}
+                  onChange={(e) => setCampaignSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
-            ) : campaigns.length === 0 ? (
+            ) : filteredCampaigns.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Rocket className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Nenhuma campanha SDR</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {campaignSearch ? "Nenhum resultado" : "Nenhuma campanha SDR"}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Crie a sua primeira campanha de outbound automatizado com IA
+                    {campaignSearch
+                      ? "Ajuste a pesquisa ou crie uma nova campanha."
+                      : "Crie a sua primeira campanha de outbound automatizado com IA"}
                   </p>
-                  <Button onClick={() => setShowCreate(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Criar Campanha
-                  </Button>
+                  {!campaignSearch && (
+                    <Button onClick={() => setShowCreate(true)}>
+                      <Plus className="h-4 w-4 mr-2" /> Criar Campanha
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {campaigns.map((campaign) => (
+                {filteredCampaigns.map((campaign) => (
                   <SDRCampaignCard
                     key={campaign.id}
                     campaign={campaign}
@@ -273,77 +292,82 @@ export default function SDRDashboardPage() {
 
           {/* Pipeline Tab */}
           <TabsContent value="pipeline" className="space-y-4">
-            {selectedCampaign && stats ? (
-              <>
-                <SDRPipelineView
-                  stats={stats}
-                  dynamicStages={dynamicStages.length > 0 ? dynamicStages : undefined}
-                  counts={enrollmentCounts}
-                  onStageClick={(key) => setStageFilter(stageFilter === key ? null : key)}
-                />
+            {/* Campaign-level KPIs when a campaign is selected */}
+            {selectedCampaign && stats && (
+              <div className="flex items-center justify-between">
+                <KPIGrid columns={4}>
+                  <KPICard
+                    title="Reply Rate"
+                    value={`${stats.replyRate.toFixed(1)}%`}
+                    icon={<MessageSquare className="h-4 w-4" />}
+                    variant="warning"
+                  />
+                  <KPICard
+                    title="Meeting Rate"
+                    value={`${stats.meetingRate.toFixed(1)}%`}
+                    icon={<Calendar className="h-4 w-4" />}
+                    variant="success"
+                  />
+                  <KPICard
+                    title="Conversion Rate"
+                    value={`${stats.conversionRate.toFixed(1)}%`}
+                    icon={<Trophy className="h-4 w-4" />}
+                    variant="success"
+                  />
+                  <KPICard
+                    title="Opt-outs"
+                    value={stats.optedOut}
+                    icon={<Users className="h-4 w-4" />}
+                    variant="destructive"
+                  />
+                </KPIGrid>
+              </div>
+            )}
 
-                {stageFilter && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      Filtro: {dynamicStages.find((s) => s.key === stageFilter)?.label || stageFilter}
-                    </Badge>
-                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setStageFilter(null)}>
-                      Limpar filtro
-                    </Button>
-                  </div>
-                )}
+            {selectedCampaign && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold">{selectedCampaign.name}</h3>
+                  <Badge variant={selectedCampaign.status === "active" ? "default" : "secondary"} className="text-xs">
+                    {selectedCampaign.status === "active" ? "Ativa" : selectedCampaign.status === "paused" ? "Pausada" : selectedCampaign.status}
+                  </Badge>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
+                  <Settings2 className="h-3.5 w-3.5 mr-1" /> Configurações
+                </Button>
+              </div>
+            )}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">
-                      Prospects ({filteredEnrollments.length}{stageFilter ? ` de ${enrollments.length}` : ""})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {filteredEnrollments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        {stageFilter ? "Nenhum prospect nesta fase." : "Nenhum prospect enrolled nesta campanha."}
-                      </p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Canal</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Variante</TableHead>
-                            <TableHead>Data</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredEnrollments.map((e) => (
-                            <TableRow key={e.id}>
-                              <TableCell className="font-medium">{e.prospect_name || "—"}</TableCell>
-                              <TableCell className="text-sm">{e.prospect_email || "—"}</TableCell>
-                              <TableCell className="text-sm capitalize">{e.channel || "—"}</TableCell>
-                              <TableCell>{statusBadge(e.status)}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">{e.message_variant || "—"}</Badge>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {format(new Date(e.created_at), "dd MMM", { locale: pt })}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
+            <SDRPipelineView
+              stats={pipelineStats}
+              dynamicStages={dynamicStages.length > 0 ? dynamicStages : undefined}
+              counts={selectedCampaignId ? enrollmentCounts : undefined}
+              onStageClick={(key) => setStageFilter(stageFilter === key ? null : key)}
+            />
+
+            {selectedCampaign ? (
+              <SDRProspectActions
+                enrollments={enrollments}
+                stages={dynamicStages}
+                stageFilter={stageFilter}
+                onClearFilter={() => setStageFilter(null)}
+                campaignId={selectedCampaign.id}
+              />
             ) : (
               <Card>
-                <CardContent className="py-12 text-center">
-                  <GitBranch className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                <CardContent className="py-8 text-center">
+                  <GitBranch className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Seleccione uma campanha no tab "Campanhas" para ver o pipeline.
+                    Pipeline global — seleccione uma campanha para ver e gerir prospects.
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => setActiveTab("campaigns")}
+                  >
+                    Ver Campanhas
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -351,13 +375,16 @@ export default function SDRDashboardPage() {
 
           {/* Funnel Tab */}
           <TabsContent value="funnel" className="space-y-4">
-            {selectedCampaign && dynamicStages.length > 0 ? (
-              <SDRConversionFunnel stages={dynamicStages} counts={enrollmentCounts} />
+            {dynamicStages.length > 0 ? (
+              <SDRConversionFunnel
+                stages={dynamicStages}
+                counts={selectedCampaignId ? enrollmentCounts : {}}
+              />
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-sm text-muted-foreground">
-                    Seleccione uma campanha para ver o funil de conversão.
+                    Configure fases no tab "Fases" para ver o funil de conversão.
                   </p>
                 </CardContent>
               </Card>
@@ -395,6 +422,17 @@ export default function SDRDashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Campaign Settings Sheet */}
+      {selectedCampaign && (
+        <SDRCampaignSettings
+          campaign={selectedCampaign}
+          open={showSettings}
+          onOpenChange={setShowSettings}
+          onSave={handleSaveCampaignSettings}
+          saving={updateCampaign.isPending}
+        />
+      )}
     </DashboardLayout>
   );
 }

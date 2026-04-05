@@ -1,25 +1,25 @@
 
-# Polir Fases SDR
+# SDR — Iteração 2: Detalhe e Operações ✅
 
-## 1. Seed para campanhas existentes
-As campanhas criadas antes do trigger não têm fases. Criar botão "Gerar fases padrão" no `SDRStageSettings` que chama a função `seed_sdr_default_stages` via RPC quando não existem fases.
+## 1. ✅ Detalhe de Campanha inline
+- KPIs da campanha (reply rate, meeting rate, conversion rate, opt-outs) no topo do Pipeline
+- Badge de nome e status da campanha seleccionada
+- Botão de configurações que abre drawer lateral
 
-## 2. Drag-and-drop para reordenar fases
-Usar `@dnd-kit/sortable` (já instalado) no `SDRStageSettings` para arrastar e reordenar fases, persistindo a nova ordem via `reorderStages`.
+## 2. ✅ Acções em Prospects (`SDRProspectActions.tsx`)
+- Dropdown de acção por linha: mover para qualquer fase, marcar como convertido/opt-out
+- Bulk actions: checkbox para seleccionar múltiplos + mover em lote
+- Pesquisa por nome/email integrada no header da tabela
+- Filtro por fase (via click no pipeline) com badge + limpar
 
-## 3. Melhorias UX no pipeline
-- Mostrar estado vazio amigável no tab Pipeline quando não há campanha seleccionada
-- Filtro por fase na tabela de prospects (clicar numa fase do pipeline filtra a tabela)
-- Contador de fases no tab "Fases"
-- Feedback visual no funil quando não há dados
+## 3. ✅ Configurações de Campanha (`SDRCampaignSettings.tsx`)
+- Sheet lateral com nome, descrição, auto-enroll toggle + score mínimo
+- Resumo de métricas da campanha
+- Guardar com feedback visual
 
-## 4. Seed global de workspace
-Se o workspace não tem fases globais (campaign_id = null), criar automaticamente ao entrar no `SDRStageSettings`. Isto garante que o fallback funciona.
-
-## Ficheiros a modificar
-
-| Ficheiro | Acção |
-|---|---|
-| `src/components/sdr/SDRStageSettings.tsx` | Drag-and-drop + botão seed + auto-seed |
-| `src/hooks/useSDRPipelineStages.ts` | Adicionar `seedDefaults` mutation via RPC |
-| `src/pages/SDRDashboardPage.tsx` | Filtro por fase + empty states melhorados |
+## 4. ✅ Melhorias UX gerais
+- Tabs Pipeline e Funil acessíveis sem seleccionar campanha (dados globais)
+- Pesquisa de campanhas no tab Campanhas
+- Contagem de fases no tab Fases
+- Badge de campanha no tab Pipeline
+- Empty states melhorados em todos os tabs
