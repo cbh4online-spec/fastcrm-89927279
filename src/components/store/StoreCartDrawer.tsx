@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag, Package } from "lucide-react";
 import { useStoreCart } from "@/contexts/StoreCartContext";
+import { useStoreVat } from "@/contexts/StoreVatContext";
 import { useNavigate } from "react-router-dom";
 import { StoreFreeShippingBar } from "@/components/store/StoreFreeShippingBar";
 import { StoreCartUpsell } from "@/components/store/StoreCartUpsell";
@@ -15,12 +16,16 @@ interface StoreCartDrawerProps {
 
 export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, subtotal, totalItems } = useStoreCart();
+  const { isB2B, vatRate } = useStoreVat();
   const navigate = useNavigate();
 
   const handleCheckout = () => {
     setIsOpen(false);
     navigate(`/store/${workspaceSlug}/checkout`);
   };
+
+  const vatAmount = isB2B ? subtotal * (vatRate / 100) : 0;
+  const totalWithVat = isB2B ? subtotal + vatAmount : subtotal;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -114,12 +119,28 @@ export function StoreCartDrawer({ workspaceSlug }: StoreCartDrawerProps) {
               <StoreCartUpsell workspaceSlug={workspaceSlug} />
               <Separator />
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-xl font-bold">€{formatMoney(subtotal)}</span>
+                <span className="text-muted-foreground">
+                  Subtotal {isB2B ? "(s/ IVA)" : ""}
+                </span>
+                <span className="text-lg font-bold">€{formatMoney(subtotal)}</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Impostos e portes calculados no checkout
-              </p>
+              {isB2B && (
+                <>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">IVA ({vatRate}%)</span>
+                    <span>€{formatMoney(vatAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">Total c/ IVA</span>
+                    <span className="text-xl font-bold">€{formatMoney(totalWithVat)}</span>
+                  </div>
+                </>
+              )}
+              {!isB2B && (
+                <p className="text-xs text-muted-foreground">
+                  Impostos e portes calculados no checkout
+                </p>
+              )}
               <Button
                 className="w-full rounded-xl h-12 text-base transition-transform duration-200 active:scale-[0.98]"
                 size="lg"
