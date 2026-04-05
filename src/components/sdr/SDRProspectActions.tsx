@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown, Pause, Play, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { SDREnrollment } from "@/hooks/useSDRCampaigns";
@@ -27,6 +27,8 @@ import type { SDRPipelineStage } from "@/hooks/useSDRPipelineStages";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePauseResumeSequence } from "@/hooks/useSDRSequenceExecution";
+import { EnrollmentTimeline } from "@/components/sequences/EnrollmentTimeline";
 
 interface SDRProspectActionsProps {
   enrollments: SDREnrollment[];
@@ -40,10 +42,12 @@ const statusBadgeConfig: Record<string, { label: string; variant: "default" | "s
   enrolled: { label: "Enrolled", variant: "outline" },
   enriching: { label: "Enriquecendo", variant: "secondary" },
   sequenced: { label: "Em Sequência", variant: "default" },
+  paused: { label: "Pausado", variant: "secondary" },
   replied: { label: "Respondeu", variant: "secondary" },
   positive_reply: { label: "Reply +", variant: "default" },
   meeting_set: { label: "Reunião", variant: "default" },
   converted: { label: "Convertido", variant: "default" },
+  completed: { label: "Concluído", variant: "secondary" },
   opted_out: { label: "Opt-out", variant: "destructive" },
   failed: { label: "Falhou", variant: "destructive" },
 };
