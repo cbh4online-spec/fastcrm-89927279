@@ -256,6 +256,18 @@ export function SDRProspectActions({
                               </DropdownMenuItem>
                             ))}
                           <DropdownMenuSeparator />
+                          {e.status === "sequenced" && (
+                            <DropdownMenuItem onClick={() => pauseSequence(e.id)}>
+                              <Pause className="h-3.5 w-3.5 mr-2" />
+                              Pausar sequência
+                            </DropdownMenuItem>
+                          )}
+                          {e.status === "paused" && (
+                            <DropdownMenuItem onClick={() => resumeSequence(e.id)}>
+                              <Play className="h-3.5 w-3.5 mr-2" />
+                              Retomar sequência
+                            </DropdownMenuItem>
+                          )}
                           {e.status !== "converted" && (
                             <DropdownMenuItem onClick={() => moveToStage([e.id], "converted")}>
                               <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-600" />
