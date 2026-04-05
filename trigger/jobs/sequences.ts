@@ -32,7 +32,7 @@ export const triggerSequenceStep = task({
       await new Promise(resolve => setTimeout(resolve, payload.delay_minutes * 60 * 1000))
     }
     logger.info('Triggering sequence step', payload)
-    const result = await invokeEdgeFunction('auto-followup-scheduler', {
+    const result = await invokeEdgeFunction('sdr-sequence-executor', {
       enrollment_id: payload.enrollment_id,
       step_id: payload.step_id,
       workspace_id: payload.workspace_id,

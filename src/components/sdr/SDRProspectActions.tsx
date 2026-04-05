@@ -18,8 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown, Pause, Play, Clock } from "lucide-react";
+import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown, Pause, Play, Clock, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { SDREnrollment } from "@/hooks/useSDRCampaigns";
@@ -64,6 +70,9 @@ export function SDRProspectActions({
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkMoving, setBulkMoving] = useState(false);
+  const [previewEnrollment, setPreviewEnrollment] = useState<SDREnrollment | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{ subject: string; body: string; ai_used: boolean } | null>(null);
 
   const filtered = useMemo(() => {
     let list = stageFilter
@@ -123,6 +132,30 @@ export function SDRProspectActions({
     const cfg = statusBadgeConfig[status] || { label: status, variant: "outline" as const };
     const stageInfo = stages.find((s) => s.key === status);
     return <Badge variant={cfg.variant}>{stageInfo?.label || cfg.label}</Badge>;
+  };
+
+  const handlePreviewMessage = async (enrollment: SDREnrollment) => {
+    setPreviewEnrollment(enrollment);
+    setPreviewLoading(true);
+    setPreviewResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("sdr-message-generator", {
+        body: {
+          enrollment_id: enrollment.id,
+          workspace_id: (enrollment as any).workspace_id || campaignId,
+          channel: enrollment.channel || "email",
+          template_subject: "Follow-up: {{prospect_name}}",
+          template_body: "Olá {{prospect_name}}, queria falar consigo sobre {{company}}.",
+          preview: true,
+        },
+      });
+      if (error) throw error;
+      setPreviewResult(data);
+    } catch (err: any) {
+      toast.error("Erro ao gerar preview: " + (err.message || "erro desconhecido"));
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   return (
@@ -273,6 +306,10 @@ export function SDRProspectActions({
                                 {s.label}
                               </DropdownMenuItem>
                             ))}
+                          <DropdownMenuItem onClick={() => handlePreviewMessage(e)}>
+                            <Eye className="h-3.5 w-3.5 mr-2" />
+                            Pré-visualizar mensagem
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {e.status === "sequenced" && (
                             <DropdownMenuItem onClick={() => pauseSequence(e.id)}>
@@ -311,6 +348,39 @@ export function SDRProspectActions({
           </div>
         )}
       </CardContent>
+      {/* Preview message dialog */}
+      <Dialog open={!!previewEnrollment} onOpenChange={(o) => !o && setPreviewEnrollment(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização de Mensagem</DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">A gerar mensagem personalizada...</span>
+            </div>
+          ) : previewResult ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Assunto</p>
+                <p className="text-sm font-medium p-2 rounded bg-muted/50">{previewResult.subject}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Corpo</p>
+                <div className="text-sm p-3 rounded bg-muted/50 whitespace-pre-wrap">{previewResult.body}</div>
+              </div>
+              {previewResult.ai_used && (
+                <Badge variant="outline" className="text-[10px]">
+                  <Eye className="h-2.5 w-2.5 mr-1" />
+                  Personalizado por IA
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">Sem dados de preview</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

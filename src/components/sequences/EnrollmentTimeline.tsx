@@ -1,10 +1,13 @@
-import { Mail, Clock, CheckCircle2, XCircle, Eye, MousePointer, Reply } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Mail, Clock, CheckCircle2, XCircle, Eye, MousePointer, Reply, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TimelineEvent {
   id: string;
-  type: 'sent' | 'opened' | 'clicked' | 'replied' | 'bounced' | 'waiting' | 'completed' | 'exited';
+  type: 'sent' | 'opened' | 'clicked' | 'replied' | 'bounced' | 'waiting' | 'completed' | 'failed';
   label: string;
   date: string;
+  channel?: string;
 }
 
 const eventIcons: Record<string, { icon: React.ElementType; color: string }> = {
@@ -15,7 +18,7 @@ const eventIcons: Record<string, { icon: React.ElementType; color: string }> = {
   bounced: { icon: XCircle, color: 'text-destructive' },
   waiting: { icon: Clock, color: 'text-amber-500' },
   completed: { icon: CheckCircle2, color: 'text-emerald-600' },
-  exited: { icon: XCircle, color: 'text-muted-foreground' },
+  failed: { icon: AlertCircle, color: 'text-destructive' },
 };
 
 interface EnrollmentTimelineProps {
@@ -23,28 +26,120 @@ interface EnrollmentTimelineProps {
 }
 
 export function EnrollmentTimeline({ enrollmentId }: EnrollmentTimelineProps) {
-  // For now, generate placeholder events based on enrollment
-  // In a real implementation, this would query an activity_log / email_send_log table
-  const events: TimelineEvent[] = [
-    {
-      id: '1',
-      type: 'sent',
-      label: 'Email da etapa 1 enviado',
-      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['enrollment-timeline', enrollmentId],
+    queryFn: async () => {
+      // Fetch real step logs
+      const { data: logs, error } = await (supabase as any)
+        .from('sdr_sequence_step_logs')
+        .select('id, channel, status, sent_at, opened_at, clicked_at, replied_at, error_message, created_at, sequence_step_id')
+        .eq('sdr_enrollment_id', enrollmentId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const timeline: TimelineEvent[] = [];
+
+      for (const log of (logs || [])) {
+        const stepLabel = `Step (${log.channel || 'email'})`;
+
+        // Sent event
+        if (log.sent_at || log.status === 'sent') {
+          timeline.push({
+            id: `${log.id}-sent`,
+            type: 'sent',
+            label: `${stepLabel} enviado`,
+            date: log.sent_at || log.created_at,
+            channel: log.channel,
+          });
+        }
+
+        // Failed event
+        if (log.status === 'failed') {
+          timeline.push({
+            id: `${log.id}-failed`,
+            type: 'failed',
+            label: `${stepLabel} falhou${log.error_message ? `: ${log.error_message.slice(0, 50)}` : ''}`,
+            date: log.created_at,
+            channel: log.channel,
+          });
+        }
+
+        // Opened
+        if (log.opened_at) {
+          timeline.push({
+            id: `${log.id}-opened`,
+            type: 'opened',
+            label: 'Email aberto',
+            date: log.opened_at,
+            channel: log.channel,
+          });
+        }
+
+        // Clicked
+        if (log.clicked_at) {
+          timeline.push({
+            id: `${log.id}-clicked`,
+            type: 'clicked',
+            label: 'Link clicado',
+            date: log.clicked_at,
+            channel: log.channel,
+          });
+        }
+
+        // Replied
+        if (log.replied_at) {
+          timeline.push({
+            id: `${log.id}-replied`,
+            type: 'replied',
+            label: 'Resposta recebida',
+            date: log.replied_at,
+            channel: log.channel,
+          });
+        }
+      }
+
+      // Check for next scheduled step (waiting state)
+      const { data: enrollment } = await (supabase as any)
+        .from('sdr_enrollments')
+        .select('next_send_at, status, current_step')
+        .eq('id', enrollmentId)
+        .maybeSingle();
+
+      if (enrollment?.next_send_at && enrollment.status === 'sequenced') {
+        timeline.push({
+          id: 'next-waiting',
+          type: 'waiting',
+          label: `Aguardando Step ${(enrollment.current_step || 0) + 1}`,
+          date: enrollment.next_send_at,
+        });
+      }
+
+      if (enrollment?.status === 'completed') {
+        timeline.push({
+          id: 'completed',
+          type: 'completed',
+          label: 'Sequência concluída',
+          date: logs?.[logs.length - 1]?.created_at || new Date().toISOString(),
+        });
+      }
+
+      // Sort by date
+      timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      return timeline;
     },
-    {
-      id: '2',
-      type: 'opened',
-      label: 'Email aberto pelo contacto',
-      date: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '3',
-      type: 'waiting',
-      label: 'Aguardando 2 dias antes da próxima etapa',
-      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
+    enabled: !!enrollmentId,
+    staleTime: 30_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-3">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (events.length === 0) {
     return (
