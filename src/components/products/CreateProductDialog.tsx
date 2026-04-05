@@ -480,13 +480,28 @@ export function CreateProductDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if missing cost price when there's a sale price
     const priceValue = parseFloat(basePrice) || 0;
     const costValue = parseFloat(directCost) || 0;
     
+    // Hard block: price below cost
+    if (priceValue > 0 && costValue > 0 && priceValue < costValue) {
+      toast.error("O preço de venda não pode ser inferior ao custo. Corrija antes de guardar.");
+      return;
+    }
+
+    // Warning: no cost defined
     if (priceValue > 0 && costValue === 0) {
       setShowCostWarning(true);
       return;
+    }
+
+    // Warning: margin below 10% threshold
+    if (priceValue > 0 && costValue > 0) {
+      const marginPct = ((priceValue - costValue) / costValue) * 100;
+      if (marginPct < 10) {
+        setShowMarginWarning(true);
+        return;
+      }
     }
     
     await handleActualSubmit();
@@ -494,6 +509,11 @@ export function CreateProductDialog({
 
   const handleConfirmWithoutCost = async () => {
     setShowCostWarning(false);
+    await handleActualSubmit();
+  };
+
+  const handleConfirmLowMargin = async () => {
+    setShowMarginWarning(false);
     await handleActualSubmit();
   };
 
