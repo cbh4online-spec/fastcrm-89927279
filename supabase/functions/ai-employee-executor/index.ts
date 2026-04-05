@@ -1392,6 +1392,170 @@ function blockedResponse(
   });
 }
 
+// ─── §SDR OUTBOUND MODE ──────────────────────────────────────
+async function runSDROutbound(
+  supabase: ReturnType<typeof createClient>,
+  bot: BotRow,
+  settings: BotSettingsRow | null,
+  text: string,
+  conversationId: string,
+  workspaceId: string,
+  locale?: string,
+  debug?: boolean
+): Promise<{ reply: string; actions: SideEffect[]; tokensUsed: number; isHandover: boolean; debugInfo?: Record<string, unknown> }> {
+  const actions: SideEffect[] = [];
+  const debugInfo: Record<string, unknown> = { mode: "sdr_outbound" };
+
+  // Load business context for personalization
+  let businessContext = "";
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const bcResp = await fetch(`${supabaseUrl}/functions/v1/business-context-loader`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({ workspace_id: workspaceId }),
+    });
+    if (bcResp.ok) {
+      const bcData = await bcResp.json();
+      businessContext = bcData.context || bcData.summary || "";
+    }
+  } catch (e) {
+    console.warn("[EXECUTOR-SDR] Business context load failed (non-fatal):", e);
+  }
+
+  // AI persona
+  let personaBlock = "";
+  if (bot.ai_profile_id) {
+    const { data: persona } = await supabase
+      .from("ai_personas")
+      .select("name, tone_of_voice, system_prompt, language_style, limitations")
+      .eq("id", bot.ai_profile_id)
+      .maybeSingle();
+    if (persona) {
+      const p = persona as any;
+      personaBlock = [
+        `## Persona: ${p.name}`,
+        p.tone_of_voice ? `- Tom: ${p.tone_of_voice}` : "",
+        p.language_style ? `- Estilo: ${p.language_style}` : "",
+        p.system_prompt ? `\nInstruções:\n${p.system_prompt}` : "",
+      ].filter(Boolean).join("\n");
+    }
+  }
+
+  // KB for product/service knowledge
+  let kbBlock = "";
+  if (bot.knowledge_base_id) {
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const kbResp = await fetch(`${supabaseUrl}/functions/v1/knowledge-query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({ query: text, workspace_id: workspaceId, knowledge_base_id: bot.knowledge_base_id, topK: 3 }),
+      });
+      if (kbResp.ok) {
+        const kbData = await kbResp.json();
+        const snippets: any[] = kbData.results || kbData.snippets || [];
+        if (snippets.length > 0) {
+          kbBlock = `\n## Produtos/Serviços Relevantes:\n${snippets.map((s: any, i: number) => `### ${i + 1}. ${s.title || "Artigo"}\n${s.content || s.excerpt || ""}`).join("\n\n")}`;
+        }
+      }
+    } catch (e) {
+      console.warn("[EXECUTOR-SDR] KB query failed (non-fatal):", e);
+    }
+  }
+
+  // Conversation history for follow-ups
+  const { data: history } = await supabase
+    .from("messages")
+    .select("content, direction, created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const conversationHistory = (history || [])
+    .reverse()
+    .map((m: any) => ({
+      role: m.direction === "inbound" ? "user" : "assistant",
+      content: m.content as string,
+    }));
+
+  const isFollowUp = conversationHistory.length > 0;
+  const messageType = isFollowUp ? "follow-up" : "first-touch";
+
+  const langHint = locale?.startsWith("en")
+    ? "Write in English."
+    : locale?.startsWith("es")
+    ? "Escribe en español."
+    : "Escreve em Português de Portugal.";
+
+  const systemPrompt = [
+    `Eres "${bot.name}", um SDR (Sales Development Representative) de IA que opera em modo PROATIVO (outbound).`,
+    `Tipo de mensagem: ${messageType}.`,
+    personaBlock,
+    businessContext ? `\n## Contexto do Negócio:\n${businessContext}` : "",
+    kbBlock,
+    `\nREGRAS SDR OUTBOUND:`,
+    `- ${langHint}`,
+    `- Gera mensagens de prospecção personalizadas e profissionais.`,
+    `- ${isFollowUp ? "Este é um follow-up. Referencia mensagens anteriores. Sê breve e direto." : "Esta é a primeira abordagem. Sê conciso, mostra valor imediatamente."}`,
+    `- Máximo 3-4 frases para a mensagem principal.`,
+    `- Inclui um CTA claro mas não agressivo (pergunta, convite para call, etc.).`,
+    `- Personaliza com base na informação do prospect fornecida.`,
+    `- Nunca uses linguagem spam ou clickbait.`,
+    `- Nunca inventes informação sobre o prospect.`,
+    `- Tom: profissional, consultivo, focado em valor.`,
+    bot.objective_scope ? `\nObjectivo: ${bot.objective_scope}` : "",
+    bot.specialization ? `\nEspecialização: ${bot.specialization}` : "",
+  ].filter(Boolean).join("\n");
+
+  if (debug) debugInfo.systemPromptLength = systemPrompt.length;
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    return { reply: "SDR outbound requer configuração da IA.", actions, tokensUsed: 0, isHandover: false, debugInfo };
+  }
+
+  const llmResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...conversationHistory,
+        { role: "user", content: `Contexto do prospect para ${messageType}:\n${text}` },
+      ],
+      max_tokens: 400,
+      temperature: 0.7,
+    }),
+  });
+
+  let llmReply = "";
+  let tokensUsed = 0;
+
+  if (llmResp.ok) {
+    const llmData = await llmResp.json();
+    llmReply = llmData.choices?.[0]?.message?.content?.trim() || "";
+    tokensUsed = llmData.usage?.total_tokens ?? 0;
+  } else {
+    console.error("[EXECUTOR-SDR] LLM error:", llmResp.status);
+    llmReply = "Não foi possível gerar a mensagem de outbound neste momento.";
+  }
+
+  if (debug) debugInfo.tokensUsed = tokensUsed;
+
+  if (!isFollowUp) {
+    actions.push({
+      type: "create_lead",
+      payload: { source: "sdr_outbound", botId: bot.id, conversationId },
+    });
+  }
+
+  return { reply: llmReply, actions, tokensUsed, isHandover: false, debugInfo };
+}
+
 // ─── MAIN HANDLER ────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
