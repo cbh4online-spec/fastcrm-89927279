@@ -156,6 +156,16 @@ function RenderProductCell({
         );
       }
       return <span>-</span>;
+    case "margin_status":
+      return (
+        <MarginStatusBadge
+          price={product.base_price}
+          cost={product.direct_cost}
+          category={product.category}
+          rules={helpers.pricingRules || []}
+          compact={false}
+        />
+      );
     case "billing_type":
       return <span>{getBillingTypeLabel(product.billing_type)}</span>;
     case "billing_frequency":
