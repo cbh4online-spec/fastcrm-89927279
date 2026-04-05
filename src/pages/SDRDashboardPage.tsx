@@ -269,22 +269,36 @@ export default function SDRDashboardPage() {
 
           {/* Pipeline Tab */}
           <TabsContent value="pipeline" className="space-y-4">
-            {selectedCampaign && stats && (
+            {selectedCampaign && stats ? (
               <>
                 <SDRPipelineView
                   stats={stats}
                   dynamicStages={dynamicStages.length > 0 ? dynamicStages : undefined}
                   counts={enrollmentCounts}
+                  onStageClick={(key) => setStageFilter(stageFilter === key ? null : key)}
                 />
+
+                {stageFilter && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      Filtro: {dynamicStages.find((s) => s.key === stageFilter)?.label || stageFilter}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setStageFilter(null)}>
+                      Limpar filtro
+                    </Button>
+                  </div>
+                )}
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm">Prospects ({enrollments.length})</CardTitle>
+                    <CardTitle className="text-sm">
+                      Prospects ({filteredEnrollments.length}{stageFilter ? ` de ${enrollments.length}` : ""})
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {enrollments.length === 0 ? (
+                    {filteredEnrollments.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-8">
-                        Nenhum prospect enrolled nesta campanha
+                        {stageFilter ? "Nenhum prospect nesta fase." : "Nenhum prospect enrolled nesta campanha."}
                       </p>
                     ) : (
                       <Table>
@@ -299,7 +313,7 @@ export default function SDRDashboardPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {enrollments.map((e) => (
+                          {filteredEnrollments.map((e) => (
                             <TableRow key={e.id}>
                               <TableCell className="font-medium">{e.prospect_name || "—"}</TableCell>
                               <TableCell className="text-sm">{e.prospect_email || "—"}</TableCell>
@@ -319,6 +333,15 @@ export default function SDRDashboardPage() {
                   </CardContent>
                 </Card>
               </>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <GitBranch className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Seleccione uma campanha no tab "Campanhas" para ver o pipeline.
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
