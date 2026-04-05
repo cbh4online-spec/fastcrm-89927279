@@ -81,14 +81,20 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
 
   return (
     <>
-      <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={handleComposeEmail}>
+      {/* Mobile: icon-only email button */}
+      <Button variant="outline" size="icon" className="h-8 w-8 md:hidden" onClick={handleComposeEmail}>
+        <Mail className="w-3.5 h-3.5" />
+      </Button>
+      {/* Desktop: full email button */}
+      <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs hidden md:inline-flex" onClick={handleComposeEmail}>
         <Mail className="w-3.5 h-3.5" />
         {t("oppDetail_composeEmail")}
       </Button>
 
+      {/* Secondary actions: hidden on mobile */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyTitle}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden md:inline-flex" onClick={copyTitle}>
             <ClipboardCopy className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
@@ -97,7 +103,7 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyUrl}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden md:inline-flex" onClick={copyUrl}>
             <Share2 className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
@@ -106,7 +112,7 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast.info(t("oppDetail_expandViewSoon"))}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hidden md:inline-flex" onClick={() => toast.info(t("oppDetail_expandViewSoon"))}>
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
@@ -117,7 +123,7 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 hidden md:inline-flex"
           onClick={onToggleFavorite}
         >
           <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-400")} />
@@ -131,6 +137,11 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {/* Mobile-only actions in dropdown */}
+          <DropdownMenuItem onClick={copyTitle} className="md:hidden">
+            <ClipboardCopy className="w-4 h-4 mr-2" />
+            {t("oppDetail_copyTitle")}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={copyUrl}>
             <Link className="w-4 h-4 mr-2" />
             {t("oppDetail_copyUrl")}
@@ -139,6 +150,12 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
             <Copy className="w-4 h-4 mr-2" />
             {t("oppDetail_copyId")}
           </DropdownMenuItem>
+          {onToggleFavorite && (
+            <DropdownMenuItem onClick={onToggleFavorite} className="md:hidden">
+              <Star className={cn("w-4 h-4 mr-2", isFavorite && "fill-yellow-400 text-yellow-400")} />
+              {isFavorite ? t("oppDetail_removeFavorite", "Remover favorito") : t("oppDetail_addFavorite", "Favorito")}
+            </DropdownMenuItem>
+          )}
           {onDelete && (
             <>
               <DropdownMenuSeparator />
