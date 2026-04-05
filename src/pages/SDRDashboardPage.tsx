@@ -43,7 +43,6 @@ export default function SDRDashboardPage() {
   for (const e of enrollments) {
     enrollmentCounts[e.status] = (enrollmentCounts[e.status] || 0) + 1;
   }
-  const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
 
   // Pipeline stats from aggregated data or campaign enrollments
   const pipelineStats = selectedCampaignId && stats
