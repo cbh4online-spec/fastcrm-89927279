@@ -39,9 +39,9 @@ export function InboxMetricsBar() {
   
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Status Metrics - Center */}
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="font-medium">
@@ -69,10 +69,10 @@ export function InboxMetricsBar() {
           </Tooltip>
         </div>
 
-        <div className="w-px h-4 bg-border" />
+        <div className="w-px h-4 bg-border hidden md:block" />
 
         {/* Tools */}
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           <SmartAlertsPopover />
           
           <AutopilotToggle variant="badge" />
