@@ -127,13 +127,16 @@ export function SDRCampaignSettings({
   };
 
   const origCfg = campaign.ab_testing_config as any;
+  const origSettings = (campaign.settings || {}) as any;
   const hasChanges =
     name !== campaign.name ||
     description !== (campaign.description || "") ||
     autoEnroll !== campaign.auto_enroll_enabled ||
     minScore !== (campaign.auto_enroll_min_score ?? 70) ||
     sequenceId !== (campaign.sequence_id || "none") ||
-    JSON.stringify(abVariants) !== JSON.stringify(origCfg?.variants || [{ name: "A", weight: 100 }]);
+    JSON.stringify(abVariants) !== JSON.stringify(origCfg?.variants || [{ name: "A", weight: 100 }]) ||
+    aiPersonalization !== (origSettings.ai_personalization || false) ||
+    personalizationLevel !== (origSettings.personalization_level || "light");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
