@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, Info } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
 import { CheckoutPaymentMethodPicker, type PaymentMethodType } from "./CheckoutPaymentMethodPicker";
+import type { CTTShippingOption } from "./useCheckoutPricing";
 import type { CTTShippingOption } from "./useCheckoutPricing";
 
 const BUTTON_LABELS: Record<PaymentMethodType, string> = {
@@ -52,6 +54,8 @@ export function CheckoutPaymentStep({
   enabledPaymentMethods,
   selectedPaymentMethod,
   onSelectPaymentMethod,
+  acceptTerms = false,
+  onAcceptTermsChange,
 }: CheckoutPaymentStepProps) {
   const buttonLabel = BUTTON_LABELS[selectedPaymentMethod] || "Pagar";
 
