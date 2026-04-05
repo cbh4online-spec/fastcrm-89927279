@@ -351,6 +351,11 @@ export default function SDRDashboardPage() {
               onStageClick={(key) => setStageFilter(stageFilter === key ? null : key)}
             />
 
+            {/* Sequence metrics if campaign has a sequence */}
+            {selectedCampaign?.sequence_id && (
+              <SDRSequenceMetrics sequenceId={selectedCampaign.sequence_id} />
+            )}
+
             {selectedCampaign ? (
               <SDRProspectActions
                 enrollments={enrollments}
