@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
@@ -17,6 +17,8 @@ import { SDRCampaignCard } from "@/components/sdr/SDRCampaignCard";
 import { SDRActivityFeed } from "@/components/sdr/SDRActivityFeed";
 import { SDRProspectActions } from "@/components/sdr/SDRProspectActions";
 import { SDRCampaignSettings } from "@/components/sdr/SDRCampaignSettings";
+import { SDRSequenceMetrics } from "@/components/sdr/SDRSequenceMetrics";
+import { MultichannelSequenceBuilder } from "@/components/marketing/MultichannelSequenceBuilder";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Badge } from "@/components/ui/badge";
 import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
@@ -182,6 +184,10 @@ export default function SDRDashboardPage() {
               )}
             </TabsTrigger>
             <TabsTrigger value="funnel">Funil</TabsTrigger>
+            <TabsTrigger value="sequences">
+              <Zap className="h-3.5 w-3.5 mr-1" />
+              Sequências
+            </TabsTrigger>
             <TabsTrigger value="stages">
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Fases ({dynamicStages.length})
@@ -345,6 +351,11 @@ export default function SDRDashboardPage() {
               onStageClick={(key) => setStageFilter(stageFilter === key ? null : key)}
             />
 
+            {/* Sequence metrics if campaign has a sequence */}
+            {selectedCampaign?.sequence_id && (
+              <SDRSequenceMetrics sequenceId={selectedCampaign.sequence_id} />
+            )}
+
             {selectedCampaign ? (
               <SDRProspectActions
                 enrollments={enrollments}
@@ -389,6 +400,11 @@ export default function SDRDashboardPage() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Sequences Tab */}
+          <TabsContent value="sequences" className="space-y-4">
+            <MultichannelSequenceBuilder />
           </TabsContent>
 
           {/* Stages Settings Tab */}

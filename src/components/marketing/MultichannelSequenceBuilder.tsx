@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +29,18 @@ import {
   Trash2,
   ArrowDown,
   Zap,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface CommunicationTemplate {
+  id: string;
+  name: string;
+  channel: string;
+  subject: string | null;
+  body: string | null;
+  body_html: string | null;
+}
 
 interface SequenceStep {
   id?: string;
@@ -71,6 +83,23 @@ export function MultichannelSequenceBuilder() {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [steps, setSteps] = useState<SequenceStep[]>([]);
+
+  // Fetch available communication templates for email steps
+  const { data: emailTemplates = [] } = useQuery({
+    queryKey: ['communication-templates-email', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data, error } = await supabase
+        .from('communication_templates')
+        .select('id, name, channel, subject, body, body_html')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as CommunicationTemplate[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['multichannel-sequences', currentWorkspace?.id],
@@ -338,6 +367,45 @@ export function MultichannelSequenceBuilder() {
                         <div className="mt-2 space-y-2">
                           {step.channel === 'email' && (
                             <>
+                              {emailTemplates.length > 0 && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                                      <FileText className="h-3 w-3" />
+                                      Usar template
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-64 p-0" align="start">
+                                    <ScrollArea className="max-h-48">
+                                      <div className="p-1">
+                                        {emailTemplates
+                                          .filter((t) => t.channel === 'email' || !t.channel)
+                                          .map((tpl) => (
+                                            <button
+                                              key={tpl.id}
+                                              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted transition-colors"
+                                              onClick={() => {
+                                                updateStep(idx, {
+                                                  subject: tpl.subject || step.subject,
+                                                  body_html: tpl.body_html || tpl.body || step.body_html,
+                                                });
+                                                toast.success(`Template "${tpl.name}" aplicado`);
+                                              }}
+                                            >
+                                              <span className="font-medium">{tpl.name}</span>
+                                              {tpl.subject && (
+                                                <span className="block text-[11px] text-muted-foreground truncate">{tpl.subject}</span>
+                                              )}
+                                            </button>
+                                          ))}
+                                        {emailTemplates.filter((t) => t.channel === 'email' || !t.channel).length === 0 && (
+                                          <p className="text-xs text-muted-foreground px-3 py-2">Sem templates de email</p>
+                                        )}
+                                      </div>
+                                    </ScrollArea>
+                                  </PopoverContent>
+                                </Popover>
+                              )}
                               <Input
                                 placeholder="Assunto do email"
                                 value={step.subject}
