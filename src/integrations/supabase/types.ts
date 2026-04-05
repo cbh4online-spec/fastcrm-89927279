@@ -48344,6 +48344,69 @@ export type Database = {
           },
         ]
       }
+      sdr_daily_stats: {
+        Row: {
+          campaign_id: string
+          clicked: number
+          converted: number
+          created_at: string
+          enrolled: number
+          id: string
+          meetings: number
+          opened: number
+          opted_out: number
+          replied: number
+          sent: number
+          stat_date: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          clicked?: number
+          converted?: number
+          created_at?: string
+          enrolled?: number
+          id?: string
+          meetings?: number
+          opened?: number
+          opted_out?: number
+          replied?: number
+          sent?: number
+          stat_date: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          clicked?: number
+          converted?: number
+          created_at?: string
+          enrolled?: number
+          id?: string
+          meetings?: number
+          opened?: number
+          opted_out?: number
+          replied?: number
+          sent?: number
+          stat_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_daily_stats_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_daily_stats_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sdr_enrollments: {
         Row: {
           campaign_id: string
