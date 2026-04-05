@@ -318,6 +318,7 @@ export function ProductsList() {
               onInlinePriceUpdate={(id, field, value) => state.updateProductPrice.mutate({ id, field, value })}
               isFilteredEmpty={state.filtersActive && state.filteredProducts.length === 0 && !state.isLoading}
               onClearFilters={state.handleClearFilters}
+              pricingRules={pricingRules}
             />
           </>
         )}
@@ -328,6 +329,7 @@ export function ProductsList() {
         {state.activeTab === "pricing-rules" && <PricingRulesManager />}
         {state.activeTab === "stock-alerts" && <StockAlertsManager />}
         {state.activeTab === "reports" && <ProductReportsTab />}
+        {state.activeTab === "health" && <PricingHealthDashboard />}
         {state.activeTab === "settings" && <ProductSettingsTabContent />}
       </div>
 
