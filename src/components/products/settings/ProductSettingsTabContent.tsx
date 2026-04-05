@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Package, CreditCard, Tag, Clock, Wallet, Activity, Truck, Calendar, Sparkles } from "lucide-react";
+import { Package, CreditCard, Tag, Clock, Wallet, Activity, Truck, Calendar, Sparkles, ShieldCheck } from "lucide-react";
 import { ProductTypesTab } from "./ProductTypesTab";
 import { BillingTypesTab } from "./BillingTypesTab";
 import { CategoriesTabContent } from "../CategoriesTabContent";
@@ -12,6 +12,7 @@ import { ConsumptionModelsTab } from "./ConsumptionModelsTab";
 import { DeliveryModesTab } from "./DeliveryModesTab";
 import { BillingFrequenciesTab } from "./BillingFrequenciesTab";
 import { AISettingsSuggestions } from "./AISettingsSuggestions";
+import { PricingRulesSettings } from "../pricing/PricingRulesSettings";
 import {
   useProductTypes,
   useBillingTypes,
@@ -33,6 +34,7 @@ const settingsTabs = [
   { id: "consumption", label: "Modelos Consumo", icon: Activity, settingsLabel: "Modelos de Consumo" },
   { id: "delivery", label: "Modos Entrega", icon: Truck, settingsLabel: "Modos de Entrega" },
   { id: "frequencies", label: "Frequências", icon: Calendar, settingsLabel: "Frequências de Cobrança" },
+  { id: "margin-rules", label: "Regras de Margem", icon: ShieldCheck, settingsLabel: "Regras de Margem" },
 ];
 
 export function ProductSettingsTabContent() {
@@ -170,6 +172,10 @@ export function ProductSettingsTabContent() {
 
         <TabsContent value="frequencies">
           <BillingFrequenciesTab />
+        </TabsContent>
+
+        <TabsContent value="margin-rules">
+          <PricingRulesSettings />
         </TabsContent>
       </Tabs>
 
