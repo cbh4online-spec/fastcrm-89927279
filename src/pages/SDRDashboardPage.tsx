@@ -369,6 +369,7 @@ export default function SDRDashboardPage() {
                     onSelect={(id) => { setSelectedCampaignId(id); setActiveTab("pipeline"); }}
                     onToggleStatus={(id, status) => updateCampaign.mutate({ id, status })}
                     onDelete={(id) => deleteCampaign.mutate(id)}
+                    onOpenSettings={handleOpenSettings}
                   />
                 ))}
               </div>
