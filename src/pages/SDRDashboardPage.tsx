@@ -99,9 +99,31 @@ export default function SDRDashboardPage() {
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createCampaign.mutate({ name: newName, description: newDesc || undefined }, {
-      onSuccess: () => { setShowCreate(false); setNewName(""); setNewDesc(""); },
+    const createData: any = { name: newName, description: newDesc || undefined };
+    if (newSequenceId !== "none") createData.sequence_id = newSequenceId;
+    if (newAutoEnroll) {
+      createData.auto_enroll_enabled = true;
+      createData.auto_enroll_min_score = newMinScore;
+    }
+    createCampaign.mutate(createData, {
+      onSuccess: (data: any) => {
+        setShowCreate(false);
+        setNewName("");
+        setNewDesc("");
+        setNewSequenceId("none");
+        setNewAutoEnroll(false);
+        setNewMinScore(70);
+        if (data?.id) {
+          setSelectedCampaignId(data.id);
+          setActiveTab("pipeline");
+        }
+      },
     });
+  };
+
+  const handleOpenSettings = (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setShowSettings(true);
   };
 
   const handleSaveCampaignSettings = (updates: any) => {
