@@ -315,7 +315,7 @@ export function ProductsDataTable({
           <div
             ref={parentRef}
             className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
-            style={{ maxHeight: "calc(100vh - 380px)" }}
+            style={{ minHeight: 200 }}
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
