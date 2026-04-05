@@ -193,7 +193,6 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                   compact
                 />
               )}
-              />
               <StoreProductConditionBadge condition={(product as any).product_condition} compact />
             </div>
 
