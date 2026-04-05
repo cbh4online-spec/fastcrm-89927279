@@ -1,62 +1,89 @@
 
-# Plano: Motor de Inteligência de Preços & Proteção de Margem
 
-## Visão Geral
-Sistema dual: (1) Pesquisa de mercado via IA para análise competitiva de preços, (2) Regras automáticas de margem mínima por categoria que impedem venda abaixo do custo.
+# Funcionalidades Complementares ao Motor de Inteligência de Preços
 
-## Componente 1: Regras de Margem Mínima (Proteção)
+## Estado Atual
 
-### Base de Dados
-- Tabela `product_pricing_rules`: `workspace_id`, `category`, `min_margin_pct` (margem mínima %), `max_margin_pct`, `target_margin_pct`, `applies_to` (all/category/product), `product_id?`, `is_active`
-- RLS escopado por workspace
+Já implementado:
+- Tabelas `product_pricing_rules` e `product_market_research` com RLS
+- Edge function `ai-market-price-research` (Firecrawl + Gemini)
+- `MarginProtectionCard` e `MarketResearchPanel` no detalhe do produto
+- `MarginStatusBadge` para a listagem
+- Hook `useProductPricingIntelligence` com regras e pesquisa
 
-### Frontend — Listagem de Produtos
-- Alerta visual (badge vermelho) em produtos com margem negativa ou abaixo da margem mínima da categoria
-- Coluna "Status Preço" com ícones: ✅ saudável, ⚠️ abaixo do target, 🔴 abaixo do custo
+**Ainda não implementado** (previsto no plano original):
+- Página de gestão de regras de margem por categoria (PricingRulesSettings)
+- Coluna "vs Mercado" na listagem de produtos
+- Badges de alerta de margem na `ProductsDataTable`
 
-### Frontend — Detalhe do Produto
-- Card "Proteção de Margem" mostrando: margem atual, margem mínima da categoria, preço mínimo sugerido (custo × (1 + min_margin))
-- Validação ao guardar: toast de aviso se preço < custo × (1 + min_margin), bloqueio se preço < custo
+## Funcionalidades Recomendadas (por ordem de impacto)
 
-### Gestão de Regras
-- Secção em Configurações > Produtos para definir margens mínimas por categoria
-- Presets por tipo de produto (ex: Electrónica 15-25%, Acessórios 30-50%)
+### 1. Gestão de Regras de Margem (Configurações)
+**Prioridade: Alta — sem isto, as regras ficam apenas com o fallback de 10%**
 
-## Componente 2: Pesquisa de Mercado com IA
+- Nova secção em Configurações > Produtos: `PricingRulesSettings.tsx`
+- CRUD de regras por categoria com presets (Electrónica 15%, Acessórios 30%, Alimentar 25%)
+- Formulário: categoria (dropdown das existentes), margem mínima %, target %, máxima %
+- Tabela de regras ativas com toggle on/off
 
-### Edge Function `ai-market-price-research`
-- Recebe: nome do produto, SKU, categoria, EAN/barcode
-- Usa Lovable AI (gemini-3-flash-preview) com tool calling para extrair dados estruturados
-- Pesquisa via Firecrawl (já configurado) por preços de concorrentes em PT
-- Retorna: preço médio mercado, range min-max, concorrentes encontrados, margem sugerida
+### 2. Alertas de Margem na Listagem de Produtos
+**Prioridade: Alta — visibilidade imediata de problemas**
 
-### Base de Dados
-- Tabela `product_market_research`: `product_id`, `workspace_id`, `market_avg_price`, `market_min_price`, `market_max_price`, `competitors_json` (nome, preço, url), `suggested_price`, `suggested_margin_pct`, `research_date`, `model_used`
+- Integrar `MarginStatusBadge` como coluna "Status" na `ProductsDataTable`
+- Ordenação por status (danger primeiro)
+- Filtro rápido: "Mostrar apenas produtos com margem em risco"
+- Counter no header: "12 produtos abaixo da margem mínima"
 
-### Frontend — Detalhe do Produto
-- Botão "🔍 Analisar Mercado" no card de preço
-- Painel de resultados: preço médio, range, lista de concorrentes, sugestão de preço com margem segura
-- Histórico de pesquisas anteriores
+### 3. Bloqueio Hard ao Guardar Produto
+**Prioridade: Alta — critério de aceitação do plano original**
 
-### Frontend — Listagem
-- Coluna opcional "vs Mercado" mostrando posição relativa (acima/abaixo/inline)
+- Validação no formulário de edição: impedir guardar se preço < custo (toast + disable botão)
+- Warning modal se preço < custo × (1 + min_margin): "Tem a certeza? Margem abaixo do recomendado"
+- Override apenas para admin (com registo em audit log)
+
+### 4. Dashboard de Saúde de Preços
+**Prioridade: Média — visão executiva**
+
+- Widget no dashboard principal ou na tab Relatórios de Produtos
+- KPIs: % produtos saudáveis vs warning vs danger, margem média do catálogo, valor em risco (receita de produtos com margem negativa)
+- Gráfico de distribuição de margens por categoria (Recharts)
+- Top 10 produtos com pior margem
+
+### 5. Repricing Automático Sugerido
+**Prioridade: Média — automação inteligente**
+
+- Batch action: "Sugerir preços para X produtos com margem baixa"
+- Usa regra da categoria + dados de mercado (se existirem) para calcular preço sugerido
+- Preview em tabela antes de aplicar: preço atual → preço sugerido → nova margem
+- Aplicação em massa com confirmação
+
+### 6. Monitorização Periódica de Mercado
+**Prioridade: Média — manter dados frescos**
+
+- Trigger.dev job semanal para re-pesquisar preços dos top N produtos
+- Notificação quando preço de mercado muda >10%
+- Histórico de evolução de preço de mercado (sparkline no detalhe)
+
+### 7. Alertas por Email/Notificação
+**Prioridade: Baixa — complementar**
+
+- Notificação quando um produto é editado para margem abaixo do mínimo
+- Resumo semanal: "5 produtos precisam de revisão de preço"
+- Integração com o sistema de notificações existente
 
 ## Ficheiros a Criar/Alterar
 
-### Novos
-1. `supabase/functions/ai-market-price-research/index.ts` — Edge function de pesquisa
-2. `src/hooks/useProductPricingIntelligence.ts` — Hook para pesquisa e regras
-3. `src/components/products/pricing/MarketResearchPanel.tsx` — Painel de resultados
-4. `src/components/products/pricing/MarginProtectionCard.tsx` — Card de proteção
-5. `src/components/products/pricing/PricingRulesSettings.tsx` — Gestão de regras
+| # | Ficheiro | Ação |
+|---|---------|------|
+| 1 | `src/components/products/pricing/PricingRulesSettings.tsx` | Criar |
+| 2 | `src/components/products/table/ProductsDataTable.tsx` | Alterar (coluna status + filtro) |
+| 3 | `src/components/products/ProductDetailDialog.tsx` | Alterar (validação save) |
+| 4 | `src/components/products/pricing/PricingHealthDashboard.tsx` | Criar |
+| 5 | `src/components/products/pricing/BatchRepricingPanel.tsx` | Criar |
+| 6 | `trigger/jobs/market-price-monitor.ts` | Criar |
+| 7 | Rota de Settings | Alterar (adicionar tab Regras de Margem) |
 
-### Alterados
-6. `src/components/products/table/ProductsDataTable.tsx` — Badges de alerta de margem
-7. Detalhe do produto — Adicionar tab/secção de inteligência de preços
+## Recomendação
 
-## Critérios de Aceitação
-- Nunca permitir guardar produto com preço < custo (bloqueio hard)
-- Aviso visual quando margem < margem mínima da categoria
-- Pesquisa de mercado retorna resultados em < 15s
-- Resultados persistidos para consulta futura
-- Desktop e mobile funcional
+Sugiro implementar pela ordem **1 → 2 → 3 → 4**, que cobre a base funcional completa: definir regras, visualizar problemas, bloquear erros, e ter visão executiva. Os itens 5-7 são extensões de automação para uma segunda fase.
+
