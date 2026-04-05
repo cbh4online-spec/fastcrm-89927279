@@ -18,8 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown, Pause, Play, Clock } from "lucide-react";
+import { MoreHorizontal, Search, ArrowRight, XCircle, CheckCircle2, ChevronDown, Pause, Play, Clock, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import type { SDREnrollment } from "@/hooks/useSDRCampaigns";
