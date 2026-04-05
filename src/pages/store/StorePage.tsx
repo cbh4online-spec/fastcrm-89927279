@@ -83,7 +83,7 @@ export default function StorePage() {
   }
 
   return (
-    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
+    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23} isB2B={tierPricing?.isB2B ?? false}>
       <StoreCompareProvider>
         <>
           <StoreSeoHead storeName={storeName} wsSlug={wsSlug} storeSettings={storeSettings} products={allProducts} />

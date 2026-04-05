@@ -259,7 +259,7 @@ export default function StoreProductPage() {
   const currentImage = images[selectedImage];
 
   return (
-    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23}>
+    <StoreVatProvider pricesIncludeVat={storeSettings?.prices_include_vat ?? true} vatRate={storeSettings?.vat_rate ?? 23} isB2B={tierPricing?.isB2B ?? false}>
     <>
       <ProductSeoHead
         product={product}
