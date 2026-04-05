@@ -1,76 +1,71 @@
 
-
-# Associar Cookies, Consent e Eventos ao Analytics da Loja
+# Fases do SDR — Pipeline Completo
 
 ## Diagnóstico
 
-Existem **3 sistemas isolados** que precisam de ser ligados:
+O SDR actual tem fases hardcoded no código (`enrolled → enriching → sequenced → replied → meeting_set → converted`). O `SDRPipelineView` é uma barra horizontal estática, sem interactividade, personalização ou funil de conversão.
 
-1. **Visitor Tracking** (`useStoreVisitorTracking` + `StoreProductViewTracker`) — grava sessões e page views na DB (`store_visitor_sessions`, `store_page_views`), mas ignora o estado de consent GDPR
-2. **GDPR Consent** (`useConsent` + `gdpr_consents`) — gere cookies e preferências do visitante, mas não alimenta o analytics da loja
-3. **GTM/dataLayer Events** (`useTracking` + `safePush`) — emite eventos para GTM/GA4, mas estes dados não aparecem no dashboard da loja
+## Solução em 4 blocos
 
-O dashboard "Visitas" mostra dados de sessões e page views mas não tem:
-- Estado de consent por sessão (analytics granted/denied)
-- Eventos de interacção (add_to_cart, checkout, CTA clicks)
-- Correlação cookie consent ↔ sessão
+### 1. Tabela `sdr_pipeline_stages` — Fases customizáveis por campanha
 
-## Solução
-
-### 1. Enriquecer `store_visitor_sessions` com dados de consent
-
-**Migração SQL**: Adicionar colunas `consent_analytics`, `consent_marketing` e `gdpr_visitor_id` à tabela `store_visitor_sessions`.
-
-### 2. Criar tabela `store_tracking_events` para eventos granulares
-
-Nova tabela para registar eventos de interacção na loja (add_to_cart, remove_from_cart, checkout_started, cta_click, wishlist_add, etc.) ligados à sessão do visitante.
+Nova tabela para armazenar fases configuráveis:
 
 ```text
-store_tracking_events
-├── id (uuid PK)
+sdr_pipeline_stages
 ├── workspace_id (FK)
-├── session_id (text) ← liga a store_visitor_sessions
-├── event_type (text) — ex: add_to_cart, checkout_started, cta_click
-├── event_data (jsonb) — metadata do evento (product_id, value, etc.)
-├── page_url (text)
-├── created_at (timestamptz)
-└── RLS: workspace members can SELECT
+├── campaign_id (FK nullable — null = template global do workspace)
+├── key (text) — identificador interno (ex: "enrolled", "enriching")
+├── label (text) — nome visível (ex: "Prospectados")
+├── position (int) — ordem no pipeline
+├── color (text) — cor hex/tailwind
+├── icon (text) — nome do ícone lucide
+├── is_terminal (bool) — se é estado final (converted, opted_out)
+├── is_negative (bool) — se é estado negativo (opted_out, failed)
+└── RLS: workspace members CRUD
 ```
 
-### 3. Modificar `useStoreVisitorTracking` para respeitar consent e gravar estado
+Seed automático com as 6+2 fases actuais via trigger `on_campaign_create`.
 
-- Importar `useConsent` e passar `consent_analytics`, `consent_marketing`, `gdpr_visitor_id` no upsert da sessão
-- Só registar tracking se `consent.analytics === true` ou `consent.necessary === true` (sessões básicas são "necessary")
-- Expor função `trackStoreEvent(eventType, eventData)` para componentes da loja usarem
+### 2. Hook `useSDRPipelineStages` + CRUD
 
-### 4. Instrumentar eventos na loja
+- Carregar fases por campanha (ou fallback global do workspace)
+- Criar/editar/reordenar fases (drag & drop)
+- Garantir que `enrolled` e `converted` existem sempre
 
-Adicionar chamadas `trackStoreEvent` nos pontos-chave:
-- `useStoreCartStore` → `add_to_cart`, `remove_from_cart`, `cart_update`
-- Checkout flow → `checkout_started`, `checkout_completed`
-- `StoreProductPage` → `product_view`, `cta_click`
+### 3. Pipeline Kanban Visual
 
-### 5. Nova secção no StoreVisitsTab — "Eventos & Conversões"
+Substituir o `SDRPipelineView` actual por uma versão melhorada:
+- **Kanban mode**: colunas drag-and-drop com prospects cards
+- **Funnel mode**: gráfico de funil com drop-off % entre fases
+- Toggle entre os dois modos
+- Clicar numa fase filtra a tabela de enrollments abaixo
 
-Adicionar ao dashboard:
-- Card com breakdown de consent (% analytics granted vs denied)
-- Tabela/gráfico de eventos por tipo (add_to_cart, checkout, etc.)
-- Funil de conversão baseado em eventos reais
+### 4. Funil de Conversão
 
-## Ficheiros a modificar/criar
+Novo componente `SDRConversionFunnel`:
+- Gráfico de funil (usando Nivo/Recharts) com drop-off entre cada fase
+- KPIs por fase: taxa de passagem, tempo médio, volume
+- Comparação entre campanhas (dropdown)
+
+### 5. Melhorias gerais
+
+- Labels em PT na pipeline view (já parcialmente feito)
+- Opt-out e Failed como fases terminais visíveis
+- Percentagem de conversão fase-a-fase no pipeline bar
+
+## Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Criar — adicionar colunas a `store_visitor_sessions` + criar `store_tracking_events` |
-| `src/hooks/useStoreVisitorTracking.ts` | Modificar — integrar consent state, expor `trackStoreEvent` |
-| `src/components/store/StoreVisitorTracker.tsx` | Modificar — passar consent props |
-| `src/hooks/useStoreVisitsAnalytics.ts` | Modificar — agregar dados de eventos e consent |
-| `src/components/store/analytics/StoreVisitsTab.tsx` | Modificar — adicionar secções de eventos e consent |
-| `src/stores/useStoreCartStore.ts` | Modificar — emitir eventos add_to_cart/remove_from_cart |
+| Migração SQL | Criar tabela `sdr_pipeline_stages` + seed trigger |
+| `src/hooks/useSDRPipelineStages.ts` | Novo — CRUD de fases |
+| `src/components/sdr/SDRPipelineView.tsx` | Refactor — usar fases dinâmicas + funnel toggle |
+| `src/components/sdr/SDRConversionFunnel.tsx` | Novo — gráfico de funil |
+| `src/components/sdr/SDRStageSettings.tsx` | Novo — UI de personalização de fases |
+| `src/pages/SDRDashboardPage.tsx` | Modificar — integrar novos componentes |
 
 ## Segurança
 
-- RLS na `store_tracking_events`: SELECT para workspace members, INSERT público (visitantes anónimos)
-- Dados de consent nunca incluem PII — apenas flags boolean
-- `event_data` sanitizado — sem campos pessoais
-
+- RLS: workspace members CRUD, escopado por workspace_id
+- Seed de fases via trigger SECURITY DEFINER

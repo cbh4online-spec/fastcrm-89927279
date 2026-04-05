@@ -6,10 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3 } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
+import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
 import { SDRPipelineView } from "@/components/sdr/SDRPipelineView";
+import { SDRConversionFunnel } from "@/components/sdr/SDRConversionFunnel";
+import { SDRStageSettings } from "@/components/sdr/SDRStageSettings";
 import { SDRCampaignCard } from "@/components/sdr/SDRCampaignCard";
 import { SDRActivityFeed } from "@/components/sdr/SDRActivityFeed";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
@@ -28,9 +31,18 @@ export default function SDRDashboardPage() {
   const [newDesc, setNewDesc] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [pipelineMode, setPipelineMode] = useState<"pipeline" | "funnel">("pipeline");
+  const [showStageSettings, setShowStageSettings] = useState(false);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
+  const { stages: dynamicStages, activeStages } = useSDRPipelineStages(selectedCampaignId);
+
+  // Build enrollment counts by stage key
+  const enrollmentCounts: Record<string, number> = {};
+  for (const e of enrollments) {
+    enrollmentCounts[e.status] = (enrollmentCounts[e.status] || 0) + 1;
+  }
 
   // Pipeline stats from aggregated data or campaign enrollments
   const pipelineStats = selectedCampaignId && stats
@@ -158,7 +170,15 @@ export default function SDRDashboardPage() {
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="campaigns">Campanhas ({campaigns.length})</TabsTrigger>
             <TabsTrigger value="pipeline" disabled={!selectedCampaignId}>
+              <GitBranch className="h-3.5 w-3.5 mr-1" />
               Pipeline {selectedCampaign ? `— ${selectedCampaign.name}` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="funnel" disabled={!selectedCampaignId}>
+              Funil
+            </TabsTrigger>
+            <TabsTrigger value="stages">
+              <Settings2 className="h-3.5 w-3.5 mr-1" />
+              Fases
             </TabsTrigger>
           </TabsList>
 
@@ -250,7 +270,11 @@ export default function SDRDashboardPage() {
           <TabsContent value="pipeline" className="space-y-4">
             {selectedCampaign && stats && (
               <>
-                <SDRPipelineView stats={stats} />
+                <SDRPipelineView
+                  stats={stats}
+                  dynamicStages={dynamicStages.length > 0 ? dynamicStages : undefined}
+                  counts={enrollmentCounts}
+                />
 
                 <Card>
                   <CardHeader>
@@ -295,6 +319,26 @@ export default function SDRDashboardPage() {
                 </Card>
               </>
             )}
+          </TabsContent>
+
+          {/* Funnel Tab */}
+          <TabsContent value="funnel" className="space-y-4">
+            {selectedCampaign && dynamicStages.length > 0 ? (
+              <SDRConversionFunnel stages={dynamicStages} counts={enrollmentCounts} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Seleccione uma campanha para ver o funil de conversão.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Stages Settings Tab */}
+          <TabsContent value="stages" className="space-y-4">
+            <SDRStageSettings campaignId={selectedCampaignId} />
           </TabsContent>
         </Tabs>
       </div>

@@ -48434,6 +48434,66 @@ export type Database = {
           },
         ]
       }
+      sdr_pipeline_stages: {
+        Row: {
+          campaign_id: string | null
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          is_negative: boolean
+          is_terminal: boolean
+          key: string
+          label: string
+          position: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_negative?: boolean
+          is_terminal?: boolean
+          key: string
+          label: string
+          position?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_negative?: boolean
+          is_terminal?: boolean
+          key?: string
+          label?: string
+          position?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sdr_pipeline_stages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "sdr_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sdr_pipeline_stages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_comparisons: {
         Row: {
           content: Json | null
@@ -61332,6 +61392,10 @@ export type Database = {
       }
       seed_context_blocks: {
         Args: { p_workspace_id: string }
+        Returns: undefined
+      }
+      seed_sdr_default_stages: {
+        Args: { p_campaign_id?: string; p_workspace_id: string }
         Returns: undefined
       }
       set_default_vibe_profile: {
