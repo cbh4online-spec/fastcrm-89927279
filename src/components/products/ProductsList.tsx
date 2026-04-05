@@ -50,10 +50,13 @@ import { PricingRulesManager } from "./PricingRulesManager";
 import { StockAlertsManager } from "./StockAlertsManager";
 import { ProductReportsTab } from "./ProductReportsTab";
 import { ProductsCatalogSummary } from "./ProductsCatalogSummary";
+import { PricingHealthDashboard } from "./pricing/PricingHealthDashboard";
 import { useProductsListState, PRODUCT_COLUMNS, pageTabs, sortOptions } from "./hooks/useProductsListState";
+import { usePricingRules } from "@/hooks/useProductPricingIntelligence";
 
 export function ProductsList() {
   const state = useProductsListState();
+  const { data: pricingRules = [] } = usePricingRules();
   const [exportOpen, setExportOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
