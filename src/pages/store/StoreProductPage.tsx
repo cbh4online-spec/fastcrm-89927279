@@ -16,6 +16,7 @@ import { StoreQuickBuyButton } from "@/components/store/StoreQuickBuyButton";
 import { StoreOfferCountdown } from "@/components/store/StoreOfferCountdown";
 import { StoreAddToCartAnimation } from "@/components/store/StoreAddToCartAnimation";
 import { StoreFooter } from "@/components/store/StoreFooter";
+import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 import { PriceHistoryChart } from "@/components/store/PriceHistoryChart";
 import { PriceComparisonWidget } from "@/components/store/PriceComparisonWidget";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
