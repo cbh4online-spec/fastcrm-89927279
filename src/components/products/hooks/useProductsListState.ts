@@ -119,7 +119,7 @@ export function useProductsListState() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("products");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(() => typeof window !== "undefined" ? window.innerWidth >= 768 : true);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("updated_desc");

@@ -15,6 +15,7 @@ interface PageHeaderAction {
   onClick: () => void;
   variant?: "default" | "outline" | "ghost";
   disabled?: boolean;
+  className?: string;
 }
 
 interface PageHeaderProps {
@@ -67,7 +68,8 @@ export function PageHeader({
                 className={cn(
                   "gap-2 transition-all duration-200",
                   action.variant !== "outline" && action.variant !== "ghost" && 
-                  "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md shadow-primary/20"
+                  "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md shadow-primary/20",
+                  action.className
                 )}
               >
                 {action.icon}

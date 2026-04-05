@@ -114,7 +114,7 @@ export function ProductsCatalogSummary({
   ].filter(c => c.count > 0);
 
   return (
-    <div className="mb-3 space-y-2">
+    <div className="mb-3 space-y-2 hidden md:block">
       {/* ── Compact summary bar ── */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Health score pill */}
