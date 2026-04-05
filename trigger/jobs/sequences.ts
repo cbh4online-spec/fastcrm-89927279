@@ -17,6 +17,22 @@ export const sequenceStepProcessor = schedules.task({
   },
 })
 
+// SDR daily stats aggregator: runs every day at 02:00 UTC
+export const sdrDailyStatsAggregator = schedules.task({
+  id: 'sdr-daily-stats-aggregator',
+  cron: '0 2 * * *',
+  maxDuration: 300,
+  run: async () => {
+    logger.info('SDR daily stats aggregator started')
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const result = await invokeEdgeFunction('sdr-stats-aggregator', {
+      target_date: yesterday,
+    })
+    logger.info('SDR daily stats aggregator completed', { result })
+    return result
+  },
+})
+
 // Trigger a specific sequence step immediately
 export const triggerSequenceStep = task({
   id: 'trigger-sequence-step',

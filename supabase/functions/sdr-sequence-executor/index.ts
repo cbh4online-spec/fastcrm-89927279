@@ -77,13 +77,23 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
   // Get campaign to find sequence_id
   const { data: campaign } = await supabase
     .from("sdr_campaigns")
-    .select("sequence_id, workspace_id, settings, ai_employee_id")
+    .select("sequence_id, workspace_id, settings, ai_employee_id, ab_testing_config")
     .eq("id", enrollment.campaign_id)
     .single();
 
   if (!campaign?.sequence_id) {
     console.warn(`[sdr-sequence-executor] No sequence for campaign ${enrollment.campaign_id}`);
     return;
+  }
+
+  // Assign A/B variant if not yet assigned
+  if (!enrollment.message_variant && campaign.ab_testing_config?.variants?.length > 1) {
+    const variant = pickABVariant(campaign.ab_testing_config.variants);
+    await supabase
+      .from("sdr_enrollments")
+      .update({ message_variant: variant })
+      .eq("id", enrollment.id);
+    enrollment.message_variant = variant;
   }
 
   // Get all steps for the sequence ordered by step_order
@@ -275,4 +285,15 @@ async function executeSingleStep(supabase: any, body: any) {
 
   await processEnrollmentStep(supabase, enrollment);
   return { processed: true, enrollment_id };
+}
+
+// Pick A/B variant based on weighted random distribution
+function pickABVariant(variants: { name: string; weight: number }[]): string {
+  const totalWeight = variants.reduce((s, v) => s + v.weight, 0);
+  let rand = Math.random() * totalWeight;
+  for (const v of variants) {
+    rand -= v.weight;
+    if (rand <= 0) return v.name;
+  }
+  return variants[0]?.name || "A";
 }
