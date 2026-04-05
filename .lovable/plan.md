@@ -1,62 +1,73 @@
 
 
-# Preços com IVA (B2C) vs sem IVA (B2B/Revenda)
+# Conformidade Legal Portuguesa na Loja Online
 
 ## Diagnóstico
 
-O sistema já tem as peças necessárias mas não as conecta:
-- `StoreVatContext` controla a label "c/ IVA" vs "+ IVA (X%)" — mas usa apenas o setting da loja (`prices_include_vat`), ignorando se o utilizador é B2B
-- `useStoreTierPricing` já deteta se o utilizador é B2B (`isB2B: true`) — mas não influencia a apresentação de IVA
-- O Portal do Cliente (`/client/*`) já mostra "s/ IVA" hardcoded — está correto
-- O Partner Center (`/partner/*`) já trabalha com `unit_price_net` — está correto
-- **Problema**: Na loja pública, um cliente B2B vê preços "c/ IVA" quando devia ver "s/ IVA"
+O que **já existe**:
+- Footer com links para Termos, Privacidade, Cookies, RGPD
+- Páginas legais completas com conteúdo RGPD-compliant e variáveis dinâmicas (NIF, morada, etc.)
+- Menção de IVA nos preços (taxa e inclusão/exclusão)
+- Prazo de devoluções mencionado (14 dias)
+- Métodos de pagamento visíveis
+
+O que **falta** para cumprir a legislação portuguesa (DL 7/2004, DL 24/2014, Lei 24/96, RGPD):
+
+| Requisito Legal | Estado |
+|---|---|
+| Identificação completa do vendedor (nome, NIF, morada, contactos) visível na loja | Ausente |
+| Livro de Reclamações Eletrónico (obrigatório desde 2017) | Ausente |
+| Checkbox de aceitação de Termos + Direito de arrependimento no checkout | Ausente |
+| Informação pré-contratual sobre direito de livre resolução (14 dias) no checkout | Ausente |
+| Cookie consent banner (RGPD + Lei 41/2004) | Ausente |
+| Link para entidade RAL (Resolução Alternativa de Litígios) no footer | Ausente |
+| Informação sobre garantia legal (3 anos, DL 84/2021) | Ausente |
 
 ## Plano de Implementação
 
-### 1. Expandir `StoreVatContext` para aceitar override B2B
+### 1. Identificação do Vendedor no Footer
+Adicionar secção ao `StoreFooter.tsx` que consome `usePublicCompanyData` para mostrar: nome da empresa, NIF, morada, email e telefone. Obrigatório pelo DL 7/2004 (comércio eletrónico).
 
-Adicionar prop `forceExcludeVat` ao `StoreVatProvider`. Quando `true`, o contexto reporta `pricesIncludeVat: false` independentemente do setting da loja.
+### 2. Cookie Consent Banner
+Criar `StoreCookieConsent.tsx` — banner fixo no fundo com botões "Aceitar", "Rejeitar", "Personalizar". Guardar preferência em localStorage. Renderizar no layout da loja (dentro de `StoreRoutes` ou em cada página de loja).
 
-### 2. Passar `isB2B` do tier pricing para o `StoreVatProvider`
+### 3. Checkbox de Consentimento no Checkout
+Alterar `CheckoutPaymentStep.tsx` para incluir:
+- Checkbox obrigatória: "Li e aceito os Termos e Condições e a Política de Privacidade" (com links)
+- Texto informativo: "Tem direito a desistir da compra no prazo de 14 dias sem necessidade de indicar motivo (DL 24/2014)"
+- Desabilitar botão de pagamento se checkbox não marcada
 
-Em `StorePage.tsx` e `StoreProductPage.tsx`, já se usa `useStoreTierPricing`. Passar `tierPricing?.isB2B` ao provider para forçar preços sem IVA para clientes B2B.
+### 4. Livro de Reclamações Eletrónico
+Adicionar ao `StoreFooter.tsx` link externo obrigatório para o Livro de Reclamações Eletrónico (`https://www.livroreclamacoes.pt`). Legislação exige que seja visível e acessível.
 
-### 3. Ajustar cálculo de preço no `StoreProductCard`
+### 5. Resolução Alternativa de Litígios (RAL)
+Adicionar ao `StoreFooter.tsx` texto legal com link para plataforma europeia de resolução de litígios (`https://ec.europa.eu/consumers/odr`) e menção a entidades RAL aplicáveis. Obrigatório pelo DL 144/2015.
 
-Quando `isB2B`, os preços do tier já vêm como `price_net`. Garantir que o `StoreVatLabel` mostra "s/ IVA" e que o preço apresentado é o líquido (sem VAT).
+### 6. Garantia Legal (3 anos)
+Adicionar ao `StoreFooter.tsx` (secção "Informação Legal") menção à garantia legal de 3 anos para bens de consumo (DL 84/2021). Pode ser link para uma secção nos Termos.
 
-### 4. Ajustar checkout da loja
+### 7. Actualizar Defaults das Páginas Legais
+Adicionar ao `legalPageDefaults.ts` secções sobre direito de livre resolução (14 dias) e garantias nos Termos de Uso.
 
-Garantir que no carrinho e checkout, se o utilizador é B2B, os preços são apresentados sem IVA com o total de IVA discriminado separadamente.
+## Ficheiros a Criar/Alterar
 
-## Ficheiros a alterar
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `src/contexts/StoreVatContext.tsx` | Adicionar lógica de override quando `isB2B` |
-| `src/pages/store/StorePage.tsx` | Passar `isB2B` ao `StoreVatProvider` |
-| `src/pages/store/StoreProductPage.tsx` | Passar `isB2B` ao `StoreVatProvider` |
-| `src/components/store/StoreVatLabel.tsx` | Ajustar label para B2B: "s/ IVA" em vez de "+ IVA (23%)" |
-| `src/components/store/StoreCartDrawer.tsx` | Discriminar IVA separadamente para B2B |
-
-## Lógica
-
-```text
-SE utilizador é B2B (tier pricing ativo):
-  → Preços apresentados = preço líquido (sem IVA)
-  → Label = "s/ IVA"
-  → No checkout: subtotal + IVA discriminado + total
-
-SE utilizador é B2C (consumidor final):
-  → Preços apresentados = preço com IVA (conforme setting da loja)
-  → Label = "c/ IVA" ou "+ IVA (23%)"
-```
+| Ficheiro | Ação |
+|---|---|
+| `src/components/store/StoreCookieConsent.tsx` | Criar — banner RGPD de cookies |
+| `src/components/store/StoreFooter.tsx` | Alterar — identificação vendedor, livro reclamações, RAL, garantia |
+| `src/components/store/checkout/CheckoutPaymentStep.tsx` | Alterar — checkbox termos + info direito arrependimento |
+| `src/components/store/checkout/checkoutSchema.ts` | Alterar — validação da checkbox |
+| `src/pages/store/StorePage.tsx` | Alterar — renderizar cookie banner |
+| `src/pages/store/StoreProductPage.tsx` | Alterar — renderizar cookie banner |
+| `src/modules/growth-seo/components/admin/legalPageDefaults.ts` | Alterar — secções legais adicionais |
 
 ## Critérios de Aceitação
 
-- Cliente B2C vê preços com IVA incluído e label "c/ IVA"
-- Cliente B2B autenticado com tier vê preços sem IVA e label "s/ IVA"
-- Checkout B2B discrimina subtotal líquido, valor de IVA, e total bruto
-- Portal do Cliente e Partner Center mantêm comportamento atual (sem IVA)
-- Sem regressões na loja pública para visitantes não autenticados
+- Identificação completa do vendedor visível no footer de todas as páginas da loja
+- Cookie banner apresentado na primeira visita, com opção de aceitar/rejeitar
+- Checkout impossível sem aceitar termos (checkbox obrigatória)
+- Informação sobre direito de arrependimento (14 dias) visível antes de finalizar compra
+- Link para Livro de Reclamações Eletrónico visível no footer
+- Link para plataforma RAL europeia visível no footer
+- Menção a garantia legal de 3 anos no footer ou página de termos
 
