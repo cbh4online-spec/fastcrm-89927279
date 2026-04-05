@@ -33,16 +33,34 @@ import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SDRDashboardPage() {
+  const { currentWorkspace } = useWorkspace();
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useSDRCampaigns();
   const { data: aggStats, isLoading: aggLoading } = useSDRAggregatedStats();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newSequenceId, setNewSequenceId] = useState("none");
+  const [newAutoEnroll, setNewAutoEnroll] = useState(false);
+  const [newMinScore, setNewMinScore] = useState(70);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [campaignSearch, setCampaignSearch] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+
+  // Fetch sequences for quick-select in create dialog
+  const { data: sequences = [] } = useQuery({
+    queryKey: ["sequences-for-sdr", currentWorkspace?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("multichannel_sequences")
+        .select("id, name, status")
+        .eq("workspace_id", currentWorkspace!.id)
+        .order("name");
+      return data || [];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
