@@ -321,6 +321,36 @@ export function useStoreVisitsAnalytics(days: number) {
     .sort((a, b) => b.exits - a.exits)
     .slice(0, 15);
 
+  // Consent Breakdown
+  const sessionsWithConsent = sessions.filter((s) => s.consent_analytics !== null);
+  const analyticsGranted = sessionsWithConsent.filter((s) => s.consent_analytics === true).length;
+  const analyticsDenied = sessionsWithConsent.filter((s) => s.consent_analytics === false).length;
+  const marketingGranted = sessionsWithConsent.filter((s) => s.consent_marketing === true).length;
+  const marketingDenied = sessionsWithConsent.filter((s) => s.consent_marketing === false).length;
+  const consentBreakdown: ConsentBreakdown = {
+    analyticsGranted,
+    analyticsDenied,
+    marketingGranted,
+    marketingDenied,
+    totalWithConsent: sessionsWithConsent.length,
+    analyticsRate: sessionsWithConsent.length > 0 ? (analyticsGranted / sessionsWithConsent.length) * 100 : 0,
+    marketingRate: sessionsWithConsent.length > 0 ? (marketingGranted / sessionsWithConsent.length) * 100 : 0,
+  };
+
+  // Event Type Breakdown
+  const eventTypeMap = new Map<string, number>();
+  for (const e of events) {
+    eventTypeMap.set(e.event_type, (eventTypeMap.get(e.event_type) || 0) + 1);
+  }
+  const totalEvents = events.length;
+  const eventTypes: EventTypeEntry[] = Array.from(eventTypeMap.entries())
+    .map(([eventType, count]) => ({
+      eventType,
+      count,
+      percentage: totalEvents > 0 ? (count / totalEvents) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
   return {
     kpis,
     dailyVisits,
@@ -331,6 +361,9 @@ export function useStoreVisitsAnalytics(days: number) {
     aiIntents,
     scrollDepthDistribution,
     exitPages,
+    consentBreakdown,
+    eventTypes,
+    totalEvents,
     isLoading,
   };
 }
