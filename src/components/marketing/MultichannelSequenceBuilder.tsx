@@ -84,6 +84,23 @@ export function MultichannelSequenceBuilder() {
   const [newDesc, setNewDesc] = useState('');
   const [steps, setSteps] = useState<SequenceStep[]>([]);
 
+  // Fetch available communication templates for email steps
+  const { data: emailTemplates = [] } = useQuery({
+    queryKey: ['communication-templates-email', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data, error } = await supabase
+        .from('communication_templates')
+        .select('id, name, channel, subject, body, body_html')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as CommunicationTemplate[];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
   const { data: sequences = [], isLoading } = useQuery({
     queryKey: ['multichannel-sequences', currentWorkspace?.id],
     queryFn: async () => {
