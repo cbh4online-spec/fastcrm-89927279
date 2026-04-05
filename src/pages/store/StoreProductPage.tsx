@@ -452,14 +452,25 @@ export default function StoreProductPage() {
                        €{(pricing?.price ?? product.base_price).toFixed(2)}
                      </span>
                      <StoreVatLabel />
-                    {pricing?.isDiscounted && (
+                    {pricing?.isDiscounted && !pricing?.isPromo && (
                       <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                    )}
+                    {pricing?.isPromo && pricing.lowestPrice30d && (
+                      <span className="text-lg text-muted-foreground line-through">€{pricing.lowestPrice30d.toFixed(2)}</span>
+                    )}
+                    {pricing?.isPromo && (pricing.savingsPercent ?? 0) > 0 && (
+                      <Badge className="bg-destructive/10 text-destructive border-0">-{pricing.savingsPercent}%</Badge>
                     )}
                     {product.billing_type === "recurring" && (
                       <span className="text-muted-foreground">/mês</span>
                     )}
                   </div>
-                  {pricing?.discountLabel && (
+                  {pricing?.isPromo && pricing.lowestPrice30d && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Preço mais baixo nos últimos 30 dias: €{pricing.lowestPrice30d.toFixed(2)}
+                    </p>
+                  )}
+                  {pricing?.discountLabel && !pricing?.isPromo && (
                     <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
                       {pricing.discountLabel}
                     </Badge>
@@ -531,14 +542,25 @@ export default function StoreProductPage() {
                          €{(pricing?.price ?? product.base_price).toFixed(2)}
                        </span>
                        <StoreVatLabel />
-                      {pricing?.isDiscounted && (
+                      {pricing?.isDiscounted && !pricing?.isPromo && (
                         <span className="text-lg text-muted-foreground line-through">€{product.base_price.toFixed(2)}</span>
+                      )}
+                      {pricing?.isPromo && pricing.lowestPrice30d && (
+                        <span className="text-lg text-muted-foreground line-through">€{pricing.lowestPrice30d.toFixed(2)}</span>
+                      )}
+                      {pricing?.isPromo && (pricing.savingsPercent ?? 0) > 0 && (
+                        <Badge className="bg-destructive/10 text-destructive border-0">-{pricing.savingsPercent}%</Badge>
                       )}
                       {product.billing_type === "recurring" && (
                         <span className="text-muted-foreground">/mês</span>
                       )}
                     </div>
-                    {pricing?.discountLabel && (
+                    {pricing?.isPromo && pricing.lowestPrice30d && (
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Preço mais baixo nos últimos 30 dias: €{pricing.lowestPrice30d.toFixed(2)}
+                      </p>
+                    )}
+                    {pricing?.discountLabel && !pricing?.isPromo && (
                       <Badge variant="outline" className="mt-1" style={{ borderColor: tierPricing?.tier?.color || undefined, color: tierPricing?.tier?.color || undefined }}>
                         {pricing.discountLabel}
                       </Badge>
