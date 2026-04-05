@@ -850,6 +850,7 @@ export default function StoreProductPage() {
 
         {/* Add to Cart Animation */}
         <StoreAddToCartAnimation trigger={cartAnimTrigger} />
+        <StoreCookieConsent />
       </div>
     </>
     </StoreVatProvider>
