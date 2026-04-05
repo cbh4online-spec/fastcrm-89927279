@@ -88,7 +88,9 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
   const stockPercent = showStockBar ? Math.min((product.stock_quantity! / 20) * 100, 100) : 0;
 
   // Savings percentage
-  const savingsPercent = isDiscounted ? Math.round(((product.base_price - effectivePrice) / product.base_price) * 100) : 0;
+  const savingsPercent = pricing.isPromo && pricing.savingsPercent
+    ? pricing.savingsPercent
+    : isDiscounted ? Math.round(((product.base_price - effectivePrice) / product.base_price) * 100) : 0;
 
   // Review stats
   const reviewData = reviewStats?.get(product.id);
