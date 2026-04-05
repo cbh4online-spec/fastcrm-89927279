@@ -189,6 +189,10 @@ export default function SDRDashboardPage() {
               <Zap className="h-3.5 w-3.5 mr-1" />
               Sequências
             </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <LineChart className="h-3.5 w-3.5 mr-1" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="stages">
               <Settings2 className="h-3.5 w-3.5 mr-1" />
               Fases ({dynamicStages.length})
