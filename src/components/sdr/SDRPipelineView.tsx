@@ -39,9 +39,11 @@ interface SDRPipelineViewProps {
 }
 
 export function SDRPipelineView({ stats, dynamicStages, counts, onStageClick }: SDRPipelineViewProps) {
+  type StageItem = { key: string; label: string; color: string; icon: string };
+
   // If dynamic stages provided, use them; otherwise fallback to legacy
-  const resolvedStages = dynamicStages
-    ? dynamicStages.filter((s) => !s.is_negative)
+  const resolvedStages: StageItem[] = dynamicStages
+    ? dynamicStages.filter((s) => !s.is_negative).map((s) => ({ key: s.key, label: s.label, color: s.color, icon: s.icon }))
     : [
         { key: "enrolled", label: "Prospectados", color: "blue-500", icon: "Users" },
         { key: "enriching", label: "Enriquecidos", color: "indigo-500", icon: "Search" },
@@ -64,7 +66,6 @@ export function SDRPipelineView({ stats, dynamicStages, counts, onStageClick }: 
   const getCounts = (key: string) => counts?.[key] ?? legacyCounts[key] ?? 0;
 
   const maxCount = Math.max(...resolvedStages.map((s) => getCounts(s.key)), 1);
-  const totalFlow = resolvedStages.reduce<number>((sum, s) => sum + getCounts(s.key), 0);
 
   return (
     <div className="space-y-3">
