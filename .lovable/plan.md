@@ -1,43 +1,47 @@
-# SDR — Iteração 6: Analytics Avançado e A/B Testing
+# SDR — Iteração 7: Compliance, Opt-out, Bounces e Throttling
 
 ## Diagnóstico
 
-O módulo SDR tem KPIs globais (reply/meeting/conversion rates) e métricas por step, mas falta:
-- **A/B Testing**: campo `ab_testing_config` existe na tabela mas sem UI nem lógica de distribuição
-- **Analytics por período**: sem histórico temporal — impossível ver tendências
-- **Comparação entre campanhas**: não há vista comparativa
-- **Métricas de email engagement**: open/click rates existem nos logs mas sem agregação visual avançada
-- **Heatmap de horários**: sem insight sobre melhores horários de envio
+O módulo SDR tem `opted_out_at` nos enrollments e o orchestrator consegue marcar status `opted_out`, mas falta:
+- **Suppression check antes do envio**: O `sdr-sequence-executor` não verifica `campaign_suppressions` nem `suppressed_emails` antes de enviar
+- **Unsubscribe link nos emails SDR**: Emails de sequência não incluem link de opt-out
+- **Bounce handling para SDR**: Bounces do marketing-webhook não propagam para enrollments SDR
+- **Throttling de envio**: Sem rate limiting — pode enviar centenas de emails de uma vez
+- **UI de gestão de opt-outs**: Sem vista para ver/gerir contactos que fizeram opt-out
+- **Compliance footer**: Sem informação GDPR/CAN-SPAM nos emails de sequência
 
 ## Implementação
 
-### 1. Migração: tabela `sdr_daily_stats`
-Tabela desnormalizada para snapshots diários por campanha — permite gráficos de tendência sem queries pesadas em tempo real.
-Campos: campaign_id, workspace_id, stat_date, enrolled, sent, opened, clicked, replied, meetings, converted, opted_out.
+### 1. Migração: tabela `sdr_suppressions`
+Tabela dedicada de supressões SDR (bounces, complaints, opt-outs manuais) com workspace scope.
+Campos: workspace_id, email, reason (hard_bounce | complaint | manual_optout | unsubscribe), source_enrollment_id, created_at.
 
-### 2. Edge Function `sdr-stats-aggregator`
-Cron job (via Trigger.dev) que corre 1x/dia e popula `sdr_daily_stats` com contagens do dia anterior a partir de `sdr_enrollments` e `sdr_sequence_step_logs`.
+### 2. sdr-sequence-executor: Suppression check + Throttling
+- Antes de enviar, verificar se o email está em `sdr_suppressions` OU `suppressed_emails`
+- Se suprimido: skip step, logar motivo, marcar enrollment como `opted_out`
+- Throttling: processar em batches de 20, com delay de 500ms entre envios
+- Adicionar unsubscribe link e compliance footer ao corpo do email
 
-### 3. A/B Testing UI + Lógica
-- **SDRCampaignSettings**: Configurar variantes (A/B/C) com labels, percentagem de alocação, e template/subject alternativo
-- **sdr-sequence-executor**: Na hora do envio, sortear variante com base nas percentagens e registar `message_variant` no enrollment
-- **SDRABTestResults**: Componente com tabela comparativa de métricas por variante (open rate, reply rate, click rate)
+### 3. sdr-orchestrator: Bounce propagation
+- Ao receber webhook de bounce/complaint, verificar se o email tem enrollment SDR activo
+- Se sim: marcar enrollment como `opted_out`, criar registo em `sdr_suppressions`
 
-### 4. Analytics Dashboard (novo tab "Analytics")
-- Gráfico de linha: tendência diária de sent/opened/replied (últimos 30 dias) — usa `sdr_daily_stats`
-- Heatmap de horários: melhor hora/dia para envio baseado em `opened_at` dos step logs
-- Comparação entre campanhas: tabela side-by-side
+### 4. UI: SDRSuppressionManager
+- Lista de emails suprimidos com filtros (reason, data)
+- Acção: remover supressão (com confirmação)
+- Acção: adicionar supressão manual
+- KPIs: total suprimidos, por motivo, tendência
 
-### 5. Componentes
+### 5. UI: Opt-out rate no dashboard
+- Adicionar opt-out rate aos KPIs existentes das campanhas
+- Coluna opt-out no SDRAnalyticsDashboard
+
+### Ficheiros
 
 | Ficheiro | Acção |
 |---|---|
-| `supabase/functions/sdr-stats-aggregator/index.ts` | **Novo** — agrega stats diários |
-| `trigger/jobs/sequences.ts` | Adicionar cron job para sdr-stats-aggregator |
-| `src/components/sdr/SDRABTestConfig.tsx` | **Novo** — config de variantes A/B |
-| `src/components/sdr/SDRABTestResults.tsx` | **Novo** — resultados A/B por variante |
-| `src/components/sdr/SDRAnalyticsDashboard.tsx` | **Novo** — analytics com gráficos |
-| `src/components/sdr/SDRSendTimeHeatmap.tsx` | **Novo** — heatmap de horários |
-| `src/pages/SDRDashboardPage.tsx` | Adicionar tab "Analytics" e "A/B Tests" |
-| `src/components/sdr/SDRCampaignSettings.tsx` | Integrar config A/B |
-| `supabase/functions/sdr-sequence-executor/index.ts` | Lógica de distribuição de variantes |
+| `supabase/functions/sdr-sequence-executor/index.ts` | Suppression check + throttling + unsubscribe link |
+| `supabase/functions/sdr-orchestrator/index.ts` | Bounce propagation para enrollments |
+| `src/components/sdr/SDRSuppressionManager.tsx` | **Novo** — gestão de supressões |
+| `src/pages/SDRDashboardPage.tsx` | Adicionar tab "Compliance" |
+| `src/components/sdr/SDRAnalyticsDashboard.tsx` | Adicionar opt-out rate |
