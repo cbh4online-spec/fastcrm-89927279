@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap } from "lucide-react";
+import { Plus, Rocket, Send, BarChart3, Settings2, GitBranch, Search, Zap, LineChart } from "lucide-react";
 import { useSDRCampaigns, useSDREnrollments } from "@/hooks/useSDRCampaigns";
 import { useSDRAggregatedStats } from "@/hooks/useSDRAggregatedStats";
 import { useSDRPipelineStages } from "@/hooks/useSDRPipelineStages";
@@ -19,6 +19,7 @@ import { SDRProspectActions } from "@/components/sdr/SDRProspectActions";
 import { SDRCampaignSettings } from "@/components/sdr/SDRCampaignSettings";
 import { SDRSequenceMetrics } from "@/components/sdr/SDRSequenceMetrics";
 import { MultichannelSequenceBuilder } from "@/components/marketing/MultichannelSequenceBuilder";
+import { SDRAnalyticsDashboard } from "@/components/sdr/SDRAnalyticsDashboard";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Badge } from "@/components/ui/badge";
 import { Users, MessageSquare, Calendar, Trophy } from "lucide-react";
