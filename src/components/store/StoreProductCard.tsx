@@ -181,8 +181,18 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                 createdAt={product.created_at}
                 trackStock={product.track_stock}
                 stockQuantity={product.stock_quantity}
-                isDiscounted={isDiscounted}
+                isDiscounted={isDiscounted && !pricing.isPromo}
                 compact
+              />
+              {pricing.isPromo && pricing.lowestPrice30d && (
+                <StorePromoBadge
+                  promoLabel={pricing.promoLabel}
+                  promoEndAt={pricing.promoEndAt}
+                  savingsPercent={savingsPercent}
+                  lowestPrice30d={pricing.lowestPrice30d}
+                  compact
+                />
+              )}
               />
               <StoreProductConditionBadge condition={(product as any).product_condition} compact />
             </div>
