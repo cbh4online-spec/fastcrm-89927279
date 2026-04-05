@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { ArrowUp, Shield, CreditCard, Truck, Heart, ClipboardList, Lock, RotateCcw, BadgeCheck, Star, Users } from "lucide-react";
+import { ArrowUp, Shield, CreditCard, Truck, Heart, ClipboardList, Lock, RotateCcw, BadgeCheck, Star, Users, ExternalLink, BookOpen, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { usePublicCompanyData } from "@/modules/growth-seo/hooks/usePublicCompanyData";
 import type { StoreCategory } from "@/hooks/useStoreProducts";
 
 interface StoreFooterProps {
@@ -14,6 +15,8 @@ interface StoreFooterProps {
 }
 
 export function StoreFooter({ workspaceSlug, storeName, categories = [], footerText, pricesIncludeVat = true, vatRate = 23 }: StoreFooterProps) {
+  const { company, fullAddress } = usePublicCompanyData();
+
   return (
     <footer className="border-t bg-muted/30 mt-16">
       {/* Trust & Payment bar */}
@@ -52,8 +55,8 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
                 <BadgeCheck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Garantia de Qualidade</p>
-                <p className="text-[11px] text-muted-foreground">Satisfação garantida</p>
+                <p className="text-sm font-semibold text-foreground">Garantia Legal</p>
+                <p className="text-[11px] text-muted-foreground">3 anos (DL 84/2021)</p>
               </div>
             </div>
           </div>
@@ -79,12 +82,28 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
       {/* Main footer content */}
       <div className="container mx-auto px-4 py-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
-          {/* Brand */}
+          {/* Brand + Vendor Identification (DL 7/2004) */}
           <div className="col-span-2 md:col-span-1">
             <h3 className="font-bold text-foreground text-lg mb-3">{storeName}</h3>
-            <p className="text-muted-foreground text-xs leading-relaxed">
-              Qualidade garantida e entrega sem complicações. A sua satisfação é a nossa prioridade.
-            </p>
+            <div className="text-muted-foreground text-xs leading-relaxed space-y-1">
+              {company.company_name && <p className="font-medium text-foreground/80">{company.company_name}</p>}
+              {company.nif && <p>NIF: {company.nif}</p>}
+              {fullAddress && <p>{fullAddress}</p>}
+              {company.email_general && (
+                <p>
+                  <a href={`mailto:${company.email_general}`} className="hover:text-foreground transition-colors">
+                    {company.email_general}
+                  </a>
+                </p>
+              )}
+              {company.phone && (
+                <p>
+                  <a href={`tel:${company.phone}`} className="hover:text-foreground transition-colors">
+                    {company.phone}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Account Links */}
@@ -167,11 +186,55 @@ export function StoreFooter({ workspaceSlug, storeName, categories = [], footerT
 
         <Separator className="my-8" />
 
-        <p className="text-[11px] text-muted-foreground text-center mb-4">
-          {pricesIncludeVat
-            ? `Todos os preços apresentados incluem IVA à taxa legal em vigor (${vatRate}%).`
-            : `Todos os preços apresentados não incluem IVA. Acresce IVA à taxa legal em vigor (${vatRate}%).`}
-        </p>
+        {/* Legal compliance section */}
+        <div className="space-y-4 text-[11px] text-muted-foreground">
+          {/* VAT info */}
+          <p className="text-center">
+            {pricesIncludeVat
+              ? `Todos os preços apresentados incluem IVA à taxa legal em vigor (${vatRate}%).`
+              : `Todos os preços apresentados não incluem IVA. Acresce IVA à taxa legal em vigor (${vatRate}%).`}
+          </p>
+
+          {/* Warranty (DL 84/2021) */}
+          <p className="text-center">
+            Os bens de consumo adquiridos nesta loja beneficiam de uma garantia legal de 3 anos, nos termos do Decreto-Lei n.º 84/2021.
+          </p>
+
+          {/* Livro de Reclamações + RAL */}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-center">
+            <a
+              href="https://www.livroreclamacoes.pt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors font-medium"
+            >
+              <BookOpen className="h-3 w-3" />
+              Livro de Reclamações Eletrónico
+              <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+            <span className="hidden sm:inline text-muted-foreground/50">|</span>
+            <a
+              href="https://ec.europa.eu/consumers/odr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors font-medium"
+            >
+              <Scale className="h-3 w-3" />
+              Resolução de Litígios em Linha (RAL)
+              <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+          </div>
+
+          <p className="text-center text-[10px]">
+            Em caso de litígio, o consumidor pode recorrer à Plataforma Europeia de Resolução de Litígios em Linha, disponível em{" "}
+            <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+              ec.europa.eu/consumers/odr
+            </a>
+            , nos termos do Regulamento (UE) 524/2013 e do DL 144/2015.
+          </p>
+        </div>
+
+        <Separator className="my-6" />
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <p>{footerText || `© ${new Date().getFullYear()} ${storeName}. Todos os direitos reservados.`}</p>

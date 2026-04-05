@@ -161,15 +161,30 @@ export const DEFAULT_LEGAL_PAGES: Record<LegalPageKey, LegalPageData> = {
 </ul>`,
       },
       {
-        title: "11. Alterações aos Termos",
+        title: "11. Direito de Livre Resolução",
+        content: `<p>Nos termos do Decreto-Lei n.º 24/2014, o consumidor tem o direito de resolver o contrato no prazo de <strong>14 dias</strong> a contar da receção do bem, sem necessidade de indicar qualquer motivo e sem incorrer em quaisquer custos além dos previstos na lei.</p>
+<p>Para exercer o direito de livre resolução, deve comunicar a sua decisão através de declaração inequívoca (por exemplo, carta ou email) enviada para <a href="mailto:{{email_general}}">{{email_general}}</a>. O reembolso será efetuado no prazo máximo de 14 dias após a receção dos bens devolvidos.</p>`,
+      },
+      {
+        title: "12. Garantia Legal",
+        content: `<p>Nos termos do Decreto-Lei n.º 84/2021, os bens de consumo adquiridos beneficiam de uma <strong>garantia legal de 3 anos</strong> a contar da entrega do bem ao consumidor. Em caso de falta de conformidade do bem, o consumidor tem direito à reposição da conformidade, à redução adequada do preço ou à resolução do contrato, nos termos da lei.</p>
+<p>A garantia cobre defeitos de conformidade existentes no momento da entrega e que se manifestem no prazo legal. O consumidor deve denunciar a falta de conformidade no prazo de 2 anos a contar da data em que a tenha detetado.</p>`,
+      },
+      {
+        title: "13. Resolução Alternativa de Litígios",
+        content: `<p>Em caso de litígio de consumo, pode recorrer à Plataforma Europeia de Resolução de Litígios em Linha, disponível em <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">ec.europa.eu/consumers/odr</a>, nos termos do Regulamento (UE) 524/2013 e do Decreto-Lei n.º 144/2015.</p>
+<p>Pode ainda recorrer ao <a href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener noreferrer">Livro de Reclamações Eletrónico</a> ou a uma entidade de Resolução Alternativa de Litígios (RAL) autorizada.</p>`,
+      },
+      {
+        title: "14. Alterações aos Termos",
         content: `<p>Reservamo-nos o direito de alterar estes Termos de Uso. Alterações significativas serão comunicadas por email com pelo menos 30 dias de antecedência. A utilização continuada da plataforma após a entrada em vigor das alterações constitui aceitação dos novos termos.</p>`,
       },
       {
-        title: "12. Lei Aplicável e Jurisdição",
+        title: "15. Lei Aplicável e Jurisdição",
         content: `<p>Estes Termos de Uso são regidos pela lei portuguesa. Qualquer litígio será submetido aos tribunais competentes da comarca de Lisboa, Portugal, sem prejuízo dos direitos que assistam ao consumidor nos termos da lei aplicável.</p>`,
       },
       {
-        title: "13. Contacto",
+        title: "16. Contacto",
         content: `<p>Para questões relacionadas com estes Termos de Uso, contacte-nos em <a href="mailto:online@metodopare.ai">online@metodopare.ai</a>.</p>`,
       },
     ],

@@ -4,6 +4,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreCouponBanner } from "@/components/store/sections/StoreCouponBanner";
 import { StoreFooter } from "@/components/store/StoreFooter";
+import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreVisitorTracker } from "@/components/store/StoreVisitorTracker";
 import { StoreCompareBar } from "@/components/store/StoreCompareBar";
@@ -182,6 +183,7 @@ export default function StorePage() {
 
             {/* Exit Intent Popup */}
             <StoreExitIntentPopup workspaceSlug={wsSlug} />
+            <StoreCookieConsent />
           </div>
         </>
       </StoreCompareProvider>

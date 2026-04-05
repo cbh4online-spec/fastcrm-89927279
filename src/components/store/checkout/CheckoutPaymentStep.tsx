@@ -1,5 +1,6 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Lock, Loader2 } from "lucide-react";
+import { Lock, Loader2, Info } from "lucide-react";
 import { CheckoutShippingSection } from "./CheckoutShippingSection";
 import { CheckoutPaymentMethodPicker, type PaymentMethodType } from "./CheckoutPaymentMethodPicker";
 import type { CTTShippingOption } from "./useCheckoutPricing";
@@ -30,6 +31,9 @@ interface CheckoutPaymentStepProps {
   enabledPaymentMethods: Record<string, boolean>;
   selectedPaymentMethod: PaymentMethodType;
   onSelectPaymentMethod: (method: PaymentMethodType) => void;
+  // Legal consent
+  acceptTerms?: boolean;
+  onAcceptTermsChange?: (v: boolean) => void;
 }
 
 export function CheckoutPaymentStep({
@@ -49,6 +53,8 @@ export function CheckoutPaymentStep({
   enabledPaymentMethods,
   selectedPaymentMethod,
   onSelectPaymentMethod,
+  acceptTerms = false,
+  onAcceptTermsChange,
 }: CheckoutPaymentStepProps) {
   const buttonLabel = BUTTON_LABELS[selectedPaymentMethod] || "Pagar";
 
@@ -82,11 +88,45 @@ export function CheckoutPaymentStep({
         onSelect={onSelectPaymentMethod}
       />
 
+      {/* Legal consent (DL 24/2014) */}
+      <div className="space-y-3">
+        <div className="flex items-start gap-2 rounded-lg border p-3 bg-muted/20">
+          <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Tem o direito de desistir da compra no prazo de <strong>14 dias</strong> sem necessidade de indicar motivo,
+            nos termos do Decreto-Lei n.º 24/2014. O prazo começa a contar a partir da receção do bem.
+          </p>
+        </div>
+
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => onAcceptTermsChange?.(e.target.checked)}
+            className="accent-primary mt-1 flex-shrink-0"
+          />
+          <span className="text-xs text-muted-foreground leading-relaxed">
+            Li e aceito os{" "}
+            <Link to="/terms" target="_blank" className="underline text-primary hover:text-primary/80">
+              Termos e Condições
+            </Link>{" "}
+            e a{" "}
+            <Link to="/privacy" target="_blank" className="underline text-primary hover:text-primary/80">
+              Política de Privacidade
+            </Link>
+            . Confirmo que fui informado(a) do direito de livre resolução (14 dias).
+          </span>
+        </label>
+        {fieldErrors.acceptTerms && (
+          <p className="text-xs text-destructive">{fieldErrors.acceptTerms}</p>
+        )}
+      </div>
+
       <Button
         type="submit"
         size="lg"
         className="w-full gap-2"
-        disabled={isProcessing || !formData.email.trim()}
+        disabled={isProcessing || !formData.email.trim() || !acceptTerms}
       >
         {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
         {isProcessing ? "A processar..." : buttonLabel}
