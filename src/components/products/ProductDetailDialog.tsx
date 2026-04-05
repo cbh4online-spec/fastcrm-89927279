@@ -422,7 +422,7 @@ export function ProductDetailDialog({
                         productName={product.name}
                         sku={product.sku || undefined}
                         category={product.category || undefined}
-                        barcode={product.barcode || undefined}
+                        barcode={(product as any).barcode || undefined}
                         currentPrice={product.base_price}
                         costPrice={product.direct_cost || undefined}
                       />
