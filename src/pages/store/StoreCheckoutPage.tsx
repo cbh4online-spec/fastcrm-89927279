@@ -74,7 +74,7 @@ export default function StoreCheckoutPage() {
 
       if (data?.paidWithGiftCard) {
         clearCart();
-        window.location.href = `/store/${wsSlug}/success`;
+        window.location.href = `/store/${wsSlug}/success?order_id=${data.orderId || ""}`;
       } else if (data?.bankTransfer) {
         // Bank transfer: show info, don't redirect
         clearCart();
