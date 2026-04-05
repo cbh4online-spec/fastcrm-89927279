@@ -133,6 +133,9 @@ interface BotRow {
   knowledge_base_id: string | null;
   calendar_id: string | null;
   created_by: string;
+  role: string | null;
+  specialization: string | null;
+  objective_scope: string | null;
 }
 
 interface BotSettingsRow {
