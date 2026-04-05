@@ -58,9 +58,10 @@ const channelIcons: Record<string, React.ComponentType<{ className?: string }>> 
 
 interface ConversationDetailProps {
   conversationId: string | null;
+  onBack?: () => void;
 }
 
-export function ConversationDetail({ conversationId }: ConversationDetailProps) {
+export function ConversationDetail({ conversationId, onBack }: ConversationDetailProps) {
   const { user } = useAuth();
   const workspaceCtx = useWorkspace();
   const currentWorkspace = workspaceCtx?.currentWorkspace;
