@@ -9,6 +9,10 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Throttling config
+const BATCH_SIZE = 20;
+const BATCH_DELAY_MS = 500;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -50,18 +54,37 @@ Deno.serve(async (req: Request) => {
 
     let processed = 0;
     let failed = 0;
+    let suppressed = 0;
 
-    for (const enrollment of dueEnrollments) {
-      try {
-        await processEnrollmentStep(supabase, enrollment);
-        processed++;
-      } catch (err) {
-        console.error(`[sdr-sequence-executor] Error processing enrollment ${enrollment.id}:`, err);
-        failed++;
+    // Process in throttled batches
+    for (let i = 0; i < dueEnrollments.length; i += BATCH_SIZE) {
+      const batch = dueEnrollments.slice(i, i + BATCH_SIZE);
+
+      for (const enrollment of batch) {
+        try {
+          // Check suppression before processing
+          const isSuppressed = await checkSuppression(supabase, enrollment);
+          if (isSuppressed) {
+            await markAsSuppressed(supabase, enrollment);
+            suppressed++;
+            continue;
+          }
+
+          await processEnrollmentStep(supabase, enrollment);
+          processed++;
+        } catch (err) {
+          console.error(`[sdr-sequence-executor] Error processing enrollment ${enrollment.id}:`, err);
+          failed++;
+        }
+      }
+
+      // Throttle between batches
+      if (i + BATCH_SIZE < dueEnrollments.length) {
+        await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
       }
     }
 
-    return new Response(JSON.stringify({ success: true, processed, failed }), {
+    return new Response(JSON.stringify({ success: true, processed, failed, suppressed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
@@ -73,6 +96,59 @@ Deno.serve(async (req: Request) => {
   }
 });
 
+// ─── SUPPRESSION CHECK ───────────────────────────────────────
+async function checkSuppression(supabase: any, enrollment: any): Promise<boolean> {
+  if (!enrollment.prospect_email) return false;
+  const email = enrollment.prospect_email.toLowerCase();
+
+  // Check sdr_suppressions
+  const { data: sdrSup } = await supabase
+    .from("sdr_suppressions")
+    .select("id")
+    .eq("workspace_id", enrollment.workspace_id)
+    .ilike("email", email)
+    .limit(1);
+
+  if (sdrSup?.length) return true;
+
+  // Check global suppressed_emails (from marketing/transactional)
+  const { data: globalSup } = await supabase
+    .from("suppressed_emails")
+    .select("id")
+    .ilike("email", email)
+    .limit(1);
+
+  if (globalSup?.length) return true;
+
+  return false;
+}
+
+async function markAsSuppressed(supabase: any, enrollment: any) {
+  console.log(`[sdr-sequence-executor] Suppressed: ${enrollment.prospect_email} (enrollment ${enrollment.id})`);
+
+  await supabase
+    .from("sdr_enrollments")
+    .update({
+      status: "opted_out",
+      opted_out_at: new Date().toISOString(),
+      next_send_at: null,
+      failure_reason: "Email suppressed",
+    })
+    .eq("id", enrollment.id);
+
+  // Log the suppression event
+  await supabase.from("sdr_sequence_step_logs").insert({
+    sdr_enrollment_id: enrollment.id,
+    sequence_step_id: null,
+    channel: enrollment.channel || "email",
+    status: "suppressed",
+    error_message: "Email in suppression list",
+    workspace_id: enrollment.workspace_id,
+    metadata: { suppression_check: true },
+  });
+}
+
+// ─── PROCESS ENROLLMENT STEP ─────────────────────────────────
 async function processEnrollmentStep(supabase: any, enrollment: any) {
   // Get campaign to find sequence_id
   const { data: campaign } = await supabase
@@ -157,6 +233,11 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     console.warn("[sdr-sequence-executor] message-generator call failed, using original template:", genErr);
   }
 
+  // Append compliance footer for email channel
+  if (step.channel === "email") {
+    personalizedBody = appendComplianceFooter(personalizedBody, enrollment);
+  }
+
   // Execute the step based on channel
   let sendStatus = "sent";
   let errorMessage: string | null = null;
@@ -206,6 +287,20 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
   }
 }
 
+// ─── COMPLIANCE FOOTER ───────────────────────────────────────
+function appendComplianceFooter(bodyHtml: string, enrollment: any): string {
+  const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-email-unsubscribe?email=${encodeURIComponent(enrollment.prospect_email)}&source=sdr&enrollment_id=${encodeURIComponent(enrollment.id)}`;
+
+  const footer = `
+<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5;">
+  <p>Se não deseja receber mais comunicações, pode <a href="${unsubscribeUrl}" style="color:#6b7280;text-decoration:underline;">cancelar a subscrição aqui</a>.</p>
+  <p>Esta mensagem foi enviada em conformidade com o RGPD e regulamentos aplicáveis.</p>
+</div>`;
+
+  return bodyHtml + footer;
+}
+
+// ─── EMAIL STEP ──────────────────────────────────────────────
 async function executeEmailStep(
   supabase: any,
   enrollment: any,
@@ -239,6 +334,7 @@ async function executeEmailStep(
   }
 }
 
+// ─── WHATSAPP STEP ───────────────────────────────────────────
 async function executeWhatsAppStep(
   supabase: any,
   enrollment: any,
@@ -270,6 +366,7 @@ async function executeWhatsAppStep(
   }
 }
 
+// ─── SINGLE STEP ─────────────────────────────────────────────
 async function executeSingleStep(supabase: any, body: any) {
   const { enrollment_id, step_id, workspace_id } = body;
   if (!enrollment_id) throw new Error("enrollment_id required");
@@ -282,6 +379,13 @@ async function executeSingleStep(supabase: any, body: any) {
     .single();
 
   if (!enrollment) throw new Error("Enrollment not found");
+
+  // Check suppression before single step too
+  const isSuppressed = await checkSuppression(supabase, enrollment);
+  if (isSuppressed) {
+    await markAsSuppressed(supabase, enrollment);
+    return { processed: false, suppressed: true, enrollment_id };
+  }
 
   await processEnrollmentStep(supabase, enrollment);
   return { processed: true, enrollment_id };
