@@ -137,6 +137,7 @@ export function CreateProductDialog({
   const [laborIncludedInPrice, setLaborIncludedInPrice] = useState(true);
   const [laborNotes, setLaborNotes] = useState("");
   const [showCostWarning, setShowCostWarning] = useState(false);
+  const [showMarginWarning, setShowMarginWarning] = useState(false);
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
