@@ -129,10 +129,49 @@ export function SDRProspectActions({
   };
 
   const activeStages = stages.filter((s) => !s.is_negative);
-  const statusBadge = (status: string) => {
+
+  // Inline status badge with click-to-change dropdown
+  const statusBadgeWithAction = (enrollment: SDREnrollment) => {
+    const status = enrollment.status;
     const cfg = statusBadgeConfig[status] || { label: status, variant: "outline" as const };
     const stageInfo = stages.find((s) => s.key === status);
-    return <Badge variant={cfg.variant}>{stageInfo?.label || cfg.label}</Badge>;
+    const label = stageInfo?.label || cfg.label;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="cursor-pointer hover:opacity-80 transition-opacity">
+            <Badge variant={cfg.variant} className="cursor-pointer">
+              {label}
+            </Badge>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[160px]">
+          <DropdownMenuLabel className="text-[10px] text-muted-foreground">Mover para</DropdownMenuLabel>
+          {activeStages
+            .filter((s) => s.key !== status)
+            .map((s) => (
+              <DropdownMenuItem key={s.key} onClick={() => moveToStage([enrollment.id], s.key)}>
+                <ArrowRight className="h-3 w-3 mr-2" />
+                {s.label}
+              </DropdownMenuItem>
+            ))}
+          <DropdownMenuSeparator />
+          {status !== "converted" && (
+            <DropdownMenuItem onClick={() => moveToStage([enrollment.id], "converted")}>
+              <CheckCircle2 className="h-3 w-3 mr-2 text-emerald-600" />
+              Convertido
+            </DropdownMenuItem>
+          )}
+          {status !== "opted_out" && (
+            <DropdownMenuItem className="text-destructive" onClick={() => moveToStage([enrollment.id], "opted_out")}>
+              <XCircle className="h-3 w-3 mr-2" />
+              Opt-out
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   };
 
   const handlePreviewMessage = async (enrollment: SDREnrollment) => {
