@@ -361,7 +361,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ success: true, paidWithGiftCard: true }), {
+      return new Response(JSON.stringify({ success: true, paidWithGiftCard: true, orderId: order.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -654,7 +654,7 @@ Deno.serve(async (req) => {
       customer_email: customerId ? undefined : customerEmail,
       line_items: lineItems,
       mode: sessionMode,
-      success_url: successUrl || `${origin}/store/${workspaceId}/success`,
+      success_url: (successUrl || `${origin}/store/${workspaceId}/success`) + `?order_id=${orderId || ""}`,
       cancel_url: cancelUrl || `${origin}/store/${workspaceId}/cancel`,
       metadata: {
         workspace_id: workspaceId,
