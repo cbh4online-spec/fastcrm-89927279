@@ -303,7 +303,7 @@ export function SDRProspectActions({
                     <TableCell className="font-medium">{e.prospect_name || "—"}</TableCell>
                     <TableCell className="text-sm">{e.prospect_email || "—"}</TableCell>
                     <TableCell className="text-sm capitalize">{e.channel || "—"}</TableCell>
-                    <TableCell>{statusBadge(e.status)}</TableCell>
+                    <TableCell>{statusBadgeWithAction(e)}</TableCell>
                     <TableCell>
                       {(e.status === "sequenced" || e.status === "paused") ? (
                         <div className="flex items-center gap-1">
