@@ -1,71 +1,25 @@
 
-# Fases do SDR — Pipeline Completo
+# Polir Fases SDR
 
-## Diagnóstico
+## 1. Seed para campanhas existentes
+As campanhas criadas antes do trigger não têm fases. Criar botão "Gerar fases padrão" no `SDRStageSettings` que chama a função `seed_sdr_default_stages` via RPC quando não existem fases.
 
-O SDR actual tem fases hardcoded no código (`enrolled → enriching → sequenced → replied → meeting_set → converted`). O `SDRPipelineView` é uma barra horizontal estática, sem interactividade, personalização ou funil de conversão.
+## 2. Drag-and-drop para reordenar fases
+Usar `@dnd-kit/sortable` (já instalado) no `SDRStageSettings` para arrastar e reordenar fases, persistindo a nova ordem via `reorderStages`.
 
-## Solução em 4 blocos
+## 3. Melhorias UX no pipeline
+- Mostrar estado vazio amigável no tab Pipeline quando não há campanha seleccionada
+- Filtro por fase na tabela de prospects (clicar numa fase do pipeline filtra a tabela)
+- Contador de fases no tab "Fases"
+- Feedback visual no funil quando não há dados
 
-### 1. Tabela `sdr_pipeline_stages` — Fases customizáveis por campanha
+## 4. Seed global de workspace
+Se o workspace não tem fases globais (campaign_id = null), criar automaticamente ao entrar no `SDRStageSettings`. Isto garante que o fallback funciona.
 
-Nova tabela para armazenar fases configuráveis:
-
-```text
-sdr_pipeline_stages
-├── workspace_id (FK)
-├── campaign_id (FK nullable — null = template global do workspace)
-├── key (text) — identificador interno (ex: "enrolled", "enriching")
-├── label (text) — nome visível (ex: "Prospectados")
-├── position (int) — ordem no pipeline
-├── color (text) — cor hex/tailwind
-├── icon (text) — nome do ícone lucide
-├── is_terminal (bool) — se é estado final (converted, opted_out)
-├── is_negative (bool) — se é estado negativo (opted_out, failed)
-└── RLS: workspace members CRUD
-```
-
-Seed automático com as 6+2 fases actuais via trigger `on_campaign_create`.
-
-### 2. Hook `useSDRPipelineStages` + CRUD
-
-- Carregar fases por campanha (ou fallback global do workspace)
-- Criar/editar/reordenar fases (drag & drop)
-- Garantir que `enrolled` e `converted` existem sempre
-
-### 3. Pipeline Kanban Visual
-
-Substituir o `SDRPipelineView` actual por uma versão melhorada:
-- **Kanban mode**: colunas drag-and-drop com prospects cards
-- **Funnel mode**: gráfico de funil com drop-off % entre fases
-- Toggle entre os dois modos
-- Clicar numa fase filtra a tabela de enrollments abaixo
-
-### 4. Funil de Conversão
-
-Novo componente `SDRConversionFunnel`:
-- Gráfico de funil (usando Nivo/Recharts) com drop-off entre cada fase
-- KPIs por fase: taxa de passagem, tempo médio, volume
-- Comparação entre campanhas (dropdown)
-
-### 5. Melhorias gerais
-
-- Labels em PT na pipeline view (já parcialmente feito)
-- Opt-out e Failed como fases terminais visíveis
-- Percentagem de conversão fase-a-fase no pipeline bar
-
-## Ficheiros
+## Ficheiros a modificar
 
 | Ficheiro | Acção |
 |---|---|
-| Migração SQL | Criar tabela `sdr_pipeline_stages` + seed trigger |
-| `src/hooks/useSDRPipelineStages.ts` | Novo — CRUD de fases |
-| `src/components/sdr/SDRPipelineView.tsx` | Refactor — usar fases dinâmicas + funnel toggle |
-| `src/components/sdr/SDRConversionFunnel.tsx` | Novo — gráfico de funil |
-| `src/components/sdr/SDRStageSettings.tsx` | Novo — UI de personalização de fases |
-| `src/pages/SDRDashboardPage.tsx` | Modificar — integrar novos componentes |
-
-## Segurança
-
-- RLS: workspace members CRUD, escopado por workspace_id
-- Seed de fases via trigger SECURITY DEFINER
+| `src/components/sdr/SDRStageSettings.tsx` | Drag-and-drop + botão seed + auto-seed |
+| `src/hooks/useSDRPipelineStages.ts` | Adicionar `seedDefaults` mutation via RPC |
+| `src/pages/SDRDashboardPage.tsx` | Filtro por fase + empty states melhorados |
