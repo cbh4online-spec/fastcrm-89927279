@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LandingPagePreview } from "@/components/landing-pages/LandingPagePreview";
+import { FunnelLegalFooter } from "@/components/funnels/FunnelLegalFooter";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
@@ -108,21 +109,24 @@ export default function PublicLandingPage() {
   }
 
   return (
-    <LandingPagePreview
-      data={{
-        headline: page.headline || "",
-        subheadline: page.subheadline || "",
-        cta_text: page.cta_text || "Get Started",
-        cta_color: page.cta_color || "#3b82f6",
-        form_enabled: page.form_enabled ?? true,
-        form_title: page.form_title || "Get in Touch",
-        features: (Array.isArray(page.features) ? page.features : []) as unknown as Feature[],
-        workspaceSlug: workspaceSlug || "",
-      }}
-      isPublic
-      onFormSubmit={async (formData) => {
-        await createLead.mutateAsync(formData);
-      }}
-    />
+    <div>
+      <LandingPagePreview
+        data={{
+          headline: page.headline || "",
+          subheadline: page.subheadline || "",
+          cta_text: page.cta_text || "Get Started",
+          cta_color: page.cta_color || "#3b82f6",
+          form_enabled: page.form_enabled ?? true,
+          form_title: page.form_title || "Get in Touch",
+          features: (Array.isArray(page.features) ? page.features : []) as unknown as Feature[],
+          workspaceSlug: workspaceSlug || "",
+        }}
+        isPublic
+        onFormSubmit={async (formData) => {
+          await createLead.mutateAsync(formData);
+        }}
+      />
+      <FunnelLegalFooter />
+    </div>
   );
 }
