@@ -64,7 +64,7 @@ export function SDRPipelineView({ stats, dynamicStages, counts, onStageClick }: 
   const getCounts = (key: string) => counts?.[key] ?? legacyCounts[key] ?? 0;
 
   const maxCount = Math.max(...resolvedStages.map((s) => getCounts(s.key)), 1);
-  const totalFlow = resolvedStages.reduce((sum, s) => sum + getCounts(s.key), 0);
+  const totalFlow = resolvedStages.reduce<number>((sum, s) => sum + getCounts(s.key), 0);
 
   return (
     <div className="space-y-3">
