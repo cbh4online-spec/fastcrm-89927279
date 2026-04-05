@@ -1306,6 +1306,34 @@ export function CreateProductDialog({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Low margin warning */}
+        <AlertDialog open={showMarginWarning} onOpenChange={setShowMarginWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Margem abaixo do recomendado
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p>
+                  A margem deste produto ({grossMarginPct.toFixed(1)}%) está abaixo do mínimo recomendado (10%).
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <p>Preço: {new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(price)}</p>
+                  <p>Custo: {new Intl.NumberFormat("pt-PT", { style: "currency", currency }).format(cost)}</p>
+                  <p className="font-medium mt-1">Margem: {grossMarginPct.toFixed(1)}%</p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Corrigir Preço</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmLowMargin}>
+                Guardar Mesmo Assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
