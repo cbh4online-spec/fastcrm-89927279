@@ -57,6 +57,7 @@ interface ProductsDataTableProps {
   /** True when search/filters are active but returned 0 results */
   isFilteredEmpty?: boolean;
   onClearFilters?: () => void;
+  pricingRules?: import("@/hooks/useProductPricingIntelligence").PricingRule[];
 }
 
 function RenderProductCell({
@@ -66,7 +67,7 @@ function RenderProductCell({
 }: {
   product: Product;
   columnId: string;
-  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate">;
+  helpers: Pick<ProductsDataTableProps, "onOpenDetail" | "getProductTypeLabel" | "getBillingTypeLabel" | "formatCurrency" | "toggleStorePublished" | "onInlinePriceUpdate" | "pricingRules">;
 }) {
   const { onOpenDetail, getProductTypeLabel, getBillingTypeLabel, formatCurrency, toggleStorePublished, onInlinePriceUpdate } = helpers;
 
