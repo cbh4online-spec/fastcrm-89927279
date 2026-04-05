@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KPICard } from "./KPICard";
 import { fadeIn } from "./AnalyticsChartHelpers";
-import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut } from "lucide-react";
+import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut, ShieldCheck, Activity } from "lucide-react";
 import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -53,7 +53,8 @@ interface StoreVisitsTabProps {
 export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisitsTabProps) {
   const {
     kpis, dailyVisits, deviceBreakdown, trafficSources,
-    topPages, referrers, aiIntents, scrollDepthDistribution, exitPages, isLoading,
+    topPages, referrers, aiIntents, scrollDepthDistribution, exitPages,
+    consentBreakdown, eventTypes, totalEvents, isLoading,
   } = useStoreVisitsAnalytics(days);
 
   if (isLoading) {
@@ -282,9 +283,73 @@ export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisits
         </motion.div>
       </div>
 
+      {/* Consent & Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* GDPR Consent Breakdown */}
+        <motion.div {...fadeIn} transition={{ delay: 0.45 }}>
+          <Card className="h-full">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground" /> Consentimento GDPR</CardTitle></CardHeader>
+            <CardContent>
+              {consentBreakdown.totalWithConsent === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">Sem dados de consentimento.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-primary">{consentBreakdown.analyticsRate.toFixed(0)}%</p>
+                      <p className="text-xs text-muted-foreground">Analytics Aceite</p>
+                      <p className="text-[11px] text-muted-foreground">{consentBreakdown.analyticsGranted} de {consentBreakdown.totalWithConsent}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-lg font-bold text-primary">{consentBreakdown.marketingRate.toFixed(0)}%</p>
+                      <p className="text-xs text-muted-foreground">Marketing Aceite</p>
+                      <p className="text-[11px] text-muted-foreground">{consentBreakdown.marketingGranted} de {consentBreakdown.totalWithConsent}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Sessões com consent registado</span>
+                      <span className="font-medium">{consentBreakdown.totalWithConsent}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Sem consent registado</span>
+                      <span className="font-medium">{kpis.uniqueSessions - consentBreakdown.totalWithConsent}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Events Breakdown */}
+        <motion.div {...fadeIn} transition={{ delay: 0.5 }}>
+          <Card className="h-full">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-muted-foreground" /> Eventos de Interação ({totalEvents})</CardTitle></CardHeader>
+            <CardContent>
+              {eventTypes.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">Sem eventos registados.</p>
+              ) : (
+                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                  {eventTypes.map((e) => (
+                    <div key={e.eventType} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{e.eventType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{e.count}</span>
+                        <span className="text-xs text-muted-foreground">({e.percentage.toFixed(0)}%)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
       {/* AI Intent */}
       {aiIntents.length > 0 && (
-        <motion.div {...fadeIn} transition={{ delay: 0.45 }}>
+        <motion.div {...fadeIn} transition={{ delay: 0.55 }}>
           <Card>
             <CardHeader><CardTitle className="text-base">Intenção do Visitante (AI)</CardTitle></CardHeader>
             <CardContent>
