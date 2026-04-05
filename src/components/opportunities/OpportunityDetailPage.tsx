@@ -228,7 +228,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
         {/* Main Content */}
         <div className="flex-1 min-w-0 space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-10 p-0 flex-wrap">
+            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-auto md:h-10 p-0 flex-nowrap overflow-x-auto scrollbar-none">
               <TabsTrigger value="overview" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
                 {tabDot("overview")}
                 {t("oppDetailTabOverview")}
@@ -407,21 +407,23 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
           </Tabs>
         </div>
 
-        {/* Sidebar */}
-        <OpportunityDetailSidebar
-          opportunity={opportunity}
-          stages={stages}
-          intelligence={intelligence}
-          intelligenceLoading={intelligenceLoading}
-          leads={leadOptions}
-          contacts={contactOptions}
-          companies={companyOptions}
-          isLoadingLeads={isLoadingLeads}
-          isLoadingContacts={isLoadingContacts}
-          isLoadingCompanies={isLoadingCompanies}
-          onUpdate={handleUpdate}
-          sidebarOrder={sidebarOrder}
-        />
+        {/* Sidebar - hidden on mobile */}
+        <div className="hidden lg:block">
+          <OpportunityDetailSidebar
+            opportunity={opportunity}
+            stages={stages}
+            intelligence={intelligence}
+            intelligenceLoading={intelligenceLoading}
+            leads={leadOptions}
+            contacts={contactOptions}
+            companies={companyOptions}
+            isLoadingLeads={isLoadingLeads}
+            isLoadingContacts={isLoadingContacts}
+            isLoadingCompanies={isLoadingCompanies}
+            onUpdate={handleUpdate}
+            sidebarOrder={sidebarOrder}
+          />
+        </div>
       </div>
 
       <OpportunityLayoutConfigDialog
