@@ -1695,7 +1695,16 @@ Deno.serve(async (req) => {
     let isHandoverFlag = false;
 
     try {
-      if (bot.type === "guided") {
+      // SDR Outbound mode: if bot has role=sdr_outbound, use proactive outbound logic
+      if (bot.role === "sdr_outbound") {
+        const r = await runSDROutbound(supabaseAdmin, bot, settings, text, conversationId || "", workspaceId, locale, isDebug);
+        replyText = r.reply;
+        internalActions = r.actions;
+        tokensUsed = r.tokensUsed;
+        isHandoverFlag = r.isHandover;
+        memoryUpdated = !isDryRun;
+        if (isDebug) debugPayload = r.debugInfo;
+      } else if (bot.type === "guided") {
         const r = await runGuided(supabaseAdmin, bot, settings, text, conversationId || "", workspaceId, locale, isDryRun);
         replyText = r.reply;
         internalActions = r.actions;
