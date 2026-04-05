@@ -52581,6 +52581,44 @@ export type Database = {
           },
         ]
       }
+      store_tracking_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          page_url: string | null
+          session_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          page_url?: string | null
+          session_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          page_url?: string | null
+          session_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_tracking_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_traffic_alert_rules: {
         Row: {
           comparison_period_hours: number
@@ -52701,12 +52739,15 @@ export type Database = {
           cart_processed: boolean | null
           cart_subtotal: number | null
           cart_updated_at: string | null
+          consent_analytics: boolean | null
+          consent_marketing: boolean | null
           contact_id: string | null
           converted: boolean | null
           created_at: string | null
           device_type: string | null
           exit_page: string | null
           first_page: string | null
+          gdpr_visitor_id: string | null
           id: string
           last_activity_at: string | null
           pages_history: string[] | null
@@ -52731,12 +52772,15 @@ export type Database = {
           cart_processed?: boolean | null
           cart_subtotal?: number | null
           cart_updated_at?: string | null
+          consent_analytics?: boolean | null
+          consent_marketing?: boolean | null
           contact_id?: string | null
           converted?: boolean | null
           created_at?: string | null
           device_type?: string | null
           exit_page?: string | null
           first_page?: string | null
+          gdpr_visitor_id?: string | null
           id?: string
           last_activity_at?: string | null
           pages_history?: string[] | null
@@ -52761,12 +52805,15 @@ export type Database = {
           cart_processed?: boolean | null
           cart_subtotal?: number | null
           cart_updated_at?: string | null
+          consent_analytics?: boolean | null
+          consent_marketing?: boolean | null
           contact_id?: string | null
           converted?: boolean | null
           created_at?: string | null
           device_type?: string | null
           exit_page?: string | null
           first_page?: string | null
+          gdpr_visitor_id?: string | null
           id?: string
           last_activity_at?: string | null
           pages_history?: string[] | null
