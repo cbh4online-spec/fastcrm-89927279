@@ -412,6 +412,11 @@ export default function SDRDashboardPage() {
             <MultichannelSequenceBuilder />
           </TabsContent>
 
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <SDRAnalyticsDashboard campaignId={selectedCampaignId} campaigns={campaigns} />
+          </TabsContent>
+
           {/* Stages Settings Tab */}
           <TabsContent value="stages" className="space-y-4">
             <SDRStageSettings campaignId={selectedCampaignId} />
