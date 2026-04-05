@@ -45,6 +45,10 @@ export default function SDRDashboardPage() {
     enrollmentCounts[e.status] = (enrollmentCounts[e.status] || 0) + 1;
   }
 
+  const filteredEnrollments = stageFilter
+    ? enrollments.filter((e) => e.status === stageFilter)
+    : enrollments;
+
   // Pipeline stats from aggregated data or campaign enrollments
   const pipelineStats = selectedCampaignId && stats
     ? stats
