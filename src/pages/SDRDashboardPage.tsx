@@ -31,6 +31,8 @@ export default function SDRDashboardPage() {
   const [newDesc, setNewDesc] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [pipelineMode, setPipelineMode] = useState<"pipeline" | "funnel">("pipeline");
+  const [showStageSettings, setShowStageSettings] = useState(false);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
   const { enrollments, stats } = useSDREnrollments(selectedCampaignId || undefined);
