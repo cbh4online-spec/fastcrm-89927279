@@ -91,6 +91,7 @@ import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
 import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
+import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
 
 interface ProductDetailDialogProps {
@@ -427,6 +428,16 @@ export function ProductDetailDialog({
                         costPrice={product.direct_cost || undefined}
                       />
                     </div>
+
+                    {/* Weight AI Panel */}
+                    <ProductWeightAIPanel
+                      productId={product.id}
+                      productName={product.name}
+                      sku={product.sku}
+                      category={product.category}
+                      description={(product as any).description}
+                      currentWeight={(product as any).weight}
+                    />
 
                     {/* Metadata grid — tabela limpa */}
                     <Card className="p-3">

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Package, Sparkles, Info, ExternalLink, Plus } from "lucide-react";
+import { Search, Package, Sparkles, Info, ExternalLink, Plus, Weight } from "lucide-react";
 import { toast } from "sonner";
 import { StoreQuickProductDialog } from "@/components/store/StoreQuickProductDialog";
 import { CreateProductDialog } from "@/components/products/CreateProductDialog";
@@ -15,6 +15,7 @@ import { useStoreAdminProducts } from "@/components/store/admin/useStoreAdminPro
 import { CatalogProductsTable } from "@/components/store/admin/CatalogProductsTable";
 import { PricingSuggestionsPanel } from "@/components/store/admin/PricingSuggestionsPanel";
 import { PricingIntelligenceSection } from "@/components/store/admin/PricingIntelligenceSection";
+import { BatchWeightEstimateDialog } from "@/components/store/admin/BatchWeightEstimateDialog";
 
 export default function StoreProductsAdminPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function StoreProductsAdminPage() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
+  const [batchWeightOpen, setBatchWeightOpen] = useState(false);
 
   const admin = useStoreAdminProducts(search);
 
@@ -36,6 +38,9 @@ export default function StoreProductsAdminPage() {
             </h1>
             <p className="text-sm text-muted-foreground">
               <span className="font-medium">{admin.publishedCount}</span> publicados, <span className="font-medium">{admin.featuredCount}</span> em destaque
+              {admin.missingWeightCount > 0 && (
+                <>, <span className="font-medium text-amber-600">{admin.missingWeightCount}</span> sem peso</>
+              )}
             </p>
           </div>
 
@@ -65,11 +70,22 @@ export default function StoreProductsAdminPage() {
             <Button variant="ghost" onClick={() => navigate("/mobile/products/quick-create")} className="gap-2">
               <Package className="h-4 w-4" /> Criar Rápido
             </Button>
+            {admin.missingWeightCount > 0 && (
+              <Button variant="outline" onClick={() => setBatchWeightOpen(true)} className="gap-2">
+                <Weight className="h-4 w-4" /> Preencher Pesos ({admin.missingWeightCount})
+              </Button>
+            )}
           </div>
 
           <CreateProductDialog open={createOpen} onOpenChange={setCreateOpen} />
 
           <StoreQuickProductDialog open={aiDialogOpen} onOpenChange={setAiDialogOpen} />
+
+          <BatchWeightEstimateDialog
+            open={batchWeightOpen}
+            onOpenChange={setBatchWeightOpen}
+            missingWeightCount={admin.missingWeightCount}
+          />
 
           <Tabs defaultValue="catalog">
             <TabsList>

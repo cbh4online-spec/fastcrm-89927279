@@ -56,6 +56,9 @@ export function useCheckoutPricing({ items, subtotal, wsId, wsSlug, customerEmai
 
       const weightMap = new Map<string, number>();
       (data || []).forEach((p: any) => {
+        if (!p.weight) {
+          console.warn(`[Shipping] Produto ${p.id} sem peso definido — usando fallback 0.5 kg`);
+        }
         weightMap.set(p.id, p.weight ? Number(p.weight) : 0.5);
       });
 
