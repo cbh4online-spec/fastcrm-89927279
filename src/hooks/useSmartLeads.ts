@@ -127,7 +127,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       }
       if (filters?.search) {
         query = query.or(
-          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%`
+          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,source.ilike.%${filters.search}%`
         );
       }
 
