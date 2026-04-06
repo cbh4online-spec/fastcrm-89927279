@@ -32,6 +32,11 @@ export interface SupportTicket {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  contact_name?: string | null;
+  contact_email?: string | null;
+  company_name?: string | null;
+  assigned_agent_name?: string | null;
 }
 
 export interface TicketFilters {
@@ -42,6 +47,13 @@ export interface TicketFilters {
   assigned_to?: string;
   search?: string;
 }
+
+const TICKET_SELECT = `
+  *,
+  contacts:contact_id(name, email),
+  companies:company_id(name),
+  profiles:assigned_to(full_name)
+`;
 
 export function useHelpdeskTickets(filters?: TicketFilters) {
   const { currentWorkspace } = useWorkspace();
@@ -54,7 +66,7 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
       if (!workspaceId) return [];
       let query = supabase
         .from("support_tickets")
-        .select("*")
+        .select(TICKET_SELECT)
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
 
@@ -79,7 +91,18 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as SupportTicket[];
+
+      // Flatten joined data
+      return (data || []).map((row: any) => ({
+        ...row,
+        contact_name: row.contacts?.name || null,
+        contact_email: row.contacts?.email || null,
+        company_name: row.companies?.name || null,
+        assigned_agent_name: row.profiles?.full_name || null,
+        contacts: undefined,
+        companies: undefined,
+        profiles: undefined,
+      })) as SupportTicket[];
     },
     enabled: !!workspaceId,
   });
@@ -129,7 +152,7 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
 
   const updateTicket = useMutation({
     mutationFn: async (input: { id: string } & Partial<Omit<SupportTicket, "id" | "workspace_id" | "ticket_number" | "created_at">>) => {
-      const { id, ...updates } = input;
+      const { id, contact_name, contact_email, company_name, assigned_agent_name, ...updates } = input as any;
       // Auto-set timestamps
       if (updates.status === "resolved" && !updates.resolved_at) {
         updates.resolved_at = new Date().toISOString();
