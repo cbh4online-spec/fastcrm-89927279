@@ -44,6 +44,23 @@ import {
 } from "@/hooks/useProductImages";
 import { useUpdateProduct } from "@/hooks/useProducts";
 import type { Product, ProductImage } from "@/types/product";
+import { toSlug } from "@/utils/slug";
+
+/** Build an SEO-friendly filename from product metadata */
+function buildSeoFilename(product: Product, position: number, ext: string): string {
+  const parts: string[] = [toSlug(product.name)];
+  if (product.sku) parts.push(product.sku);
+  parts.push(String(position + 1));
+  return `${parts.join("-")}.${ext}`;
+}
+
+/** Build auto alt text from product metadata */
+function buildAutoAltText(product: Product): string {
+  const parts = [product.name];
+  if (product.category) parts.push(product.category);
+  if (product.sku) parts.push(product.sku);
+  return parts.join(" - ");
+}
 
 interface ProductImagesGalleryProps {
   product: Product;
@@ -74,16 +91,16 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${product.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${currentWorkspace.id}/products/${fileName}`;
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const nextPosition = images.length;
+      const seoFilename = buildSeoFilename(product, nextPosition, fileExt);
+      const filePath = `${currentWorkspace.id}/products/${seoFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(filePath, file);
 
       if (uploadError) {
-        // If bucket doesn't exist, use URL method instead
         if (uploadError.message.includes("Bucket not found")) {
           toast.error("Storage não configurado. Use URL de imagem em vez disso.");
           return;
@@ -95,10 +112,15 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         .from("product-images")
         .getPublicUrl(filePath);
 
+      const altText = buildAutoAltText(product);
+
       await addImage.mutateAsync({
         productId: product.id,
         url: publicUrl,
-        altText: file.name,
+        altText,
+        seoFilename,
+        title: product.name,
+        caption: product.short_description || product.name,
       });
     } catch (error: any) {
       toast.error("Erro ao carregar imagem: " + error.message);
@@ -113,10 +135,17 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
   const handleAddUrl = async () => {
     if (!imageUrl.trim()) return;
 
+    const altText = imageAlt || buildAutoAltText(product);
+    const ext = imageUrl.split(".").pop()?.split("?")[0] || "jpg";
+    const seoFilename = buildSeoFilename(product, images.length, ext);
+
     await addImage.mutateAsync({
       productId: product.id,
       url: imageUrl.trim(),
-      altText: imageAlt || undefined,
+      altText,
+      seoFilename,
+      title: product.name,
+      caption: product.short_description || product.name,
     });
 
     setImageUrl("");

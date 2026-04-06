@@ -376,6 +376,9 @@ export interface ProductImage {
   product_id: string;
   url: string;
   alt_text: string | null;
+  seo_filename: string | null;
+  title: string | null;
+  caption: string | null;
   is_ai_generated: boolean;
   ai_prompt: string | null;
   position: number;
