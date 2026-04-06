@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useVisitorScoreTracker } from "@/hooks/useVisitorScore";
 
 const CONSENT_STORAGE_KEY = "gdpr_consent";
 const GDPR_VISITOR_ID_KEY = "gdpr_visitor_id";
