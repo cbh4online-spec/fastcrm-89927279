@@ -6,6 +6,7 @@ import { KPICard } from "./KPICard";
 import { fadeIn } from "./AnalyticsChartHelpers";
 import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut, ShieldCheck, Activity } from "lucide-react";
 import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
+import { ActiveVisitorsList } from "@/components/store/ActiveVisitorsList";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
