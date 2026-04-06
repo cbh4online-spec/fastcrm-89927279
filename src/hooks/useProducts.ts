@@ -55,7 +55,7 @@ export function useProducts(filters?: {
 
       let query = supabase
         .from("products")
-        .select("*")
+        .select("*, product_images(url)")
         .eq("workspace_id", currentWorkspace.id);
 
       // --- Server-side sorting ---
