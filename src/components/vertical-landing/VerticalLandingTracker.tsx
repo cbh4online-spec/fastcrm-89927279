@@ -102,28 +102,30 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
                   page_section: sectionId,
                   device_type: getDeviceType(),
                 })
-                .select("id")
-                .single()
-                .then(({ data }: any) => {
-                  if (data?.id) {
-                    sectionEventIds.current.set(sectionId, data.id);
-                  }
-                });
+                .then(() => {});
             }
           } else {
-            // Section left viewport — update time_on_section_ms
+            // Section left viewport — record time spent
             const entryTime = sectionEntryTimes.current.get(sectionId);
-            const eventId = sectionEventIds.current.get(sectionId);
-            if (entryTime && eventId) {
+            if (entryTime) {
               const duration = Math.round(Date.now() - entryTime);
+              sectionEntryTimes.current.delete(sectionId);
               if (duration > 500) {
+                // Insert a section_exit event with time
                 (supabase as any)
                   .from("vertical_landing_events")
-                  .update({ time_on_section_ms: duration })
-                  .eq("id", eventId)
+                  .insert({
+                    template_slug: slug,
+                    template_id: templateId || null,
+                    workspace_id: workspaceId || null,
+                    event_type: "section_exit",
+                    session_id: sessionId,
+                    page_section: sectionId,
+                    device_type: getDeviceType(),
+                    time_on_section_ms: duration,
+                  })
                   .then(() => {});
               }
-              sectionEntryTimes.current.delete(sectionId);
             }
           }
         }
