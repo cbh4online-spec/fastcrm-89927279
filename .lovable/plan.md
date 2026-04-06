@@ -1,97 +1,87 @@
-
-
-## Plano: Algoritmos Google & Facebook — Otimização para Tráfego
+## Plano: Automação de Vendas — Carrinho Abandonado + Follow-ups
 
 ### Diagnóstico
 
-O projeto tem infraestrutura parcial mas faltam peças críticas para os algoritmos de Google e Facebook gerarem tráfego:
+O projeto já tem infraestrutura rica para capturar dados de carrinhos:
+- ✅ `store_visitor_sessions` — sessões com `cart_items`, `cart_subtotal`, `contact_id`, `converted`
+- ✅ `checkout_sessions` — sessões de checkout com `customer_email`, `customer_name`, `status`
+- ✅ `store-capture-lead` — captura de leads no checkout (nome, telefone, email)
+- ✅ WhatsApp (Evolution API) + Email transacional + Twilio SMS configurados
+- ✅ Sistema de sequências SDR existente
 
-**Google — O que existe:**
-- ✅ Schema.org Product JSON-LD com `AggregateRating`, `Offer`, `BreadcrumbList`
-- ✅ Sitemap da loja (`store-sitemap`) com produtos
-- ✅ GTM + GA4 + dataLayer para eventos internos
-- ✅ Canonical URLs, og:tags básicas
-
-**Google — O que falta:**
-- ❌ **Eventos e-commerce GA4 standard** (`view_item`, `add_to_cart`, `begin_checkout`, `purchase`) — o Google usa estes para alimentar campanhas Shopping/Performance Max
-- ❌ **Google Product Feed (XML/RSS)** para Google Merchant Center — obrigatório para aparecer no Google Shopping
-- ❌ **IndexNow** — notificação instantânea ao Google quando produtos novos são publicados
-- ❌ **FAQ Schema** nas páginas de produto (boost de rich snippets)
-
-**Facebook — O que existe:**
-- ✅ Meta Pixel inicializado com PageView
-- ✅ OG tags (og:title, og:image, product:price)
-
-**Facebook — O que falta:**
-- ❌ **Eventos standard do Pixel** (`ViewContent`, `AddToCart`, `InitiateCheckout`, `Purchase`) — sem estes, o algoritmo do Facebook não consegue otimizar campanhas
-- ❌ **Facebook Product Catalog Feed (XML)** — obrigatório para Dynamic Product Ads e Instagram Shopping
-- ❌ **Conversions API (CAPI)** server-side — o Facebook penaliza contas que dependem só do pixel browser (iOS tracking prevention)
+**O que falta:**
+- ❌ **Deteção automática de carrinhos abandonados** — nenhum processo identifica sessões com carrinho que não converteram
+- ❌ **Sequência de recuperação multicanal** — sem follow-ups automáticos por email/WhatsApp/SMS
+- ❌ **Dashboard de carrinhos abandonados** — sem visibilidade sobre valor perdido e taxas de recuperação
+- ❌ **Links de recuperação** — sem URL que recarregue o carrinho do cliente
 
 ### Implementação
 
-#### 1. Eventos E-commerce Standard (Google GA4 + Meta Pixel)
-Criar `src/lib/ecommerceTracking.ts` com funções que disparam simultaneamente para dataLayer (GA4) e fbq (Meta):
+#### 1. Edge Function — Detetor de Carrinhos Abandonados (`store-abandoned-cart-detector`)
+Executada via pg_cron a cada 15 minutos:
+- Identifica `store_visitor_sessions` com `cart_items IS NOT NULL` + `converted = false` + `last_activity_at < NOW() - interval '1 hour'` + `cart_processed = false`
+- Para cada carrinho abandonado com contacto associado (`contact_id`):
+  - Cria registo em nova tabela `abandoned_carts` (id, workspace_id, session_id, contact_id, cart_items, cart_value, detected_at, recovery_status, recovered_at, recovery_channel)
+  - Marca `cart_processed = true` na sessão
+  - Dispara a sequência de recuperação
 
-| Ação | GA4 Event | Meta Pixel Event |
-|------|-----------|-----------------|
-| Ver produto | `view_item` | `ViewContent` |
-| Adicionar ao carrinho | `add_to_cart` | `AddToCart` |
-| Iniciar checkout | `begin_checkout` | `InitiateCheckout` |
-| Compra concluída | `purchase` | `Purchase` |
+#### 2. Edge Function — Sequência de Recuperação (`store-cart-recovery`)
+Sequência multicanal em 3 toques:
+- **Toque 1** (1h após abandono): Email com link de recuperação + produtos no carrinho
+- **Toque 2** (6h após abandono): WhatsApp/SMS com lembrete amigável + desconto opcional
+- **Toque 3** (24h após abandono): Email final com urgência ("o seu carrinho expira em 24h")
 
-Integrar nos componentes existentes: `StoreProductPage`, `useStoreCartStore`, `useCheckoutForm`, `ThankYouPage`.
+Cada toque verifica se o carrinho já foi recuperado antes de enviar.
 
-#### 2. Google Product Feed (Edge Function)
-Nova edge function `store-product-feed` que gera XML compatível com Google Merchant Center:
-- Formato RSS 2.0 com namespace `g:` (Google Shopping)
-- Campos: `g:id`, `g:title`, `g:description`, `g:link`, `g:image_link`, `g:price`, `g:availability`, `g:brand`, `g:gtin`, `g:condition`, `g:product_type`
-- URL: `/functions/v1/store-product-feed?slug={workspace}`
-- Cache 1h, máximo 5000 produtos
+#### 3. Página de Recuperação de Carrinho (`/store/:slug/recover/:cartId`)
+- Carrega os itens do carrinho abandonado
+- Preenche automaticamente o carrinho na loja
+- Redireciona para o checkout com dados pré-preenchidos
+- Regista a recuperação em `abandoned_carts`
 
-#### 3. Facebook Catalog Feed (Edge Function)
-Nova edge function `store-facebook-feed` que gera XML/CSV compatível com Facebook Commerce Manager:
-- Campos Facebook: `id`, `title`, `description`, `availability`, `condition`, `price`, `link`, `image_link`, `brand`, `google_product_category`
-- URL: `/functions/v1/store-facebook-feed?slug={workspace}`
+#### 4. Dashboard de Carrinhos Abandonados
+Nova secção em `/dashboard/store` ou tab dedicada:
+- **KPIs**: Total abandonados, Valor total perdido, Taxa de recuperação, Receita recuperada
+- **Lista**: Tabela com carrinhos abandonados (cliente, valor, produtos, status, canal de recuperação)
+- **Filtros**: Por período, status (pendente/recuperado/expirado), canal
 
-#### 4. Conversions API (CAPI) Server-Side
-Nova edge function `store-capi-event` para enviar eventos server-side ao Facebook:
-- Recebe eventos do frontend via POST
-- Envia ao Graph API `/events` com `event_name`, `event_time`, `user_data` (hashed email/phone), `custom_data` (value, currency, content_ids)
-- Deduplica com `event_id` partilhado entre Pixel e CAPI
-- Campos de configuração na `store_settings`: `facebook_pixel_id`, `facebook_capi_token`, `facebook_catalog_id`
+#### 5. Migração DB — Tabela `abandoned_carts`
+Campos:
+- `id` (UUID PK)
+- `workspace_id` (FK workspaces)
+- `session_id` (FK store_visitor_sessions)
+- `contact_id` (FK contacts, nullable)
+- `customer_email` (TEXT)
+- `customer_name` (TEXT)
+- `customer_phone` (TEXT)
+- `cart_items` (JSONB)
+- `cart_value` (NUMERIC)
+- `currency` (TEXT, default 'EUR')
+- `detected_at` (TIMESTAMPTZ)
+- `recovery_status` (TEXT: 'pending', 'touch_1_sent', 'touch_2_sent', 'touch_3_sent', 'recovered', 'expired')
+- `recovered_at` (TIMESTAMPTZ, nullable)
+- `recovery_channel` (TEXT, nullable: 'email', 'whatsapp', 'sms', 'direct')
+- `recovery_url` (TEXT)
+- `touch_1_at`, `touch_2_at`, `touch_3_at` (TIMESTAMPTZ, nullable)
+- `expires_at` (TIMESTAMPTZ — 48h após deteção)
 
-#### 5. IndexNow — Notificação Instantânea
-Nova edge function `store-indexnow` chamada automaticamente quando um produto é publicado/atualizado:
-- Envia POST ao `https://api.indexnow.org/indexnow` com a URL do produto
-- Chave IndexNow armazenada em ficheiro estático
-
-#### 6. Migração DB
-Adicionar à tabela `store_settings`:
-- `facebook_pixel_id` (TEXT) — Pixel ID por loja (override do default)
-- `facebook_capi_token` (TEXT) — Token de acesso à Conversions API
-- `facebook_catalog_id` (TEXT) — ID do catálogo Facebook
-- `google_merchant_id` (TEXT) — ID do Google Merchant Center
+RLS: workspace members only.
 
 ### Ficheiros a criar/modificar
 
 **Novos:**
-- `src/lib/ecommerceTracking.ts` — Tracking unificado GA4 + Meta Pixel
-- `supabase/functions/store-product-feed/index.ts` — Google Merchant Feed
-- `supabase/functions/store-facebook-feed/index.ts` — Facebook Catalog Feed
-- `supabase/functions/store-capi-event/index.ts` — Conversions API server-side
-- `supabase/functions/store-indexnow/index.ts` — IndexNow notificação
+- `supabase/functions/store-abandoned-cart-detector/index.ts` — Detetor cron
+- `supabase/functions/store-cart-recovery/index.ts` — Envio de toques de recuperação
+- `src/pages/store/StoreCartRecoveryPage.tsx` — Página pública de recuperação
+- `src/components/store/dashboard/AbandonedCartsPanel.tsx` — Dashboard
+- `src/hooks/useAbandonedCarts.ts` — Hook de dados
+- Migração SQL — Tabela `abandoned_carts`
 
 **Modificados:**
-- `src/pages/store/StoreProductPage.tsx` — Adicionar `view_item` + `ViewContent`
-- `src/stores/useStoreCartStore.ts` — Adicionar `AddToCart` ao Meta Pixel
-- `src/components/store/checkout/useCheckoutForm.ts` — Adicionar `InitiateCheckout`
-- `src/pages/checkout/ThankYouPage.tsx` — Adicionar `purchase` + `Purchase`
-- `src/modules/growth-seo/lib/gtmEvents.ts` — Estender com eventos e-commerce
-- Migração SQL — Novos campos em `store_settings`
+- Router — Adicionar rota `/store/:slug/recover/:cartId`
+- Dashboard store — Integrar painel de carrinhos abandonados
 
 ### Impacto Esperado
-- **Google Shopping**: Produtos indexados e elegíveis para aparecer em resultados de compras
-- **Facebook/Instagram Ads**: Dynamic Product Ads automáticos e retargeting baseado em comportamento real
-- **SEO**: Indexação 10x mais rápida via IndexNow
-- **ROAS**: Dados de conversão server-side (CAPI) melhoram a atribuição em ~30%
-
+- **Recuperação de 5-15% dos carrinhos** abandonados (benchmark e-commerce)
+- **Visibilidade** sobre valor perdido e oportunidades de otimização
+- **Automação completa** — zero intervenção manual necessária

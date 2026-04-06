@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_carts: {
+        Row: {
+          cart_items: Json
+          cart_value: number
+          contact_id: string | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          detected_at: string
+          expires_at: string
+          id: string
+          recovered_at: string | null
+          recovery_channel: string | null
+          recovery_status: string
+          recovery_url: string | null
+          session_id: string | null
+          touch_1_at: string | null
+          touch_2_at: string | null
+          touch_3_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cart_items?: Json
+          cart_value?: number
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          detected_at?: string
+          expires_at?: string
+          id?: string
+          recovered_at?: string | null
+          recovery_channel?: string | null
+          recovery_status?: string
+          recovery_url?: string | null
+          session_id?: string | null
+          touch_1_at?: string | null
+          touch_2_at?: string | null
+          touch_3_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cart_items?: Json
+          cart_value?: number
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          detected_at?: string
+          expires_at?: string
+          id?: string
+          recovered_at?: string | null
+          recovery_channel?: string | null
+          recovery_status?: string
+          recovery_url?: string | null
+          session_id?: string | null
+          touch_1_at?: string | null
+          touch_2_at?: string | null
+          touch_3_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abandoned_carts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_carts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_account_sources: {
         Row: {
           account_id: string
