@@ -52,7 +52,7 @@ const TICKET_SELECT = `
   *,
   contacts:contact_id(name, email),
   companies:company_id(name),
-  profiles:assigned_to(display_name)
+  profiles:assigned_to(full_name)
 `;
 
 export function useHelpdeskTickets(filters?: TicketFilters) {
