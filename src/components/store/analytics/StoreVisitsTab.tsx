@@ -367,6 +367,11 @@ export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisits
           </Card>
         </motion.div>
       )}
+
+      {/* Active Visitors */}
+      <motion.div {...fadeIn} transition={{ delay: 0.6 }}>
+        <ActiveVisitorsList />
+      </motion.div>
     </div>
   );
 });
