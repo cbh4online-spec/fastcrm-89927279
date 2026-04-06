@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Headphones, Clock, CheckCircle, AlertTriangle, ArrowRight,
-  Timer, Zap, TrendingUp,
+  Timer, Zap, TrendingUp, Euro,
 } from "lucide-react";
 import { useHelpdeskTickets } from "@/hooks/useHelpdeskTickets";
 import { SLATimer } from "@/components/helpdesk/SLATimer";
@@ -72,7 +72,22 @@ export default function HelpdeskDashboard() {
       (t) => !t.assigned_to && !["resolved", "closed"].includes(t.status)
     ).length;
 
-    return { mttrHours, frtHours, unassigned };
+    // Average time per ticket (minutes)
+    const ticketsWithTime = tickets.filter((t) => t.total_time_minutes > 0);
+    const avgTimeMinutes = ticketsWithTime.length > 0
+      ? ticketsWithTime.reduce((s, t) => s + t.total_time_minutes, 0) / ticketsWithTime.length
+      : 0;
+
+    // Average cost per ticket
+    const ticketsWithCost = tickets.filter((t) => t.total_cost > 0);
+    const avgCost = ticketsWithCost.length > 0
+      ? ticketsWithCost.reduce((s, t) => s + t.total_cost, 0) / ticketsWithCost.length
+      : 0;
+
+    // Total cost
+    const totalCost = tickets.reduce((s, t) => s + (t.total_cost || 0), 0);
+
+    return { mttrHours, frtHours, unassigned, avgTimeMinutes, avgCost, totalCost };
   }, [tickets]);
 
   // Status distribution
@@ -140,7 +155,7 @@ export default function HelpdeskDashboard() {
       </div>
 
       {/* 6 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center justify-between mb-2">
@@ -210,6 +225,30 @@ export default function HelpdeskDashboard() {
             </div>
             <p className="text-2xl font-bold">{stats.slaBreached}</p>
             <p className="text-xs text-muted-foreground mt-0.5">SLA Em Risco</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-9 w-9 rounded-lg bg-sky-100 dark:bg-sky-950 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-sky-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold">{formatHours(advancedMetrics.avgTimeMinutes / 60)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Tempo Médio/Ticket</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-9 w-9 rounded-lg bg-teal-100 dark:bg-teal-950 flex items-center justify-center">
+                <Euro className="h-4 w-4 text-teal-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold">€{advancedMetrics.avgCost.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Custo Médio/Ticket</p>
           </CardContent>
         </Card>
       </div>

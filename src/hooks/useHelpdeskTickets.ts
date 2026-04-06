@@ -32,6 +32,8 @@ export interface SupportTicket {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  total_time_minutes: number;
+  total_cost: number;
   // Joined fields
   contact_name?: string | null;
   contact_email?: string | null;
