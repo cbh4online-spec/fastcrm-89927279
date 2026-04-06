@@ -1,33 +1,61 @@
-## Plano de Evolução do Helpdesk
 
-### Fase 1 — Histórico Completo do Cliente (sidebar do ticket)
-- **Tickets anteriores**: Lista dos últimos tickets do mesmo contacto/empresa com estado e data
-- **Timeline CRM**: Últimas interações do contacto (deals, notas, atividades)
-- **CSAT histórico**: Média de satisfação do contacto e tendência
-- **Impacto**: Componente `TicketClientHistory.tsx` no sidebar, reutiliza dados existentes
+1. Diagnóstico
+- Os tickets estão a ser criados com sucesso e existem 3 registos no backend para o workspace atual.
+- O problema está na listagem do helpdesk: a query de `useHelpdeskTickets` faz joins embutidos via `contacts:contact_id(...)`, `companies:company_id(...)` e `profiles:assigned_to(...)`.
+- Essa query está a falhar com erro 400 no API layer porque o schema não tem relações/fks visíveis para esses joins:
+```text
+Could not find a relationship between 'support_tickets' and 'contact_id' in the schema cache
+```
+- Resultado: a query falha antes de devolver linhas, por isso a UI mostra “Sem tickets encontrados” apesar dos tickets existirem.
 
-### Fase 2 — Métricas e SLA Avançados (dashboard melhorado)
-- **KPIs**: MTTR (tempo médio resolução), FRT (primeira resposta), taxa de reabertura, volume por dia/hora
-- **Heatmap de carga**: Visualização de volume de tickets por hora/dia da semana
-- **SLA compliance por agente/departamento**: Breakdown detalhado
-- **Exportação**: CSV/PDF dos relatórios
-- **Impacto**: Evolução do `HelpdeskDashboard.tsx` existente
+2. Decisões de produto/UX
+- Prioridade máxima: fazer a listagem voltar a mostrar tickets imediatamente.
+- A UI não deve depender de joins frágeis para exibir a lista principal.
+- Sempre que a listagem falhar, deve existir estado de erro visível com ação de “Tentar novamente”, em vez de parecer lista vazia.
+- A associação de cliente e agente deve continuar a aparecer, mas de forma resiliente.
 
-### Fase 3 — Automações e Workflows
-- **Auto-assign**: Atribuição automática por departamento/tipo de ticket
-- **Escalação SLA**: Notificação automática quando SLA está a 80% do prazo
-- **Auto-close**: Fecho automático após X dias sem resposta do cliente
-- **Templates contextuais**: Sugestão de respostas baseadas no tipo de ticket
-- **Impacto**: Evolução da tabela `support_ticket_automations` + edge function para processamento
+3. Estrutura técnica
+- Refatorar `useHelpdeskTickets` para:
+  - buscar primeiro `support_tickets` sem relações embutidas;
+  - carregar dados auxiliares em queries separadas para `contacts`, `companies` e `profiles`/membros;
+  - fazer merge em memória (`contact_name`, `company_name`, `assigned_agent_name`).
+- Corrigir o mapeamento do agente:
+  - hoje `assigned_to` guarda `user_id`, mas o join tentava resolver por `profiles:assigned_to`, o que já é inconsistente com o padrão usado noutros pontos;
+  - passar a resolver nomes de agentes por `profiles.user_id`.
+- Expor erro real do hook:
+  - devolver `error`, `isError`, `refetch` em `useHelpdeskTickets`.
+- Atualizar `HelpdeskTicketsList.tsx` para:
+  - mostrar estado de erro se a query falhar;
+  - só mostrar “Sem tickets encontrados” quando a query tiver sucesso e vier vazia.
+- Validar impacto em:
+  - `HelpdeskTicketDetail.tsx`
+  - `HelpdeskDashboard.tsx`
+  - `TicketRelatedList.tsx`
+  - `HelpdeskCharts.tsx`
+  porque todos consomem o mesmo hook.
 
-### Fase 4 — Portal do Cliente (público)
-- **Portal web**: Página pública onde clientes podem criar tickets, ver estado e responder
-- **Autenticação leve**: Login por email/código sem precisar de conta interna
-- **Base de conhecimento**: Artigos de ajuda pesquisáveis integrados
-- **Impacto**: Novas rotas `/portal/*`, edge functions para auth de cliente, RLS dedicado
+4. Plano de implementação
+- Passo 1: substituir o `TICKET_SELECT` com joins por um select simples a `support_tickets`.
+- Passo 2: recolher IDs únicos de `contact_id`, `company_id` e `assigned_to`.
+- Passo 3: fazer fetch complementar das entidades relacionadas e construir maps por id/user_id.
+- Passo 4: devolver `tickets` já enriquecidos sem depender de relações no PostgREST.
+- Passo 5: adicionar tratamento explícito de erro na página de listagem.
+- Passo 6: rever páginas/componentes dependentes para garantir que continuam a funcionar com o novo formato do hook.
+- Passo 7: validar o fluxo completo:
+  - criar ticket;
+  - voltar à lista;
+  - abrir detalhe;
+  - verificar cliente/empresa/agente;
+  - testar sem contacto, sem empresa e sem agente.
 
----
+5. Critérios de aceitação
+- Um ticket criado aparece imediatamente na lista.
+- A lista deixa de fazer requests 400 para `support_tickets?...contacts:contact_id(...)`.
+- Quando houver falha de dados, a página mostra erro e opção de retry.
+- Cliente, empresa e agente continuam visíveis quando existirem dados.
+- O detalhe do ticket continua a abrir normalmente.
 
-**Ordem sugerida**: Fase 1 → 2 → 3 → 4 (cada fase entrega valor independente)
-
-**Nota**: A Fase 4 (Portal) é a mais complexa e requer novo fluxo de autenticação separado. Sugiro começar pelas fases 1-3 que melhoram imediatamente a produtividade da equipa interna.
+6. Riscos e pontos por validar
+- `profiles` pode usar `id` nalguns módulos e `user_id` noutros; no helpdesk preciso alinhar explicitamente com o valor real guardado em `assigned_to`.
+- Se houver outros componentes a assumir o join antigo, podem precisar de pequeno ajuste.
+- Se o objetivo futuro for voltar a usar joins nativos, será necessário criar/regularizar foreign keys reais na base de dados; para resolver já, a abordagem por queries separadas é a mais segura e rápida.
