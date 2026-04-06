@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Toolbar } from "@/components/common/Toolbar";
 import { CreateTicketDialog } from "@/components/helpdesk/CreateTicketDialog";
 import { SLATimer } from "@/components/helpdesk/SLATimer";
 import { TicketKanbanBoard } from "@/components/helpdesk/TicketKanbanBoard";
 import { TicketBulkActions } from "@/components/helpdesk/TicketBulkActions";
 import { useHelpdeskTickets, type TicketStatus, type TicketPriority } from "@/hooks/useHelpdeskTickets";
-import { Headphones, LayoutGrid, List } from "lucide-react";
+import { Headphones, LayoutGrid, List, User, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
 
@@ -50,7 +51,19 @@ const PRIORITY_COLORS: Record<TicketPriority, string> = {
   urgent: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  support: "Suporte",
+  commercial: "Comercial",
+  technical: "Técnico",
+  billing: "Faturação",
+  feature_request: "Funcionalidade",
+};
+
 type ViewMode = "table" | "kanban";
+
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map(w => w?.[0] || "").join("").toUpperCase();
+}
 
 export default function HelpdeskTicketsList() {
   const navigate = useNavigate();
@@ -122,7 +135,6 @@ export default function HelpdeskTicketsList() {
           Tickets
         </h1>
         <div className="flex items-center gap-2">
-          {/* View Toggle */}
           <div className="flex rounded-lg border bg-muted/30 p-0.5">
             <Button
               variant={viewMode === "table" ? "default" : "ghost"}
@@ -203,7 +215,7 @@ export default function HelpdeskTicketsList() {
           onToggleSelect={toggleSelect}
         />
       ) : (
-        /* Table View */
+        /* Table View — Zoho Desk style */
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -218,17 +230,19 @@ export default function HelpdeskTicketsList() {
                 </TableHead>
                 <TableHead className="w-[60px]">#</TableHead>
                 <TableHead>Assunto</TableHead>
-                <TableHead className="w-[120px]">Prioridade</TableHead>
-                <TableHead className="w-[140px]">Estado</TableHead>
-                <TableHead className="w-[120px]">Departamento</TableHead>
-                <TableHead className="w-[100px]">SLA</TableHead>
-                <TableHead className="w-[120px]">Criado</TableHead>
+                <TableHead className="w-[200px]">Cliente</TableHead>
+                <TableHead className="w-[130px]">Agente</TableHead>
+                <TableHead className="w-[100px]">Prioridade</TableHead>
+                <TableHead className="w-[130px]">Estado</TableHead>
+                <TableHead className="w-[90px]">Tipo</TableHead>
+                <TableHead className="w-[80px]">SLA</TableHead>
+                <TableHead className="w-[100px]">Criado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     Sem tickets encontrados
                   </TableCell>
                 </TableRow>
@@ -252,15 +266,55 @@ export default function HelpdeskTicketsList() {
                       {ticket.ticket_number}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-sm">{ticket.subject}</div>
+                      <div className="font-medium text-sm truncate max-w-[260px]">{ticket.subject}</div>
                       {ticket.tags?.length > 0 && (
                         <div className="flex gap-1 mt-0.5">
-                          {ticket.tags.slice(0, 3).map((t) => (
+                          {ticket.tags.slice(0, 2).map((t) => (
                             <Badge key={t} variant="outline" className="text-[10px] px-1 py-0">
                               {t}
                             </Badge>
                           ))}
                         </div>
+                      )}
+                    </TableCell>
+                    {/* Cliente */}
+                    <TableCell>
+                      {ticket.contact_name || ticket.company_name ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar className="h-6 w-6 shrink-0">
+                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                              {ticket.contact_name ? getInitials(ticket.contact_name) : <Building2 className="h-3 w-3" />}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            {ticket.contact_name && (
+                              <div className="text-xs font-medium truncate">{ticket.contact_name}</div>
+                            )}
+                            {ticket.company_name && (
+                              <div className="text-[10px] text-muted-foreground truncate flex items-center gap-0.5">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                {ticket.company_name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50 italic">Sem cliente</span>
+                      )}
+                    </TableCell>
+                    {/* Agente */}
+                    <TableCell>
+                      {ticket.assigned_agent_name ? (
+                        <div className="flex items-center gap-1.5">
+                          <Avatar className="h-5 w-5 shrink-0">
+                            <AvatarFallback className="text-[8px] bg-accent text-accent-foreground">
+                              {getInitials(ticket.assigned_agent_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs truncate">{ticket.assigned_agent_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/50 italic">Não atribuído</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -273,8 +327,10 @@ export default function HelpdeskTicketsList() {
                         {STATUS_LABELS[ticket.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ticket.department || "—"}
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {TYPE_LABELS[ticket.type] || ticket.type}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {ticket.sla_deadline && !["resolved", "closed"].includes(ticket.status) ? (

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Search, X, User, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +29,10 @@ interface CreateTicketDialogProps {
 
 const DEPARTMENTS = ["Suporte", "Comercial", "Técnico", "Faturação"];
 
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map(w => w?.[0] || "").join("").toUpperCase();
+}
+
 export function CreateTicketDialog({ onSubmit }: CreateTicketDialogProps) {
   const { currentWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
@@ -42,7 +47,10 @@ export function CreateTicketDialog({ onSubmit }: CreateTicketDialogProps) {
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
   const [debouncedContactSearch] = useDebounce(contactSearch, 300);
-  const [selectedContact, setSelectedContact] = useState<{ id: string; name: string; email: string | null } | null>(null);
+  const [selectedContact, setSelectedContact] = useState<{
+    id: string; name: string; email: string | null; phone: string | null;
+    company: string | null; company_id: string | null; job_title: string | null;
+  } | null>(null);
 
   // Company search
   const [companySearch, setCompanySearch] = useState("");
@@ -55,9 +63,9 @@ export function CreateTicketDialog({ onSubmit }: CreateTicketDialogProps) {
       if (!debouncedContactSearch || debouncedContactSearch.length < 2) return [];
       const { data } = await supabase
         .from("contacts")
-        .select("id, name, email, phone, company")
+        .select("id, name, email, phone, company, company_id, job_title")
         .eq("workspace_id", currentWorkspace!.id)
-        .or(`name.ilike.%${debouncedContactSearch}%,email.ilike.%${debouncedContactSearch}%`)
+        .or(`name.ilike.%${debouncedContactSearch}%,email.ilike.%${debouncedContactSearch}%,phone.ilike.%${debouncedContactSearch}%`)
         .limit(8);
       return data || [];
     },
@@ -78,6 +86,32 @@ export function CreateTicketDialog({ onSubmit }: CreateTicketDialogProps) {
     },
     enabled: !!currentWorkspace?.id && debouncedCompanySearch.length >= 2 && !selectedCompany,
   });
+
+  // Auto-link company when selecting a contact that has one
+  const handleSelectContact = async (contact: typeof contacts[0]) => {
+    setSelectedContact({
+      id: contact.id,
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      company: contact.company,
+      company_id: contact.company_id,
+      job_title: contact.job_title,
+    });
+    setContactSearch("");
+
+    // Auto-fill company if contact has one and no company is selected
+    if (contact.company_id && !selectedCompany) {
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("id, name")
+        .eq("id", contact.company_id)
+        .single();
+      if (comp) {
+        setSelectedCompany({ id: comp.id, name: comp.name });
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     if (!subject.trim()) {
@@ -132,90 +166,112 @@ export function CreateTicketDialog({ onSubmit }: CreateTicketDialogProps) {
           <DialogTitle>Novo Ticket</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Contact selection */}
-          <div>
-            <Label className="text-xs flex items-center gap-1 mb-1">
-              <User className="h-3 w-3" /> Contacto
-            </Label>
-            {selectedContact ? (
-              <div className="flex items-center gap-2 p-2 rounded border bg-muted/30 text-sm">
-                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="flex-1 truncate">{selectedContact.name}</span>
-                {selectedContact.email && (
-                  <span className="text-xs text-muted-foreground truncate">{selectedContact.email}</span>
-                )}
-                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => { setSelectedContact(null); setContactSearch(""); }}>
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={contactSearch}
-                  onChange={(e) => setContactSearch(e.target.value)}
-                  placeholder="Pesquisar contacto por nome ou email..."
-                  className="pl-8 h-9"
-                />
-                {contacts.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                    {contacts.map((c) => (
-                      <button
-                        key={c.id}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                        onClick={() => { setSelectedContact({ id: c.id, name: c.name, email: c.email }); setContactSearch(""); }}
-                      >
-                        <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{c.name}</span>
-                        {c.email && <span className="text-xs text-muted-foreground ml-auto truncate">{c.email}</span>}
-                      </button>
-                    ))}
+          {/* ── CLIENT SECTION ── */}
+          <div className="space-y-3 p-3 rounded-lg border bg-muted/20">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" /> Identificação do Cliente
+            </h3>
+
+            {/* Contact selection */}
+            <div>
+              <Label className="text-xs mb-1 block">Contacto</Label>
+              {selectedContact ? (
+                <div className="flex items-center gap-2.5 p-2.5 rounded-md border bg-background">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                      {getInitials(selectedContact.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{selectedContact.name}</div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      {selectedContact.job_title && <span>{selectedContact.job_title}</span>}
+                      {selectedContact.email && <span>• {selectedContact.email}</span>}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setSelectedContact(null); setContactSearch(""); }}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Pesquisar por nome, email ou telefone..."
+                    className="pl-8 h-9"
+                  />
+                  {contacts.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {contacts.map((c) => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent flex items-center gap-2.5 border-b last:border-b-0"
+                          onClick={() => handleSelectContact(c)}
+                        >
+                          <Avatar className="h-7 w-7 shrink-0">
+                            <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                              {getInitials(c.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium truncate">{c.name}</div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                              {c.email && <span className="truncate">{c.email}</span>}
+                              {c.company && <span className="truncate">• {c.company}</span>}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Company selection */}
+            <div>
+              <Label className="text-xs mb-1 block">Empresa</Label>
+              {selectedCompany ? (
+                <div className="flex items-center gap-2.5 p-2.5 rounded-md border bg-background">
+                  <div className="h-8 w-8 shrink-0 rounded bg-muted flex items-center justify-center">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <span className="flex-1 text-sm font-medium truncate">{selectedCompany.name}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => { setSelectedCompany(null); setCompanySearch(""); }}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={companySearch}
+                    onChange={(e) => setCompanySearch(e.target.value)}
+                    placeholder="Pesquisar empresa..."
+                    className="pl-8 h-9"
+                  />
+                  {companies.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {companies.map((c) => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
+                          onClick={() => { setSelectedCompany({ id: c.id, name: c.name }); setCompanySearch(""); }}
+                        >
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Company selection */}
-          <div>
-            <Label className="text-xs flex items-center gap-1 mb-1">
-              <Building2 className="h-3 w-3" /> Empresa
-            </Label>
-            {selectedCompany ? (
-              <div className="flex items-center gap-2 p-2 rounded border bg-muted/30 text-sm">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="flex-1 truncate">{selectedCompany.name}</span>
-                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => { setSelectedCompany(null); setCompanySearch(""); }}>
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={companySearch}
-                  onChange={(e) => setCompanySearch(e.target.value)}
-                  placeholder="Pesquisar empresa..."
-                  className="pl-8 h-9"
-                />
-                {companies.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                    {companies.map((c) => (
-                      <button
-                        key={c.id}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                        onClick={() => { setSelectedCompany({ id: c.id, name: c.name }); setCompanySearch(""); }}
-                      >
-                        <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{c.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
+          {/* ── TICKET DETAILS ── */}
           <div>
             <Label className="text-xs">Assunto *</Label>
             <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Assunto do ticket" />
