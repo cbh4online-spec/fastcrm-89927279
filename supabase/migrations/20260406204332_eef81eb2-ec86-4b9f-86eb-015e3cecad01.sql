@@ -1,0 +1,5 @@
+
+ALTER TABLE public.product_images
+  ADD COLUMN IF NOT EXISTS seo_filename TEXT,
+  ADD COLUMN IF NOT EXISTS title TEXT,
+  ADD COLUMN IF NOT EXISTS caption TEXT;

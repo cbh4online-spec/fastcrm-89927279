@@ -43334,36 +43334,45 @@ export type Database = {
         Row: {
           ai_prompt: string | null
           alt_text: string | null
+          caption: string | null
           created_at: string
           id: string
           is_ai_generated: boolean
           position: number
           product_id: string
+          seo_filename: string | null
           storage_path: string | null
+          title: string | null
           url: string
           workspace_id: string
         }
         Insert: {
           ai_prompt?: string | null
           alt_text?: string | null
+          caption?: string | null
           created_at?: string
           id?: string
           is_ai_generated?: boolean
           position?: number
           product_id: string
+          seo_filename?: string | null
           storage_path?: string | null
+          title?: string | null
           url: string
           workspace_id: string
         }
         Update: {
           ai_prompt?: string | null
           alt_text?: string | null
+          caption?: string | null
           created_at?: string
           id?: string
           is_ai_generated?: boolean
           position?: number
           product_id?: string
+          seo_filename?: string | null
           storage_path?: string | null
+          title?: string | null
           url?: string
           workspace_id?: string
         }
