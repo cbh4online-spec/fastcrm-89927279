@@ -34,7 +34,6 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
   const tracked = useRef(false);
   const sectionsTracked = useRef(new Set<string>());
   const sectionEntryTimes = useRef<Map<string, number>>(new Map());
-  const sectionEventIds = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (tracked.current || !slug) return;
