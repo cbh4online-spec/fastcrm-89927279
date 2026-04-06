@@ -47,13 +47,18 @@ import { toast } from 'sonner';
 import { FlowBuilderModule } from '@/components/flow-builder/FlowBuilderModule';
 import { WidgetConfigPanel } from '@/components/chat-widget/WidgetConfigPanel';
 import { KnowledgeDocumentsPanel } from '@/components/knowledge-base/KnowledgeDocumentsPanel';
+import { CannedResponsesPanel } from '@/components/chat-widget/CannedResponsesPanel';
+import { ChatAnalyticsTab } from '@/components/chat-widget/ChatAnalyticsTab';
+import { BarChart3, Zap } from 'lucide-react';
 
-type ActiveTab = "bases" | "flows" | "widget" | "query";
+type ActiveTab = "bases" | "flows" | "widget" | "chat-analytics" | "canned" | "query";
 
 const pageTabs = [
   { id: "bases", label: "Bases", icon: <BookOpen className="h-4 w-4" /> },
   { id: "flows", label: "Fluxos", icon: <Workflow className="h-4 w-4" /> },
   { id: "widget", label: "Widget", icon: <Globe className="h-4 w-4" /> },
+  { id: "canned", label: "Respostas", icon: <Zap className="h-4 w-4" /> },
+  { id: "chat-analytics", label: "Chat Analytics", icon: <BarChart3 className="h-4 w-4" /> },
   { id: "query", label: "Testar IA", icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
@@ -656,6 +661,14 @@ export function KnowledgeBaseModule() {
 
       {activeTab === "widget" && (
         <WidgetConfigPanel />
+      )}
+
+      {activeTab === "canned" && (
+        <CannedResponsesPanel />
+      )}
+
+      {activeTab === "chat-analytics" && (
+        <ChatAnalyticsTab />
       )}
 
       {activeTab === "query" && (
