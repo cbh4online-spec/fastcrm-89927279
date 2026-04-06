@@ -8,6 +8,7 @@ import { TicketTagsEditor } from "./TicketTagsEditor";
 import { CSATWidget } from "./CSATWidget";
 import { TicketClientCard } from "./TicketClientCard";
 import { TicketClientHistory } from "./TicketClientHistory";
+import { TicketCommercialActions } from "./TicketCommercialActions";
 import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle, UserCircle, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
@@ -99,6 +100,11 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
           workspaceId={ticket.workspace_id}
         />
       </div>
+
+      <div className="border-t border-border" />
+
+      {/* ── COMMERCIAL ACTIONS ── */}
+      <TicketCommercialActions ticket={ticket} />
 
       <div className="border-t border-border" />
 
