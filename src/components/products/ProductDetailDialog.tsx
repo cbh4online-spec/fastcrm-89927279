@@ -429,6 +429,16 @@ export function ProductDetailDialog({
                       />
                     </div>
 
+                    {/* Weight AI Panel */}
+                    <ProductWeightAIPanel
+                      productId={product.id}
+                      productName={product.name}
+                      sku={product.sku}
+                      category={product.category}
+                      description={product.description}
+                      currentWeight={(product as any).weight}
+                    />
+
                     {/* Metadata grid — tabela limpa */}
                     <Card className="p-3">
                       <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
