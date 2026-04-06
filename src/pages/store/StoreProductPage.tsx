@@ -269,7 +269,7 @@ export default function StoreProductPage() {
       price: pricing?.price ?? product.base_price,
       quantity: 1,
       currency: product.currency,
-      item_brand: product.brand || undefined,
+      item_brand: (product as any).brand || undefined,
       item_category: (product as any).category?.name || undefined,
       sku: product.sku || undefined,
     });
