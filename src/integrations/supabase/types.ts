@@ -7512,6 +7512,76 @@ export type Database = {
           },
         ]
       }
+      bot_comment_jobs: {
+        Row: {
+          completed_at: string | null
+          content_type: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          job_type: string
+          product_id: string | null
+          qa_count: number
+          result_json: Json | null
+          reviews_count: number
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          product_id?: string | null
+          qa_count?: number
+          result_json?: Json | null
+          reviews_count?: number
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          product_id?: string | null
+          qa_count?: number
+          result_json?: Json | null
+          reviews_count?: number
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_comment_jobs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "bot_comment_jobs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_comment_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bot_conversation_assignments: {
         Row: {
           assigned_at: string
@@ -7647,6 +7717,47 @@ export type Database = {
           },
           {
             foreignKeyName: "bot_knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_review_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean
+          persona_prompt: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean
+          persona_prompt?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          persona_prompt?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_review_profiles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -43694,6 +43805,83 @@ export type Database = {
           },
         ]
       }
+      product_qa: {
+        Row: {
+          answer: string | null
+          asker_name: string | null
+          bot_profile_id: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          moderated_at: string | null
+          moderated_by: string | null
+          product_id: string
+          question: string
+          source: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          answer?: string | null
+          asker_name?: string | null
+          bot_profile_id?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          product_id: string
+          question: string
+          source?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          answer?: string | null
+          asker_name?: string | null
+          bot_profile_id?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          product_id?: string
+          question?: string
+          source?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_qa_bot_profile_id_fkey"
+            columns: ["bot_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bot_review_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_qa_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_qa_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_qa_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_recommendations: {
         Row: {
           acted_on_at: string | null
@@ -52984,6 +53172,7 @@ export type Database = {
       }
       store_reviews: {
         Row: {
+          bot_profile_id: string | null
           comment: string | null
           created_at: string
           id: string
@@ -52994,12 +53183,15 @@ export type Database = {
           product_id: string
           rating: number
           rejection_reason: string | null
+          reviewer_name: string | null
+          source: string
           title: string | null
           updated_at: string
           user_id: string
           workspace_id: string
         }
         Insert: {
+          bot_profile_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
@@ -53010,12 +53202,15 @@ export type Database = {
           product_id: string
           rating: number
           rejection_reason?: string | null
+          reviewer_name?: string | null
+          source?: string
           title?: string | null
           updated_at?: string
           user_id: string
           workspace_id: string
         }
         Update: {
+          bot_profile_id?: string | null
           comment?: string | null
           created_at?: string
           id?: string
@@ -53026,12 +53221,21 @@ export type Database = {
           product_id?: string
           rating?: number
           rejection_reason?: string | null
+          reviewer_name?: string | null
+          source?: string
           title?: string | null
           updated_at?: string
           user_id?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "store_reviews_bot_profile_id_fkey"
+            columns: ["bot_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bot_review_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "store_reviews_product_id_fkey"
             columns: ["product_id"]
