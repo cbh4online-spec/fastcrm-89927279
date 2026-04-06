@@ -34,7 +34,7 @@ export function useCSATDashboard(period: CSATPeriod = "30d") {
     queryFn: async (): Promise<CSATMetrics> => {
       let query = supabase
         .from("client_tickets")
-        .select("id, ticket_number, satisfaction_rating, assigned_to, status, created_at, updated_at, ticket_type, priority")
+        .select("id, ticket_number, satisfaction_rating, assigned_to, status, created_at, updated_at, type, priority")
         .eq("workspace_id", wid)
         .not("satisfaction_rating", "is", null);
 
@@ -96,7 +96,7 @@ export function useCSATDashboard(period: CSATPeriod = "30d") {
       // By type
       const typeMap: Record<string, { sum: number; count: number }> = {};
       tickets.forEach((t) => {
-        const type = t.ticket_type || "Sem tipo";
+        const type = t.type || "Sem tipo";
         if (!typeMap[type]) typeMap[type] = { sum: 0, count: 0 };
         typeMap[type].sum += t.satisfaction_rating;
         typeMap[type].count++;
