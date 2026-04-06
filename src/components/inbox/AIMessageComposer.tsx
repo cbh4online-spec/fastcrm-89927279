@@ -67,9 +67,20 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     
     const { isLoading, suggestReplies, modifyReply } = useInboxAI();
     const { trackConversationReplied, trackAISuggestionGenerated, trackAISuggestionAccepted, trackAISuggestionRejected } = useCRMAnalytics();
+    const { currentWorkspace } = useWorkspace();
     const aiSuggestionUsed = useRef(false);
     const aiUsedInReply = useRef(false);
     const templateUsedInReply = useRef(false);
+
+    // Canned responses slash-command
+    const { isOpen: cannedOpen, filtered: cannedFiltered, selectedIndex: cannedIndex, handleSelect: handleCannedSelect, handleKeyDown: handleCannedKeyDown } = useCannedShortcut({
+      workspaceId: currentWorkspace?.id,
+      inputValue: message,
+      onSelect: (content) => {
+        setMessage(content);
+        textareaRef.current?.focus();
+      },
+    });
     // Map channel to template channel type
     const getTemplateChannel = (): TemplateChannel => {
       switch (channel) {
