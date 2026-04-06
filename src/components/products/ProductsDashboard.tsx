@@ -58,7 +58,7 @@ export function ProductsDashboard({ products, formatCurrency }: ProductsDashboar
     const recentCount = products.filter(p => new Date(p.created_at) >= thirtyDaysAgo).length;
 
     // Completeness
-    const withImage = products.filter(p => p.images && p.images.length > 0).length;
+    const withImage = products.filter(p => (p.images && p.images.length > 0) || ((p as any).product_images?.length > 0)).length;
     const withCost = products.filter(p => p.direct_cost && p.direct_cost > 0).length;
     const withCategory = products.filter(p => p.category && p.category.trim()).length;
     const withDescription = products.filter(p => p.short_description || p.commercial_description).length;

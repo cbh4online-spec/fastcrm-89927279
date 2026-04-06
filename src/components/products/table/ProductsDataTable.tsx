@@ -83,8 +83,8 @@ function RenderProductCell({
           onClick={() => onOpenDetail(product)}
           className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline transition-colors"
         >
-          {product.images?.[0] ? (
-            <img src={product.images[0]} alt={product.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+          {(product.images?.[0] || (product as any).product_images?.[0]?.url) ? (
+            <img src={product.images?.[0] || (product as any).product_images?.[0]?.url} alt={product.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
           ) : (
             <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
               <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />

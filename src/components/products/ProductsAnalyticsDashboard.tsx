@@ -41,7 +41,7 @@ export function ProductsAnalyticsDashboard({ products, formatCurrency }: Props) 
       ? withMargin.reduce((s, p) => s + ((p.base_price - (p.direct_cost ?? 0)) / p.base_price) * 100, 0) / withMargin.length
       : 0;
 
-    const withImage = products.filter(p => p.images && p.images.length > 0).length;
+    const withImage = products.filter(p => (p.images && p.images.length > 0) || ((p as any).product_images?.length > 0)).length;
     const withCost = products.filter(p => p.direct_cost && p.direct_cost > 0).length;
 
     // By category

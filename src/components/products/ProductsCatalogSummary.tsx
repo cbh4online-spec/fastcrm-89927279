@@ -68,7 +68,7 @@ export function ProductsCatalogSummary({
     const total = products.length;
     const withPrice = products.filter(p => p.base_price > 0).length;
     const withCostCount = products.filter(p => p.direct_cost && p.direct_cost > 0).length;
-    const withImage = products.filter(p => p.images && p.images.length > 0).length;
+    const withImage = products.filter(p => (p.images && p.images.length > 0) || ((p as any).product_images?.length > 0)).length;
     const withCategory = products.filter(p => p.category && p.category.trim()).length;
     const withSKU = products.filter(p => p.sku && p.sku.trim()).length;
     const healthScore = Math.round(
