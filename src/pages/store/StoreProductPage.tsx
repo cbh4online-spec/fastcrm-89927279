@@ -153,6 +153,70 @@ function useRecentViewers(productId: string | undefined) {
   });
 }
 
+/** Specs section — zebra table for >6 specs, cards for ≤6 */
+function StoreProductSpecs({ specs }: { specs: Record<string, string> }) {
+  const [expanded, setExpanded] = useState(false);
+  const entries = Object.entries(specs);
+  const useTable = entries.length > 6;
+  const visible = expanded ? entries : entries.slice(0, 8);
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-4">Especificações</h2>
+      {useTable ? (
+        <div className="rounded-xl border overflow-hidden">
+          <table className="w-full text-sm">
+            <tbody>
+              {visible.map(([key, value], i) => {
+                const SpecIcon = getSpecIcon(key);
+                return (
+                  <tr key={key} className={cn(i % 2 === 0 ? "bg-muted/30" : "bg-card")}>
+                    <td className="px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap w-[40%]">
+                      <span className="flex items-center gap-2">
+                        <SpecIcon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                        {humanizeSpecKey(key)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-foreground">{value}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {entries.length > 8 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="w-full py-2.5 text-sm font-medium text-primary hover:bg-muted/50 transition-colors border-t"
+            >
+              {expanded ? "Mostrar menos" : `Ver todas as ${entries.length} especificações`}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {entries.map(([key, value]) => {
+            const SpecIcon = getSpecIcon(key);
+            return (
+              <div
+                key={key}
+                className="group flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              >
+                <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 text-primary group-hover:from-primary/25 group-hover:to-primary/10 transition-colors">
+                  <SpecIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">{humanizeSpecKey(key)}</p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5 break-words">{value}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StoreProductPage() {
   const { workspaceSlug, productId } = useParams<{
     workspaceSlug: string;
