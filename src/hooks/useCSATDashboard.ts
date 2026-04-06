@@ -34,7 +34,7 @@ export function useCSATDashboard(period: CSATPeriod = "30d") {
     queryFn: async (): Promise<CSATMetrics> => {
       let query = supabase
         .from("client_tickets")
-        .select("id, ticket_number, satisfaction_rating, assigned_to, status, created_at, updated_at, ticket_type, priority")
+        .select("id, ticket_number, satisfaction_rating, assigned_to, status, created_at, updated_at, type, priority")
         .eq("workspace_id", wid)
         .not("satisfaction_rating", "is", null);
 
