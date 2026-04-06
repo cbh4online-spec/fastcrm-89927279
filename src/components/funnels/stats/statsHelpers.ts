@@ -19,6 +19,7 @@ export interface StatsEvent {
   contact_id?: string | null;
   contact_name?: string | null;
   contact_email?: string | null;
+  time_on_section_ms?: number | null;
 }
 
 export interface StatsSummary {
@@ -65,6 +66,9 @@ export interface SectionData {
   pct: number;
   dropOff: number | null;
   isWorst: boolean;
+  avgTimeMs: number | null;
+  trend: "up" | "down" | "stable" | null;
+  recommendation: string | null;
 }
 
 export interface TimelineEvent {
@@ -258,19 +262,55 @@ export function computeGeoBreakdown(events: StatsEvent[]): GeoData[] {
     .slice(0, 15);
 }
 
-export function computeSectionHeatmap(events: StatsEvent[], totalViews: number): SectionData[] {
+export function computeSectionHeatmap(
+  events: StatsEvent[],
+  totalViews: number,
+  customSections?: string[]
+): SectionData[] {
   const sectionEvents = events.filter(e => e.event_type === "section_view" && e.page_section);
   const sections: Record<string, number> = {};
-  for (const e of sectionEvents) sections[e.page_section!] = (sections[e.page_section!] || 0) + 1;
+  const sectionTimes: Record<string, number[]> = {};
 
-  const data = SECTION_ORDER.map(sec => ({
-    section: SECTION_LABELS[sec] || sec,
-    sectionKey: sec,
-    views: sections[sec] || 0,
-    pct: totalViews > 0 ? (sections[sec] || 0) / totalViews * 100 : 0,
-    dropOff: 0 as number | null,
-    isWorst: false,
-  }));
+  for (const e of sectionEvents) {
+    const key = e.page_section!;
+    sections[key] = (sections[key] || 0) + 1;
+    if (e.time_on_section_ms && e.time_on_section_ms > 0) {
+      if (!sectionTimes[key]) sectionTimes[key] = [];
+      sectionTimes[key].push(e.time_on_section_ms);
+    }
+  }
+
+  // Build ordered list: custom sections > hardcoded > any extras from events
+  let orderedKeys: string[];
+  if (customSections && customSections.length > 0) {
+    const extraFromEvents = Object.keys(sections).filter(k => !customSections.includes(k));
+    orderedKeys = [...customSections, ...extraFromEvents];
+  } else {
+    const extraFromEvents = Object.keys(sections).filter(k => !SECTION_ORDER.includes(k));
+    orderedKeys = [...SECTION_ORDER, ...extraFromEvents];
+  }
+
+  // Remove sections with zero views if they're not in the base order
+  orderedKeys = orderedKeys.filter(k =>
+    (sections[k] || 0) > 0 || SECTION_ORDER.includes(k) || (customSections || []).includes(k)
+  );
+
+  const data: SectionData[] = orderedKeys.map(sec => {
+    const times = sectionTimes[sec] || [];
+    const avgTime = times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
+
+    return {
+      section: SECTION_LABELS[sec] || sec.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      sectionKey: sec,
+      views: sections[sec] || 0,
+      pct: totalViews > 0 ? (sections[sec] || 0) / totalViews * 100 : 0,
+      dropOff: 0 as number | null,
+      isWorst: false,
+      avgTimeMs: avgTime,
+      trend: null,
+      recommendation: null,
+    };
+  });
 
   let worstIdx = -1;
   let worstDrop = 0;
@@ -283,7 +323,89 @@ export function computeSectionHeatmap(events: StatsEvent[], totalViews: number):
   }
   if (worstIdx >= 0) data[worstIdx].isWorst = true;
 
+  // Generate recommendations for problem sections
+  for (const sec of data) {
+    if (sec.isWorst && sec.dropOff && sec.dropOff > 30) {
+      sec.recommendation = `Esta secção perde ${sec.dropOff}% dos visitantes. Considera simplificar o conteúdo, adicionar elementos visuais ou mover para outra posição.`;
+    } else if (sec.dropOff && sec.dropOff > 20) {
+      sec.recommendation = `Drop-off de ${sec.dropOff}% — revê o copy e a relevância do conteúdo.`;
+    }
+    if (sec.avgTimeMs !== null && sec.avgTimeMs < 2000 && sec.views > 5) {
+      sec.recommendation = (sec.recommendation ? sec.recommendation + " " : "") +
+        "Tempo médio < 2s indica que os visitantes fazem scroll rápido — torna o conteúdo mais envolvente.";
+    }
+  }
+
   return data;
+}
+
+export interface SectionHeatmapGrid {
+  sectionKey: string;
+  sectionLabel: string;
+  dailyViews: { date: string; views: number }[];
+}
+
+export function computeSectionHeatmapGrid(
+  events: StatsEvent[],
+  days: number = 7,
+  customSections?: string[]
+): SectionHeatmapGrid[] {
+  const sectionEvents = events.filter(e => e.event_type === "section_view" && e.page_section);
+  const now = new Date();
+  const fromDate = subDays(now, days);
+  const dayList = eachDayOfInterval({ start: startOfDay(fromDate), end: startOfDay(now) });
+
+  // Collect unique sections
+  const sectionSet = new Set<string>();
+  if (customSections) customSections.forEach(s => sectionSet.add(s));
+  else SECTION_ORDER.forEach(s => sectionSet.add(s));
+  sectionEvents.forEach(e => sectionSet.add(e.page_section!));
+
+  const orderedSections = customSections && customSections.length > 0
+    ? [...customSections, ...[...sectionSet].filter(s => !customSections.includes(s))]
+    : [...SECTION_ORDER, ...[...sectionSet].filter(s => !SECTION_ORDER.includes(s))];
+
+  return orderedSections.map(sec => ({
+    sectionKey: sec,
+    sectionLabel: SECTION_LABELS[sec] || sec.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+    dailyViews: dayList.map(day => {
+      const dayStr = format(day, "yyyy-MM-dd");
+      const count = sectionEvents.filter(
+        e => e.page_section === sec && e.created_at.startsWith(dayStr)
+      ).length;
+      return { date: format(day, "dd/MM"), views: count };
+    }),
+  }));
+}
+
+export function generateSectionInsights(sections: SectionData[]): string[] {
+  const insights: string[] = [];
+  const worstSection = sections.find(s => s.isWorst);
+  if (worstSection && worstSection.dropOff && worstSection.dropOff > 30) {
+    insights.push(
+      `A secção "${worstSection.section}" perde ${worstSection.dropOff}% dos visitantes — considera mover para cima ou simplificar o conteúdo.`
+    );
+  }
+
+  const lowTimeSections = sections.filter(s => s.avgTimeMs !== null && s.avgTimeMs < 2000 && s.views > 5);
+  if (lowTimeSections.length > 0) {
+    insights.push(
+      `${lowTimeSections.length} secção(ões) com tempo médio < 2s: ${lowTimeSections.map(s => s.section).join(", ")}. Conteúdo pode não ser envolvente.`
+    );
+  }
+
+  const lastSection = sections[sections.length - 1];
+  const firstSection = sections[0];
+  if (firstSection && lastSection && firstSection.views > 0) {
+    const scrollPct = Math.round((lastSection.views / firstSection.views) * 100);
+    if (scrollPct < 30) {
+      insights.push(
+        `Apenas ${scrollPct}% dos visitantes chegam ao fim da página. Considera encurtar o conteúdo ou mover o CTA para cima.`
+      );
+    }
+  }
+
+  return insights.slice(0, 3);
 }
 
 export function computeTimeline(events: StatsEvent[]): TimelineEvent[] {

@@ -33,6 +33,8 @@ interface Props {
 export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props) {
   const tracked = useRef(false);
   const sectionsTracked = useRef(new Set<string>());
+  const sectionEntryTimes = useRef<Map<string, number>>(new Map());
+  const sectionEventIds = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (tracked.current || !slug) return;
@@ -66,12 +68,12 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
       .then(() => {});
   }, [slug, templateId, workspaceId]);
 
-  // Section scroll tracking
+  // Section scroll tracking with time measurement
   useEffect(() => {
     if (!slug) return;
     const sessionId = getSessionId();
 
-    const sections = [
+    const defaultSections = [
       "hero", "problems", "solution", "transformation",
       "testimonials", "video", "authority", "roi", "cta-form"
     ];
@@ -79,9 +81,15 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
+          const sectionId = entry.target.getAttribute("data-section");
+          if (!sectionId) continue;
+
           if (entry.isIntersecting) {
-            const sectionId = entry.target.getAttribute("data-section");
-            if (sectionId && !sectionsTracked.current.has(sectionId)) {
+            // Track entry time
+            sectionEntryTimes.current.set(sectionId, Date.now());
+
+            // Insert section_view event if not yet tracked
+            if (!sectionsTracked.current.has(sectionId)) {
               sectionsTracked.current.add(sectionId);
               (supabase as any)
                 .from("vertical_landing_events")
@@ -94,7 +102,28 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
                   page_section: sectionId,
                   device_type: getDeviceType(),
                 })
-                .then(() => {});
+                .select("id")
+                .single()
+                .then(({ data }: any) => {
+                  if (data?.id) {
+                    sectionEventIds.current.set(sectionId, data.id);
+                  }
+                });
+            }
+          } else {
+            // Section left viewport — update time_on_section_ms
+            const entryTime = sectionEntryTimes.current.get(sectionId);
+            const eventId = sectionEventIds.current.get(sectionId);
+            if (entryTime && eventId) {
+              const duration = Math.round(Date.now() - entryTime);
+              if (duration > 500) {
+                (supabase as any)
+                  .from("vertical_landing_events")
+                  .update({ time_on_section_ms: duration })
+                  .eq("id", eventId)
+                  .then(() => {});
+              }
+              sectionEntryTimes.current.delete(sectionId);
             }
           }
         }
@@ -104,9 +133,15 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
 
     // Observe sections after a delay to let the page render
     const timer = setTimeout(() => {
-      for (const sec of sections) {
-        const el = document.querySelector(`[data-section="${sec}"]`);
-        if (el) observer.observe(el);
+      // Observe default sections + any custom data-section elements
+      const allSectionEls = document.querySelectorAll("[data-section]");
+      if (allSectionEls.length > 0) {
+        allSectionEls.forEach(el => observer.observe(el));
+      } else {
+        for (const sec of defaultSections) {
+          const el = document.querySelector(`[data-section="${sec}"]`);
+          if (el) observer.observe(el);
+        }
       }
     }, 1000);
 

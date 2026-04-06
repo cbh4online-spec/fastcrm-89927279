@@ -237,7 +237,12 @@ export function VerticalStatsTab({ templateSlug }: Props) {
           </TabsContent>
 
           <TabsContent value="sections">
-            <StatsSectionsTab sections={sections} hasData={sections.some(s => s.views > 0)} />
+            <StatsSectionsTab
+              sections={sections}
+              hasData={sections.some(s => s.views > 0)}
+              events={events as StatsEvent[]}
+              totalViews={totalViews}
+            />
           </TabsContent>
 
           <TabsContent value="geo">

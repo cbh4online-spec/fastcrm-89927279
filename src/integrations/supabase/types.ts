@@ -56698,6 +56698,7 @@ export type Database = {
           session_id: string
           template_id: string | null
           template_slug: string
+          time_on_section_ms: number | null
           user_agent: string | null
           utm_campaign: string | null
           utm_content: string | null
@@ -56719,6 +56720,7 @@ export type Database = {
           session_id: string
           template_id?: string | null
           template_slug: string
+          time_on_section_ms?: number | null
           user_agent?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
@@ -56740,6 +56742,7 @@ export type Database = {
           session_id?: string
           template_id?: string | null
           template_slug?: string
+          time_on_section_ms?: number | null
           user_agent?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
