@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader2, Sparkles, Weight, Check, AlertTriangle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useUpdateProduct } from "@/hooks/useProducts";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface ProductWeightAIPanelProps {
@@ -38,7 +38,9 @@ export function ProductWeightAIPanel({
   description,
   currentWeight,
 }: ProductWeightAIPanelProps) {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [estimation, setEstimation] = useState<WeightEstimation | null>(null);
   const [manualWeight, setManualWeight] = useState<string>(currentWeight?.toString() || "");
   const updateProduct = useUpdateProduct();
