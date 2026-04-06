@@ -152,14 +152,6 @@ export function EntityTicketsSection({ entityType, entityId, entityName }: Entit
           </CardContent>
         </Card>
       )}
-
-      <CreateTicketDialog
-        open={showCreate}
-        onOpenChange={setShowCreate}
-        defaultValues={{
-          ...(entityType === "contact" ? { contact_id: entityId } : { company_id: entityId }),
-        }}
-      />
     </div>
   );
 }
