@@ -1,64 +1,77 @@
 
 
-## Plano: IA para Verificar e Preencher Peso dos Produtos
+## Plano: Melhorar Visitantes Activos e Intenção do Visitante
 
 ### Diagnóstico
-- A tabela `products` já tem a coluna `weight` (numeric), mas **0 dos 1643 produtos** têm peso preenchido.
-- O checkout usa `weight` para calcular portes, e quando não existe, assume 0.5 kg — valor arbitrário que causa preços de envio incorretos.
-- A edge function `ai-product-assistant` já suporta múltiplos modos mas nenhum estima peso.
 
-### Implementação
+**Visitantes Activos** (ActiveVisitorsList):
+- UI minimalista — mostra apenas first_page, score, páginas e fonte
+- Sem indicação visual de AI intent, carrinho activo, ou tempo no site
+- Sem filtros ou agrupamento por temperatura
+- O painel lateral (VisitorIntelPanel) é funcional mas básico
 
-#### 1. Novo modo `estimate-weight` na Edge Function `ai-product-assistant`
-Adicionar um modo que recebe nome, categoria, especificações e dimensões do produto e retorna:
-- `weight_kg`: peso estimado em kg
-- `confidence`: `high` | `medium` | `low`
-- `reasoning`: explicação breve da estimativa
-- `source_hint`: referência (ex: "Baseado em câmaras IP similares ~300g")
+**Intenção do Visitante (AI)**:
+- Apenas blocos simples com contagem e percentagem
+- Só mostra `ai_intent` (browsing, comparing, ready_to_buy, returning_customer)
+- Não mostra `ai_score`, `ai_recommendation`, nem tendências
+- Sem ícones diferenciados por intenção
+- Secção invisível quando não há intents (maioria das sessões não classificadas — 4 de 7)
 
-A IA usa o nome, SKU, categoria e specs para estimar o peso real do produto. Para produtos com specs como dimensões ou materiais, a confiança será maior.
+### Melhorias Propostas
 
-#### 2. Ação em Massa — Preencher Pesos via IA
-Nova edge function `ai-batch-estimate-weights` que:
-- Recebe uma lista de product IDs (ou workspace_id para todos sem peso)
-- Busca nome, categoria, specs de cada produto
-- Chama a IA para estimar peso em batch (agrupando por categoria para contexto)
-- Atualiza a coluna `weight` nos produtos com confiança `high` ou `medium`
-- Retorna relatório com estimativas e níveis de confiança
+#### 1. Visitantes Activos — UI Rica
+**Ficheiro**: `src/components/store/ActiveVisitorsList.tsx`
 
-#### 3. UI no Backoffice — Painel de Peso
-Componente `ProductWeightAIPanel.tsx` integrado no `ProductDetailDialog`:
-- Mostra peso atual (ou "Não definido")
-- Botão "Estimar com IA" que chama o modo `estimate-weight`
-- Preview da estimativa com confiança antes de guardar
-- Botão para aplicar o valor estimado
+- **Indicadores visuais por linha**: ícone de carrinho activo (com valor €), badge de AI intent com cor, tempo no site formatado
+- **Barra de progresso de score** inline (mini bar colorida por temperatura)
+- **Agrupamento visual**: separar por temperatura (🔥 Quentes primeiro, depois 🌡️ Mornos, ❄️ Frios)
+- **Resumo topo**: 3 mini-KPIs — total online, média de score, visitantes com carrinho
+- **Pulsing dot** verde para sessões com actividade < 1 min (realmente activos)
+- **Filtro rápido**: chips "Todos | Quentes | Com carrinho" para filtrar a lista
 
-#### 4. UI na Página de Gestão da Loja — Ação em Massa
-No `StoreProductsAdminPage`, adicionar:
-- Indicador de quantos produtos estão sem peso
-- Botão "Preencher pesos com IA" que dispara o batch
-- Progress bar durante o processamento
-- Resumo final: X produtos atualizados, Y necessitam revisão manual
+#### 2. Intenção do Visitante — Dashboard Enriquecido
+**Ficheiro**: `src/components/store/analytics/StoreVisitsTab.tsx`
 
-#### 5. Validação no Checkout
-Melhorar `useCheckoutPricing.ts`:
-- Quando `weight` é null, marcar o item como "peso estimado" 
-- Log de aviso quando peso é fallback (0.5 kg)
+- **Cards com ícones e cores diferenciadas** por intenção (Search → browsing, Scale → comparing, ShoppingCart → ready_to_buy, UserCheck → returning_customer)
+- **AI Score médio** por intenção mostrado em cada card
+- **Barra de progresso** visual da percentagem
+- **Secção de recomendações AI**: listar as `ai_recommendation` mais recentes agrupadas por tipo
+- **Cobertura de classificação**: indicador de "X% das sessões classificadas" com botão para classificar pendentes
+- **Mostrar secção mesmo sem dados**: estado vazio com CTA para activar classificação
 
-### Ficheiros a criar/modificar
+#### 3. VisitorIntelPanel — Enriquecer Detalhes
+**Ficheiro**: `src/components/store/VisitorIntelPanel.tsx`
 
-**Modificados:**
-- `supabase/functions/ai-product-assistant/index.ts` — Novo modo `estimate-weight`
-- `src/components/products/ProductDetailDialog.tsx` — Painel de peso com IA
-- `src/pages/StoreProductsAdminPage.tsx` — Indicador e ação em massa
+- **AI Intent badge** com cor e ícone no topo do painel
+- **AI Score** como gauge visual
+- **AI Recommendation** como card destacado (se disponível)
+- **Produtos vistos com nomes** em vez de apenas contagem
 
-**Novos:**
-- `supabase/functions/ai-batch-estimate-weights/index.ts` — Estimativa em batch
-- `src/components/products/ProductWeightAIPanel.tsx` — UI de estimativa individual
-- `src/components/store/admin/BatchWeightEstimateDialog.tsx` — Dialog para batch
+#### 4. Hook de Analytics — Dados Adicionais
+**Ficheiro**: `src/hooks/useStoreVisitsAnalytics.ts`
 
-### Impacto
-- Portes de envio calculados com precisão real em vez de 0.5 kg default
-- Google Product Feed e Facebook Feed passam a incluir `g:shipping_weight` correto
-- Redução de reclamações por diferença entre portes estimados e reais
+- Calcular `ai_score` médio por intenção
+- Agregar `ai_recommendation` das sessões recentes
+- Calcular taxa de classificação (sessões com intent / total)
+
+### Detalhe Técnico
+
+**Ficheiros modificados:**
+- `src/components/store/ActiveVisitorsList.tsx` — UI rica com agrupamento, filtros, KPIs e indicadores visuais
+- `src/components/store/analytics/StoreVisitsTab.tsx` — Secção de intenção enriquecida com ícones, scores, recomendações e cobertura
+- `src/components/store/VisitorIntelPanel.tsx` — AI intent, score e recomendação no painel lateral
+- `src/hooks/useStoreVisitsAnalytics.ts` — Dados adicionais de AI score médio e recomendações
+
+**Nenhuma migração necessária** — todos os campos já existem na tabela `store_visitor_sessions`.
+
+**Nenhuma edge function nova** — a classificação já funciona via `store-classify-visitor`.
+
+### Critérios de Aceitação
+- Visitantes activos agrupados por temperatura com KPIs de resumo
+- Filtro funcional (Todos/Quentes/Com carrinho)
+- Cards de intenção com ícones, cores e score médio
+- Recomendações AI visíveis
+- Indicador de cobertura de classificação
+- Estado vazio informativo quando não há classificações
+- Painel lateral mostra AI intent, score e recomendação
 
