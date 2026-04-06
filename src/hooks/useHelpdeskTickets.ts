@@ -223,6 +223,9 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
   return {
     tickets,
     isLoading,
+    error,
+    isError,
+    refetch,
     createTicket,
     updateTicket,
     deleteTicket,

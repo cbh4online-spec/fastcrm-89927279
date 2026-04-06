@@ -79,7 +79,7 @@ export default function HelpdeskTicketsList() {
     search: search || undefined,
   };
 
-  const { tickets, isLoading, createTicket, updateTicket } = useHelpdeskTickets(filters);
+  const { tickets, isLoading, isError, refetch, createTicket, updateTicket } = useHelpdeskTickets(filters);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
