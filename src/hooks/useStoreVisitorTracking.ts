@@ -229,12 +229,13 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [workspaceId, currentPage]);
 
-  // Track product views
+  // Track product views + score
   useEffect(() => {
     if (!productId || !workspaceId) return;
     if (productsViewed.current.has(productId)) return;
 
     productsViewed.current.add(productId);
+    trackEvent("product_view");
     upsertSession().then((result) => {
       if (!result) return;
       if (
@@ -244,7 +245,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
         triggerClassification();
       }
     });
-  }, [productId, workspaceId, upsertSession, triggerClassification]);
+  }, [productId, workspaceId, upsertSession, triggerClassification, trackEvent]);
 
   // Heartbeat (includes scroll depth + exit page automatically via upsertSession)
   useEffect(() => {
