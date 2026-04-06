@@ -55149,6 +55149,60 @@ export type Database = {
           },
         ]
       }
+      support_ticket_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          expense_type: string
+          id: string
+          ticket_id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_type?: string
+          id?: string
+          ticket_id: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expense_type?: string
+          id?: string
+          ticket_id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_expenses_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_expenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_history: {
         Row: {
           changed_by: string | null
@@ -55244,6 +55298,69 @@ export type Database = {
           },
         ]
       }
+      support_ticket_time_entries: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          ended_at: string | null
+          entry_type: string
+          hourly_rate: number | null
+          id: string
+          started_at: string | null
+          ticket_id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          entry_type?: string
+          hourly_rate?: number | null
+          id?: string
+          started_at?: string | null
+          ticket_id: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          ended_at?: string | null
+          entry_type?: string
+          hourly_rate?: number | null
+          id?: string
+          started_at?: string | null
+          ticket_id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_time_entries_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_time_entries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -55266,6 +55383,8 @@ export type Database = {
           subject: string
           tags: string[] | null
           ticket_number: number
+          total_cost: number
+          total_time_minutes: number
           type: Database["public"]["Enums"]["support_ticket_type"]
           updated_at: string
           workspace_id: string
@@ -55291,6 +55410,8 @@ export type Database = {
           subject: string
           tags?: string[] | null
           ticket_number?: number
+          total_cost?: number
+          total_time_minutes?: number
           type?: Database["public"]["Enums"]["support_ticket_type"]
           updated_at?: string
           workspace_id: string
@@ -55316,6 +55437,8 @@ export type Database = {
           subject?: string
           tags?: string[] | null
           ticket_number?: number
+          total_cost?: number
+          total_time_minutes?: number
           type?: Database["public"]["Enums"]["support_ticket_type"]
           updated_at?: string
           workspace_id?: string
