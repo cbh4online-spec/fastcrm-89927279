@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Send, Lock, MessageSquare, Bot, Paperclip } from "lucide-react";
+import { TicketAISuggestButton } from "./TicketAISuggestButton";
 import { cn } from "@/lib/utils";
 import { CannedResponsePicker } from "./CannedResponsePicker";
 import { TicketAttachments } from "./TicketAttachments";
@@ -34,9 +35,10 @@ interface TicketMessageThreadProps {
   onSend: (message: string, isInternal: boolean) => void;
   isSending?: boolean;
   ticketId?: string;
+  workspaceId?: string;
 }
 
-export function TicketMessageThread({ messages, onSend, isSending, ticketId }: TicketMessageThreadProps) {
+export function TicketMessageThread({ messages, onSend, isSending, ticketId, workspaceId }: TicketMessageThreadProps) {
   const [text, setText] = useState("");
   const [isInternal, setIsInternal] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
