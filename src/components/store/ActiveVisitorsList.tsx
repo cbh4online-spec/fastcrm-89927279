@@ -10,7 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { getTemperature, getTemperatureLabel, getTemperatureColor } from "@/hooks/useVisitorScore";
 import { VisitorIntelPanel } from "./VisitorIntelPanel";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const DEVICE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   desktop: Monitor,
