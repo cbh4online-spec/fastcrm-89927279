@@ -48,25 +48,20 @@ export interface TicketFilters {
   search?: string;
 }
 
-const TICKET_SELECT = `
-  *,
-  contacts:contact_id(name, email),
-  companies:company_id(name),
-  profiles:assigned_to(full_name)
-`;
-
 export function useHelpdeskTickets(filters?: TicketFilters) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
 
-  const { data: tickets = [], isLoading } = useQuery({
+  const { data: tickets = [], isLoading, error, isError, refetch } = useQuery({
     queryKey: ["helpdesk-tickets", workspaceId, filters],
     queryFn: async () => {
       if (!workspaceId) return [];
+
+      // 1. Fetch tickets without joins
       let query = supabase
         .from("support_tickets")
-        .select(TICKET_SELECT)
+        .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
 
@@ -91,17 +86,38 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
+      if (!data || data.length === 0) return [] as SupportTicket[];
 
-      // Flatten joined data
-      return (data || []).map((row: any) => ({
+      // 2. Collect unique IDs for enrichment
+      const contactIds = [...new Set(data.map((t: any) => t.contact_id).filter(Boolean))];
+      const companyIds = [...new Set(data.map((t: any) => t.company_id).filter(Boolean))];
+      const assignedIds = [...new Set(data.map((t: any) => t.assigned_to).filter(Boolean))];
+
+      // 3. Fetch related entities in parallel
+      const [contactsRes, companiesRes, profilesRes] = await Promise.all([
+        contactIds.length > 0
+          ? supabase.from("contacts").select("id, name, email").in("id", contactIds)
+          : { data: [] },
+        companyIds.length > 0
+          ? supabase.from("companies").select("id, name").in("id", companyIds)
+          : { data: [] },
+        assignedIds.length > 0
+          ? supabase.from("profiles").select("user_id, full_name").in("user_id", assignedIds)
+          : { data: [] },
+      ]);
+
+      // 4. Build lookup maps
+      const contactMap = new Map((contactsRes.data || []).map((c: any) => [c.id, c]));
+      const companyMap = new Map((companiesRes.data || []).map((c: any) => [c.id, c]));
+      const profileMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p]));
+
+      // 5. Enrich tickets
+      return data.map((row: any) => ({
         ...row,
-        contact_name: row.contacts?.name || null,
-        contact_email: row.contacts?.email || null,
-        company_name: row.companies?.name || null,
-        assigned_agent_name: row.profiles?.full_name || null,
-        contacts: undefined,
-        companies: undefined,
-        profiles: undefined,
+        contact_name: contactMap.get(row.contact_id)?.name || null,
+        contact_email: contactMap.get(row.contact_id)?.email || null,
+        company_name: companyMap.get(row.company_id)?.name || null,
+        assigned_agent_name: profileMap.get(row.assigned_to)?.full_name || null,
       })) as SupportTicket[];
     },
     enabled: !!workspaceId,
@@ -207,6 +223,9 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
   return {
     tickets,
     isLoading,
+    error,
+    isError,
+    refetch,
     createTicket,
     updateTicket,
     deleteTicket,

@@ -13,7 +13,7 @@ import { SLATimer } from "@/components/helpdesk/SLATimer";
 import { TicketKanbanBoard } from "@/components/helpdesk/TicketKanbanBoard";
 import { TicketBulkActions } from "@/components/helpdesk/TicketBulkActions";
 import { useHelpdeskTickets, type TicketStatus, type TicketPriority } from "@/hooks/useHelpdeskTickets";
-import { Headphones, LayoutGrid, List, User, Building2 } from "lucide-react";
+import { Headphones, LayoutGrid, List, User, Building2, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
 
@@ -79,7 +79,7 @@ export default function HelpdeskTicketsList() {
     search: search || undefined,
   };
 
-  const { tickets, isLoading, createTicket, updateTicket } = useHelpdeskTickets(filters);
+  const { tickets, isLoading, isError, refetch, createTicket, updateTicket } = useHelpdeskTickets(filters);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -200,8 +200,17 @@ export default function HelpdeskTicketsList() {
         onBulkUpdate={handleBulkUpdate}
       />
 
-      {/* Loading */}
-      {isLoading ? (
+      {/* Error state */}
+      {isError ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <p className="text-sm text-muted-foreground">Erro ao carregar tickets</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Tentar novamente
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full rounded-lg" />
