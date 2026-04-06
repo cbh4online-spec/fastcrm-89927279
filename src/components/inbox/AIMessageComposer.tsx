@@ -451,6 +451,9 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
+              // Check canned shortcut first
+              if (handleCannedKeyDown(e)) return;
+              
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 if (onSendAndResolve && message.trim()) {
@@ -468,6 +471,32 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             rows={2}
             disabled={disabled}
           />
+
+          {/* Canned responses dropdown */}
+          {cannedOpen && cannedFiltered.length > 0 && (
+            <div className="absolute bottom-full left-0 right-12 mb-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
+              {cannedFiltered.map((r, i) => (
+                <button
+                  key={r.id}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
+                    i === cannedIndex && "bg-muted/50"
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleCannedSelect(r);
+                  }}
+                >
+                  <Badge variant="outline" className="font-mono text-[9px] shrink-0">{r.shortcut}</Badge>
+                  <span className="truncate flex-1">{r.title}</span>
+                  <Zap className="h-3 w-3 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+              <div className="px-3 py-1 border-t text-[10px] text-muted-foreground">
+                ↑↓ navegar • Enter inserir • Esc fechar
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <Button
               onClick={handleSend}
