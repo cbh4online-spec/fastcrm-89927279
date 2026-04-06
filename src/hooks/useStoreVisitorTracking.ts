@@ -76,6 +76,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
   const classifyTriggered = useRef(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>();
   const scrollThrottleRef = useRef<ReturnType<typeof setTimeout>>();
+  const { trackEvent, getScore } = useVisitorScoreTracker(workspaceId);
 
   const upsertSession = useCallback(async (extraFields: Record<string, any> = {}) => {
     if (!workspaceId) return;
