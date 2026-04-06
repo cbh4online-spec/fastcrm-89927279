@@ -35,6 +35,9 @@ export function useAddProductImage() {
       productId: string;
       url: string;
       altText?: string;
+      seoFilename?: string;
+      title?: string;
+      caption?: string;
       isAiGenerated?: boolean;
       aiPrompt?: string;
     }) => {
@@ -59,6 +62,9 @@ export function useAddProductImage() {
           product_id: input.productId,
           url: input.url,
           alt_text: input.altText,
+          seo_filename: input.seoFilename,
+          title: input.title,
+          caption: input.caption,
           is_ai_generated: input.isAiGenerated || false,
           ai_prompt: input.aiPrompt,
           position,
