@@ -17,9 +17,10 @@ export const LEADS_SELECT_COLUMNS = `
   instagram_is_business, instagram_enriched_at, inferred_type, inferred_profession,
   inferred_specialty, inferred_workplace, confidence_score, lead_score_explanation,
   lead_score_factors, prospecting_profile_id, industry, number_of_employees,
-  annual_revenue, contact_person, contact_person_role, founding_date,
-  about, activity_description, racius_url, external_instagram_id,
-  external_whatsapp_id, icp_fit_score, engagement_score, pare_score, created_by
+   annual_revenue, contact_person, contact_person_role, founding_date,
+   about, activity_description, racius_url, external_instagram_id,
+   external_whatsapp_id, icp_fit_score, engagement_score, pare_score, created_by,
+   youtube_url, tiktok_url, pinterest_url, whatsapp_url
 `;
 
 export const ACTIVITIES_SELECT_COLUMNS = `

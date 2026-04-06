@@ -31,6 +31,10 @@ export interface Lead {
   facebook_url: string | null;
   instagram_url: string | null;
   twitter_url: string | null;
+  youtube_url: string | null;
+  tiktok_url: string | null;
+  pinterest_url: string | null;
+  whatsapp_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -115,6 +119,10 @@ export interface CreateLeadInput {
   facebook_url?: string;
   instagram_url?: string;
   twitter_url?: string;
+  youtube_url?: string;
+  tiktok_url?: string;
+  pinterest_url?: string;
+  whatsapp_url?: string;
   // Company fields
   company_name?: string;
   tax_id?: string;
