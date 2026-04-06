@@ -58217,6 +58217,7 @@ export type Database = {
           placeholder_text: string | null
           position: string | null
           primary_color: string | null
+          proactive_rules: Json | null
           require_email_before_chat: boolean | null
           secondary_color: string | null
           show_branding: boolean | null
@@ -58244,6 +58245,7 @@ export type Database = {
           placeholder_text?: string | null
           position?: string | null
           primary_color?: string | null
+          proactive_rules?: Json | null
           require_email_before_chat?: boolean | null
           secondary_color?: string | null
           show_branding?: boolean | null
@@ -58271,6 +58273,7 @@ export type Database = {
           placeholder_text?: string | null
           position?: string | null
           primary_color?: string | null
+          proactive_rules?: Json | null
           require_email_before_chat?: boolean | null
           secondary_color?: string | null
           show_branding?: boolean | null

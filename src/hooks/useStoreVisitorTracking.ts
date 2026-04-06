@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useVisitorScoreTracker } from "@/hooks/useVisitorScore";
 
 const CONSENT_STORAGE_KEY = "gdpr_consent";
 const GDPR_VISITOR_ID_KEY = "gdpr_visitor_id";
@@ -75,6 +76,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
   const classifyTriggered = useRef(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>();
   const scrollThrottleRef = useRef<ReturnType<typeof setTimeout>>();
+  const { trackEvent, getScore } = useVisitorScoreTracker(workspaceId);
 
   const upsertSession = useCallback(async (extraFields: Record<string, any> = {}) => {
     if (!workspaceId) return;
@@ -129,16 +131,17 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     }
   }, [workspaceId]);
 
-  // Initial session creation + page tracking
+  // Initial session creation + page tracking + score events
   useEffect(() => {
     if (!workspaceId) return;
 
     pagesCount.current += 1;
+    trackEvent("page_view");
 
     // Add to pages history (deduplicate consecutive)
     const lastPage = pagesHistory.current[pagesHistory.current.length - 1];
     if (lastPage !== currentPage) {
-      pagesHistory.current = [...pagesHistory.current, currentPage].slice(-50); // keep last 50
+      pagesHistory.current = [...pagesHistory.current, currentPage].slice(-50);
     }
 
     // Reset scroll depth for new page
@@ -159,9 +162,10 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     }
 
     upsertSession(initFields);
-  }, [workspaceId, currentPage, upsertSession]);
+  }, [workspaceId, currentPage, upsertSession, trackEvent]);
 
-  // Scroll depth tracking
+  // Scroll depth tracking + score milestones
+  const scrollScoreTracked = useRef({ s75: false, s100: false });
   useEffect(() => {
     if (!workspaceId) return;
 
@@ -170,8 +174,16 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       if (depth > maxScrollDepth.current) {
         maxScrollDepth.current = depth;
       }
+      // Score milestones
+      if (depth >= 75 && !scrollScoreTracked.current.s75) {
+        scrollScoreTracked.current.s75 = true;
+        trackEvent("scroll_75");
+      }
+      if (depth >= 100 && !scrollScoreTracked.current.s100) {
+        scrollScoreTracked.current.s100 = true;
+        trackEvent("scroll_100");
+      }
 
-      // Throttled upsert on significant scroll
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
         scrollThrottleRef.current = undefined;
@@ -183,7 +195,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       window.removeEventListener("scroll", handleScroll);
       if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
     };
-  }, [workspaceId]);
+  }, [workspaceId, trackEvent]);
 
   // Track exit page on beforeunload
   useEffect(() => {
@@ -217,12 +229,13 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [workspaceId, currentPage]);
 
-  // Track product views
+  // Track product views + score
   useEffect(() => {
     if (!productId || !workspaceId) return;
     if (productsViewed.current.has(productId)) return;
 
     productsViewed.current.add(productId);
+    trackEvent("product_view");
     upsertSession().then((result) => {
       if (!result) return;
       if (
@@ -232,15 +245,27 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
         triggerClassification();
       }
     });
-  }, [productId, workspaceId, upsertSession, triggerClassification]);
+  }, [productId, workspaceId, upsertSession, triggerClassification, trackEvent]);
 
-  // Heartbeat (includes scroll depth + exit page automatically via upsertSession)
+  // Time milestone scoring
+  const timeScoreTracked = useRef({ t60: false, t180: false });
+  // Heartbeat (includes scroll depth + exit page + score milestones)
   useEffect(() => {
     if (!workspaceId) return;
 
     heartbeatRef.current = setInterval(async () => {
       const result = await upsertSession();
       if (!result) return;
+
+      // Time-based score milestones
+      if (result.timeOnSite >= 60 && !timeScoreTracked.current.t60) {
+        timeScoreTracked.current.t60 = true;
+        trackEvent("time_60s");
+      }
+      if (result.timeOnSite >= 180 && !timeScoreTracked.current.t180) {
+        timeScoreTracked.current.t180 = true;
+        trackEvent("time_180s");
+      }
 
       if (result.timeOnSite >= CLASSIFY_TIME_THRESHOLD) {
         triggerClassification();
@@ -250,5 +275,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
-  }, [workspaceId, upsertSession, triggerClassification]);
+  }, [workspaceId, upsertSession, triggerClassification, trackEvent]);
+
+  return { trackEvent, getScore };
 }
