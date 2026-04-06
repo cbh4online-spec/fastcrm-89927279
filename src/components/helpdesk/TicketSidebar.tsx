@@ -9,11 +9,12 @@ import { CSATWidget } from "./CSATWidget";
 import { TicketClientCard } from "./TicketClientCard";
 import { TicketClientHistory } from "./TicketClientHistory";
 import { TicketCommercialActions } from "./TicketCommercialActions";
-import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle, UserCircle, MessageSquareText } from "lucide-react";
+import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle, UserCircle, MessageSquareText, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
 import type { SupportTicket, TicketStatus, TicketPriority } from "@/hooks/useHelpdeskTickets";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
   { value: "open", label: "Aberto" },
@@ -58,7 +59,26 @@ interface TicketSidebarProps {
 export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [satComment, setSatComment] = useState(ticket.satisfaction_comment || "");
+  const [generatingLink, setGeneratingLink] = useState(false);
   const isResolved = ticket.status === "resolved" || ticket.status === "closed";
+
+  const handleGeneratePortalLink = async () => {
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await supabase
+        .from("ticket_portal_tokens")
+        .insert({ ticket_id: ticket.id, workspace_id: ticket.workspace_id })
+        .select("token")
+        .single();
+      if (error) throw error;
+      const url = `${window.location.origin}/ticket/${data.token}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Link do portal copiado para a área de transferência");
+    } catch {
+      toast.error("Erro ao gerar link");
+    }
+    setGeneratingLink(false);
+  };
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(ticket.id);
