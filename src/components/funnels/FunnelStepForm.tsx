@@ -301,6 +301,7 @@ export function FunnelStepForm({
         }
 
         if (field.type === "textarea") {
+          const fieldIdx = fields.filter(f => f.type !== "hidden").indexOf(field);
           return (
             <div key={field.id} className="space-y-1.5">
               <Label className="text-sm">
@@ -311,6 +312,8 @@ export function FunnelStepForm({
                 {...register(field.id)}
                 placeholder={field.placeholder}
                 rows={3}
+                onFocus={() => handleFieldFocus(field.id, fieldIdx)}
+                onBlur={() => handleFieldBlur(field.id, fieldIdx)}
               />
               {error && <p className="text-xs text-destructive">{String(error.message)}</p>}
             </div>
@@ -318,6 +321,7 @@ export function FunnelStepForm({
         }
 
         // text, email, phone
+        const fieldIdx = fields.filter(f => f.type !== "hidden").indexOf(field);
         return (
           <div key={field.id} className="space-y-1.5">
             <Label className="text-sm">
@@ -328,6 +332,8 @@ export function FunnelStepForm({
               type={field.type === "phone" ? "tel" : field.type === "email" ? "email" : "text"}
               {...register(field.id)}
               placeholder={field.placeholder}
+              onFocus={() => handleFieldFocus(field.id, fieldIdx)}
+              onBlur={() => handleFieldBlur(field.id, fieldIdx)}
             />
             {error && <p className="text-xs text-destructive">{String(error.message)}</p>}
           </div>
