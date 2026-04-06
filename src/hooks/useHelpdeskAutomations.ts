@@ -8,7 +8,9 @@ export type HelpdeskTrigger =
   | "on_sla_warning"
   | "on_sla_breach"
   | "on_status_change"
-  | "on_priority_change";
+  | "on_priority_change"
+  | "on_no_response"
+  | "on_reopen";
 
 export type HelpdeskActionType =
   | "auto_assign_round_robin"
