@@ -25846,6 +25846,50 @@ export type Database = {
           },
         ]
       }
+      helpdesk_ai_config: {
+        Row: {
+          auto_reply_enabled: boolean
+          confidence_threshold: number
+          created_at: string
+          id: string
+          max_auto_replies_per_day: number
+          model: string
+          system_prompt: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_reply_enabled?: boolean
+          confidence_threshold?: number
+          created_at?: string
+          id?: string
+          max_auto_replies_per_day?: number
+          model?: string
+          system_prompt?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_reply_enabled?: boolean
+          confidence_threshold?: number
+          created_at?: string
+          id?: string
+          max_auto_replies_per_day?: number
+          model?: string
+          system_prompt?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ai_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_automations: {
         Row: {
           action_config: Json | null
@@ -56501,6 +56545,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ticket_canned_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_portal_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          ticket_id: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          ticket_id: string
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          ticket_id?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_portal_tokens_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_portal_tokens_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
