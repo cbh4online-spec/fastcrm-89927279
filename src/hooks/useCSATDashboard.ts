@@ -96,7 +96,7 @@ export function useCSATDashboard(period: CSATPeriod = "30d") {
       // By type
       const typeMap: Record<string, { sum: number; count: number }> = {};
       tickets.forEach((t) => {
-        const type = t.ticket_type || "Sem tipo";
+        const type = t.type || "Sem tipo";
         if (!typeMap[type]) typeMap[type] = { sum: 0, count: 0 };
         typeMap[type].sum += t.satisfaction_rating;
         typeMap[type].count++;
