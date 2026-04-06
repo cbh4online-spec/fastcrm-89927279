@@ -13,13 +13,13 @@ const pricePatterns = [
   /EUR\s*(\d+[.,]\d{2})/g,
 ];
 
-function extractPrices(text: string, maxPrice: number): number[] {
+function extractPricesFiltered(text: string, minPrice: number, maxPrice: number): number[] {
   const prices: number[] = [];
   for (const regex of pricePatterns) {
     regex.lastIndex = 0;
     for (const match of text.matchAll(regex)) {
       const price = parseFloat(match[1].replace(",", "."));
-      if (price > 0 && price < maxPrice) {
+      if (price >= minPrice && price <= maxPrice) {
         prices.push(price);
       }
     }
@@ -36,6 +36,74 @@ function extractSourceName(url: string): string {
     return name.charAt(0).toUpperCase() + name.slice(1);
   } catch {
     return "Desconhecido";
+  }
+}
+
+interface AIValidation {
+  is_match: boolean;
+  price: number | null;
+  store_name: string;
+}
+
+async function validateWithAI(
+  lovableKey: string,
+  productName: string,
+  productSku: string | null,
+  basePrice: number,
+  resultUrl: string,
+  resultText: string,
+): Promise<AIValidation | null> {
+  try {
+    const snippet = resultText.slice(0, 2000);
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: "És um validador de preços. Analisa se o resultado de pesquisa é sobre o MESMO produto específico e extrai o preço de venda. Responde APENAS em JSON válido.",
+          },
+          {
+            role: "user",
+            content: `Produto procurado: "${productName}"${productSku ? ` (SKU: ${productSku})` : ""}
+Preço de referência: €${basePrice.toFixed(2)}
+URL do resultado: ${resultUrl}
+
+Texto do resultado:
+${snippet}
+
+Verifica:
+1. Este resultado é sobre o MESMO produto específico (não um acessório, peça, produto similar ou categoria)?
+2. Se sim, qual o preço de venda atual (não portes, não preço de acessórios)?
+
+Responde em JSON:
+{"is_match": true/false, "price": 123.45 ou null, "store_name": "Nome da Loja"}`,
+          },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!resp.ok) return null;
+
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    const jsonMatch = content.match(/\{[\s\S]*?\}/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      is_match: !!parsed.is_match,
+      price: typeof parsed.price === "number" ? parsed.price : null,
+      store_name: parsed.store_name || "Desconhecido",
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -81,7 +149,6 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get all published products with SKU or name across all workspaces
     const { data: products, error: prodError } = await supabase
       .from("products")
       .select("id, name, sku, base_price, currency, workspace_id, competitor_price_low")
@@ -104,13 +171,13 @@ Deno.serve(async (req) => {
 
     for (const product of products) {
       try {
-        const maxPrice = product.base_price * 5;
-        const searchTerm = product.sku || product.name;
+        const minPrice = product.base_price * 0.3;
+        const maxPrice = product.base_price * 3;
+        const searchName = product.sku ? `"${product.sku}" ${product.name}` : product.name;
 
-        // Search competitor prices
         const [kkResults, generalResults] = await Promise.all([
-          searchFirecrawl(firecrawlKey, `site:kuantokusta.pt ${searchTerm}`, 5),
-          searchFirecrawl(firecrawlKey, `${searchTerm} preço comprar portugal`, 5),
+          searchFirecrawl(firecrawlKey, `site:kuantokusta.pt ${searchName}`, 5),
+          searchFirecrawl(firecrawlKey, `${searchName} preço comprar portugal`, 5),
         ]);
 
         const allResults = [...kkResults, ...generalResults];
@@ -121,19 +188,49 @@ Deno.serve(async (req) => {
           if (!result.url || seenUrls.has(result.url)) continue;
           seenUrls.add(result.url);
           const text = result.markdown || result.description || "";
-          const prices = extractPrices(text, maxPrice);
+
+          // Try AI validation first
+          if (lovableKey) {
+            const validation = await validateWithAI(
+              lovableKey,
+              product.name,
+              product.sku || null,
+              product.base_price,
+              result.url,
+              text,
+            );
+
+            if (validation) {
+              if (validation.is_match && validation.price !== null) {
+                if (validation.price >= minPrice && validation.price <= maxPrice) {
+                  externalPrices.push({
+                    source_name: validation.store_name || extractSourceName(result.url),
+                    source_url: result.url,
+                    price: validation.price,
+                  });
+                }
+              }
+              continue;
+            }
+          }
+
+          // Fallback: regex with strict min/max
+          const prices = extractPricesFiltered(text, minPrice, maxPrice);
           if (prices.length > 0) {
+            const closest = prices.reduce((best, p) =>
+              Math.abs(p - product.base_price) < Math.abs(best - product.base_price) ? p : best
+            );
             externalPrices.push({
               source_name: extractSourceName(result.url),
               source_url: result.url,
-              price: Math.min(...prices),
+              price: closest,
             });
           }
         }
 
         // Store external prices
         if (externalPrices.length > 0) {
-          const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(); // 8h cache (3x/day)
+          const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
 
           await supabase
             .from("product_external_prices")
@@ -152,7 +249,6 @@ Deno.serve(async (req) => {
             }))
           );
 
-          // Update competitor_price_low
           const lowest = externalPrices.reduce((min, ep) => (ep.price < min.price ? ep : min), externalPrices[0]);
           await supabase
             .from("products")
@@ -162,11 +258,10 @@ Deno.serve(async (req) => {
             })
             .eq("id", product.id);
 
-          // Generate AI price suggestion if there's a significant price difference
+          // Generate AI price suggestion if significant difference
           const priceDiff = ((product.base_price - lowest.price) / lowest.price) * 100;
 
           if (Math.abs(priceDiff) > 5 && lovableKey) {
-            // Only suggest if difference > 5%
             const avgPrice = externalPrices.reduce((sum, ep) => sum + ep.price, 0) / externalPrices.length;
 
             const suggestPrompt = `Analisa a posição de preço deste produto e sugere um preço otimizado.
@@ -218,7 +313,6 @@ REGRAS:
                   const suggestion = JSON.parse(jsonMatch[0]);
 
                   if (suggestion.suggestedPrice && suggestion.suggestedPrice !== product.base_price) {
-                    // Check if there's already a pending suggestion for this product
                     const { data: existing } = await supabase
                       .from("price_optimization_logs")
                       .select("id")
@@ -249,8 +343,6 @@ REGRAS:
         }
 
         processed++;
-
-        // Small delay to avoid rate limits
         await new Promise((r) => setTimeout(r, 1000));
       } catch (err) {
         console.error(`Error processing product ${product.name}:`, err);
