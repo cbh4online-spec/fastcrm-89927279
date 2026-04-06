@@ -13,6 +13,8 @@ import {
   TicketTrendChart,
   TicketsByChannelChart,
   AgentWorkloadChart,
+  VolumeHeatmap,
+  SLAByDepartmentChart,
 } from "@/components/helpdesk/HelpdeskCharts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
