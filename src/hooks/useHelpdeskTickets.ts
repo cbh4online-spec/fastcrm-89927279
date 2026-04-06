@@ -27,6 +27,8 @@ export interface SupportTicket {
   first_response_at: string | null;
   resolved_at: string | null;
   closed_at: string | null;
+  satisfaction_rating: number | null;
+  satisfaction_comment: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -1,11 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { SLATimer } from "./SLATimer";
 import { AgentAssignDropdown } from "./AgentAssignDropdown";
 import { TicketTagsEditor } from "./TicketTagsEditor";
 import { CSATWidget } from "./CSATWidget";
-import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle } from "lucide-react";
+import { TicketClientCard } from "./TicketClientCard";
+import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle, UserCircle, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
 import type { SupportTicket, TicketStatus, TicketPriority } from "@/hooks/useHelpdeskTickets";
@@ -30,6 +32,22 @@ const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
 
 const DEPARTMENTS = ["Suporte", "Comercial", "Técnico", "Faturação"];
 
+const TYPE_LABELS: Record<string, string> = {
+  support: "Suporte",
+  commercial: "Comercial",
+  technical: "Técnico",
+  billing: "Faturação",
+  feature_request: "Funcionalidade",
+};
+
+const CHANNEL_LABELS: Record<string, string> = {
+  email: "Email",
+  phone: "Telefone",
+  portal: "Portal",
+  chat: "Chat",
+  manual: "Manual",
+};
+
 interface TicketSidebarProps {
   ticket: SupportTicket;
   onUpdate: (updates: Partial<SupportTicket>) => void;
@@ -37,6 +55,7 @@ interface TicketSidebarProps {
 
 export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
   const [copied, setCopied] = useState(false);
+  const [satComment, setSatComment] = useState(ticket.satisfaction_comment || "");
   const isResolved = ticket.status === "resolved" || ticket.status === "closed";
 
   const handleCopyId = () => {
@@ -46,8 +65,29 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSatRating = (rating: number) => {
+    onUpdate({ satisfaction_rating: rating });
+  };
+
+  const handleSatCommentSave = () => {
+    if (satComment !== (ticket.satisfaction_comment || "")) {
+      onUpdate({ satisfaction_comment: satComment || null } as any);
+      toast.success("Comentário de satisfação guardado");
+    }
+  };
+
   return (
     <div className="space-y-5 p-4">
+      {/* ── CLIENT IDENTIFICATION ── */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <UserCircle className="h-3 w-3" /> Cliente
+        </h4>
+        <TicketClientCard contactId={ticket.contact_id} companyId={ticket.company_id} />
+      </div>
+
+      <div className="border-t border-border" />
+
       {/* SLA */}
       {ticket.sla_deadline && !isResolved && (
         <div>
@@ -130,13 +170,13 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
       {/* Type */}
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2">Tipo</h4>
-        <Badge variant="outline" className="text-xs capitalize">{ticket.type}</Badge>
+        <Badge variant="outline" className="text-xs">{TYPE_LABELS[ticket.type] || ticket.type}</Badge>
       </div>
 
       {/* Channel */}
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2">Canal</h4>
-        <Badge variant="secondary" className="text-xs capitalize">{ticket.channel}</Badge>
+        <Badge variant="secondary" className="text-xs">{CHANNEL_LABELS[ticket.channel] || ticket.channel}</Badge>
       </div>
 
       {/* Tags — editable */}
@@ -150,15 +190,42 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
         />
       </div>
 
-      {/* CSAT — only when resolved */}
-      {isResolved && (
+      <div className="border-t border-border" />
+
+      {/* ── SATISFACTION (CSAT) ── */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <CheckCircle className="h-3 w-3" /> Satisfação (CSAT)
+        </h4>
+        {isResolved ? (
+          <div className="space-y-2">
+            <CSATWidget
+              rating={ticket.satisfaction_rating}
+              onChange={handleSatRating}
+            />
+            <Textarea
+              value={satComment}
+              onChange={(e) => setSatComment(e.target.value)}
+              onBlur={handleSatCommentSave}
+              placeholder="Comentário do cliente..."
+              className="min-h-[60px] text-xs resize-none"
+            />
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground italic">
+            Disponível após resolução do ticket
+          </p>
+        )}
+      </div>
+
+      {/* Description */}
+      {ticket.description && (
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-            <CheckCircle className="h-3 w-3" /> Satisfação
+            <MessageSquareText className="h-3 w-3" /> Descrição
           </h4>
-          <CSATWidget rating={null} readOnly />
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Aguardar avaliação do cliente
+          <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">
+            {ticket.description}
           </p>
         </div>
       )}
@@ -183,6 +250,12 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
             <div className="flex justify-between">
               <span>Resolvido:</span>
               <span className="text-foreground"><TimeAgo date={ticket.resolved_at} /></span>
+            </div>
+          )}
+          {ticket.closed_at && (
+            <div className="flex justify-between">
+              <span>Fechado:</span>
+              <span className="text-foreground"><TimeAgo date={ticket.closed_at} /></span>
             </div>
           )}
         </div>
