@@ -130,6 +130,13 @@ export function TicketMessageThread({ messages, onSend, isSending, ticketId, wor
             </Label>
           </div>
           <CannedResponsePicker onSelect={(content) => setText((prev) => prev + content)} />
+          {ticketId && workspaceId && (
+            <TicketAISuggestButton
+              ticketId={ticketId}
+              workspaceId={workspaceId}
+              onSuggestion={(text) => setText(text)}
+            />
+          )}
           {ticketId && (
             <Button
               variant="ghost"
