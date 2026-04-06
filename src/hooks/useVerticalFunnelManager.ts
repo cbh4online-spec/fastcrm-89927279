@@ -253,7 +253,7 @@ export function useVerticalFullEvents(templateSlug: string | null, dateFrom?: st
         .eq("template_slug", templateSlug)
         .order("created_at", { ascending: true });
       if (dateFrom) q = q.gte("created_at", dateFrom);
-      if (dateTo) q = q.lte("created_at", dateTo);
+      if (dateTo) q = q.lte("created_at", dateTo + "T23:59:59.999Z");
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as VerticalEventRow[];
