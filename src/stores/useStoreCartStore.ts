@@ -5,6 +5,7 @@ import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
 import { calcSubtotal, moneyToNumber } from "@/lib/money";
 import { trackStoreEvent } from "@/lib/storeTracking";
+import { trackAddToCart } from "@/lib/ecommerceTracking";
 
 export interface CartItem {
   productId: string;
