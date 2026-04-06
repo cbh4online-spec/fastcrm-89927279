@@ -17,9 +17,6 @@ export default function ThankYouPage() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const purchaseTrackedRef = useRef(false);
-  const sessionId = searchParams.get("session");
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (sessionId) loadSession();
