@@ -218,17 +218,31 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     queryKey: ["product-search-relations", debouncedSearch, product.workspace_id],
     queryFn: async () => {
       if (!debouncedSearch || debouncedSearch.length < 2) return [];
-      const term = debouncedSearch.replace(/[%_]/g, '\\$&');
-      const { data, error } = await workspaceClient
+      
+      // Run two separate queries to avoid PostgREST or() parsing issues with special chars
+      const baseQuery = () => workspaceClient
         .from("products")
         .select("id, name, base_price, images, primary_image_index, sku, category, status, currency")
         .eq("workspace_id", product.workspace_id)
         .neq("id", product.id)
-        .or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
         .eq("status", "active")
         .limit(10);
-      if (error) console.error("[ProductRelationsTab] search error:", error);
-      return data || [];
+
+      const [byName, bySku] = await Promise.all([
+        baseQuery().ilike("name", `%${debouncedSearch}%`),
+        baseQuery().ilike("sku", `%${debouncedSearch}%`),
+      ]);
+
+      // Merge and deduplicate
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const item of [...(bySku.data || []), ...(byName.data || [])]) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          merged.push(item);
+        }
+      }
+      return merged.slice(0, 10);
     },
     enabled: !!debouncedSearch && debouncedSearch.length >= 2,
   });
