@@ -249,7 +249,7 @@ export function useVerticalFullEvents(templateSlug: string | null, dateFrom?: st
       if (!templateSlug) return [];
       let q = (supabase as any)
         .from("vertical_landing_events")
-        .select("event_type, session_id, created_at, referrer, device_type, utm_source, utm_medium, utm_campaign, country, city, page_section")
+        .select("event_type, session_id, created_at, referrer, device_type, utm_source, utm_medium, utm_campaign, country, city, page_section, time_on_section_ms")
         .eq("template_slug", templateSlug)
         .order("created_at", { ascending: true });
       if (dateFrom) q = q.gte("created_at", dateFrom);
