@@ -1,52 +1,80 @@
 
-# Time Tracking & Custos — Helpdesk Tickets
 
-## 1. Novas tabelas (migração)
+## Plano: SEO de Imagens de Produto + Metadados para Google/Facebook
 
-### `support_ticket_time_entries`
-- `ticket_id`, `user_id`, `duration_minutes` (int), `description`, `entry_type` (manual | timer), `started_at`, `ended_at`, `hourly_rate` (numeric), `cost` (numeric, computed)
-- RLS: membros do workspace podem ler/criar; só o autor ou admin pode editar/apagar
+### Problema Atual
+1. **Nomes de ficheiro genéricos**: Imagens são guardadas como `{productId}-{timestamp}.jpg` — sem valor SEO
+2. **Alt text pobre**: Usa apenas o nome do ficheiro original ou "Imagem N"
+3. **Sem metadados na tabela `product_images`**: Faltam campos como `seo_filename`, `title`, `caption`
+4. **JSON-LD incompleto**: O `ProductSeoHead` já tem Schema.org básico mas não inclui imagens individuais com metadados
 
-### `support_ticket_expenses`
-- `ticket_id`, `user_id`, `expense_type` (deslocação | material | licença | outro), `description`, `amount` (numeric), `currency` (default EUR)
-- RLS: membros do workspace podem ler/criar; só o autor ou admin pode editar/apagar
+### O que será feito
 
-### Coluna em `support_tickets`
-- Adicionar `total_time_minutes` (int default 0) e `total_cost` (numeric default 0) — campos desnormalizados atualizados via trigger para performance na listagem
+#### 1. Migração DB — Adicionar campos SEO à tabela `product_images`
+Novos campos:
+- `seo_filename` (TEXT) — nome SEO-friendly gerado automaticamente (ex: `suporte-painel-aj-hub-b-AJ-BRACKETHUB-B.jpg`)
+- `title` (TEXT) — título da imagem para atributo `title`
+- `caption` (TEXT) — legenda para Facebook/Pinterest
 
-## 2. Hooks
+#### 2. Upload com nomes SEO-friendly
+Alterar `ProductImagesGallery.tsx` para:
+- Gerar o nome do ficheiro no formato: `{slug-do-produto}-{sku}-{posição}.{ext}`
+- Usar caracteres seguros (slugify), sem UUIDs ou timestamps no nome
+- Auto-preencher `alt_text` com: `"{nome do produto} - {categoria} - {SKU}"`
+- Auto-preencher `seo_filename` e `title`
 
-### `useTicketTimeTracking(ticketId)`
-- CRUD de time entries + timer state (start/stop/pause com timestamps)
-- Totais calculados: tempo total, custo total de mão-de-obra
+#### 3. Enriquecer JSON-LD (Schema.org)
+No `ProductSeoHead.tsx`:
+- Expandir o campo `image` no JSON-LD de string simples para array de `ImageObject` com `name`, `contentUrl`, `caption`
+- Adicionar `brand`, `category`, `gtin` (se disponível) ao schema Product
+- Adicionar meta tags Facebook Product (`product:brand`, `product:category`)
 
-### `useTicketExpenses(ticketId)`
-- CRUD de despesas
-- Total acumulado de despesas
+#### 4. Auto-geração de alt text com IA (botão opcional)
+- Adicionar botão "Gerar Alt Text com IA" na galeria de imagens
+- Usa o modelo de visão para analisar a imagem e gerar alt text descritivo em português
+- Preenche também `title` e `caption`
 
-## 3. UI — Detalhe do Ticket
+#### 5. Atualizar tipo TypeScript e hook
+- Estender `ProductImage` com os novos campos
+- Atualizar `useProductImages` e `useAddProductImage` para incluir os metadados
 
-### Nova tab "Tempo & Custos" no detalhe
-- **Timer**: botão Start/Stop/Pause com cronómetro visual em tempo real
-- **Registos manuais**: formulário rápido (duração, descrição, taxa horária)
-- **Lista de entradas de tempo**: tabela com agente, duração, custo, data
-- **Despesas**: formulário rápido (tipo, descrição, valor) + lista
-- **Resumo**: cards com Tempo Total, Custo M.O., Despesas, Custo Total
+### Detalhes Técnicos
 
-## 4. UI — Listagem de Tickets
+**Formato do nome SEO:**
+```
+suporte-painel-aj-hub-b-AJ-BRACKETHUB-B-1.jpg
+{produto-slug}-{SKU}-{posição}.{extensão}
+```
 
-- Nova coluna **"Tempo"** com `Xh Ym` formatado
-- Nova coluna **"Custo"** com valor em EUR
+**Schema.org enriquecido:**
+```json
+{
+  "@type": "Product",
+  "name": "...",
+  "image": [
+    {
+      "@type": "ImageObject",
+      "contentUrl": "https://...",
+      "name": "suporte-painel-aj-hub-b.jpg",
+      "caption": "Suporte para painel AJ-HUB-B"
+    }
+  ],
+  "brand": { "@type": "Brand", "name": "Ajax" },
+  "category": "Acessórios de Intrusão"
+}
+```
 
-## 5. UI — Dashboard
+**Meta tags adicionais (Facebook/Google):**
+```html
+<meta property="og:image:alt" content="..." />
+<meta property="product:brand" content="Ajax" />
+<meta property="product:category" content="Acessórios de Intrusão" />
+```
 
-- Novo KPI card: **Custo Médio por Ticket**
-- Novo KPI card: **Tempo Médio por Ticket**
-- Gráfico de custos por departamento (se disponível)
+### Ficheiros a modificar
+- **Migration SQL** — adicionar `seo_filename`, `title`, `caption` a `product_images`
+- `src/components/products/ProductImagesGallery.tsx` — upload com nomes SEO + auto-fill metadados
+- `src/components/store/storefront/ProductSeoHead.tsx` — JSON-LD enriquecido + meta tags extra
+- `src/types/product.ts` — estender `ProductImage`
+- `src/hooks/useProductImages.ts` — passar novos campos
 
-## 6. Critérios de aceitação
-- Timer funciona em tempo real (start/stop/pause), persiste no backend
-- Entradas manuais de tempo com taxa horária calculam custo automaticamente
-- Despesas registadas com tipo, descrição e valor
-- Totais visíveis no detalhe, listagem e dashboard
-- Todos os dados protegidos por RLS ao workspace
