@@ -42,6 +42,8 @@ const TRIGGER_LABELS: Record<HelpdeskTrigger, string> = {
   on_sla_breach: "SLA violado",
   on_status_change: "Estado alterado",
   on_priority_change: "Prioridade alterada",
+  on_no_response: "Sem resposta do cliente",
+  on_reopen: "Ticket reaberto",
 };
 
 const ACTION_LABELS: Record<HelpdeskActionType, string> = {
