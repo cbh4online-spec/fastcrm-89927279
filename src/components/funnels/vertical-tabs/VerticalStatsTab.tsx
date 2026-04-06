@@ -24,6 +24,10 @@ import { StatsSourcesTab } from "../stats/StatsSourcesTab";
 import { StatsSectionsTab } from "../stats/StatsSectionsTab";
 import { StatsGeoDeviceTab } from "../stats/StatsGeoDeviceTab";
 import { StatsTimelineTab } from "../stats/StatsTimelineTab";
+import { StatsFormsTab } from "../stats/StatsFormsTab";
+import { StatsClicksTab } from "../stats/StatsClicksTab";
+import { StatsAttentionTab } from "../stats/StatsAttentionTab";
+import { StatsGoalsTab } from "../stats/StatsGoalsTab";
 import {
   type DatePreset, type StatsEvent,
   computeTrendData, computeSourceBreakdown, computeDeviceBreakdown,
