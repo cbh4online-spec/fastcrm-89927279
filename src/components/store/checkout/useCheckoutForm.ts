@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parsePhoneNumber } from "libphonenumber-js";
 import { trackEvent } from "@/lib/analytics";
+import { trackBeginCheckout } from "@/lib/ecommerceTracking";
 import { checkoutStep1Schema, checkoutStep2Schema } from "./checkoutSchema";
 import type { CartItem } from "@/contexts/StoreCartContext";
 
@@ -80,6 +81,18 @@ export function useCheckoutForm({ wsId, wsSlug, items, subtotal }: UseCheckoutFo
 
     captureLead({ name: formData.name, phone: formData.phone, email: formData.email || undefined });
     trackEvent("begin_checkout", { workspaceSlug: wsSlug, subtotal, itemCount: items.length });
+    // GA4 + Meta Pixel standard event
+    trackBeginCheckout(
+      items.map((i) => ({
+        item_id: i.productId,
+        item_name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        currency: i.currency,
+      })),
+      subtotal,
+      items[0]?.currency || "EUR",
+    );
     setStep(2);
   };
 
