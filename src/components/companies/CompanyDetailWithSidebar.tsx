@@ -68,6 +68,7 @@ import { CompanyInsightsPanel } from "./CompanyInsightsPanel";
 import { LinkContactDialog } from "./LinkContactDialog";
 import { SuggestedContact } from "@/hooks/useCompleteSocialAnalysis";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
 import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
@@ -401,6 +402,10 @@ export function CompanyDetailWithSidebar() {
               }
             }}
           </EntitySubTabs>
+        );
+      case 'support':
+        return (
+          <EntityTicketsSection entityType="company" entityId={id!} entityName={company.name} />
         );
       default:
         return (

@@ -74,6 +74,7 @@ export type MenuSection =
   | 'data'
   | 'contacts'
   | 'student-journey'
+  | 'support'
   | 'files'
   // Legacy values kept for backward compatibility with workspace_layout_config
   | 'notes' 

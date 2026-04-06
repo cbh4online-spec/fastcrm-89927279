@@ -156,6 +156,7 @@ export default function HelpdeskTicketDetail() {
                 onSend={handleSend}
                 isSending={sendMessage.isPending}
                 ticketId={ticket.id}
+                workspaceId={ticket.workspace_id}
               />
             </TabsContent>
 

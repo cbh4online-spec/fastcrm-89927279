@@ -74,6 +74,7 @@ import { ContactAuditSection } from "./sections/ContactAuditSection";
 import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
+import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
@@ -461,6 +462,10 @@ export function ENIContactDetailWithSidebar() {
           <ContactStudentJourneySection 
             contactId={id!} contactName={contact.name} contactEmail={contact.email}
           />
+        );
+      case 'support':
+        return (
+          <EntityTicketsSection entityType="contact" entityId={id!} entityName={contact.name} />
         );
       default:
         return (
