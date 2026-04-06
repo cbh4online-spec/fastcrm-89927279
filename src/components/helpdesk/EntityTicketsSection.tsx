@@ -49,7 +49,7 @@ interface EntityTicketsSectionProps {
 export function EntityTicketsSection({ entityType, entityId, entityName }: EntityTicketsSectionProps) {
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
-  const [showCreate, setShowCreate] = useState(false);
+  const { createTicket } = useHelpdeskTickets();
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["entity-tickets", entityType, entityId],
