@@ -1,0 +1,1 @@
+DELETE FROM product_external_prices WHERE product_id = '5e561f36-c9ea-40a6-bd04-b5bdd780604f'
