@@ -10,12 +10,7 @@
  * Each event also fires a server-side CAPI call when possible.
  */
 
-declare global {
-  interface Window {
-    dataLayer: Record<string, unknown>[];
-    fbq: (...args: unknown[]) => void;
-  }
-}
+// Window.dataLayer and Window.fbq are declared in other type files
 
 /* ────────── helpers ────────── */
 
