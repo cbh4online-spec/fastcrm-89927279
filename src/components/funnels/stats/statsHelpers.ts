@@ -65,6 +65,9 @@ export interface SectionData {
   pct: number;
   dropOff: number | null;
   isWorst: boolean;
+  avgTimeMs: number | null;
+  trend: "up" | "down" | "stable" | null;
+  recommendation: string | null;
 }
 
 export interface TimelineEvent {
