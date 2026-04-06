@@ -5,6 +5,7 @@ import { Sentry } from "@/lib/sentry";
 import { trackEvent } from "@/lib/analytics";
 import { calcSubtotal, moneyToNumber } from "@/lib/money";
 import { trackStoreEvent } from "@/lib/storeTracking";
+import { trackAddToCart } from "@/lib/ecommerceTracking";
 
 export interface CartItem {
   productId: string;
@@ -131,6 +132,15 @@ function createCartStore(wsSlug: string) {
                 currency: item.currency,
               });
             }
+            // GA4 + Meta Pixel standard event
+            trackAddToCart({
+              item_id: item.productId,
+              item_name: item.name,
+              price: item.price,
+              quantity,
+              currency: item.currency,
+              sku: item.sku,
+            });
             return { items: newItems, isOpen: true, ...derived };
           });
         },

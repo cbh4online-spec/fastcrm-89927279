@@ -90,6 +90,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { trackViewItem, trackAddToCart } from "@/lib/ecommerceTracking";
 
 // Spec icon mapping
 const SPEC_ICON_MAP: Record<string, LucideIcon> = {
@@ -260,6 +261,17 @@ export default function StoreProductPage() {
       productName: product.name,
       price: pricing?.price ?? product.base_price,
       currency: product.currency,
+    });
+    // GA4 + Meta Pixel standard e-commerce event
+    trackViewItem({
+      item_id: product.id,
+      item_name: product.name,
+      price: pricing?.price ?? product.base_price,
+      quantity: 1,
+      currency: product.currency,
+      item_brand: (product as any).brand || undefined,
+      item_category: (product as any).category?.name || undefined,
+      sku: product.sku || undefined,
     });
   }, [product?.id]);
 

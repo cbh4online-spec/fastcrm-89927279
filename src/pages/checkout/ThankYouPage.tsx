@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Package, Share2, ArrowRight, Loader2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { trackPurchase } from "@/lib/ecommerceTracking";
 
 const sb = supabase as any;
 
@@ -15,11 +16,32 @@ export default function ThankYouPage() {
   const sessionId = searchParams.get("session");
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const purchaseTrackedRef = useRef(false);
 
   useEffect(() => {
     if (sessionId) loadSession();
     else setLoading(false);
   }, [sessionId]);
+
+  // Fire purchase tracking once session loaded
+  useEffect(() => {
+    if (!session || purchaseTrackedRef.current) return;
+    purchaseTrackedRef.current = true;
+    const products = session.cart_data?.products || [];
+    trackPurchase(
+      session.id,
+      products.map((p: any) => ({
+        item_id: p.id || p.productId || "",
+        item_name: p.name || "",
+        price: p.price || 0,
+        quantity: p.quantity || 1,
+        currency: session.currency || "EUR",
+      })),
+      session.total_value || 0,
+      session.currency || "EUR",
+      { email: session.customer_email },
+    );
+  }, [session]);
 
   async function loadSession() {
     try {
