@@ -444,7 +444,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
         )}
 
         {/* Message Input */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative">
           <Textarea
             ref={textareaRef}
             placeholder={disabled ? "Janela de 24h expirada — não é possível responder" : "Escreva uma mensagem..."}
