@@ -268,12 +268,27 @@ export function computeSectionHeatmap(
   customSections?: string[]
 ): SectionData[] {
   const sectionEvents = events.filter(e => e.event_type === "section_view" && e.page_section);
+  const exitEvents = events.filter(e => e.event_type === "section_exit" && e.page_section);
   const sections: Record<string, number> = {};
   const sectionTimes: Record<string, number[]> = {};
 
   for (const e of sectionEvents) {
     const key = e.page_section!;
     sections[key] = (sections[key] || 0) + 1;
+  }
+
+  // Collect time data from section_exit events
+  for (const e of exitEvents) {
+    const key = e.page_section!;
+    if (e.time_on_section_ms && e.time_on_section_ms > 0) {
+      if (!sectionTimes[key]) sectionTimes[key] = [];
+      sectionTimes[key].push(e.time_on_section_ms);
+    }
+  }
+
+  // Also check section_view events for legacy time data
+  for (const e of sectionEvents) {
+    const key = e.page_section!;
     if (e.time_on_section_ms && e.time_on_section_ms > 0) {
       if (!sectionTimes[key]) sectionTimes[key] = [];
       sectionTimes[key].push(e.time_on_section_ms);
