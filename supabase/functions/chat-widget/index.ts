@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
           require_email_before_chat: widget.require_email_before_chat,
           auto_open_delay_ms: widget.auto_open_delay_ms,
           custom_css: widget.custom_css,
+          proactive_rules: widget.proactive_rules || [],
         };
 
         return new Response(
