@@ -34,6 +34,7 @@ const ALL_TABS: TabItem[] = [
   { id: 'relationships', label: 'Relações', showFor: ['contact', 'company'] },
   { id: 'data', label: 'Dados', showFor: ['lead', 'contact', 'company'] },
   { id: 'contacts', label: 'Contactos', showFor: ['company'] },
+  { id: 'support', label: 'Suporte', showFor: ['contact', 'company'] },
   { id: 'student-journey', label: 'Student Journey', showFor: ['contact'] },
 ];
 
