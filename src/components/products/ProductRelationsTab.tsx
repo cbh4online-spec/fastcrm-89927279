@@ -218,14 +218,16 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     queryKey: ["product-search-relations", debouncedSearch, product.workspace_id],
     queryFn: async () => {
       if (!debouncedSearch || debouncedSearch.length < 2) return [];
-      const { data } = await workspaceClient
+      const term = debouncedSearch.replace(/[%_]/g, '\\$&');
+      const { data, error } = await workspaceClient
         .from("products")
         .select("id, name, base_price, images, primary_image_index, sku, category, status, currency")
         .eq("workspace_id", product.workspace_id)
         .neq("id", product.id)
-        .or(`name.ilike.%${debouncedSearch}%,sku.ilike.%${debouncedSearch}%`)
+        .or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
         .eq("status", "active")
         .limit(10);
+      if (error) console.error("[ProductRelationsTab] search error:", error);
       return data || [];
     },
     enabled: !!debouncedSearch && debouncedSearch.length >= 2,
