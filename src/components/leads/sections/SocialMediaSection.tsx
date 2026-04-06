@@ -78,10 +78,10 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             label="YouTube"
             fieldId="youtube_url"
             fieldType="text"
-            value={(lead as any).youtube_url}
-            onChange={(val) => onFieldChange("youtube_url" as keyof Lead, val)}
+            value={lead.youtube_url}
+            onChange={(val) => onFieldChange("youtube_url", val)}
             icon={<Youtube className="w-4 h-4" />}
-            isLink={!!(lead as any).youtube_url}
+            isLink={!!lead.youtube_url}
             linkType="url"
             placeholder="https://youtube.com/@..."
           />
@@ -89,10 +89,10 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             label="TikTok"
             fieldId="tiktok_url"
             fieldType="text"
-            value={(lead as any).tiktok_url}
-            onChange={(val) => onFieldChange("tiktok_url" as keyof Lead, val)}
+            value={lead.tiktok_url}
+            onChange={(val) => onFieldChange("tiktok_url", val)}
             icon={<TikTokIcon className="w-4 h-4" />}
-            isLink={!!(lead as any).tiktok_url}
+            isLink={!!lead.tiktok_url}
             linkType="url"
             placeholder="https://tiktok.com/@..."
           />
@@ -100,10 +100,10 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             label="Pinterest"
             fieldId="pinterest_url"
             fieldType="text"
-            value={(lead as any).pinterest_url}
-            onChange={(val) => onFieldChange("pinterest_url" as keyof Lead, val)}
+            value={lead.pinterest_url}
+            onChange={(val) => onFieldChange("pinterest_url", val)}
             icon={<Pin className="w-4 h-4" />}
-            isLink={!!(lead as any).pinterest_url}
+            isLink={!!lead.pinterest_url}
             linkType="url"
             placeholder="https://pinterest.com/..."
           />
@@ -111,10 +111,10 @@ export function SocialMediaSection({ lead, onFieldChange }: SocialMediaSectionPr
             label="WhatsApp Business"
             fieldId="whatsapp_url"
             fieldType="text"
-            value={(lead as any).whatsapp_url}
-            onChange={(val) => onFieldChange("whatsapp_url" as keyof Lead, val)}
+            value={lead.whatsapp_url}
+            onChange={(val) => onFieldChange("whatsapp_url", val)}
             icon={<MessageCircle className="w-4 h-4" />}
-            isLink={!!(lead as any).whatsapp_url}
+            isLink={!!lead.whatsapp_url}
             linkType="url"
             placeholder="https://wa.me/..."
           />
