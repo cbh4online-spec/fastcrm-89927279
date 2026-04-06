@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors" | "ensure-store-category" | "suggest-settings";
+  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors" | "ensure-store-category" | "suggest-settings" | "estimate-weight";
   storeName?: string;
   productId?: string;
   workspaceId?: string;
@@ -1848,6 +1848,78 @@ Responda com um array JSON: [entry1, entry2, ...]`;
         success: true,
         data: { suggestions, settingsType }
       }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ═══ MODE: estimate-weight ═══
+    if (mode === 'estimate-weight' && productName) {
+      const systemPrompt = `Você é um especialista em logística e produtos. Estime o peso real do produto (com embalagem) em kg.
+Use conhecimento de produtos similares para estimar com precisão.
+Responda APENAS em JSON válido sem markdown.`;
+
+      const userPrompt = `Produto: "${productName}"
+${sku ? `SKU: ${sku}` : ''}
+${category ? `Categoria: ${category}` : ''}
+${context ? `Especificações: ${context}` : ''}
+
+Estime o peso em kg (com embalagem) e responda no formato JSON:
+{
+  "weight_kg": 0.35,
+  "confidence": "high|medium|low",
+  "reasoning": "Explicação breve da estimativa",
+  "source_hint": "Baseado em produtos similares como X (~Ykg)"
+}
+
+Referências de peso típicas:
+- Câmara CCTV bullet/dome: 0.3-0.8 kg
+- Câmara PTZ: 1.5-3.0 kg
+- NVR 4-8 canais: 1.5-3.0 kg
+- NVR 16-32 canais: 3.0-5.0 kg
+- Router/Switch: 0.3-1.0 kg
+- Monitor 21-27": 4-8 kg
+- Cabo 100m: 4-8 kg
+- Disco rígido: 0.3-0.7 kg
+- Fonte alimentação: 0.2-0.5 kg
+- Acessório pequeno (suporte, conector): 0.05-0.3 kg`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      let estimation;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        estimation = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        estimation = { weight_kg: 0.5, confidence: 'low', reasoning: 'Não foi possível estimar', source_hint: '' };
+      }
+
+      return new Response(JSON.stringify({ success: true, data: estimation }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
