@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProactiveChatTriggers, type ProactiveRule } from "@/hooks/useProactiveChatTriggers";
 
 interface WidgetConfig {
   id: string;
@@ -17,6 +18,7 @@ interface WidgetConfig {
   require_email_before_chat: boolean;
   auto_open_delay_ms: number;
   custom_css?: string;
+  proactive_rules?: ProactiveRule[];
 }
 
 interface Message {
@@ -51,8 +53,34 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
   const [isSending, setIsSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [proactiveMessage, setProactiveMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visitorId = useRef(getVisitorId());
+
+  // Proactive chat triggers
+  const getVisitorScore = useCallback(() => {
+    return (window as any).__fastcrm_visitor?.getScore?.() ?? 0;
+  }, []);
+
+  const { triggered, dismiss } = useProactiveChatTriggers({
+    rules: config?.proactive_rules || [],
+    getVisitorScore,
+    enabled: !!config && !isOpen,
+  });
+
+  // When proactive trigger fires, show bubble with message
+  useEffect(() => {
+    if (triggered && !isOpen) {
+      setProactiveMessage(triggered.rule.message);
+      // Auto-open after showing bubble for 2s
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        setProactiveMessage(null);
+        dismiss();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [triggered, isOpen, dismiss]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -126,6 +154,17 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
       const data: any = await response.json();
       setConversationId(data.conversationId);
       setMessages(data.messages || []);
+
+      // If opened via proactive trigger, inject proactive message
+      if (triggered?.rule?.message && data.messages?.length <= 1) {
+        const proactiveMsg: Message = {
+          id: `proactive_${Date.now()}`,
+          role: "assistant",
+          content: triggered.rule.message,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, proactiveMsg]);
+      }
     } catch (err) {
       console.error("[ChatWidget] Init error:", err);
       setError("Erro ao iniciar conversa");
@@ -147,6 +186,9 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsSending(true);
+
+    // Track CTA click score event
+    (window as any).__fastcrm_visitor?.trackEvent?.("cta_click");
 
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-widget`, {
@@ -204,10 +246,38 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
         <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />
       )}
 
+      {/* Proactive message bubble */}
+      {proactiveMessage && !isOpen && (
+        <div
+          className={cn(
+            "fixed bottom-20 z-50 max-w-[280px] rounded-2xl bg-white p-4 shadow-xl animate-in slide-in-from-bottom-4 fade-in",
+            positionClasses
+          )}
+        >
+          <button
+            onClick={() => { setProactiveMessage(null); dismiss(); }}
+            className="absolute -top-2 -right-2 rounded-full bg-muted p-1 text-muted-foreground hover:bg-muted/80"
+            aria-label="Fechar"
+          >
+            <X className="h-3 w-3" />
+          </button>
+          <p className="text-sm" style={{ color: config.text_color }}>
+            {proactiveMessage}
+          </p>
+          <button
+            onClick={() => { setIsOpen(true); setProactiveMessage(null); dismiss(); }}
+            className="mt-2 text-xs font-medium"
+            style={{ color: config.primary_color }}
+          >
+            Responder →
+          </button>
+        </div>
+      )}
+
       {/* Chat bubble */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => { setIsOpen(true); setProactiveMessage(null); }}
           className={cn(
             "fixed bottom-4 z-50 rounded-full p-4 shadow-lg transition-all hover:scale-110",
             positionClasses
