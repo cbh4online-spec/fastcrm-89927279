@@ -55912,7 +55912,9 @@ export type Database = {
           notify_invoices: boolean | null
           notify_new_deals: boolean | null
           notify_new_leads: boolean | null
+          notify_new_tickets: boolean
           notify_proposals: boolean | null
+          notify_ticket_assigned: boolean
           updated_at: string | null
           workspace_id: string
         }
@@ -55926,7 +55928,9 @@ export type Database = {
           notify_invoices?: boolean | null
           notify_new_deals?: boolean | null
           notify_new_leads?: boolean | null
+          notify_new_tickets?: boolean
           notify_proposals?: boolean | null
+          notify_ticket_assigned?: boolean
           updated_at?: string | null
           workspace_id: string
         }
@@ -55940,7 +55944,9 @@ export type Database = {
           notify_invoices?: boolean | null
           notify_new_deals?: boolean | null
           notify_new_leads?: boolean | null
+          notify_new_tickets?: boolean
           notify_proposals?: boolean | null
+          notify_ticket_assigned?: boolean
           updated_at?: string | null
           workspace_id?: string
         }
