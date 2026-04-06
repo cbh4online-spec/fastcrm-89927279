@@ -150,7 +150,11 @@ export function filterValidSpecs(
   const filtered: Record<string, string> = {};
   for (const [key, value] of Object.entries(specs)) {
     // Filtrar valores vazios
-    if (!value || value.trim() === "" || value === "null" || value === "undefined") continue;
+    const trimmed = value.trim();
+    if (!value || trimmed === "" || trimmed === "null" || trimmed === "undefined") continue;
+    // Filtrar N/A e variantes
+    const lower = trimmed.toLowerCase();
+    if (lower === "n/a" || lower === "na" || lower === "n.a." || lower === "-" || lower === "—") continue;
     // Filtrar chave "specs" que é um bloco de texto raw (>100 chars sem espaços = colado)
     if (key.toLowerCase() === "specs" && value.length > 100) continue;
     // Filtrar valores que são blocos de texto sem estrutura (provável dump)
