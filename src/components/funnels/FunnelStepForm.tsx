@@ -155,6 +155,7 @@ export function FunnelStepForm({
     delete data.__hp;
 
     try {
+      formSubmittedRef.current = true;
       await onSubmit(data);
       setStatus("success");
     } catch {
