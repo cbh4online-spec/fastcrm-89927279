@@ -8,7 +8,7 @@ import { StoreCartsTab } from "@/components/store/StoreCartsTab";
 import { useStoreAnalytics } from "@/hooks/useStoreAnalytics";
 import {
   BarChart3, DollarSign, Package, Users, Tag,
-  ShoppingCart, Layers, CalendarIcon, Eye,
+  ShoppingCart, Layers, CalendarIcon, Eye, AlertTriangle,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -21,6 +21,7 @@ import { StoreCouponsTab } from "./StoreCouponsTab";
 import { StoreInventoryTab } from "./StoreInventoryTab";
 import { StoreFinancialTab } from "./StoreFinancialTab";
 import { StoreVisitsTab } from "./StoreVisitsTab";
+import { AbandonedCartsPanel } from "@/components/store/dashboard/AbandonedCartsPanel";
 
 export function StoreAnalyticsShell() {
   const [period, setPeriod] = useState(30);
@@ -136,6 +137,9 @@ export function StoreAnalyticsShell() {
           <TabsTrigger value="visits" className="gap-1.5 text-xs sm:text-sm">
             <Eye className="h-3.5 w-3.5" /> Visitas
           </TabsTrigger>
+          <TabsTrigger value="abandoned" className="gap-1.5 text-xs sm:text-sm">
+            <AlertTriangle className="h-3.5 w-3.5" /> Abandonados
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
@@ -171,6 +175,9 @@ export function StoreAnalyticsShell() {
         </TabsContent>
         <TabsContent value="visits" className="space-y-6 mt-6">
           <StoreVisitsTab days={effectiveDays} />
+        </TabsContent>
+        <TabsContent value="abandoned" className="space-y-6 mt-6">
+          <AbandonedCartsPanel />
         </TabsContent>
       </Tabs>
     </div>
