@@ -91,6 +91,7 @@ import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { MarginProtectionCard } from "./pricing/MarginProtectionCard";
 import { MarketResearchPanel } from "./pricing/MarketResearchPanel";
+import { ProductWeightAIPanel } from "./ProductWeightAIPanel";
 import { Search as SearchIcon } from "lucide-react";
 
 interface ProductDetailDialogProps {
