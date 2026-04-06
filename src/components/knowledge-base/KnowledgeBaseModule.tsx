@@ -663,6 +663,14 @@ export function KnowledgeBaseModule() {
         <WidgetConfigPanel />
       )}
 
+      {activeTab === "canned" && (
+        <CannedResponsesPanel />
+      )}
+
+      {activeTab === "chat-analytics" && (
+        <ChatAnalyticsTab />
+      )}
+
       {activeTab === "query" && (
         <div className="space-y-6">
           {/* AI Chat Panel */}
