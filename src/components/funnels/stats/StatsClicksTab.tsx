@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MousePointerClick } from "lucide-react";
+import { MousePointerClick, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { StatsEvent } from "./statsHelpers";
 
 interface Props {
@@ -15,13 +16,29 @@ interface ClickPoint {
   count: number;
 }
 
+type DeviceFilter = "all" | "desktop" | "mobile" | "tablet";
+
 export function StatsClicksTab({ events }: Props) {
-  const { clickPoints, topElements, totalClicks } = useMemo(() => {
-    const clickEvents = events.filter(e =>
+  const [deviceFilter, setDeviceFilter] = useState<DeviceFilter>("all");
+
+  const { clickPoints, topElements, totalClicks, deviceCounts } = useMemo(() => {
+    const allClickEvents = events.filter(e =>
       e.event_type === "element_click" &&
       (e as any).click_x_pct != null &&
       (e as any).click_y_pct != null
     );
+
+    // Count by device
+    const dCounts = { desktop: 0, mobile: 0, tablet: 0 };
+    for (const e of allClickEvents) {
+      const d = (e.device_type || "desktop").toLowerCase();
+      if (d in dCounts) dCounts[d as keyof typeof dCounts]++;
+    }
+
+    // Filter by device
+    const clickEvents = deviceFilter === "all"
+      ? allClickEvents
+      : allClickEvents.filter(e => (e.device_type || "desktop").toLowerCase() === deviceFilter);
 
     // Aggregate by grid cells (10x10 grid)
     const grid: Record<string, { x: number; y: number; count: number }> = {};
@@ -54,10 +71,11 @@ export function StatsClicksTab({ events }: Props) {
       clickPoints: points,
       topElements: topEls,
       totalClicks: clickEvents.length,
+      deviceCounts: dCounts,
     };
-  }, [events]);
+  }, [events, deviceFilter]);
 
-  if (totalClicks === 0) {
+  if (totalClicks === 0 && deviceFilter === "all") {
     return (
       <Card className="border-border/50">
         <CardContent className="py-12 text-center">
@@ -74,6 +92,26 @@ export function StatsClicksTab({ events }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Device filter */}
+      <div className="flex items-center gap-3">
+        <Tabs value={deviceFilter} onValueChange={(v) => setDeviceFilter(v as DeviceFilter)}>
+          <TabsList className="h-8">
+            <TabsTrigger value="all" className="text-xs h-7 px-3">
+              Todos ({deviceCounts.desktop + deviceCounts.mobile + deviceCounts.tablet})
+            </TabsTrigger>
+            <TabsTrigger value="desktop" className="text-xs h-7 px-3 gap-1">
+              <Monitor className="h-3 w-3" /> {deviceCounts.desktop}
+            </TabsTrigger>
+            <TabsTrigger value="mobile" className="text-xs h-7 px-3 gap-1">
+              <Smartphone className="h-3 w-3" /> {deviceCounts.mobile}
+            </TabsTrigger>
+            <TabsTrigger value="tablet" className="text-xs h-7 px-3 gap-1">
+              <Tablet className="h-3 w-3" /> {deviceCounts.tablet}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Visual Heatmap */}
         <Card className="border-border/50">
@@ -86,7 +124,6 @@ export function StatsClicksTab({ events }: Props) {
           </CardHeader>
           <CardContent>
             <div className="relative w-full aspect-[4/3] bg-muted/20 rounded-lg border border-border/30 overflow-hidden">
-              {/* Grid overlay */}
               {clickPoints.map((p, i) => {
                 const opacity = Math.max(0.15, (p.count / maxCount) * 0.9);
                 const size = Math.max(20, (p.count / maxCount) * 50);
@@ -128,18 +165,29 @@ export function StatsClicksTab({ events }: Props) {
           </CardHeader>
           <CardContent>
             {topElements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem dados</p>
+              <p className="text-sm text-muted-foreground">Sem dados{deviceFilter !== "all" ? ` para ${deviceFilter}` : ""}</p>
             ) : (
               <div className="space-y-2">
-                {topElements.map((el, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
-                      <span className="font-mono text-xs truncate max-w-[200px]">{el.element}</span>
+                {topElements.map((el, i) => {
+                  const pct = totalClicks > 0 ? (el.count / totalClicks) * 100 : 0;
+                  return (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                        <span className="font-mono text-xs truncate">{el.element}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-16 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary/60"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">{el.count}</Badge>
+                      </div>
                     </div>
-                    <Badge variant="secondary" className="text-[10px]">{el.count}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
