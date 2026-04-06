@@ -1,74 +1,53 @@
 
 
-# Finalizar Módulo de Secções — Analytics de Funis
+# Corrigir Pesquisa de Preços de Concorrentes
 
 ## Diagnóstico
 
-O módulo `StatsSectionsTab` existe mas está incompleto:
-1. **Estado vazio genérico** — mostra sempre "Pixel instalado ✓" mesmo sem verificação real; os outros dois indicadores estão sempre ✗
-2. **Apenas barras horizontais** — falta visualização de heatmap real (grid colorido)
-3. **Sem tempo por secção** — o tracker regista `section_view` mas não captura quanto tempo o visitante ficou em cada secção
-4. **Sem recomendações por secção** — identifica "Problema" mas não sugere ações concretas
-5. **Sem comparação entre períodos** — não mostra se uma secção melhorou ou piorou
-6. **Sem filtro por dispositivo** — mobile vs desktop têm padrões de scroll muito diferentes
-7. **SECTION_ORDER hardcoded** — só funciona para templates verticais com as 9 secções predefinidas; landing pages com secções customizadas (via Builder) ficam de fora
+O problema é claro no screenshot: um produto de **€449.50** mostra preços concorrentes de **€4.84** e **€28.11** — valores obviamente errados. A causa raiz está nas edge functions `compare-prices` e `auto-price-monitor`:
 
-## Plano de Implementação
+1. **Extração de preços naive**: A função `extractPrices()` usa regex para capturar QUALQUER preço no texto da página (markdown). Isto apanha preços de portes, acessórios, produtos não relacionados, breadcrumbs, etc.
+2. **Sem filtro de preço mínimo**: Existe um `maxPrice` (5x o preço base), mas **não existe um `minPrice`**. Um produto de €449 aceita preços de €4.84 como válidos.
+3. **Sem validação de relevância**: Não verifica se a página encontrada é realmente sobre o mesmo produto — pode ser uma página de categoria com dezenas de preços diferentes.
+4. **Pega sempre o preço mais baixo**: `Math.min(...prices)` garante que apanha o pior valor possível (portes, desconto de cupão, preço de acessório).
 
-### 1. Adicionar coluna `time_on_section` ao tracker (migração DB)
-- Adicionar coluna `time_on_section_ms` (integer, nullable) à tabela `vertical_landing_events`
-- No `VerticalLandingTracker`, usar `IntersectionObserver` para medir o tempo que cada secção esteve visível e fazer UPDATE ao registo de `section_view` quando a secção sai do viewport
+## Solução
 
-### 2. Tornar SECTION_ORDER dinâmico
-- Em `computeSectionHeatmap`, aceitar um parâmetro opcional `customSections` extraído das secções reais da landing page (via `landing_page_sections`)
-- Fallback para o `SECTION_ORDER` hardcoded se não houver secções customizadas
-- Incluir secções não previstas no array — qualquer `page_section` presente nos eventos deve aparecer
+Aplicar a mesma abordagem inteligente que o `ai-market-price-research` já usa (AI para extrair preços com contexto), mas adaptada para o fluxo automático de comparação.
 
-### 3. Refatorar `StatsSectionsTab` com sub-componentes
+### Alterações em `compare-prices/index.ts` e `auto-price-monitor/index.ts`:
 
-**3a. Checklist de prontidão inteligente** (substituir os ✓/✗ estáticos)
-- Verificar dinamicamente: (a) se existem eventos `view` para o slug, (b) se existem eventos `section_view`, (c) se as secções têm `data-section` definido (inferir a partir dos eventos existentes vs SECTION_ORDER)
-- Mostrar ⚠ amarelo quando há dados parciais (< 10 section_views)
+1. **Adicionar filtro de preço mínimo**: Rejeitar preços abaixo de 30% do preço base do produto (um concorrente legítimo não vende a 1% do preço).
+2. **Usar AI para validação de relevância**: Enviar o texto de cada resultado ao Gemini Flash para confirmar se é o mesmo produto e extrair o preço correto (igual ao que `ai-market-price-research` já faz).
+3. **Fallback para regex filtrado**: Se AI não estiver disponível, manter o regex mas com o filtro min/max robusto.
+4. **Melhorar a query de pesquisa**: Incluir SKU/EAN na pesquisa quando disponível para resultados mais precisos.
 
-**3b. Heatmap visual (grid)**
-- Grid com secções no eixo Y e dias no eixo X (últimos 7/30 dias)
-- Cor baseada em intensidade de views (verde escuro → verde claro → cinza)
-- Tooltip com valores exatos ao hover
+### Detalhes técnicos
 
-**3c. Tabela detalhada de secções**
-- Colunas: Secção | Views | % Alcance | Tempo Médio | Drop-off | Tendência (↑↓→)
-- Tempo médio calculado a partir de `time_on_section_ms`
-- Tendência: comparar período atual vs período anterior
-- Badge "Problema" expandido com tooltip de sugestão contextual
+**Novo fluxo de extração (ambas as edge functions):**
 
-**3d. Filtro por dispositivo**
-- Toggle "Todos | Desktop | Mobile" no topo
-- Filtrar eventos por `device_type` antes de computar
+```text
+Firecrawl Search → Para cada resultado:
+  1. AI valida: "Este resultado é sobre o produto X? Qual o preço de venda?"
+     → Retorna { is_match: bool, price: number, store_name: string }
+  2. Se AI indisponível: regex com filtro min (30% base_price) e max (3x base_price)
+  3. Descartar resultados onde is_match = false
+```
 
-**3e. Recomendações automáticas por secção**
-- Card de insights no fundo: "A secção Testemunhos perde 45% dos visitantes — considera mover para cima" 
-- Baseado em drop-off > 30% e posição na página
+**Filtro minPrice**:
+- `minPrice = product.base_price * 0.3` (nenhum concorrente vende a menos de 30% do preço)
+- `maxPrice = product.base_price * 3` (reduzir de 5x para 3x para menos falsos positivos)
 
-### 4. Enriquecer o tracker com tempo por secção
-- No `VerticalLandingTracker`, ao detectar que uma secção saiu do viewport, calcular `Date.now() - entryTime` e inserir novo evento `section_exit` com `time_on_section_ms`
-- Alternativa mais simples: usar um único evento `section_view` e fazer UPDATE com o tempo quando a secção sai (evita duplicar registos)
-
-## Ficheiros a criar/editar
-
-| Ficheiro | Ação |
+**Ficheiros a editar:**
+| Ficheiro | Alteração |
 |---|---|
-| **Migração SQL** | Adicionar `time_on_section_ms` à `vertical_landing_events` |
-| `src/components/vertical-landing/VerticalLandingTracker.tsx` | Editar — medir tempo por secção |
-| `src/components/funnels/stats/StatsSectionsTab.tsx` | Refatorar — heatmap grid, tabela detalhada, filtro dispositivo, recomendações |
-| `src/components/funnels/stats/statsHelpers.ts` | Editar — tornar SECTION_ORDER dinâmico, adicionar cálculo de tempo médio e tendências |
+| `supabase/functions/compare-prices/index.ts` | Adicionar minPrice, validação AI, melhorar query |
+| `supabase/functions/auto-price-monitor/index.ts` | Mesmas correções de extração |
 
-## Critérios de Aceitação
-- Heatmap grid visual com cor por intensidade (dias × secções)
-- Tabela com views, alcance %, tempo médio, drop-off e tendência
-- Checklist de prontidão dinâmica (não estática)
-- Filtro desktop/mobile funcional
-- Recomendações contextuais por secção com drop-off > 30%
-- Tracker captura tempo por secção sem duplicar eventos
-- Secções customizadas (não hardcoded) aparecem quando disponíveis
-- Estado vazio melhorado com instruções claras
+### Critérios de aceitação
+- Preços abaixo de 30% do preço base são rejeitados automaticamente
+- AI valida se o resultado é realmente o mesmo produto antes de aceitar o preço
+- Fallback para regex filtrado quando AI não está disponível
+- Logs claros de preços rejeitados para debugging
+- Produto de €449.50 nunca mostra preços de €4.84 ou €28.11
 
