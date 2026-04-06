@@ -245,13 +245,15 @@ export default function HelpdeskTicketsList() {
                 <TableHead className="w-[130px]">Estado</TableHead>
                 <TableHead className="w-[90px]">Tipo</TableHead>
                 <TableHead className="w-[80px]">SLA</TableHead>
+                <TableHead className="w-[70px]">Tempo</TableHead>
+                <TableHead className="w-[80px]">Custo</TableHead>
                 <TableHead className="w-[100px]">Criado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     Sem tickets encontrados
                   </TableCell>
                 </TableRow>
@@ -347,6 +349,14 @@ export default function HelpdeskTicketsList() {
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {ticket.total_time_minutes > 0
+                        ? `${Math.floor(ticket.total_time_minutes / 60)}h ${ticket.total_time_minutes % 60}m`
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium">
+                      {ticket.total_cost > 0 ? `€${ticket.total_cost.toFixed(2)}` : "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <TimeAgo date={ticket.created_at} />
