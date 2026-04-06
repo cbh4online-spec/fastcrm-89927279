@@ -16,11 +16,35 @@ export default function ThankYouPage() {
   const sessionId = searchParams.get("session");
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const purchaseTrackedRef = useRef(false);
+  const sessionId = searchParams.get("session");
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (sessionId) loadSession();
     else setLoading(false);
   }, [sessionId]);
+
+  // Fire purchase tracking once session loaded
+  useEffect(() => {
+    if (!session || purchaseTrackedRef.current) return;
+    purchaseTrackedRef.current = true;
+    const products = session.cart_data?.products || [];
+    trackPurchase(
+      session.id,
+      products.map((p: any) => ({
+        item_id: p.id || p.productId || "",
+        item_name: p.name || "",
+        price: p.price || 0,
+        quantity: p.quantity || 1,
+        currency: session.currency || "EUR",
+      })),
+      session.total_value || 0,
+      session.currency || "EUR",
+      { email: session.customer_email },
+    );
+  }, [session]);
 
   async function loadSession() {
     try {
