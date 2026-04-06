@@ -7,6 +7,7 @@ import { AgentAssignDropdown } from "./AgentAssignDropdown";
 import { TicketTagsEditor } from "./TicketTagsEditor";
 import { CSATWidget } from "./CSATWidget";
 import { TicketClientCard } from "./TicketClientCard";
+import { TicketClientHistory } from "./TicketClientHistory";
 import { Calendar, Tag, User, Building2, Headphones, Flag, Clock, Copy, CheckCircle, UserCircle, MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import TimeAgo from "react-timeago";
@@ -84,6 +85,19 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
           <UserCircle className="h-3 w-3" /> Cliente
         </h4>
         <TicketClientCard contactId={ticket.contact_id} companyId={ticket.company_id} />
+      </div>
+
+      {/* ── CLIENT HISTORY ── */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <Clock className="h-3 w-3" /> Histórico
+        </h4>
+        <TicketClientHistory
+          contactId={ticket.contact_id}
+          companyId={ticket.company_id}
+          currentTicketId={ticket.id}
+          workspaceId={ticket.workspace_id}
+        />
       </div>
 
       <div className="border-t border-border" />

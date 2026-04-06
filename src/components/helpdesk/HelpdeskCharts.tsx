@@ -246,3 +246,129 @@ export function AgentWorkloadChart({ tickets, profiles = [] }: AgentWorkloadProp
     </Card>
   );
 }
+
+const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const HOURS = Array.from({ length: 24 }, (_, i) => `${i}h`);
+
+export function VolumeHeatmap({ tickets }: HelpdeskChartsProps) {
+  const heatmapData = useMemo(() => {
+    // Create 7x24 matrix (day x hour)
+    const matrix: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
+    tickets.forEach((t) => {
+      const d = new Date(t.created_at);
+      matrix[d.getDay()][d.getHours()]++;
+    });
+    let maxVal = 0;
+    matrix.forEach(row => row.forEach(v => { if (v > maxVal) maxVal = v; }));
+    return { matrix, maxVal };
+  }, [tickets]);
+
+  const getColor = (value: number) => {
+    if (value === 0) return "bg-muted";
+    const intensity = heatmapData.maxVal > 0 ? value / heatmapData.maxVal : 0;
+    if (intensity > 0.75) return "bg-primary";
+    if (intensity > 0.5) return "bg-primary/70";
+    if (intensity > 0.25) return "bg-primary/40";
+    return "bg-primary/20";
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Heatmap de Volume (dia × hora)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <div className="min-w-[500px]">
+            {/* Hour labels */}
+            <div className="flex ml-10 mb-1">
+              {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (
+                <span
+                  key={h}
+                  className="text-[9px] text-muted-foreground"
+                  style={{ position: "relative", left: `${(h / 24) * 100}%`, width: 0 }}
+                >
+                  {h}h
+                </span>
+              ))}
+            </div>
+            {/* Rows */}
+            {heatmapData.matrix.map((row, dayIdx) => (
+              <div key={dayIdx} className="flex items-center gap-1 mb-0.5">
+                <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">
+                  {DAYS[dayIdx]}
+                </span>
+                <div className="flex gap-[2px] flex-1">
+                  {row.map((val, hourIdx) => (
+                    <div
+                      key={hourIdx}
+                      className={`h-3 flex-1 rounded-[2px] transition-colors ${getColor(val)}`}
+                      title={`${DAYS[dayIdx]} ${hourIdx}h: ${val} tickets`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function SLAByDepartmentChart({ tickets }: HelpdeskChartsProps) {
+  const data = useMemo(() => {
+    const deptMap: Record<string, { total: number; breached: number; avgResolution: number; resolvedCount: number }> = {};
+    tickets.forEach((t) => {
+      const dept = t.department || "Sem Dept.";
+      if (!deptMap[dept]) deptMap[dept] = { total: 0, breached: 0, avgResolution: 0, resolvedCount: 0 };
+      deptMap[dept].total++;
+      if (t.sla_deadline && !["resolved", "closed"].includes(t.status) && new Date(t.sla_deadline) < new Date()) {
+        deptMap[dept].breached++;
+      }
+      if (t.resolved_at) {
+        const resMs = new Date(t.resolved_at).getTime() - new Date(t.created_at).getTime();
+        deptMap[dept].avgResolution += resMs / (1000 * 60 * 60);
+        deptMap[dept].resolvedCount++;
+      }
+    });
+
+    return Object.entries(deptMap).map(([dept, v]) => ({
+      name: dept,
+      compliance: v.total > 0 ? Math.round(((v.total - v.breached) / v.total) * 100) : 100,
+      mttr: v.resolvedCount > 0 ? Math.round((v.avgResolution / v.resolvedCount) * 10) / 10 : 0,
+      total: v.total,
+    })).sort((a, b) => b.total - a.total);
+  }, [tickets]);
+
+  if (data.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">SLA por Departamento</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} />
+              <Tooltip
+                formatter={(v: number) => [`${v}%`, "SLA Compliance"]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              />
+              <Bar dataKey="compliance" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

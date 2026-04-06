@@ -13,6 +13,8 @@ import {
   TicketTrendChart,
   TicketsByChannelChart,
   AgentWorkloadChart,
+  VolumeHeatmap,
+  SLAByDepartmentChart,
 } from "@/components/helpdesk/HelpdeskCharts";
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
@@ -212,10 +214,16 @@ export default function HelpdeskDashboard() {
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TicketTrendChart tickets={tickets} />
         <TicketsByChannelChart tickets={tickets} />
+      </div>
+
+      {/* Charts Row 2: Heatmap + SLA by Department */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <VolumeHeatmap tickets={tickets} />
+        <SLAByDepartmentChart tickets={tickets} />
       </div>
 
       {/* Bottom Row: Status + Agent Workload + Urgent + Recent */}
