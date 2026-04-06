@@ -21,6 +21,7 @@ import {
   Save,
   Languages,
   CheckSquare,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,6 +32,8 @@ import { VariableContext } from "@/lib/templateVariables";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCannedShortcut } from "@/hooks/useCannedShortcut";
 
 interface AIMessageComposerProps {
   conversationId: string;
