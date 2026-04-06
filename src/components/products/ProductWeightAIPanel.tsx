@@ -43,7 +43,6 @@ export function ProductWeightAIPanel({
   const [saving, setSaving] = useState(false);
   const [estimation, setEstimation] = useState<WeightEstimation | null>(null);
   const [manualWeight, setManualWeight] = useState<string>(currentWeight?.toString() || "");
-  const updateProduct = useUpdateProduct();
 
   const handleEstimate = async () => {
     setLoading(true);
@@ -72,12 +71,21 @@ export function ProductWeightAIPanel({
   };
 
   const handleApply = async (weight: number) => {
+    setSaving(true);
     try {
-      await updateProduct.mutateAsync({ id: productId, weight });
+      const { error } = await supabase
+        .from("products")
+        .update({ weight })
+        .eq("id", productId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["product", productId] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(`Peso atualizado para ${weight} kg`);
       setEstimation(null);
     } catch {
       toast.error("Erro ao guardar peso");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -98,7 +106,6 @@ export function ProductWeightAIPanel({
         )}
       </div>
 
-      {/* Manual input */}
       <div className="flex items-center gap-2">
         <Input
           type="number"
@@ -114,10 +121,10 @@ export function ProductWeightAIPanel({
           size="sm"
           variant="outline"
           className="h-8"
-          disabled={!manualWeight || updateProduct.isPending}
+          disabled={!manualWeight || saving}
           onClick={() => handleApply(parseFloat(manualWeight))}
         >
-          {updateProduct.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Guardar"}
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Guardar"}
         </Button>
         <Button
           size="sm"
@@ -131,7 +138,6 @@ export function ProductWeightAIPanel({
         </Button>
       </div>
 
-      {/* AI Estimation result */}
       {estimation && conf && (
         <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
           <div className="flex items-center justify-between">
@@ -146,7 +152,7 @@ export function ProductWeightAIPanel({
               size="sm"
               className="h-7 gap-1"
               onClick={() => handleApply(estimation.weight_kg)}
-              disabled={updateProduct.isPending}
+              disabled={saving}
             >
               <Check className="h-3 w-3" /> Aplicar
             </Button>
