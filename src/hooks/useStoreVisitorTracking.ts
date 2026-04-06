@@ -247,13 +247,25 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     });
   }, [productId, workspaceId, upsertSession, triggerClassification, trackEvent]);
 
-  // Heartbeat (includes scroll depth + exit page automatically via upsertSession)
+  // Time milestone scoring
+  const timeScoreTracked = useRef({ t60: false, t180: false });
+  // Heartbeat (includes scroll depth + exit page + score milestones)
   useEffect(() => {
     if (!workspaceId) return;
 
     heartbeatRef.current = setInterval(async () => {
       const result = await upsertSession();
       if (!result) return;
+
+      // Time-based score milestones
+      if (result.timeOnSite >= 60 && !timeScoreTracked.current.t60) {
+        timeScoreTracked.current.t60 = true;
+        trackEvent("time_60s");
+      }
+      if (result.timeOnSite >= 180 && !timeScoreTracked.current.t180) {
+        timeScoreTracked.current.t180 = true;
+        trackEvent("time_180s");
+      }
 
       if (result.timeOnSite >= CLASSIFY_TIME_THRESHOLD) {
         triggerClassification();
@@ -263,5 +275,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
-  }, [workspaceId, upsertSession, triggerClassification]);
+  }, [workspaceId, upsertSession, triggerClassification, trackEvent]);
+
+  return { trackEvent, getScore };
 }
