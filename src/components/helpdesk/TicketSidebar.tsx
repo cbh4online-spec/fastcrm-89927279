@@ -103,6 +103,11 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
 
       <div className="border-t border-border" />
 
+      {/* ── COMMERCIAL ACTIONS ── */}
+      <TicketCommercialActions ticket={ticket} />
+
+      <div className="border-t border-border" />
+
       {/* SLA */}
       {ticket.sla_deadline && !isResolved && (
         <div>
