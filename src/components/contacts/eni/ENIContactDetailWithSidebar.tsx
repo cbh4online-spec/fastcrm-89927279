@@ -462,6 +462,10 @@ export function ENIContactDetailWithSidebar() {
             contactId={id!} contactName={contact.name} contactEmail={contact.email}
           />
         );
+      case 'support':
+        return (
+          <EntityTicketsSection entityType="contact" entityId={id!} entityName={contact.name} />
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
