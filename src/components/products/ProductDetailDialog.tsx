@@ -435,7 +435,7 @@ export function ProductDetailDialog({
                       productName={product.name}
                       sku={product.sku}
                       category={product.category}
-                      description={product.description}
+                      description={(product as any).description}
                       currentWeight={(product as any).weight}
                     />
 
