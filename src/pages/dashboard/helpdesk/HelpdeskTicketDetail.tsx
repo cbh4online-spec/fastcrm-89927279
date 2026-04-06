@@ -8,13 +8,14 @@ import { TicketActivityTimeline } from "@/components/helpdesk/TicketActivityTime
 import { TicketRelatedList } from "@/components/helpdesk/TicketRelatedList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Headphones, MessageSquare, History, Link2 } from "lucide-react";
+import { ArrowLeft, Headphones, MessageSquare, History, Link2, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export default function HelpdeskTicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { tickets, isLoading: ticketsLoading, updateTicket } = useHelpdeskTickets();
+  const { tickets, isLoading: ticketsLoading, updateTicket, deleteTicket } = useHelpdeskTickets();
   const { messages, isLoading: messagesLoading, sendMessage } = useHelpdeskTicketMessages(id);
   const { addHistory } = useHelpdeskHistory(id);
 
@@ -90,6 +91,38 @@ export default function HelpdeskTicketDetail() {
             #{ticket.ticket_number} — {ticket.subject}
           </h1>
         </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Apagar ticket?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é irreversível. O ticket #{ticket.ticket_number} e todas as suas mensagens serão eliminados permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  deleteTicket.mutate(ticket.id, {
+                    onSuccess: () => {
+                      toast.success("Ticket apagado");
+                      navigate("/dashboard/helpdesk/tickets");
+                    },
+                    onError: () => toast.error("Erro ao apagar ticket"),
+                  });
+                }}
+              >
+                Apagar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Split layout */}
