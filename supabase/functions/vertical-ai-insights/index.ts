@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const { template_slug, stats } = await req.json();
+    const { template_slug, stats, workspace_id } = await req.json();
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
