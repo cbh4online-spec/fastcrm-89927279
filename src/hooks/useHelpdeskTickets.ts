@@ -98,7 +98,7 @@ export function useHelpdeskTickets(filters?: TicketFilters) {
         contact_name: row.contacts?.name || null,
         contact_email: row.contacts?.email || null,
         company_name: row.companies?.name || null,
-        assigned_agent_name: row.profiles?.display_name || null,
+        assigned_agent_name: row.profiles?.full_name || null,
         contacts: undefined,
         companies: undefined,
         profiles: undefined,
