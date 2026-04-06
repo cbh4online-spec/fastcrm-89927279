@@ -6,9 +6,10 @@ import { TicketMessageThread } from "@/components/helpdesk/TicketMessageThread";
 import { TicketSidebar } from "@/components/helpdesk/TicketSidebar";
 import { TicketActivityTimeline } from "@/components/helpdesk/TicketActivityTimeline";
 import { TicketRelatedList } from "@/components/helpdesk/TicketRelatedList";
+import { TicketTimeCosts } from "@/components/helpdesk/TicketTimeCosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Headphones, MessageSquare, History, Link2, Trash2 } from "lucide-react";
+import { ArrowLeft, Headphones, MessageSquare, History, Link2, Trash2, Clock } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -143,6 +144,10 @@ export default function HelpdeskTicketDetail() {
                 <Link2 className="h-3.5 w-3.5" />
                 Relacionados
               </TabsTrigger>
+              <TabsTrigger value="time-costs" className="gap-1.5 text-xs">
+                <Clock className="h-3.5 w-3.5" />
+                Tempo & Custos
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="conversation" className="flex-1 flex flex-col mt-0 overflow-hidden">
@@ -160,6 +165,10 @@ export default function HelpdeskTicketDetail() {
 
             <TabsContent value="related" className="flex-1 overflow-y-auto mt-0">
               <TicketRelatedList currentTicket={ticket} />
+            </TabsContent>
+
+            <TabsContent value="time-costs" className="flex-1 overflow-y-auto mt-0">
+              <TicketTimeCosts ticketId={ticket.id} />
             </TabsContent>
           </Tabs>
         </div>
