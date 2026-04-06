@@ -1,6 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ProductSeoHead } from "@/components/store/storefront/ProductSeoHead";
+import { StoreProductDescription } from "@/components/store/StoreProductDescription";
+import { StoreProductHighlights } from "@/components/store/StoreProductHighlights";
+import { humanizeSpecKey, filterValidSpecs } from "@/utils/specLabels";
 import { addDays, format, isWeekend, nextMonday } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
@@ -254,7 +257,8 @@ export default function StoreProductPage() {
   }
 
   const images = product.images?.length ? product.images : [];
-  const specs = product.specifications || {};
+  const rawSpecs = product.specifications || {};
+  const specs = filterValidSpecs(rawSpecs);
   const hasVideo = !!product.demo_video_url;
   const primaryIndex = product.primary_image_index ?? 0;
   const currentImage = images[selectedImage];
@@ -722,62 +726,30 @@ export default function StoreProductPage() {
             </motion.div>
           </div>
 
-          {/* Details Section */}
+          {/* Details Section — Vertical stack (Amazon pattern) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="mt-12 grid md:grid-cols-2 gap-8"
+            className="mt-12 space-y-8"
           >
+            {/* 1. Highlights */}
+            <StoreProductHighlights
+              benefits={product.benefits}
+              shortDescription={product.short_description}
+              specs={specs}
+            />
+
+            {/* 2. Description with Read More */}
             {product.commercial_description && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Descrição</h2>
-                <div className="prose prose-sm text-muted-foreground max-w-none">
-                  <p className="whitespace-pre-wrap">{product.commercial_description}</p>
-                </div>
-              </div>
+              <StoreProductDescription description={product.commercial_description} />
             )}
 
-            {product.benefits && product.benefits.length > 5 && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Todos os Benefícios</h2>
-                <ul className="space-y-2">
-                  {product.benefits.map((b, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-muted-foreground">{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {/* 3. Specifications — humanized */}
+            {Object.keys(specs).length > 0 && (
+              <StoreProductSpecs specs={specs} />
             )}
           </motion.div>
-
-          {/* Specifications */}
-          {Object.keys(specs).length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-xl font-semibold mb-6">Especificações</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {Object.entries(specs).map(([key, value]) => {
-                  const SpecIcon = getSpecIcon(key);
-                  return (
-                    <div
-                      key={key}
-                      className="group flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-                    >
-                      <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 text-primary group-hover:from-primary/25 group-hover:to-primary/10 transition-colors">
-                        <SpecIcon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 text-left">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground truncate">{key}</p>
-                        <p className="text-sm font-semibold text-foreground mt-0.5 break-words">{value}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Price Comparison & History */}
           <div className="mt-12 grid md:grid-cols-2 gap-8">
