@@ -80,10 +80,15 @@ export function EntityTicketsSection({ entityType, entityId, entityName }: Entit
             <Badge variant="secondary" className="text-xs">{openCount} aberto{openCount !== 1 ? "s" : ""}</Badge>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Novo Ticket
-        </Button>
+        <CreateTicketDialog
+          onSubmit={async (data) => {
+            const submitData = {
+              ...data,
+              ...(entityType === "contact" ? { contact_id: entityId } : { company_id: entityId }),
+            };
+            await createTicket.mutateAsync(submitData);
+          }}
+        />
       </div>
 
       {isLoading ? (
