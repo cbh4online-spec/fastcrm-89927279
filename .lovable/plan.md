@@ -1,80 +1,97 @@
 
 
-## Plano: SEO de Imagens de Produto + Metadados para Google/Facebook
+## Plano: Algoritmos Google & Facebook — Otimização para Tráfego
 
-### Problema Atual
-1. **Nomes de ficheiro genéricos**: Imagens são guardadas como `{productId}-{timestamp}.jpg` — sem valor SEO
-2. **Alt text pobre**: Usa apenas o nome do ficheiro original ou "Imagem N"
-3. **Sem metadados na tabela `product_images`**: Faltam campos como `seo_filename`, `title`, `caption`
-4. **JSON-LD incompleto**: O `ProductSeoHead` já tem Schema.org básico mas não inclui imagens individuais com metadados
+### Diagnóstico
 
-### O que será feito
+O projeto tem infraestrutura parcial mas faltam peças críticas para os algoritmos de Google e Facebook gerarem tráfego:
 
-#### 1. Migração DB — Adicionar campos SEO à tabela `product_images`
-Novos campos:
-- `seo_filename` (TEXT) — nome SEO-friendly gerado automaticamente (ex: `suporte-painel-aj-hub-b-AJ-BRACKETHUB-B.jpg`)
-- `title` (TEXT) — título da imagem para atributo `title`
-- `caption` (TEXT) — legenda para Facebook/Pinterest
+**Google — O que existe:**
+- ✅ Schema.org Product JSON-LD com `AggregateRating`, `Offer`, `BreadcrumbList`
+- ✅ Sitemap da loja (`store-sitemap`) com produtos
+- ✅ GTM + GA4 + dataLayer para eventos internos
+- ✅ Canonical URLs, og:tags básicas
 
-#### 2. Upload com nomes SEO-friendly
-Alterar `ProductImagesGallery.tsx` para:
-- Gerar o nome do ficheiro no formato: `{slug-do-produto}-{sku}-{posição}.{ext}`
-- Usar caracteres seguros (slugify), sem UUIDs ou timestamps no nome
-- Auto-preencher `alt_text` com: `"{nome do produto} - {categoria} - {SKU}"`
-- Auto-preencher `seo_filename` e `title`
+**Google — O que falta:**
+- ❌ **Eventos e-commerce GA4 standard** (`view_item`, `add_to_cart`, `begin_checkout`, `purchase`) — o Google usa estes para alimentar campanhas Shopping/Performance Max
+- ❌ **Google Product Feed (XML/RSS)** para Google Merchant Center — obrigatório para aparecer no Google Shopping
+- ❌ **IndexNow** — notificação instantânea ao Google quando produtos novos são publicados
+- ❌ **FAQ Schema** nas páginas de produto (boost de rich snippets)
 
-#### 3. Enriquecer JSON-LD (Schema.org)
-No `ProductSeoHead.tsx`:
-- Expandir o campo `image` no JSON-LD de string simples para array de `ImageObject` com `name`, `contentUrl`, `caption`
-- Adicionar `brand`, `category`, `gtin` (se disponível) ao schema Product
-- Adicionar meta tags Facebook Product (`product:brand`, `product:category`)
+**Facebook — O que existe:**
+- ✅ Meta Pixel inicializado com PageView
+- ✅ OG tags (og:title, og:image, product:price)
 
-#### 4. Auto-geração de alt text com IA (botão opcional)
-- Adicionar botão "Gerar Alt Text com IA" na galeria de imagens
-- Usa o modelo de visão para analisar a imagem e gerar alt text descritivo em português
-- Preenche também `title` e `caption`
+**Facebook — O que falta:**
+- ❌ **Eventos standard do Pixel** (`ViewContent`, `AddToCart`, `InitiateCheckout`, `Purchase`) — sem estes, o algoritmo do Facebook não consegue otimizar campanhas
+- ❌ **Facebook Product Catalog Feed (XML)** — obrigatório para Dynamic Product Ads e Instagram Shopping
+- ❌ **Conversions API (CAPI)** server-side — o Facebook penaliza contas que dependem só do pixel browser (iOS tracking prevention)
 
-#### 5. Atualizar tipo TypeScript e hook
-- Estender `ProductImage` com os novos campos
-- Atualizar `useProductImages` e `useAddProductImage` para incluir os metadados
+### Implementação
 
-### Detalhes Técnicos
+#### 1. Eventos E-commerce Standard (Google GA4 + Meta Pixel)
+Criar `src/lib/ecommerceTracking.ts` com funções que disparam simultaneamente para dataLayer (GA4) e fbq (Meta):
 
-**Formato do nome SEO:**
-```
-suporte-painel-aj-hub-b-AJ-BRACKETHUB-B-1.jpg
-{produto-slug}-{SKU}-{posição}.{extensão}
-```
+| Ação | GA4 Event | Meta Pixel Event |
+|------|-----------|-----------------|
+| Ver produto | `view_item` | `ViewContent` |
+| Adicionar ao carrinho | `add_to_cart` | `AddToCart` |
+| Iniciar checkout | `begin_checkout` | `InitiateCheckout` |
+| Compra concluída | `purchase` | `Purchase` |
 
-**Schema.org enriquecido:**
-```json
-{
-  "@type": "Product",
-  "name": "...",
-  "image": [
-    {
-      "@type": "ImageObject",
-      "contentUrl": "https://...",
-      "name": "suporte-painel-aj-hub-b.jpg",
-      "caption": "Suporte para painel AJ-HUB-B"
-    }
-  ],
-  "brand": { "@type": "Brand", "name": "Ajax" },
-  "category": "Acessórios de Intrusão"
-}
-```
+Integrar nos componentes existentes: `StoreProductPage`, `useStoreCartStore`, `useCheckoutForm`, `ThankYouPage`.
 
-**Meta tags adicionais (Facebook/Google):**
-```html
-<meta property="og:image:alt" content="..." />
-<meta property="product:brand" content="Ajax" />
-<meta property="product:category" content="Acessórios de Intrusão" />
-```
+#### 2. Google Product Feed (Edge Function)
+Nova edge function `store-product-feed` que gera XML compatível com Google Merchant Center:
+- Formato RSS 2.0 com namespace `g:` (Google Shopping)
+- Campos: `g:id`, `g:title`, `g:description`, `g:link`, `g:image_link`, `g:price`, `g:availability`, `g:brand`, `g:gtin`, `g:condition`, `g:product_type`
+- URL: `/functions/v1/store-product-feed?slug={workspace}`
+- Cache 1h, máximo 5000 produtos
 
-### Ficheiros a modificar
-- **Migration SQL** — adicionar `seo_filename`, `title`, `caption` a `product_images`
-- `src/components/products/ProductImagesGallery.tsx` — upload com nomes SEO + auto-fill metadados
-- `src/components/store/storefront/ProductSeoHead.tsx` — JSON-LD enriquecido + meta tags extra
-- `src/types/product.ts` — estender `ProductImage`
-- `src/hooks/useProductImages.ts` — passar novos campos
+#### 3. Facebook Catalog Feed (Edge Function)
+Nova edge function `store-facebook-feed` que gera XML/CSV compatível com Facebook Commerce Manager:
+- Campos Facebook: `id`, `title`, `description`, `availability`, `condition`, `price`, `link`, `image_link`, `brand`, `google_product_category`
+- URL: `/functions/v1/store-facebook-feed?slug={workspace}`
+
+#### 4. Conversions API (CAPI) Server-Side
+Nova edge function `store-capi-event` para enviar eventos server-side ao Facebook:
+- Recebe eventos do frontend via POST
+- Envia ao Graph API `/events` com `event_name`, `event_time`, `user_data` (hashed email/phone), `custom_data` (value, currency, content_ids)
+- Deduplica com `event_id` partilhado entre Pixel e CAPI
+- Campos de configuração na `store_settings`: `facebook_pixel_id`, `facebook_capi_token`, `facebook_catalog_id`
+
+#### 5. IndexNow — Notificação Instantânea
+Nova edge function `store-indexnow` chamada automaticamente quando um produto é publicado/atualizado:
+- Envia POST ao `https://api.indexnow.org/indexnow` com a URL do produto
+- Chave IndexNow armazenada em ficheiro estático
+
+#### 6. Migração DB
+Adicionar à tabela `store_settings`:
+- `facebook_pixel_id` (TEXT) — Pixel ID por loja (override do default)
+- `facebook_capi_token` (TEXT) — Token de acesso à Conversions API
+- `facebook_catalog_id` (TEXT) — ID do catálogo Facebook
+- `google_merchant_id` (TEXT) — ID do Google Merchant Center
+
+### Ficheiros a criar/modificar
+
+**Novos:**
+- `src/lib/ecommerceTracking.ts` — Tracking unificado GA4 + Meta Pixel
+- `supabase/functions/store-product-feed/index.ts` — Google Merchant Feed
+- `supabase/functions/store-facebook-feed/index.ts` — Facebook Catalog Feed
+- `supabase/functions/store-capi-event/index.ts` — Conversions API server-side
+- `supabase/functions/store-indexnow/index.ts` — IndexNow notificação
+
+**Modificados:**
+- `src/pages/store/StoreProductPage.tsx` — Adicionar `view_item` + `ViewContent`
+- `src/stores/useStoreCartStore.ts` — Adicionar `AddToCart` ao Meta Pixel
+- `src/components/store/checkout/useCheckoutForm.ts` — Adicionar `InitiateCheckout`
+- `src/pages/checkout/ThankYouPage.tsx` — Adicionar `purchase` + `Purchase`
+- `src/modules/growth-seo/lib/gtmEvents.ts` — Estender com eventos e-commerce
+- Migração SQL — Novos campos em `store_settings`
+
+### Impacto Esperado
+- **Google Shopping**: Produtos indexados e elegíveis para aparecer em resultados de compras
+- **Facebook/Instagram Ads**: Dynamic Product Ads automáticos e retargeting baseado em comportamento real
+- **SEO**: Indexação 10x mais rápida via IndexNow
+- **ROAS**: Dados de conversão server-side (CAPI) melhoram a atribuição em ~30%
 
