@@ -131,16 +131,17 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     }
   }, [workspaceId]);
 
-  // Initial session creation + page tracking
+  // Initial session creation + page tracking + score events
   useEffect(() => {
     if (!workspaceId) return;
 
     pagesCount.current += 1;
+    trackEvent("page_view");
 
     // Add to pages history (deduplicate consecutive)
     const lastPage = pagesHistory.current[pagesHistory.current.length - 1];
     if (lastPage !== currentPage) {
-      pagesHistory.current = [...pagesHistory.current, currentPage].slice(-50); // keep last 50
+      pagesHistory.current = [...pagesHistory.current, currentPage].slice(-50);
     }
 
     // Reset scroll depth for new page
@@ -161,9 +162,10 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     }
 
     upsertSession(initFields);
-  }, [workspaceId, currentPage, upsertSession]);
+  }, [workspaceId, currentPage, upsertSession, trackEvent]);
 
-  // Scroll depth tracking
+  // Scroll depth tracking + score milestones
+  const scrollScoreTracked = useRef({ s75: false, s100: false });
   useEffect(() => {
     if (!workspaceId) return;
 
@@ -172,8 +174,16 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       if (depth > maxScrollDepth.current) {
         maxScrollDepth.current = depth;
       }
+      // Score milestones
+      if (depth >= 75 && !scrollScoreTracked.current.s75) {
+        scrollScoreTracked.current.s75 = true;
+        trackEvent("scroll_75");
+      }
+      if (depth >= 100 && !scrollScoreTracked.current.s100) {
+        scrollScoreTracked.current.s100 = true;
+        trackEvent("scroll_100");
+      }
 
-      // Throttled upsert on significant scroll
       if (scrollThrottleRef.current) return;
       scrollThrottleRef.current = setTimeout(() => {
         scrollThrottleRef.current = undefined;
@@ -185,7 +195,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       window.removeEventListener("scroll", handleScroll);
       if (scrollThrottleRef.current) clearTimeout(scrollThrottleRef.current);
     };
-  }, [workspaceId]);
+  }, [workspaceId, trackEvent]);
 
   // Track exit page on beforeunload
   useEffect(() => {
