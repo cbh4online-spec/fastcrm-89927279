@@ -221,6 +221,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Este contacto ainda não recebeu campanhas de marketing.',
     suggestion: 'Envie uma campanha para ver o histórico aqui.',
   },
+  support: {
+    icon: MessageSquare,
+    title: 'Sem tickets de suporte',
+    description: 'Nenhum ticket de suporte associado.',
+    suggestion: 'Crie um ticket para registar pedidos de suporte.',
+    actionLabel: 'Novo Ticket',
+  },
 };
 
 export function EntityEmptyState({
