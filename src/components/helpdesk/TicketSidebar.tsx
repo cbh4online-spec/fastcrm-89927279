@@ -87,6 +87,19 @@ export function TicketSidebar({ ticket, onUpdate }: TicketSidebarProps) {
         <TicketClientCard contactId={ticket.contact_id} companyId={ticket.company_id} />
       </div>
 
+      {/* ── CLIENT HISTORY ── */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <Clock className="h-3 w-3" /> Histórico
+        </h4>
+        <TicketClientHistory
+          contactId={ticket.contact_id}
+          companyId={ticket.company_id}
+          currentTicketId={ticket.id}
+          workspaceId={ticket.workspace_id}
+        />
+      </div>
+
       <div className="border-t border-border" />
 
       {/* SLA */}
