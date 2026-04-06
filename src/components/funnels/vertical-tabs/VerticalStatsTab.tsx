@@ -24,6 +24,10 @@ import { StatsSourcesTab } from "../stats/StatsSourcesTab";
 import { StatsSectionsTab } from "../stats/StatsSectionsTab";
 import { StatsGeoDeviceTab } from "../stats/StatsGeoDeviceTab";
 import { StatsTimelineTab } from "../stats/StatsTimelineTab";
+import { StatsFormsTab } from "../stats/StatsFormsTab";
+import { StatsClicksTab } from "../stats/StatsClicksTab";
+import { StatsAttentionTab } from "../stats/StatsAttentionTab";
+import { StatsGoalsTab } from "../stats/StatsGoalsTab";
 import {
   type DatePreset, type StatsEvent,
   computeTrendData, computeSourceBreakdown, computeDeviceBreakdown,
@@ -204,11 +208,15 @@ export function VerticalStatsTab({ templateSlug }: Props) {
       {/* Tabs */}
       {!isLoading && (
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+          <TabsList className="flex w-max overflow-x-auto">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="trends">Tendências</TabsTrigger>
             <TabsTrigger value="sources">Fontes</TabsTrigger>
             <TabsTrigger value="sections">Secções</TabsTrigger>
+            <TabsTrigger value="forms">Formulários</TabsTrigger>
+            <TabsTrigger value="clicks">Cliques</TabsTrigger>
+            <TabsTrigger value="attention">Atenção</TabsTrigger>
+            <TabsTrigger value="goals">Objetivos</TabsTrigger>
             <TabsTrigger value="geo">Geo & Device</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
@@ -243,6 +251,22 @@ export function VerticalStatsTab({ templateSlug }: Props) {
               events={events as StatsEvent[]}
               totalViews={totalViews}
             />
+          </TabsContent>
+
+          <TabsContent value="forms">
+            <StatsFormsTab events={events as StatsEvent[]} />
+          </TabsContent>
+
+          <TabsContent value="clicks">
+            <StatsClicksTab events={events as StatsEvent[]} />
+          </TabsContent>
+
+          <TabsContent value="attention">
+            <StatsAttentionTab sections={sections} events={events as StatsEvent[]} />
+          </TabsContent>
+
+          <TabsContent value="goals">
+            <StatsGoalsTab events={events as StatsEvent[]} templateSlug={templateSlug} />
           </TabsContent>
 
           <TabsContent value="geo">

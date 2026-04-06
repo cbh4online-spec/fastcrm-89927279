@@ -11672,6 +11672,47 @@ export type Database = {
           },
         ]
       }
+      chat_canned_responses: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          shortcut: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          shortcut?: string
+          title?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          shortcut?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_canned_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkout_ab_tests: {
         Row: {
           created_at: string | null
@@ -18234,6 +18275,50 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversion_goals: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          goal_config: Json
+          goal_type: string
+          id: string
+          name: string
+          target_value: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          goal_config?: Json
+          goal_type?: string
+          id?: string
+          name: string
+          target_value?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          goal_config?: Json
+          goal_type?: string
+          id?: string
+          name?: string
+          target_value?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversion_goals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -40951,6 +41036,107 @@ export type Database = {
         }
         Relationships: []
       }
+      popup_responses: {
+        Row: {
+          created_at: string
+          device_type: string | null
+          id: string
+          page_url: string | null
+          response_data: Json | null
+          rule_id: string | null
+          session_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_url?: string | null
+          response_data?: Json | null
+          rule_id?: string | null
+          session_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          page_url?: string | null
+          response_data?: Json | null
+          rule_id?: string | null
+          session_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "popup_responses_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "popup_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "popup_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      popup_rules: {
+        Row: {
+          content: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          max_shows_per_session: number | null
+          name: string
+          popup_type: string
+          target_pages: string[] | null
+          trigger_type: string
+          trigger_value: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_shows_per_session?: number | null
+          name?: string
+          popup_type?: string
+          target_pages?: string[] | null
+          trigger_type?: string
+          trigger_value?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_shows_per_session?: number | null
+          name?: string
+          popup_type?: string
+          target_pages?: string[] | null
+          trigger_type?: string
+          trigger_value?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "popup_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_entities: {
         Row: {
           category: string | null
@@ -53153,6 +53339,7 @@ export type Database = {
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
+          visitor_score: number | null
           workspace_id: string
         }
         Insert: {
@@ -53186,6 +53373,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visitor_score?: number | null
           workspace_id: string
         }
         Update: {
@@ -53219,6 +53407,7 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+          visitor_score?: number | null
           workspace_id?: string
         }
         Relationships: [
@@ -56687,10 +56876,15 @@ export type Database = {
       vertical_landing_events: {
         Row: {
           city: string | null
+          click_element: string | null
+          click_x_pct: number | null
+          click_y_pct: number | null
           country: string | null
           created_at: string
           device_type: string | null
           event_type: string
+          field_name: string | null
+          field_order: number | null
           id: string
           ip_hash: string | null
           page_section: string | null
@@ -56709,10 +56903,15 @@ export type Database = {
         }
         Insert: {
           city?: string | null
+          click_element?: string | null
+          click_x_pct?: number | null
+          click_y_pct?: number | null
           country?: string | null
           created_at?: string
           device_type?: string | null
           event_type: string
+          field_name?: string | null
+          field_order?: number | null
           id?: string
           ip_hash?: string | null
           page_section?: string | null
@@ -56731,10 +56930,15 @@ export type Database = {
         }
         Update: {
           city?: string | null
+          click_element?: string | null
+          click_x_pct?: number | null
+          click_y_pct?: number | null
           country?: string | null
           created_at?: string
           device_type?: string | null
           event_type?: string
+          field_name?: string | null
+          field_order?: number | null
           id?: string
           ip_hash?: string | null
           page_section?: string | null

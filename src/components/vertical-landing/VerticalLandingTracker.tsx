@@ -67,7 +67,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
       .then(() => {});
   }, [slug, templateId, workspaceId]);
 
-  // Section scroll tracking with time measurement
+  // Section scroll tracking with time measurement + click tracking
   useEffect(() => {
     if (!slug) return;
     const sessionId = getSessionId();
@@ -84,10 +84,8 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
           if (!sectionId) continue;
 
           if (entry.isIntersecting) {
-            // Track entry time
             sectionEntryTimes.current.set(sectionId, Date.now());
 
-            // Insert section_view event if not yet tracked
             if (!sectionsTracked.current.has(sectionId)) {
               sectionsTracked.current.add(sectionId);
               (supabase as any)
@@ -104,13 +102,10 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
                 .then(() => {});
             }
           } else {
-            // Section left viewport — record time spent
             const entryTime = sectionEntryTimes.current.get(sectionId);
             if (entryTime) {
               const duration = Math.round(Date.now() - entryTime);
-              sectionEntryTimes.current.delete(sectionId);
               if (duration > 500) {
-                // Insert a section_exit event with time
                 (supabase as any)
                   .from("vertical_landing_events")
                   .insert({
@@ -125,6 +120,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
                   })
                   .then(() => {});
               }
+              sectionEntryTimes.current.delete(sectionId);
             }
           }
         }
@@ -132,9 +128,41 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
       { threshold: 0.3 }
     );
 
-    // Observe sections after a delay to let the page render
+    // Click tracking — normalized coordinates
+    const clickHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      const tag = target.tagName?.toLowerCase() || "";
+      const isInteractive = ["a", "button", "input", "select", "textarea"].includes(tag) ||
+        target.closest("a, button, [role=button]");
+      if (!isInteractive) return;
+
+      const xPct = Math.round((e.clientX / window.innerWidth) * 100);
+      const yPct = Math.round(((e.clientY + window.scrollY) / document.body.scrollHeight) * 100);
+      const elLabel = target.textContent?.trim().substring(0, 50) ||
+        target.getAttribute("aria-label") ||
+        `${tag}${target.className ? '.' + target.className.split(' ')[0] : ''}`;
+
+      (supabase as any)
+        .from("vertical_landing_events")
+        .insert({
+          template_slug: slug,
+          template_id: templateId || null,
+          workspace_id: workspaceId || null,
+          event_type: "element_click",
+          session_id: sessionId,
+          device_type: getDeviceType(),
+          click_x_pct: xPct,
+          click_y_pct: yPct,
+          click_element: elLabel,
+        })
+        .then(() => {});
+    };
+
+    document.addEventListener("click", clickHandler, { passive: true });
+
+    // Observe sections after a delay
     const timer = setTimeout(() => {
-      // Observe default sections + any custom data-section elements
       const allSectionEls = document.querySelectorAll("[data-section]");
       if (allSectionEls.length > 0) {
         allSectionEls.forEach(el => observer.observe(el));
@@ -149,10 +177,34 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
     return () => {
       clearTimeout(timer);
       observer.disconnect();
+      document.removeEventListener("click", clickHandler);
     };
   }, [slug, templateId, workspaceId]);
 
   return null;
+}
+
+/** Track form field events */
+export function trackVerticalFieldEvent(
+  slug: string, eventType: "field_focus" | "field_blur" | "form_abandon",
+  fieldName: string, fieldOrder: number, timeMs?: number,
+  templateId?: string, workspaceId?: string
+) {
+  const sessionId = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
+  (supabase as any)
+    .from("vertical_landing_events")
+    .insert({
+      template_slug: slug,
+      template_id: templateId || null,
+      workspace_id: workspaceId || null,
+      event_type: eventType,
+      session_id: sessionId,
+      device_type: getDeviceType(),
+      field_name: fieldName,
+      field_order: fieldOrder,
+      time_on_section_ms: timeMs || null,
+    })
+    .then(() => {});
 }
 
 /** Call this after a successful form submission */

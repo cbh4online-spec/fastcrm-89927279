@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +31,9 @@ interface FunnelStepFormProps {
   marketingOptInLabel?: string;
   onSubmit: (data: Record<string, unknown>) => Promise<void>;
   onFormStarted?: () => void;
+  onFieldFocus?: (fieldName: string, fieldOrder: number) => void;
+  onFieldBlur?: (fieldName: string, fieldOrder: number, timeMs: number) => void;
+  onFormAbandon?: (lastField: string) => void;
   submitted?: boolean;
 }
 
@@ -91,6 +94,9 @@ export function FunnelStepForm({
   marketingOptInLabel,
   onSubmit,
   onFormStarted,
+  onFieldFocus,
+  onFieldBlur,
+  onFormAbandon,
   submitted,
 }: FunnelStepFormProps) {
   const schema = buildSchema(fields, consentRequired);
@@ -108,6 +114,9 @@ export function FunnelStepForm({
   });
 
   const formStartedRef = useRef(false);
+  const lastFieldRef = useRef<string>("");
+  const fieldEntryTime = useRef<number>(0);
+  const formSubmittedRef = useRef(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
   // Track form_started on first focus
@@ -118,12 +127,35 @@ export function FunnelStepForm({
     }
   };
 
+  // Field-level focus tracking
+  const handleFieldFocus = useCallback((fieldName: string, fieldOrder: number) => {
+    lastFieldRef.current = fieldName;
+    fieldEntryTime.current = Date.now();
+    handleFocus();
+    onFieldFocus?.(fieldName, fieldOrder);
+  }, [onFieldFocus]);
+
+  const handleFieldBlur = useCallback((fieldName: string, fieldOrder: number) => {
+    const timeMs = fieldEntryTime.current > 0 ? Date.now() - fieldEntryTime.current : 0;
+    onFieldBlur?.(fieldName, fieldOrder, timeMs);
+  }, [onFieldBlur]);
+
+  // Track form abandon on unmount
+  useEffect(() => {
+    return () => {
+      if (formStartedRef.current && !formSubmittedRef.current && lastFieldRef.current) {
+        onFormAbandon?.(lastFieldRef.current);
+      }
+    };
+  }, [onFormAbandon]);
+
   const doSubmit = async (data: Record<string, unknown>) => {
     // Check honeypot
     if (data.__hp) return;
     delete data.__hp;
 
     try {
+      formSubmittedRef.current = true;
       await onSubmit(data);
       setStatus("success");
     } catch {
@@ -269,6 +301,7 @@ export function FunnelStepForm({
         }
 
         if (field.type === "textarea") {
+          const fieldIdx = fields.filter(f => f.type !== "hidden").indexOf(field);
           return (
             <div key={field.id} className="space-y-1.5">
               <Label className="text-sm">
@@ -279,6 +312,8 @@ export function FunnelStepForm({
                 {...register(field.id)}
                 placeholder={field.placeholder}
                 rows={3}
+                onFocus={() => handleFieldFocus(field.id, fieldIdx)}
+                onBlur={() => handleFieldBlur(field.id, fieldIdx)}
               />
               {error && <p className="text-xs text-destructive">{String(error.message)}</p>}
             </div>
@@ -286,6 +321,7 @@ export function FunnelStepForm({
         }
 
         // text, email, phone
+        const fieldIdx = fields.filter(f => f.type !== "hidden").indexOf(field);
         return (
           <div key={field.id} className="space-y-1.5">
             <Label className="text-sm">
@@ -296,6 +332,8 @@ export function FunnelStepForm({
               type={field.type === "phone" ? "tel" : field.type === "email" ? "email" : "text"}
               {...register(field.id)}
               placeholder={field.placeholder}
+              onFocus={() => handleFieldFocus(field.id, fieldIdx)}
+              onBlur={() => handleFieldBlur(field.id, fieldIdx)}
             />
             {error && <p className="text-xs text-destructive">{String(error.message)}</p>}
           </div>
