@@ -53282,8 +53282,13 @@ export type Database = {
           c2c_seller_approval_required: boolean | null
           created_at: string
           custom_domain: string | null
+          facebook_capi_token: string | null
+          facebook_catalog_id: string | null
+          facebook_pixel_id: string | null
           footer_text: string | null
+          google_merchant_id: string | null
           id: string
+          indexnow_key: string | null
           logo_url: string | null
           notification_email: string | null
           payment_methods: Json
@@ -53311,8 +53316,13 @@ export type Database = {
           c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
+          facebook_capi_token?: string | null
+          facebook_catalog_id?: string | null
+          facebook_pixel_id?: string | null
           footer_text?: string | null
+          google_merchant_id?: string | null
           id?: string
+          indexnow_key?: string | null
           logo_url?: string | null
           notification_email?: string | null
           payment_methods?: Json
@@ -53340,8 +53350,13 @@ export type Database = {
           c2c_seller_approval_required?: boolean | null
           created_at?: string
           custom_domain?: string | null
+          facebook_capi_token?: string | null
+          facebook_catalog_id?: string | null
+          facebook_pixel_id?: string | null
           footer_text?: string | null
+          google_merchant_id?: string | null
           id?: string
+          indexnow_key?: string | null
           logo_url?: string | null
           notification_email?: string | null
           payment_methods?: Json
