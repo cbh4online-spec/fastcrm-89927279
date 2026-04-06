@@ -55259,6 +55259,8 @@ export type Database = {
           id: string
           priority: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at: string | null
+          satisfaction_comment: string | null
+          satisfaction_rating: number | null
           sla_deadline: string | null
           status: Database["public"]["Enums"]["support_ticket_status"]
           subject: string
@@ -55282,6 +55284,8 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at?: string | null
+          satisfaction_comment?: string | null
+          satisfaction_rating?: number | null
           sla_deadline?: string | null
           status?: Database["public"]["Enums"]["support_ticket_status"]
           subject: string
@@ -55305,6 +55309,8 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["support_ticket_priority"]
           resolved_at?: string | null
+          satisfaction_comment?: string | null
+          satisfaction_rating?: number | null
           sla_deadline?: string | null
           status?: Database["public"]["Enums"]["support_ticket_status"]
           subject?: string
