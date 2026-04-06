@@ -206,5 +206,6 @@ export function useStoreAdminProducts(search: string) {
     loadingPrices, bulkProgress,
     publishedCount: products.filter(p => p.store_published).length,
     featuredCount: products.filter(p => p.store_featured).length,
+    missingWeightCount: products.filter(p => p.weight === null || p.weight === undefined).length,
   };
 }
