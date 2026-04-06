@@ -86,7 +86,7 @@ const LEADS_SELECT_COLUMNS = `
   website, business_category, cae_description, capital_social,
   legal_nature, external_email, external_username, linkedin_url,
   facebook_url, instagram_url, twitter_url, fax, company_status,
-  services, cae_codes
+  services, cae_codes, youtube_url, tiktok_url, pinterest_url, whatsapp_url
 `;
 
 export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof useQuery<SmartLeadsResult>> {
