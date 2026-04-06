@@ -209,7 +209,7 @@ export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?:
         .select("event_type, session_id, created_at")
         .eq("template_slug", templateSlug);
       if (dateFrom) q = q.gte("created_at", dateFrom);
-      if (dateTo) q = q.lte("created_at", dateTo);
+      if (dateTo) q = q.lte("created_at", dateTo + "T23:59:59.999Z");
       const { data, error } = await q;
       if (error) throw error;
 
