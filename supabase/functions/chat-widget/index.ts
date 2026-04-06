@@ -32,6 +32,7 @@ interface WidgetConfig {
   require_email_before_chat: boolean;
   auto_open_delay_ms: number;
   custom_css?: string;
+  proactive_rules?: Array<{ trigger_type: string; value: number; message: string; enabled?: boolean }>;
 }
 
 Deno.serve(async (req) => {
