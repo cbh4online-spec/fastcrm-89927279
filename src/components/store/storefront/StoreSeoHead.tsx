@@ -14,6 +14,9 @@ export function StoreSeoHead({ storeName, wsSlug, storeSettings, products }: Sto
   const canonical = `${getPublicBaseUrl()}/store/${wsSlug}`;
   const description = storeSettings?.store_description || "Explore os nossos produtos e serviços";
   const ogImage = storeSettings?.banner_url || storeSettings?.logo_url;
+  const isBanner = !!storeSettings?.banner_url;
+  const ogWidth = isBanner ? "1200" : "800";
+  const ogHeight = isBanner ? "630" : "800";
 
   // Organization JSON-LD
   const organizationJsonLd = {
@@ -55,6 +58,9 @@ export function StoreSeoHead({ storeName, wsSlug, storeSettings, products }: Sto
       <meta property="og:url" content={canonical} />
       <meta property="og:site_name" content="FastCRM" />
       {ogImage && <meta property="og:image" content={ogImage} />}
+      {ogImage && <meta property="og:image:width" content={ogWidth} />}
+      {ogImage && <meta property="og:image:height" content={ogHeight} />}
+      {ogImage && <meta property="og:image:type" content={ogImage.endsWith(".png") ? "image/png" : "image/jpeg"} />}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={`${storeName} | FastCRM`} />
       <meta name="twitter:description" content={description} />

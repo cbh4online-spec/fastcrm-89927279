@@ -26,6 +26,8 @@ import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSal
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { useC2CStorefrontProducts } from "@/hooks/useC2CStorefrontProducts";
+import { StoreShareButtons } from "@/components/store/StoreShareButtons";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
