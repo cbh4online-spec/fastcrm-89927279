@@ -116,6 +116,9 @@ export function ProductSeoHead({ product, storeName, wsSlug, pricing, reviewAvg,
       <meta property="og:site_name" content={storeName} />
       {primaryImage && <meta property="og:image" content={primaryImage} />}
       {primaryImage && <meta property="og:image:alt" content={primaryAlt} />}
+      {primaryImage && <meta property="og:image:width" content="800" />}
+      {primaryImage && <meta property="og:image:height" content="800" />}
+      {primaryImage && <meta property="og:image:type" content={primaryImage.endsWith(".png") ? "image/png" : "image/jpeg"} />}
       <meta property="product:price:amount" content={price} />
       <meta property="product:price:currency" content={currency} />
       {product.brand && <meta property="product:brand" content={product.brand} />}
