@@ -5,8 +5,7 @@ import { StoreHeader } from "@/components/store/StoreHeader";
 import { StoreCartDrawer } from "@/components/store/StoreCartDrawer";
 import { StoreFooter } from "@/components/store/StoreFooter";
 import { useMyReferralCode, useMyReferrals, useReferralSettings } from "@/hooks/useStoreReferrals";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,19 +21,11 @@ export default function StoreReferralPage() {
   const wsSlug = workspaceSlug || "";
   const [copied, setCopied] = useState(false);
 
-  const { data: workspace } = useQuery({
-    queryKey: ["store-workspace-id", wsSlug],
-    queryFn: async () => {
-      const { data } = await supabase.from("workspaces").select("id, name").eq("slug", wsSlug).single();
-      return data;
-    },
-    enabled: !!wsSlug,
-  });
+  const { workspaceId: wsId } = useResolveStoreWorkspace(wsSlug);
 
-  const wsId = workspace?.id;
-  const { data: settings } = useReferralSettings(wsId);
-  const { data: myCode, isLoading: loadingCode } = useMyReferralCode(wsId);
-  const { data: referrals = [] } = useMyReferrals(wsId);
+  const { data: settings } = useReferralSettings(wsId || undefined);
+  const { data: myCode, isLoading: loadingCode } = useMyReferralCode(wsId || undefined);
+  const { data: referrals = [] } = useMyReferrals(wsId || undefined);
 
   const referralUrl = myCode
     ? `${getPublicBaseUrl()}/store/${wsSlug}?ref=${myCode.code}`
