@@ -100,18 +100,7 @@ export function StoreShareButtons({ url, title, description, image }: StoreShare
   };
 
   return (
-    <div className="space-y-3">
-      {/* Mini preview card */}
-      {image && (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-2.5">
-          <img src={image} alt={title} className="h-12 w-12 rounded-md object-cover flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{title}</p>
-            {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
-          </div>
-        </div>
-      )}
-
+    <div>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm text-muted-foreground flex items-center gap-1.5">
           <Share2 className="h-4 w-4" />
