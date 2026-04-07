@@ -76,19 +76,29 @@ export function useCreateBotCommentJob() {
       if (jobErr) throw jobErr;
 
       // Invoke edge function
-      const { error: fnErr } = await supabase.functions.invoke("generate-bot-comments", {
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke("generate-bot-comments", {
         body: { jobId: job.id },
       });
       if (fnErr) throw fnErr;
 
-      return job;
+      return {
+        ...job,
+        result: fnData,
+      };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["bot-comment-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["store-reviews-moderation"] });
-      toast.success("Comentários gerados com sucesso! Aguardam aprovação.");
+      queryClient.invalidateQueries({ queryKey: ["workspace-qa"] });
+
+      const reviewsGenerated = result?.result?.reviews_generated ?? 0;
+      const qaGenerated = result?.result?.qa_generated ?? 0;
+      toast.success(`Comentários gerados: ${reviewsGenerated} reviews, ${qaGenerated} Q&A.`);
     },
     onError: (e: any) => {
+      queryClient.invalidateQueries({ queryKey: ["bot-comment-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["store-reviews-moderation"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-qa"] });
       toast.error("Erro ao gerar comentários: " + e.message);
     },
   });

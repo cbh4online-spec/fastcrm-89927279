@@ -218,6 +218,9 @@ ${qaCount > 0 ? `- ${qaCount} pares pergunta/resposta` : ""}`;
 
     // Insert reviews as bot-generated, unapproved
     let reviewsInserted = 0;
+    let qaInserted = 0;
+    const insertErrors: string[] = [];
+
     for (const review of reviews) {
       const randomProfile = botProfiles[Math.floor(Math.random() * botProfiles.length)];
       const { error: revErr } = await supabase.from("store_reviews").insert({
@@ -232,11 +235,20 @@ ${qaCount > 0 ? `- ${qaCount} pares pergunta/resposta` : ""}`;
         reviewer_name: review.reviewer_name,
         is_approved: false,
       });
-      if (!revErr) reviewsInserted++;
+
+      if (revErr) {
+        console.error("Review insert error:", revErr.message, {
+          jobId,
+          productId: product.id,
+          reviewerName: review.reviewer_name,
+        });
+        insertErrors.push(`Review: ${revErr.message}`);
+      } else {
+        reviewsInserted++;
+      }
     }
 
     // Insert Q&A
-    let qaInserted = 0;
     for (const qa of questions) {
       const randomProfile = botProfiles[Math.floor(Math.random() * botProfiles.length)];
       const { error: qaErr } = await supabase.from("product_qa").insert({
@@ -249,7 +261,39 @@ ${qaCount > 0 ? `- ${qaCount} pares pergunta/resposta` : ""}`;
         asker_name: qa.asker_name,
         is_approved: false,
       });
-      if (!qaErr) qaInserted++;
+
+      if (qaErr) {
+        console.error("Q&A insert error:", qaErr.message, {
+          jobId,
+          productId: product.id,
+          askerName: qa.asker_name,
+        });
+        insertErrors.push(`Q&A: ${qaErr.message}`);
+      } else {
+        qaInserted++;
+      }
+    }
+
+    if (insertErrors.length > 0) {
+      const errorMessage = insertErrors.slice(0, 3).join(" | ");
+      await supabase.from("bot_comment_jobs").update({
+        status: "failed",
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage,
+        result_json: {
+          reviews_generated: reviewsInserted,
+          qa_generated: qaInserted,
+        },
+      }).eq("id", jobId);
+
+      return new Response(JSON.stringify({
+        error: errorMessage,
+        reviews_generated: reviewsInserted,
+        qa_generated: qaInserted,
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Update job as completed
