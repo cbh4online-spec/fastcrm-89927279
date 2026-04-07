@@ -2,38 +2,44 @@
 
 ## Diagnóstico
 
-Analisando o screenshot do WhatsApp (IMG_0416), identifico dois problemas distintos:
+Analisando o screenshot (IMG_0417), identifico 3 problemas críticos:
 
-1. **URL directa em vez de og-proxy** — A mensagem de produto partilhada no WhatsApp contém o URL directo (`https://fastcrm.metodopare.ai/store/simplesedivertido/product/...`) em vez do URL do og-proxy. Como a app é uma SPA (Single Page Application), o crawler do WhatsApp recebe apenas o `index.html` genérico com os meta tags "FastCRM com Método PARE" e o logo do site — nunca vê os meta tags específicos do produto (imagem, título, preço).
+1. **"SD" ainda aparece ao lado do logo** — No `StoreHeader.tsx` linha 76, a condição `(!logoUrl || true)` faz com que o `storeName` seja **sempre** renderizado, anulando o `hidden sm:inline` aplicado depois. O `|| true` é um bug.
 
-2. **OG image genérica expirada** — O `og:image` no `index.html` usa um URL assinado do Google Storage com `Expires=1774642344` (≈ março 2026), que já expirou. Mesmo para partilhas genéricas do site, a imagem não carrega.
+2. **Categoria ocupa 5-6 linhas nos cards** — "ACESSÓRIOS DE SEGURANÇA CONTRA INCÊNDIO" em `uppercase tracking-wider` expande demasiado horizontalmente em cards de ~170px. O `line-clamp-1` não é suficiente quando o texto é tão longo. Solução: **esconder a categoria em mobile** (`hidden sm:block`) — é redundante quando o utilizador já filtrou por categoria.
 
-O `og-proxy` edge function **já funciona correctamente** — serve OG tags com a imagem do produto quando detecta um crawler. O problema é que os URLs partilhados no WhatsApp não passam pelo og-proxy.
+3. **Nome do produto truncado a "Acessór de..."** — Com a categoria a ocupar tanto espaço, o `line-clamp-2` mal mostra 1 palavra. Escondendo a categoria em mobile, o nome ganha espaço para 2 linhas legíveis.
+
+4. **Barra de filtros mobile** — O botão "Filtros" + contagem de produtos está separado do grid, criando um layout disperso. Deve ficar numa barra horizontal compacta acima do grid com o sort integrado.
 
 ## Plano de Implementação
 
-### 1. Corrigir OG image expirada no index.html
-**Ficheiro:** `index.html`
-- Substituir o URL assinado (expirado) do `og:image` por um URL permanente (ex: `/og-image.png` hospedado no public folder ou um URL de storage público sem expiração)
+### 1. Corrigir bug do storeName no header
+**Ficheiro:** `src/components/store/StoreHeader.tsx`
+- Linha 76: Mudar `(!logoUrl || true)` para `!logoUrl` — quando há logo, esconder o nome em mobile
 
-### 2. Garantir que mensagens automatizadas usam og-proxy URLs
-**Ficheiros a verificar/corrigir:**
-- `supabase/functions/process-product-alerts/index.ts` — usa URL directo `https://fastcrm.lovable.app/store/...` em vez de og-proxy
-- `supabase/functions/_shared/whatsapp-autopilot.ts` — se o AI autopilot sugere links de produto, deve usar og-proxy
-- Qualquer outra edge function que gere URLs de produto para envio via canais de mensagem
+### 2. Esconder categoria em mobile nos cards
+**Ficheiro:** `src/components/store/StoreProductCard.tsx`
+- Linha 320-323: Adicionar `hidden sm:block` à categoria — em mobile a categoria é redundante (especialmente quando se filtra por categoria)
 
-### 3. Adicionar fallback no og-proxy para domínio custom
-**Ficheiro:** `supabase/functions/og-proxy/index.ts`
-- O `BASE_URL` já é `https://fastcrm.metodopare.ai` — verificar que o redirect funciona correctamente
-- Confirmar que `isCrawler` detecta o user-agent do WhatsApp (já incluído no regex: `WhatsApp`)
+### 3. Melhorar barra de filtros mobile
+**Ficheiro:** `src/components/store/storefront/StoreCatalogSection.tsx`
+- Integrar o botão de filtros (Sheet trigger) e a contagem de produtos numa barra horizontal compacta acima do grid
+- Adicionar o select de ordenação na mesma barra em mobile
 
-### 4. Verificar acessibilidade das imagens de produto
-- As imagens de produto em storage devem ser públicas para que o crawler do WhatsApp consiga descarregá-las
-- Se estão em buckets privados, o WhatsApp não consegue renderizar o `og:image`
+**Ficheiro:** `src/components/store/StoreFilterSidebar.tsx`
+- Extrair o Sheet trigger para fora do componente, ou expor o mobile trigger separadamente para ser posicionado na barra superior do catálogo
 
-## Critérios de Aceitação
-- Link de produto partilhado no WhatsApp mostra preview com imagem, título e preço do produto
-- OG image genérica do site funciona (URL não expirado)
-- Todas as edge functions que geram URLs de produto para mensagens usam og-proxy
-- Imagens de produto acessíveis publicamente para crawlers
+### Ficheiros a modificar
+- `src/components/store/StoreHeader.tsx` — corrigir condição `|| true`
+- `src/components/store/StoreProductCard.tsx` — esconder categoria em mobile
+- `src/components/store/storefront/StoreCatalogSection.tsx` — barra de filtros horizontal
+- `src/components/store/StoreFilterSidebar.tsx` — ajustar trigger mobile
+
+### Critérios de Aceitação
+- Sem "SD" ao lado do logo em mobile quando há logo
+- Categoria invisível em mobile, visível em `sm:` e acima
+- Nome do produto com 2 linhas legíveis em cards mobile
+- Barra de filtros compacta e horizontal acima do grid em mobile
+- Layout limpo em 375-414px
 
