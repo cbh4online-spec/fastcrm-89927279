@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
-import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
+import { StoreFilterSidebar, FilterContent, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { Button } from "@/components/ui/button";
@@ -125,13 +125,11 @@ export function StoreCatalogSection({
                       </SheetTitle>
                     </SheetHeader>
                     <div className="mt-4">
-                      <StoreFilterSidebar
+                      <FilterContent
                         categories={categories}
                         filters={filters}
                         onFiltersChange={onFiltersChange}
-                        totalProducts={products.length}
                         maxProductPrice={maxPrice}
-                        renderMode="content-only"
                       />
                     </div>
                   </SheetContent>
