@@ -115,10 +115,10 @@ REGRAS:
 - NUNCA mencionar que são gerados por IA
 - Variar o estilo de escrita entre cada comentário`;
 
+    const productDescription = product.commercial_description || product.short_description || "N/A";
     const userPrompt = `Produto: ${product.name}
-Descrição: ${product.description || "N/A"}
+Descrição: ${productDescription}
 Categoria: ${product.category || "N/A"}
-Marca: ${product.brand || "N/A"}
 Preço: €${product.base_price}
 
 Perfis disponíveis: ${botProfiles.map(p => p.display_name).join(", ")}
