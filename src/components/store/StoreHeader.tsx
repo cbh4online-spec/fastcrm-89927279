@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight, Star, Users, Gift } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
