@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
               extraTags += `\n<meta property="product:price:amount" content="${esc(price)}"/>`;
               extraTags += `\n<meta property="product:price:currency" content="${esc(currency)}"/>`;
             }
-            if (product.brand) extraTags += `\n<meta property="product:brand" content="${esc(product.brand)}"/>`;
+            if ((product as any).brand) extraTags += `\n<meta property="product:brand" content="${esc((product as any).brand)}"/>`;
             if (product.category) extraTags += `\n<meta property="product:category" content="${esc(product.category)}"/>`;
             // Store extra tags for later use
             (product as any)._extraOgTags = extraTags;
