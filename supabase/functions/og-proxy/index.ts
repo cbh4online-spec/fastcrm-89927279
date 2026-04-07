@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
           const [wsSlug, productId] = parts;
           const { data: product } = await supabase
             .from("products")
-            .select("name, short_description, images, base_price, currency, brand, category")
+            .select("name, short_description, images, base_price, currency, category")
             .eq("id", productId)
             .single();
           if (product) {
