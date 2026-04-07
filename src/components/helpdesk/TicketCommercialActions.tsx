@@ -303,6 +303,25 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Proposal Dialog */}
+      {linkedDeal && (
+        <CreateProposalDialog
+          open={showProposalDialog}
+          onOpenChange={setShowProposalDialog}
+          opportunityId={linkedDeal.id}
+        />
+      )}
+
+      {/* Create Invoice Dialog */}
+      {linkedDeal && (
+        <CreateInvoiceDialog
+          open={showInvoiceDialog}
+          onOpenChange={setShowInvoiceDialog}
+          defaultOpportunityId={linkedDeal.id}
+          defaultContactId={ticket.contact_id || undefined}
+        />
+      )}
     </div>
   );
 }
