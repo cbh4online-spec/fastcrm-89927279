@@ -61,6 +61,7 @@ function syncToDb(items: CartItem[], subtotal: number) {
       cart_subtotal: items.length > 0 ? subtotal : 0,
       cart_updated_at: new Date().toISOString(),
       last_activity_at: new Date().toISOString(),
+      cart_processed: false,
     })
     .eq("session_id", sessionId)
     .then(({ error }: any) => {
