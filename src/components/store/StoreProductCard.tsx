@@ -223,12 +223,12 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
             {/* Quick actions — always visible on mobile, hover on desktop */}
             <div className="absolute bottom-3 right-3 flex flex-col gap-2 sm:opacity-0 sm:translate-y-3 transition-all duration-300 sm:group-hover:opacity-100 sm:group-hover:translate-y-0">
-              {/* Compare */}
+              {/* Compare — desktop only */}
               <Button
                 size="icon"
                 variant="secondary"
                 className={cn(
-                  "h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90",
+                  "hidden sm:flex h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90",
                   inCompare && "bg-primary text-primary-foreground hover:bg-primary/90"
                 )}
                 onClick={(e) => {
@@ -244,11 +244,11 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               >
                 <GitCompareArrows className="h-4 w-4" />
               </Button>
-              {/* Quick View */}
+              {/* Quick View — desktop only */}
               <Button
                 size="icon"
                 variant="secondary"
-                className="h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90"
+                className="hidden sm:flex h-9 w-9 rounded-full shadow-lg backdrop-blur-sm bg-background/80 hover:bg-background transition-transform duration-200 active:scale-90"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -257,6 +257,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               >
                 <Eye className="h-4 w-4" />
               </Button>
+              {/* Wishlist — always visible */}
               {workspaceId && (
                 <Button
                   size="icon"
@@ -271,22 +272,25 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
                   <Heart className={cn("h-4 w-4 transition-colors", isInWishlist && "fill-destructive text-destructive")} />
                 </Button>
               )}
-              {/* Quick Buy & Cart — hidden for price_on_request */}
+              {/* Quick Buy — desktop only */}
               {!isPriceOnRequest && (
                 <>
-                  <StoreQuickBuyButton
-                    product={{
-                      id: product.id,
-                      name: product.name,
-                      price: effectivePrice,
-                      currency: product.currency,
-                      image: imageUrl,
-                      sku: product.sku || undefined,
-                    }}
-                    workspaceSlug={workspaceSlug}
-                    disabled={!canAddToCart}
-                    compact
-                  />
+                  <div className="hidden sm:block">
+                    <StoreQuickBuyButton
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        price: effectivePrice,
+                        currency: product.currency,
+                        image: imageUrl,
+                        sku: product.sku || undefined,
+                      }}
+                      workspaceSlug={workspaceSlug}
+                      disabled={!canAddToCart}
+                      compact
+                    />
+                  </div>
+                  {/* Cart — always visible */}
                   <Button
                     size="icon"
                     className="h-10 w-10 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
@@ -314,7 +318,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               </Link>
             )}
             {product.category && (
-              <p className="text-[10px] sm:text-[11px] font-semibold text-primary/70 uppercase tracking-widest line-clamp-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-primary/70 uppercase tracking-wider sm:tracking-widest line-clamp-1 overflow-hidden text-ellipsis">
                 {product.category}
               </p>
             )}
