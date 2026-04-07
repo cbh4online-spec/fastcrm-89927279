@@ -2,45 +2,45 @@
 
 ## Diagnóstico
 
-Analisando o screenshot da loja em mobile (iPhone, ~393px), identifico os seguintes problemas:
+Analisando o screenshot (IMG_0414.png) no viewport ~393px:
 
-1. **Cards de produto com texto de categoria a transbordar** — O texto da categoria (ex: "ACESSORIOS DE SEGURANCA / PECAS DE REPOSICAO") é demasiado longo e ocupa 4-5 linhas no card, empurrando o nome do produto e preço para baixo
-2. **Nome do produto truncado prematuramente** — `line-clamp-2` combinado com o texto longo de categoria não deixa espaço suficiente para o nome
-3. **Short description visível em mobile** — Ocupa espaço desnecessário nos cards compactos de 2 colunas
-4. **Padding excessivo nos cards** — `p-4` é demasiado para cards em grid de 2 colunas em mobile
-5. **Badges de imagem (Destaque, Popular) com texto demasiado grande para mobile** — Sobrepõem-se na imagem pequena
-6. **Quick actions (hover overlay) irrelevantes em mobile** — São ações de hover que não funcionam em touch; deviam ter alternativa touch-friendly
-7. **Produto detail page (3-zone grid)** — O grid `lg:grid-cols-[1fr_1fr_320px]` funciona, mas em `md` colapsa para 2 colunas com o buy box a ocupar `md:col-span-2`, criando layout estranho em tablet
+1. **Texto de categoria continua a transbordar** — "ACESSÓRIOS DE SEGURANÇA / PEÇAS DE REPOSIÇÃO" ocupa 5-6 linhas no card, mesmo com `line-clamp-1` aplicado. O problema é que o `line-clamp-1` está aplicado mas o `uppercase tracking-widest` expande muito o texto horizontalmente, forçando quebras.
+
+2. **"SD" visível ao lado do logo** — O `storeName` mostra "SD" (initials) porque `hidden sm:inline` esconde apenas o nome completo, mas o storeName recebido pode ser curto. Na verdade, o logo existe e o "SD" é provavelmente o texto que deveria estar completamente escondido em mobile quando há logo.
+
+3. **Cards demasiado altos** — A combinação de imagem + categoria multilinha + nome + short_description (mesmo hidden) + preço cria cards muito altos para mobile.
+
+4. **Quick actions sempre visíveis empilham 5+ botões** — Em mobile, os quick actions (Compare, Quick View, Wishlist, Quick Buy, Cart) estão agora todos visíveis, criando uma coluna de 5 botões sobre a imagem que é intrusiva.
+
+5. **Build error** — O log de build foi truncado. Preciso verificar se há um erro real de compilação ou apenas warnings de tamanho de bundle.
 
 ## Plano de Implementação
 
-### 1. Otimizar StoreProductCard para mobile
+### 1. Corrigir truncagem de categoria nos cards
 **Ficheiro:** `src/components/store/StoreProductCard.tsx`
-- Limitar categoria a `line-clamp-1` e reduzir font-size em mobile
-- Esconder `short_description` em mobile (apenas visível em `sm:` e acima)
-- Reduzir padding do info section de `p-4` para `p-3 sm:p-4`
-- Reduzir tamanho do preço em mobile: `text-base sm:text-lg`
-- Badges: reduzir texto e padding em mobile
-- Quick actions: mostrar botão de carrinho sempre visível em mobile (não depender de hover)
+- Adicionar `overflow-hidden text-ellipsis` à categoria além de `line-clamp-1`
+- Reduzir `tracking-widest` para `tracking-wider` em mobile para evitar expansão horizontal
+- Considerar esconder a categoria completamente em `< 375px` se continuar a transbordar
 
-### 2. Ajustar grid do catálogo para mobile
-**Ficheiro:** `src/components/store/storefront/StoreCatalogSection.tsx`
-- Reduzir gap no grid mobile: `gap-3 md:gap-6` (em vez de `gap-4 md:gap-6`)
-
-### 3. Otimizar StoreProductPage para mobile
-**Ficheiro:** `src/pages/store/StoreProductPage.tsx`
-- Garantir que breadcrumb não transborda em mobile (adicionar `overflow-x-auto`)
-- Ajustar espaçamento entre secções em mobile
-
-### 4. Melhorar header em mobile
+### 2. Esconder completamente storeName quando há logo em mobile
 **Ficheiro:** `src/components/store/StoreHeader.tsx`
-- Limitar largura do logo para não empurrar ícones
-- Esconder nome da loja quando há logo em mobile (apenas visível em `sm:`)
+- Quando `logoUrl` existe, o `storeName` deve ser `hidden sm:inline` sem exceção
+- Verificar se o "SD" que aparece é o storeName ou outro elemento
+
+### 3. Reduzir quick actions em mobile
+**Ficheiro:** `src/components/store/StoreProductCard.tsx`
+- Em mobile, mostrar apenas 2 botões essenciais: Wishlist + Carrinho
+- Esconder Compare, Quick View e Quick Buy em mobile (`hidden sm:flex`)
+- Isto reduz a intrusão visual sobre a imagem do produto
+
+### 4. Verificar e corrigir erro de build
+- Investigar se o build realmente falhou ou se o log foi apenas truncado
+- Se houver erro TypeScript, corrigir a causa raiz
 
 ## Critérios de Aceitação
-- Cards legíveis em viewport de 375-414px com categoria, nome e preço visíveis sem scroll
-- Sem texto a transbordar dos cards
-- Botão de adicionar ao carrinho acessível em mobile (sem depender de hover)
-- Header compacto sem overflow
-- Layout responsivo sem quebras visuais
+- Categoria limitada a 1 linha sem overflow em 375-414px
+- Nenhum texto extra ao lado do logo em mobile
+- Máximo 2-3 quick actions visíveis em mobile
+- Build passa sem erros
+- Cards compactos e legíveis em mobile
 
