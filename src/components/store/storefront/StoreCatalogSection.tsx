@@ -92,7 +92,7 @@ export function StoreCatalogSection({
             </div>
 
             {isLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="space-y-3">
                     <Skeleton className="aspect-square w-full rounded-2xl" />
@@ -122,7 +122,7 @@ export function StoreCatalogSection({
                 {!isFiltering && (
                   <h2 className="text-2xl font-bold text-foreground mb-6">Todo o Catálogo</h2>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                   {products.map((product, index) => (
                     <StoreProductCard
                       key={product.id}

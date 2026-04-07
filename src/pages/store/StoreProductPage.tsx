@@ -379,7 +379,7 @@ export default function StoreProductPage() {
           <motion.nav
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 text-sm text-muted-foreground mb-6"
+            className="flex items-center gap-2 text-sm text-muted-foreground mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide"
           >
             <Link to={`/store/${wsSlug}`} className="hover:text-foreground transition-colors">
               Loja
