@@ -73,8 +73,8 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
             {logoUrl && (
               <img src={logoUrl} alt={storeName} className="h-8 sm:h-10 w-auto max-w-[100px] sm:max-w-[160px] object-contain rounded" />
             )}
-            {(!logoUrl || true) && (
-              <span className={cn("text-lg sm:text-xl font-bold tracking-tight", logoUrl ? "hidden sm:inline" : "")}>{storeName}</span>
+            {!logoUrl && (
+              <span className="text-lg sm:text-xl font-bold tracking-tight">{storeName}</span>
             )}
           </Link>
 

@@ -318,7 +318,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               </Link>
             )}
             {product.category && (
-              <p className="text-[10px] sm:text-[11px] font-semibold text-primary/70 uppercase tracking-wider sm:tracking-widest line-clamp-1 overflow-hidden text-ellipsis">
+              <p className="hidden sm:block text-[10px] sm:text-[11px] font-semibold text-primary/70 uppercase tracking-wider sm:tracking-widest line-clamp-1 overflow-hidden text-ellipsis">
                 {product.category}
               </p>
             )}

@@ -77,7 +77,7 @@ const CONDITION_OPTIONS = [
   { value: "satisfactory", label: "Satisfatório" },
 ];
 
-function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
+export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
   const priceRange = [filters.minPrice ?? 0, filters.maxPrice ?? maxProductPrice];
   const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
 
@@ -225,33 +225,7 @@ export function StoreFilterSidebar(props: StoreFilterSidebarProps) {
         </div>
       </aside>
 
-      {/* Mobile filter sheet */}
-      <div className="lg:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtros
-              {activeCount > 0 && (
-                <Badge className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
-                  {activeCount}
-                </Badge>
-              )}
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-80">
-            <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Filtros
-              </SheetTitle>
-            </SheetHeader>
-            <div className="mt-4">
-              <FilterContent {...props} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+      {/* Mobile filter sheet - rendered inline in StoreCatalogSection */}
     </>
   );
 }

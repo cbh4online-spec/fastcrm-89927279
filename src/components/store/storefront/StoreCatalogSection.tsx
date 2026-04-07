@@ -1,12 +1,27 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { StoreProductCard } from "@/components/store/StoreProductCard";
-import { StoreFilterSidebar, type StoreFilters } from "@/components/store/StoreFilterSidebar";
+import { StoreFilterSidebar, FilterContent, type StoreFilters } from "@/components/store/StoreFilterSidebar";
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Package, SlidersHorizontal } from "lucide-react";
 
 interface StoreCatalogSectionProps {
   products: any[];
@@ -84,11 +99,60 @@ export function StoreCatalogSection({
 
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
-            {/* Mobile sort bar */}
-            <div className="flex items-center justify-between mb-6 lg:hidden">
-              <span className="text-sm text-muted-foreground">
-                {products.length} produto{products.length !== 1 ? "s" : ""}
-              </span>
+            {/* Mobile filter + sort bar */}
+            <div className="flex items-center justify-between gap-2 mb-4 lg:hidden">
+              <div className="flex items-center gap-2">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      Filtros
+                      {(() => {
+                        const count = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
+                        return count > 0 ? (
+                          <Badge className="h-4 w-4 rounded-full p-0 flex items-center justify-center text-[9px]">
+                            {count}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80">
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Filtros
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4">
+                      <FilterContent
+                        categories={categories}
+                        filters={filters}
+                        onFiltersChange={onFiltersChange}
+                        maxProductPrice={maxPrice}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {products.length} produto{products.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <Select
+                value={filters.sortBy || "default"}
+                onValueChange={(v) => onFiltersChange({ ...filters, sortBy: v === "default" ? undefined : v as StoreFilters["sortBy"] })}
+              >
+                <SelectTrigger className="w-[130px] h-8 text-xs">
+                  <SelectValue placeholder="Ordenar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Recomendados</SelectItem>
+                  <SelectItem value="price_asc">Preço: menor</SelectItem>
+                  <SelectItem value="price_desc">Preço: maior</SelectItem>
+                  <SelectItem value="name">Nome A-Z</SelectItem>
+                  <SelectItem value="newest">Mais recentes</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {isLoading ? (
