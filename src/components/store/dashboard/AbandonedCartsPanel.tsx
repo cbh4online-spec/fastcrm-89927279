@@ -9,14 +9,7 @@ import { useAbandonedCarts, useAbandonedCartStats, type AbandonedCart } from "@/
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Pendente", variant: "outline" },
-  touch_1_sent: { label: "Toque 1", variant: "secondary" },
-  touch_2_sent: { label: "Toque 2", variant: "secondary" },
-  touch_3_sent: { label: "Toque 3", variant: "secondary" },
-  recovered: { label: "Recuperado", variant: "default" },
-  expired: { label: "Expirado", variant: "destructive" },
-};
+import { RECOVERY_STATUS_LABELS, getRecoveryStatusLabel } from "@/lib/abandonedCartNormalizer";
 
 export function AbandonedCartsPanel() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -68,6 +61,7 @@ export function AbandonedCartsPanel() {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="abandoned">Abandonados</SelectItem>
               <SelectItem value="touch_1_sent">Toque 1</SelectItem>
               <SelectItem value="touch_2_sent">Toque 2</SelectItem>
               <SelectItem value="touch_3_sent">Toque 3</SelectItem>
@@ -131,7 +125,7 @@ function KpiCard({ icon, label, value, accent }: { icon: React.ReactNode; label:
 }
 
 function CartRow({ cart }: { cart: AbandonedCart }) {
-  const status = STATUS_MAP[cart.recovery_status] || { label: cart.recovery_status, variant: "outline" as const };
+  const status = getRecoveryStatusLabel(cart.recovery_status);
   const itemCount = Array.isArray(cart.cart_items) ? cart.cart_items.length : 0;
   const timeAgo = formatDistanceToNow(new Date(cart.detected_at), { addSuffix: true, locale: pt });
 
