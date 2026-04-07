@@ -32,10 +32,22 @@ function generateEventId(): string {
 }
 
 /**
+ * Hash a value with SHA-256 (required by Meta CAPI for PII fields).
+ */
+async function hashSHA256(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value.trim().toLowerCase());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
  * Fire CAPI server-side event (non-blocking).
  * Requires store_settings to have facebook_capi_token configured.
  */
-function fireCAPI(
+async function fireCAPI(
   eventName: string,
   eventId: string,
   params: Record<string, unknown>,
@@ -45,13 +57,22 @@ function fireCAPI(
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   if (!projectId) return;
 
+  // Hash PII fields as required by Meta CAPI — never send plain text
+  const hashedUserData: Record<string, string> = {};
+  if (userData?.email) {
+    hashedUserData.em = await hashSHA256(userData.email);
+  }
+  if (userData?.phone) {
+    hashedUserData.ph = await hashSHA256(userData.phone);
+  }
+
   const url = `https://${projectId}.supabase.co/functions/v1/store-capi-event`;
   const body = JSON.stringify({
     event_name: eventName,
     event_id: eventId,
     event_source_url: window.location.href,
     custom_data: params,
-    user_data: userData || {},
+    user_data: hashedUserData,
   });
 
   fetch(url, {
