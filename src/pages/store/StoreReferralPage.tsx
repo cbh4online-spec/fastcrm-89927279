@@ -44,7 +44,7 @@ export default function StoreReferralPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Código de Referral - ${workspace?.name || "Loja"}`,
+          title: `Código de Referral - Loja`,
           text: `Use o meu código de referral e ganhe desconto na primeira compra!`,
           url: referralUrl,
         });
@@ -233,7 +233,7 @@ export default function StoreReferralPage() {
           )}
         </main>
 
-        <StoreFooter workspaceSlug={wsSlug} storeName={workspace?.name || "Loja"} />
+        <StoreFooter workspaceSlug={wsSlug} storeName="Loja" />
       </div>
     </>
   );
