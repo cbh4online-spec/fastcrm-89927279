@@ -51,8 +51,6 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(image)}"/>
-<meta property="og:image:width" content="800"/>
-<meta property="og:image:height" content="800"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FastCRM"/>
@@ -142,20 +140,37 @@ Deno.serve(async (req) => {
           pageUrl = `${BASE_URL}/p/${wsSlug}/${pageSlug}`;
         }
       } else if (type === "store") {
-        const { data: ws } = await supabase.from("workspaces").select("id").eq("slug", slug).single();
+        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
         if (ws) {
           const { data: store } = await supabase
             .from("store_settings")
-            .select("store_name, store_description, logo_url")
+            .select("store_name, store_description, logo_url, banner_url")
             .eq("workspace_id", ws.id)
             .single();
           if (store) {
-            pageTitle = store.store_name || pageTitle;
-            pageDescription = store.store_description || pageDescription;
-            if (store.logo_url) pageImage = store.logo_url;
+            pageTitle = store.store_name || ws.name || pageTitle;
+            pageDescription = store.store_description || `Explore os produtos e serviços de ${store.store_name || ws.name}`;
+            // Prefer banner for OG (landscape), fallback to logo
+            pageImage = store.banner_url || store.logo_url || pageImage;
           }
         }
         pageUrl = `${BASE_URL}/store/${slug}`;
+        // Serve store-specific OG with wider dimensions for banner
+        if (isCrawler(req.headers.get("user-agent"))) {
+          const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const imgW = pageImage.includes("banner") ? "1200" : "800";
+          const imgH = pageImage.includes("banner") ? "630" : "800";
+          const extra = `<meta property="og:image:width" content="${imgW}"/>\n<meta property="og:image:height" content="${imgH}"/>`;
+          const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extra);
+          return new Response(html, {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
+          });
+        }
+        return new Response(null, {
+          status: 302,
+          headers: { ...corsHeaders, Location: pageUrl },
+        });
       } else if (type === "product") {
         const parts = slug.split("/");
         if (parts.length === 2) {
@@ -188,7 +203,7 @@ Deno.serve(async (req) => {
             const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const price = product.base_price ? Number(product.base_price).toFixed(2) : null;
             const currency = product.currency || "EUR";
-            let extraTags = `<meta property="og:type" content="product"/>`;
+            let extraTags = `<meta property="og:type" content="product"/>\n<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
             if (price) {
               extraTags += `\n<meta property="product:price:amount" content="${esc(price)}"/>`;
               extraTags += `\n<meta property="product:price:currency" content="${esc(currency)}"/>`;

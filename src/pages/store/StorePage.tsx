@@ -26,6 +26,8 @@ import { useBatchReviewStats, useProductSalesCount } from "@/hooks/useProductSal
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { useResolveStoreWorkspace } from "@/hooks/useResolveStoreWorkspace";
 import { useC2CStorefrontProducts } from "@/hooks/useC2CStorefrontProducts";
+import { StoreShareButtons } from "@/components/store/StoreShareButtons";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { Loader2 } from "lucide-react";
 
 export default function StorePage() {
@@ -157,6 +159,16 @@ export default function StorePage() {
                 />
               </div>
             )}
+
+            {/* Share Buttons */}
+            <div className="container mx-auto px-4 py-4 flex justify-end">
+              <StoreShareButtons
+                url={getShareUrl("store", wsSlug)}
+                title={storeName}
+                description={storeSettings?.store_description || undefined}
+                image={storeSettings?.banner_url || storeSettings?.logo_url || undefined}
+              />
+            </div>
 
             <StoreFooter
               workspaceSlug={wsSlug}
