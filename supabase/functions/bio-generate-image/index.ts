@@ -69,8 +69,31 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageUrl) throw new Error("No image returned from AI");
+    console.log("[BIO] AI response keys:", JSON.stringify(Object.keys(aiData)));
+    const msg = aiData.choices?.[0]?.message;
+    console.log("[BIO] Message keys:", msg ? JSON.stringify(Object.keys(msg)) : "no message");
+
+    // Try multiple known response shapes
+    let imageUrl = msg?.images?.[0]?.image_url?.url;
+
+    // Fallback: check content array for image parts
+    if (!imageUrl && Array.isArray(msg?.content)) {
+      const imgPart = msg.content.find((p: any) => p.type === "image_url" || p.type === "image");
+      imageUrl = imgPart?.image_url?.url || imgPart?.url;
+    }
+
+    // Fallback: inline_data in parts (Gemini native format)
+    if (!imageUrl && Array.isArray(msg?.parts)) {
+      const imgPart = msg.parts.find((p: any) => p.inline_data);
+      if (imgPart?.inline_data) {
+        imageUrl = `data:${imgPart.inline_data.mime_type};base64,${imgPart.inline_data.data}`;
+      }
+    }
+
+    if (!imageUrl) {
+      console.error("[BIO] Full AI response:", JSON.stringify(aiData).slice(0, 2000));
+      throw new Error("No image returned from AI");
+    }
 
     const base64Match = imageUrl.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
     if (!base64Match) throw new Error("Invalid image format");
