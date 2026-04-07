@@ -42,7 +42,7 @@ function isCrawler(userAgent: string | null): boolean {
   return userAgent ? CRAWLER_REGEX.test(userAgent) : false;
 }
 
-function buildOgHtml(title: string, description: string, image: string, url: string, extra = ""): string {
+function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -52,7 +52,7 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(image)}"/>
 <meta property="og:url" content="${esc(url)}"/>
-<meta property="og:type" content="website"/>
+<meta property="og:type" content="${esc(ogType)}"/>
 <meta property="og:site_name" content="FastCRM"/>
 ${extra}
 <meta name="twitter:card" content="summary_large_image"/>
