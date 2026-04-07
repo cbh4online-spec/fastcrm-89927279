@@ -33,22 +33,12 @@ const deviceIcon = (type: string) => {
   return <Monitor className="h-4 w-4" />;
 };
 
-const recoveryStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  abandoned: { label: "Abandonado", variant: "destructive" },
-  contacted: { label: "Contactado", variant: "secondary" },
-  recovered: { label: "Recuperado", variant: "default" },
-  expired: { label: "Expirado", variant: "outline" },
-};
-
-const outreachStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Sem outreach", variant: "outline" },
-  enrolled: { label: "Inscrito", variant: "secondary" },
-  in_progress: { label: "Em progresso", variant: "default" },
-  contacted: { label: "Contactado", variant: "secondary" },
-  recovered: { label: "Recuperado", variant: "default" },
-  exited: { label: "Saiu", variant: "destructive" },
-  failed: { label: "Falhado", variant: "destructive" },
-};
+import {
+  RECOVERY_STATUS_LABELS,
+  OUTREACH_STATUS_LABELS,
+  getRecoveryStatusLabel,
+  getOutreachStatusLabel,
+} from "@/lib/abandonedCartNormalizer";
 
 type OutreachFilter = "all" | "pending" | "enrolled" | "in_progress" | "recovered" | "exited";
 
@@ -311,7 +301,7 @@ export function StoreCartsTab() {
               <div className="space-y-3">
                 {(activeCarts.data || []).map((session: any) => {
                   const cartItems = (session.cart_items || []) as any[];
-                  const timeAgo = session.cart_updated_at ? formatDistanceToNow(new Date(session.cart_updated_at), { addSuffix: true, locale: pt }) : "—";
+                  const timeAgo = session.last_activity_at ? formatDistanceToNow(new Date(session.last_activity_at), { addSuffix: true, locale: pt }) : (session.cart_updated_at ? formatDistanceToNow(new Date(session.cart_updated_at), { addSuffix: true, locale: pt }) : "—");
                   return (
                     <div key={session.id} className="border rounded-xl p-4 flex items-start gap-4">
                       <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">{deviceIcon(session.device_type || "desktop")}</div>
@@ -371,8 +361,8 @@ export function StoreCartsTab() {
               <div className="space-y-3">
                 {filteredCarts.map((cart: any) => {
                   const items = (cart.items || []) as any[];
-                  const status = recoveryStatusLabels[cart.recovery_status] || recoveryStatusLabels.abandoned;
-                  const outreach = outreachStatusLabels[cart.outreach_status || "pending"] || outreachStatusLabels.pending;
+                  const status = getRecoveryStatusLabel(cart.recovery_status);
+                  const outreach = getOutreachStatusLabel(cart.outreach_status || "pending");
                   const timeAgo = cart.abandoned_at ? formatDistanceToNow(new Date(cart.abandoned_at), { addSuffix: true, locale: pt }) : "—";
 
                   return (
