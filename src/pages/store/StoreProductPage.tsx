@@ -25,6 +25,7 @@ import { PriceComparisonWidget } from "@/components/store/PriceComparisonWidget"
 import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyViewed";
 import { StoreLoyaltyWidget } from "@/components/store/StoreLoyaltyWidget";
 import { StoreShareButtons } from "@/components/store/StoreShareButtons";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { useStoreProduct } from "@/hooks/useStoreProducts";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { useStoreTierPricing, getStorePrice } from "@/hooks/useStoreTierPricing";
@@ -595,9 +596,10 @@ export default function StoreProductPage() {
               <Separator />
 
               <StoreShareButtons
-                url={window.location.href}
+                url={getShareUrl("product", `${wsSlug}/${product.id}`)}
                 title={product.name}
                 description={product.short_description || undefined}
+                image={images[primaryIndex] || images[0]}
               />
             </motion.div>
 

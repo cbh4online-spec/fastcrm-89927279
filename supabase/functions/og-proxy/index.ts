@@ -42,7 +42,7 @@ function isCrawler(userAgent: string | null): boolean {
   return userAgent ? CRAWLER_REGEX.test(userAgent) : false;
 }
 
-function buildOgHtml(title: string, description: string, image: string, url: string): string {
+function buildOgHtml(title: string, description: string, image: string, url: string, extra = ""): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -51,9 +51,12 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(image)}"/>
+<meta property="og:image:width" content="800"/>
+<meta property="og:image:height" content="800"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FastCRM"/>
+${extra}
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(description)}"/>
@@ -159,15 +162,60 @@ Deno.serve(async (req) => {
           const [wsSlug, productId] = parts;
           const { data: product } = await supabase
             .from("products")
-            .select("name, description, image_url")
+            .select("name, short_description, images, base_price, currency, category")
             .eq("id", productId)
             .single();
           if (product) {
             pageTitle = product.name || pageTitle;
-            pageDescription = product.description || pageDescription;
-            if (product.image_url) pageImage = product.image_url;
+            pageDescription = product.short_description || pageDescription;
+            // Resolve image: try images array first, then product_images table
+            const imgArr = product.images as string[] | null;
+            if (imgArr && imgArr.length > 0) {
+              pageImage = imgArr[0];
+            } else {
+              // Fallback to product_images table
+              const { data: piRows } = await supabase
+                .from("product_images")
+                .select("url")
+                .eq("product_id", productId)
+                .order("position", { ascending: true })
+                .limit(1);
+              if (piRows && piRows.length > 0 && piRows[0].url) {
+                pageImage = piRows[0].url;
+              }
+            }
+            // Build extra product meta tags
+            const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const price = product.base_price ? Number(product.base_price).toFixed(2) : null;
+            const currency = product.currency || "EUR";
+            let extraTags = `<meta property="og:type" content="product"/>`;
+            if (price) {
+              extraTags += `\n<meta property="product:price:amount" content="${esc(price)}"/>`;
+              extraTags += `\n<meta property="product:price:currency" content="${esc(currency)}"/>`;
+            }
+            if ((product as any).brand) extraTags += `\n<meta property="product:brand" content="${esc((product as any).brand)}"/>`;
+            if (product.category) extraTags += `\n<meta property="product:category" content="${esc(product.category)}"/>`;
+            // Store extra tags for later use
+            (product as any)._extraOgTags = extraTags;
           }
           pageUrl = `${BASE_URL}/store/${wsSlug}/product/${productId}`;
+          // Save product ref for HTML build
+          if (product && (product as any)._extraOgTags) {
+            const extraTags = (product as any)._extraOgTags;
+            // For crawlers: serve product-specific OG HTML
+            if (isCrawler(req.headers.get("user-agent"))) {
+              const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags);
+              return new Response(html, {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
+              });
+            }
+            // For real users: redirect
+            return new Response(null, {
+              status: 302,
+              headers: { ...corsHeaders, Location: pageUrl },
+            });
+          }
         }
       } else if (type === "c2c") {
         // C2C Marketplace — slug is workspace slug (e.g. "metodopare")
