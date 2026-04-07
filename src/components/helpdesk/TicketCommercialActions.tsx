@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Briefcase, FileText, Receipt, ExternalLink, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { SupportTicket } from "@/hooks/useHelpdeskTickets";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 
 interface TicketCommercialActionsProps {
   ticket: SupportTicket;
@@ -20,6 +22,8 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const [showDealDialog, setShowDealDialog] = useState(false);
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [dealTitle, setDealTitle] = useState(`Ticket #${ticket.ticket_number} — ${ticket.subject}`);
   const [dealValue, setDealValue] = useState("");
   const [selectedStageId, setSelectedStageId] = useState("");
@@ -216,7 +220,7 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
               variant="outline"
               size="sm"
               className="h-7 text-[10px] flex-1 gap-1"
-              onClick={() => navigate(`/dashboard/proposals/new?opportunity_id=${linkedDeal.id}`)}
+              onClick={() => setShowProposalDialog(true)}
             >
               <FileText className="h-3 w-3" /> Nova Proposta
             </Button>
@@ -224,7 +228,7 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
               variant="outline"
               size="sm"
               className="h-7 text-[10px] flex-1 gap-1"
-              onClick={() => navigate(`/dashboard/invoices/new?opportunity_id=${linkedDeal.id}`)}
+              onClick={() => setShowInvoiceDialog(true)}
             >
               <Receipt className="h-3 w-3" /> Nova Fatura
             </Button>
@@ -299,6 +303,25 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Proposal Dialog */}
+      {linkedDeal && (
+        <CreateProposalDialog
+          open={showProposalDialog}
+          onOpenChange={setShowProposalDialog}
+          opportunityId={linkedDeal.id}
+        />
+      )}
+
+      {/* Create Invoice Dialog */}
+      {linkedDeal && (
+        <CreateInvoiceDialog
+          open={showInvoiceDialog}
+          onOpenChange={setShowInvoiceDialog}
+          defaultOpportunityId={linkedDeal.id}
+          defaultContactId={ticket.contact_id || undefined}
+        />
+      )}
     </div>
   );
 }
