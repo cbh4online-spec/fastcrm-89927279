@@ -160,6 +160,16 @@ export default function StorePage() {
               </div>
             )}
 
+            {/* Share Buttons */}
+            <div className="container mx-auto px-4 py-4 flex justify-end">
+              <StoreShareButtons
+                url={getShareUrl("store", wsSlug)}
+                title={storeName}
+                description={storeSettings?.store_description || undefined}
+                image={storeSettings?.banner_url || storeSettings?.logo_url || undefined}
+              />
+            </div>
+
             <StoreFooter
               workspaceSlug={wsSlug}
               storeName={storeName}
