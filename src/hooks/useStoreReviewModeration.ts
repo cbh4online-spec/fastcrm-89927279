@@ -18,12 +18,17 @@ export interface StoreReviewMod {
   rejection_reason: string | null;
   created_at: string;
   product_name?: string;
+  source?: string;
+  reviewer_name?: string | null;
 }
 
-export function useStoreReviewModeration(statusFilter: "pending" | "approved" | "rejected" | "all" = "all") {
+export function useStoreReviewModeration(
+  statusFilter: "pending" | "approved" | "rejected" | "all" = "all",
+  sourceFilter?: "bot" | "user"
+) {
   const { currentWorkspace } = useWorkspace();
   return useQuery({
-    queryKey: ["store-reviews-moderation", currentWorkspace?.id, statusFilter],
+    queryKey: ["store-reviews-moderation", currentWorkspace?.id, statusFilter, sourceFilter],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       let query = supabase
@@ -31,6 +36,10 @@ export function useStoreReviewModeration(statusFilter: "pending" | "approved" | 
         .select("*, products!store_reviews_product_id_fkey(name)")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
+
+      if (sourceFilter) {
+        query = query.eq("source", sourceFilter);
+      }
 
       if (statusFilter === "pending") {
         query = query.eq("is_approved", false).is("moderated_at", null);
