@@ -172,9 +172,10 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
 
             <div className="absolute top-3 left-3 flex flex-col gap-1.5">
               {product.store_featured && (
-                <Badge className="bg-primary/90 text-primary-foreground gap-1 shadow-md">
-                  <Star className="h-3 w-3" />
-                  Destaque
+                <Badge className="bg-primary/90 text-primary-foreground gap-1 shadow-md text-[10px] sm:text-xs px-1.5 sm:px-2.5 py-0.5">
+                  <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  <span className="hidden sm:inline">Destaque</span>
+                  <span className="sm:hidden">★</span>
                 </Badge>
               )}
               <StoreProductBadges
@@ -199,9 +200,10 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             {/* Popular badge or sold count */}
             <div className="absolute top-3 right-3 flex flex-col gap-1.5">
               {isPopular && (
-                <Badge className="text-[10px] bg-amber-500/90 text-white border-0 gap-1 shadow-md backdrop-blur-sm">
-                  <TrendingUp className="h-3 w-3" />
-                  Escolha Popular
+                <Badge className="text-[9px] sm:text-[10px] bg-amber-500/90 text-white border-0 gap-0.5 sm:gap-1 shadow-md backdrop-blur-sm px-1.5 sm:px-2.5">
+                  <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  <span className="hidden sm:inline">Escolha Popular</span>
+                  <span className="sm:hidden">Popular</span>
                 </Badge>
               )}
               {!isPopular && soldLabel && (
@@ -219,8 +221,8 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               </div>
             )}
 
-            {/* Quick actions */}
-            <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 translate-y-3 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+            {/* Quick actions — always visible on mobile, hover on desktop */}
+            <div className="absolute bottom-3 right-3 flex flex-col gap-2 sm:opacity-0 sm:translate-y-3 transition-all duration-300 sm:group-hover:opacity-100 sm:group-hover:translate-y-0">
               {/* Compare */}
               <Button
                 size="icon"
@@ -299,7 +301,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
           </div>
 
           {/* Info */}
-          <div className="p-4 flex flex-col flex-1 gap-1.5">
+          <div className="p-3 sm:p-4 flex flex-col flex-1 gap-1.5">
             {/* Seller badge for C2C */}
             {(product as any)._isC2C && (product as any)._sellerName && (
               <Link
@@ -312,11 +314,11 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
               </Link>
             )}
             {product.category && (
-              <p className="text-[11px] font-semibold text-primary/70 uppercase tracking-widest">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-primary/70 uppercase tracking-widest line-clamp-1">
                 {product.category}
               </p>
             )}
-            <h3 className="font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-200">
+            <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-200">
               {product.name}
             </h3>
 
@@ -341,7 +343,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             )}
 
             {product.short_description && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-auto">
+              <p className="hidden sm:block text-sm text-muted-foreground line-clamp-2 mt-auto">
                 {product.short_description}
               </p>
             )}
@@ -353,7 +355,7 @@ export function StoreProductCard({ product, workspaceSlug, workspaceId, wishlist
             ) : (
               <>
                 <div className="flex items-baseline gap-2 pt-2 mt-auto">
-                  <span className="text-lg font-bold text-primary">
+                  <span className="text-base sm:text-lg font-bold text-primary">
                     €{effectivePrice.toFixed(2)}
                   </span>
                   <StoreVatLabel />

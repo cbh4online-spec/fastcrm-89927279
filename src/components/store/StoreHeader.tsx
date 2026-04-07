@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Search, X, Heart, ClipboardList, User, ChevronDown, Grid3X3, TrendingUp, ArrowRight, Star, Users, Gift } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StoreSearchAutocomplete } from "@/components/store/StoreSearchAutocomplete";
@@ -70,9 +71,9 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
           >
             {logoUrl && (
-              <img src={logoUrl} alt={storeName} className="h-10 w-auto max-w-[160px] object-contain rounded" />
+              <img src={logoUrl} alt={storeName} className="h-9 sm:h-10 w-auto max-w-[120px] sm:max-w-[160px] object-contain rounded" />
             )}
-            <span className="text-xl font-bold tracking-tight">{storeName}</span>
+            <span className={cn("text-lg sm:text-xl font-bold tracking-tight", logoUrl && "hidden sm:inline")}>{storeName}</span>
           </Link>
 
           {/* Mega Menu - Categories */}
