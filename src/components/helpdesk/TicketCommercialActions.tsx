@@ -220,7 +220,7 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
               variant="outline"
               size="sm"
               className="h-7 text-[10px] flex-1 gap-1"
-              onClick={() => navigate(`/dashboard/proposals/new?opportunity_id=${linkedDeal.id}`)}
+              onClick={() => setShowProposalDialog(true)}
             >
               <FileText className="h-3 w-3" /> Nova Proposta
             </Button>
@@ -228,7 +228,7 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
               variant="outline"
               size="sm"
               className="h-7 text-[10px] flex-1 gap-1"
-              onClick={() => navigate(`/dashboard/invoices/new?opportunity_id=${linkedDeal.id}`)}
+              onClick={() => setShowInvoiceDialog(true)}
             >
               <Receipt className="h-3 w-3" /> Nova Fatura
             </Button>
