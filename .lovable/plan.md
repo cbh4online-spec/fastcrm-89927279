@@ -1,45 +1,69 @@
 
-Diagnóstico
-- A captura mostra que o carrinho abandonado já aparece no separador “Carrinhos”, por isso o bug imediato parece resolvido.
-- Ainda há inconsistência estrutural no código:
-  - `StoreCartsTab.tsx` lê `store_abandoned_carts`
-  - `useAbandonedCarts.ts` mistura `abandoned_carts` + `store_abandoned_carts`
-  - `AbandonedCartsPage.tsx` e `StoreAbandonedCartsTab.tsx` ainda usam `checkout_abandoned_carts`
-- Os estados não estão normalizados (`abandoned`, `pending`, `enrolled`, `in_progress`, `recovered`, `expired`, `exited`), o que pode voltar a causar diferenças entre KPIs, filtros e listas.
-- Há também um desfasamento em “Carrinhos Ativos”: a regra de “Ao vivo” usa `last_activity_at`, mas o texto mostrado usa `cart_updated_at`, daí aparecer “há 4 dias”.
 
-Decisões de produto/UX
-- Na analytics da Loja, `store_abandoned_carts` deve ser a fonte canónica.
-- Os fluxos antigos de checkout devem ficar separados até validação explícita, para não quebrar recuperação legacy.
-- “Carrinhos Ativos” deve mostrar “última atividade” com base no mesmo campo que define o estado ativo.
+## Problema Identificado
 
-Estrutura técnica
-- Criar um normalizador/config partilhado para carrinhos abandonados:
-  - labels de estado
-  - agrupamentos para filtros/KPIs
-  - mapeamento de campos (`items/cart_items`, `subtotal/cart_value`, datas)
-- Reaproveitar essa camada em:
-  - `src/hooks/useAbandonedCarts.ts`
-  - `src/components/store/dashboard/AbandonedCartsPanel.tsx`
-  - `src/components/store/StoreCartsTab.tsx`
-- Auditar sem mexer já no backend; só rever permissões se o problema voltar a surgir por workspace.
+Quando partilhas o link do produto nas redes sociais, **a imagem não aparece** porque:
 
-Plano de implementação
-1. Centralizar a normalização dos estados e campos dos carrinhos abandonados.
-2. Ajustar `useAbandonedCarts.ts` e `useAbandonedCartStats()` para usar a mesma lógica de contagem e filtros.
-3. Alinhar `AbandonedCartsPanel.tsx` com `StoreCartsTab.tsx` para que totais, badges e filtros devolvam os mesmos números.
-4. Corrigir a semântica temporal em `StoreCartsTab.tsx` para “Ao vivo”/“última atividade”.
-5. Rever `AbandonedCartsPage.tsx`, `StoreAbandonedCartsTab.tsx` e `RecoverCartPage.tsx` para separar claramente “Loja” vs “Checkout legacy”.
-6. Fazer QA completo em loading, vazio, erro, filtros, detalhe, permissões e mobile.
+1. **O `StoreShareButtons` usa `window.location.href`** (o URL direto da SPA). Crawlers do WhatsApp/Facebook não executam JavaScript, logo nunca veem as meta tags OG que o React Helmet injeta no client-side.
 
-Critérios de aceitação
-- Os números de “Carrinhos” e “Abandonados” coincidem para o mesmo workspace.
-- O filtro de pendentes inclui carts com estado `abandoned` quando isso representa abandono ativo.
-- Os badges e labels aparecem traduzidos e consistentes.
-- O bloco “Carrinhos Ativos” deixa de mostrar “Ao vivo” com copy temporal contraditória.
-- Nenhum ecrã da Loja volta a mostrar 0 quando existem registos em `store_abandoned_carts`.
+2. **Existe já um `og-proxy` edge function** que serve HTML estático com meta tags OG para crawlers — mas o componente de share do produto **não o usa**. Usa o URL direto em vez do `getShareUrl("product", ...)`.
 
-Riscos e pontos por validar
-- Se quiseres misturar histórico de Loja + Checkout num único dashboard, é preciso decisão funcional antes da consolidação.
-- Se os ecrãs legacy ainda forem usados operacionalmente, não devem ser repontados sem validar o recover flow antigo.
-- Se a discrepância só acontecer em alguns workspaces, então além do frontend será preciso validar permissões de leitura na base de dados.
+3. **O og-proxy para produtos** tem um bug: procura `image_url` (campo que não existe ou está vazio) em vez de consultar `product_images` ou o array `images` da tabela products.
+
+## Plano de Implementação
+
+### 1. Corrigir o URL de partilha do produto
+**Ficheiro**: `src/pages/store/StoreProductPage.tsx`
+
+- Importar `getShareUrl` e passar `getShareUrl("product", wsSlug + "/" + product.id)` ao `StoreShareButtons` em vez de `window.location.href`
+
+### 2. Corrigir o og-proxy para buscar a imagem correta
+**Ficheiro**: `supabase/functions/og-proxy/index.ts`
+
+- No bloco `type === "product"`: expandir o SELECT para incluir `images, short_description, base_price, currency, brand, category`
+- Fazer fallback para `product_images` se `images` estiver vazio (padrão dual já usado no resto do sistema)
+- Adicionar meta tags de produto (preço, moeda, disponibilidade) ao HTML gerado
+- Usar `short_description` em vez de `description` (campo real da tabela)
+
+### 3. Enriquecer o HTML do og-proxy para produtos
+**Ficheiro**: `supabase/functions/og-proxy/index.ts`
+
+- Criar função `buildProductOgHtml` que além das tags standard inclui:
+  - `og:type` = `product`
+  - `product:price:amount` e `product:price:currency`
+  - `product:brand` e `product:category` (se existirem)
+  - `og:image:width` e `og:image:height` (800x800 padrão para produtos)
+- Isto garante que WhatsApp mostra preview rico e Facebook exibe card de produto
+
+### 4. Melhorar o StoreShareButtons com mais opções
+**Ficheiro**: `src/components/store/StoreShareButtons.tsx`
+
+- Adicionar botão **Twitter/X**
+- Adicionar botão **LinkedIn**
+- Adicionar botão **Telegram**
+- Adicionar **Native Share API** (navigator.share) como botão principal em mobile
+- Preview visual: mostrar mini-card com imagem + título antes de partilhar (para o utilizador ver o que vai ser partilhado)
+
+### 5. Adicionar og:image dimensions e validação
+**Ficheiro**: `src/components/store/storefront/ProductSeoHead.tsx`
+
+- Adicionar `og:image:width` e `og:image:height` para optimizar previews
+- Adicionar `og:image:type` (image/jpeg ou image/png baseado na extensão)
+
+## Detalhe Técnico
+
+**Ficheiros modificados:**
+- `src/pages/store/StoreProductPage.tsx` — usar `getShareUrl` em vez de `window.location.href`
+- `supabase/functions/og-proxy/index.ts` — corrigir query de produto + HTML rico com meta tags de produto
+- `src/components/store/StoreShareButtons.tsx` — adicionar Twitter, LinkedIn, Telegram, Native Share, mini-preview
+- `src/components/store/storefront/ProductSeoHead.tsx` — adicionar dimensões de imagem OG
+
+**Edge function redeploy automático** — sem migração necessária.
+
+## Critérios de Aceitação
+- Partilhar link no WhatsApp mostra imagem, título, descrição e preço
+- Partilhar no Facebook mostra card de produto com imagem
+- Botões de share incluem WhatsApp, Facebook, Twitter, LinkedIn, Telegram e copiar link
+- Em mobile, o botão principal usa a Native Share API do browser
+- Mini-preview mostra ao utilizador o que será partilhado antes de clicar
+
