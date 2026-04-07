@@ -72,13 +72,14 @@ serve(async (req) => {
     await supabase.from("bot_comment_jobs").update({ status: "processing" }).eq("id", jobId);
 
     // Fetch product info
-    const { data: product } = await supabase
+    const { data: product, error: prodErr } = await supabase
       .from("products")
-      .select("id, name, description, category, brand, base_price, sku")
+      .select("id, name, short_description, commercial_description, category, base_price, sku")
       .eq("id", job.product_id)
       .single();
 
-    if (!product) {
+    if (prodErr || !product) {
+      console.error("Product query error:", prodErr?.message, "product_id:", job.product_id);
       await supabase.from("bot_comment_jobs").update({ status: "failed", error_message: "Produto não encontrado" }).eq("id", jobId);
       return new Response(JSON.stringify({ error: "Product not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -114,10 +115,10 @@ REGRAS:
 - NUNCA mencionar que são gerados por IA
 - Variar o estilo de escrita entre cada comentário`;
 
+    const productDescription = product.commercial_description || product.short_description || "N/A";
     const userPrompt = `Produto: ${product.name}
-Descrição: ${product.description || "N/A"}
+Descrição: ${productDescription}
 Categoria: ${product.category || "N/A"}
-Marca: ${product.brand || "N/A"}
 Preço: €${product.base_price}
 
 Perfis disponíveis: ${botProfiles.map(p => p.display_name).join(", ")}
