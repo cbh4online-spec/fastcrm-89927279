@@ -77,7 +77,7 @@ const CONDITION_OPTIONS = [
   { value: "satisfactory", label: "Satisfatório" },
 ];
 
-function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
+export function FilterContent({ categories, filters, onFiltersChange, maxProductPrice = 500 }: Omit<StoreFilterSidebarProps, "totalProducts">) {
   const priceRange = [filters.minPrice ?? 0, filters.maxPrice ?? maxProductPrice];
   const activeCount = [filters.categoryId, filters.minPrice, filters.maxPrice, filters.inStock, filters.condition].filter(Boolean).length;
 
