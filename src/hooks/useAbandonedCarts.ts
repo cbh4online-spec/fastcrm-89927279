@@ -33,6 +33,10 @@ interface AbandonedCartFilters {
   dateTo?: string;
 }
 
+/**
+ * Reads from both abandoned_carts (legacy) and store_abandoned_carts (current detector),
+ * merging results and normalising field names.
+ */
 export function useAbandonedCarts(filters?: AbandonedCartFilters) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
@@ -41,22 +45,72 @@ export function useAbandonedCarts(filters?: AbandonedCartFilters) {
     queryKey: ["abandoned-carts", wsId, filters],
     queryFn: async () => {
       if (!wsId) return [];
-      let q = sb
-        .from("abandoned_carts")
-        .select("*")
-        .eq("workspace_id", wsId)
-        .order("detected_at", { ascending: false })
-        .limit(200);
 
+      // Query both tables in parallel
+      const [legacyRes, storeRes] = await Promise.all([
+        sb
+          .from("abandoned_carts")
+          .select("*")
+          .eq("workspace_id", wsId)
+          .order("detected_at", { ascending: false })
+          .limit(200),
+        sb
+          .from("store_abandoned_carts")
+          .select("*")
+          .eq("workspace_id", wsId)
+          .order("abandoned_at", { ascending: false })
+          .limit(200),
+      ]);
+
+      const legacy = (legacyRes.data || []) as AbandonedCart[];
+
+      // Normalise store_abandoned_carts to match AbandonedCart shape
+      const store = ((storeRes.data || []) as any[]).map((c: any) => ({
+        id: c.id,
+        workspace_id: c.workspace_id,
+        session_id: c.session_id,
+        contact_id: c.contact_id,
+        customer_email: c.customer_email,
+        customer_name: c.customer_name,
+        customer_phone: c.customer_phone,
+        cart_items: c.items || [],
+        cart_value: Number(c.subtotal || 0),
+        currency: c.currency || "EUR",
+        detected_at: c.abandoned_at || c.created_at,
+        recovery_status: c.outreach_status || c.recovery_status || "pending",
+        recovered_at: c.recovered_at,
+        recovery_channel: c.contact_channel,
+        recovery_url: null,
+        touch_1_at: c.contacted_at,
+        touch_2_at: null,
+        touch_3_at: null,
+        expires_at: c.expires_at || c.created_at,
+        created_at: c.created_at,
+      })) as AbandonedCart[];
+
+      // Merge, deduplicate by id, sort by detected_at
+      const merged = [...legacy, ...store];
+      const seen = new Set<string>();
+      const unique = merged.filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
+      // Apply filters
+      let result = unique;
       if (filters?.status && filters.status !== "all") {
-        q = q.eq("recovery_status", filters.status);
+        result = result.filter((c) => c.recovery_status === filters.status);
       }
-      if (filters?.dateFrom) q = q.gte("detected_at", filters.dateFrom);
-      if (filters?.dateTo) q = q.lte("detected_at", filters.dateTo);
+      if (filters?.dateFrom) {
+        result = result.filter((c) => c.detected_at >= filters.dateFrom!);
+      }
+      if (filters?.dateTo) {
+        result = result.filter((c) => c.detected_at <= filters.dateTo!);
+      }
 
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data || []) as AbandonedCart[];
+      result.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+      return result;
     },
     enabled: !!wsId,
   });
@@ -71,22 +125,32 @@ export function useAbandonedCartStats() {
     queryFn: async () => {
       if (!wsId) return { total: 0, pending: 0, recovered: 0, expired: 0, totalValue: 0, recoveredValue: 0 };
 
-      const { data, error } = await sb
-        .from("abandoned_carts")
-        .select("recovery_status, cart_value")
-        .eq("workspace_id", wsId);
+      const [legacyRes, storeRes] = await Promise.all([
+        sb.from("abandoned_carts").select("recovery_status, cart_value").eq("workspace_id", wsId),
+        sb.from("store_abandoned_carts").select("recovery_status, outreach_status, subtotal, recovered_value").eq("workspace_id", wsId),
+      ]);
 
-      if (error) throw error;
+      const legacyCarts = (legacyRes.data || []).map((c: any) => ({
+        status: c.recovery_status,
+        value: Number(c.cart_value || 0),
+        recoveredValue: 0,
+      }));
 
-      const carts = data || [];
-      const total = carts.length;
-      const pending = carts.filter((c: any) => ["pending", "touch_1_sent", "touch_2_sent", "touch_3_sent"].includes(c.recovery_status)).length;
-      const recovered = carts.filter((c: any) => c.recovery_status === "recovered").length;
-      const expired = carts.filter((c: any) => c.recovery_status === "expired").length;
-      const totalValue = carts.reduce((s: number, c: any) => s + Number(c.cart_value || 0), 0);
-      const recoveredValue = carts
-        .filter((c: any) => c.recovery_status === "recovered")
-        .reduce((s: number, c: any) => s + Number(c.cart_value || 0), 0);
+      const storeCarts = (storeRes.data || []).map((c: any) => ({
+        status: c.outreach_status || c.recovery_status || "pending",
+        value: Number(c.subtotal || 0),
+        recoveredValue: Number(c.recovered_value || 0),
+      }));
+
+      const all = [...legacyCarts, ...storeCarts];
+      const total = all.length;
+      const pending = all.filter((c) => ["pending", "in_progress", "touch_1_sent", "touch_2_sent", "touch_3_sent"].includes(c.status)).length;
+      const recovered = all.filter((c) => c.status === "recovered").length;
+      const expired = all.filter((c) => ["expired", "exited"].includes(c.status)).length;
+      const totalValue = all.reduce((s, c) => s + c.value, 0);
+      const recoveredValue = all
+        .filter((c) => c.status === "recovered")
+        .reduce((s, c) => s + (c.recoveredValue || c.value), 0);
 
       return { total, pending, recovered, expired, totalValue, recoveredValue };
     },
