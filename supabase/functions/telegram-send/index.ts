@@ -180,7 +180,8 @@ Deno.serve(async (req) => {
             .eq('workspace_id', product.workspace_id)
             .maybeSingle()
           const slug = storeSettings?.store_slug || product.workspace_id
-          buyUrl = `https://fastcrm.metodopare.ai/store/${slug}/product/${product_id}`
+          const projectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'eumnfkccyvlyoyjchiwe'
+          buyUrl = `https://${projectId}.supabase.co/functions/v1/og-proxy?type=product&slug=${encodeURIComponent(slug + '/' + product_id)}`
         }
 
         // Format price with correct currency
@@ -350,7 +351,8 @@ Deno.serve(async (req) => {
                     .eq('workspace_id', prod.workspace_id)
                     .maybeSingle()
                   const bSlug = bStore?.store_slug || prod.workspace_id
-                  bBuyUrl = `https://fastcrm.metodopare.ai/store/${bSlug}/product/${bProductId}`
+                  const bProjectId = Deno.env.get('SUPABASE_PROJECT_REF') || 'eumnfkccyvlyoyjchiwe'
+                  bBuyUrl = `https://${bProjectId}.supabase.co/functions/v1/og-proxy?type=product&slug=${encodeURIComponent(bSlug + '/' + bProductId)}`
                 }
 
                 const pText = `🏷️ <b>${prod.name}</b>\n${prod.short_description ? prod.short_description + '\n' : ''}💰 ${bPriceStr}\n📦 SKU: ${prod.sku || 'N/A'}${bBuyUrl ? '\n\n🛒 <a href="' + bBuyUrl + '">Comprar</a>' : ''}`

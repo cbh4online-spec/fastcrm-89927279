@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Package, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getShareUrl } from "@/utils/getShareUrl";
 
 const sb = supabase as any;
 
@@ -58,7 +58,7 @@ export function ProductMessageCard({ productId, isMe, workspaceId }: ProductMess
   const price = new Intl.NumberFormat("pt-PT", { style: "currency", currency: product.currency || "EUR" }).format(product.base_price || 0);
 
   const slug = storeSettings?.store_slug || wsId;
-  const buyUrl = slug ? `${getPublicBaseUrl()}/store/${slug}/product/${productId}` : null;
+  const buyUrl = slug ? getShareUrl("product", `${slug}/${productId}`) : null;
 
   return (
     <div className={`rounded-md overflow-hidden border ${isMe ? "border-primary-foreground/20" : "border-border"} mt-1`}>

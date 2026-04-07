@@ -42,7 +42,7 @@ function isCrawler(userAgent: string | null): boolean {
   return userAgent ? CRAWLER_REGEX.test(userAgent) : false;
 }
 
-function buildOgHtml(title: string, description: string, image: string, url: string, extra = ""): string {
+function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -52,7 +52,7 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(image)}"/>
 <meta property="og:url" content="${esc(url)}"/>
-<meta property="og:type" content="website"/>
+<meta property="og:type" content="${esc(ogType)}"/>
 <meta property="og:site_name" content="FastCRM"/>
 ${extra}
 <meta name="twitter:card" content="summary_large_image"/>
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
             const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const price = product.base_price ? Number(product.base_price).toFixed(2) : null;
             const currency = product.currency || "EUR";
-            let extraTags = `<meta property="og:type" content="product"/>\n<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
+            let extraTags = `<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
             if (price) {
               extraTags += `\n<meta property="product:price:amount" content="${esc(price)}"/>`;
               extraTags += `\n<meta property="product:price:currency" content="${esc(currency)}"/>`;
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
             const extraTags = (product as any)._extraOgTags;
             // For crawlers: serve product-specific OG HTML
             if (isCrawler(req.headers.get("user-agent"))) {
-              const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags);
+              const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags, "product");
               return new Response(html, {
                 status: 200,
                 headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
