@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Briefcase, FileText, Receipt, ExternalLink, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { SupportTicket } from "@/hooks/useHelpdeskTickets";
+import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 
 interface TicketCommercialActionsProps {
   ticket: SupportTicket;
