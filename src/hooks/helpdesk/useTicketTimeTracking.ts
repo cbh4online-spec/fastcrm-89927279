@@ -3,6 +3,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState, useRef, useCallback, useEffect } from "react";
 
+const TIMER_STORAGE_KEY = "helpdesk_active_timer";
+
+interface PersistedTimer {
+  ticketId: string;
+  startedAt: string; // ISO string
+}
+
+function getPersistedTimer(): PersistedTimer | null {
+  try {
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.ticketId && parsed?.startedAt) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistTimer(ticketId: string, startedAt: Date) {
+  localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify({ ticketId, startedAt: startedAt.toISOString() }));
+}
+
+function clearPersistedTimer() {
+  localStorage.removeItem(TIMER_STORAGE_KEY);
+}
+
 export interface TimeEntry {
   id: string;
   ticket_id: string;
@@ -31,34 +58,55 @@ export function useTicketTimeTracking(ticketId: string | undefined) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<Date | null>(null);
 
+  // Restore persisted timer on mount
+  useEffect(() => {
+    if (!ticketId) return;
+    const persisted = getPersistedTimer();
+    if (persisted && persisted.ticketId === ticketId) {
+      const startDate = new Date(persisted.startedAt);
+      const elapsedSec = Math.floor((Date.now() - startDate.getTime()) / 1000);
+      if (elapsedSec > 0 && elapsedSec < 86400) { // max 24h sanity check
+        startTimeRef.current = startDate;
+        setElapsed(elapsedSec);
+        setIsRunning(true);
+        intervalRef.current = setInterval(() => {
+          if (startTimeRef.current) {
+            setElapsed(Math.floor((Date.now() - startTimeRef.current.getTime()) / 1000));
+          }
+        }, 1000);
+      } else {
+        clearPersistedTimer();
+      }
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [ticketId]);
+
   const stopTimer = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
     setIsRunning(false);
+    clearPersistedTimer();
   }, []);
 
   const startTimer = useCallback(() => {
-    if (isRunning) return;
-    startTimeRef.current = new Date();
+    if (isRunning || !ticketId) return;
+    const now = new Date();
+    startTimeRef.current = now;
     setElapsed(0);
     setIsRunning(true);
+    persistTimer(ticketId, now);
     intervalRef.current = setInterval(() => {
       if (startTimeRef.current) {
         setElapsed(Math.floor((Date.now() - startTimeRef.current.getTime()) / 1000));
       }
     }, 1000);
-  }, [isRunning]);
+  }, [isRunning, ticketId]);
 
   const pauseTimer = useCallback(() => {
     stopTimer();
   }, [stopTimer]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["ticket-time-entries", ticketId],
@@ -71,7 +119,6 @@ export function useTicketTimeTracking(ticketId: string | undefined) {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Enrich with agent names
       const userIds = [...new Set((data || []).map((e: any) => e.user_id).filter(Boolean))];
       let profileMap = new Map<string, string>();
       if (userIds.length > 0) {
@@ -135,8 +182,9 @@ export function useTicketTimeTracking(ticketId: string | undefined) {
 
   const saveTimerEntry = useCallback(
     async (description?: string, hourlyRate?: number) => {
-      if (elapsed < 60) return; // min 1 min
+      if (elapsed < 60) return;
       const durationMinutes = Math.round(elapsed / 60);
+      const savedStart = startTimeRef.current;
       stopTimer();
       setElapsed(0);
       await addEntry.mutateAsync({
@@ -144,7 +192,7 @@ export function useTicketTimeTracking(ticketId: string | undefined) {
         description,
         entry_type: "timer",
         hourly_rate: hourlyRate ?? 0,
-        started_at: startTimeRef.current?.toISOString(),
+        started_at: savedStart?.toISOString(),
         ended_at: new Date().toISOString(),
       });
     },
@@ -159,13 +207,11 @@ export function useTicketTimeTracking(ticketId: string | undefined) {
     isLoading,
     addEntry,
     deleteEntry,
-    // Timer
     isRunning,
     elapsed,
     startTimer,
     pauseTimer,
     saveTimerEntry,
-    // Totals
     totalMinutes,
     totalCost,
   };
