@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
             const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             const price = product.base_price ? Number(product.base_price).toFixed(2) : null;
             const currency = product.currency || "EUR";
-            let extraTags = `<meta property="og:type" content="product"/>`;
+            let extraTags = `<meta property="og:type" content="product"/>\n<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
             if (price) {
               extraTags += `\n<meta property="product:price:amount" content="${esc(price)}"/>`;
               extraTags += `\n<meta property="product:price:currency" content="${esc(currency)}"/>`;
