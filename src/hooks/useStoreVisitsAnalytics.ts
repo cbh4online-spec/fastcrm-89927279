@@ -33,10 +33,11 @@ interface ReferrerEntry {
   sessions: number;
 }
 
-interface AiIntentEntry {
+export interface AiIntentEntry {
   intent: string;
   count: number;
   percentage: number;
+  avgScore: number;
 }
 
 interface ScrollDepthBucket {
@@ -65,6 +66,12 @@ interface EventTypeEntry {
   eventType: string;
   count: number;
   percentage: number;
+}
+
+export interface AiRecommendationEntry {
+  recommendation: string;
+  count: number;
+  sessionIds: string[];
 }
 
 interface VisitsKPIs {
@@ -116,6 +123,8 @@ export function useStoreVisitsAnalytics(days: number) {
         utm_campaign: string | null;
         converted: boolean | null;
         ai_intent: string | null;
+        ai_score: number | null;
+        ai_recommendation: string | null;
         started_at: string;
         products_viewed: string[] | null;
         scroll_depth_max: number | null;
@@ -128,7 +137,6 @@ export function useStoreVisitsAnalytics(days: number) {
     },
   });
 
-  // Fetch tracking events
   const eventsQuery = useQuery({
     queryKey: ["store-tracking-events", days],
     queryFn: async () => {
@@ -146,7 +154,6 @@ export function useStoreVisitsAnalytics(days: number) {
     },
   });
 
-  // Fetch product names for top pages
   const productNamesQuery = useQuery({
     queryKey: ["store-visits-product-names"],
     queryFn: async () => {
@@ -181,13 +188,8 @@ export function useStoreVisitsAnalytics(days: number) {
     : 0;
 
   const kpis: VisitsKPIs = {
-    totalViews,
-    uniqueSessions,
-    pagesPerSession,
-    avgTimeOnSite,
-    bounceRate,
-    conversionRate,
-    avgScrollDepth,
+    totalViews, uniqueSessions, pagesPerSession, avgTimeOnSite,
+    bounceRate, conversionRate, avgScrollDepth,
   };
 
   // Daily visits
@@ -211,8 +213,7 @@ export function useStoreVisitsAnalytics(days: number) {
   }
   const deviceBreakdown: DeviceBreakdown[] = Array.from(deviceMap.entries())
     .map(([device, count]) => ({
-      device,
-      count,
+      device, count,
       percentage: uniqueSessions > 0 ? (count / uniqueSessions) * 100 : 0,
     }))
     .sort((a, b) => b.count - a.count);
@@ -230,10 +231,7 @@ export function useStoreVisitsAnalytics(days: number) {
     .map(([key, d]) => {
       const [source, medium] = key.split("|");
       return {
-        source,
-        medium,
-        sessions: d.sessions,
-        converted: d.converted,
+        source, medium, sessions: d.sessions, converted: d.converted,
         conversionRate: d.sessions > 0 ? (d.converted / d.sessions) * 100 : 0,
       };
     })
@@ -248,9 +246,7 @@ export function useStoreVisitsAnalytics(days: number) {
   }
   const topPages: TopPage[] = Array.from(productViewMap.entries())
     .map(([productId, viewCount]) => ({
-      productId,
-      productName: productMap.get(productId) || productId.slice(0, 8),
-      views: viewCount,
+      productId, productName: productMap.get(productId) || productId.slice(0, 8), views: viewCount,
     }))
     .sort((a, b) => b.views - a.views)
     .slice(0, 10);
@@ -271,21 +267,43 @@ export function useStoreVisitsAnalytics(days: number) {
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 10);
 
-  // AI Intent
-  const intentMap = new Map<string, number>();
+  // AI Intent with avg score
+  const intentData = new Map<string, { count: number; totalScore: number }>();
   for (const s of sessions) {
     if (s.ai_intent) {
-      intentMap.set(s.ai_intent, (intentMap.get(s.ai_intent) || 0) + 1);
+      if (!intentData.has(s.ai_intent)) intentData.set(s.ai_intent, { count: 0, totalScore: 0 });
+      const e = intentData.get(s.ai_intent)!;
+      e.count++;
+      e.totalScore += s.ai_score || 0;
     }
   }
-  const totalIntents = Array.from(intentMap.values()).reduce((a, b) => a + b, 0);
-  const aiIntents: AiIntentEntry[] = Array.from(intentMap.entries())
-    .map(([intent, count]) => ({
-      intent,
-      count,
-      percentage: totalIntents > 0 ? (count / totalIntents) * 100 : 0,
+  const totalIntents = Array.from(intentData.values()).reduce((a, b) => a + b.count, 0);
+  const aiIntents: AiIntentEntry[] = Array.from(intentData.entries())
+    .map(([intent, d]) => ({
+      intent, count: d.count,
+      percentage: totalIntents > 0 ? (d.count / totalIntents) * 100 : 0,
+      avgScore: d.count > 0 ? Math.round(d.totalScore / d.count) : 0,
     }))
     .sort((a, b) => b.count - a.count);
+
+  // AI Recommendations aggregated
+  const recMap = new Map<string, { count: number; sessionIds: string[] }>();
+  for (const s of sessions) {
+    if (s.ai_recommendation) {
+      if (!recMap.has(s.ai_recommendation)) recMap.set(s.ai_recommendation, { count: 0, sessionIds: [] });
+      const e = recMap.get(s.ai_recommendation)!;
+      e.count++;
+      if (e.sessionIds.length < 3) e.sessionIds.push(s.session_id);
+    }
+  }
+  const aiRecommendations: AiRecommendationEntry[] = Array.from(recMap.entries())
+    .map(([recommendation, d]) => ({ recommendation, count: d.count, sessionIds: d.sessionIds }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Classification coverage
+  const classifiedSessions = sessions.filter((s) => s.ai_intent).length;
+  const classificationRate = uniqueSessions > 0 ? (classifiedSessions / uniqueSessions) * 100 : 0;
 
   // Scroll Depth Buckets
   const scrollBuckets = [
@@ -300,8 +318,7 @@ export function useStoreVisitsAnalytics(days: number) {
       return d >= bucket.min && d <= bucket.max;
     }).length;
     return {
-      range: bucket.range,
-      count,
+      range: bucket.range, count,
       percentage: uniqueSessions > 0 ? (count / uniqueSessions) * 100 : 0,
     };
   });
@@ -314,8 +331,7 @@ export function useStoreVisitsAnalytics(days: number) {
   }
   const exitPages: ExitPageEntry[] = Array.from(exitMap.entries())
     .map(([page, exits]) => ({
-      page,
-      exits,
+      page, exits,
       percentage: uniqueSessions > 0 ? (exits / uniqueSessions) * 100 : 0,
     }))
     .sort((a, b) => b.exits - a.exits)
@@ -328,10 +344,7 @@ export function useStoreVisitsAnalytics(days: number) {
   const marketingGranted = sessionsWithConsent.filter((s) => s.consent_marketing === true).length;
   const marketingDenied = sessionsWithConsent.filter((s) => s.consent_marketing === false).length;
   const consentBreakdown: ConsentBreakdown = {
-    analyticsGranted,
-    analyticsDenied,
-    marketingGranted,
-    marketingDenied,
+    analyticsGranted, analyticsDenied, marketingGranted, marketingDenied,
     totalWithConsent: sessionsWithConsent.length,
     analyticsRate: sessionsWithConsent.length > 0 ? (analyticsGranted / sessionsWithConsent.length) * 100 : 0,
     marketingRate: sessionsWithConsent.length > 0 ? (marketingGranted / sessionsWithConsent.length) * 100 : 0,
@@ -345,25 +358,15 @@ export function useStoreVisitsAnalytics(days: number) {
   const totalEvents = events.length;
   const eventTypes: EventTypeEntry[] = Array.from(eventTypeMap.entries())
     .map(([eventType, count]) => ({
-      eventType,
-      count,
+      eventType, count,
       percentage: totalEvents > 0 ? (count / totalEvents) * 100 : 0,
     }))
     .sort((a, b) => b.count - a.count);
 
   return {
-    kpis,
-    dailyVisits,
-    deviceBreakdown,
-    trafficSources,
-    topPages,
-    referrers,
-    aiIntents,
-    scrollDepthDistribution,
-    exitPages,
-    consentBreakdown,
-    eventTypes,
-    totalEvents,
-    isLoading,
+    kpis, dailyVisits, deviceBreakdown, trafficSources, topPages,
+    referrers, aiIntents, aiRecommendations, classificationRate,
+    classifiedSessions, scrollDepthDistribution, exitPages,
+    consentBreakdown, eventTypes, totalEvents, isLoading,
   };
 }
