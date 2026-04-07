@@ -22,6 +22,8 @@ export function TicketCommercialActions({ ticket }: TicketCommercialActionsProps
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const [showDealDialog, setShowDealDialog] = useState(false);
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [dealTitle, setDealTitle] = useState(`Ticket #${ticket.ticket_number} — ${ticket.subject}`);
   const [dealValue, setDealValue] = useState("");
   const [selectedStageId, setSelectedStageId] = useState("");
