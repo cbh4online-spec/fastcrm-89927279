@@ -28,7 +28,7 @@ export function useStoreReviewModeration(statusFilter: "pending" | "approved" | 
       if (!currentWorkspace?.id) return [];
       let query = supabase
         .from("store_reviews")
-        .select("*, store_products!inner(name)")
+        .select("*, products!store_reviews_product_id_fkey(name)")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
 
@@ -44,8 +44,8 @@ export function useStoreReviewModeration(statusFilter: "pending" | "approved" | 
       if (error) throw error;
       return (data || []).map((r: any) => ({
         ...r,
-        product_name: r.store_products?.name || "Produto removido",
-        store_products: undefined,
+        product_name: r.products?.name || "Produto removido",
+        products: undefined,
       })) as StoreReviewMod[];
     },
     enabled: !!currentWorkspace?.id,
