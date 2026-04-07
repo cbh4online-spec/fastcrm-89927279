@@ -75,7 +75,8 @@ Deno.serve(async (req) => {
 
     const resend = new Resend(resendKey);
     let processed = 0;
-    const storeUrl = `https://fastcrm.lovable.app/store/${workspace?.slug || product.workspace_id}/product/${product.id}`;
+    const supabaseProjectRef = Deno.env.get("SUPABASE_URL")?.match(/https:\/\/([^.]+)\./)?.[1] || "";
+    const storeUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/og-proxy?type=product&slug=${encodeURIComponent((workspace?.slug || product.workspace_id) + "/" + product.id)}`;
     const productImage = product.images?.[product.primary_image_index ?? 0] || product.images?.[0];
 
     for (const alert of alerts) {
