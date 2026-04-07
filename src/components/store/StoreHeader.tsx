@@ -71,9 +71,11 @@ export function StoreHeader({ storeName = "Loja", logoUrl, onSearch, workspaceSl
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
           >
             {logoUrl && (
-              <img src={logoUrl} alt={storeName} className="h-9 sm:h-10 w-auto max-w-[120px] sm:max-w-[160px] object-contain rounded" />
+              <img src={logoUrl} alt={storeName} className="h-8 sm:h-10 w-auto max-w-[100px] sm:max-w-[160px] object-contain rounded" />
             )}
-            <span className={cn("text-lg sm:text-xl font-bold tracking-tight", logoUrl && "hidden sm:inline")}>{storeName}</span>
+            {(!logoUrl || true) && (
+              <span className={cn("text-lg sm:text-xl font-bold tracking-tight", logoUrl ? "hidden sm:inline" : "")}>{storeName}</span>
+            )}
           </Link>
 
           {/* Mega Menu - Categories */}
