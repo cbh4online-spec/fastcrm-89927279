@@ -2,45 +2,38 @@
 
 ## Diagnóstico
 
-Analisando o screenshot (IMG_0414.png) no viewport ~393px:
+Analisando o screenshot do WhatsApp (IMG_0416), identifico dois problemas distintos:
 
-1. **Texto de categoria continua a transbordar** — "ACESSÓRIOS DE SEGURANÇA / PEÇAS DE REPOSIÇÃO" ocupa 5-6 linhas no card, mesmo com `line-clamp-1` aplicado. O problema é que o `line-clamp-1` está aplicado mas o `uppercase tracking-widest` expande muito o texto horizontalmente, forçando quebras.
+1. **URL directa em vez de og-proxy** — A mensagem de produto partilhada no WhatsApp contém o URL directo (`https://fastcrm.metodopare.ai/store/simplesedivertido/product/...`) em vez do URL do og-proxy. Como a app é uma SPA (Single Page Application), o crawler do WhatsApp recebe apenas o `index.html` genérico com os meta tags "FastCRM com Método PARE" e o logo do site — nunca vê os meta tags específicos do produto (imagem, título, preço).
 
-2. **"SD" visível ao lado do logo** — O `storeName` mostra "SD" (initials) porque `hidden sm:inline` esconde apenas o nome completo, mas o storeName recebido pode ser curto. Na verdade, o logo existe e o "SD" é provavelmente o texto que deveria estar completamente escondido em mobile quando há logo.
+2. **OG image genérica expirada** — O `og:image` no `index.html` usa um URL assinado do Google Storage com `Expires=1774642344` (≈ março 2026), que já expirou. Mesmo para partilhas genéricas do site, a imagem não carrega.
 
-3. **Cards demasiado altos** — A combinação de imagem + categoria multilinha + nome + short_description (mesmo hidden) + preço cria cards muito altos para mobile.
-
-4. **Quick actions sempre visíveis empilham 5+ botões** — Em mobile, os quick actions (Compare, Quick View, Wishlist, Quick Buy, Cart) estão agora todos visíveis, criando uma coluna de 5 botões sobre a imagem que é intrusiva.
-
-5. **Build error** — O log de build foi truncado. Preciso verificar se há um erro real de compilação ou apenas warnings de tamanho de bundle.
+O `og-proxy` edge function **já funciona correctamente** — serve OG tags com a imagem do produto quando detecta um crawler. O problema é que os URLs partilhados no WhatsApp não passam pelo og-proxy.
 
 ## Plano de Implementação
 
-### 1. Corrigir truncagem de categoria nos cards
-**Ficheiro:** `src/components/store/StoreProductCard.tsx`
-- Adicionar `overflow-hidden text-ellipsis` à categoria além de `line-clamp-1`
-- Reduzir `tracking-widest` para `tracking-wider` em mobile para evitar expansão horizontal
-- Considerar esconder a categoria completamente em `< 375px` se continuar a transbordar
+### 1. Corrigir OG image expirada no index.html
+**Ficheiro:** `index.html`
+- Substituir o URL assinado (expirado) do `og:image` por um URL permanente (ex: `/og-image.png` hospedado no public folder ou um URL de storage público sem expiração)
 
-### 2. Esconder completamente storeName quando há logo em mobile
-**Ficheiro:** `src/components/store/StoreHeader.tsx`
-- Quando `logoUrl` existe, o `storeName` deve ser `hidden sm:inline` sem exceção
-- Verificar se o "SD" que aparece é o storeName ou outro elemento
+### 2. Garantir que mensagens automatizadas usam og-proxy URLs
+**Ficheiros a verificar/corrigir:**
+- `supabase/functions/process-product-alerts/index.ts` — usa URL directo `https://fastcrm.lovable.app/store/...` em vez de og-proxy
+- `supabase/functions/_shared/whatsapp-autopilot.ts` — se o AI autopilot sugere links de produto, deve usar og-proxy
+- Qualquer outra edge function que gere URLs de produto para envio via canais de mensagem
 
-### 3. Reduzir quick actions em mobile
-**Ficheiro:** `src/components/store/StoreProductCard.tsx`
-- Em mobile, mostrar apenas 2 botões essenciais: Wishlist + Carrinho
-- Esconder Compare, Quick View e Quick Buy em mobile (`hidden sm:flex`)
-- Isto reduz a intrusão visual sobre a imagem do produto
+### 3. Adicionar fallback no og-proxy para domínio custom
+**Ficheiro:** `supabase/functions/og-proxy/index.ts`
+- O `BASE_URL` já é `https://fastcrm.metodopare.ai` — verificar que o redirect funciona correctamente
+- Confirmar que `isCrawler` detecta o user-agent do WhatsApp (já incluído no regex: `WhatsApp`)
 
-### 4. Verificar e corrigir erro de build
-- Investigar se o build realmente falhou ou se o log foi apenas truncado
-- Se houver erro TypeScript, corrigir a causa raiz
+### 4. Verificar acessibilidade das imagens de produto
+- As imagens de produto em storage devem ser públicas para que o crawler do WhatsApp consiga descarregá-las
+- Se estão em buckets privados, o WhatsApp não consegue renderizar o `og:image`
 
 ## Critérios de Aceitação
-- Categoria limitada a 1 linha sem overflow em 375-414px
-- Nenhum texto extra ao lado do logo em mobile
-- Máximo 2-3 quick actions visíveis em mobile
-- Build passa sem erros
-- Cards compactos e legíveis em mobile
+- Link de produto partilhado no WhatsApp mostra preview com imagem, título e preço do produto
+- OG image genérica do site funciona (URL não expirado)
+- Todas as edge functions que geram URLs de produto para mensagens usam og-proxy
+- Imagens de produto acessíveis publicamente para crawlers
 
