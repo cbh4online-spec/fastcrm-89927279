@@ -51,8 +51,6 @@ function buildOgHtml(title: string, description: string, image: string, url: str
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:image" content="${esc(image)}"/>
-<meta property="og:image:width" content="800"/>
-<meta property="og:image:height" content="800"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="FastCRM"/>
