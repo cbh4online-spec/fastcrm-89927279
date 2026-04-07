@@ -144,7 +144,7 @@ export function useAbandonedCartStats() {
 
       const all = [...legacyCarts, ...storeCarts];
       const total = all.length;
-      const pending = all.filter((c) => ["pending", "in_progress", "touch_1_sent", "touch_2_sent", "touch_3_sent"].includes(c.status)).length;
+      const pending = all.filter((c) => ["pending", "abandoned", "in_progress", "touch_1_sent", "touch_2_sent", "touch_3_sent"].includes(c.status)).length;
       const recovered = all.filter((c) => c.status === "recovered").length;
       const expired = all.filter((c) => ["expired", "exited"].includes(c.status)).length;
       const totalValue = all.reduce((s, c) => s + c.value, 0);
