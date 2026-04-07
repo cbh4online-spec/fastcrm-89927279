@@ -6,7 +6,22 @@ import { StoreRecentlyViewed } from "@/components/store/sections/StoreRecentlyVi
 import { StoreFaqSection } from "@/components/store/sections/StoreFaqSection";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Package, SlidersHorizontal } from "lucide-react";
 
 interface StoreCatalogSectionProps {
   products: any[];
