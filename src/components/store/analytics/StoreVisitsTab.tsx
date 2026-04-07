@@ -1,11 +1,13 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { KPICard } from "./KPICard";
 import { fadeIn } from "./AnalyticsChartHelpers";
-import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut, ShieldCheck, Activity } from "lucide-react";
-import { useStoreVisitsAnalytics } from "@/hooks/useStoreVisitsAnalytics";
+import { Eye, Users, Clock, MousePointerClick, Monitor, Smartphone, Tablet, Globe, ArrowUpDown, ArrowDown, LogOut, ShieldCheck, Activity, Brain, Search, Scale, ShoppingCart, UserCheck, Lightbulb, BarChart3 } from "lucide-react";
+import { useStoreVisitsAnalytics, type AiIntentEntry } from "@/hooks/useStoreVisitsAnalytics";
 import { ActiveVisitorsList } from "@/components/store/ActiveVisitorsList";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -51,10 +53,18 @@ interface StoreVisitsTabProps {
   days: number;
 }
 
+const INTENT_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
+  browsing: { label: "A explorar", icon: Search, color: "text-blue-400", bg: "bg-blue-500/15 border-blue-500/30" },
+  comparing: { label: "A comparar", icon: Scale, color: "text-amber-400", bg: "bg-amber-500/15 border-amber-500/30" },
+  ready_to_buy: { label: "Pronto para comprar", icon: ShoppingCart, color: "text-green-400", bg: "bg-green-500/15 border-green-500/30" },
+  returning_customer: { label: "Cliente recorrente", icon: UserCheck, color: "text-purple-400", bg: "bg-purple-500/15 border-purple-500/30" },
+};
+
 export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisitsTabProps) {
   const {
     kpis, dailyVisits, deviceBreakdown, trafficSources,
-    topPages, referrers, aiIntents, scrollDepthDistribution, exitPages,
+    topPages, referrers, aiIntents, aiRecommendations, classificationRate,
+    classifiedSessions, scrollDepthDistribution, exitPages,
     consentBreakdown, eventTypes, totalEvents, isLoading,
   } = useStoreVisitsAnalytics(days);
 
@@ -348,25 +358,89 @@ export const StoreVisitsTab = memo(function StoreVisitsTab({ days }: StoreVisits
         </motion.div>
       </div>
 
-      {/* AI Intent */}
-      {aiIntents.length > 0 && (
-        <motion.div {...fadeIn} transition={{ delay: 0.55 }}>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Intenção do Visitante (AI)</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {aiIntents.map((a) => (
-                  <div key={a.intent} className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-lg font-bold">{a.count}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{a.intent}</p>
-                    <p className="text-[11px] text-muted-foreground">{a.percentage.toFixed(0)}%</p>
-                  </div>
-                ))}
+      {/* AI Intent — always show */}
+      <motion.div {...fadeIn} transition={{ delay: 0.55 }}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Brain className="h-4 w-4 text-muted-foreground" />
+                Intenção do Visitante (AI)
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">
+                  {classifiedSessions} de {kpis.uniqueSessions} classificadas
+                </Badge>
+                <div className="w-16">
+                  <Progress value={classificationRate} className="h-1.5" />
+                </div>
+                <span className="text-[10px] text-muted-foreground">{classificationRate.toFixed(0)}%</span>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {aiIntents.length === 0 ? (
+              <div className="py-6 text-center">
+                <Brain className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhuma sessão classificada</p>
+                <p className="text-xs text-muted-foreground mt-1">A classificação AI é feita automaticamente em sessões com actividade suficiente.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Intent cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {aiIntents.map((a) => {
+                    const cfg = INTENT_CONFIG[a.intent] || { label: a.intent, icon: Brain, color: "text-foreground", bg: "bg-muted/50 border-border/50" };
+                    const IntentIcon = cfg.icon;
+                    return (
+                      <div key={a.intent} className={`rounded-lg border p-3 ${cfg.bg}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <IntentIcon className={`h-4 w-4 ${cfg.color}`} />
+                          <span className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
+                        </div>
+                        <p className="text-2xl font-bold">{a.count}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[10px] text-muted-foreground">{a.percentage.toFixed(0)}%</span>
+                          {a.avgScore > 0 && (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <BarChart3 className="h-2.5 w-2.5" />
+                              Score: {a.avgScore}
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-full h-1 rounded-full bg-background/30 mt-1.5 overflow-hidden">
+                          <div className="h-full rounded-full bg-current opacity-40" style={{ width: `${a.percentage}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* AI Recommendations */}
+                {aiRecommendations.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                      Recomendações AI Recentes
+                    </p>
+                    <div className="space-y-1.5">
+                      {aiRecommendations.slice(0, 5).map((r, i) => (
+                        <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-accent/30 border border-accent/50">
+                          <Lightbulb className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs">{r.recommendation}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{r.count} {r.count === 1 ? "sessão" : "sessões"}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Active Visitors */}
       <motion.div {...fadeIn} transition={{ delay: 0.6 }}>
