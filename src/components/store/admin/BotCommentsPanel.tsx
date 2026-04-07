@@ -9,6 +9,12 @@ import {
   useApproveQA,
   useRejectQA,
 } from "@/hooks/useBotComments";
+import {
+  useStoreReviewModeration,
+  useApproveReview,
+  useRejectReview,
+  useDeleteReview,
+} from "@/hooks/useStoreReviewModeration";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,6 +47,8 @@ import {
   Loader2,
   HelpCircle,
   MessageSquare,
+  Clock,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -70,11 +78,16 @@ export function BotCommentsPanel() {
       <Tabs defaultValue="jobs">
         <TabsList>
           <TabsTrigger value="jobs">Histórico de Geração</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews dos Bots</TabsTrigger>
           <TabsTrigger value="qa">Perguntas &amp; Respostas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="jobs" className="mt-4">
           <JobsTable jobs={jobs} isLoading={jobsLoading} />
+        </TabsContent>
+
+        <TabsContent value="reviews" className="mt-4">
+          <BotReviewsTable />
         </TabsContent>
 
         <TabsContent value="qa" className="mt-4">
@@ -151,12 +164,12 @@ function JobsTable({ jobs, isLoading }: { jobs: any[]; isLoading: boolean }) {
                 </TableCell>
                 <TableCell>{statusBadge(job.status)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {job.result_json ? (
+                  {job.status === "failed" && job.error_message ? (
+                    <span className="text-destructive text-xs">{job.error_message}</span>
+                  ) : job.result_json ? (
                     <span>
                       {job.result_json.reviews_generated || 0} reviews, {job.result_json.qa_generated || 0} Q&A
                     </span>
-                  ) : job.error_message ? (
-                    <span className="text-destructive text-xs">{job.error_message}</span>
                   ) : (
                     "—"
                   )}
@@ -169,6 +182,144 @@ function JobsTable({ jobs, isLoading }: { jobs: any[]; isLoading: boolean }) {
           )}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+function BotReviewsTable() {
+  const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const { data: reviews = [], isLoading } = useStoreReviewModeration(filter, "bot");
+  const approveReview = useApproveReview();
+  const rejectReview = useRejectReview();
+  const deleteReview = useDeleteReview();
+
+  const getStatusBadge = (review: any) => {
+    if (review.is_approved) {
+      return <Badge className="bg-green-100 text-green-700 border-green-200">Aprovada</Badge>;
+    }
+
+    if (review.moderated_at) {
+      return <Badge variant="destructive">Rejeitada</Badge>;
+    }
+
+    return (
+      <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
+        <Clock className="mr-1 h-3 w-3" /> Pendente
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Moderar apenas as reviews criadas automaticamente pelos bots
+        </p>
+        <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pendentes</SelectItem>
+            <SelectItem value="approved">Aprovadas</SelectItem>
+            <SelectItem value="rejected">Rejeitadas</SelectItem>
+            <SelectItem value="all">Todas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="border rounded-lg overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produto</TableHead>
+              <TableHead>Rating</TableHead>
+              <TableHead>Review</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  A carregar...
+                </TableCell>
+              </TableRow>
+            ) : reviews.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Sem reviews de bots {filter === "pending" ? "pendentes" : "nesta categoria"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              reviews.map((review: any) => (
+                <TableRow key={review.id}>
+                  <TableCell className="font-medium max-w-[180px] truncate">
+                    {review.product_name}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{review.rating}/5</Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[320px]">
+                    <div className="space-y-1">
+                      {review.title && <p className="text-sm font-medium truncate">{review.title}</p>}
+                      {review.comment && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{review.comment}</p>
+                      )}
+                      {review.reviewer_name && (
+                        <p className="text-[10px] text-muted-foreground">por {review.reviewer_name}</p>
+                      )}
+                      {review.rejection_reason && (
+                        <p className="text-[10px] italic text-destructive">Motivo: {review.rejection_reason}</p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(review)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      {!review.is_approved && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => approveReview.mutate(review.id)}
+                          disabled={approveReview.isPending}
+                          title="Aprovar"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(review.is_approved || !review.moderated_at) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => rejectReview.mutate({ reviewId: review.id })}
+                          disabled={rejectReview.isPending}
+                          title="Rejeitar"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => deleteReview.mutate(review.id)}
+                        disabled={deleteReview.isPending}
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
