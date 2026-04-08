@@ -226,6 +226,11 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             className="hidden"
             onChange={handleImportHtml}
           />
+
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPasteHtml(true)}>
+            <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+            Colar HTML
+          </Button>
           
           <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1.5" />
