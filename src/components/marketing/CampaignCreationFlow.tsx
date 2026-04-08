@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogPortal,
@@ -8,12 +8,14 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { EmailBuilder } from '@/components/email-builder';
 import { renderEmailToHtml } from '@/utils/emailRenderer';
 import { useCreateCampaign } from '@/hooks/useMarketingCampaigns';
-import type { EmailDesign } from '@/types/emailBuilder';
+import type { EmailDesign, HtmlBlockContent } from '@/types/emailBuilder';
 import { CampaignMetadataForm } from './CampaignMetadataForm';
+import { generateBlockId } from '@/types/emailBuilder';
 
 interface CampaignCreationFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialHtml?: string | null;
 }
 
 interface SavedDesign {
@@ -24,10 +26,41 @@ interface SavedDesign {
 export function CampaignCreationFlow({
   open,
   onOpenChange,
+  initialHtml,
 }: CampaignCreationFlowProps) {
   const [step, setStep] = useState<'editor' | 'metadata'>('editor');
   const [savedDesign, setSavedDesign] = useState<SavedDesign | null>(null);
+  const [initialDesignFromHtml, setInitialDesignFromHtml] = useState<EmailDesign | undefined>(undefined);
   const createCampaign = useCreateCampaign();
+
+  // When initialHtml changes and dialog opens, create an initial design with an HTML block
+  useEffect(() => {
+    if (open && initialHtml) {
+      const design: EmailDesign = {
+        blocks: [
+          {
+            id: generateBlockId(),
+            type: 'html',
+            content: { html: initialHtml } as HtmlBlockContent,
+            styles: { padding: '0' },
+          },
+        ],
+        globalStyles: {
+          backgroundColor: '#f5f5f5',
+          contentBackgroundColor: '#ffffff',
+          contentWidth: 600,
+          fontFamily: 'Arial, sans-serif',
+          textColor: '#333333',
+          linkColor: '#3b82f6',
+          accentColor: '#3b82f6',
+          borderRadius: 8,
+        },
+      };
+      setInitialDesignFromHtml(design);
+    } else if (!open) {
+      setInitialDesignFromHtml(undefined);
+    }
+  }, [open, initialHtml]);
 
   const handleSaveDesign = (design: EmailDesign, html: string) => {
     setSavedDesign({ design, html });
@@ -35,9 +68,9 @@ export function CampaignCreationFlow({
   };
 
   const handleCancel = () => {
-    // Reset state and close
     setStep('editor');
     setSavedDesign(null);
+    setInitialDesignFromHtml(undefined);
     onOpenChange(false);
   };
 
@@ -62,20 +95,20 @@ export function CampaignCreationFlow({
         designJson: savedDesign.design as unknown as Record<string, unknown>,
       });
       
-      // Reset and close
       setStep('editor');
       setSavedDesign(null);
+      setInitialDesignFromHtml(undefined);
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating campaign:', error);
     }
   };
 
-  // Reset when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setStep('editor');
       setSavedDesign(null);
+      setInitialDesignFromHtml(undefined);
     }
     onOpenChange(newOpen);
   };
@@ -91,7 +124,7 @@ export function CampaignCreationFlow({
         >
           {step === 'editor' && (
             <EmailBuilder
-              initialDesign={savedDesign?.design}
+              initialDesign={initialDesignFromHtml || savedDesign?.design}
               onSave={handleSaveDesign}
               onCancel={handleCancel}
             />
