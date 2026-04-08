@@ -53,7 +53,7 @@ export function CampaignCreationFlow({
           textColor: '#333333',
           linkColor: '#3b82f6',
           accentColor: '#3b82f6',
-          borderRadius: 8,
+          borderRadius: '8px',
         },
       };
       setInitialDesignFromHtml(design);
