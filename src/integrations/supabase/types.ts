@@ -41450,6 +41450,137 @@ export type Database = {
           },
         ]
       }
+      portal_companies: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          email: string
+          id: string
+          location: string | null
+          logo_url: string | null
+          name: string
+          nif: string | null
+          phone: string | null
+          sector: string | null
+          status: string
+          updated_at: string
+          website: string | null
+          workspace_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          email: string
+          id?: string
+          location?: string | null
+          logo_url?: string | null
+          name: string
+          nif?: string | null
+          phone?: string | null
+          sector?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+          workspace_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          location?: string | null
+          logo_url?: string | null
+          name?: string
+          nif?: string | null
+          phone?: string | null
+          sector?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_job_postings: {
+        Row: {
+          contact_email: string | null
+          created_at: string
+          description: string
+          employment_type: string | null
+          expires_at: string | null
+          id: string
+          location: string | null
+          portal_company_id: string
+          published_at: string | null
+          remote_option: string | null
+          requirements: string[] | null
+          salary_range: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string
+          description?: string
+          employment_type?: string | null
+          expires_at?: string | null
+          id?: string
+          location?: string | null
+          portal_company_id: string
+          published_at?: string | null
+          remote_option?: string | null
+          requirements?: string[] | null
+          salary_range?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string
+          description?: string
+          employment_type?: string | null
+          expires_at?: string | null
+          id?: string
+          location?: string | null
+          portal_company_id?: string
+          published_at?: string | null
+          remote_option?: string | null
+          requirements?: string[] | null
+          salary_range?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_job_postings_portal_company_id_fkey"
+            columns: ["portal_company_id"]
+            isOneToOne: false
+            referencedRelation: "portal_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_job_postings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_entities: {
         Row: {
           category: string | null
