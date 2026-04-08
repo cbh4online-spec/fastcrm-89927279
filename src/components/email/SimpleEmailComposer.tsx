@@ -546,16 +546,19 @@ export function SimpleEmailComposer({
             <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
             Qual é a mensagem?
           </Label>
-          <Button
-            type="button"
-            variant={showPreview ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5 h-7 text-xs"
-            onClick={() => setShowPreview(!showPreview)}
-          >
-            {showPreview ? <PenLine className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-            {showPreview ? "Editar" : "Pré-visualizar"}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <AIEmailAssistPanel body={body} subject={subject} onApplyBody={setBody} onApplySubject={setSubject} disabled={isBusy} />
+            <Button
+              type="button"
+              variant={showPreview ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 h-7 text-xs"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? <PenLine className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+              {showPreview ? "Editar" : "Pré-visualizar"}
+            </Button>
+          </div>
         </div>
 
         {showPreview ? (
@@ -634,11 +637,6 @@ export function SimpleEmailComposer({
               />
             </div>
 
-            {/* AI Assist */}
-            <div className="flex items-center gap-2">
-              <AIEmailAssistPanel body={body} subject={subject} onApplyBody={setBody} onApplySubject={setSubject} disabled={isBusy} />
-              <span className="text-sm text-muted-foreground">Assistente IA</span>
-            </div>
 
             {/* Translation */}
             <div>
