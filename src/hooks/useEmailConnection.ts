@@ -94,10 +94,11 @@ export function useActiveEmailConnection() {
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .eq("is_active", true)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
       if (error) throw error;
-      return data as EmailConnection | null;
+      return (data && data.length > 0 ? data[0] : null) as EmailConnection | null;
     },
     enabled: !!currentWorkspace,
   });
