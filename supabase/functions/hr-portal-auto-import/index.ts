@@ -246,7 +246,7 @@ async function importFromPortal({
     description: (r.description || "").slice(0, 500),
     location: "",
     skills: [],
-    raw_content: (r.markdown || "").slice(0, 2000),
+    raw_content: (r.description || "").slice(0, 2000),
     extracted_data: { job_title: r.title, description: r.description },
     status: "new",
   }));
@@ -269,8 +269,8 @@ async function importFromPortal({
   // Enrich with AI if available
   if (lovableKey) {
     try {
-      const combinedMarkdown = searchResults
-        .map((r: any) => `## ${r.title}\nURL: ${r.url}\n${(r.markdown || r.description || "").slice(0, 1500)}`)
+      const combinedContent = searchResults
+        .map((r: any) => `## ${r.title}\nURL: ${r.url}\n${(r.description || "").slice(0, 1500)}`)
         .join("\n\n---\n\n");
 
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -285,7 +285,7 @@ async function importFromPortal({
             { role: "system", content: "Extract job listings. Return structured JSON via the tool call." },
             {
               role: "user",
-              content: `Extract job listings from ${portal.name}. For each: job_title, company, location, description (max 150 chars), skills_required (array), employment_type.\n\n${combinedMarkdown.slice(0, 6000)}`,
+              content: `Extract job listings from ${portal.name}. For each: job_title, company, location, description (max 150 chars), skills_required (array), employment_type.\n\n${combinedContent.slice(0, 6000)}`,
             },
           ],
           tools: [{
