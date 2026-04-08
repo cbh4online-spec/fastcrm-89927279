@@ -57,15 +57,16 @@ export function useSearchTalent() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ search_type, query, location }: {
+    mutationFn: async ({ search_type, query, location, rss_url }: {
       search_type: string;
-      query: string;
+      query?: string;
       location?: string;
+      rss_url?: string;
     }) => {
       if (!wsId) throw new Error("Sem workspace");
 
       const { data, error } = await supabase.functions.invoke("hr-talent-search", {
-        body: { search_type, query, location, workspace_id: wsId },
+        body: { search_type, query, location, workspace_id: wsId, rss_url },
       });
 
       if (error) throw error;

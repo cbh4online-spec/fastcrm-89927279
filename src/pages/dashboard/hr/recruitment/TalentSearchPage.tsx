@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe } from "lucide-react";
+import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Rss } from "lucide-react";
 import {
   useTalentResults,
   useSearchTalent,
