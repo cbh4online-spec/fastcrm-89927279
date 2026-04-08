@@ -121,7 +121,7 @@ export default function WorkerRegisterPage() {
 
             <div className="space-y-1">
               <Label>Password *</Label>
-              <Input type="password" {...form.register("password")} placeholder="Mínimo 8 caracteres" />
+              <Input type="password" autoComplete="new-password" {...form.register("password")} placeholder="Mínimo 8 caracteres" />
               {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
             </div>
 

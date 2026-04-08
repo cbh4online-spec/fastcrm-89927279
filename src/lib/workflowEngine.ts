@@ -321,8 +321,13 @@ async function executeParallelSteps(
     return result;
   });
   
-  await Promise.all(promises);
-  
+  const settled = await Promise.allSettled(promises);
+  settled.forEach((outcome) => {
+    if (outcome.status === 'rejected') {
+      console.error('[WorkflowEngine] Parallel step failed:', outcome.reason);
+    }
+  });
+
   return results;
 }
 

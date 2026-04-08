@@ -64,7 +64,7 @@ export default function PortalLoginPage() {
 
             <div className="space-y-1">
               <Label>Password</Label>
-              <Input type="password" {...form.register("password")} />
+              <Input type="password" autoComplete="current-password" {...form.register("password")} />
               {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
             </div>
 

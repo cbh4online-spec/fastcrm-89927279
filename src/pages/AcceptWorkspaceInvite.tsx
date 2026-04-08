@@ -258,7 +258,7 @@ export default function AcceptWorkspaceInvite() {
               </div>
               <div className="space-y-2">
                 <Label>Password</Label>
-                <Input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+                <Input type="password" autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
               </div>
               <Button className="w-full" onClick={handleLogin} disabled={accepting}>
                 {accepting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -282,7 +282,7 @@ export default function AcceptWorkspaceInvite() {
               </div>
               <div className="space-y-2">
                 <Label>Password</Label>
-                <Input type="password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+                <Input type="password" autoComplete="new-password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
               </div>
               <Button className="w-full" onClick={handleSignup} disabled={accepting}>
                 {accepting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

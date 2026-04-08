@@ -147,6 +147,7 @@ export function SignupForm() {
             id="password"
             type="password"
             placeholder="••••••••"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

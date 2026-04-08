@@ -36,12 +36,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (isMounted?: () => boolean) => {
+    const mounted = isMounted ?? (() => true);
+
     if (!user) {
-      setWorkspaces([]);
-      setCurrentWorkspace(null);
-      setLoading(false);
-      setIsSuperAdmin(false);
+      if (mounted()) {
+        setWorkspaces([]);
+        setCurrentWorkspace(null);
+        setLoading(false);
+        setIsSuperAdmin(false);
+      }
       return;
     }
 
@@ -132,18 +136,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         workspaceList = [...ownWorkspacesList, ...managedByAgencyList];
       }
 
+      if (!mounted()) return;
+
       setWorkspaces(workspaceList);
 
       // Set current workspace from localStorage or first in list
       const savedWorkspaceId = localStorage.getItem("currentWorkspaceId");
       const savedWorkspace = workspaceList.find((w) => w.id === savedWorkspaceId);
-      
+
       if (savedWorkspace) {
         setCurrentWorkspace(savedWorkspace);
       } else if (workspaceList.length > 0) {
         // Clear invalid workspace ID from localStorage
         if (savedWorkspaceId) {
-          console.warn("Saved workspace ID not found in user's workspaces, clearing:", savedWorkspaceId);
           localStorage.removeItem("currentWorkspaceId");
         }
         setCurrentWorkspace(workspaceList[0]);
@@ -154,9 +159,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setCurrentWorkspace(null);
       }
     } catch (error) {
-      console.error("Error fetching workspaces:", error);
+      if (mounted()) console.error("Error fetching workspaces:", error);
     } finally {
-      setLoading(false);
+      if (mounted()) setLoading(false);
     }
   };
 
@@ -210,7 +215,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchWorkspaces();
+    let active = true;
+    fetchWorkspaces(() => active);
+    return () => { active = false; };
   }, [user]);
 
   // Separate own workspaces from agency-managed ones
