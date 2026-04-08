@@ -130,6 +130,10 @@ const App = () => (
                 {/* FastClub Portal Routes */}
                 {FastClubPortalRoutes()}
 
+                {/* Public Careers */}
+                <Route path="/careers/:workspaceSlug" element={<CareersPage />} />
+                <Route path="/careers/:workspaceSlug/:jobSlug" element={<JobDetailPublicPage />} />
+
                 {/* Public Booking */}
                 <Route path="/book/:slug" element={<PublicBookingPage />} />
                 <Route path="/:workspaceSlug/book/:slug" element={<PublicBookingPage />} />
