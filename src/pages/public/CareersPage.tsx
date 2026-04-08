@@ -186,7 +186,7 @@ export default function CareersPage() {
           </p>
         </div>
 
-        {jobsLoading ? (
+        {(jobsLoading || extLoading) ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => <Skeleton key={i} height={100} borderRadius={12} />)}
           </div>
@@ -214,36 +214,17 @@ export default function CareersPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                 >
-                  <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
-                    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden">
-                      <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 group-hover:from-primary/30 group-hover:to-primary/10 transition-colors">
-                          <Briefcase className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{job.title}</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {job.employment_type && (
-                              <Badge variant="secondary" className="text-xs font-normal">
-                                {EMPLOYMENT_LABELS[job.employment_type] || job.employment_type}
-                              </Badge>
-                            )}
-                            {job.remote_option && (
-                              <Badge variant="secondary" className="text-xs font-normal">
-                                {REMOTE_LABELS[job.remote_option] || job.remote_option}
-                              </Badge>
-                            )}
-                            {job.location && (
-                              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <MapPin className="h-3 w-3" />{job.location}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  {job.source === "internal" && job.slug ? (
+                    <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
+                      <JobCard job={job} />
+                    </Link>
+                  ) : job.source === "external" && job.source_url ? (
+                    <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
+                      <JobCard job={job} />
+                    </a>
+                  ) : (
+                    <JobCard job={job} />
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -255,5 +236,73 @@ export default function CareersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+type UnifiedJob = {
+  id: string;
+  title: string;
+  location: string | null;
+  employment_type: string | null;
+  remote_option: string | null;
+  slug: string | null;
+  source: "internal" | "external";
+  source_platform?: string | null;
+  source_url?: string | null;
+  published_at: string | null;
+};
+
+function JobCard({ job }: { job: UnifiedJob }) {
+  const isExternal = job.source === "external";
+
+  return (
+    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden">
+      <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+          isExternal
+            ? "bg-gradient-to-br from-accent/20 to-accent/5 group-hover:from-accent/30 group-hover:to-accent/10"
+            : "bg-gradient-to-br from-primary/20 to-primary/5 group-hover:from-primary/30 group-hover:to-primary/10"
+        }`}>
+          {isExternal ? (
+            <Globe className="h-5 w-5 text-accent-foreground/70" />
+          ) : (
+            <Briefcase className="h-5 w-5 text-primary" />
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{job.title}</h3>
+            {isExternal && (
+              <Badge variant="outline" className="text-xs shrink-0">
+                <Globe className="h-3 w-3 mr-1" />
+                {job.source_platform || "Externo"}
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {job.employment_type && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {EMPLOYMENT_LABELS[job.employment_type] || job.employment_type}
+              </Badge>
+            )}
+            {job.remote_option && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {REMOTE_LABELS[job.remote_option] || job.remote_option}
+              </Badge>
+            )}
+            {job.location && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3 w-3" />{job.location}
+              </span>
+            )}
+          </div>
+        </div>
+        {isExternal ? (
+          <ExternalLink className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-all shrink-0 hidden sm:block" />
+        ) : (
+          <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
+        )}
+      </CardContent>
+    </Card>
   );
 }
