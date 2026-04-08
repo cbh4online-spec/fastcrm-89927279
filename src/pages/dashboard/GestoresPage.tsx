@@ -50,25 +50,28 @@ interface ManagerStats {
   leadsHot: number;
   leadsWarm: number;
   leadsCold: number;
+  // Pipeline = SUM(opportunities.value) WHERE owner_id = manager AND status != 'lost'
   totalPipelineValue: number;
   avgScore: number;
   lastActivityAt: string | null;
-  // analytics
+  // Conversão = COUNT(opportunities WHERE status='won' AND owner_id=manager) / COUNT(leads WHERE assigned_to=manager) * 100
   convertedLeads: number;
   totalActivities: number;
+  // Opportunities
+  totalOpportunities: number;
+  wonOpportunities: number;
 }
 
 interface EntityRow {
   id: string;
   name: string;
   email: string | null;
-  type: "lead" | "contact" | "company";
+  type: "lead" | "contact" | "company" | "opportunity";
   score: number;
   temperature: string | null;
   estimatedValue: number | null;
   lastContactAt: string | null;
   status: string | null;
-  lifecycleStage: string | null;
 }
 
 interface InteractionEvent {
@@ -87,6 +90,7 @@ interface UnassignedCounts {
   leads: number;
   contacts: number;
   companies: number;
+  opportunities: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -183,13 +187,14 @@ export default function GestoresPage() {
   const { data: unassigned } = useQuery({
     queryKey: ["unassigned-counts", currentWorkspace?.id],
     queryFn: async (): Promise<UnassignedCounts> => {
-      if (!currentWorkspace) return { leads: 0, contacts: 0, companies: 0 };
-      const [{ count: uLeads }, { count: uContacts }, { count: uCompanies }] = await Promise.all([
-        workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
-        workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
-        workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
+      if (!currentWorkspace) return { leads: 0, contacts: 0, companies: 0, opportunities: 0 };
+      const [{ count: uLeads }, { count: uContacts }, { count: uCompanies }, { count: uOpps }] = await Promise.all([
+        workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("opportunities").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("owner_id.is.null,owner_id.eq."),
       ]);
-      return { leads: uLeads || 0, contacts: uContacts || 0, companies: uCompanies || 0 };
+      return { leads: uLeads || 0, contacts: uContacts || 0, companies: uCompanies || 0, opportunities: uOpps || 0 };
     },
     enabled: !!currentWorkspace,
   });
@@ -201,10 +206,10 @@ export default function GestoresPage() {
       if (!currentWorkspace || !members) return [];
 
       try {
-        const [leads, contacts, companies] = await Promise.all([
+        const [leads, contacts, companies, opportunities] = await Promise.all([
           fetchAllRows<any>(
             () => workspaceClient.from("leads"),
-            "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at, lifecycle_stage",
+            "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at",
             (q: any) => q.eq("workspace_id", currentWorkspace.id)
           ),
           fetchAllRows<any>(
@@ -217,16 +222,28 @@ export default function GestoresPage() {
             "id, assigned_to",
             (q: any) => q.eq("workspace_id", currentWorkspace.id)
           ),
+          fetchAllRows<any>(
+            () => workspaceClient.from("opportunities"),
+            "id, owner_id, value, status, lead_id",
+            (q: any) => q.eq("workspace_id", currentWorkspace.id)
+          ),
         ]);
 
       return members.map(m => {
         const mLeads = leads.filter((l: any) => l.assigned_to === m.user_id);
         const mContacts = contacts.filter((c: any) => c.assigned_to === m.user_id);
         const mCompanies = companies.filter((c: any) => c.assigned_to === m.user_id);
+        const mOpps = opportunities.filter((o: any) => o.owner_id === m.user_id);
         const scores = [...mLeads.map((l: any) => l.lead_score || 0), ...mContacts.map((c: any) => c.contact_score || 0)];
         const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
         const dates = [...mLeads.map((l: any) => l.last_contact_at), ...mContacts.map((c: any) => c.last_contact_at)].filter(Boolean).sort().reverse();
-        const convertedLeads = mLeads.filter((l: any) => l.lifecycle_stage === "customer" || l.lifecycle_stage === "converted").length;
+
+        // Pipeline = SUM(opportunities.value) WHERE status != 'lost'
+        const pipelineOpps = mOpps.filter((o: any) => o.status !== "lost");
+        const totalPipelineValue = pipelineOpps.reduce((s: number, o: any) => s + (Number(o.value) || 0), 0);
+
+        // Conversão = COUNT(opportunities WHERE status='won') / COUNT(leads atribuídas)
+        const wonOpps = mOpps.filter((o: any) => o.status === "won").length;
 
         return {
           userId: m.user_id,
@@ -240,16 +257,17 @@ export default function GestoresPage() {
           leadsHot: mLeads.filter((l: any) => l.ai_temperature === "hot").length,
           leadsWarm: mLeads.filter((l: any) => l.ai_temperature === "warm").length,
           leadsCold: mLeads.filter((l: any) => l.ai_temperature === "cold").length,
-          totalPipelineValue: mLeads.reduce((s: number, l: any) => s + (l.estimated_value || 0), 0),
+          totalPipelineValue,
           avgScore,
           lastActivityAt: dates[0] || null,
-          convertedLeads,
+          convertedLeads: wonOpps,
           totalActivities: 0,
+          totalOpportunities: mOpps.length,
+          wonOpportunities: wonOpps,
         } as ManagerStats;
       });
       } catch (err) {
         console.error("[GestoresPage] Error fetching manager stats:", err);
-        // Fallback: return members with zero stats
         return members.map(m => ({
           userId: m.user_id,
           name: m.profile?.full_name || m.profile?.email || "Utilizador",
@@ -260,6 +278,7 @@ export default function GestoresPage() {
           leadsHot: 0, leadsWarm: 0, leadsCold: 0,
           totalPipelineValue: 0, avgScore: 0, lastActivityAt: null,
           convertedLeads: 0, totalActivities: 0,
+          totalOpportunities: 0, wonOpportunities: 0,
         } as ManagerStats));
       }
     },
@@ -272,15 +291,17 @@ export default function GestoresPage() {
     queryKey: ["manager-entities", currentWorkspace?.id, selectedManager],
     queryFn: async (): Promise<EntityRow[]> => {
       if (!currentWorkspace || !selectedManager) return [];
-      const [{ data: leads }, { data: contacts }, { data: companies }] = await Promise.all([
-        workspaceClient.from("leads").select("id, name, email, lead_score, ai_temperature, estimated_value, last_contact_at, status, lifecycle_stage").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
+      const [{ data: leads }, { data: contacts }, { data: companies }, { data: opps }] = await Promise.all([
+        workspaceClient.from("leads").select("id, name, email, lead_score, ai_temperature, estimated_value, last_contact_at, status").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
         workspaceClient.from("contacts").select("id, name, email, contact_score, ai_temperature, last_contact_at").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
         workspaceClient.from("companies").select("id, name").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).limit(500),
+        workspaceClient.from("opportunities").select("id, name, value, status, lead_id").eq("workspace_id", currentWorkspace.id).eq("owner_id", selectedManager).order("created_at", { ascending: false }).limit(500),
       ]);
       return [
-        ...(leads || []).map((l: any) => ({ id: l.id, name: l.name, email: l.email, type: "lead" as const, score: l.lead_score || 0, temperature: l.ai_temperature, estimatedValue: l.estimated_value, lastContactAt: l.last_contact_at, status: l.status, lifecycleStage: l.lifecycle_stage })),
-        ...(contacts || []).map((c: any) => ({ id: c.id, name: c.name, email: c.email, type: "contact" as const, score: c.contact_score || 0, temperature: c.ai_temperature, estimatedValue: null, lastContactAt: c.last_contact_at, status: null, lifecycleStage: null })),
-        ...(companies || []).map((c: any) => ({ id: c.id, name: c.name, email: null, type: "company" as const, score: 0, temperature: null, estimatedValue: null, lastContactAt: null, status: null, lifecycleStage: null })),
+        ...(leads || []).map((l: any) => ({ id: l.id, name: l.name, email: l.email, type: "lead" as const, score: l.lead_score || 0, temperature: l.ai_temperature, estimatedValue: l.estimated_value, lastContactAt: l.last_contact_at, status: l.status })),
+        ...(contacts || []).map((c: any) => ({ id: c.id, name: c.name, email: c.email, type: "contact" as const, score: c.contact_score || 0, temperature: c.ai_temperature, estimatedValue: null, lastContactAt: c.last_contact_at, status: null })),
+        ...(companies || []).map((c: any) => ({ id: c.id, name: c.name, email: null, type: "company" as const, score: 0, temperature: null, estimatedValue: null, lastContactAt: null, status: null })),
+        ...(opps || []).map((o: any) => ({ id: o.id, name: o.name || "Oportunidade", email: null, type: "opportunity" as const, score: 0, temperature: null, estimatedValue: Number(o.value) || null, lastContactAt: null, status: o.status })),
       ];
     },
     enabled: !!currentWorkspace && !!selectedManager,
@@ -358,9 +379,12 @@ export default function GestoresPage() {
   const detailAnalytics = useMemo(() => {
     if (!selectedEntities) return null;
     const leadEntities = selectedEntities.filter(e => e.type === "lead");
+    const oppEntities = selectedEntities.filter(e => e.type === "opportunity");
     const allWithContact = selectedEntities.filter(e => e.lastContactAt);
-    const converted = leadEntities.filter(e => e.lifecycleStage === "customer" || e.lifecycleStage === "converted").length;
-    const conversionRate = leadEntities.length > 0 ? Math.round((converted / leadEntities.length) * 100) : 0;
+
+    // Conversão = oportunidades ganhas / total leads atribuídas
+    const wonOpps = oppEntities.filter(e => e.status === "won").length;
+    const conversionRate = leadEntities.length > 0 ? Math.round((wonOpps / leadEntities.length) * 100) : 0;
 
     // SLA compliance
     const slaStatuses = allWithContact.map(e => getSlaStatus(e.lastContactAt));
@@ -374,21 +398,25 @@ export default function GestoresPage() {
     const daysSinceContact = allWithContact.map(e => differenceInDays(new Date(), new Date(e.lastContactAt!)));
     const avgDaysSinceContact = daysSinceContact.length > 0 ? Math.round(daysSinceContact.reduce((a, b) => a + b, 0) / daysSinceContact.length) : 0;
 
+    // Pipeline = soma de oportunidades (excluindo lost)
+    const totalPipeline = oppEntities.filter(e => e.status !== "lost").reduce((s, e) => s + (e.estimatedValue || 0), 0);
+
     return {
-      conversionRate, converted, totalLeads: leadEntities.length,
+      conversionRate, converted: wonOpps, totalLeads: leadEntities.length,
+      totalOpportunities: oppEntities.length,
       slaCompliance, withinSla, warning, critical, noContact,
-      avgDaysSinceContact, totalPipeline: leadEntities.reduce((s, e) => s + (e.estimatedValue || 0), 0),
+      avgDaysSinceContact, totalPipeline,
     };
   }, [selectedEntities]);
 
   const selectedManagerData = selectedManager ? managerStats?.find(m => m.userId === selectedManager) : null;
   const isLoading = membersLoading || statsLoading;
-  const totalUnassigned = (unassigned?.leads || 0) + (unassigned?.contacts || 0) + (unassigned?.companies || 0);
+  const totalUnassigned = (unassigned?.leads || 0) + (unassigned?.contacts || 0) + (unassigned?.companies || 0) + (unassigned?.opportunities || 0);
 
   const filteredDetailEntities = useMemo(() => {
     let list = selectedEntities || [];
     if (entityFilter !== "all") {
-      list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : "company"));
+      list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : entityFilter === "opportunities" ? "opportunity" : "company"));
     }
     if (detailEntitySearch.trim()) {
       const q = detailEntitySearch.toLowerCase();
@@ -424,16 +452,17 @@ export default function GestoresPage() {
           </div>
 
           {/* Analytics KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <StatCard label="Leads" value={selectedManagerData.totalLeads} icon={Target} />
             <StatCard label="Contactos" value={selectedManagerData.totalContacts} icon={Users} />
             <StatCard label="Empresas" value={selectedManagerData.totalCompanies} icon={Building2} />
+            <StatCard label="Oportunidades" value={selectedManagerData.totalOpportunities} icon={BarChart3} subtitle={`${selectedManagerData.wonOpportunities} ganhas`} />
             <StatCard label="Pipeline" value={formatCurrency(selectedManagerData.totalPipelineValue)} icon={Euro} />
             <StatCard
               label="Conversão"
-              value={`${detailAnalytics?.conversionRate || 0}%`}
+              value={selectedManagerData.totalLeads > 0 ? `${detailAnalytics?.conversionRate || 0}%` : "—"}
               icon={TrendingUp}
-              subtitle={`${detailAnalytics?.converted || 0}/${detailAnalytics?.totalLeads || 0}`}
+              subtitle={selectedManagerData.totalLeads > 0 ? `${detailAnalytics?.converted || 0} ganhas / ${detailAnalytics?.totalLeads || 0} leads` : "Sem leads"}
             />
             <StatCard
               label="SLA Compliance"
@@ -569,6 +598,7 @@ export default function GestoresPage() {
                     { value: "leads", label: `Leads (${selectedEntities?.filter(e => e.type === "lead").length || 0})` },
                     { value: "contacts", label: `Contactos (${selectedEntities?.filter(e => e.type === "contact").length || 0})` },
                     { value: "companies", label: `Empresas (${selectedEntities?.filter(e => e.type === "company").length || 0})` },
+                    { value: "opportunities", label: `Oportunidades (${selectedEntities?.filter(e => e.type === "opportunity").length || 0})` },
                   ].map(tab => (
                     <Button
                       key={tab.value}
@@ -604,7 +634,7 @@ export default function GestoresPage() {
                         return (
                           <Link
                             key={entity.id}
-                            to={`/dashboard/${entity.type === "lead" ? "leads" : entity.type === "contact" ? "contacts" : "companies"}/${entity.id}`}
+                            to={`/dashboard/${entity.type === "lead" ? "leads" : entity.type === "contact" ? "contacts" : entity.type === "opportunity" ? "opportunities" : "companies"}/${entity.id}`}
                             className="grid grid-cols-[1fr_80px_90px_100px_80px_90px] gap-2 items-center px-4 py-2.5 hover:bg-accent/50 transition-colors"
                           >
                             {/* Name */}
@@ -621,7 +651,7 @@ export default function GestoresPage() {
                             {/* Type */}
                             <div className="text-center">
                               <Badge variant="outline" className="text-[10px]">
-                                {entity.type === "lead" ? "Lead" : entity.type === "contact" ? "Contacto" : "Empresa"}
+                                {entity.type === "lead" ? "Lead" : entity.type === "contact" ? "Contacto" : entity.type === "opportunity" ? "Oportunidade" : "Empresa"}
                               </Badge>
                             </div>
 
@@ -758,10 +788,39 @@ export default function GestoresPage() {
           <StatCardAlert
             label="Não Atribuídos"
             value={totalUnassigned}
-            detail={`${unassigned?.leads || 0} leads · ${unassigned?.contacts || 0} contactos · ${unassigned?.companies || 0} empresas`}
+            detail={`${unassigned?.leads || 0} leads · ${unassigned?.contacts || 0} contactos · ${unassigned?.companies || 0} empresas · ${unassigned?.opportunities || 0} oportunidades`}
             onClick={() => setAssignDialogOpen(true)}
           />
         </div>
+
+        {/* Health indicator */}
+        {managerStats && managerStats.length > 0 && (() => {
+          const totalEntities = totals.leads + totals.contacts + totals.companies;
+          const totalAll = totalEntities + totalUnassigned;
+          const coveragePct = totalAll > 0 ? Math.round((totalEntities / totalAll) * 100) : 0;
+          const coverageColor = coveragePct >= 80 ? "text-emerald-600" : coveragePct >= 50 ? "text-amber-600" : "text-red-600";
+          const barColor = coveragePct >= 80 ? "bg-emerald-500" : coveragePct >= 50 ? "bg-amber-500" : "bg-red-500";
+          return (
+            <Card className="border-dashed">
+              <CardContent className="p-3 flex items-center gap-4">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Saúde do Módulo</span>
+                </div>
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="flex-1">
+                    <Progress value={coveragePct} className="h-2" />
+                  </div>
+                  <span className={cn("text-sm font-semibold", coverageColor)}>{coveragePct}%</span>
+                  <span className="text-xs text-muted-foreground">cobertura de atribuição</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {totalEntities} atribuídas / {totalAll} total
+                </span>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Search */}
         <div className="relative max-w-sm">
@@ -797,7 +856,7 @@ export default function GestoresPage() {
                     <Badge variant="outline" className="capitalize text-[10px]">{manager.role}</Badge>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div className="rounded-lg bg-muted/50 p-2">
                       <p className="text-lg font-bold">{manager.totalLeads}</p>
                       <p className="text-[10px] text-muted-foreground">Leads</p>
@@ -810,6 +869,10 @@ export default function GestoresPage() {
                       <p className="text-lg font-bold">{manager.totalCompanies}</p>
                       <p className="text-[10px] text-muted-foreground">Empresas</p>
                     </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <p className="text-lg font-bold">{manager.totalOpportunities}</p>
+                      <p className="text-[10px] text-muted-foreground">Oport.</p>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
@@ -820,7 +883,7 @@ export default function GestoresPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                      <span className="font-medium">{manager.totalLeads > 0 ? Math.round((manager.convertedLeads / manager.totalLeads) * 100) : 0}%</span>
+                      <span className="font-medium">{manager.totalLeads > 0 ? Math.round((manager.convertedLeads / manager.totalLeads) * 100) : "—"}%</span>
                       <span className="text-muted-foreground text-xs">conversão</span>
                     </div>
                   </div>
