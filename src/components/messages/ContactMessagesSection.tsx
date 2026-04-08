@@ -501,8 +501,10 @@ export function ContactMessagesSection({
               </div>
             </div>
           )}
+        </CardHeader>
+      </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+
         {/* Main Compose Area */}
         <Card className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
