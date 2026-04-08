@@ -49,7 +49,7 @@ export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignW
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-campaign-wizard`;
     
     // Get user JWT for auth
-    const { data: sessionData } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData?.session?.access_token;
     
     const resp = await fetch(url, {
