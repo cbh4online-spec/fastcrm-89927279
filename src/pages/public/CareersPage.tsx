@@ -185,8 +185,13 @@ export default function CareersPage() {
             )}
             <Link to={`/careers/${workspaceSlug}/register`}
               className="inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors bg-muted px-4 py-2 rounded-full">
-              <UserPlus className="h-4 w-4" />
+              <Building2 className="h-4 w-4" />
               Publicar Vagas
+            </Link>
+            <Link to={`/careers/${workspaceSlug}/register-worker`}
+              className="inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors bg-muted px-4 py-2 rounded-full">
+              <User className="h-4 w-4" />
+              Publicar Disponibilidade
             </Link>
           </div>
         </motion.div>
