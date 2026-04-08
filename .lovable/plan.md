@@ -1,47 +1,37 @@
 
 
-# Plano: Corrigir o Ecrã de Gestores
+# Plano: Corrigir Design Desalinhado da Página Gestores
 
 ## Diagnóstico
 
-Após análise do código e dos dados (4731 leads, 599 contactos, 83 empresas), identifiquei os seguintes problemas:
+Analisando o screenshot e o código, identifico estes problemas visuais:
 
-1. **`fetchAllRows` tem bug de reutilização do query builder** — O `queryBuilder` (resultado de `workspaceClient.from("leads")`) é reutilizado em cada iteração do loop. Em Supabase JS v2, chamar `.select()` múltiplas vezes no mesmo `PostgrestQueryBuilder` pode acumular estado. A solução é receber uma factory function em vez de uma instância.
+1. **KPIs em 5 colunas estão comprimidos** — A grid `grid-cols-2 md:grid-cols-5` força 5 cards numa linha em ecrãs médios, cortando o card "Não Atribuídos" à direita. Deve ser `md:grid-cols-3 lg:grid-cols-5` para melhor responsividade.
 
-2. **Diálogo de atribuição limitado a 200 entidades** — Com ~4375 leads não atribuídas, o utilizador só vê 200. Falta pesquisa/filtro dentro do diálogo para encontrar entidades específicas.
+2. **Header desalinhado** — O título "Gestores" e o botão "Atribuir Entidades" usam `flex justify-between` mas sem `flex-wrap`, o que pode causar overflow em viewports menores.
 
-3. **Diálogo não invalida a query de entidades após atribuição** — Depois de atribuir, a lista de não atribuídos não se actualiza (falta invalidar `unassigned-entities`).
+3. **Container `max-w-7xl` inconsistente** — Outras páginas do dashboard usam `p-6 space-y-5` directamente sem `max-w-7xl mx-auto`. Ao adicionar este constraint, o conteúdo fica mais estreito que o esperado pelo layout do `DashboardLayout` (que já tem `p-4 md:p-6`).
 
-4. **Contagem "Não Atribuídos" possivelmente incorrecta** — O valor 3969 no ecrã não bate com os ~5057 esperados (4375 leads + 599 contactos + 83 empresas). Pode ser RLS, mas vale garantir que o `workspaceClient` está a fazer count correcto.
+4. **Padding duplicado** — O `DashboardLayout` já aplica `p-4 md:p-6` no `<main>`. A página adiciona `max-w-7xl mx-auto` mas não precisa de padding extra.
 
-5. **Sem feedback de loading nos KPIs** — Os cards aparecem com "0" enquanto carregam, sem skeleton/spinner.
+## Implementação
 
-## Plano de Implementação
+### Ficheiro: `src/pages/dashboard/GestoresPage.tsx`
 
-### 1. Corrigir `fetchAllRows` — usar factory function
-Alterar a assinatura para receber `() => queryBuilder` em vez do builder directo, garantindo que cada página cria uma chain nova.
+1. **Remover `max-w-7xl mx-auto`** do container principal (list view e detail view) — seguir padrão das outras páginas que usam `space-y-6` directamente.
 
-### 2. Adicionar pesquisa no diálogo de atribuição
-Adicionar campo de pesquisa no `BulkAssignDialog` para filtrar entidades por nome. Aumentar limit para 500.
+2. **Ajustar grid dos KPIs** — Mudar de `grid-cols-2 md:grid-cols-5` para `grid-cols-2 md:grid-cols-3 lg:grid-cols-5` para dar mais espaço em ecrãs médios.
 
-### 3. Invalidar queries após atribuição
-No `handleAssign`, após sucesso, invalidar também `["unassigned-entities"]` para que a lista se actualize.
+3. **Adicionar `flex-wrap gap-3`** ao header para evitar overflow do botão "Atribuir Entidades".
 
-### 4. Adicionar loading states nos KPIs
-Mostrar skeleton/spinner nos `StatCard` enquanto `statsLoading` ou `membersLoading` estiverem activos.
+4. **Ajustar grid dos manager cards** — Garantir `gap-4` consistente e que os cards não fiquem demasiado largos.
 
-### 5. Limpar e robustecer
-- Garantir que o `onAssigned` callback invalida todas as queries relevantes
-- Adicionar `refetchOnWindowFocus: false` nas queries pesadas para evitar re-fetches desnecessários
-
-## Ficheiros a Alterar
-
-- `src/pages/dashboard/GestoresPage.tsx` — todas as correcções acima num único ficheiro
+5. **Detail view** — Mesmo tratamento: remover `max-w-7xl mx-auto`, usar `space-y-6` directamente.
 
 ## Critérios de Aceitação
 
-- KPIs mostram valores correctos e consistentes com a BD
-- `fetchAllRows` funciona sem bugs de estado acumulado
-- Diálogo de atribuição tem pesquisa e actualiza após atribuição
-- Cards mostram loading state adequado
+- KPIs legíveis e sem corte em viewports de 1554px
+- Header com título e botão correctamente alinhados
+- Cards dos gestores com espaçamento consistente
+- Layout consistente com as restantes páginas do dashboard
 
