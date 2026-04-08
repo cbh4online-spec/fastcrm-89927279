@@ -58,6 +58,8 @@ export interface SmartLeadsFilters {
   source?: string | "all";
   smartFilter?: SmartFilterType;
   assignedTo?: string | "all";
+  hasField?: string;
+  missingField?: string;
   page?: number;
   pageSize?: number;
 }
@@ -129,6 +131,14 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
         query = query.or(
           `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%,source.ilike.%${filters.search}%`
         );
+      }
+
+      // Apply column presence filters
+      if (filters?.hasField) {
+        query = query.not(filters.hasField as any, "is", null);
+      }
+      if (filters?.missingField) {
+        query = query.is(filters.missingField as any, null);
       }
 
       // Apply smart filters at SQL level

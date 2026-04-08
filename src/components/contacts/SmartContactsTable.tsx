@@ -33,9 +33,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase, Copy } from "lucide-react";
+import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase, Copy, Mail, Phone, MapPin, Tag, Database } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FilterCondition, applyFilters } from "@/hooks/useFilterEngine";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
 
@@ -254,6 +255,24 @@ export function SmartContactsTable() {
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = useMemo(() => [
     {
+      id: "data",
+      label: "Dados Preenchidos",
+      icon: <Database className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { id: "has_email", label: "Com Email", icon: <Mail className="h-4 w-4 text-primary" /> },
+        { id: "has_phone", label: "Com Telefone", icon: <Phone className="h-4 w-4 text-primary" /> },
+        { id: "has_company", label: "Com Empresa", icon: <Building2 className="h-4 w-4 text-primary" /> },
+        { id: "has_linkedin", label: "Com LinkedIn", icon: <Linkedin className="h-4 w-4 text-primary" /> },
+        { id: "has_whatsapp", label: "Com WhatsApp", icon: <Phone className="h-4 w-4 text-green-600" /> },
+        { id: "has_address", label: "Com Morada", icon: <MapPin className="h-4 w-4 text-primary" /> },
+        { id: "has_tags", label: "Com Tags", icon: <Tag className="h-4 w-4 text-primary" /> },
+        { id: "has_tax_id", label: "Com NIF", icon: <Briefcase className="h-4 w-4 text-primary" /> },
+        { id: "no_email", label: "Sem Email", icon: <Mail className="h-4 w-4 text-muted-foreground" /> },
+        { id: "no_phone", label: "Sem Telefone", icon: <Phone className="h-4 w-4 text-muted-foreground" /> },
+      ],
+    },
+    {
       id: "temperature",
       label: t("filterTemperature"),
       icon: <Thermometer className="h-4 w-4" />,
@@ -262,6 +281,19 @@ export function SmartContactsTable() {
         { id: "temp_hot", label: t("filterHot"), icon: <Flame className="h-4 w-4 text-red-500" /> },
         { id: "temp_warm", label: t("filterWarm"), icon: <Thermometer className="h-4 w-4 text-orange-500" /> },
         { id: "temp_cold", label: t("filterCold"), icon: <Snowflake className="h-4 w-4 text-blue-500" /> },
+      ],
+    },
+    {
+      id: "source",
+      label: "Origem",
+      icon: <Target className="h-4 w-4" />,
+      items: [
+        { id: "source_website", label: "Website" },
+        { id: "source_referral", label: "Referência" },
+        { id: "source_linkedin", label: "LinkedIn" },
+        { id: "source_cold_call", label: "Cold Call" },
+        { id: "source_event", label: "Evento" },
+        { id: "source_import", label: "Importação" },
       ],
     },
     {
@@ -334,6 +366,7 @@ export function SmartContactsTable() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
+  const [smartListConditions, setSmartListConditions] = useState<FilterCondition[]>([]);
 
   // Column visibility and order state with persistence
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("contacts-table-columns", CONTACT_COLUMNS);
@@ -361,11 +394,67 @@ export function SmartContactsTable() {
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
 
-  // Apply search filter and sorting locally
+  // Apply search filter, column filters, smart list conditions and sorting locally
   const filteredContacts = useMemo(() => {
     if (!contacts) return [];
     
     let result = contacts;
+
+    // Apply column presence filters from sidebar
+    if (activeFilterId) {
+      result = result.filter(c => {
+        const rec = c as any;
+        switch (activeFilterId) {
+          case "has_email": return !!rec.email;
+          case "has_phone": return !!rec.phone;
+          case "has_company": return !!rec.company;
+          case "has_linkedin": return !!rec.linkedin_url;
+          case "has_whatsapp": return !!rec.whatsapp_number;
+          case "has_address": return !!rec.address;
+          case "has_tags": return Array.isArray(rec.tags) && rec.tags.length > 0;
+          case "has_tax_id": return !!rec.tax_id;
+          case "no_email": return !rec.email;
+          case "no_phone": return !rec.phone;
+          // Temperature filters
+          case "temp_hot": return rec.ai_temperature === "hot";
+          case "temp_warm": return rec.ai_temperature === "warm";
+          case "temp_cold": return rec.ai_temperature === "cold";
+          // Source filters
+          case "source_website": return rec.source === "website";
+          case "source_referral": return rec.source === "referral";
+          case "source_linkedin": return rec.source === "linkedin";
+          case "source_cold_call": return rec.source === "cold_call";
+          case "source_event": return rec.source === "event";
+          case "source_import": return rec.source === "import";
+          // Status filters
+          case "status_active": return rec.client_status === "active";
+          case "status_prospect": return rec.client_status === "prospect";
+          case "status_lead": return rec.client_status === "lead";
+          case "status_inactive": return rec.client_status === "inactive";
+          case "status_churned": return rec.client_status === "churned";
+          // Activity filters
+          case "activity_recent": {
+            if (!rec.last_contact_at) return false;
+            return (Date.now() - new Date(rec.last_contact_at).getTime()) < 7 * 86400000;
+          }
+          case "activity_no_contact": {
+            if (!rec.last_contact_at) return false;
+            return (Date.now() - new Date(rec.last_contact_at).getTime()) > 30 * 86400000;
+          }
+          case "activity_never": return !rec.last_contact_at;
+          // Category
+          case "cat_a": return rec.abc_category === "A";
+          case "cat_b": return rec.abc_category === "B";
+          case "cat_c": return rec.abc_category === "C";
+          default: return true;
+        }
+      });
+    }
+
+    // Apply smart list conditions (from AdvancedFilterBuilder)
+    if (smartListConditions.length > 0) {
+      result = applyFilters(result as unknown as Record<string, unknown>[], smartListConditions, "AND") as unknown as typeof result;
+    }
     
     // Apply search filter
     if (searchValue) {
@@ -424,7 +513,7 @@ export function SmartContactsTable() {
     });
     
     return result;
-  }, [contacts, searchValue, sortValue]);
+  }, [contacts, searchValue, sortValue, activeFilterId, smartListConditions]);
 
   const totalContacts = filteredContacts.length;
   const totalPages = Math.ceil(totalContacts / pageSize);
@@ -518,7 +607,7 @@ export function SmartContactsTable() {
     toast.success(t("exportComplete"));
   };
 
-  const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
+  const filtersActive = !!activeFilterId || smartListConditions.length > 0 || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
 
   return (
     <div className="flex flex-col lg:flex-row h-full">
@@ -567,6 +656,7 @@ export function SmartContactsTable() {
           onClearFilters={() => {
             setActiveFilterId(undefined);
             setFilters({});
+            setSmartListConditions([]);
           }}
           sortOptions={sortOptions}
           sortValue={sortValue}
@@ -615,17 +705,62 @@ export function SmartContactsTable() {
               fields={[
                 { slug: "name", name: t("smartListFieldName"), field_type: "text" },
                 { slug: "email", name: t("smartListFieldEmail"), field_type: "email" },
+                { slug: "phone", name: t("col_phone"), field_type: "text" },
+                { slug: "whatsapp_number", name: t("col_whatsapp"), field_type: "text" },
                 { slug: "company", name: t("smartListFieldCompany"), field_type: "text" },
+                { slug: "job_title", name: t("col_jobTitle"), field_type: "text" },
                 { slug: "source", name: t("smartListFieldSource"), field_type: "select", options: { options: ["website", "referral", "linkedin", "cold_call", "event", "import", "other"] } },
+                { slug: "lead_source", name: t("col_leadSource"), field_type: "text" },
                 { slug: "ai_temperature", name: t("smartListFieldTemperature"), field_type: "select", options: { options: ["hot", "warm", "cold"] } },
                 { slug: "contact_score", name: t("smartListFieldScore"), field_type: "number" },
                 { slug: "client_status", name: t("smartListFieldState"), field_type: "select", options: { options: ["prospect", "lead", "active", "churned", "inactive"] } },
+                { slug: "abc_category", name: t("col_abcCategory"), field_type: "select", options: { options: ["A", "B", "C"] } },
+                { slug: "entity_type", name: t("col_entityType"), field_type: "select", options: { options: ["consumidor_final", "eni", "empresa"] } },
+                { slug: "ai_contact_type", name: t("col_type"), field_type: "select", options: { options: ["decision_maker", "influencer", "champion", "blocker", "end_user", "unknown"] } },
+                { slug: "ai_next_action_type", name: t("col_nextAction"), field_type: "select", options: { options: ["reply_manual", "send_template", "create_opportunity", "activate_automation", "archive", "follow_up", "schedule_meeting", "nurture"] } },
                 { slug: "estimated_value", name: t("smartListFieldEstimatedValue"), field_type: "currency" },
+                { slug: "conversion_probability", name: t("col_conversionProb"), field_type: "number" },
+                { slug: "city", name: t("col_city"), field_type: "text" },
+                { slug: "country", name: t("country"), field_type: "text" },
+                { slug: "tax_id", name: t("col_taxId"), field_type: "text" },
+                { slug: "business_area", name: t("col_businessArea"), field_type: "text" },
+                { slug: "assigned_to", name: t("col_assignedTo"), field_type: "text" },
+                { slug: "automation_active", name: t("col_automation"), field_type: "boolean" },
+                { slug: "is_primary_contact", name: t("col_primaryContact"), field_type: "boolean" },
+                { slug: "marketing_opt_in", name: t("col_marketingOptIn"), field_type: "boolean" },
+                { slug: "has_whatsapp", name: t("col_hasWhatsapp"), field_type: "boolean" },
+                { slug: "credit_active", name: t("col_creditActive"), field_type: "boolean" },
+                { slug: "total_revenue", name: t("col_totalRevenue"), field_type: "currency" },
+                { slug: "average_ticket", name: t("col_averageTicket"), field_type: "currency" },
+                { slug: "linkedin_url", name: t("col_linkedin"), field_type: "url" },
                 { slug: "created_at", name: t("smartListFieldCreatedAt"), field_type: "date" },
                 { slug: "last_contact_at", name: t("smartListFieldLastContact"), field_type: "date" },
+                { slug: "last_purchase_date", name: t("col_lastPurchase"), field_type: "date" },
               ]}
-              records={(filteredContacts || []) as unknown as Record<string, unknown>[]}
+              records={(contacts || []) as unknown as Record<string, unknown>[]}
+              onConditionsChange={setSmartListConditions}
             />
+            {/* Active smart list info */}
+            {smartListConditions.length > 0 && activeTab !== "smart-lists" && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>Lista inteligente activa com {smartListConditions.length} condição(ões)</span>
+                <Button size="sm" variant="ghost" className="ml-auto text-xs" onClick={() => setSmartListConditions([])}>
+                  Limpar
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Smart list active indicator on contacts tab */}
+        {activeTab === "contacts" && smartListConditions.length > 0 && (
+          <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Lista inteligente activa com {smartListConditions.length} condição(ões) — {filteredContacts.length} resultado(s)</span>
+            <Button size="sm" variant="ghost" className="ml-auto text-xs" onClick={() => setSmartListConditions([])}>
+              Limpar
+            </Button>
           </div>
         )}
 

@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy, Upload, FileSpreadsheet, Zap, TrendingUp, AlertTriangle, Star } from "lucide-react";
+import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy, Upload, FileSpreadsheet, Zap, TrendingUp, AlertTriangle, Star, Mail, Phone, MapPin, Globe, Database } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
@@ -105,10 +105,29 @@ export function SmartLeadsTable() {
   ], [t]);
 
   const filterGroups: FilterGroup[] = useMemo(() => [
+    { id: "data", label: "Dados Preenchidos", icon: <Database className="h-4 w-4" />, defaultOpen: true, items: [
+      { id: "has_email", label: "Com Email", icon: <Mail className="h-4 w-4 text-primary" /> },
+      { id: "has_phone", label: "Com Telefone", icon: <Phone className="h-4 w-4 text-primary" /> },
+      { id: "has_website", label: "Com Website", icon: <Globe className="h-4 w-4 text-primary" /> },
+      { id: "has_linkedin", label: "Com LinkedIn", icon: <Linkedin className="h-4 w-4 text-primary" /> },
+      { id: "has_address", label: "Com Morada", icon: <MapPin className="h-4 w-4 text-primary" /> },
+      { id: "has_company", label: "Com Empresa", icon: <Building2 className="h-4 w-4 text-primary" /> },
+      { id: "no_email", label: "Sem Email", icon: <Mail className="h-4 w-4 text-muted-foreground" /> },
+      { id: "no_phone", label: "Sem Telefone", icon: <Phone className="h-4 w-4 text-muted-foreground" /> },
+    ]},
     { id: "temperature", label: t("filterTemperature"), icon: <Thermometer className="h-4 w-4" />, defaultOpen: true, items: [
       { id: "temp_hot", label: t("filterHot"), icon: <Flame className="h-4 w-4 text-red-500" /> },
       { id: "temp_warm", label: t("filterWarm"), icon: <Thermometer className="h-4 w-4 text-orange-500" /> },
       { id: "temp_cold", label: t("filterCold"), icon: <Snowflake className="h-4 w-4 text-blue-500" /> },
+    ]},
+    { id: "source", label: "Origem", icon: <Target className="h-4 w-4" />, items: [
+      { id: "source_website", label: "Website" },
+      { id: "source_referral", label: "Referência" },
+      { id: "source_linkedin", label: "LinkedIn" },
+      { id: "source_cold_call", label: "Cold Call" },
+      { id: "source_import", label: "Importação" },
+      { id: "source_google_maps", label: "Google Maps" },
+      { id: "source_instagram", label: "Instagram" },
     ]},
     { id: "status", label: t("filterStatus"), icon: <Target className="h-4 w-4" />, defaultOpen: true, items: [
       { id: "status_new", label: t("filterNew") },
@@ -254,14 +273,28 @@ export function SmartLeadsTable() {
     setActiveFilterId(newFilterId);
     const base = { page: 0, pageSize };
     if (!newFilterId) { setFilters(base); return; }
-    if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
+    // Column presence filters
+    if (newFilterId === "has_email") setFilters({ ...base, hasField: "email" });
+    else if (newFilterId === "has_phone") setFilters({ ...base, hasField: "phone" });
+    else if (newFilterId === "has_website") setFilters({ ...base, hasField: "website" });
+    else if (newFilterId === "has_linkedin") setFilters({ ...base, hasField: "linkedin_url" });
+    else if (newFilterId === "has_address") setFilters({ ...base, hasField: "address" });
+    else if (newFilterId === "has_company") setFilters({ ...base, hasField: "company_name" });
+    else if (newFilterId === "no_email") setFilters({ ...base, missingField: "email" });
+    else if (newFilterId === "no_phone") setFilters({ ...base, missingField: "phone" });
+    // Source filters
+    else if (newFilterId.startsWith("source_")) setFilters({ ...base, source: newFilterId.replace("source_", "") });
+    // Temperature filters
+    else if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
     else if (newFilterId === "temp_warm") setFilters({ ...base, temperature: "warm" });
     else if (newFilterId === "temp_cold") setFilters({ ...base, temperature: "cold" });
+    // Status filters
     else if (newFilterId === "status_new") setFilters({ ...base, status: "new" });
     else if (newFilterId === "status_contacted") setFilters({ ...base, status: "in_progress" });
     else if (newFilterId === "status_qualified") setFilters({ ...base, status: "completed" });
     else if (newFilterId === "status_proposal") setFilters({ ...base, status: "in_progress" });
     else if (newFilterId === "status_lost") setFilters({ ...base, status: "completed" });
+    // Activity/smart filters
     else if (newFilterId === "activity_waiting") setFilters({ ...base, smartFilter: "no_response" });
     else if (newFilterId === "activity_no_reply") setFilters({ ...base, smartFilter: "no_response" });
     else if (newFilterId === "activity_engaged") setFilters({ ...base, smartFilter: "high_intent" });

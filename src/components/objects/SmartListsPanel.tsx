@@ -12,10 +12,11 @@ interface Props {
   fields: FilterableField[];
   records: Record<string, unknown>[];
   onFilteredRecords?: (records: Record<string, unknown>[]) => void;
+  onConditionsChange?: (conditions: FilterCondition[]) => void;
   className?: string;
 }
 
-export function SmartListsPanel({ entityType, fields, records, onFilteredRecords, className }: Props) {
+export function SmartListsPanel({ entityType, fields, records, onFilteredRecords, onConditionsChange, className }: Props) {
   const { data: savedViews, isLoading } = useSavedViews(entityType);
   const deleteSavedView = useDeleteSavedView();
   const [activeListId, setActiveListId] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export function SmartListsPanel({ entityType, fields, records, onFilteredRecords
   const filteredRecords = useMemo(() => {
     const result = applyFilters(records, conditions, "AND");
     onFilteredRecords?.(result);
+    onConditionsChange?.(conditions);
     return result;
   }, [records, conditions]);
 
