@@ -704,16 +704,25 @@ export function ComposeEmailDialog({
                   <PenLine className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-base">Novo Email</DialogTitle>
-                  <DialogDescription className="text-xs">
-                    {connection ? (
+                   <DialogTitle className="text-base">Novo Email</DialogTitle>
+                   <DialogDescription className="text-xs">
+                    {connectionLoading ? (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        A verificar ligação...
+                      </span>
+                    ) : connection ? (
                       <span className="flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0" />
                         <span className="text-muted-foreground">De:</span>
                         <span className="font-medium text-foreground">{senderDisplayName}</span>
                         <span className="text-muted-foreground">&lt;{senderEmail}&gt;</span>
                       </span>
                     ) : (
-                      "Configure uma conta de email para enviar"
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                        Sem conta de email configurada
+                      </span>
                     )}
                   </DialogDescription>
                 </div>
@@ -760,12 +769,34 @@ export function ComposeEmailDialog({
 
           {/* No connection warning */}
           {!connectionLoading && !connection && (
-            <div className="mx-5 mt-3 flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>
-                Nenhuma conta de email conectada.{" "}
-                <a href="/dashboard/settings" className="underline font-medium">Configurar agora</a>
-              </span>
+            <div className="mx-5 mt-3 flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Conta de email não configurada
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                  Configure uma ligação SMTP para enviar emails directamente pela aplicação.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/50"
+                onClick={() => {
+                  onOpenChange(false);
+                  window.location.href = "/dashboard/settings/integrations";
+                }}
+              >
+                <Mail className="w-3.5 h-3.5 mr-1.5" />
+                Configurar Email
+              </Button>
+            </div>
+          )}
+          {connectionLoading && (
+            <div className="mx-5 mt-3 flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+              <span>A verificar ligação de email...</span>
             </div>
           )}
 
@@ -1178,14 +1209,22 @@ export function ComposeEmailDialog({
               <AlertTriangle className="w-5 h-5 text-amber-500" />
               Conta de Email Não Configurada
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Para enviar emails através da aplicação, precisa de conectar uma conta de email nas definições.
+            <AlertDialogDescription className="space-y-2">
+              <p>Para enviar emails através da aplicação, precisa de conectar uma conta de email (SMTP).</p>
+              <p className="text-xs text-muted-foreground">
+                Suportamos Gmail, Outlook, Hostinger e servidores SMTP personalizados.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => window.location.href = "/dashboard/settings"}>
-              Ir para Definições
+            <AlertDialogAction onClick={() => {
+              setShowNoConnectionAlert(false);
+              onOpenChange(false);
+              window.location.href = "/dashboard/settings/integrations";
+            }}>
+              <Mail className="w-4 h-4 mr-2" />
+              Configurar Email
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

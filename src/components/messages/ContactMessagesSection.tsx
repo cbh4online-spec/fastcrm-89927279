@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { LinkedConversationsCard } from "./LinkedConversationsCard";
 import { EntityMessageHistory } from "./EntityMessageHistory";
+import { useActiveEmailConnection } from "@/hooks/useEmailConnection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,9 @@ import {
   Clock,
   MessageCircle,
   Save,
+  Settings,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
