@@ -97,7 +97,7 @@ const INTERACTION_ICONS: Record<string, { icon: React.ElementType; color: string
 // ─── Paginated fetch helper (bypasses 1000-row limit) ────────────────────
 
 async function fetchAllRows<T>(
-  queryBuilder: { select: (...args: any[]) => any },
+  queryFactory: () => { select: (...args: any[]) => any },
   selectColumns: string,
   filters: (q: any) => any,
   pageSize = 1000
@@ -107,7 +107,7 @@ async function fetchAllRows<T>(
   let hasMore = true;
 
   while (hasMore) {
-    let q = queryBuilder.select(selectColumns);
+    let q = queryFactory().select(selectColumns);
     q = filters(q);
     q = q.range(page * pageSize, (page + 1) * pageSize - 1);
     const { data, error } = await q;
@@ -153,17 +153,17 @@ export default function GestoresPage() {
 
       const [leads, contacts, companies] = await Promise.all([
         fetchAllRows<any>(
-          workspaceClient.from("leads"),
+          () => workspaceClient.from("leads"),
           "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at",
           (q: any) => q.eq("workspace_id", currentWorkspace.id)
         ),
         fetchAllRows<any>(
-          workspaceClient.from("contacts"),
+          () => workspaceClient.from("contacts"),
           "id, assigned_to, contact_score, ai_temperature, last_contact_at",
           (q: any) => q.eq("workspace_id", currentWorkspace.id)
         ),
         fetchAllRows<any>(
-          workspaceClient.from("companies"),
+          () => workspaceClient.from("companies"),
           "id, assigned_to",
           (q: any) => q.eq("workspace_id", currentWorkspace.id)
         ),
@@ -196,6 +196,7 @@ export default function GestoresPage() {
       });
     },
     enabled: !!currentWorkspace && !!members && members.length > 0,
+    refetchOnWindowFocus: false,
   });
 
   // ── Detail entities for selected manager ──
@@ -494,10 +495,10 @@ export default function GestoresPage() {
 
         {/* Summary KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatCard label="Total Gestores" value={members?.length || 0} icon={Users} />
-          <StatCard label="Leads Atribuídas" value={totals.leads} icon={Target} />
-          <StatCard label="Contactos Geridos" value={totals.contacts} icon={Users} />
-          <StatCard label="Pipeline Total" value={formatCurrency(totals.pipeline)} icon={Euro} />
+          <StatCard label="Total Gestores" value={members?.length || 0} icon={Users} loading={membersLoading} />
+          <StatCard label="Leads Atribuídas" value={totals.leads} icon={Target} loading={statsLoading} />
+          <StatCard label="Contactos Geridos" value={totals.contacts} icon={Users} loading={statsLoading} />
+          <StatCard label="Pipeline Total" value={formatCurrency(totals.pipeline)} icon={Euro} loading={statsLoading} />
           <StatCardAlert
             label="Não Atribuídos"
             value={totalUnassigned}
@@ -599,6 +600,7 @@ export default function GestoresPage() {
             queryClient.invalidateQueries({ queryKey: ["manager-stats"] });
             queryClient.invalidateQueries({ queryKey: ["unassigned-counts"] });
             queryClient.invalidateQueries({ queryKey: ["manager-entities"] });
+            queryClient.invalidateQueries({ queryKey: ["unassigned-entities"] });
           }}
         />
       </div>
@@ -608,7 +610,7 @@ export default function GestoresPage() {
 
 // ─── Stat Cards ──────────────────────────────────────────────────────────
 
-function StatCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ElementType }) {
+function StatCard({ label, value, icon: Icon, loading }: { label: string; value: string | number; icon: React.ElementType; loading?: boolean }) {
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
@@ -616,7 +618,11 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: string |
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <p className="text-2xl font-bold">{value}</p>
+          {loading ? (
+            <div className="h-8 w-12 rounded bg-muted animate-pulse mb-1" />
+          ) : (
+            <p className="text-2xl font-bold">{value}</p>
+          )}
           <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </CardContent>
@@ -657,6 +663,7 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
   const [targetManager, setTargetManager] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [entitySearch, setEntitySearch] = useState("");
 
   const { data: unassignedEntities, isLoading } = useQuery({
     queryKey: ["unassigned-entities", workspaceId, entityType],
@@ -667,11 +674,18 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
         .eq("workspace_id", workspaceId)
         .is("assigned_to", null)
         .order("name")
-        .limit(200);
+        .limit(500);
       return data || [];
     },
     enabled: open && !!workspaceId,
   });
+
+  const filteredEntities = useMemo(() => {
+    if (!unassignedEntities) return [];
+    if (!entitySearch.trim()) return unassignedEntities;
+    const q = entitySearch.toLowerCase();
+    return unassignedEntities.filter((e: any) => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
+  }, [unassignedEntities, entitySearch]);
 
   const handleAssign = async () => {
     if (!targetManager || selectedIds.length === 0) {
@@ -749,23 +763,31 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
               <label className="text-sm font-medium">
                 Entidades sem gestor ({unassignedEntities?.length || 0})
               </label>
-              {(unassignedEntities?.length || 0) > 0 && (
+              {(filteredEntities?.length || 0) > 0 && (
                 <Button variant="ghost" size="sm" onClick={toggleAll} className="text-xs h-7">
-                  {selectedIds.length === (unassignedEntities?.length || 0) ? "Desselecionar tudo" : "Selecionar tudo"}
+                  {selectedIds.length === (filteredEntities?.length || 0) ? "Desselecionar tudo" : "Selecionar tudo"}
                 </Button>
               )}
+            </div>
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input value={entitySearch} onChange={e => setEntitySearch(e.target.value)} placeholder="Filtrar por nome ou email..." className="pl-8 h-8 text-sm" />
             </div>
             <ScrollArea className="max-h-[250px] border rounded-md">
               {isLoading ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">A carregar...</div>
-              ) : !unassignedEntities || unassignedEntities.length === 0 ? (
+              ) : filteredEntities.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">
-                  <CheckCircle2 className="w-6 h-6 mx-auto mb-2 text-green-500" />
-                  Todas as {entityType} estão atribuídas!
+                  {entitySearch ? "Nenhum resultado para a pesquisa." : (
+                    <>
+                      <CheckCircle2 className="w-6 h-6 mx-auto mb-2 text-green-500" />
+                      Todas as {entityType} estão atribuídas!
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="divide-y">
-                  {unassignedEntities.map((entity: any) => (
+                  {filteredEntities.map((entity: any) => (
                     <label key={entity.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-accent transition-colors">
                       <Checkbox
                         checked={selectedIds.includes(entity.id)}
