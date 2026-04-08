@@ -14,18 +14,27 @@ export default function UnsubscribePage() {
       setState("invalid");
       return;
     }
+
+    const controller = new AbortController();
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
     fetch(`${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${token}`, {
       headers: { apikey: anonKey },
+      signal: controller.signal,
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: { valid?: boolean; reason?: string }) => {
         if (data.valid === false && data.reason === "already_unsubscribed") setState("already");
         else if (data.valid) setState("valid");
         else setState("invalid");
       })
-      .catch(() => setState("invalid"));
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setState("invalid");
+      });
+
+    return () => controller.abort();
   }, [token]);
 
   const handleUnsubscribe = async () => {

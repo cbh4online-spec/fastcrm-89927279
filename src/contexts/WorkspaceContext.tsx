@@ -197,7 +197,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setWorkspaces((prev) => [...prev, newWorkspace]);
       handleSetCurrentWorkspace(newWorkspace);
 
-      console.log(`[WORKSPACES] Created workspace: ${newWorkspace.id}`);
+      console.debug(`[WORKSPACES] Created workspace: ${newWorkspace.id}`);
       emitKernelEvent({
         workspace_id: newWorkspace.id,
         type: 'WORKSPACE.CREATED',

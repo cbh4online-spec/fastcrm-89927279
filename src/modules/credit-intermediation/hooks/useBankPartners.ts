@@ -30,7 +30,7 @@ export function useBankPartners() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bank_partners")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -51,7 +51,7 @@ export function useCreateBankPartner() {
     mutationFn: async (input: CreateBankPartnerInput) => {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bank_partners")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -75,7 +75,7 @@ export function useCreateBankPartner() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro bancário adicionado");
-      console.log(`[VERTICAL-CREDIT] Bank partner added id=${data.id} name=${data.name}`);
+      console.debug(`[VERTICAL-CREDIT] Bank partner added id=${data.id} name=${data.name}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -107,7 +107,7 @@ export function useUpdateBankPartner() {
 
       const { id, ...updateData } = input;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bank_partners")
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq("id", id)
@@ -121,7 +121,7 @@ export function useUpdateBankPartner() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro atualizado");
-      console.log(`[VERTICAL-CREDIT] Bank partner updated id=${data.id}`);
+      console.debug(`[VERTICAL-CREDIT] Bank partner updated id=${data.id}`);
     },
     onError: (error: Error) => {
       console.error(`[VERTICAL-CREDIT] Bank partner update failed: ${error.message}`);
@@ -138,7 +138,7 @@ export function useDeleteBankPartner() {
     mutationFn: async (id: string) => {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("bank_partners")
         .delete()
         .eq("id", id)
@@ -150,7 +150,7 @@ export function useDeleteBankPartner() {
     onSuccess: (deletedId: string) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro removido");
-      console.log(`[VERTICAL-CREDIT] Bank partner deleted id=${deletedId}`);
+      console.debug(`[VERTICAL-CREDIT] Bank partner deleted id=${deletedId}`);
     },
     onError: (error: Error) => {
       console.error(`[VERTICAL-CREDIT] Bank partner delete failed: ${error.message}`);

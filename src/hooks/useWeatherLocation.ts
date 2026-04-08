@@ -19,21 +19,32 @@ function getPosition(): Promise<{ lat: number; lng: number } | null> {
 }
 
 async function fetchWeatherAndCity(coords: { lat: number; lng: number }) {
-  const [weatherRes, geoRes] = await Promise.all([
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current_weather=true`),
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=10`, {
-      headers: { "Accept-Language": "pt" },
-    }),
-  ]);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
-  const weather = await weatherRes.json();
-  const geo = await geoRes.json();
+  try {
+    const [weatherRes, geoRes] = await Promise.all([
+      fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current_weather=true`,
+        { signal: controller.signal }
+      ),
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=10`,
+        { headers: { "Accept-Language": "pt" }, signal: controller.signal }
+      ),
+    ]);
 
-  const city = geo?.address?.city || geo?.address?.town || geo?.address?.village || geo?.address?.municipality || null;
-  const temperature = weather?.current_weather?.temperature ?? null;
-  const weatherCode = weather?.current_weather?.weathercode ?? null;
+    const weather = await weatherRes.json();
+    const geo = await geoRes.json();
 
-  return { city, temperature, weatherCode };
+    const city = geo?.address?.city || geo?.address?.town || geo?.address?.village || geo?.address?.municipality || null;
+    const temperature = weather?.current_weather?.temperature ?? null;
+    const weatherCode = weather?.current_weather?.weathercode ?? null;
+
+    return { city, temperature, weatherCode };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function useWeatherLocation(): WeatherLocationData {

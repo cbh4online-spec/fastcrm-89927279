@@ -52,7 +52,7 @@ export function useCreditProposals(filters?: {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      let query = (supabase as any)
+      let query = supabase
         .from("credit_proposals")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -89,7 +89,7 @@ export function useCreditProposal(id: string | undefined) {
     queryFn: async () => {
       if (!id || !currentWorkspace?.id) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("credit_proposals")
         .select("*")
         .eq("id", id)
@@ -112,7 +112,7 @@ export function useCreateCreditProposal() {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
 
       const year = new Date().getFullYear();
-      const { count } = await (supabase as any)
+      const { count } = await supabase
         .from("credit_proposals")
         .select("*", { count: "exact", head: true })
         .eq("workspace_id", currentWorkspace.id);
@@ -127,7 +127,7 @@ export function useCreateCreditProposal() {
 
       const { data: userData } = await supabase.auth.getUser();
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("credit_proposals")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -163,7 +163,7 @@ export function useCreateCreditProposal() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       toast.success("Proposta de crédito criada com sucesso");
-      console.log(`[VERTICAL-CREDIT] Case created id=${data.id} ref=${data.reference_number} type=${data.credit_type}`);
+      console.debug(`[VERTICAL-CREDIT] Case created id=${data.id} ref=${data.reference_number} type=${data.credit_type}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -197,7 +197,7 @@ export function useUpdateCreditProposal() {
 
       const { id, ...updateData } = input;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("credit_proposals")
         .update({
           ...updateData,
@@ -216,7 +216,7 @@ export function useUpdateCreditProposal() {
       queryClient.invalidateQueries({ queryKey: ["credit-proposal", data.id] });
       toast.success("Proposta atualizada com sucesso");
       const fieldsUpdated = Object.keys(variables).filter(k => k !== "id");
-      console.log(`[VERTICAL-CREDIT] Case updated id=${data.id} fields=${fieldsUpdated.join(",")}`);
+      console.debug(`[VERTICAL-CREDIT] Case updated id=${data.id} fields=${fieldsUpdated.join(",")}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -246,7 +246,7 @@ export function useDeleteCreditProposal() {
     mutationFn: async (id: string) => {
       if (!currentWorkspace?.id) throw new Error("No workspace selected");
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("credit_proposals")
         .delete()
         .eq("id", id)
@@ -258,7 +258,7 @@ export function useDeleteCreditProposal() {
     onSuccess: (deletedId: string) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       toast.success("Proposta eliminada com sucesso");
-      console.log(`[VERTICAL-CREDIT] Case deleted id=${deletedId}`);
+      console.debug(`[VERTICAL-CREDIT] Case deleted id=${deletedId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

@@ -635,4 +635,4 @@ registerStepExecutor('update_entity', async (ctx: StepExecutorContext): Promise<
   };
 });
 
-console.log('[WorkflowStepExecutors] All step executors registered');
+console.debug('[WorkflowStepExecutors] All step executors registered');

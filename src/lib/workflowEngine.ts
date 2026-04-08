@@ -176,7 +176,7 @@ async function executeStep(
   );
   
   if (idempotencyCheck.alreadyExecuted) {
-    console.log(`[WorkflowEngine] Step ${step.step_code} already executed, skipping`);
+    console.debug(`[WorkflowEngine] Step ${step.step_code} already executed, skipping`);
     return {
       success: idempotencyCheck.resultStatus === 'success',
       output: idempotencyCheck.resultData || {},
@@ -257,7 +257,7 @@ async function executeStepWithRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (attempt > 0) {
       const delay = calculateRetryDelay(attempt, baseDelayMs);
-      console.log(`[WorkflowEngine] Retrying step ${context.step.step_code} in ${delay}ms (attempt ${attempt + 1})`);
+      console.debug(`[WorkflowEngine] Retrying step ${context.step.step_code} in ${delay}ms (attempt ${attempt + 1})`);
       
       emitEvent({
         type: 'step_retrying',

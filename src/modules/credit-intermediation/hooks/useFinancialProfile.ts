@@ -29,7 +29,7 @@ export function useFinancialProfile(entityType: "contact" | "company", entityId:
     queryFn: async () => {
       if (!entityId || !currentWorkspace?.id) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("financial_profiles")
         .select("*")
         .eq("entity_type", entityType)
@@ -64,7 +64,7 @@ export function useCreateFinancialProfile() {
         : 0;
       const totalAssetsValue = (input.assets || []).reduce((sum, a) => sum + a.estimated_value, 0);
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("financial_profiles")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -110,7 +110,7 @@ export function useUpdateFinancialProfile() {
 
       const { id, ...updateData } = input;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("financial_profiles")
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq("id", id)
