@@ -231,7 +231,27 @@ export function LeadDetailWithSidebar() {
                 case 'emails':
                   return <EmailHistorySection entityType="lead" entityId={id!} entityEmail={lead.email} />;
                 case 'messages':
-                  return <ContactMessagesSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />;
+                  return (
+                    <ContactMessagesSection
+                      entityType="lead"
+                      entityId={id!}
+                      entityName={lead.name}
+                      entityEmail={lead.email}
+                      entityPhone={lead.phone}
+                      entityContext={{
+                        source: lead.source,
+                        status: lead.status,
+                        tags: lead.tags || [],
+                        company: lead.company_name,
+                        notes: lead.notes,
+                        score: lead.lead_score,
+                        lifecycle_stage: lead.inferred_type,
+                        instagram_url: lead.instagram_url,
+                        website_url: lead.website,
+                        created_at: lead.created_at,
+                      }}
+                    />
+                  );
                 case 'scheduling':
                   return <EntitySchedulingSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />;
                 default: return null;

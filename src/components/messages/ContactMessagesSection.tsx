@@ -58,12 +58,29 @@ import { TemplateFormDialog } from "@/components/communication/TemplateFormDialo
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 import { ComposeEmailDialog } from "@/components/email";
 
+export interface EntityContext {
+  source?: string | null;
+  status?: string | null;
+  tags?: string[];
+  company?: string | null;
+  notes?: string | null;
+  score?: number | null;
+  lifecycle_stage?: string | null;
+  instagram_url?: string | null;
+  website_url?: string | null;
+  created_at?: string | null;
+  last_interaction?: string | null;
+  opportunities?: Array<{ name: string; value?: number; stage?: string }>;
+  custom_fields?: Record<string, unknown>;
+}
+
 interface ContactMessagesSectionProps {
   entityType: 'contact' | 'company' | 'lead';
   entityId: string;
   entityName: string;
   entityEmail?: string | null;
   entityPhone?: string | null;
+  entityContext?: EntityContext;
 }
 
 type MessageChannel = 'email' | 'whatsapp' | 'instagram' | 'sms';
@@ -122,6 +139,7 @@ export function ContactMessagesSection({
   entityName,
   entityEmail,
   entityPhone,
+  entityContext,
 }: ContactMessagesSectionProps) {
   const { data: templates = [], isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { isLoading: aiLoading, suggestReplies } = useAskAI();
@@ -212,6 +230,35 @@ export function ContactMessagesSection({
     toast.success("Template aplicado");
   }, [entityName, entityEmail, entityPhone, selectedChannel]);
 
+  // Build rich context string from entity data
+  const buildContextString = useCallback(() => {
+    const parts: string[] = [];
+    parts.push(`Nome: ${entityName}`);
+    if (entityEmail) parts.push(`Email: ${entityEmail}`);
+    if (entityPhone) parts.push(`Telefone: ${entityPhone}`);
+    
+    if (entityContext) {
+      if (entityContext.source) parts.push(`Fonte/Origem: ${entityContext.source}`);
+      if (entityContext.status) parts.push(`Estado: ${entityContext.status}`);
+      if (entityContext.tags?.length) parts.push(`Tags: ${entityContext.tags.join(', ')}`);
+      if (entityContext.company) parts.push(`Empresa: ${entityContext.company}`);
+      if (entityContext.lifecycle_stage) parts.push(`Fase do ciclo: ${entityContext.lifecycle_stage}`);
+      if (entityContext.score) parts.push(`Score: ${entityContext.score}`);
+      if (entityContext.instagram_url) parts.push(`Instagram: ${entityContext.instagram_url}`);
+      if (entityContext.website_url) parts.push(`Website: ${entityContext.website_url}`);
+      if (entityContext.notes) parts.push(`Notas: ${entityContext.notes}`);
+      if (entityContext.created_at) parts.push(`Criado em: ${entityContext.created_at}`);
+      if (entityContext.opportunities?.length) {
+        const opps = entityContext.opportunities.map(o => 
+          `${o.name}${o.value ? ` (€${o.value})` : ''}${o.stage ? ` — ${o.stage}` : ''}`
+        ).join('; ');
+        parts.push(`Oportunidades: ${opps}`);
+      }
+    }
+    
+    return parts.join('\n');
+  }, [entityName, entityEmail, entityPhone, entityContext]);
+
   // Generate AI suggestions
   const handleGenerateAISuggestions = useCallback(async () => {
     setIsGenerating(true);
@@ -219,15 +266,15 @@ export function ContactMessagesSection({
     setSelectedSuggestion(null);
     
     try {
-      // Create context messages for the AI
+      const fullContext = buildContextString();
       const contextMessages = [
         {
           role: 'system',
-          content: `Contexto: A comunicar com ${entityName}. ${aiContext ? `Contexto adicional: ${aiContext}` : ''}`
+          content: `Contexto completo do ${entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'} no CRM FastCRM:\n${fullContext}\n\n${aiContext ? `Instruções adicionais do utilizador: ${aiContext}` : ''}\n\nCanal de comunicação: ${selectedChannel}`
         },
         {
           role: 'user',
-          content: `Gera sugestões de mensagem para ${selectedChannel} para ${entityName}.`
+          content: `Gera sugestões de mensagem contextualizada para ${selectedChannel} para ${entityName}, tendo em conta toda a informação disponível sobre este ${entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'}. As mensagens devem ser relevantes para o estado atual e a relação comercial.`
         }
       ];
       
@@ -240,7 +287,7 @@ export function ContactMessagesSection({
     } finally {
       setIsGenerating(false);
     }
-  }, [entityName, selectedChannel, aiContext, suggestReplies]);
+  }, [entityName, entityType, selectedChannel, aiContext, suggestReplies, buildContextString]);
 
   // Use AI suggestion
   const handleUseSuggestion = useCallback((text: string) => {
@@ -671,19 +718,51 @@ export function ContactMessagesSection({
               <TabsContent value="ai" className="m-0 space-y-4">
                 <div className="flex items-start gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-primary">
-                    A IA analisa o contexto e gera sugestões personalizadas para {entityName}. Forneça contexto adicional para melhores resultados.
-                  </p>
+                  <div className="text-xs text-primary">
+                    <p className="font-medium mb-1">Mensagem contextualizada com IA</p>
+                    <p>A IA utiliza toda a informação deste {entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'} para gerar mensagens relevantes e personalizadas.</p>
+                  </div>
                 </div>
+
+                {/* Context summary chips */}
+                {entityContext && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {entityContext.source && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Fonte: {entityContext.source}
+                      </Badge>
+                    )}
+                    {entityContext.status && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Estado: {entityContext.status}
+                      </Badge>
+                    )}
+                    {entityContext.tags?.map(tag => (
+                      <Badge key={tag} variant="outline" className="text-[10px] py-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {entityContext.company && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        {entityContext.company}
+                      </Badge>
+                    )}
+                    {entityContext.score && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Score: {entityContext.score}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Contexto adicional (opcional)
+                    Instruções adicionais (opcional)
                   </label>
                   <Textarea
                     value={aiContext}
                     onChange={(e) => setAiContext(e.target.value)}
-                    placeholder="Ex: Seguimento após reunião, proposta de serviços, agradecimento por compra..."
+                    placeholder="Ex: Quero apresentar o serviço X, fazer follow-up da proposta, agendar reunião..."
                     className="min-h-[80px] resize-none"
                   />
                 </div>
@@ -698,7 +777,7 @@ export function ContactMessagesSection({
                   ) : (
                     <Wand2 className="h-4 w-4" />
                   )}
-                  Gerar Sugestões AI
+                  Gerar Mensagem Contextualizada
                 </Button>
 
                 {aiSuggestions && aiSuggestions.length > 0 && (
