@@ -192,17 +192,29 @@ Deno.serve(async (req) => {
           pageUrl = `${BASE_URL}/p/${wsSlug}/${pageSlug}`;
         }
       } else if (type === "store") {
-        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
+        // Resolve workspace: try workspaces.slug first, then store_settings.store_slug
+        let wsId: string | null = null;
+        let wsName: string | null = null;
+        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).maybeSingle();
         if (ws) {
+          wsId = ws.id;
+          wsName = ws.name;
+        } else {
+          const { data: ss } = await supabase.from("store_settings").select("workspace_id, store_name").eq("store_slug", slug).maybeSingle();
+          if (ss) {
+            wsId = ss.workspace_id;
+            wsName = ss.store_name;
+          }
+        }
+        if (wsId) {
           const { data: store } = await supabase
             .from("store_settings")
             .select("store_name, store_description, logo_url, banner_url")
-            .eq("workspace_id", ws.id)
+            .eq("workspace_id", wsId)
             .single();
           if (store) {
-            pageTitle = store.store_name || ws.name || pageTitle;
-            pageDescription = store.store_description || `Explore os produtos e serviços de ${store.store_name || ws.name}`;
-            // Prefer banner for OG (landscape), fallback to logo
+            pageTitle = store.store_name || wsName || pageTitle;
+            pageDescription = store.store_description || `Explore os produtos e serviços de ${store.store_name || wsName}`;
             pageImage = store.banner_url || store.logo_url || pageImage;
           }
         }
