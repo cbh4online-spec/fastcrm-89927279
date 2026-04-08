@@ -50,6 +50,7 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
+  const [showTestSend, setShowTestSend] = useState(false);
   const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
