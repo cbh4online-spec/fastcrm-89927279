@@ -97,6 +97,7 @@ export interface Ebook {
   og_image_url?: string | null;
   canonical_url?: string | null;
   noindex?: boolean;
+  short_code?: string | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
