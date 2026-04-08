@@ -252,22 +252,23 @@ export function SmartLeadsTable() {
   const handleFilterSelect = (filterId: string) => {
     const newFilterId = filterId === activeFilterId ? undefined : filterId;
     setActiveFilterId(newFilterId);
-    if (!newFilterId) { setFilters({}); return; }
-    if (newFilterId === "temp_hot") setFilters({ temperature: "hot" });
-    else if (newFilterId === "temp_warm") setFilters({ temperature: "warm" });
-    else if (newFilterId === "temp_cold") setFilters({ temperature: "cold" });
-    else if (newFilterId === "status_new") setFilters({ status: "new" });
-    else if (newFilterId === "status_contacted") setFilters({ status: "in_progress" });
-    else if (newFilterId === "status_qualified") setFilters({ status: "completed" });
-    else if (newFilterId === "status_proposal") setFilters({ status: "in_progress" });
-    else if (newFilterId === "status_lost") setFilters({ status: "completed" });
-    else if (newFilterId === "activity_waiting") setFilters({ smartFilter: "no_response" });
-    else if (newFilterId === "activity_no_reply") setFilters({ smartFilter: "no_response" });
-    else if (newFilterId === "activity_engaged") setFilters({ smartFilter: "high_intent" });
-    else if (newFilterId === "smart_hot") setFilters({ smartFilter: "hot" });
-    else if (newFilterId === "smart_ready") setFilters({ smartFilter: "high_intent" });
-    else if (newFilterId === "smart_nurture") setFilters({ temperature: "warm" });
-    else if (newFilterId === "smart_risk") setFilters({ smartFilter: "no_response" });
+    const base = { page: 0, pageSize };
+    if (!newFilterId) { setFilters(base); return; }
+    if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
+    else if (newFilterId === "temp_warm") setFilters({ ...base, temperature: "warm" });
+    else if (newFilterId === "temp_cold") setFilters({ ...base, temperature: "cold" });
+    else if (newFilterId === "status_new") setFilters({ ...base, status: "new" });
+    else if (newFilterId === "status_contacted") setFilters({ ...base, status: "in_progress" });
+    else if (newFilterId === "status_qualified") setFilters({ ...base, status: "completed" });
+    else if (newFilterId === "status_proposal") setFilters({ ...base, status: "in_progress" });
+    else if (newFilterId === "status_lost") setFilters({ ...base, status: "completed" });
+    else if (newFilterId === "activity_waiting") setFilters({ ...base, smartFilter: "no_response" });
+    else if (newFilterId === "activity_no_reply") setFilters({ ...base, smartFilter: "no_response" });
+    else if (newFilterId === "activity_engaged") setFilters({ ...base, smartFilter: "high_intent" });
+    else if (newFilterId === "smart_hot") setFilters({ ...base, smartFilter: "hot" });
+    else if (newFilterId === "smart_ready") setFilters({ ...base, smartFilter: "high_intent" });
+    else if (newFilterId === "smart_nurture") setFilters({ ...base, temperature: "warm" });
+    else if (newFilterId === "smart_risk") setFilters({ ...base, smartFilter: "no_response" });
   };
 
   const allSelected = paginatedLeads.length > 0 && paginatedLeads.every(l => selectedIds.has(l.id));
