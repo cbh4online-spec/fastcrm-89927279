@@ -273,14 +273,28 @@ export function SmartLeadsTable() {
     setActiveFilterId(newFilterId);
     const base = { page: 0, pageSize };
     if (!newFilterId) { setFilters(base); return; }
-    if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
+    // Column presence filters
+    if (newFilterId === "has_email") setFilters({ ...base, hasField: "email" });
+    else if (newFilterId === "has_phone") setFilters({ ...base, hasField: "phone" });
+    else if (newFilterId === "has_website") setFilters({ ...base, hasField: "website" });
+    else if (newFilterId === "has_linkedin") setFilters({ ...base, hasField: "linkedin_url" });
+    else if (newFilterId === "has_address") setFilters({ ...base, hasField: "address" });
+    else if (newFilterId === "has_company") setFilters({ ...base, hasField: "company_name" });
+    else if (newFilterId === "no_email") setFilters({ ...base, missingField: "email" });
+    else if (newFilterId === "no_phone") setFilters({ ...base, missingField: "phone" });
+    // Source filters
+    else if (newFilterId.startsWith("source_")) setFilters({ ...base, source: newFilterId.replace("source_", "") });
+    // Temperature filters
+    else if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
     else if (newFilterId === "temp_warm") setFilters({ ...base, temperature: "warm" });
     else if (newFilterId === "temp_cold") setFilters({ ...base, temperature: "cold" });
+    // Status filters
     else if (newFilterId === "status_new") setFilters({ ...base, status: "new" });
     else if (newFilterId === "status_contacted") setFilters({ ...base, status: "in_progress" });
     else if (newFilterId === "status_qualified") setFilters({ ...base, status: "completed" });
     else if (newFilterId === "status_proposal") setFilters({ ...base, status: "in_progress" });
     else if (newFilterId === "status_lost") setFilters({ ...base, status: "completed" });
+    // Activity/smart filters
     else if (newFilterId === "activity_waiting") setFilters({ ...base, smartFilter: "no_response" });
     else if (newFilterId === "activity_no_reply") setFilters({ ...base, smartFilter: "no_response" });
     else if (newFilterId === "activity_engaged") setFilters({ ...base, smartFilter: "high_intent" });
