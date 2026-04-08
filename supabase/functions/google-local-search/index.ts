@@ -101,9 +101,21 @@ Deno.serve(async (req) => {
 
     if (data.error) {
       console.error("SerpAPI error:", data.error);
+      // Return 200 with structured error to avoid blank screens (resilient pattern)
+      const isQuotaError = data.error.toLowerCase().includes("run out") || 
+                           data.error.toLowerCase().includes("quota") ||
+                           data.error.toLowerCase().includes("limit");
       return new Response(
-        JSON.stringify({ success: false, error: data.error }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: false, 
+          error: isQuotaError 
+            ? "Quota de pesquisas esgotada. Contacte o administrador para renovar o plano da API." 
+            : data.error,
+          error_type: isQuotaError ? "quota_exceeded" : "api_error",
+          data: [],
+          count: 0,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
