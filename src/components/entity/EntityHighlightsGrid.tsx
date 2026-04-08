@@ -3,12 +3,14 @@ import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3,
 import { Entity, EntityType } from '@/types/entity';
 import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
+import { EntityOwnerSelector } from './EntityOwnerSelector';
 
 interface HighlightCard {
   label: string;
   value: string | number;
   icon: React.ElementType;
   color: string;
+  customRender?: React.ReactNode;
 }
 
 interface EntityHighlightsGridProps {
