@@ -38,6 +38,7 @@ const SYNC_DEBOUNCE_MS = 2000;
 
 // Debounced sync timers per workspace
 const syncTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const MAX_SYNC_TIMERS = 50;
 
 function syncToDb(items: CartItem[], subtotal: number) {
   const sessionId = localStorage.getItem(SESSION_KEY);
@@ -54,7 +55,7 @@ function syncToDb(items: CartItem[], subtotal: number) {
         }))
       : null;
 
-  (supabase as any)
+  supabase
     .from("store_visitor_sessions")
     .update({
       cart_items: cartData,
@@ -64,7 +65,7 @@ function syncToDb(items: CartItem[], subtotal: number) {
       cart_processed: false,
     })
     .eq("session_id", sessionId)
-    .then(({ error }: any) => {
+    .then(({ error }) => {
       if (error) {
         console.warn("[ECOMMERCE] CART_SYNC_FAILED", error.message);
         try { Sentry.captureException(new Error(`Cart sync failed: ${error.message}`)); } catch {}
@@ -75,6 +76,15 @@ function syncToDb(items: CartItem[], subtotal: number) {
 function debouncedSync(wsSlug: string, items: CartItem[], subtotal: number) {
   const existing = syncTimers.get(wsSlug);
   if (existing) clearTimeout(existing);
+
+  // Prevent unbounded growth when many workspaces are active
+  if (syncTimers.size >= MAX_SYNC_TIMERS) {
+    const oldest = syncTimers.keys().next().value;
+    if (oldest) {
+      clearTimeout(syncTimers.get(oldest)!);
+      syncTimers.delete(oldest);
+    }
+  }
 
   syncTimers.set(
     wsSlug,

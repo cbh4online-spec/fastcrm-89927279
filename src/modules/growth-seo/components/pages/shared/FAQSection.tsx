@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import {
   Accordion,
   AccordionContent,
@@ -24,15 +25,15 @@ export function FAQSection({ faqs, title = 'Perguntas Frequentes', className = '
       </div>
 
       <Accordion type="single" collapsible className="w-full">
-        {faqs.map((faq, index) => (
-          <AccordionItem key={index} value={`faq-${index}`}>
+        {faqs.map((faq) => (
+          <AccordionItem key={faq.question} value={faq.question}>
             <AccordionTrigger className="text-left">
               {faq.question}
             </AccordionTrigger>
             <AccordionContent>
               <div 
                 className="prose prose-sm max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: faq.answer }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(faq.answer) }}
               />
             </AccordionContent>
           </AccordionItem>

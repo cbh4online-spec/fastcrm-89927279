@@ -33,6 +33,11 @@ interface ChatWidgetProps {
   supabaseUrl: string;
 }
 
+// Block CSS patterns that can be used for injection attacks
+function isSafeCss(css: string): boolean {
+  return !/javascript:|expression\s*\(|@import|<\s*script|eval\s*\(/i.test(css);
+}
+
 // Generate or retrieve visitor ID
 function getVisitorId(): string {
   const key = "fastcrm_visitor_id";
@@ -90,7 +95,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
   // Fetch widget config on mount
   useEffect(() => {
     fetchConfig();
-  }, [widgetId]);
+  }, [fetchConfig]);
 
   // Auto-open after delay
   useEffect(() => {
@@ -109,7 +114,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     }
   }, [isOpen, conversationId, config]);
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-widget`, {
@@ -124,7 +129,8 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to load widget");
 
-      const data: any = await response.json();
+      const data = await response.json() as { config?: WidgetConfig };
+      if (!data.config) throw new Error("Invalid widget config response");
       setConfig(data.config);
     } catch (err) {
       console.error("[ChatWidget] Config error:", err);
@@ -132,7 +138,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [widgetId, supabaseUrl]);
 
   const initConversation = async () => {
     if (!config) return;
@@ -151,7 +157,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to initialize chat");
 
-      const data: any = await response.json();
+      const data = await response.json() as { conversationId: string; messages?: Message[] };
       setConversationId(data.conversationId);
       setMessages(data.messages || []);
 
@@ -205,9 +211,9 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
       if (!response.ok) throw new Error("Failed to send message");
 
-      const data: any = await response.json();
+      const data = await response.json() as { message?: Message };
       if (data.message) {
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) => [...prev, data.message!]);
       }
     } catch (err) {
       console.error("[ChatWidget] Send error:", err);
@@ -241,8 +247,8 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
   return (
     <>
-      {/* Inject custom CSS */}
-      {config.custom_css && (
+      {/* Inject custom CSS — validate before injection to prevent CSS-based attacks */}
+      {config.custom_css && isSafeCss(config.custom_css) && (
         <style dangerouslySetInnerHTML={{ __html: config.custom_css }} />
       )}
 

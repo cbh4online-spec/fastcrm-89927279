@@ -25,9 +25,13 @@ export function useKernelDecisions() {
     enabled: !!workspaceId,
   });
 
+  interface KernelPolicy {
+    mode?: 'approve' | 'auto' | 'manual';
+  }
+
   const openDecisions = decisions?.filter(d => d.status === 'open') ?? [];
   const approvalQueue = decisions?.filter(d => {
-    const policy = d.policy as any;
+    const policy = d.policy as KernelPolicy | null;
     return d.status === 'open' && policy?.mode === 'approve';
   }) ?? [];
 
@@ -100,6 +104,9 @@ export function useKernelDecisions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       toast.success('Decisão arquivada');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao arquivar decisão: ${error.message}`);
     },
   });
 

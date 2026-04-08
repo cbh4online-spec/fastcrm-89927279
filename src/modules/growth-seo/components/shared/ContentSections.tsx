@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import type { ContentSection } from '../../types';
 
 interface ContentSectionsProps {
@@ -16,7 +17,7 @@ export function ContentSections({ sections }: ContentSectionsProps) {
           {section.type === 'text' && (
             <div
               className="text-muted-foreground leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: section.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content) }}
             />
           )}
 
