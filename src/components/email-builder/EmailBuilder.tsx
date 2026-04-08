@@ -14,6 +14,7 @@ import {
   ClipboardPaste,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -380,6 +381,31 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
               }}
             >
               Copiar HTML
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Paste HTML Dialog */}
+      <Dialog open={showPasteHtml} onOpenChange={setShowPasteHtml}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Colar HTML</DialogTitle>
+            <DialogDescription>
+              Cola o código HTML do teu email abaixo
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={pasteHtmlValue}
+            onChange={(e) => setPasteHtmlValue(e.target.value)}
+            placeholder="<html>...</html>"
+            className="flex-1 min-h-[300px] font-mono text-xs"
+          />
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => { setPasteHtmlValue(''); setShowPasteHtml(false); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handlePasteHtml} disabled={!pasteHtmlValue.trim()}>
+              Inserir HTML
             </Button>
           </div>
         </DialogContent>
