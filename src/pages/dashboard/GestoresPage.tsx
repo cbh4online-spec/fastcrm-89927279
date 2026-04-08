@@ -416,7 +416,7 @@ export default function GestoresPage() {
   const filteredDetailEntities = useMemo(() => {
     let list = selectedEntities || [];
     if (entityFilter !== "all") {
-      list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : "company"));
+      list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : entityFilter === "opportunities" ? "opportunity" : "company"));
     }
     if (detailEntitySearch.trim()) {
       const q = detailEntitySearch.toLowerCase();
@@ -598,6 +598,7 @@ export default function GestoresPage() {
                     { value: "leads", label: `Leads (${selectedEntities?.filter(e => e.type === "lead").length || 0})` },
                     { value: "contacts", label: `Contactos (${selectedEntities?.filter(e => e.type === "contact").length || 0})` },
                     { value: "companies", label: `Empresas (${selectedEntities?.filter(e => e.type === "company").length || 0})` },
+                    { value: "opportunities", label: `Oportunidades (${selectedEntities?.filter(e => e.type === "opportunity").length || 0})` },
                   ].map(tab => (
                     <Button
                       key={tab.value}
