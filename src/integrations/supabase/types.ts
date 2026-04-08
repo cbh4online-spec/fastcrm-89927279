@@ -41581,6 +41581,155 @@ export type Database = {
           },
         ]
       }
+      portal_worker_listings: {
+        Row: {
+          available_from: string | null
+          created_at: string
+          description: string
+          desired_location: string | null
+          desired_salary_range: string | null
+          employment_type: string | null
+          expires_at: string | null
+          id: string
+          is_immediate: boolean | null
+          portal_worker_id: string
+          published_at: string | null
+          remote_option: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          available_from?: string | null
+          created_at?: string
+          description: string
+          desired_location?: string | null
+          desired_salary_range?: string | null
+          employment_type?: string | null
+          expires_at?: string | null
+          id?: string
+          is_immediate?: boolean | null
+          portal_worker_id: string
+          published_at?: string | null
+          remote_option?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          available_from?: string | null
+          created_at?: string
+          description?: string
+          desired_location?: string | null
+          desired_salary_range?: string | null
+          employment_type?: string | null
+          expires_at?: string | null
+          id?: string
+          is_immediate?: boolean | null
+          portal_worker_id?: string
+          published_at?: string | null
+          remote_option?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_worker_listings_portal_worker_id_fkey"
+            columns: ["portal_worker_id"]
+            isOneToOne: false
+            referencedRelation: "portal_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_worker_listings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_workers: {
+        Row: {
+          auth_user_id: string
+          availability: string | null
+          bio: string | null
+          created_at: string
+          cv_url: string | null
+          education: string | null
+          email: string
+          experience_years: number | null
+          first_name: string
+          id: string
+          last_name: string
+          linkedin_url: string | null
+          location: string | null
+          phone: string | null
+          photo_url: string | null
+          sector: string | null
+          skills: string[] | null
+          status: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          availability?: string | null
+          bio?: string | null
+          created_at?: string
+          cv_url?: string | null
+          education?: string | null
+          email: string
+          experience_years?: number | null
+          first_name: string
+          id?: string
+          last_name: string
+          linkedin_url?: string | null
+          location?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          sector?: string | null
+          skills?: string[] | null
+          status?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          availability?: string | null
+          bio?: string | null
+          created_at?: string
+          cv_url?: string | null
+          education?: string | null
+          email?: string
+          experience_years?: number | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          linkedin_url?: string | null
+          location?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          sector?: string | null
+          skills?: string[] | null
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_workers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_entities: {
         Row: {
           category: string | null
