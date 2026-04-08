@@ -128,7 +128,7 @@ export default function CareersPage() {
   }, [allJobs, search, typeFilter, remoteFilter, sourceFilter]);
 
   const companyName = workspace?.company_name || workspace?.name || "";
-  const isLoading = jobsLoading || extLoading || portalLoading;
+  const isLoading = jobsLoading || extLoading || portalLoading || workersLoading;
 
   if (wsLoading) return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
