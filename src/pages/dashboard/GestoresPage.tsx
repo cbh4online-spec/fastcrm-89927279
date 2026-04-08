@@ -245,17 +245,11 @@ export default function GestoresPage() {
     return list;
   }, [selectedEntities, entityFilter, detailEntitySearch]);
 
-  // ── Auto-assign handler ──
+  // ── Auto-assign handler (with skill matching) ──
   const handleAutoAssign = async (entityType: EntityType) => {
     if (!currentWorkspace || !managerStats.length) return;
     try {
-      const bestManager = selectByCapacity(managerStats.map(m => m.workload));
-      if (!bestManager) {
-        toast.error("Todos os gestores estão sobrecarregados.");
-        return;
-      }
-      const bestName = managerStats.find(m => m.userId === bestManager)?.name || "Gestor";
-
+      // Use skill-matching auto-assign
       const table = ENTITY_TABLE[entityType] as "leads" | "contacts" | "companies" | "opportunities";
       const field = OWNERSHIP_FIELD[entityType];
       const { data: unassignedItems } = await (workspaceClient.from(table) as any)
@@ -272,22 +266,41 @@ export default function GestoresPage() {
       const { data: sessionData } = await supabase.auth.getUser();
       const userId = sessionData?.user?.id || "";
 
+      // For now, entities don't carry segment/territory/client_type fields yet,
+      // so we pass empty criteria → any active profiled manager matches → fallback to capacity
+      const criteria: EntityMatchCriteria = {};
+      const bestManager = selectByCapacityWithMatching(
+        managerStats.map(m => m.workload),
+        managerProfiles,
+        criteria
+      );
+
+      if (!bestManager) {
+        // Mandatory matching: no manager matched
+        toast.error("Nenhum gestor elegível encontrado. Verifique os perfis dos gestores.");
+        return;
+      }
+
+      const bestName = managerStats.find(m => m.userId === bestManager)?.name || "Gestor";
+
       await executeBulkAssign(
         workspaceClient, entityType,
         unassignedItems.map((e: any) => e.id),
         bestManager, currentWorkspace.id, userId, "auto_capacity"
       );
 
-      toast.success(`${unassignedItems.length} ${entityType}s atribuídas a ${bestName} (capacidade: melhor disponível)`);
+      toast.success(`${unassignedItems.length} ${entityType}s atribuídas a ${bestName} (matching + capacidade)`);
       invalidateAll();
     } catch (err: any) {
       toast.error(err?.message || "Erro na auto-atribuição");
     }
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // DETAIL VIEW
-  // ═══════════════════════════════════════════════════════════
+  // ── Open profile editor ──
+  const openProfileEditor = (userId: string) => {
+    setProfileEditUserId(userId);
+    setProfileDialogOpen(true);
+  };
   if (selectedManager && selectedManagerData) {
     return (
       <DashboardLayout>
