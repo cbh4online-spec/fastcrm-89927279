@@ -10,6 +10,7 @@ import {
   Smartphone,
   Code,
   Upload,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
