@@ -363,9 +363,14 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
           </div>
         </DialogContent>
       </Dialog>
+      {/* Test Send Dialog */}
+      <EmailTestSendDialog
+        open={showTestSend}
+        onOpenChange={setShowTestSend}
+        html={renderEmailToHtml(design)}
+      />
     </div>
   );
-}
 
 // Wrapper with provider
 export function EmailBuilder(props: EmailBuilderProps) {
