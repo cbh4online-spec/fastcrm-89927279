@@ -42,6 +42,48 @@ function isCrawler(userAgent: string | null): boolean {
   return userAgent ? CRAWLER_REGEX.test(userAgent) : false;
 }
 
+/**
+ * Parse a direct path like /store/{slug}/product/{id} into type+slug params.
+ */
+function parsePathToTypeSlug(path: string): { type: string; slug: string } | null {
+  // /store/{wsSlug}/product/{productId}
+  const productMatch = path.match(/^\/store\/([^/]+)\/product\/([^/]+)/);
+  if (productMatch) {
+    return { type: "product", slug: `${productMatch[1]}/${productMatch[2]}` };
+  }
+  // /store/{wsSlug} (store homepage)
+  const storeMatch = path.match(/^\/store\/([^/]+)\/?$/);
+  if (storeMatch) {
+    return { type: "store", slug: storeMatch[1] };
+  }
+  // /bio/{wsSlug}/{pageSlug}
+  const bioMatch = path.match(/^\/bio\/([^/]+)\/([^/]+)/);
+  if (bioMatch) {
+    return { type: "bio", slug: `${bioMatch[1]}/${bioMatch[2]}` };
+  }
+  // /p/{wsSlug}/{pageSlug} (landing)
+  const landingMatch = path.match(/^\/p\/([^/]+)\/([^/]+)/);
+  if (landingMatch) {
+    return { type: "landing", slug: `${landingMatch[1]}/${landingMatch[2]}` };
+  }
+  // /c2c/{wsSlug}/listing/{id}
+  const c2cListingMatch = path.match(/^\/c2c\/([^/]+)\/listing\/([^/]+)/);
+  if (c2cListingMatch) {
+    return { type: "c2c-listing", slug: `${c2cListingMatch[1]}/${c2cListingMatch[2]}` };
+  }
+  // /c2c/{wsSlug}/seller/{id}
+  const c2cSellerMatch = path.match(/^\/c2c\/([^/]+)\/seller\/([^/]+)/);
+  if (c2cSellerMatch) {
+    return { type: "c2c-seller", slug: `${c2cSellerMatch[1]}/${c2cSellerMatch[2]}` };
+  }
+  // /c2c/{wsSlug}
+  const c2cMatch = path.match(/^\/c2c\/([^/]+)\/?$/);
+  if (c2cMatch) {
+    return { type: "c2c", slug: c2cMatch[1] };
+  }
+  return null;
+}
+
 function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
@@ -73,9 +115,19 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const type = url.searchParams.get("type") || "";
-    const slug = url.searchParams.get("slug") || "";
+    let type = url.searchParams.get("type") || "";
+    let slug = url.searchParams.get("slug") || "";
     const userAgent = req.headers.get("user-agent");
+
+    // Support ?path= for direct URL resolution (e.g. /store/slug/product/id)
+    const pathParam = url.searchParams.get("path") || "";
+    if (!type && pathParam) {
+      const parsed = parsePathToTypeSlug(pathParam);
+      if (parsed) {
+        type = parsed.type;
+        slug = parsed.slug;
+      }
+    }
 
     if (!type || !slug) {
       return new Response("Missing type or slug", { status: 400, headers: corsHeaders });
@@ -140,17 +192,29 @@ Deno.serve(async (req) => {
           pageUrl = `${BASE_URL}/p/${wsSlug}/${pageSlug}`;
         }
       } else if (type === "store") {
-        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
+        // Resolve workspace: try workspaces.slug first, then store_settings.store_slug
+        let wsId: string | null = null;
+        let wsName: string | null = null;
+        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).maybeSingle();
         if (ws) {
+          wsId = ws.id;
+          wsName = ws.name;
+        } else {
+          const { data: ss } = await supabase.from("store_settings").select("workspace_id, store_name").eq("store_slug", slug).maybeSingle();
+          if (ss) {
+            wsId = ss.workspace_id;
+            wsName = ss.store_name;
+          }
+        }
+        if (wsId) {
           const { data: store } = await supabase
             .from("store_settings")
             .select("store_name, store_description, logo_url, banner_url")
-            .eq("workspace_id", ws.id)
+            .eq("workspace_id", wsId)
             .single();
           if (store) {
-            pageTitle = store.store_name || ws.name || pageTitle;
-            pageDescription = store.store_description || `Explore os produtos e serviços de ${store.store_name || ws.name}`;
-            // Prefer banner for OG (landscape), fallback to logo
+            pageTitle = store.store_name || wsName || pageTitle;
+            pageDescription = store.store_description || `Explore os produtos e serviços de ${store.store_name || wsName}`;
             pageImage = store.banner_url || store.logo_url || pageImage;
           }
         }
