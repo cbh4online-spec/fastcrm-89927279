@@ -58,6 +58,8 @@ export interface SmartLeadsFilters {
   source?: string | "all";
   smartFilter?: SmartFilterType;
   assignedTo?: string | "all";
+  hasField?: string;
+  missingField?: string;
   page?: number;
   pageSize?: number;
 }
