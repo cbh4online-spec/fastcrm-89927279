@@ -361,7 +361,7 @@ export function SmartLeadsTable() {
         {activeTab === "duplicates" ? (
           <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
         ) : activeTab === "kanban" ? (
-          <LeadsKanbanDnD leads={filteredLeads as SmartLead[]} isLoading={isLoading} />
+          <LeadsKanbanDnD leads={displayLeads as SmartLead[]} isLoading={isLoading} />
         ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
@@ -490,7 +490,7 @@ export function SmartLeadsTable() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow><TableCell colSpan={totalColumns} className="p-0"><TableSkeleton rows={5} columns={totalColumns} showHeader={false} /></TableCell></TableRow>
-                  ) : !filteredLeads.length ? (
+                  ) : !displayLeads.length ? (
                     <TableRow><TableCell colSpan={totalColumns} className="text-center py-8">
                       {searchValue ? <SearchEmptyState query={searchValue} /> : (
                         <EmptyState type="leads" title={t("noLeadsYet")} description={t("noLeadsDesc")} action={{ label: t("addLead"), onClick: () => setIsCreateDialogOpen(true) }} />
