@@ -33,9 +33,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase, Copy } from "lucide-react";
+import { Plus, Users, Download, RefreshCw, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, UserCheck, UserX, Linkedin, Sparkles, ExternalLink, MoreHorizontal, Reply, Target, Settings2, Archive, Building2, Briefcase, Copy, Mail, Phone, MapPin, Tag, Database } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FilterCondition, applyFilters } from "@/hooks/useFilterEngine";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
 
