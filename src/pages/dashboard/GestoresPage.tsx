@@ -379,9 +379,12 @@ export default function GestoresPage() {
   const detailAnalytics = useMemo(() => {
     if (!selectedEntities) return null;
     const leadEntities = selectedEntities.filter(e => e.type === "lead");
+    const oppEntities = selectedEntities.filter(e => e.type === "opportunity");
     const allWithContact = selectedEntities.filter(e => e.lastContactAt);
-    const converted = leadEntities.filter(e => e.lifecycleStage === "customer" || e.lifecycleStage === "converted").length;
-    const conversionRate = leadEntities.length > 0 ? Math.round((converted / leadEntities.length) * 100) : 0;
+
+    // Conversão = oportunidades ganhas / total leads atribuídas
+    const wonOpps = oppEntities.filter(e => e.status === "won").length;
+    const conversionRate = leadEntities.length > 0 ? Math.round((wonOpps / leadEntities.length) * 100) : 0;
 
     // SLA compliance
     const slaStatuses = allWithContact.map(e => getSlaStatus(e.lastContactAt));
@@ -395,16 +398,20 @@ export default function GestoresPage() {
     const daysSinceContact = allWithContact.map(e => differenceInDays(new Date(), new Date(e.lastContactAt!)));
     const avgDaysSinceContact = daysSinceContact.length > 0 ? Math.round(daysSinceContact.reduce((a, b) => a + b, 0) / daysSinceContact.length) : 0;
 
+    // Pipeline = soma de oportunidades (excluindo lost)
+    const totalPipeline = oppEntities.filter(e => e.status !== "lost").reduce((s, e) => s + (e.estimatedValue || 0), 0);
+
     return {
-      conversionRate, converted, totalLeads: leadEntities.length,
+      conversionRate, converted: wonOpps, totalLeads: leadEntities.length,
+      totalOpportunities: oppEntities.length,
       slaCompliance, withinSla, warning, critical, noContact,
-      avgDaysSinceContact, totalPipeline: leadEntities.reduce((s, e) => s + (e.estimatedValue || 0), 0),
+      avgDaysSinceContact, totalPipeline,
     };
   }, [selectedEntities]);
 
   const selectedManagerData = selectedManager ? managerStats?.find(m => m.userId === selectedManager) : null;
   const isLoading = membersLoading || statsLoading;
-  const totalUnassigned = (unassigned?.leads || 0) + (unassigned?.contacts || 0) + (unassigned?.companies || 0);
+  const totalUnassigned = (unassigned?.leads || 0) + (unassigned?.contacts || 0) + (unassigned?.companies || 0) + (unassigned?.opportunities || 0);
 
   const filteredDetailEntities = useMemo(() => {
     let list = selectedEntities || [];
