@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy, Upload, FileSpreadsheet, Zap, TrendingUp, AlertTriangle, Star } from "lucide-react";
+import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy, Upload, FileSpreadsheet, Zap, TrendingUp, AlertTriangle, Star, Mail, Phone, MapPin, Globe, Database } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
