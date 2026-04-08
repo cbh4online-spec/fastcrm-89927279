@@ -607,7 +607,7 @@ export function SmartContactsTable() {
     toast.success(t("exportComplete"));
   };
 
-  const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
+  const filtersActive = !!activeFilterId || smartListConditions.length > 0 || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
 
   return (
     <div className="flex flex-col lg:flex-row h-full">
