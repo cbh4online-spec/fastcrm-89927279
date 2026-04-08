@@ -132,13 +132,14 @@ export function useImportTalentResult() {
           .single();
 
         if (candErr) throw candErr;
+        const candData = cand as unknown as { id: string };
 
         await supabase
           .from("hr_talent_results" as any)
-          .update({ status: "imported", imported_as: "candidate", imported_id: cand.id })
+          .update({ status: "imported", imported_as: "candidate", imported_id: candData.id })
           .eq("id", result.id);
 
-        return { importedId: cand.id, type: "candidate" };
+        return { importedId: candData.id, type: "candidate" };
       } else {
         const { data: job, error: jobErr } = await supabase
           .from("hr_job_postings" as any)
@@ -154,13 +155,14 @@ export function useImportTalentResult() {
           .single();
 
         if (jobErr) throw jobErr;
+        const jobData = job as unknown as { id: string };
 
         await supabase
           .from("hr_talent_results" as any)
-          .update({ status: "imported", imported_as: "job_posting", imported_id: job.id })
+          .update({ status: "imported", imported_as: "job_posting", imported_id: jobData.id })
           .eq("id", result.id);
 
-        return { importedId: job.id, type: "job_posting" };
+        return { importedId: jobData.id, type: "job_posting" };
       }
     },
     onSuccess: (data) => {
