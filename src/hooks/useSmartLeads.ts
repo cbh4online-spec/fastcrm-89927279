@@ -133,6 +133,14 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
         );
       }
 
+      // Apply column presence filters
+      if (filters?.hasField) {
+        query = query.not(filters.hasField, "is", null).neq(filters.hasField as any, "" as any);
+      }
+      if (filters?.missingField) {
+        query = query.or(`${filters.missingField}.is.null,${filters.missingField}.eq.`);
+      }
+
       // Apply smart filters at SQL level
       if (filters?.smartFilter) {
         switch (filters.smartFilter) {
