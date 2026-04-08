@@ -651,7 +651,7 @@ export default function GestoresPage() {
                             {/* Type */}
                             <div className="text-center">
                               <Badge variant="outline" className="text-[10px]">
-                                {entity.type === "lead" ? "Lead" : entity.type === "contact" ? "Contacto" : "Empresa"}
+                                {entity.type === "lead" ? "Lead" : entity.type === "contact" ? "Contacto" : entity.type === "opportunity" ? "Oportunidade" : "Empresa"}
                               </Badge>
                             </div>
 
