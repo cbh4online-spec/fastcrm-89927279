@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import {
   Send,
+  PenLine,
   Loader2,
   Languages,
   FileText,
@@ -262,6 +263,7 @@ export function SimpleEmailComposer({
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
   const [sent, setSent] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // ── Advanced options ──
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -539,20 +541,55 @@ export function SimpleEmailComposer({
 
       {/* ━━━ STEP 3: Qual mensagem? ━━━ */}
       <div className="space-y-1.5 mb-4 flex-1 min-h-0 flex flex-col">
-        <Label htmlFor="body-field" className="text-sm font-medium flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
-          Qual é a mensagem?
-        </Label>
-        <div className={cn("flex-1 min-h-[200px] rounded-lg border", errors.body && "border-destructive")}>
-          <EmailEditorProvider>
-            <RichTextEditor
-              value={body}
-              onChange={val => { setBody(val); if (errors.body) setErrors(prev => ({ ...prev, body: '' })); }}
-              placeholder="Escreve a tua mensagem aqui..."
-              className="min-h-[180px] p-3"
-            />
-          </EmailEditorProvider>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="body-field" className="text-sm font-medium flex items-center gap-2">
+            <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center shrink-0">3</span>
+            Qual é a mensagem?
+          </Label>
+          <Button
+            type="button"
+            variant={showPreview ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5 h-7 text-xs"
+            onClick={() => setShowPreview(!showPreview)}
+          >
+            {showPreview ? <PenLine className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+            {showPreview ? "Editar" : "Pré-visualizar"}
+          </Button>
         </div>
+
+        {showPreview ? (
+          <div className="flex-1 min-h-[200px] rounded-lg border bg-white dark:bg-card overflow-auto">
+            <div className="p-4 space-y-3">
+              {/* Subject preview */}
+              <div className="border-b pb-3">
+                <p className="text-xs text-muted-foreground mb-0.5">Assunto</p>
+                <p className="text-sm font-semibold">{subject || <span className="text-muted-foreground italic">Sem assunto</span>}</p>
+              </div>
+              {/* Recipients preview */}
+              <div className="border-b pb-3">
+                <p className="text-xs text-muted-foreground mb-0.5">Para</p>
+                <p className="text-sm">{recipients.map(r => `${r.name} <${r.email}>`).join(', ') || <span className="text-muted-foreground italic">Sem destinatário</span>}</p>
+              </div>
+              {/* Body preview */}
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none text-sm"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(buildFinalBody() || '<p class="text-muted-foreground italic">Sem conteúdo</p>') }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className={cn("flex-1 min-h-[200px] rounded-lg border", errors.body && "border-destructive")}>
+            <EmailEditorProvider>
+              <RichTextEditor
+                value={body}
+                onChange={val => { setBody(val); if (errors.body) setErrors(prev => ({ ...prev, body: '' })); }}
+                placeholder="Escreve a tua mensagem aqui..."
+                className="min-h-[180px] p-3"
+              />
+            </EmailEditorProvider>
+          </div>
+        )}
         {errors.body && <p className="text-xs text-destructive">{errors.body}</p>}
       </div>
 
