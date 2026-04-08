@@ -47,8 +47,13 @@ export default function TalentSearchPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    searchMutation.mutate({ search_type: searchType, query: query.trim(), location: location.trim() || undefined });
+    if (searchType === "rss_feed") {
+      if (!rssUrl.trim()) return;
+      searchMutation.mutate({ search_type: "rss_feed", rss_url: rssUrl.trim() });
+    } else {
+      if (!query.trim()) return;
+      searchMutation.mutate({ search_type: searchType, query: query.trim(), location: location.trim() || undefined });
+    }
   };
 
   return (
