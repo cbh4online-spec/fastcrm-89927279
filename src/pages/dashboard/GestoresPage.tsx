@@ -305,7 +305,7 @@ export default function GestoresPage() {
   if (selectedManager && selectedManagerData) {
     return (
       <DashboardLayout>
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6">
           <Button variant="ghost" size="sm" onClick={() => setSelectedManager(null)} className="gap-2">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
@@ -478,8 +478,8 @@ export default function GestoresPage() {
   // ── LIST VIEW ──
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <UserCheck className="w-6 h-6 text-primary" />
@@ -494,7 +494,7 @@ export default function GestoresPage() {
         </div>
 
         {/* Summary KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard label="Total Gestores" value={members?.length || 0} icon={Users} loading={membersLoading} />
           <StatCard label="Leads Atribuídas" value={totals.leads} icon={Target} loading={statsLoading} />
           <StatCard label="Contactos Geridos" value={totals.contacts} icon={Users} loading={statsLoading} />
