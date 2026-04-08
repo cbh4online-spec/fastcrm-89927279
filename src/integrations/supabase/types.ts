@@ -33731,6 +33731,88 @@ export type Database = {
           },
         ]
       }
+      manager_profile_categories: {
+        Row: {
+          created_at: string
+          dimension: Database["public"]["Enums"]["manager_category_dimension"]
+          id: string
+          is_active: boolean
+          updated_at: string
+          value: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          dimension: Database["public"]["Enums"]["manager_category_dimension"]
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          value: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: Database["public"]["Enums"]["manager_category_dimension"]
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          value?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_profile_categories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manager_profiles: {
+        Row: {
+          client_types: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          segments: string[]
+          territories: string[]
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          client_types?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          segments?: string[]
+          territories?: string[]
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          client_types?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          segments?: string[]
+          territories?: string[]
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_campaigns: {
         Row: {
           ab_test_id: string | null
@@ -63469,6 +63551,7 @@ export type Database = {
       kit_level: "basic" | "advanced" | "custom"
       leave_request_status: "pending" | "approved" | "rejected" | "cancelled"
       leave_type: "vacation" | "sick" | "personal" | "remote" | "other"
+      manager_category_dimension: "segment" | "territory" | "client_type"
       opportunity_subscription_status:
         | "draft"
         | "active"
@@ -64002,6 +64085,7 @@ export const Constants = {
       kit_level: ["basic", "advanced", "custom"],
       leave_request_status: ["pending", "approved", "rejected", "cancelled"],
       leave_type: ["vacation", "sick", "personal", "remote", "other"],
+      manager_category_dimension: ["segment", "territory", "client_type"],
       opportunity_subscription_status: [
         "draft",
         "active",
