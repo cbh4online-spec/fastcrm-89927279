@@ -140,6 +140,19 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
     e.target.value = '';
   }, [addBlock, updateBlock]);
 
+  const handlePasteHtml = useCallback(() => {
+    const html = pasteHtmlValue.trim();
+    if (!html) {
+      toast.error('Cola o HTML primeiro');
+      return;
+    }
+    const newBlockId = addBlock('html');
+    updateBlock(newBlockId, { content: { html } });
+    toast.success('HTML colado com sucesso');
+    setPasteHtmlValue('');
+    setShowPasteHtml(false);
+  }, [pasteHtmlValue, addBlock, updateBlock]);
+
   const previewWidths: Record<PreviewMode, number> = {
     desktop: 600,
     tablet: 480,
