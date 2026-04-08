@@ -3,12 +3,14 @@ import { TrendingUp, Target, Clock, Flame, ThermometerSun, Snowflake, BarChart3,
 import { Entity, EntityType } from '@/types/entity';
 import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceInstance } from '@/contexts/WorkspaceInstanceContext';
+import { EntityOwnerSelector } from './EntityOwnerSelector';
 
 interface HighlightCard {
   label: string;
   value: string | number;
   icon: React.ElementType;
   color: string;
+  customRender?: React.ReactNode;
 }
 
 interface EntityHighlightsGridProps {
@@ -65,12 +67,25 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     color: score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-blue-600',
   });
 
-  // Gestor
+  // Gestor (editable inline)
   cards.push({
     label: 'Gestor',
     value: assignedProfile?.full_name || 'Sem gestor',
     icon: UserCheck,
     color: assignedTo ? 'text-primary' : 'text-muted-foreground',
+    customRender: (
+      <EntityOwnerSelector
+        entityType={entityType}
+        entityId={entity.id}
+        currentAssignedTo={assignedTo}
+        currentAssignedProfile={assignedProfile ? {
+          full_name: assignedProfile.full_name,
+          email: null,
+          avatar_url: null,
+        } : null}
+        compact
+      />
+    ),
   });
 
   // Temperature
@@ -153,7 +168,11 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
                 <Icon className={cn('h-3.5 w-3.5', card.color)} />
                 <span className="text-xs text-muted-foreground">{card.label}</span>
               </div>
-              <p className={cn('text-sm font-semibold', card.color)}>{card.value}</p>
+              {card.customRender ? (
+                card.customRender
+              ) : (
+                <p className={cn('text-sm font-semibold', card.color)}>{card.value}</p>
+              )}
             </div>
           );
         })}
