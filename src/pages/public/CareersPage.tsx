@@ -83,6 +83,7 @@ export default function CareersPage() {
   const { data: jobs, isLoading: jobsLoading } = usePublicJobs(workspace?.id);
   const { data: externalJobs = [], isLoading: extLoading } = usePublicExternalJobs(workspace?.id);
   const { data: portalJobs = [], isLoading: portalLoading } = usePublicPortalJobs(workspace?.id);
+  const { data: workerListings = [], isLoading: workersLoading } = usePublicWorkerListings(workspace?.id);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
