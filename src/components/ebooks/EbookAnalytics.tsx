@@ -325,7 +325,28 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
                                 No CRM
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-xs text-muted-foreground">Novo</Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 gap-1"
+                                disabled={createLead.isPending}
+                                onClick={async () => {
+                                  try {
+                                    await createLead.mutateAsync({
+                                      name: r.name || r.email.split("@")[0],
+                                      email: r.email,
+                                      source: "ebook" as any,
+                                      tags: [`ebook:${ebookTitle}`],
+                                    });
+                                    toast.success("Lead criado com sucesso");
+                                  } catch (err: any) {
+                                    toast.error("Erro ao criar lead: " + (err?.message || "erro desconhecido"));
+                                  }
+                                }}
+                              >
+                                <UserPlus className="h-3 w-3" />
+                                Adicionar Lead
+                              </Button>
                             )}
                           </td>
                           <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
