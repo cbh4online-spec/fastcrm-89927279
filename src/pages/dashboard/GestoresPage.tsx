@@ -560,7 +560,8 @@ export default function GestoresPage() {
           <TabsList>
             <TabsTrigger value="managers">Gestores ({managerStats.length})</TabsTrigger>
             <TabsTrigger value="workload">Carga de Trabalho</TabsTrigger>
-            <TabsTrigger value="logs">Histórico de Atribuições</TabsTrigger>
+            <TabsTrigger value="categories">Perfis & Categorias</TabsTrigger>
+            <TabsTrigger value="logs">Histórico</TabsTrigger>
           </TabsList>
 
           {/* ── TAB: Managers ── */}
