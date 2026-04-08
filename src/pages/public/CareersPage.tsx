@@ -170,11 +170,19 @@ export default function CareersPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as fontes</SelectItem>
+              <SelectItem value="internal">Nossas vagas</SelectItem>
+              <SelectItem value="external">Mercado</SelectItem>
+            </SelectContent>
+          </Select>
         </motion.div>
 
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "vaga aberta" : "vagas abertas"}
+            {filtered.length} {filtered.length === 1 ? "vaga" : "vagas"} encontrada{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
 
