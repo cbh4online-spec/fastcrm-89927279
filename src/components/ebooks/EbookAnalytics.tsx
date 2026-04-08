@@ -41,6 +41,7 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
   const kpis = useEbookAnalyticsKPIs(ebookId);
   const { data: ctas = [] } = useEbookCtas(ebookId);
   const conversion = useEbookConversionKPIs(kpis.views, kpis.ctaEvents, ctas);
+  const createLead = useCreateLead();
 
   if (kpis.isLoading) {
     return (
