@@ -172,6 +172,8 @@ export default function GestoresPage() {
   const [search, setSearch] = useState("");
   const [selectedManager, setSelectedManager] = useState<string | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [entityFilter, setEntityFilter] = useState<string>("all");
+  const [detailEntitySearch, setDetailEntitySearch] = useState("");
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
   const { data: members, isLoading: membersLoading } = useWorkspaceMembers();
