@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { LinkedConversationsCard } from "./LinkedConversationsCard";
 import { EntityMessageHistory } from "./EntityMessageHistory";
+import { useActiveEmailConnection } from "@/hooks/useEmailConnection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,9 @@ import {
   Clock,
   MessageCircle,
   Save,
+  Settings,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -143,6 +147,7 @@ export function ContactMessagesSection({
 }: ContactMessagesSectionProps) {
   const { data: templates = [], isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { isLoading: aiLoading, suggestReplies } = useAskAI();
+  const { data: emailConnection, isLoading: emailConnectionLoading } = useActiveEmailConnection();
   
   const [activeTab, setActiveTab] = useState<'compose' | 'templates' | 'ai'>('compose');
   const [selectedChannel, setSelectedChannel] = useState<MessageChannel>('email');
@@ -454,10 +459,52 @@ export function ContactMessagesSection({
               })}
             </div>
           </div>
+
+          {/* Email connection status warning */}
+          {selectedChannel === 'email' && !emailConnectionLoading && !emailConnection && (
+            <div className="px-4 pb-3">
+              <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                    Email não configurado
+                  </p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    Configure uma conta SMTP para enviar emails directamente.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
+                  onClick={() => window.location.href = "/dashboard/settings/integrations"}
+                >
+                  <Settings className="w-3 h-3 mr-1" />
+                  Configurar
+                </Button>
+              </div>
+            </div>
+          )}
+          {selectedChannel === 'email' && emailConnectionLoading && (
+            <div className="px-4 pb-3">
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                A verificar ligação de email...
+              </div>
+            </div>
+          )}
+          {selectedChannel === 'email' && !emailConnectionLoading && emailConnection && (
+            <div className="px-4 pb-3">
+              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg text-xs text-green-700 dark:text-green-300">
+                <Wifi className="w-3.5 h-3.5" />
+                <span>Conectado: <span className="font-medium">{emailConnection.email_address}</span></span>
+              </div>
+            </div>
+          )}
         </CardHeader>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+
         {/* Main Compose Area */}
         <Card className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
