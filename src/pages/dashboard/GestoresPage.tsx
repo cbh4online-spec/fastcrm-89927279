@@ -252,10 +252,9 @@ export default function GestoresPage() {
       }
       const bestName = managerStats.find(m => m.userId === bestManager)?.name || "Gestor";
 
-      const table = ENTITY_TABLE[entityType];
+      const table = ENTITY_TABLE[entityType] as "leads" | "contacts" | "companies" | "opportunities";
       const field = OWNERSHIP_FIELD[entityType];
-      const { data: unassignedItems } = await workspaceClient
-        .from(table)
+      const { data: unassignedItems } = await (workspaceClient.from(table) as any)
         .select("id, name")
         .eq("workspace_id", currentWorkspace.id)
         .or(`${field}.is.null,${field}.eq.`)
