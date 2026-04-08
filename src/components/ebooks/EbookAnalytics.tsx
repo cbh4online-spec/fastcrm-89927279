@@ -447,24 +447,55 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {conversion.funnelData.map((stage, i) => (
-                  <div key={stage.stage} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-24 text-right">{stage.stage}</span>
-                    <div className="flex-1 h-7 bg-muted/30 rounded-md overflow-hidden relative">
-                      <div
-                        className="h-full rounded-md transition-all"
-                        style={{
-                          width: `${Math.max(stage.pct, 2)}%`,
-                          backgroundColor: FUNNEL_COLORS[i % FUNNEL_COLORS.length],
-                          opacity: 0.8,
-                        }}
-                      />
-                      <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-foreground">
-                        {stage.value} ({stage.pct}%)
-                      </span>
+                {conversion.funnelData.map((stage, i) => {
+                  const isForaCrm = stage.stage === "Fora do CRM";
+                  return (
+                    <div key={stage.stage} className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground w-24 text-right">{stage.stage}</span>
+                      <div className="flex-1 h-7 bg-muted/30 rounded-md overflow-hidden relative">
+                        <div
+                          className="h-full rounded-md transition-all"
+                          style={{
+                            width: `${Math.max(stage.pct, 2)}%`,
+                            backgroundColor: FUNNEL_COLORS[i % FUNNEL_COLORS.length],
+                            opacity: 0.8,
+                          }}
+                        />
+                        <span className="absolute inset-0 flex items-center px-2 text-xs font-medium text-foreground">
+                          {stage.value} ({stage.pct}%)
+                        </span>
+                      </div>
+                      {isForaCrm && stage.value > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[10px] px-2 gap-1 shrink-0"
+                          disabled={createLead.isPending}
+                          onClick={async () => {
+                            const readersNotInCrm = kpis.identifiedReaders.filter(r => !r.isInCrm);
+                            let added = 0;
+                            for (const r of readersNotInCrm) {
+                              try {
+                                await createLead.mutateAsync({
+                                  name: r.name || r.email.split("@")[0],
+                                  email: r.email,
+                                  source: "ebook" as any,
+                                  tags: [`ebook:${ebookTitle}`],
+                                });
+                                added++;
+                              } catch { /* skip duplicates */ }
+                            }
+                            if (added > 0) toast.success(`${added} lead(s) adicionado(s)`);
+                            else toast.info("Nenhum novo lead para adicionar");
+                          }}
+                        >
+                          <UserPlus className="h-3 w-3" />
+                          Adicionar {stage.value}
+                        </Button>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
