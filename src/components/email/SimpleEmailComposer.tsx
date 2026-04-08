@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import {
   Send,
+  PenLine,
   Loader2,
   Languages,
   FileText,
