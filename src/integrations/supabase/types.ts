@@ -8822,6 +8822,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "c2c_commissions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "c2c_commissions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -10042,6 +10049,13 @@ export type Database = {
             referencedRelation: "c2c_sellers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "c2c_seller_notes_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       c2c_seller_subscriptions: {
@@ -10102,6 +10116,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_seller_subscriptions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
             referencedColumns: ["id"]
           },
           {
@@ -10478,6 +10499,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_verification_requests_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
             referencedColumns: ["id"]
           },
           {
@@ -34752,6 +34780,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "marketplace_orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "marketplace_orders_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
@@ -34819,6 +34854,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "marketplace_payouts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "marketplace_payouts_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -34873,6 +34915,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_wallet_entries_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
             referencedColumns: ["id"]
           },
           {
@@ -61748,6 +61797,53 @@ export type Database = {
       }
     }
     Views: {
+      c2c_sellers_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          is_verified: boolean | null
+          location: string | null
+          status: Database["public"]["Enums"]["c2c_seller_status"] | null
+          total_sales: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          status?: Database["public"]["Enums"]["c2c_seller_status"] | null
+          total_sales?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          status?: Database["public"]["Enums"]["c2c_seller_status"] | null
+          total_sales?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_sellers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_purchase_history: {
         Row: {
           avg_reorder_days: number | null
