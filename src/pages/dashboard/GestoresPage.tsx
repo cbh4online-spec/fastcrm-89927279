@@ -196,27 +196,28 @@ export default function GestoresPage() {
 
   // ── Manager stats (paginated) ──
   const { data: managerStats, isLoading: statsLoading } = useQuery({
-    queryKey: ["manager-stats", currentWorkspace?.id],
+    queryKey: ["manager-stats", currentWorkspace?.id, members?.map(m => m.user_id).join(",")],
     queryFn: async () => {
       if (!currentWorkspace || !members) return [];
 
-      const [leads, contacts, companies] = await Promise.all([
-        fetchAllRows<any>(
-          () => workspaceClient.from("leads"),
-          "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at, lifecycle_stage",
-          (q: any) => q.eq("workspace_id", currentWorkspace.id)
-        ),
-        fetchAllRows<any>(
-          () => workspaceClient.from("contacts"),
-          "id, assigned_to, contact_score, ai_temperature, last_contact_at",
-          (q: any) => q.eq("workspace_id", currentWorkspace.id)
-        ),
-        fetchAllRows<any>(
-          () => workspaceClient.from("companies"),
-          "id, assigned_to",
-          (q: any) => q.eq("workspace_id", currentWorkspace.id)
-        ),
-      ]);
+      try {
+        const [leads, contacts, companies] = await Promise.all([
+          fetchAllRows<any>(
+            () => workspaceClient.from("leads"),
+            "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at, lifecycle_stage",
+            (q: any) => q.eq("workspace_id", currentWorkspace.id)
+          ),
+          fetchAllRows<any>(
+            () => workspaceClient.from("contacts"),
+            "id, assigned_to, contact_score, ai_temperature, last_contact_at",
+            (q: any) => q.eq("workspace_id", currentWorkspace.id)
+          ),
+          fetchAllRows<any>(
+            () => workspaceClient.from("companies"),
+            "id, assigned_to",
+            (q: any) => q.eq("workspace_id", currentWorkspace.id)
+          ),
+        ]);
 
       return members.map(m => {
         const mLeads = leads.filter((l: any) => l.assigned_to === m.user_id);
@@ -243,9 +244,24 @@ export default function GestoresPage() {
           avgScore,
           lastActivityAt: dates[0] || null,
           convertedLeads,
-          totalActivities: 0, // populated by interactions query
+          totalActivities: 0,
         } as ManagerStats;
       });
+      } catch (err) {
+        console.error("[GestoresPage] Error fetching manager stats:", err);
+        // Fallback: return members with zero stats
+        return members.map(m => ({
+          userId: m.user_id,
+          name: m.profile?.full_name || m.profile?.email || "Utilizador",
+          email: m.profile?.email || null,
+          avatarUrl: m.profile?.avatar_url || null,
+          role: m.role,
+          totalLeads: 0, totalContacts: 0, totalCompanies: 0,
+          leadsHot: 0, leadsWarm: 0, leadsCold: 0,
+          totalPipelineValue: 0, avgScore: 0, lastActivityAt: null,
+          convertedLeads: 0, totalActivities: 0,
+        } as ManagerStats));
+      }
     },
     enabled: !!currentWorkspace && !!members && members.length > 0,
     refetchOnWindowFocus: false,
