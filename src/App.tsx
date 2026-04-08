@@ -132,6 +132,9 @@ const App = () => (
 
                 {/* Public Careers */}
                 <Route path="/careers/:workspaceSlug" element={<CareersPage />} />
+                <Route path="/careers/:workspaceSlug/register" element={<PortalRegisterPage />} />
+                <Route path="/careers/:workspaceSlug/login" element={<PortalLoginPage />} />
+                <Route path="/careers/:workspaceSlug/dashboard" element={<PortalDashboardPage />} />
                 <Route path="/careers/:workspaceSlug/:jobSlug" element={<JobDetailPublicPage />} />
 
                 {/* Public Booking */}
