@@ -12,6 +12,7 @@ interface Props {
   fields: FilterableField[];
   records: Record<string, unknown>[];
   onFilteredRecords?: (records: Record<string, unknown>[]) => void;
+  onConditionsChange?: (conditions: FilterCondition[]) => void;
   className?: string;
 }
 
