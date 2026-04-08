@@ -43,6 +43,7 @@ import { CampaignReportExport } from '@/components/marketing/CampaignReportExpor
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
+import { EmailCampaignWizardDialog } from '@/components/marketing/EmailCampaignWizardDialog';
 import { toast } from 'sonner';
 
 export default function Marketing() {
