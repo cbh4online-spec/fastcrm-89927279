@@ -302,6 +302,11 @@ export default function Marketing() {
         onOpenChange={setShowTemplateLibrary}
         onSelectTemplate={handleSelectLibraryTemplate}
       />
+
+      <EmailCampaignWizardDialog
+        open={showCampaignWizard}
+        onOpenChange={setShowCampaignWizard}
+      />
     </DashboardLayout>
   );
 }
