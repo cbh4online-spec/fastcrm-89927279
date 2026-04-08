@@ -544,7 +544,7 @@ export default function GestoresPage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input value={entitySearch} onChange={e => setEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="pl-9" />
+                  <Input value={detailEntitySearch} onChange={e => setDetailEntitySearch(e.target.value)} placeholder="Pesquisar entidade..." className="pl-9" />
                 </div>
                 <div className="flex gap-1">
                   {[
@@ -579,10 +579,10 @@ export default function GestoresPage() {
                     <span className="text-right">Valor</span>
                   </div>
                   <div className="divide-y max-h-[calc(100vh-520px)] overflow-y-auto">
-                    {filteredEntities.length === 0 ? (
+                    {filteredDetailEntities.length === 0 ? (
                       <div className="py-12 text-center text-sm text-muted-foreground">Nenhuma entidade encontrada.</div>
                     ) : (
-                      filteredEntities.map(entity => {
+                      filteredDetailEntities.map(entity => {
                         const sla = getSlaStatus(entity.lastContactAt);
                         return (
                           <Link
