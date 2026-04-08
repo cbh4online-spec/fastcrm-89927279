@@ -670,7 +670,38 @@ export default function GestoresPage() {
             </Card>
           </TabsContent>
 
-          {/* ── TAB: Assignment Logs ── */}
+          {/* ── TAB: Profiles & Categories ── */}
+          <TabsContent value="categories" className="mt-4 space-y-4">
+            <CategoriesManager workspaceId={currentWorkspace?.id || ""} categories={profileCategories} />
+            <Card>
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Perfis dos Gestores</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {managerStats.map(m => {
+                    const profile = m.profile;
+                    return (
+                      <div key={m.userId} className="flex items-center gap-4 p-3 rounded-lg border">
+                        <Avatar className="h-8 w-8"><AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(m.name)}</AvatarFallback></Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{m.name}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {profile?.segments.map(s => <Badge key={s} variant="secondary" className="text-[9px] gap-1"><Tag className="w-2.5 h-2.5" />{s}</Badge>)}
+                            {profile?.territories.map(t => <Badge key={t} variant="secondary" className="text-[9px] gap-1"><MapPin className="w-2.5 h-2.5" />{t}</Badge>)}
+                            {profile?.client_types.map(c => <Badge key={c} variant="secondary" className="text-[9px] gap-1"><Briefcase className="w-2.5 h-2.5" />{c}</Badge>)}
+                            {!profile && <span className="text-[10px] text-muted-foreground">Sem perfil configurado</span>}
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => openProfileEditor(m.userId)} className="text-xs gap-1">
+                          <Settings2 className="w-3 h-3" />Editar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="logs" className="mt-4">
             <Card>
               <CardHeader><CardTitle className="text-sm flex items-center gap-2"><History className="w-4 h-4 text-primary" />Histórico de Atribuições</CardTitle></CardHeader>
