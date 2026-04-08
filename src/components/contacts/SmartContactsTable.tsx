@@ -394,11 +394,67 @@ export function SmartContactsTable() {
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
 
-  // Apply search filter and sorting locally
+  // Apply search filter, column filters, smart list conditions and sorting locally
   const filteredContacts = useMemo(() => {
     if (!contacts) return [];
     
     let result = contacts;
+
+    // Apply column presence filters from sidebar
+    if (activeFilterId) {
+      result = result.filter(c => {
+        const rec = c as any;
+        switch (activeFilterId) {
+          case "has_email": return !!rec.email;
+          case "has_phone": return !!rec.phone;
+          case "has_company": return !!rec.company;
+          case "has_linkedin": return !!rec.linkedin_url;
+          case "has_whatsapp": return !!rec.whatsapp_number;
+          case "has_address": return !!rec.address;
+          case "has_tags": return Array.isArray(rec.tags) && rec.tags.length > 0;
+          case "has_tax_id": return !!rec.tax_id;
+          case "no_email": return !rec.email;
+          case "no_phone": return !rec.phone;
+          // Temperature filters
+          case "temp_hot": return rec.ai_temperature === "hot";
+          case "temp_warm": return rec.ai_temperature === "warm";
+          case "temp_cold": return rec.ai_temperature === "cold";
+          // Source filters
+          case "source_website": return rec.source === "website";
+          case "source_referral": return rec.source === "referral";
+          case "source_linkedin": return rec.source === "linkedin";
+          case "source_cold_call": return rec.source === "cold_call";
+          case "source_event": return rec.source === "event";
+          case "source_import": return rec.source === "import";
+          // Status filters
+          case "status_active": return rec.client_status === "active";
+          case "status_prospect": return rec.client_status === "prospect";
+          case "status_lead": return rec.client_status === "lead";
+          case "status_inactive": return rec.client_status === "inactive";
+          case "status_churned": return rec.client_status === "churned";
+          // Activity filters
+          case "activity_recent": {
+            if (!rec.last_contact_at) return false;
+            return (Date.now() - new Date(rec.last_contact_at).getTime()) < 7 * 86400000;
+          }
+          case "activity_no_contact": {
+            if (!rec.last_contact_at) return false;
+            return (Date.now() - new Date(rec.last_contact_at).getTime()) > 30 * 86400000;
+          }
+          case "activity_never": return !rec.last_contact_at;
+          // Category
+          case "cat_a": return rec.abc_category === "A";
+          case "cat_b": return rec.abc_category === "B";
+          case "cat_c": return rec.abc_category === "C";
+          default: return true;
+        }
+      });
+    }
+
+    // Apply smart list conditions (from AdvancedFilterBuilder)
+    if (smartListConditions.length > 0) {
+      result = applyFilters(result as unknown as Record<string, unknown>[], smartListConditions, "AND") as unknown as typeof result;
+    }
     
     // Apply search filter
     if (searchValue) {
@@ -457,7 +513,7 @@ export function SmartContactsTable() {
     });
     
     return result;
-  }, [contacts, searchValue, sortValue]);
+  }, [contacts, searchValue, sortValue, activeFilterId, smartListConditions]);
 
   const totalContacts = filteredContacts.length;
   const totalPages = Math.ceil(totalContacts / pageSize);
