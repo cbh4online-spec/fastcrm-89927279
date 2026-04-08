@@ -291,15 +291,17 @@ export default function GestoresPage() {
     queryKey: ["manager-entities", currentWorkspace?.id, selectedManager],
     queryFn: async (): Promise<EntityRow[]> => {
       if (!currentWorkspace || !selectedManager) return [];
-      const [{ data: leads }, { data: contacts }, { data: companies }] = await Promise.all([
-        workspaceClient.from("leads").select("id, name, email, lead_score, ai_temperature, estimated_value, last_contact_at, status, lifecycle_stage").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
+      const [{ data: leads }, { data: contacts }, { data: companies }, { data: opps }] = await Promise.all([
+        workspaceClient.from("leads").select("id, name, email, lead_score, ai_temperature, estimated_value, last_contact_at, status").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
         workspaceClient.from("contacts").select("id, name, email, contact_score, ai_temperature, last_contact_at").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).order("last_contact_at", { ascending: false, nullsFirst: false }).limit(500),
         workspaceClient.from("companies").select("id, name").eq("workspace_id", currentWorkspace.id).eq("assigned_to", selectedManager).limit(500),
+        workspaceClient.from("opportunities").select("id, name, value, status, lead_id").eq("workspace_id", currentWorkspace.id).eq("owner_id", selectedManager).order("created_at", { ascending: false }).limit(500),
       ]);
       return [
-        ...(leads || []).map((l: any) => ({ id: l.id, name: l.name, email: l.email, type: "lead" as const, score: l.lead_score || 0, temperature: l.ai_temperature, estimatedValue: l.estimated_value, lastContactAt: l.last_contact_at, status: l.status, lifecycleStage: l.lifecycle_stage })),
-        ...(contacts || []).map((c: any) => ({ id: c.id, name: c.name, email: c.email, type: "contact" as const, score: c.contact_score || 0, temperature: c.ai_temperature, estimatedValue: null, lastContactAt: c.last_contact_at, status: null, lifecycleStage: null })),
-        ...(companies || []).map((c: any) => ({ id: c.id, name: c.name, email: null, type: "company" as const, score: 0, temperature: null, estimatedValue: null, lastContactAt: null, status: null, lifecycleStage: null })),
+        ...(leads || []).map((l: any) => ({ id: l.id, name: l.name, email: l.email, type: "lead" as const, score: l.lead_score || 0, temperature: l.ai_temperature, estimatedValue: l.estimated_value, lastContactAt: l.last_contact_at, status: l.status })),
+        ...(contacts || []).map((c: any) => ({ id: c.id, name: c.name, email: c.email, type: "contact" as const, score: c.contact_score || 0, temperature: c.ai_temperature, estimatedValue: null, lastContactAt: c.last_contact_at, status: null })),
+        ...(companies || []).map((c: any) => ({ id: c.id, name: c.name, email: null, type: "company" as const, score: 0, temperature: null, estimatedValue: null, lastContactAt: null, status: null })),
+        ...(opps || []).map((o: any) => ({ id: o.id, name: o.name || "Oportunidade", email: null, type: "opportunity" as const, score: 0, temperature: null, estimatedValue: Number(o.value) || null, lastContactAt: null, status: o.status })),
       ];
     },
     enabled: !!currentWorkspace && !!selectedManager,
