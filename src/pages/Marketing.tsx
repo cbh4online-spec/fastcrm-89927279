@@ -123,6 +123,15 @@ export default function Marketing() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setShowCampaignWizard(true)}
+              className="gap-1.5"
+            >
+              <Sparkles className="h-4 w-4" />
+              Criar com IA
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/dashboard/email-campaigns/suppressions')}
             >
               <ShieldBan className="h-4 w-4 mr-2" />
