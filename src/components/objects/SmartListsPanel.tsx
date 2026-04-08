@@ -16,7 +16,7 @@ interface Props {
   className?: string;
 }
 
-export function SmartListsPanel({ entityType, fields, records, onFilteredRecords, className }: Props) {
+export function SmartListsPanel({ entityType, fields, records, onFilteredRecords, onConditionsChange, className }: Props) {
   const { data: savedViews, isLoading } = useSavedViews(entityType);
   const deleteSavedView = useDeleteSavedView();
   const [activeListId, setActiveListId] = useState<string | null>(null);
