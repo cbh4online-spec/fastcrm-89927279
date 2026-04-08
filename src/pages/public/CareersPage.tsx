@@ -1,10 +1,10 @@
 import { useParams, Link } from "react-router-dom";
-import { usePublicWorkspace, usePublicJobs } from "@/hooks/hr/usePublicJobs";
+import { usePublicWorkspace, usePublicJobs, usePublicExternalJobs, type ExternalJobOffer } from "@/hooks/hr/usePublicJobs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users } from "lucide-react";
+import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe } from "lucide-react";
 import { useState, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import { Helmet } from "react-helmet-async";
@@ -26,20 +26,53 @@ export default function CareersPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const { data: jobs, isLoading: jobsLoading } = usePublicJobs(workspace?.id);
+  const { data: externalJobs = [], isLoading: extLoading } = usePublicExternalJobs(workspace?.id);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [remoteFilter, setRemoteFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  // Merge internal and external into unified list
+  type UnifiedJob = {
+    id: string;
+    title: string;
+    location: string | null;
+    employment_type: string | null;
+    remote_option: string | null;
+    slug: string | null;
+    source: "internal" | "external";
+    source_platform?: string | null;
+    source_url?: string | null;
+    published_at: string | null;
+  };
+
+  const allJobs = useMemo<UnifiedJob[]>(() => {
+    const internal: UnifiedJob[] = (jobs || []).map(j => ({
+      id: j.id, title: j.title, location: j.location,
+      employment_type: j.employment_type, remote_option: j.remote_option,
+      slug: j.slug, source: "internal" as const, published_at: j.published_at,
+    }));
+    const external: UnifiedJob[] = externalJobs.map(j => ({
+      id: j.id, title: j.title || "Sem título", location: j.location,
+      employment_type: j.extracted_data?.employment_type || null,
+      remote_option: null, slug: null, source: "external" as const,
+      source_platform: j.source_platform, source_url: j.source_url,
+      published_at: j.created_at,
+    }));
+    return [...internal, ...external];
+  }, [jobs, externalJobs]);
 
   const filtered = useMemo(() => {
-    if (!jobs) return [];
-    return jobs.filter(j => {
+    return allJobs.filter(j => {
       if (search && !j.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (typeFilter !== "all" && j.employment_type !== typeFilter) return false;
       if (remoteFilter !== "all" && j.remote_option !== remoteFilter) return false;
+      if (sourceFilter === "internal" && j.source !== "internal") return false;
+      if (sourceFilter === "external" && j.source !== "external") return false;
       return true;
     });
-  }, [jobs, search, typeFilter, remoteFilter]);
+  }, [allJobs, search, typeFilter, remoteFilter, sourceFilter]);
 
   const companyName = workspace?.company_name || workspace?.name || "";
 
@@ -137,15 +170,23 @@ export default function CareersPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as fontes</SelectItem>
+              <SelectItem value="internal">Nossas vagas</SelectItem>
+              <SelectItem value="external">Mercado</SelectItem>
+            </SelectContent>
+          </Select>
         </motion.div>
 
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "vaga aberta" : "vagas abertas"}
+            {filtered.length} {filtered.length === 1 ? "vaga" : "vagas"} encontrada{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
 
-        {jobsLoading ? (
+        {(jobsLoading || extLoading) ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => <Skeleton key={i} height={100} borderRadius={12} />)}
           </div>
@@ -173,36 +214,17 @@ export default function CareersPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                 >
-                  <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
-                    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden">
-                      <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 group-hover:from-primary/30 group-hover:to-primary/10 transition-colors">
-                          <Briefcase className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{job.title}</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {job.employment_type && (
-                              <Badge variant="secondary" className="text-xs font-normal">
-                                {EMPLOYMENT_LABELS[job.employment_type] || job.employment_type}
-                              </Badge>
-                            )}
-                            {job.remote_option && (
-                              <Badge variant="secondary" className="text-xs font-normal">
-                                {REMOTE_LABELS[job.remote_option] || job.remote_option}
-                              </Badge>
-                            )}
-                            {job.location && (
-                              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <MapPin className="h-3 w-3" />{job.location}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  {job.source === "internal" && job.slug ? (
+                    <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
+                      <JobCard job={job} />
+                    </Link>
+                  ) : job.source === "external" && job.source_url ? (
+                    <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
+                      <JobCard job={job} />
+                    </a>
+                  ) : (
+                    <JobCard job={job} />
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -214,5 +236,73 @@ export default function CareersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+type UnifiedJob = {
+  id: string;
+  title: string;
+  location: string | null;
+  employment_type: string | null;
+  remote_option: string | null;
+  slug: string | null;
+  source: "internal" | "external";
+  source_platform?: string | null;
+  source_url?: string | null;
+  published_at: string | null;
+};
+
+function JobCard({ job }: { job: UnifiedJob }) {
+  const isExternal = job.source === "external";
+
+  return (
+    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer overflow-hidden">
+      <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+          isExternal
+            ? "bg-gradient-to-br from-accent/20 to-accent/5 group-hover:from-accent/30 group-hover:to-accent/10"
+            : "bg-gradient-to-br from-primary/20 to-primary/5 group-hover:from-primary/30 group-hover:to-primary/10"
+        }`}>
+          {isExternal ? (
+            <Globe className="h-5 w-5 text-accent-foreground/70" />
+          ) : (
+            <Briefcase className="h-5 w-5 text-primary" />
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{job.title}</h3>
+            {isExternal && (
+              <Badge variant="outline" className="text-xs shrink-0">
+                <Globe className="h-3 w-3 mr-1" />
+                {job.source_platform || "Externo"}
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {job.employment_type && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {EMPLOYMENT_LABELS[job.employment_type] || job.employment_type}
+              </Badge>
+            )}
+            {job.remote_option && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {REMOTE_LABELS[job.remote_option] || job.remote_option}
+              </Badge>
+            )}
+            {job.location && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3 w-3" />{job.location}
+              </span>
+            )}
+          </div>
+        </div>
+        {isExternal ? (
+          <ExternalLink className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-all shrink-0 hidden sm:block" />
+        ) : (
+          <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
+        )}
+      </CardContent>
+    </Card>
   );
 }
