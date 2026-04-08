@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEbookAnalyticsKPIs } from "@/hooks/useEbookAnalytics";
 import { useEbookConversionKPIs } from "@/hooks/useEbookConversionKPIs";
 import { useEbookCtas } from "@/hooks/useEbookCtas";
+import { useCreateLead } from "@/hooks/useLeads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet,
   BarChart3, TrendingUp, UserCheck, ContactRound, MousePointerClick, ShieldCheck,
-  MailCheck, Megaphone,
+  MailCheck, Megaphone, UserPlus,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, FunnelChart, Funnel, LabelList, Cell,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface EbookAnalyticsProps {
   ebookId: string;
@@ -39,6 +41,7 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
   const kpis = useEbookAnalyticsKPIs(ebookId);
   const { data: ctas = [] } = useEbookCtas(ebookId);
   const conversion = useEbookConversionKPIs(kpis.views, kpis.ctaEvents, ctas);
+  const createLead = useCreateLead();
 
   if (kpis.isLoading) {
     return (
@@ -322,7 +325,28 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
                                 No CRM
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-xs text-muted-foreground">Novo</Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 gap-1"
+                                disabled={createLead.isPending}
+                                onClick={async () => {
+                                  try {
+                                    await createLead.mutateAsync({
+                                      name: r.name || r.email.split("@")[0],
+                                      email: r.email,
+                                      source: "ebook" as any,
+                                      tags: [`ebook:${ebookTitle}`],
+                                    });
+                                    toast.success("Lead criado com sucesso");
+                                  } catch (err: any) {
+                                    toast.error("Erro ao criar lead: " + (err?.message || "erro desconhecido"));
+                                  }
+                                }}
+                              >
+                                <UserPlus className="h-3 w-3" />
+                                Adicionar Lead
+                              </Button>
                             )}
                           </td>
                           <td className="text-center py-2 px-2 text-muted-foreground">{r.pagesViewed}/{r.totalPages}</td>
