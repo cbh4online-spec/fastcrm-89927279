@@ -369,23 +369,21 @@ export default function GestoresPage() {
   const isLoading = membersLoading || statsLoading;
   const totalUnassigned = (unassigned?.leads || 0) + (unassigned?.contacts || 0) + (unassigned?.companies || 0);
 
-  // ── DETAIL VIEW ──
-  if (selectedManager && selectedManagerData) {
   const filteredDetailEntities = useMemo(() => {
-      let list = selectedEntities || [];
-      if (entityFilter !== "all") {
-        list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : "company"));
-      }
-      if (detailEntitySearch.trim()) {
-        const q = detailEntitySearch.toLowerCase();
-        list = list.filter(e => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
-      }
-      return list;
-    }, [selectedEntities, entityFilter, detailEntitySearch]);
+    let list = selectedEntities || [];
+    if (entityFilter !== "all") {
+      list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : "company"));
+    }
+    if (detailEntitySearch.trim()) {
+      const q = detailEntitySearch.toLowerCase();
+      list = list.filter(e => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
+    }
+    return list;
+  }, [selectedEntities, entityFilter, detailEntitySearch]);
 
   // ── DETAIL VIEW ──
   if (selectedManager && selectedManagerData) {
-      <DashboardLayout>
+    return (
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
