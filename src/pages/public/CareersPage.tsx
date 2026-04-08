@@ -137,15 +137,6 @@ export default function CareersPage() {
                         )}
                       </div>
                     </div>
-                    {(job.salary_min || job.salary_max) && (
-                      <p className="text-sm font-medium whitespace-nowrap">
-                        {job.salary_min && job.salary_max
-                          ? `${job.currency || "€"}${job.salary_min.toLocaleString()} – ${job.currency || "€"}${job.salary_max.toLocaleString()}`
-                          : job.salary_min
-                          ? `A partir de ${job.currency || "€"}${job.salary_min.toLocaleString()}`
-                          : `Até ${job.currency || "€"}${job.salary_max!.toLocaleString()}`}
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               </Link>

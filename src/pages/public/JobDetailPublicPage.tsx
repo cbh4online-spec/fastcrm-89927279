@@ -73,15 +73,6 @@ export default function JobDetailPublicPage() {
               <div className="flex flex-wrap gap-2 pt-1">
                 {job.employment_type && <Badge variant="secondary">{EMPLOYMENT_LABELS[job.employment_type] || job.employment_type}</Badge>}
                 {job.remote_option && <Badge variant="outline">{REMOTE_LABELS[job.remote_option] || job.remote_option}</Badge>}
-                {(job.salary_min || job.salary_max) && (
-                  <Badge variant="outline">
-                    {job.salary_min && job.salary_max
-                      ? `${job.currency || "€"}${job.salary_min.toLocaleString()} – ${job.currency || "€"}${job.salary_max.toLocaleString()}`
-                      : job.salary_min
-                      ? `A partir de ${job.currency || "€"}${job.salary_min.toLocaleString()}`
-                      : `Até ${job.currency || "€"}${job.salary_max!.toLocaleString()}`}
-                  </Badge>
-                )}
               </div>
             </div>
           </div>

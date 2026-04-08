@@ -7,12 +7,16 @@ import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
-const navKeys = [
+const anchorNavKeys = [
   { href: "#features", key: "nav.features" },
   { href: "#intelligence", key: "nav.intelligence" },
   { href: "#pricing", key: "nav.pricing" },
   { href: "#faq", key: "nav.faq" },
   { href: "#fastclub", key: "nav.fastclub" },
+];
+
+const routeNavKeys = [
+  { to: "/careers", key: "nav.careers" },
 ];
 
 export function LandingStickyHeader() {
@@ -44,10 +48,15 @@ export function LandingStickyHeader() {
         </button>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)]">
-          {navKeys.map((link) => (
+          {anchorNavKeys.map((link) => (
             <a key={link.href} href={link.href} className="hover:text-[hsl(210,40%,98%)] transition-colors duration-200">
               {t(link.key)}
             </a>
+          ))}
+          {routeNavKeys.map((link) => (
+            <Link key={link.to} to={link.to} className="hover:text-[hsl(210,40%,98%)] transition-colors duration-200">
+              {t(link.key)}
+            </Link>
           ))}
         </nav>
 
@@ -81,7 +90,7 @@ export function LandingStickyHeader() {
             >
               <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <nav className="flex flex-col gap-1 mt-8">
-                {navKeys.map((link) => (
+                {anchorNavKeys.map((link) => (
                   <a
                     key={link.href}
                     href={link.href}
@@ -90,6 +99,16 @@ export function LandingStickyHeader() {
                   >
                     {t(link.key)}
                   </a>
+                ))}
+                {routeNavKeys.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setMobileOpen(false)}
+                    className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)] hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] rounded-md transition-colors duration-200"
+                  >
+                    {t(link.key)}
+                  </Link>
                 ))}
               </nav>
               <div className="flex flex-col gap-3 mt-8 px-4">
