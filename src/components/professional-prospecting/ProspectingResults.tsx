@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  User, Building2, Users, HelpCircle, ExternalLink, 
+  User, Building2, Users, HelpCircle, ExternalLink, Copy,
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
