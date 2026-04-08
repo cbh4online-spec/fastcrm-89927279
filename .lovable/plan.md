@@ -1,106 +1,89 @@
 
+## Portal de Recrutamento — Evolução Completa
 
-## Plano: Portal de Recrutamento com Firecrawl — Pesquisa de Candidatos e Ofertas de Emprego
+### 1. Logotipos e descrição nos cards de vagas
 
-### Contexto
-Utilizar o Firecrawl (já conectado) para pesquisar na web por candidatos e ofertas de emprego relevantes, funcionando como um portal de recrutamento inteligente. Os resultados são persistidos numa nova tabela para gestão posterior.
+**Vagas internas:** Usar o logo do workspace (já existe `workspace.logo_url`).
+**Vagas externas:** Extrair favicon/logo da `source_url` via serviço de favicons (ex: `https://www.google.com/s2/favicons?domain=net-empregos.com&sz=64`).
+**Descrição:** Mostrar as primeiras 2 linhas da descrição no card + skills como badges.
 
-### Arquitectura
+**Ficheiros:** `src/pages/public/CareersPage.tsx`
 
-```text
-┌─────────────────────────────────────┐
-│  TalentSearchPage (nova página)     │
-│  - Pesquisa por cargo/skills/local  │
-│  - Tipo: candidatos OU ofertas      │
-│  - Resultados com preview           │
-│  - Guardar como candidato / vaga    │
-└──────────────┬──────────────────────┘
-               │ invoke
-┌──────────────▼──────────────────────┐
-│  Edge Function: hr-talent-search    │
-│  - Firecrawl search (portais PT)    │
-│  - AI extraction (Gemini) → dados   │
-│  - Persistir em hr_talent_results   │
-└─────────────────────────────────────┘
-```
+---
 
-### 1. Nova tabela: `hr_talent_results`
+### 2. Registo self-service de empresas para publicar vagas
 
-Armazena resultados de pesquisa web (candidatos encontrados e ofertas de emprego de concorrentes).
+Nova funcionalidade que permite empresas externas registarem-se e publicarem vagas no portal, gerando leads automaticamente.
 
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | uuid PK | |
-| workspace_id | uuid FK | |
-| search_type | text | `candidate` ou `job_offer` |
-| search_query | text | Query original |
-| source_url | text | URL da fonte |
-| source_platform | text | LinkedIn, Indeed, Net-Empregos, etc. |
-| title | text | Nome do candidato ou título da vaga |
-| description | text | Bio/resumo ou descrição da vaga |
-| location | text | Localização extraída |
-| skills | text[] | Competências extraídas |
-| raw_content | text | Conteúdo markdown bruto |
-| extracted_data | jsonb | Dados estruturados extraídos pela IA |
-| status | text | `new`, `reviewed`, `imported`, `dismissed` |
-| imported_as | text | `candidate` ou `job_posting` (após importação) |
-| imported_id | uuid | ID do registo importado |
-| created_at | timestamptz | |
+**Tabela nova: `portal_companies`**
+- `id`, `name`, `email`, `phone`, `website`, `logo_url`, `nif`, `sector`, `location`, `status` (pending/active/blocked), `auth_user_id`, `workspace_id`
 
-RLS: Escopado por workspace_id, SELECT/INSERT/UPDATE para membros autenticados.
+**Tabela nova: `portal_job_postings`**
+- `id`, `portal_company_id`, `workspace_id`, `title`, `description`, `location`, `employment_type`, `remote_option`, `salary_range`, `requirements`, `status` (pending/active/expired/rejected), `published_at`, `expires_at`
 
-### 2. Edge Function: `hr-talent-search`
+**Fluxo:**
+1. Empresa acede a `/careers/fastcrm/register` → formulário de registo (nome, email, password, empresa, NIF, website)
+2. Conta criada (auth + portal_companies com status `pending`)
+3. Auto-confirm desactivado — empresa confirma email
+4. Após login, acede a `/careers/fastcrm/dashboard` → painel para gerir vagas
+5. Publica vaga → status `pending` → admin aprova → aparece no portal
+6. Cada empresa registada gera um lead no CRM (tabela `leads`)
 
-- Recebe: `{ search_type, query, location, workspace_id }`
-- Constrói queries inteligentes por tipo:
-  - **Candidatos**: `"[cargo] [skills] CV site:linkedin.com/in OR site:indeed.pt"` 
-  - **Ofertas**: `"[cargo] [localização] emprego site:indeed.pt OR site:net-empregos.com OR site:sapo.pt/emprego"`
-- Chama `firecrawl-search` com `scrapeOptions: { formats: ['markdown'] }`
-- Usa AI Gateway (Gemini) para extrair dados estruturados do markdown (nome, skills, localização, empresa, salário)
-- Persiste resultados em `hr_talent_results`
+**Páginas novas:**
+- `/careers/:slug/register` — registo de empresa
+- `/careers/:slug/login` — login de empresa
+- `/careers/:slug/dashboard` — painel da empresa (listar/criar vagas)
 
-### 3. Nova página: `TalentSearchPage.tsx`
+**RLS:** portal_companies e portal_job_postings escopados por workspace_id. Empresas só vêem os seus dados.
 
-Acessível em `/dashboard/hr/recruitment/talent-search`. Contém:
+---
 
-- **Barra de pesquisa** com campos: query livre, tipo (candidatos/ofertas), localização
-- **Filtros rápidos** por plataforma e status
-- **Lista de resultados** em cards com:
-  - Título, localização, plataforma, preview do conteúdo
-  - Skills extraídas como badges
-  - Botões: "Ver fonte" (abre URL), "Importar como candidato", "Importar como vaga", "Descartar"
-- **Acção de importação**: Cria registo em `hr_candidates` ou `hr_job_postings` a partir dos dados extraídos
-- **Histórico**: Tab com pesquisas anteriores e resultados guardados
+### 3. Agregação na página pública
 
-### 4. Hook: `useTalentSearch.ts`
+A página `/careers/fastcrm` mostra:
+- Vagas internas (hr_job_postings com status active)
+- Vagas externas agregadas (hr_talent_results)
+- Vagas de empresas registadas (portal_job_postings com status active)
 
-- `useTalentSearch()` — query de resultados existentes com filtros
-- `useSearchTalent()` — mutation que invoca a edge function
-- `useImportTalentResult()` — mutation que copia resultado para `hr_candidates` ou `hr_job_postings`
-- `useDismissTalentResult()` — actualiza status para `dismissed`
+Todas com logo, descrição e badges.
 
-### 5. Integração no menu HR
+---
 
-- Adicionar link "Pesquisa de Talento" no menu de recrutamento
-- Ícone `Search` ao lado das vagas e candidatos
+### 4. Dashboard de KPIs de Recrutamento
 
-### Ficheiros a criar/modificar
+Nova página: `/dashboard/hr/recruitment/analytics`
 
-| Ficheiro | Acção |
-|----------|-------|
-| `supabase/migrations/...hr_talent_results.sql` | Nova tabela + RLS |
-| `supabase/functions/hr-talent-search/index.ts` | Nova edge function |
-| `src/pages/dashboard/hr/recruitment/TalentSearchPage.tsx` | Nova página |
-| `src/hooks/hr/useTalentSearch.ts` | Novo hook |
-| `src/App.tsx` | Nova rota |
-| Menu lateral HR | Link para pesquisa de talento |
+**Métricas de recrutamento:**
+- Total de vagas publicadas (internas + portal)
+- Candidaturas recebidas (hr_candidates count)
+- Taxa de conversão visitante → candidatura
+- Vagas por status (active/draft/closed)
+
+**Tráfego do portal:**
+- Usar analytics existente (pageviews em /careers/*)
+- Visitantes únicos, top vagas visualizadas
+
+**Leads e empresas:**
+- Empresas registadas (portal_companies count)
+- Vagas submetidas por externos
+- Leads gerados via portal
+
+**Implementação:** Queries agregadas via hooks, visualização com Recharts/Nivo (já instalados).
+
+---
+
+### Ordem de implementação
+
+1. **Logos + descrição nos cards** (rápido, visual)
+2. **Tabelas portal_companies + portal_job_postings** (migração)
+3. **Registo e login de empresas** (auth + páginas)
+4. **Painel da empresa** (dashboard + CRUD vagas)
+5. **Agregação no portal** (unificar 3 fontes)
+6. **Dashboard de KPIs** (analytics)
 
 ### Critérios de aceitação
-
-- Pesquisar candidatos por cargo/skills retorna resultados reais da web
-- Pesquisar ofertas de emprego retorna vagas de portais portugueses
-- Resultados persistidos na BD com dados extraídos pela IA
-- Importar resultado cria candidato ou vaga no sistema HR
-- RLS escopado por workspace_id
-- Estados loading, vazio e erro tratados
-
+- Cards com logo e descrição visíveis
+- Empresa pode registar-se, confirmar email, fazer login e publicar vaga
+- Vaga de empresa aparece no portal após aprovação
+- Cada registo de empresa gera lead no CRM
+- Dashboard com KPIs funcionais e dados reais
