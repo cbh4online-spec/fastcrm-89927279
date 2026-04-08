@@ -1,89 +1,84 @@
 
-## Portal de Recrutamento — Evolução Completa
 
-### 1. Logotipos e descrição nos cards de vagas
+## Plano: Integração de 9 Portais de Emprego Portugueses
 
-**Vagas internas:** Usar o logo do workspace (já existe `workspace.logo_url`).
-**Vagas externas:** Extrair favicon/logo da `source_url` via serviço de favicons (ex: `https://www.google.com/s2/favicons?domain=net-empregos.com&sz=64`).
-**Descrição:** Mostrar as primeiras 2 linhas da descrição no card + skills como badges.
+### Contexto
 
-**Ficheiros:** `src/pages/public/CareersPage.tsx`
+O sistema actual permite pesquisar vagas via Firecrawl (busca web) ou importar feeds RSS manualmente. O objectivo é integrar 9 portais de emprego como fontes pré-configuradas, permitindo importação com um clique e aumentando a visibilidade das vagas agregadas no portal público.
 
----
+### Portais a Integrar
 
-### 2. Registo self-service de empresas para publicar vagas
+| Portal | URL | Método |
+|--------|-----|--------|
+| JobLeads | jobleads.com | Scrape/Search |
+| DataAnnotation | dataannotation.tech | Scrape |
+| Sapo Emprego | emprego.sapo.pt | Scrape/Search |
+| Alerta Emprego | alertaemprego.pt | Scrape/Search |
+| Portal Emprego | portalemprego.pt | Scrape/Search |
+| Indeed PT | pt.indeed.com | Search (já parcialmente suportado) |
+| Expresso Emprego | expressoemprego.pt | Scrape/Search |
+| IEFP | iefp.pt/emprego | Scrape |
+| Emprego Público | empregopublico.gov.pt | Scrape |
 
-Nova funcionalidade que permite empresas externas registarem-se e publicarem vagas no portal, gerando leads automaticamente.
+### Alterações Planeadas
 
-**Tabela nova: `portal_companies`**
-- `id`, `name`, `email`, `phone`, `website`, `logo_url`, `nif`, `sector`, `location`, `status` (pending/active/blocked), `auth_user_id`, `workspace_id`
+#### 1. Catálogo de Portais Pré-Configurados (Frontend)
 
-**Tabela nova: `portal_job_postings`**
-- `id`, `portal_company_id`, `workspace_id`, `title`, `description`, `location`, `employment_type`, `remote_option`, `salary_range`, `requirements`, `status` (pending/active/expired/rejected), `published_at`, `expires_at`
+Adicionar ao `TalentSearchPage.tsx` uma secção "Portais Integrados" com cards para cada portal, incluindo:
+- Logo (favicon via Google S2)
+- Nome e descrição curta
+- Botão "Importar vagas" que dispara a pesquisa automaticamente
+- Estado de última importação (timestamp + contagem)
 
-**Fluxo:**
-1. Empresa acede a `/careers/fastcrm/register` → formulário de registo (nome, email, password, empresa, NIF, website)
-2. Conta criada (auth + portal_companies com status `pending`)
-3. Auto-confirm desactivado — empresa confirma email
-4. Após login, acede a `/careers/fastcrm/dashboard` → painel para gerir vagas
-5. Publica vaga → status `pending` → admin aprova → aparece no portal
-6. Cada empresa registada gera um lead no CRM (tabela `leads`)
+Substituir o input manual de RSS por um selector de portais + campo de pesquisa opcional (keywords/localização).
 
-**Páginas novas:**
-- `/careers/:slug/register` — registo de empresa
-- `/careers/:slug/login` — login de empresa
-- `/careers/:slug/dashboard` — painel da empresa (listar/criar vagas)
+#### 2. Actualização da Edge Function `hr-talent-search`
 
-**RLS:** portal_companies e portal_job_postings escopados por workspace_id. Empresas só vêem os seus dados.
+Adicionar um novo modo `portal_import` que:
+- Recebe `portal_slug` + `keywords` opcionais
+- Usa Firecrawl Search com queries optimizadas por portal (ex: `site:emprego.sapo.pt ${keywords}`)
+- Para portais com estrutura conhecida (IEFP, Emprego Público), usa Firecrawl Scrape directamente nas páginas de listagem
+- Detecta a plataforma correctamente para os 9 portais na função de detecção existente
+- Deduplica resultados por `source_url` antes de inserir
 
----
+#### 3. Detecção de Plataforma Expandida
 
-### 3. Agregação na página pública
+Actualizar o mapeamento de plataformas na edge function para reconhecer todos os 9 domínios:
 
-A página `/careers/fastcrm` mostra:
-- Vagas internas (hr_job_postings com status active)
-- Vagas externas agregadas (hr_talent_results)
-- Vagas de empresas registadas (portal_job_postings com status active)
+```text
+jobleads.com       → JobLeads
+dataannotation.tech → DataAnnotation
+emprego.sapo.pt    → Sapo Emprego
+alertaemprego.pt   → Alerta Emprego
+portalemprego.pt   → Portal Emprego
+pt.indeed.com      → Indeed PT
+expressoemprego.pt → Expresso Emprego
+iefp.pt            → IEFP
+empregopublico.gov.pt → Emprego Público
+```
 
-Todas com logo, descrição e badges.
+#### 4. Logos no Portal Público (`CareersPage.tsx`)
 
----
+Actualizar `getFaviconUrl` para usar favicons de alta qualidade e adicionar ícones específicos por plataforma nos cards de vagas externas.
 
-### 4. Dashboard de KPIs de Recrutamento
+### Ficheiros a Modificar
 
-Nova página: `/dashboard/hr/recruitment/analytics`
+1. **`supabase/functions/hr-talent-search/index.ts`** — Novo modo `portal_import`, detecção de plataforma expandida, deduplicação
+2. **`src/pages/dashboard/hr/recruitment/TalentSearchPage.tsx`** — Secção de portais pré-configurados com importação one-click
+3. **`src/hooks/hr/useTalentSearch.ts`** — Novo hook/mutation para importação por portal
+4. **`src/pages/public/CareersPage.tsx`** — Melhorar logos e labels das plataformas
 
-**Métricas de recrutamento:**
-- Total de vagas publicadas (internas + portal)
-- Candidaturas recebidas (hr_candidates count)
-- Taxa de conversão visitante → candidatura
-- Vagas por status (active/draft/closed)
+### Critérios de Aceitação
 
-**Tráfego do portal:**
-- Usar analytics existente (pageviews em /careers/*)
-- Visitantes únicos, top vagas visualizadas
+- Utilizador pode importar vagas de qualquer dos 9 portais com um clique
+- Resultados aparecem automaticamente no portal público `/careers/{slug}`
+- Deduplicação por URL evita vagas repetidas
+- Plataforma correctamente identificada em cada resultado
+- Logos visíveis nos cards do portal público
 
-**Leads e empresas:**
-- Empresas registadas (portal_companies count)
-- Vagas submetidas por externos
-- Leads gerados via portal
+### Riscos
 
-**Implementação:** Queries agregadas via hooks, visualização com Recharts/Nivo (já instalados).
+- Portais governamentais (IEFP, Emprego Público) podem bloquear scraping — fallback para search
+- Créditos Firecrawl consumidos por cada importação — alertar utilizador
+- Estrutura HTML dos portais pode mudar — parsing via IA mitiga este risco
 
----
-
-### Ordem de implementação
-
-1. **Logos + descrição nos cards** (rápido, visual)
-2. **Tabelas portal_companies + portal_job_postings** (migração)
-3. **Registo e login de empresas** (auth + páginas)
-4. **Painel da empresa** (dashboard + CRUD vagas)
-5. **Agregação no portal** (unificar 3 fontes)
-6. **Dashboard de KPIs** (analytics)
-
-### Critérios de aceitação
-- Cards com logo e descrição visíveis
-- Empresa pode registar-se, confirmar email, fazer login e publicar vaga
-- Vaga de empresa aparece no portal após aprovação
-- Cada registo de empresa gera lead no CRM
-- Dashboard com KPIs funcionais e dados reais
