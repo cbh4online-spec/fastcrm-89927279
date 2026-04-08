@@ -20,12 +20,42 @@ const REMOTE_LABELS: Record<string, string> = {
   office: "Presencial", remote: "Remoto", hybrid: "Híbrido",
 };
 
-function getFaviconUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-  } catch { return null; }
+const PLATFORM_LABELS: Record<string, string> = {
+  "JobLeads": "JobLeads",
+  "DataAnnotation": "DataAnnotation",
+  "Sapo Emprego": "Sapo Emprego",
+  "Alerta Emprego": "Alerta Emprego",
+  "Portal Emprego": "Portal Emprego",
+  "Indeed PT": "Indeed PT",
+  "Expresso Emprego": "Expresso Emprego",
+  "IEFP": "IEFP",
+  "Emprego Público": "Emprego Público",
+  "LinkedIn": "LinkedIn",
+  "Net-Empregos": "Net-Empregos",
+};
+
+function getFaviconUrl(url: string | null | undefined, platform?: string | null): string | null {
+  // Try platform-specific domain for better favicons
+  const platformDomains: Record<string, string> = {
+    "JobLeads": "jobleads.com",
+    "DataAnnotation": "dataannotation.tech",
+    "Sapo Emprego": "emprego.sapo.pt",
+    "Alerta Emprego": "alertaemprego.pt",
+    "Portal Emprego": "portalemprego.pt",
+    "Indeed PT": "pt.indeed.com",
+    "Expresso Emprego": "expressoemprego.pt",
+    "IEFP": "iefp.pt",
+    "Emprego Público": "empregopublico.gov.pt",
+    "LinkedIn": "linkedin.com",
+    "Net-Empregos": "net-empregos.com",
+  };
+
+  const domain = platform && platformDomains[platform]
+    ? platformDomains[platform]
+    : url ? (() => { try { return new URL(url).hostname; } catch { return null; } })() : null;
+
+  if (!domain) return null;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 }
 
 type UnifiedJob = {

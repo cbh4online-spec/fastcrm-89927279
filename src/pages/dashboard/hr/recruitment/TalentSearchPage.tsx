@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Rss } from "lucide-react";
+import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Rss, Download, Building2 } from "lucide-react";
 import {
   useTalentResults,
   useSearchTalent,
   useDismissTalentResult,
   useImportTalentResult,
+  usePortalImport,
   type TalentResult,
 } from "@/hooks/hr/useTalentSearch";
 
@@ -29,6 +30,18 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
   dismissed: "destructive",
 };
 
+const PORTALS = [
+  { slug: "indeed_pt", name: "Indeed PT", domain: "pt.indeed.com", description: "O maior motor de emprego do mundo" },
+  { slug: "sapo_emprego", name: "Sapo Emprego", domain: "emprego.sapo.pt", description: "Portal de emprego do SAPO" },
+  { slug: "iefp", name: "IEFP", domain: "iefp.pt", description: "Instituto do Emprego e Formação Profissional" },
+  { slug: "emprego_publico", name: "Emprego Público", domain: "empregopublico.gov.pt", description: "Ofertas de emprego público" },
+  { slug: "expresso_emprego", name: "Expresso Emprego", domain: "expressoemprego.pt", description: "Emprego do jornal Expresso" },
+  { slug: "alerta_emprego", name: "Alerta Emprego", domain: "alertaemprego.pt", description: "Agregador de ofertas de emprego" },
+  { slug: "portal_emprego", name: "Portal Emprego", domain: "portalemprego.pt", description: "Portal nacional de emprego" },
+  { slug: "jobleads", name: "JobLeads", domain: "jobleads.com", description: "Vagas premium e executivas" },
+  { slug: "dataannotation", name: "DataAnnotation", domain: "dataannotation.tech", description: "Trabalho remoto em IA e dados" },
+];
+
 export default function TalentSearchPage() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -36,6 +49,8 @@ export default function TalentSearchPage() {
   const [searchType, setSearchType] = useState<string>("candidate");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
+  const [portalKeywords, setPortalKeywords] = useState("");
+  const [importingPortal, setImportingPortal] = useState<string | null>(null);
 
   const { data: results = [], isLoading } = useTalentResults({
     search_type: resultTypeFilter !== "all" ? resultTypeFilter : undefined,
@@ -45,6 +60,7 @@ export default function TalentSearchPage() {
   const searchMutation = useSearchTalent();
   const dismissMutation = useDismissTalentResult();
   const importMutation = useImportTalentResult();
+  const portalImportMutation = usePortalImport();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +73,14 @@ export default function TalentSearchPage() {
     }
   };
 
+  const handlePortalImport = (portalSlug: string) => {
+    setImportingPortal(portalSlug);
+    portalImportMutation.mutate(
+      { portal_slug: portalSlug, keywords: portalKeywords.trim() || undefined },
+      { onSettled: () => setImportingPortal(null) }
+    );
+  };
+
   return (
     <div className="space-y-6">
       <HRBreadcrumb />
@@ -65,6 +89,63 @@ export default function TalentSearchPage() {
         <h1 className="text-2xl font-bold text-foreground">Pesquisa de Talento</h1>
         <p className="text-muted-foreground">Pesquise candidatos e ofertas de emprego na web com IA</p>
       </div>
+
+      {/* Integrated Portals */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Portais Integrados
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Importe vagas dos principais portais de emprego portugueses com um clique</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Palavras-chave opcionais (ex: React, Marketing...)"
+                value={portalKeywords}
+                onChange={(e) => setPortalKeywords(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {PORTALS.map((portal) => (
+              <div
+                key={portal.slug}
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 hover:bg-accent/30 transition-all"
+              >
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${portal.domain}&sz=32`}
+                  alt=""
+                  className="h-8 w-8 rounded shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground truncate">{portal.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{portal.description}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  disabled={importingPortal === portal.slug || portalImportMutation.isPending}
+                  onClick={() => handlePortalImport(portal.slug)}
+                >
+                  {importingPortal === portal.slug ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search form */}
       <Card>
@@ -166,7 +247,7 @@ export default function TalentSearchPage() {
             <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-medium text-foreground">Sem resultados</h3>
             <p className="text-muted-foreground text-sm mt-1">
-              Pesquise por candidatos ou ofertas de emprego para começar
+              Pesquise por candidatos, ofertas ou importe de um portal integrado
             </p>
           </CardContent>
         </Card>
@@ -258,19 +339,11 @@ function ResultCard({
             {result.status === "new" && (
               <>
                 {result.search_type === "candidate" ? (
-                  <Button
-                    size="sm"
-                    onClick={() => onImport("candidate")}
-                    disabled={isImporting}
-                  >
+                  <Button size="sm" onClick={() => onImport("candidate")} disabled={isImporting}>
                     <UserPlus className="h-4 w-4 mr-1" />Importar candidato
                   </Button>
                 ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => onImport("job_posting")}
-                    disabled={isImporting}
-                  >
+                  <Button size="sm" onClick={() => onImport("job_posting")} disabled={isImporting}>
                     <Briefcase className="h-4 w-4 mr-1" />Importar vaga
                   </Button>
                 )}
