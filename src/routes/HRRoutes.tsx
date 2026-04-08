@@ -22,6 +22,7 @@ const CandidatesPage = lazy(() => import("@/pages/dashboard/hr/recruitment/Candi
 const CandidateDetailPage = lazy(() => import("@/pages/dashboard/hr/recruitment/CandidateDetailPage"));
 const InterviewsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/InterviewsPage"));
 const TalentSearchPage = lazy(() => import("@/pages/dashboard/hr/recruitment/TalentSearchPage"));
+const RecruitmentAnalyticsPage = lazy(() => import("@/pages/dashboard/hr/recruitment/RecruitmentAnalyticsPage"));
 
 // Performance & OKRs pages
 const HROKRsPage = lazy(() => import("@/pages/dashboard/hr/HROKRsPage"));
