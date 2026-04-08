@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MapPin, Calendar, ExternalLink, Copy } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { buildPublicCareersPath } from "@/lib/publicCareers";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -39,9 +40,10 @@ export default function JobPostingDetailPage() {
     updateStage.mutate({ id: candidateId, stage: newStage });
   };
 
-  const publicUrl = job?.status === "active" && job?.slug && currentWorkspace?.slug
-    ? `${window.location.origin}/careers/${currentWorkspace.slug}/${job.slug}`
+  const publicPath = job?.status === "active" && job?.slug
+    ? buildPublicCareersPath(currentWorkspace?.slug, job.slug)
     : null;
+  const publicUrl = publicPath ? `${window.location.origin}${publicPath}` : null;
 
   if (isLoading) return <div className="space-y-4"><Skeleton height={200} /><Skeleton height={400} /></div>;
   if (!job) return <div className="text-center py-12 text-muted-foreground">Vaga não encontrada</div>;

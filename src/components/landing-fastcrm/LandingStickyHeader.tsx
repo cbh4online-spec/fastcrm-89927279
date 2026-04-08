@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { buildPublicCareersPath, FASTCRM_PUBLIC_CAREERS_SLUG } from "@/lib/publicCareers";
 
 const anchorNavKeys = [
   { href: "#features", key: "nav.features" },
@@ -16,7 +17,7 @@ const anchorNavKeys = [
 ];
 
 const routeNavKeys = [
-  { to: "/careers/fastcrm", key: "nav.careers" },
+  { to: buildPublicCareersPath(FASTCRM_PUBLIC_CAREERS_SLUG) ?? `/careers/${FASTCRM_PUBLIC_CAREERS_SLUG}`, key: "nav.careers" },
 ];
 
 export function LandingStickyHeader() {

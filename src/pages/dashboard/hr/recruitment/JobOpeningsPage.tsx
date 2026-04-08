@@ -20,6 +20,7 @@ import { JobFilters } from "@/components/hr/recruitment/JobFilters";
 import { JobEditDrawer } from "@/components/hr/recruitment/JobEditDrawer";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { buildPublicCareersPath } from "@/lib/publicCareers";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -49,7 +50,6 @@ export default function JobPostingsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editJob, setEditJob] = useState<JobPosting | null>(null);
 
-  // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -79,11 +79,14 @@ export default function JobPostingsPage() {
   }, [jobs, search, statusFilter, typeFilter, remoteFilter]);
 
   const candidateCount = allCandidates?.length || 0;
-  const careersUrl = currentWorkspace?.slug ? `${window.location.origin}/careers/${currentWorkspace.slug}` : null;
+  const careersPath = buildPublicCareersPath(currentWorkspace?.slug);
+  const careersUrl = careersPath ? `${window.location.origin}${careersPath}` : null;
 
   const copyPublicUrl = (jobSlug: string | null) => {
-    if (!careersUrl || !jobSlug) return;
-    navigator.clipboard.writeText(`${careersUrl}/${jobSlug}`);
+    const publicJobPath = buildPublicCareersPath(currentWorkspace?.slug, jobSlug);
+    if (!publicJobPath) return;
+
+    navigator.clipboard.writeText(`${window.location.origin}${publicJobPath}`);
     toast.success("URL copiado!");
   };
 
@@ -105,34 +108,38 @@ export default function JobPostingsPage() {
     form.reset();
   };
 
-  const renderActions = (job: JobPosting) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/dashboard/hr/recruitment/jobs/${job.id}`); }}>
-          <Eye className="h-4 w-4 mr-2" /> Ver detalhes
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={e => { e.stopPropagation(); setEditJob(job); }}>
-          <Pencil className="h-4 w-4 mr-2" /> Editar
-        </DropdownMenuItem>
-        {job.slug && job.status === "active" && (
-          <>
-            <DropdownMenuItem onClick={e => { e.stopPropagation(); copyPublicUrl(job.slug); }}>
-              <Copy className="h-4 w-4 mr-2" /> Copiar URL
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={e => { e.stopPropagation(); window.open(`/careers/${currentWorkspace?.slug}/${job.slug}`, "_blank"); }}>
-              <ExternalLink className="h-4 w-4 mr-2" /> Ver landing
-            </DropdownMenuItem>
-          </>
-        )}
-        <DropdownMenuItem className="text-destructive" onClick={e => { e.stopPropagation(); deleteJob.mutate(job.id); }}>
-          <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  const renderActions = (job: JobPosting) => {
+    const publicJobPath = buildPublicCareersPath(currentWorkspace?.slug, job.slug);
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/dashboard/hr/recruitment/jobs/${job.id}`); }}>
+            <Eye className="h-4 w-4 mr-2" /> Ver detalhes
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={e => { e.stopPropagation(); setEditJob(job); }}>
+            <Pencil className="h-4 w-4 mr-2" /> Editar
+          </DropdownMenuItem>
+          {job.slug && job.status === "active" && publicJobPath && (
+            <>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); copyPublicUrl(job.slug); }}>
+                <Copy className="h-4 w-4 mr-2" /> Copiar URL
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={e => { e.stopPropagation(); window.open(publicJobPath, "_blank"); }}>
+                <ExternalLink className="h-4 w-4 mr-2" /> Ver landing
+              </DropdownMenuItem>
+            </>
+          )}
+          <DropdownMenuItem className="text-destructive" onClick={e => { e.stopPropagation(); deleteJob.mutate(job.id); }}>
+            <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -143,8 +150,8 @@ export default function JobPostingsPage() {
           <p className="text-muted-foreground">Gestão de vagas abertas e processos de recrutamento</p>
         </div>
         <div className="flex items-center gap-2">
-          {careersUrl && (
-            <Button variant="outline" size="sm" onClick={() => window.open(`/careers/${currentWorkspace?.slug}`, "_blank")}>
+          {careersPath && (
+            <Button variant="outline" size="sm" onClick={() => window.open(careersPath, "_blank")}>
               <ExternalLink className="h-4 w-4 mr-2" /> Página de Carreiras
             </Button>
           )}
