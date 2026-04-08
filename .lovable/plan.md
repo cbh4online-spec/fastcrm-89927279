@@ -1,61 +1,46 @@
+## Área de Afiliados FastCRM — Plano de Implementação
 
+### 1. Página Pública de Recrutamento (`/affiliates`)
 
-## Diagnóstico: Envio de Email e Comunicação
+Landing page de alta conversão para atrair novos afiliados:
 
-### Análise do Sistema Actual
+- **Hero Section**: Headline impactante ("Ganhe comissões recorrentes a promover o FastCRM"), CTA principal de inscrição
+- **Secção de Benefícios**: Comissões lifetime recorrentes, cookie de 30 dias, multinível (2 níveis), materiais de marketing gratuitos
+- **Como Funciona**: 3 passos visuais (Inscrever → Partilhar → Ganhar)
+- **Calculadora de Ganhos**: Simulador interativo (nº de referidos × plano × meses = ganhos estimados)
+- **Testemunhos/Social Proof**: Espaço para top afiliados e resultados
+- **FAQ**: Perguntas frequentes sobre o programa
+- **Formulário de inscrição**: Integrado com o sistema existente `useRegisterAffiliate`
 
-O sistema de email utiliza uma arquitectura SMTP directa:
-1. **Conexão**: O utilizador configura uma conta SMTP/IMAP via `email-connect` (Gmail, Outlook, Hostinger, Custom)
-2. **Envio**: O `ComposeEmailDialog` verifica se existe uma `activeEmailConnection` — se não existir, mostra aviso amarelo "Nenhuma conta de email conectada"
-3. **Edge Function `email-send`**: Implementa um cliente SMTP nativo do Deno (STARTTLS + AUTH LOGIN)
+### 2. Portal do Afiliado Melhorado (`/dashboard/affiliates`)
 
-### Problemas Identificados
+Reestruturação do dashboard existente com foco em engagement:
 
-1. **Sem logs de email-send** — A edge function nunca foi chamada recentemente, o que sugere que o problema está no frontend (sem conexão configurada) ou a função nunca chega a ser invocada
-2. **Fluxo de envio bloqueado sem conexão** — O `handleSend` retorna imediatamente se `!connection`, mostrando um alert. O screenshot mostra a lead sem mensagens, o que é consistente com falta de conexão SMTP
-3. **O botão "Enviar Email" nas Ações Rápidas** abre o `ComposeEmailDialog`, mas se não houver conexão activa, o utilizador fica bloqueado
-4. **Falta de fallback** — Não há opção de envio sem conexão SMTP (e.g. via Lovable Email infra)
-5. **WhatsApp/Instagram/SMS** — WhatsApp usa `wa.me` link externo (funcional), Instagram não tem handler de envio, SMS usa `sms:` link
+- **Dashboard Visual**: KPIs com gráficos de tendência (cliques, conversões, receita ao longo do tempo)
+- **Leaderboard/Rankings**: Top 10 afiliados do mês (anonimizado parcialmente)
+- **Sistema de Metas**: Metas progressivas com badges (Bronze: 5 vendas, Prata: 20, Ouro: 50, Diamante: 100)
+- **Centro de Materiais**: Banners, links pré-prontos, textos sugeridos para redes sociais, email templates
+- **Gerador de Links Inteligente**: Pré-preenchido com URLs do FastCRM (pricing, landing, funcionalidades)
+- **Notificações em Tempo Real**: Alertas de novas conversões e pagamentos
+- **Referral Tree**: Visualização de sub-afiliados (se multinível activo)
 
-### Plano de Correção
+### 3. Modelo de Comissão Destacado
 
-#### 1. Tornar o envio de email mais robusto e acessível
+- **Recorrente lifetime**: O afiliado ganha em cada renovação do cliente referido
+- Percentagem configurável no admin (default 20% recorrente)
+- Destaque visual na landing page com calculadora de ganhos recorrentes
 
-**Ficheiro**: `src/components/email/ComposeEmailDialog.tsx`
-- Melhorar o alerta de "sem conexão" com um botão directo para configurar (link para `/dashboard/settings/integrations`)
-- Adicionar validação clara do estado da conexão antes de permitir escrever
-- Mostrar indicador visual claro do estado (conectado/desconectado) no header do dialog
+### Ficheiros a Criar/Modificar
 
-#### 2. Melhorar UX do Centro de Mensagens
+| Ficheiro | Acção |
+|----------|-------|
+| `src/pages/public/AffiliatePublicPage.tsx` | **Criar** — Landing page pública |
+| `src/pages/AffiliateDashboardPage.tsx` | **Reescrever** — Portal com engagement |
+| `src/components/affiliates/AffiliateEarningsCalculator.tsx` | **Criar** — Calculadora interativa |
+| `src/components/affiliates/AffiliateLeaderboard.tsx` | **Criar** — Rankings |
+| `src/components/affiliates/AffiliateMaterialsCenter.tsx` | **Criar** — Centro de materiais |
+| `src/components/affiliates/AffiliateAchievements.tsx` | **Criar** — Sistema de metas/badges |
+| `src/routes/AffiliateRoutes.tsx` | **Modificar** — Adicionar rota pública |
 
-**Ficheiro**: `src/components/messages/ContactMessagesSection.tsx`
-- Quando canal é Email e não há conexão, mostrar aviso inline com link de configuração (em vez de falhar silenciosamente)
-- Verificar `useActiveEmailConnection` no componente e mostrar estado
-- Tornar o botão "Compor" mais proeminente e o fluxo AI → Compor mais fluido
-
-#### 3. Melhorar integração AI no fluxo de email
-
-**Ficheiros**: `src/components/email/AIEmailAssistPanel.tsx`, `src/components/messages/ContactMessagesSection.tsx`
-- Quando o utilizador gera conteúdo com AI e clica "Compor", preencher automaticamente o subject e body no `ComposeEmailDialog`
-- Adicionar botão "Enviar com AI" que gera o conteúdo E abre o dialog pré-preenchido
-- Melhorar o fluxo AI → Template → Envio para ser mais linear
-
-#### 4. Re-deploy das edge functions de email
-
-**Ficheiros**: `supabase/functions/email-send/index.ts`, `supabase/functions/email-connect/index.ts`
-- Re-deploy para garantir que estão activas
-- Adicionar logging mais detalhado no email-send para diagnóstico
-
-#### 5. Adicionar feedback visual de estado da conexão email
-
-**Ficheiro**: `src/components/messages/ContactMessagesSection.tsx`
-- Badge de estado da conexão email junto ao selector de canal
-- Se desconectado, tooltip explicativo e botão de configuração rápida
-- Estado loading enquanto verifica conexão
-
-### Resultado Esperado
-- O utilizador vê claramente se tem email configurado ou não
-- Se não tem, é guiado para configurar em 1-2 cliques
-- O fluxo AI → Compor → Enviar é linear e sem barreiras
-- O diagnóstico de problemas é mais fácil com logging melhorado
-
+### Sem alterações de base de dados
+O sistema existente de tabelas (affiliates, affiliate_links, affiliate_conversions, affiliate_payouts, affiliate_balances) já suporta todas estas funcionalidades.
