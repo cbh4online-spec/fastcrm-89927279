@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePublicWorkspace } from "@/hooks/hr/usePublicJobs";
 import { useMyPortalCompany, useMyPortalJobs, useCreatePortalJob, type PortalJobPosting } from "@/hooks/hr/usePortalCompany";
+import { useMyPortalWorker } from "@/hooks/hr/usePortalWorker";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function PortalDashboardPage() {
   const navigate = useNavigate();
   const { data: workspace } = usePublicWorkspace(workspaceSlug);
   const { data: company, isLoading: compLoading } = useMyPortalCompany(workspace?.id);
+  const { data: worker, isLoading: workerLoading } = useMyPortalWorker(workspace?.id);
   const { data: jobs = [], isLoading: jobsLoading } = useMyPortalJobs(company?.id);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -42,12 +44,18 @@ export default function PortalDashboardPage() {
     navigate(`/careers/${workspaceSlug}/login`);
   };
 
-  if (!authChecked || compLoading) {
+  if (!authChecked || compLoading || workerLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  // If user is a worker, redirect to worker dashboard
+  if (!company && worker) {
+    navigate(`/careers/${workspaceSlug}/worker-dashboard`, { replace: true });
+    return null;
   }
 
   if (!company) {

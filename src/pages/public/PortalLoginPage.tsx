@@ -46,13 +46,13 @@ export default function PortalLoginPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <Helmet>
-        <title>Login Empresa — Portal</title>
+        <title>Login — Portal de Emprego</title>
       </Helmet>
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
           <LogIn className="h-10 w-10 mx-auto text-primary mb-2" />
-          <CardTitle>Login Empresa</CardTitle>
-          <p className="text-sm text-muted-foreground">Aceda ao seu painel para gerir vagas</p>
+          <CardTitle>Login</CardTitle>
+          <p className="text-sm text-muted-foreground">Aceda ao seu painel de empresa ou trabalhador</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -75,6 +75,8 @@ export default function PortalLoginPage() {
             <p className="text-center text-sm text-muted-foreground">
               Não tem conta?{" "}
               <Link to={`/careers/${workspaceSlug}/register`} className="text-primary hover:underline">Registar empresa</Link>
+              {" • "}
+              <Link to={`/careers/${workspaceSlug}/register-worker`} className="text-primary hover:underline">Registar trabalhador</Link>
             </p>
           </form>
         </CardContent>

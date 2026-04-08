@@ -1,12 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { usePublicWorkspace, usePublicJobs, usePublicExternalJobs } from "@/hooks/hr/usePublicJobs";
 import { usePublicPortalJobs } from "@/hooks/hr/usePortalCompany";
+import { usePublicWorkerListings, type PortalWorkerListing } from "@/hooks/hr/usePortalWorker";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe, UserPlus, User, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import { Helmet } from "react-helmet-async";
@@ -81,6 +83,7 @@ export default function CareersPage() {
   const { data: jobs, isLoading: jobsLoading } = usePublicJobs(workspace?.id);
   const { data: externalJobs = [], isLoading: extLoading } = usePublicExternalJobs(workspace?.id);
   const { data: portalJobs = [], isLoading: portalLoading } = usePublicPortalJobs(workspace?.id);
+  const { data: workerListings = [], isLoading: workersLoading } = usePublicWorkerListings(workspace?.id);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -125,7 +128,7 @@ export default function CareersPage() {
   }, [allJobs, search, typeFilter, remoteFilter, sourceFilter]);
 
   const companyName = workspace?.company_name || workspace?.name || "";
-  const isLoading = jobsLoading || extLoading || portalLoading;
+  const isLoading = jobsLoading || extLoading || portalLoading || workersLoading;
 
   if (wsLoading) return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -182,90 +185,129 @@ export default function CareersPage() {
             )}
             <Link to={`/careers/${workspaceSlug}/register`}
               className="inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors bg-muted px-4 py-2 rounded-full">
-              <UserPlus className="h-4 w-4" />
+              <Building2 className="h-4 w-4" />
               Publicar Vagas
+            </Link>
+            <Link to={`/careers/${workspaceSlug}/register-worker`}
+              className="inline-flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors bg-muted px-4 py-2 rounded-full">
+              <User className="h-4 w-4" />
+              Publicar Disponibilidade
             </Link>
           </div>
         </motion.div>
       </div>
 
-      {/* Filters + Jobs */}
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Pesquisar vagas ou empresas..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 h-11 rounded-xl border-border/60 focus:border-primary/50" />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[160px] h-11 rounded-xl"><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              {Object.entries(EMPLOYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={remoteFilter} onValueChange={setRemoteFilter}>
-            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Modalidade" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {Object.entries(REMOTE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as fontes</SelectItem>
-              <SelectItem value="internal">Nossas vagas</SelectItem>
-              <SelectItem value="external">Mercado</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+            <TabsTrigger value="jobs" className="gap-2"><Briefcase className="h-4 w-4" />Vagas ({filtered.length})</TabsTrigger>
+            <TabsTrigger value="workers" className="gap-2"><Users className="h-4 w-4" />Profissionais ({workerListings.length})</TabsTrigger>
+          </TabsList>
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "vaga" : "vagas"} encontrada{filtered.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+          <TabsContent value="jobs" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Pesquisar vagas ou empresas..." value={search} onChange={e => setSearch(e.target.value)}
+                  className="pl-9 h-11 rounded-xl border-border/60 focus:border-primary/50" />
+              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[160px] h-11 rounded-xl"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {Object.entries(EMPLOYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={remoteFilter} onValueChange={setRemoteFilter}>
+                <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Modalidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {Object.entries(REMOTE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as fontes</SelectItem>
+                  <SelectItem value="internal">Nossas vagas</SelectItem>
+                  <SelectItem value="external">Mercado</SelectItem>
+                </SelectContent>
+              </Select>
+            </motion.div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-            <Card className="p-16 text-center border-dashed">
-              <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
-              <h3 className="text-xl font-semibold text-foreground">Sem vagas disponíveis</h3>
-              <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-                De momento não temos vagas abertas. Volte mais tarde ou ajuste os filtros de pesquisa.
-              </p>
-            </Card>
-          </motion.div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            <div className="space-y-3">
-              {filtered.map((job, index) => (
-                <motion.div key={job.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
-                  {job.source === "internal" && job.slug ? (
-                    <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
-                      <JobCard job={job} />
-                    </Link>
-                  ) : job.source === "external" && job.source_url ? (
-                    <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
-                      <JobCard job={job} />
-                    </a>
-                  ) : (
-                    <div className="group">
-                      <JobCard job={job} />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </AnimatePresence>
-        )}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
+              </div>
+            ) : filtered.length === 0 ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <Card className="p-16 text-center border-dashed">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
+                  <h3 className="text-xl font-semibold text-foreground">Sem vagas disponíveis</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    De momento não temos vagas abertas. Volte mais tarde ou ajuste os filtros de pesquisa.
+                  </p>
+                </Card>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <div className="space-y-3">
+                  {filtered.map((job, index) => (
+                    <motion.div key={job.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
+                      {job.source === "internal" && job.slug ? (
+                        <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
+                          <JobCard job={job} />
+                        </Link>
+                      ) : job.source === "external" && job.source_url ? (
+                        <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
+                          <JobCard job={job} />
+                        </a>
+                      ) : (
+                        <div className="group">
+                          <JobCard job={job} />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+
+          <TabsContent value="workers" className="space-y-6">
+            {workersLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
+              </div>
+            ) : workerListings.length === 0 ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <Card className="p-16 text-center border-dashed">
+                  <Users className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
+                  <h3 className="text-xl font-semibold text-foreground">Sem profissionais disponíveis</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    De momento nenhum profissional publicou a sua disponibilidade.
+                  </p>
+                  <Link to={`/careers/${workspaceSlug}/register-worker`}>
+                    <Button variant="outline" className="mt-4">Publicar a minha disponibilidade</Button>
+                  </Link>
+                </Card>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <div className="space-y-3">
+                  {workerListings.map((listing, index) => (
+                    <motion.div key={listing.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
+                      <WorkerCard listing={listing} />
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <div className="text-center text-xs text-muted-foreground pt-8 border-t">
           Powered by FastCRM
@@ -344,6 +386,77 @@ function JobCard({ job }: { job: UnifiedJob }) {
           ) : (
             <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
           )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const WORKER_EMPLOYMENT_LABELS: Record<string, string> = {
+  full_time: "Tempo inteiro", part_time: "Part-time", contract: "Prestador", freelance: "Freelance", internship: "Estágio",
+};
+
+const WORKER_REMOTE_LABELS: Record<string, string> = {
+  onsite: "Presencial", remote: "Remoto", hybrid: "Híbrido",
+};
+
+function WorkerCard({ listing }: { listing: PortalWorkerListing }) {
+  const worker = listing.portal_workers;
+  const fullName = worker ? `${worker.first_name} ${worker.last_name}` : "Profissional";
+
+  return (
+    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 overflow-hidden">
+      <CardContent className="p-5 flex gap-4">
+        <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+          {worker?.photo_url ? (
+            <img src={worker.photo_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-start gap-2 flex-wrap">
+            <h3 className="font-semibold text-base leading-tight">{listing.title}</h3>
+            {listing.is_immediate && (
+              <Badge variant="default" className="text-xs shrink-0">Disponível já</Badge>
+            )}
+          </div>
+
+          <p className="text-sm font-medium text-muted-foreground">{fullName}{worker?.sector ? ` • ${worker.sector}` : ""}</p>
+
+          {listing.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{listing.description}</p>
+          )}
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {listing.employment_type && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {WORKER_EMPLOYMENT_LABELS[listing.employment_type] || listing.employment_type}
+              </Badge>
+            )}
+            {listing.remote_option && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {WORKER_REMOTE_LABELS[listing.remote_option] || listing.remote_option}
+              </Badge>
+            )}
+            {(listing.desired_location || worker?.location) && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />{listing.desired_location || worker?.location}
+              </span>
+            )}
+            {worker?.experience_years != null && worker.experience_years > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="h-3 w-3" />{worker.experience_years} anos exp.
+              </span>
+            )}
+            {worker?.skills?.slice(0, 4).map((s, i) => (
+              <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+            ))}
+            {listing.desired_salary_range && (
+              <Badge variant="outline" className="text-xs">{listing.desired_salary_range}</Badge>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

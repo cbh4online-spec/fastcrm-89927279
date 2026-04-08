@@ -52,6 +52,8 @@ const JobDetailPublicPage = lazy(() => import("@/pages/public/JobDetailPublicPag
 const PortalRegisterPage = lazy(() => import("@/pages/public/PortalRegisterPage"));
 const PortalLoginPage = lazy(() => import("@/pages/public/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("@/pages/public/PortalDashboardPage"));
+const WorkerRegisterPage = lazy(() => import("@/pages/public/WorkerRegisterPage"));
+const WorkerDashboardPage = lazy(() => import("@/pages/public/WorkerDashboardPage"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
@@ -138,6 +140,8 @@ const App = () => (
                 <Route path="/careers/:workspaceSlug/register" element={<PortalRegisterPage />} />
                 <Route path="/careers/:workspaceSlug/login" element={<PortalLoginPage />} />
                 <Route path="/careers/:workspaceSlug/dashboard" element={<PortalDashboardPage />} />
+                <Route path="/careers/:workspaceSlug/register-worker" element={<WorkerRegisterPage />} />
+                <Route path="/careers/:workspaceSlug/worker-dashboard" element={<WorkerDashboardPage />} />
                 <Route path="/careers/:workspaceSlug/:jobSlug" element={<JobDetailPublicPage />} />
 
                 {/* Public Booking */}
