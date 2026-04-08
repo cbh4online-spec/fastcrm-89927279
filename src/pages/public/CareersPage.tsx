@@ -391,3 +391,74 @@ function JobCard({ job }: { job: UnifiedJob }) {
     </Card>
   );
 }
+
+const WORKER_EMPLOYMENT_LABELS: Record<string, string> = {
+  full_time: "Tempo inteiro", part_time: "Part-time", contract: "Prestador", freelance: "Freelance", internship: "Estágio",
+};
+
+const WORKER_REMOTE_LABELS: Record<string, string> = {
+  onsite: "Presencial", remote: "Remoto", hybrid: "Híbrido",
+};
+
+function WorkerCard({ listing }: { listing: PortalWorkerListing }) {
+  const worker = listing.portal_workers;
+  const fullName = worker ? `${worker.first_name} ${worker.last_name}` : "Profissional";
+
+  return (
+    <Card className="border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 overflow-hidden">
+      <CardContent className="p-5 flex gap-4">
+        <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+          {worker?.photo_url ? (
+            <img src={worker.photo_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-start gap-2 flex-wrap">
+            <h3 className="font-semibold text-base leading-tight">{listing.title}</h3>
+            {listing.is_immediate && (
+              <Badge variant="default" className="text-xs shrink-0">Disponível já</Badge>
+            )}
+          </div>
+
+          <p className="text-sm font-medium text-muted-foreground">{fullName}{worker?.sector ? ` • ${worker.sector}` : ""}</p>
+
+          {listing.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{listing.description}</p>
+          )}
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {listing.employment_type && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {WORKER_EMPLOYMENT_LABELS[listing.employment_type] || listing.employment_type}
+              </Badge>
+            )}
+            {listing.remote_option && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {WORKER_REMOTE_LABELS[listing.remote_option] || listing.remote_option}
+              </Badge>
+            )}
+            {(listing.desired_location || worker?.location) && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />{listing.desired_location || worker?.location}
+              </span>
+            )}
+            {worker?.experience_years != null && worker.experience_years > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="h-3 w-3" />{worker.experience_years} anos exp.
+              </span>
+            )}
+            {worker?.skills?.slice(0, 4).map((s, i) => (
+              <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+            ))}
+            {listing.desired_salary_range && (
+              <Badge variant="outline" className="text-xs">{listing.desired_salary_range}</Badge>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
