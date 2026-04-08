@@ -35,11 +35,10 @@ export default function TalentSearchPage() {
   const [rssUrl, setRssUrl] = useState("");
   const [searchType, setSearchType] = useState<string>("candidate");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-
-  const effectiveSearchType = searchType === "rss_feed" ? undefined : searchType;
+  const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
 
   const { data: results = [], isLoading } = useTalentResults({
-    search_type: effectiveSearchType,
+    search_type: resultTypeFilter !== "all" ? resultTypeFilter : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
@@ -130,14 +129,31 @@ export default function TalentSearchPage() {
       </Card>
 
       {/* Filters */}
-      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList>
-          <TabsTrigger value="all">Todos</TabsTrigger>
-          <TabsTrigger value="new">Novos</TabsTrigger>
-          <TabsTrigger value="imported">Importados</TabsTrigger>
-          <TabsTrigger value="dismissed">Descartados</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap gap-4 items-center">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <TabsList>
+            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="new">Novos</TabsTrigger>
+            <TabsTrigger value="imported">Importados</TabsTrigger>
+            <TabsTrigger value="dismissed">Descartados</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <Select value={resultTypeFilter} onValueChange={setResultTypeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tipo de resultado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectItem value="candidate">Candidatos</SelectItem>
+            <SelectItem value="job_offer">Ofertas</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <span className="text-sm text-muted-foreground ml-auto">
+          {results.length} resultado{results.length !== 1 ? "s" : ""}
+        </span>
+      </div>
 
       {/* Results */}
       {isLoading ? (
