@@ -187,13 +187,14 @@ export default function GestoresPage() {
   const { data: unassigned } = useQuery({
     queryKey: ["unassigned-counts", currentWorkspace?.id],
     queryFn: async (): Promise<UnassignedCounts> => {
-      if (!currentWorkspace) return { leads: 0, contacts: 0, companies: 0 };
-      const [{ count: uLeads }, { count: uContacts }, { count: uCompanies }] = await Promise.all([
-        workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
-        workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
-        workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).is("assigned_to", null),
+      if (!currentWorkspace) return { leads: 0, contacts: 0, companies: 0, opportunities: 0 };
+      const [{ count: uLeads }, { count: uContacts }, { count: uCompanies }, { count: uOpps }] = await Promise.all([
+        workspaceClient.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("assigned_to.is.null,assigned_to.eq."),
+        workspaceClient.from("opportunities").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).or("owner_id.is.null,owner_id.eq."),
       ]);
-      return { leads: uLeads || 0, contacts: uContacts || 0, companies: uCompanies || 0 };
+      return { leads: uLeads || 0, contacts: uContacts || 0, companies: uCompanies || 0, opportunities: uOpps || 0 };
     },
     enabled: !!currentWorkspace,
   });
