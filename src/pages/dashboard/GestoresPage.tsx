@@ -735,7 +735,8 @@ export default function GestoresPage() {
         {/* Dialogs */}
         <BulkAssignDialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen} members={members || []} workspaceId={currentWorkspace?.id || ""} workspaceClient={workspaceClient} onAssigned={invalidateAll} />
         <RoundRobinDialog open={roundRobinDialogOpen} onOpenChange={setRoundRobinDialogOpen} members={members || []} workspaceId={currentWorkspace?.id || ""} workspaceClient={workspaceClient} rotationGroups={rotationGroups} onDone={invalidateAll} />
-        <AutoAssignDialog open={autoAssignDialogOpen} onOpenChange={setAutoAssignDialogOpen} unassigned={unassigned} onAssign={handleAutoAssign} />
+        <AutoAssignDialog open={autoAssignDialogOpen} onOpenChange={setAutoAssignDialogOpen} unassigned={unassigned} onAssign={handleAutoAssign} managerProfiles={managerProfiles} managerStats={managerStats} />
+        <ManagerProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} userId={profileEditUserId} categories={profileCategories} profiles={managerProfiles} managerStats={managerStats} />
       </div>
     </DashboardLayout>
   );
