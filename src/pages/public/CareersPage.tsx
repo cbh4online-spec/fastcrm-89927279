@@ -26,20 +26,53 @@ export default function CareersPage() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const { data: jobs, isLoading: jobsLoading } = usePublicJobs(workspace?.id);
+  const { data: externalJobs = [], isLoading: extLoading } = usePublicExternalJobs(workspace?.id);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [remoteFilter, setRemoteFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  // Merge internal and external into unified list
+  type UnifiedJob = {
+    id: string;
+    title: string;
+    location: string | null;
+    employment_type: string | null;
+    remote_option: string | null;
+    slug: string | null;
+    source: "internal" | "external";
+    source_platform?: string | null;
+    source_url?: string | null;
+    published_at: string | null;
+  };
+
+  const allJobs = useMemo<UnifiedJob[]>(() => {
+    const internal: UnifiedJob[] = (jobs || []).map(j => ({
+      id: j.id, title: j.title, location: j.location,
+      employment_type: j.employment_type, remote_option: j.remote_option,
+      slug: j.slug, source: "internal" as const, published_at: j.published_at,
+    }));
+    const external: UnifiedJob[] = externalJobs.map(j => ({
+      id: j.id, title: j.title || "Sem título", location: j.location,
+      employment_type: j.extracted_data?.employment_type || null,
+      remote_option: null, slug: null, source: "external" as const,
+      source_platform: j.source_platform, source_url: j.source_url,
+      published_at: j.created_at,
+    }));
+    return [...internal, ...external];
+  }, [jobs, externalJobs]);
 
   const filtered = useMemo(() => {
-    if (!jobs) return [];
-    return jobs.filter(j => {
+    return allJobs.filter(j => {
       if (search && !j.title.toLowerCase().includes(search.toLowerCase())) return false;
       if (typeFilter !== "all" && j.employment_type !== typeFilter) return false;
       if (remoteFilter !== "all" && j.remote_option !== remoteFilter) return false;
+      if (sourceFilter === "internal" && j.source !== "internal") return false;
+      if (sourceFilter === "external" && j.source !== "external") return false;
       return true;
     });
-  }, [jobs, search, typeFilter, remoteFilter]);
+  }, [allJobs, search, typeFilter, remoteFilter, sourceFilter]);
 
   const companyName = workspace?.company_name || workspace?.name || "";
 
