@@ -16,6 +16,7 @@ const HR_ROUTE_LABELS: Record<string, string> = {
   "/dashboard/hr/recruitment/jobs": "Vagas",
   "/dashboard/hr/recruitment/candidates": "Candidatos",
   "/dashboard/hr/recruitment/interviews": "Entrevistas",
+  "/dashboard/hr/recruitment/talent-search": "Pesquisa de Talento",
   "/dashboard/hr/okrs": "OKRs",
   "/dashboard/hr/feedback": "Feedback",
   "/dashboard/hr/checkins": "Check-ins",
