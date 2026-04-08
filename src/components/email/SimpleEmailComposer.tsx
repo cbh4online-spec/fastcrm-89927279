@@ -637,11 +637,6 @@ export function SimpleEmailComposer({
               />
             </div>
 
-            {/* AI Assist */}
-            <div className="flex items-center gap-2">
-              <AIEmailAssistPanel body={body} subject={subject} onApplyBody={setBody} onApplySubject={setSubject} disabled={isBusy} />
-              <span className="text-sm text-muted-foreground">Assistente IA</span>
-            </div>
 
             {/* Translation */}
             <div>
