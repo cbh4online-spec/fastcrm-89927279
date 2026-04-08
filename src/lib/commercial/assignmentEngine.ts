@@ -1,11 +1,12 @@
 /**
- * Assignment Engine — Round-robin + capacity-based auto-assign
+ * Assignment Engine — Round-robin + capacity-based + skill-matching auto-assign
  *
  * Formulas:
  * - Pipeline: SUM(opportunities.value) WHERE owner_id = manager AND status != 'lost'
  * - Conversion: COUNT(opportunities WHERE status='won' AND owner_id=manager)
  *               / COUNT(leads WHERE assigned_to=manager) * 100
  * - Capacity score: lower is better (more loaded). Higher score = more capacity.
+ * - Matching: Mandatory — entity must match manager profile (segment/territory/client_type)
  */
 
 import type { EntityType } from "./ownershipResolver";
@@ -23,6 +24,22 @@ export interface ManagerWorkload {
   capacityScore: number; // 0-100, higher = more available
   workloadBucket: "low" | "medium" | "high" | "overloaded";
   eligibleForAutoAssign: boolean;
+}
+
+export interface ManagerProfile {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  segments: string[];
+  territories: string[];
+  client_types: string[];
+  is_active: boolean;
+}
+
+export interface EntityMatchCriteria {
+  segment?: string | null;
+  territory?: string | null;
+  client_type?: string | null;
 }
 
 export interface AssignmentLogEntry {
@@ -66,6 +83,54 @@ export function calculateManagerCapacity(
   };
 }
 
+// ─── Skill Matching ────────────────────────────────────────
+
+/**
+ * Check if a manager matches the entity's criteria.
+ * Matching is mandatory per dimension: if the entity has a segment,
+ * the manager must have that segment in their profile.
+ * If the entity has NO criteria, any manager matches.
+ */
+export function matchesProfile(
+  profile: ManagerProfile | undefined,
+  criteria: EntityMatchCriteria
+): boolean {
+  if (!profile || !profile.is_active) return false;
+
+  const hasAnyCriteria = criteria.segment || criteria.territory || criteria.client_type;
+  if (!hasAnyCriteria) {
+    // No criteria on entity → any active manager matches
+    return true;
+  }
+
+  // Each non-null dimension must match
+  if (criteria.segment && !profile.segments.includes(criteria.segment)) return false;
+  if (criteria.territory && !profile.territories.includes(criteria.territory)) return false;
+  if (criteria.client_type && !profile.client_types.includes(criteria.client_type)) return false;
+
+  return true;
+}
+
+/**
+ * Filter managers by skill match, then select by capacity.
+ * Returns null if no manager matches (entity stays unassigned — mandatory matching).
+ */
+export function selectByCapacityWithMatching(
+  workloads: ManagerWorkload[],
+  profiles: ManagerProfile[],
+  criteria: EntityMatchCriteria
+): string | null {
+  const eligible = workloads.filter(w => {
+    if (!w.eligibleForAutoAssign) return false;
+    const profile = profiles.find(p => p.user_id === w.managerId);
+    return matchesProfile(profile, criteria);
+  });
+
+  if (eligible.length === 0) return null;
+  eligible.sort((a, b) => b.capacityScore - a.capacityScore);
+  return eligible[0].managerId;
+}
+
 // ─── Round-robin resolver ──────────────────────────────────
 
 /**
@@ -84,7 +149,7 @@ export function getNextRoundRobin(
   return orderedMemberIds[nextIdx];
 }
 
-// ─── Capacity-based selector ───────────────────────────────
+// ─── Capacity-based selector (legacy, no matching) ─────────
 
 /**
  * Select the best manager based on capacity score (highest wins).
