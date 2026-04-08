@@ -1,84 +1,53 @@
 
 
-## Plano: Integração de 9 Portais de Emprego Portugueses
+## Plano: Importação Automática Diária dos 9 Portais
 
-### Contexto
+### Diagnóstico
 
-O sistema actual permite pesquisar vagas via Firecrawl (busca web) ou importar feeds RSS manualmente. O objectivo é integrar 9 portais de emprego como fontes pré-configuradas, permitindo importação com um clique e aumentando a visibilidade das vagas agregadas no portal público.
-
-### Portais a Integrar
-
-| Portal | URL | Método |
-|--------|-----|--------|
-| JobLeads | jobleads.com | Scrape/Search |
-| DataAnnotation | dataannotation.tech | Scrape |
-| Sapo Emprego | emprego.sapo.pt | Scrape/Search |
-| Alerta Emprego | alertaemprego.pt | Scrape/Search |
-| Portal Emprego | portalemprego.pt | Scrape/Search |
-| Indeed PT | pt.indeed.com | Search (já parcialmente suportado) |
-| Expresso Emprego | expressoemprego.pt | Scrape/Search |
-| IEFP | iefp.pt/emprego | Scrape |
-| Emprego Público | empregopublico.gov.pt | Scrape |
+A edge function `hr-talent-search` exige autenticação de utilizador (JWT), o que impede a sua utilização directa por um cron job. É necessário criar uma edge function dedicada para importação automática que use `SUPABASE_SERVICE_ROLE_KEY` e itere por todos os workspaces activos.
 
 ### Alterações Planeadas
 
-#### 1. Catálogo de Portais Pré-Configurados (Frontend)
+#### 1. Nova Edge Function `hr-portal-auto-import`
 
-Adicionar ao `TalentSearchPage.tsx` uma secção "Portais Integrados" com cards para cada portal, incluindo:
-- Logo (favicon via Google S2)
-- Nome e descrição curta
-- Botão "Importar vagas" que dispara a pesquisa automaticamente
-- Estado de última importação (timestamp + contagem)
+Função invocada por cron (sem JWT de utilizador):
+- Usa `SUPABASE_SERVICE_ROLE_KEY` para aceder à base de dados
+- Busca todos os workspaces activos
+- Para cada workspace, itera os 9 portais do `PORTAL_CATALOG`
+- Reutiliza a lógica de scrape/search e deduplicação existente (extraída como funções partilhadas)
+- Limita a 5 resultados por portal para controlar créditos Firecrawl
+- Regista logs de execução (total importado, erros por portal)
 
-Substituir o input manual de RSS por um selector de portais + campo de pesquisa opcional (keywords/localização).
+#### 2. Cron Job via `pg_cron` + `pg_net`
 
-#### 2. Actualização da Edge Function `hr-talent-search`
-
-Adicionar um novo modo `portal_import` que:
-- Recebe `portal_slug` + `keywords` opcionais
-- Usa Firecrawl Search com queries optimizadas por portal (ex: `site:emprego.sapo.pt ${keywords}`)
-- Para portais com estrutura conhecida (IEFP, Emprego Público), usa Firecrawl Scrape directamente nas páginas de listagem
-- Detecta a plataforma correctamente para os 9 portais na função de detecção existente
-- Deduplica resultados por `source_url` antes de inserir
-
-#### 3. Detecção de Plataforma Expandida
-
-Actualizar o mapeamento de plataformas na edge function para reconhecer todos os 9 domínios:
-
-```text
-jobleads.com       → JobLeads
-dataannotation.tech → DataAnnotation
-emprego.sapo.pt    → Sapo Emprego
-alertaemprego.pt   → Alerta Emprego
-portalemprego.pt   → Portal Emprego
-pt.indeed.com      → Indeed PT
-expressoemprego.pt → Expresso Emprego
-iefp.pt            → IEFP
-empregopublico.gov.pt → Emprego Público
+Agendar execução diária às 06:00 UTC:
+```sql
+select cron.schedule(
+  'daily-portal-import',
+  '0 6 * * *',
+  $$ select net.http_post(...) $$
+);
 ```
 
-#### 4. Logos no Portal Público (`CareersPage.tsx`)
+#### 3. Nenhuma alteração necessária na página pública
 
-Actualizar `getFaviconUrl` para usar favicons de alta qualidade e adicionar ícones específicos por plataforma nos cards de vagas externas.
+A `CareersPage.tsx` já agrega vagas da tabela `hr_talent_results` com status `new`/`reviewed`. Os resultados importados automaticamente aparecem imediatamente no portal público sem qualquer modificação adicional.
 
-### Ficheiros a Modificar
+### Ficheiros a Criar/Modificar
 
-1. **`supabase/functions/hr-talent-search/index.ts`** — Novo modo `portal_import`, detecção de plataforma expandida, deduplicação
-2. **`src/pages/dashboard/hr/recruitment/TalentSearchPage.tsx`** — Secção de portais pré-configurados com importação one-click
-3. **`src/hooks/hr/useTalentSearch.ts`** — Novo hook/mutation para importação por portal
-4. **`src/pages/public/CareersPage.tsx`** — Melhorar logos e labels das plataformas
+1. **`supabase/functions/hr-portal-auto-import/index.ts`** — Nova edge function com service_role, loop por workspaces e portais
+2. **Migração SQL** — Activar `pg_cron`/`pg_net` e criar o schedule
+3. **`supabase/functions/hr-talent-search/index.ts`** — Extrair funções partilhadas (detectPlatform, PORTAL_CATALOG, parseContentWithAI) para reutilização, ou duplicar no novo ficheiro
 
-### Critérios de Aceitação
+### Segurança
 
-- Utilizador pode importar vagas de qualquer dos 9 portais com um clique
-- Resultados aparecem automaticamente no portal público `/careers/{slug}`
-- Deduplicação por URL evita vagas repetidas
-- Plataforma correctamente identificada em cada resultado
-- Logos visíveis nos cards do portal público
+- A função valida um header secreto (`x-cron-secret`) para impedir invocações não autorizadas
+- Usa `SERVICE_ROLE_KEY` apenas server-side, nunca exposto ao cliente
+- Sem alteração de RLS — a política pública existente já cobre os novos registos
 
 ### Riscos
 
-- Portais governamentais (IEFP, Emprego Público) podem bloquear scraping — fallback para search
-- Créditos Firecrawl consumidos por cada importação — alertar utilizador
-- Estrutura HTML dos portais pode mudar — parsing via IA mitiga este risco
+- Consumo de créditos Firecrawl: 9 portais × N workspaces × 5 resultados/dia — mitigado com limite baixo por portal
+- Rate limiting do Firecrawl — adicionar delay entre chamadas (1s entre portais)
+- Portais governamentais podem falhar silenciosamente — log de erros por portal sem interromper os restantes
 
