@@ -10,6 +10,7 @@ import {
   Smartphone,
   Code,
   Upload,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ import { EmailCanvas } from './EmailCanvas';
 import { VariablePicker } from './VariablePicker';
 import { ImageUploader } from './ImageUploader';
 import { EmailEditorProvider, useEmailEditorContext } from '@/contexts/EmailEditorContext';
+import { EmailTestSendDialog } from './EmailTestSendDialog';
 import type { EmailDesign, EmailLayout, EmailBlockType, ImageBlockContent } from '@/types/emailBuilder';
 
 interface EmailBuilderProps {
@@ -48,6 +50,7 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [previewMode, setPreviewMode] = useState<PreviewMode>('desktop');
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
+  const [showTestSend, setShowTestSend] = useState(false);
   const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,6 +215,11 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             <Eye className="h-3.5 w-3.5 mr-1.5" />
             Preview
           </Button>
+
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowTestSend(true)}>
+            <Send className="h-3.5 w-3.5 mr-1.5" />
+            Enviar Teste
+          </Button>
           
           <Button size="sm" className="h-8" onClick={handleSave}>
             <Save className="h-3.5 w-3.5 mr-1.5" />
@@ -355,11 +363,16 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
           </div>
         </DialogContent>
       </Dialog>
+      {/* Test Send Dialog */}
+      <EmailTestSendDialog
+        open={showTestSend}
+        onOpenChange={setShowTestSend}
+        html={renderEmailToHtml(design)}
+      />
     </div>
   );
 }
 
-// Wrapper with provider
 export function EmailBuilder(props: EmailBuilderProps) {
   return (
     <EmailEditorProvider>
