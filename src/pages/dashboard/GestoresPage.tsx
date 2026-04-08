@@ -787,10 +787,39 @@ export default function GestoresPage() {
           <StatCardAlert
             label="Não Atribuídos"
             value={totalUnassigned}
-            detail={`${unassigned?.leads || 0} leads · ${unassigned?.contacts || 0} contactos · ${unassigned?.companies || 0} empresas`}
+            detail={`${unassigned?.leads || 0} leads · ${unassigned?.contacts || 0} contactos · ${unassigned?.companies || 0} empresas · ${unassigned?.opportunities || 0} oportunidades`}
             onClick={() => setAssignDialogOpen(true)}
           />
         </div>
+
+        {/* Health indicator */}
+        {managerStats && managerStats.length > 0 && (() => {
+          const totalEntities = totals.leads + totals.contacts + totals.companies;
+          const totalAll = totalEntities + totalUnassigned;
+          const coveragePct = totalAll > 0 ? Math.round((totalEntities / totalAll) * 100) : 0;
+          const coverageColor = coveragePct >= 80 ? "text-emerald-600" : coveragePct >= 50 ? "text-amber-600" : "text-red-600";
+          const barColor = coveragePct >= 80 ? "bg-emerald-500" : coveragePct >= 50 ? "bg-amber-500" : "bg-red-500";
+          return (
+            <Card className="border-dashed">
+              <CardContent className="p-3 flex items-center gap-4">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Activity className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Saúde do Módulo</span>
+                </div>
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="flex-1">
+                    <Progress value={coveragePct} className="h-2" />
+                  </div>
+                  <span className={cn("text-sm font-semibold", coverageColor)}>{coveragePct}%</span>
+                  <span className="text-xs text-muted-foreground">cobertura de atribuição</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {totalEntities} atribuídas / {totalAll} total
+                </span>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Search */}
         <div className="relative max-w-sm">
