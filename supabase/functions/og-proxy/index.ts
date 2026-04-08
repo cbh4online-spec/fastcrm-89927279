@@ -73,9 +73,19 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const type = url.searchParams.get("type") || "";
-    const slug = url.searchParams.get("slug") || "";
+    let type = url.searchParams.get("type") || "";
+    let slug = url.searchParams.get("slug") || "";
     const userAgent = req.headers.get("user-agent");
+
+    // Support ?path= for direct URL resolution (e.g. /store/slug/product/id)
+    const pathParam = url.searchParams.get("path") || "";
+    if (!type && pathParam) {
+      const parsed = parsePathToTypeSlug(pathParam);
+      if (parsed) {
+        type = parsed.type;
+        slug = parsed.slug;
+      }
+    }
 
     if (!type || !slug) {
       return new Response("Missing type or slug", { status: 400, headers: corsHeaders });
