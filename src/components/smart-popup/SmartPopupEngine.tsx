@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 interface PopupRule {
   id: string;
   trigger_type: string;
-  trigger_value: any;
+  trigger_value: number | string | null;
   popup_type: string;
-  content: any;
+  content: Record<string, unknown>;
   max_shows_per_session: number;
   target_pages: string[];
 }
@@ -50,12 +50,16 @@ export function SmartPopupEngine({ workspaceId, currentPage }: Props) {
   // Fetch rules
   useEffect(() => {
     if (!workspaceId) return;
-    (supabase as any)
+    supabase
       .from("popup_rules")
       .select("id, trigger_type, trigger_value, popup_type, content, max_shows_per_session, target_pages")
       .eq("workspace_id", workspaceId)
       .eq("enabled", true)
-      .then(({ data }: any) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[SmartPopupEngine] Failed to fetch rules:", error.message);
+          return;
+        }
         if (data) setRules(data);
       });
   }, [workspaceId]);

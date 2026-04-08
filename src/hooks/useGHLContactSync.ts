@@ -80,56 +80,67 @@ export function useGHLContactSync() {
       let buffer = "";
       let result: SyncResult | null = null;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Parse SSE events
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || ""; // Keep incomplete line in buffer
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          
-          if (line.startsWith("event: ")) {
-            const eventType = line.substring(7);
-            const dataLine = lines[i + 1];
-            
-            if (dataLine?.startsWith("data: ")) {
-              const data = JSON.parse(dataLine.substring(6));
-              
-              switch (eventType) {
-                case "init":
-                  setProgress({
-                    page: 0,
-                    processed: 0,
-                    created: 0,
-                    skipped: 0,
-                    estimatedTotal: data.estimatedTotal || 0,
-                  });
-                  break;
-                  
-                case "progress":
-                  setProgress(data);
-                  break;
-                  
-                case "complete":
-                  result = data;
-                  setLastResult(data);
-                  break;
-                  
-                case "error":
-                  toast.error(data.error || "Erro durante sincronização");
-                  break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Parse SSE events
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            if (line.startsWith("event: ")) {
+              const eventType = line.substring(7);
+              const dataLine = lines[i + 1];
+
+              if (dataLine?.startsWith("data: ")) {
+                let data: Record<string, unknown>;
+                try {
+                  data = JSON.parse(dataLine.substring(6));
+                } catch {
+                  console.error("[GHL Contact Sync] Invalid SSE JSON:", dataLine);
+                  i++;
+                  continue;
+                }
+
+                switch (eventType) {
+                  case "init":
+                    setProgress({
+                      page: 0,
+                      processed: 0,
+                      created: 0,
+                      skipped: 0,
+                      estimatedTotal: (data.estimatedTotal as number) || 0,
+                    });
+                    break;
+
+                  case "progress":
+                    setProgress(data as unknown as SyncProgress);
+                    break;
+
+                  case "complete":
+                    result = data as unknown as SyncResult;
+                    setLastResult(result);
+                    break;
+
+                  case "error":
+                    toast.error((data.error as string) || "Erro durante sincronização");
+                    break;
+                }
+
+                i++;
               }
-              
-              i++; // Skip the data line we just processed
             }
           }
         }
+      } finally {
+        reader.cancel().catch(() => {});
       }
 
       if (result) {

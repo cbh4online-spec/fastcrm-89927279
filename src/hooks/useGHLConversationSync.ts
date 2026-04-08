@@ -81,46 +81,57 @@ export function useGHLConversationSync() {
       let buffer = "";
       let result: ConversationSyncResult | null = null;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Parse SSE events
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          
-          if (line.startsWith("event: ")) {
-            const eventType = line.substring(7);
-            const dataLine = lines[i + 1];
-            
-            if (dataLine?.startsWith("data: ")) {
-              const data = JSON.parse(dataLine.substring(6));
-              
-              switch (eventType) {
-                case "progress":
-                  setProgress(data);
-                  break;
-                  
-                case "complete":
-                  result = data;
-                  setLastResult(data);
-                  break;
-                  
-                case "error":
-                  toast.error(data.error || "Erro durante sincronização");
-                  break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Parse SSE events
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            if (line.startsWith("event: ")) {
+              const eventType = line.substring(7);
+              const dataLine = lines[i + 1];
+
+              if (dataLine?.startsWith("data: ")) {
+                let data: Record<string, unknown>;
+                try {
+                  data = JSON.parse(dataLine.substring(6));
+                } catch {
+                  console.error("[GHL Conversation Sync] Invalid SSE JSON:", dataLine);
+                  i++;
+                  continue;
+                }
+
+                switch (eventType) {
+                  case "progress":
+                    setProgress(data as unknown as ConversationSyncProgress);
+                    break;
+
+                  case "complete":
+                    result = data as unknown as ConversationSyncResult;
+                    setLastResult(result);
+                    break;
+
+                  case "error":
+                    toast.error((data.error as string) || "Erro durante sincronização");
+                    break;
+                }
+
+                i++;
               }
-              
-              i++;
             }
           }
         }
+      } finally {
+        reader.cancel().catch(() => {});
       }
 
       if (result) {
