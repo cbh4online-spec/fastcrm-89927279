@@ -11,8 +11,10 @@ import {
   Code,
   Upload,
   Send,
+  ClipboardPaste,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -51,6 +53,8 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
   const [showTestSend, setShowTestSend] = useState(false);
+  const [showPasteHtml, setShowPasteHtml] = useState(false);
+  const [pasteHtmlValue, setPasteHtmlValue] = useState('');
   const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,6 +141,19 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
     e.target.value = '';
   }, [addBlock, updateBlock]);
 
+  const handlePasteHtml = useCallback(() => {
+    const html = pasteHtmlValue.trim();
+    if (!html) {
+      toast.error('Cola o HTML primeiro');
+      return;
+    }
+    const newBlockId = addBlock('html');
+    updateBlock(newBlockId, { content: { html } });
+    toast.success('HTML colado com sucesso');
+    setPasteHtmlValue('');
+    setShowPasteHtml(false);
+  }, [pasteHtmlValue, addBlock, updateBlock]);
+
   const previewWidths: Record<PreviewMode, number> = {
     desktop: 600,
     tablet: 480,
@@ -210,6 +227,11 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             className="hidden"
             onChange={handleImportHtml}
           />
+
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPasteHtml(true)}>
+            <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+            Colar HTML
+          </Button>
           
           <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1.5" />
@@ -359,6 +381,31 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
               }}
             >
               Copiar HTML
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Paste HTML Dialog */}
+      <Dialog open={showPasteHtml} onOpenChange={setShowPasteHtml}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Colar HTML</DialogTitle>
+            <DialogDescription>
+              Cola o código HTML do teu email abaixo
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={pasteHtmlValue}
+            onChange={(e) => setPasteHtmlValue(e.target.value)}
+            placeholder="<html>...</html>"
+            className="flex-1 min-h-[300px] font-mono text-xs"
+          />
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => { setPasteHtmlValue(''); setShowPasteHtml(false); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handlePasteHtml} disabled={!pasteHtmlValue.trim()}>
+              Inserir HTML
             </Button>
           </div>
         </DialogContent>

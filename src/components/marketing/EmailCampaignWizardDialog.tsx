@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Sparkles, Copy, Loader2, AlertCircle, Coins } from 'lucide-react';
+import { Send, Sparkles, Copy, Loader2, AlertCircle, Coins, Paintbrush } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreditWallet } from '@/hooks/useCreditWallet';
 import { triggerNoCreditsDialog } from '@/hooks/useNoCreditsDialog';
@@ -19,9 +19,10 @@ const ACTION_KEY = 'ai_email_campaign_wizard';
 interface EmailCampaignWizardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenEditor?: (html: string) => void;
 }
 
-export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignWizardDialogProps) {
+export function EmailCampaignWizardDialog({ open, onOpenChange, onOpenEditor }: EmailCampaignWizardDialogProps) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -251,13 +252,24 @@ export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignW
                     )}
 
                     {hasCampaign && (
-                      <div className="mt-3 pt-3 border-t border-border/50 flex gap-2">
+                      <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-2">
                         <Button size="sm" variant="secondary" onClick={() => copyCampaign(msg.content)}>
                           <Copy className="h-3.5 w-3.5 mr-1" /> Copiar JSON
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => copyHtml(msg.content)}>
                           <Copy className="h-3.5 w-3.5 mr-1" /> Copiar HTML
                         </Button>
+                        {onOpenEditor && (
+                          <Button size="sm" variant="default" onClick={() => {
+                            const data = extractCampaignJSON(msg.content);
+                            if (data?.body_html) {
+                              onOpenEditor(data.body_html);
+                              onOpenChange(false);
+                            }
+                          }}>
+                            <Paintbrush className="h-3.5 w-3.5 mr-1" /> Abrir no Editor
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>

@@ -58,6 +58,12 @@ export default function Marketing() {
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
+  const [wizardInitialHtml, setWizardInitialHtml] = useState<string | null>(null);
+
+  const handleWizardOpenEditor = (html: string) => {
+    setWizardInitialHtml(html);
+    setShowCampaignCreation(true);
+  };
 
   const handleSelectLibraryTemplate = (html: string, name: string) => {
     toast.success(`Template "${name || 'selecionado'}" carregado`);
@@ -265,7 +271,11 @@ export default function Marketing() {
       {/* Dialogs */}
       <CampaignCreationFlow
         open={showCampaignCreation}
-        onOpenChange={setShowCampaignCreation}
+        onOpenChange={(open) => {
+          setShowCampaignCreation(open);
+          if (!open) setWizardInitialHtml(null);
+        }}
+        initialHtml={wizardInitialHtml}
       />
 
       <CampaignFormDialog
@@ -306,6 +316,7 @@ export default function Marketing() {
       <EmailCampaignWizardDialog
         open={showCampaignWizard}
         onOpenChange={setShowCampaignWizard}
+        onOpenEditor={handleWizardOpenEditor}
       />
     </DashboardLayout>
   );
