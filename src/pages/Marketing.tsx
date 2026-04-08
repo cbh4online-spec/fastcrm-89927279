@@ -9,6 +9,7 @@ import {
   Settings, 
   Plus,
   Send,
+  Sparkles,
   FileText,
   Target,
   Paintbrush,
