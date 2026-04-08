@@ -32,6 +32,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 export default function TalentSearchPage() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [rssUrl, setRssUrl] = useState("");
   const [searchType, setSearchType] = useState<string>("candidate");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
