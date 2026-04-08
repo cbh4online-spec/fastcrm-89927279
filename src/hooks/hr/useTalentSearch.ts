@@ -51,6 +51,38 @@ export function useTalentResults(filters?: { search_type?: string; status?: stri
   });
 }
 
+export function usePortalImport() {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ portal_slug, keywords }: { portal_slug: string; keywords?: string }) => {
+      if (!wsId) throw new Error("Sem workspace");
+
+      const { data, error } = await supabase.functions.invoke("hr-talent-search", {
+        body: { search_type: "portal_import", portal_slug, keywords, workspace_id: wsId },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        if (data.code === "CREDITS_EXHAUSTED") {
+          throw new Error("Créditos Firecrawl insuficientes. Recarregue a sua conta.");
+        }
+        throw new Error(data.error);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["hr-talent-results"] });
+      toast.success(`${data.count || 0} vagas importadas de ${data.portal || "portal"}`);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro na importação do portal");
+    },
+  });
+}
+
 export function useSearchTalent() {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
