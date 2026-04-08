@@ -737,9 +737,7 @@ export function SmartContactsTable() {
                 { slug: "last_purchase_date", name: t("col_lastPurchase"), field_type: "date" },
               ]}
               records={(contacts || []) as unknown as Record<string, unknown>[]}
-              onFilteredRecords={(records) => {
-                // When smart list has conditions, update the smart list conditions state
-              }}
+              onConditionsChange={setSmartListConditions}
             />
             {/* Active smart list info */}
             {smartListConditions.length > 0 && activeTab !== "smart-lists" && (
