@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  User, Building2, Users, HelpCircle, ExternalLink, 
+  User, Building2, Users, HelpCircle, ExternalLink, Copy,
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
@@ -1120,12 +1120,19 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
                         <Button
                           variant="ghost"
                           size="sm"
-                          asChild
+                          onClick={() => {
+                            navigator.clipboard.writeText(profile.profile_url);
+                            toast.success("URL copiado!", {
+                              description: profile.profile_url,
+                              action: {
+                                label: "Abrir",
+                                onClick: () => window.open(profile.profile_url, "_blank", "noopener,noreferrer"),
+                              },
+                            });
+                          }}
                         >
-                          <a href={profile.profile_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            Ver perfil
-                          </a>
+                          <Copy className="w-4 h-4 mr-1" />
+                          Copiar perfil
                         </Button>
 
                         <Button
