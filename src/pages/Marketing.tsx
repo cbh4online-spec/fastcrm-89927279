@@ -9,6 +9,7 @@ import {
   Settings, 
   Plus,
   Send,
+  Sparkles,
   FileText,
   Target,
   Paintbrush,
@@ -43,6 +44,7 @@ import { CampaignReportExport } from '@/components/marketing/CampaignReportExpor
 import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
 import { LifecycleAutomations } from '@/components/marketing/LifecycleAutomations';
 import { MCPIntegrationsTab } from '@/components/marketing/mcp/MCPIntegrationsTab';
+import { EmailCampaignWizardDialog } from '@/components/marketing/EmailCampaignWizardDialog';
 import { toast } from 'sonner';
 
 export default function Marketing() {
@@ -55,6 +57,7 @@ export default function Marketing() {
   const [showEmailBuilder, setShowEmailBuilder] = useState(false);
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   const handleSelectLibraryTemplate = (html: string, name: string) => {
     toast.success(`Template "${name || 'selecionado'}" carregado`);
@@ -118,6 +121,15 @@ export default function Marketing() {
             </p>
           </div>
           <div className="flex gap-2 items-center flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCampaignWizard(true)}
+              className="gap-1.5"
+            >
+              <Sparkles className="h-4 w-4" />
+              Criar com IA
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -289,6 +301,11 @@ export default function Marketing() {
         open={showTemplateLibrary}
         onOpenChange={setShowTemplateLibrary}
         onSelectTemplate={handleSelectLibraryTemplate}
+      />
+
+      <EmailCampaignWizardDialog
+        open={showCampaignWizard}
+        onOpenChange={setShowCampaignWizard}
       />
     </DashboardLayout>
   );
