@@ -147,6 +147,7 @@ export function ContactMessagesSection({
 }: ContactMessagesSectionProps) {
   const { data: templates = [], isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { isLoading: aiLoading, suggestReplies } = useAskAI();
+  const { data: emailConnection, isLoading: emailConnectionLoading } = useActiveEmailConnection();
   
   const [activeTab, setActiveTab] = useState<'compose' | 'templates' | 'ai'>('compose');
   const [selectedChannel, setSelectedChannel] = useState<MessageChannel>('email');
