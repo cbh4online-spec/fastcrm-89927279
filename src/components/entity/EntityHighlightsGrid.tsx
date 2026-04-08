@@ -168,7 +168,11 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
                 <Icon className={cn('h-3.5 w-3.5', card.color)} />
                 <span className="text-xs text-muted-foreground">{card.label}</span>
               </div>
-              <p className={cn('text-sm font-semibold', card.color)}>{card.value}</p>
+              {card.customRender ? (
+                card.customRender
+              ) : (
+                <p className={cn('text-sm font-semibold', card.color)}>{card.value}</p>
+              )}
             </div>
           );
         })}
