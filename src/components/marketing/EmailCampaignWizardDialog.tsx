@@ -131,7 +131,8 @@ export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignW
       try {
         await consumeCredits.mutateAsync({ actionKey: ACTION_KEY, referenceType: 'email_campaign_wizard' });
         setCreditsConsumed(true);
-      } catch {
+      } catch (e) {
+        console.error('Credit consumption failed:', e);
         return;
       }
     }
