@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe } from "lucide-react";
+import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Rss } from "lucide-react";
 import {
   useTalentResults,
   useSearchTalent,
@@ -32,6 +32,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 export default function TalentSearchPage() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [rssUrl, setRssUrl] = useState("");
   const [searchType, setSearchType] = useState<string>("candidate");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -46,8 +47,13 @@ export default function TalentSearchPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    searchMutation.mutate({ search_type: searchType, query: query.trim(), location: location.trim() || undefined });
+    if (searchType === "rss_feed") {
+      if (!rssUrl.trim()) return;
+      searchMutation.mutate({ search_type: "rss_feed", rss_url: rssUrl.trim() });
+    } else {
+      if (!query.trim()) return;
+      searchMutation.mutate({ search_type: searchType, query: query.trim(), location: location.trim() || undefined });
+    }
   };
 
   return (
@@ -64,38 +70,55 @@ export default function TalentSearchPage() {
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <Select value={searchType} onValueChange={setSearchType}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="candidate">Candidatos</SelectItem>
                 <SelectItem value="job_offer">Ofertas de emprego</SelectItem>
+                <SelectItem value="rss_feed">Feed RSS / Portal</SelectItem>
               </SelectContent>
             </Select>
 
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={searchType === "candidate" ? "Ex: Desenvolvedor React, Designer UX..." : "Ex: Marketing Manager, Engenheiro Civil..."}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            {searchType === "rss_feed" ? (
+              <div className="flex-1 relative">
+                <Rss className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="URL do feed RSS (ex: https://www.net-empregos.com/rssfeed.asp)"
+                  value={rssUrl}
+                  onChange={(e) => setRssUrl(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={searchType === "candidate" ? "Ex: Desenvolvedor React, Designer UX..." : "Ex: Marketing Manager, Engenheiro Civil..."}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
 
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Localização"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="pl-10 w-full sm:w-[180px]"
-              />
-            </div>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Localização"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="pl-10 w-full sm:w-[180px]"
+                  />
+                </div>
+              </>
+            )}
 
-            <Button type="submit" disabled={searchMutation.isPending || !query.trim()}>
+            <Button type="submit" disabled={searchMutation.isPending || (searchType === "rss_feed" ? !rssUrl.trim() : !query.trim())}>
               {searchMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A pesquisar...</>
+              ) : searchType === "rss_feed" ? (
+                <><Rss className="h-4 w-4 mr-2" />Importar feed</>
               ) : (
                 <><Search className="h-4 w-4 mr-2" />Pesquisar</>
               )}
