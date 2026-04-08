@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { HRBreadcrumb } from "@/components/hr/HRBreadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Rss, Download, Building2 } from "lucide-react";
+import { Search, Loader2, ExternalLink, UserPlus, Briefcase, X, MapPin, Globe, Download, Building2, Filter } from "lucide-react";
 import {
   useTalentResults,
-  useSearchTalent,
   useDismissTalentResult,
   useImportTalentResult,
   usePortalImport,
@@ -43,10 +42,7 @@ const PORTALS = [
 ];
 
 export default function TalentSearchPage() {
-  const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
-  const [rssUrl, setRssUrl] = useState("");
-  const [searchType, setSearchType] = useState<string>("candidate");
+  const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
   const [portalKeywords, setPortalKeywords] = useState("");
@@ -57,21 +53,29 @@ export default function TalentSearchPage() {
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
-  const searchMutation = useSearchTalent();
   const dismissMutation = useDismissTalentResult();
   const importMutation = useImportTalentResult();
   const portalImportMutation = usePortalImport();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchType === "rss_feed") {
-      if (!rssUrl.trim()) return;
-      searchMutation.mutate({ search_type: "rss_feed", rss_url: rssUrl.trim() });
-    } else {
-      if (!query.trim()) return;
-      searchMutation.mutate({ search_type: searchType, query: query.trim(), location: location.trim() || undefined });
-    }
-  };
+  // Client-side text filter on already-loaded results
+  const filteredResults = useMemo(() => {
+    if (!searchText.trim()) return results;
+    const terms = searchText.toLowerCase().split(/\s+/).filter(Boolean);
+    return results.filter((r) => {
+      const haystack = [
+        r.title,
+        r.description,
+        r.location,
+        r.source_platform,
+        r.search_query,
+        ...(r.skills || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return terms.every((t) => haystack.includes(t));
+    });
+  }, [results, searchText]);
 
   const handlePortalImport = (portalSlug: string) => {
     setImportingPortal(portalSlug);
@@ -87,7 +91,7 @@ export default function TalentSearchPage() {
 
       <div>
         <h1 className="text-2xl font-bold text-foreground">Pesquisa de Talento</h1>
-        <p className="text-muted-foreground">Pesquise candidatos e ofertas de emprego na web com IA</p>
+        <p className="text-muted-foreground">Importe vagas dos portais e pesquise nos resultados</p>
       </div>
 
       {/* Integrated Portals */}
@@ -147,69 +151,35 @@ export default function TalentSearchPage() {
         </CardContent>
       </Card>
 
-      {/* Search form */}
+      {/* Search & Filters */}
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-            <Select value={searchType} onValueChange={setSearchType}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar nos resultados importados (título, skills, localização...)"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={resultTypeFilter} onValueChange={setResultTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 <SelectItem value="candidate">Candidatos</SelectItem>
-                <SelectItem value="job_offer">Ofertas de emprego</SelectItem>
-                <SelectItem value="rss_feed">Feed RSS / Portal</SelectItem>
+                <SelectItem value="job_offer">Ofertas</SelectItem>
               </SelectContent>
             </Select>
-
-            {searchType === "rss_feed" ? (
-              <div className="flex-1 relative">
-                <Rss className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="URL do feed RSS (ex: https://www.net-empregos.com/rssfeed.asp)"
-                  value={rssUrl}
-                  onChange={(e) => setRssUrl(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={searchType === "candidate" ? "Ex: Desenvolvedor React, Designer UX..." : "Ex: Marketing Manager, Engenheiro Civil..."}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Localização"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="pl-10 w-full sm:w-[180px]"
-                  />
-                </div>
-              </>
-            )}
-
-            <Button type="submit" disabled={searchMutation.isPending || (searchType === "rss_feed" ? !rssUrl.trim() : !query.trim())}>
-              {searchMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A pesquisar...</>
-              ) : searchType === "rss_feed" ? (
-                <><Rss className="h-4 w-4 mr-2" />Importar feed</>
-              ) : (
-                <><Search className="h-4 w-4 mr-2" />Pesquisar</>
-              )}
-            </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Filters */}
+      {/* Status filter tabs */}
       <div className="flex flex-wrap gap-4 items-center">
         <Tabs value={statusFilter} onValueChange={setStatusFilter}>
           <TabsList>
@@ -220,19 +190,9 @@ export default function TalentSearchPage() {
           </TabsList>
         </Tabs>
 
-        <Select value={resultTypeFilter} onValueChange={setResultTypeFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Tipo de resultado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="candidate">Candidatos</SelectItem>
-            <SelectItem value="job_offer">Ofertas</SelectItem>
-          </SelectContent>
-        </Select>
-
         <span className="text-sm text-muted-foreground ml-auto">
-          {results.length} resultado{results.length !== 1 ? "s" : ""}
+          {filteredResults.length} resultado{filteredResults.length !== 1 ? "s" : ""}
+          {searchText && results.length !== filteredResults.length && ` (de ${results.length})`}
         </span>
       </div>
 
@@ -241,19 +201,21 @@ export default function TalentSearchPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : results.length === 0 ? (
+      ) : filteredResults.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-medium text-foreground">Sem resultados</h3>
             <p className="text-muted-foreground text-sm mt-1">
-              Pesquise por candidatos, ofertas ou importe de um portal integrado
+              {searchText
+                ? "Nenhum resultado corresponde à sua pesquisa. Tente outros termos."
+                : "Importe vagas de um portal integrado para começar."}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {results.map((r) => (
+          {filteredResults.map((r) => (
             <ResultCard
               key={r.id}
               result={r}
