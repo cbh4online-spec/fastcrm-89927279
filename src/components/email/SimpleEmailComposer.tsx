@@ -262,6 +262,7 @@ export function SimpleEmailComposer({
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
   const [sent, setSent] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // ── Advanced options ──
   const [advancedOpen, setAdvancedOpen] = useState(false);
