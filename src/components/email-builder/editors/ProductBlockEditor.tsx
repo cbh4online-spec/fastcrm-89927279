@@ -53,8 +53,9 @@ export function ProductBlockEditor({ content, onUpdate, onOpenImageUploader }: P
   }, [products, search]);
 
   const handleSelectProduct = (product: Product) => {
-    const storeUrl = currentWorkspace?.store_slug
-      ? `${window.location.origin}/store/${currentWorkspace.store_slug}/product/${product.id}`
+    const slug = currentWorkspace?.slug;
+    const storeUrl = slug
+      ? `${window.location.origin}/store/${slug}/product/${product.id}`
       : '';
 
     onUpdate({
