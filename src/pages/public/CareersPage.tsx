@@ -99,7 +99,7 @@ export default function CareersPage() {
       employment_type: j.extracted_data?.employment_type || null, remote_option: null,
       slug: null, source: "external" as const, source_platform: j.source_platform,
       source_url: j.source_url, published_at: j.created_at,
-      logo_url: getFaviconUrl(j.source_url), company_name: j.extracted_data?.company || j.source_platform,
+      logo_url: getFaviconUrl(j.source_url, j.source_platform), company_name: j.extracted_data?.company || j.source_platform,
       skills: j.skills,
     }));
     const portal: UnifiedJob[] = portalJobs.map(j => ({
