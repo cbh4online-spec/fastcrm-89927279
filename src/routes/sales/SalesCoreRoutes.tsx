@@ -9,6 +9,7 @@ const Companies = lazy(() => import("@/pages/Companies"));
 const CompanyDetail = lazy(() => import("@/pages/CompanyDetail"));
 const Crm = lazy(() => import("@/pages/Crm"));
 const Imports = lazy(() => import("@/pages/Imports"));
+const GestoresPage = lazy(() => import("@/pages/dashboard/GestoresPage"));
 
 export function SalesCoreRoutes() {
   return (
@@ -21,6 +22,7 @@ export function SalesCoreRoutes() {
       <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
       <Route path="/dashboard/crm" element={<Crm />} />
       <Route path="/dashboard/imports" element={<Imports />} />
+      <Route path="/dashboard/gestores" element={<GestoresPage />} />
     </>
   );
 }
