@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEbookAnalyticsKPIs } from "@/hooks/useEbookAnalytics";
 import { useEbookConversionKPIs } from "@/hooks/useEbookConversionKPIs";
 import { useEbookCtas } from "@/hooks/useEbookCtas";
+import { useCreateLead } from "@/hooks/useLeads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, ArrowLeft, Eye, Users, Target, Clock, Monitor, Smartphone, Tablet,
   BarChart3, TrendingUp, UserCheck, ContactRound, MousePointerClick, ShieldCheck,
-  MailCheck, Megaphone,
+  MailCheck, Megaphone, UserPlus,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, FunnelChart, Funnel, LabelList, Cell,
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface EbookAnalyticsProps {
   ebookId: string;
