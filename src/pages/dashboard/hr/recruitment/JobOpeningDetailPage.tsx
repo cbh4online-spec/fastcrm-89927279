@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, ExternalLink, Copy } from "lucide-react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import Skeleton from "react-loading-skeleton";
@@ -31,10 +33,15 @@ export default function JobPostingDetailPage() {
   const { data: candidates, isLoading: candidatesLoading } = useCandidates(id);
   const updateJob = useUpdateJobPosting();
   const updateStage = useUpdateCandidateStage();
+  const { currentWorkspace } = useWorkspace();
 
   const handleStageChange = (candidateId: string, newStage: CandidateStage) => {
     updateStage.mutate({ id: candidateId, stage: newStage });
   };
+
+  const publicUrl = job?.status === "active" && job?.slug && currentWorkspace?.slug
+    ? `${window.location.origin}/careers/${currentWorkspace.slug}/${job.slug}`
+    : null;
 
   if (isLoading) return <div className="space-y-4"><Skeleton height={200} /><Skeleton height={400} /></div>;
   if (!job) return <div className="text-center py-12 text-muted-foreground">Vaga não encontrada</div>;
@@ -53,6 +60,16 @@ export default function JobPostingDetailPage() {
           </div>
         </div>
         <Badge variant={job.status === "active" ? "default" : "secondary"}>{STATUS_LABELS[job.status]}</Badge>
+        {publicUrl && (
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("URL copiado!"); }}>
+              <Copy className="h-4 w-4 mr-1" /> Copiar URL
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => window.open(publicUrl, "_blank")}>
+              <ExternalLink className="h-4 w-4 mr-1" /> Ver Landing
+            </Button>
+          </div>
+        )}
         {job.status === "draft" && (
           <Button onClick={() => updateJob.mutate({ id: job.id, status: "active", published_at: new Date().toISOString() })}>
             Publicar Vaga
