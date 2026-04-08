@@ -1,46 +1,83 @@
-## Área de Afiliados FastCRM — Plano de Implementação
 
-### 1. Página Pública de Recrutamento (`/affiliates`)
+# Hardening Sprint — FastCRM
 
-Landing page de alta conversão para atrair novos afiliados:
+## Diagnóstico Inicial
+- **508 edge functions** no projecto, apenas 27 têm config explícita em `config.toml` (26 com `verify_jwt=false`, 1 com `true`)
+- As restantes ~481 funções usam o default do Lovable Cloud (`verify_jwt=false` implícito)
+- O route manifest tem ~100 entradas bem estruturadas com testes existentes
+- Testes de navegação existem mas cobrem apenas integridade do manifesto, não fluxos de negócio
 
-- **Hero Section**: Headline impactante ("Ganhe comissões recorrentes a promover o FastCRM"), CTA principal de inscrição
-- **Secção de Benefícios**: Comissões lifetime recorrentes, cookie de 30 dias, multinível (2 níveis), materiais de marketing gratuitos
-- **Como Funciona**: 3 passos visuais (Inscrever → Partilhar → Ganhar)
-- **Calculadora de Ganhos**: Simulador interativo (nº de referidos × plano × meses = ganhos estimados)
-- **Testemunhos/Social Proof**: Espaço para top afiliados e resultados
-- **FAQ**: Perguntas frequentes sobre o programa
-- **Formulário de inscrição**: Integrado com o sistema existente `useRegisterAffiliate`
+## Fase 1 — Segurança de Edge Functions (Prioridade Máxima)
 
-### 2. Portal do Afiliado Melhorado (`/dashboard/affiliates`)
+### 1.1 Classificação das 27 funções configuradas explicitamente
 
-Reestruturação do dashboard existente com foco em engagement:
+| Função | Classificação | Decisão |
+|--------|--------------|---------|
+| `fastmatch-score` | private-authenticated | Manter verify_jwt=false (padrão Lovable), validar JWT em código |
+| `whatsapp-evolution-webhook` | public-webhook | Manter sem JWT, adicionar validação de assinatura |
+| `whatsapp-evolution-send` | private-authenticated | Validar JWT em código |
+| `whatsapp-qr-sync` | private-authenticated | Validar JWT em código |
+| `whatsapp-qr-reconnect` | private-authenticated | Validar JWT em código |
+| `google-calendar-sync` | private-authenticated | Validar JWT em código |
+| `google-calendar-webhook` | public-webhook | Manter sem JWT, validar assinatura Google |
+| `csv-url-fetch` | private-authenticated | Validar JWT em código |
+| `public-booking` | public-tokenized | Manter sem JWT, validar token assinado |
+| `process-email-queue` | private-authenticated | Já tem verify_jwt=true ✓ |
+| `send-transactional-email` | private-authenticated | Validar JWT/service-role em código |
+| `preview-transactional-email` | private-authenticated | Validar JWT em código |
+| `handle-email-unsubscribe` | public-tokenized | Token de unsubscribe |
+| `handle-email-suppression` | public-webhook | Validar assinatura do provider |
+| `event-reminder-cron` | internal-cron | Validar service_role |
+| `stripe-renewal-webhook` | public-webhook | Validar assinatura Stripe |
+| `meta-oauth-start/callback` | public-tokenized | State CSRF token |
+| `meta-webhook-hub` | public-webhook | Validar assinatura Meta |
+| `meta-lead-processor` | private-authenticated | Validar JWT |
+| `meta-messenger-send` | private-authenticated | Validar JWT |
+| `meta-health-check` | private-authenticated | Validar JWT |
+| `meta-asset-sync` | private-authenticated | Validar JWT |
+| `instagram-oauth-start/callback` | public-tokenized | State CSRF token |
+| `ebook-generate` | private-authenticated | Validar JWT |
+| `marketing-mcp` | private-authenticated | Validar JWT |
 
-- **Dashboard Visual**: KPIs com gráficos de tendência (cliques, conversões, receita ao longo do tempo)
-- **Leaderboard/Rankings**: Top 10 afiliados do mês (anonimizado parcialmente)
-- **Sistema de Metas**: Metas progressivas com badges (Bronze: 5 vendas, Prata: 20, Ouro: 50, Diamante: 100)
-- **Centro de Materiais**: Banners, links pré-prontos, textos sugeridos para redes sociais, email templates
-- **Gerador de Links Inteligente**: Pré-preenchido com URLs do FastCRM (pricing, landing, funcionalidades)
-- **Notificações em Tempo Real**: Alertas de novas conversões e pagamentos
-- **Referral Tree**: Visualização de sub-afiliados (se multinível activo)
+### 1.2 Criar módulo partilhado de segurança
+- `supabase/functions/_shared/security.ts` — helpers para:
+  - `validateJWT(req)` — wrapper de getClaims
+  - `validateWebhookSignature(req, secret)` — HMAC validation
+  - `rateLimit(key, maxPerMinute)` — rate limiting básico com KV/DB
+  - `validatePayload(schema, body)` — Zod validation wrapper
+  - `securityLog(event)` — log estruturado
 
-### 3. Modelo de Comissão Destacado
+### 1.3 Implementar mitigações nas funções públicas prioritárias
+- Webhooks: validação de assinatura + payload + anti-replay
+- Tokenized: validação de token JWT/assinado
+- Funções privadas: adicionar getClaims() guard
 
-- **Recorrente lifetime**: O afiliado ganha em cada renovação do cliente referido
-- Percentagem configurável no admin (default 20% recorrente)
-- Destaque visual na landing page com calculadora de ganhos recorrentes
+## Fase 2 — Testes Críticos
 
-### Ficheiros a Criar/Modificar
+### 2.1 Testes unitários
+- `src/test/guards/ModuleGuard.test.tsx` — testa rendering com/sem módulo
+- `src/test/hooks/useMenuPermissions.test.ts` — testa lógica de permissões
+- `src/test/security/edgeFunctionClassification.test.ts` — valida classificação
 
-| Ficheiro | Acção |
-|----------|-------|
-| `src/pages/public/AffiliatePublicPage.tsx` | **Criar** — Landing page pública |
-| `src/pages/AffiliateDashboardPage.tsx` | **Reescrever** — Portal com engagement |
-| `src/components/affiliates/AffiliateEarningsCalculator.tsx` | **Criar** — Calculadora interativa |
-| `src/components/affiliates/AffiliateLeaderboard.tsx` | **Criar** — Rankings |
-| `src/components/affiliates/AffiliateMaterialsCenter.tsx` | **Criar** — Centro de materiais |
-| `src/components/affiliates/AffiliateAchievements.tsx` | **Criar** — Sistema de metas/badges |
-| `src/routes/AffiliateRoutes.tsx` | **Modificar** — Adicionar rota pública |
+### 2.2 Testes de navegação expandidos
+- Verificar que rotas com `:id` params não aparecem no sidebar
+- Verificar coerência moduleSlug vs moduleNavRegistry
+- Verificar que menuKey referencia chaves válidas em MENU_KEYS
 
-### Sem alterações de base de dados
-O sistema existente de tabelas (affiliates, affiliate_links, affiliate_conversions, affiliate_payouts, affiliate_balances) já suporta todas estas funcionalidades.
+## Fase 3 — Consistência de Navegação
+
+### 3.1 Validações adicionais ao manifesto
+- Cross-reference moduleSlug com moduleNavRegistry
+- Cross-reference menuKey com MENU_KEYS
+- Verificar rotas com params dinâmicos (:id) têm visibleInSidebar=false
+
+## Fase 4 — Qualidade Operacional
+
+### 4.1 Quality Gates
+- Documentar no README: `bun run lint`, `bun run test`, `bun run build`
+- Garantir que todos passam
+
+## Restrições
+- Não alterar comportamento de negócio existente
+- Mudanças pequenas, testáveis e reversíveis
+- Edge functions: seguir padrão Lovable (verify_jwt=false no deploy, validação em código)
