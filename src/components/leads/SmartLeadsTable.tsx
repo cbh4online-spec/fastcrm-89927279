@@ -105,10 +105,29 @@ export function SmartLeadsTable() {
   ], [t]);
 
   const filterGroups: FilterGroup[] = useMemo(() => [
+    { id: "data", label: "Dados Preenchidos", icon: <Database className="h-4 w-4" />, defaultOpen: true, items: [
+      { id: "has_email", label: "Com Email", icon: <Mail className="h-4 w-4 text-primary" /> },
+      { id: "has_phone", label: "Com Telefone", icon: <Phone className="h-4 w-4 text-primary" /> },
+      { id: "has_website", label: "Com Website", icon: <Globe className="h-4 w-4 text-primary" /> },
+      { id: "has_linkedin", label: "Com LinkedIn", icon: <Linkedin className="h-4 w-4 text-primary" /> },
+      { id: "has_address", label: "Com Morada", icon: <MapPin className="h-4 w-4 text-primary" /> },
+      { id: "has_company", label: "Com Empresa", icon: <Building2 className="h-4 w-4 text-primary" /> },
+      { id: "no_email", label: "Sem Email", icon: <Mail className="h-4 w-4 text-muted-foreground" /> },
+      { id: "no_phone", label: "Sem Telefone", icon: <Phone className="h-4 w-4 text-muted-foreground" /> },
+    ]},
     { id: "temperature", label: t("filterTemperature"), icon: <Thermometer className="h-4 w-4" />, defaultOpen: true, items: [
       { id: "temp_hot", label: t("filterHot"), icon: <Flame className="h-4 w-4 text-red-500" /> },
       { id: "temp_warm", label: t("filterWarm"), icon: <Thermometer className="h-4 w-4 text-orange-500" /> },
       { id: "temp_cold", label: t("filterCold"), icon: <Snowflake className="h-4 w-4 text-blue-500" /> },
+    ]},
+    { id: "source", label: "Origem", icon: <Target className="h-4 w-4" />, items: [
+      { id: "source_website", label: "Website" },
+      { id: "source_referral", label: "Referência" },
+      { id: "source_linkedin", label: "LinkedIn" },
+      { id: "source_cold_call", label: "Cold Call" },
+      { id: "source_import", label: "Importação" },
+      { id: "source_google_maps", label: "Google Maps" },
+      { id: "source_instagram", label: "Instagram" },
     ]},
     { id: "status", label: t("filterStatus"), icon: <Target className="h-4 w-4" />, defaultOpen: true, items: [
       { id: "status_new", label: t("filterNew") },
