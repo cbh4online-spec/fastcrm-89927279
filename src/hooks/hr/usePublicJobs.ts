@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolvePublicCareersSlug } from "@/lib/publicCareers";
 import { toast } from "sonner";
 
 export type PublicJobPosting = {
@@ -31,18 +32,20 @@ export type WorkspaceBranding = {
 };
 
 export function usePublicWorkspace(workspaceSlug: string | undefined) {
+  const resolvedWorkspaceSlug = resolvePublicCareersSlug(workspaceSlug);
+
   return useQuery({
-    queryKey: ["public-workspace", workspaceSlug],
+    queryKey: ["public-workspace", resolvedWorkspaceSlug],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("workspaces")
         .select("id, name, slug, logo_url, company_name, primary_color, secondary_color, website")
-        .eq("slug", workspaceSlug!)
+        .eq("slug", resolvedWorkspaceSlug!)
         .single();
       if (error) throw error;
       return data as WorkspaceBranding;
     },
-    enabled: !!workspaceSlug,
+    enabled: !!resolvedWorkspaceSlug,
   });
 }
 
@@ -65,14 +68,15 @@ export function usePublicJobs(workspaceId: string | undefined) {
 }
 
 export function usePublicJob(workspaceSlug: string | undefined, jobSlug: string | undefined) {
+  const resolvedWorkspaceSlug = resolvePublicCareersSlug(workspaceSlug);
+
   return useQuery({
-    queryKey: ["public-job", workspaceSlug, jobSlug],
+    queryKey: ["public-job", resolvedWorkspaceSlug, jobSlug],
     queryFn: async () => {
-      // First get workspace
       const { data: ws, error: wsErr } = await (supabase as any)
         .from("workspaces")
         .select("id")
-        .eq("slug", workspaceSlug!)
+        .eq("slug", resolvedWorkspaceSlug!)
         .single();
       if (wsErr) throw wsErr;
 
@@ -86,7 +90,7 @@ export function usePublicJob(workspaceSlug: string | undefined, jobSlug: string 
       if (error) throw error;
       return data as PublicJobPosting;
     },
-    enabled: !!workspaceSlug && !!jobSlug,
+    enabled: !!resolvedWorkspaceSlug && !!jobSlug,
   });
 }
 
