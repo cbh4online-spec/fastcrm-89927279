@@ -605,6 +605,20 @@ export default function GestoresPage() {
                         ))}
                       </div>
 
+                      {/* Profile badges */}
+                      {manager.profile && (manager.profile.segments.length > 0 || manager.profile.territories.length > 0 || manager.profile.client_types.length > 0) && (
+                        <div className="flex flex-wrap gap-1">
+                          {manager.profile.segments.map(s => <Badge key={`s-${s}`} variant="secondary" className="text-[9px] gap-1"><Tag className="w-2.5 h-2.5" />{s}</Badge>)}
+                          {manager.profile.territories.map(t => <Badge key={`t-${t}`} variant="secondary" className="text-[9px] gap-1"><MapPin className="w-2.5 h-2.5" />{t}</Badge>)}
+                          {manager.profile.client_types.map(c => <Badge key={`c-${c}`} variant="secondary" className="text-[9px] gap-1"><Briefcase className="w-2.5 h-2.5" />{c}</Badge>)}
+                        </div>
+                      )}
+                      {!manager.profile && (
+                        <button onClick={(e) => { e.stopPropagation(); openProfileEditor(manager.userId); }} className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1">
+                          <Settings2 className="w-3 h-3" />Configurar perfil
+                        </button>
+                      )}
+
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-1.5"><Euro className="w-3.5 h-3.5 text-emerald-600" /><span className="font-medium">{formatCurrency(manager.totalPipelineValue)}</span><span className="text-muted-foreground text-xs">pipeline</span></div>
                         <div className="flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-primary" /><span className="font-medium">{manager.totalLeads > 0 ? `${Math.round((manager.convertedLeads / manager.totalLeads) * 100)}%` : "—"}</span><span className="text-muted-foreground text-xs">conversão</span></div>
