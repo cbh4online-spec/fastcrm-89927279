@@ -135,10 +135,10 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
 
       // Apply column presence filters
       if (filters?.hasField) {
-        query = query.not(filters.hasField, "is", null).neq(filters.hasField as any, "" as any);
+        query = query.not(filters.hasField as any, "is", null);
       }
       if (filters?.missingField) {
-        query = query.or(`${filters.missingField}.is.null,${filters.missingField}.eq.`);
+        query = query.is(filters.missingField as any, null);
       }
 
       // Apply smart filters at SQL level
