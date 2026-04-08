@@ -16,7 +16,7 @@ const anchorNavKeys = [
 ];
 
 const routeNavKeys = [
-  { to: "/careers", key: "nav.careers" },
+  { to: "/careers/fastcrm", key: "nav.careers" },
 ];
 
 export function LandingStickyHeader() {
