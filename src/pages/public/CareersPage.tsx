@@ -1,12 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { usePublicWorkspace, usePublicJobs, usePublicExternalJobs } from "@/hooks/hr/usePublicJobs";
 import { usePublicPortalJobs } from "@/hooks/hr/usePortalCompany";
+import { usePublicWorkerListings, type PortalWorkerListing } from "@/hooks/hr/usePortalWorker";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe, UserPlus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe, UserPlus, User, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import { Helmet } from "react-helmet-async";
