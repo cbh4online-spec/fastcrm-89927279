@@ -656,6 +656,7 @@ export function SmartContactsTable() {
           onClearFilters={() => {
             setActiveFilterId(undefined);
             setFilters({});
+            setSmartListConditions([]);
           }}
           sortOptions={sortOptions}
           sortValue={sortValue}
