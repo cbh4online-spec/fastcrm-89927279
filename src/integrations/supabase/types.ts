@@ -21294,6 +21294,7 @@ export type Database = {
           protection_enabled: boolean
           seo_description: string | null
           seo_title: string | null
+          short_code: string | null
           slug: string | null
           status: string
           subtitle: string | null
@@ -21331,6 +21332,7 @@ export type Database = {
           protection_enabled?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          short_code?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null
@@ -21368,6 +21370,7 @@ export type Database = {
           protection_enabled?: boolean
           seo_description?: string | null
           seo_title?: string | null
+          short_code?: string | null
           slug?: string | null
           status?: string
           subtitle?: string | null

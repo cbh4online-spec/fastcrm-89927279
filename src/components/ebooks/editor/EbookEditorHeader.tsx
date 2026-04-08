@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, BookOpen, Globe, Upload, Wand2, Coins, Loader2,
-  Play, Settings, ChevronDown,
+  Play, Settings, ChevronDown, Link2, Copy,
 } from "lucide-react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -89,6 +91,15 @@ export function EbookEditorHeader({
               <DropdownMenuItem onClick={() => window.open(`/ebook/${ebook.slug}`, "_blank")}>
                 <Globe className="h-3.5 w-3.5 mr-2" /> Ver publicação
               </DropdownMenuItem>
+              {(ebook as any).short_code && (
+                <DropdownMenuItem onClick={() => {
+                  const shortUrl = `${getPublicBaseUrl()}/e/${(ebook as any).short_code}`;
+                  navigator.clipboard.writeText(shortUrl);
+                  toast.success("Link curto copiado!", { description: shortUrl });
+                }}>
+                  <Link2 className="h-3.5 w-3.5 mr-2" /> Copiar link curto
+                </DropdownMenuItem>
+              )}
             </>
           )}
         </DropdownMenuContent>
