@@ -67,12 +67,25 @@ export function EntityHighlightsGrid({ entityType, entity }: EntityHighlightsGri
     color: score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-blue-600',
   });
 
-  // Gestor
+  // Gestor (editable inline)
   cards.push({
     label: 'Gestor',
     value: assignedProfile?.full_name || 'Sem gestor',
     icon: UserCheck,
     color: assignedTo ? 'text-primary' : 'text-muted-foreground',
+    customRender: (
+      <EntityOwnerSelector
+        entityType={entityType}
+        entityId={entity.id}
+        currentAssignedTo={assignedTo}
+        currentAssignedProfile={assignedProfile ? {
+          full_name: assignedProfile.full_name,
+          email: null,
+          avatar_url: null,
+        } : null}
+        compact
+      />
+    ),
   });
 
   // Temperature
