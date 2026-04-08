@@ -33,6 +33,7 @@ export function SmartListsPanel({ entityType, fields, records, onFilteredRecords
   const filteredRecords = useMemo(() => {
     const result = applyFilters(records, conditions, "AND");
     onFilteredRecords?.(result);
+    onConditionsChange?.(conditions);
     return result;
   }, [records, conditions]);
 
