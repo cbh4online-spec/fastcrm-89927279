@@ -42,6 +42,48 @@ function isCrawler(userAgent: string | null): boolean {
   return userAgent ? CRAWLER_REGEX.test(userAgent) : false;
 }
 
+/**
+ * Parse a direct path like /store/{slug}/product/{id} into type+slug params.
+ */
+function parsePathToTypeSlug(path: string): { type: string; slug: string } | null {
+  // /store/{wsSlug}/product/{productId}
+  const productMatch = path.match(/^\/store\/([^/]+)\/product\/([^/]+)/);
+  if (productMatch) {
+    return { type: "product", slug: `${productMatch[1]}/${productMatch[2]}` };
+  }
+  // /store/{wsSlug} (store homepage)
+  const storeMatch = path.match(/^\/store\/([^/]+)\/?$/);
+  if (storeMatch) {
+    return { type: "store", slug: storeMatch[1] };
+  }
+  // /bio/{wsSlug}/{pageSlug}
+  const bioMatch = path.match(/^\/bio\/([^/]+)\/([^/]+)/);
+  if (bioMatch) {
+    return { type: "bio", slug: `${bioMatch[1]}/${bioMatch[2]}` };
+  }
+  // /p/{wsSlug}/{pageSlug} (landing)
+  const landingMatch = path.match(/^\/p\/([^/]+)\/([^/]+)/);
+  if (landingMatch) {
+    return { type: "landing", slug: `${landingMatch[1]}/${landingMatch[2]}` };
+  }
+  // /c2c/{wsSlug}/listing/{id}
+  const c2cListingMatch = path.match(/^\/c2c\/([^/]+)\/listing\/([^/]+)/);
+  if (c2cListingMatch) {
+    return { type: "c2c-listing", slug: `${c2cListingMatch[1]}/${c2cListingMatch[2]}` };
+  }
+  // /c2c/{wsSlug}/seller/{id}
+  const c2cSellerMatch = path.match(/^\/c2c\/([^/]+)\/seller\/([^/]+)/);
+  if (c2cSellerMatch) {
+    return { type: "c2c-seller", slug: `${c2cSellerMatch[1]}/${c2cSellerMatch[2]}` };
+  }
+  // /c2c/{wsSlug}
+  const c2cMatch = path.match(/^\/c2c\/([^/]+)\/?$/);
+  if (c2cMatch) {
+    return { type: "c2c", slug: c2cMatch[1] };
+  }
+  return null;
+}
+
 function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
