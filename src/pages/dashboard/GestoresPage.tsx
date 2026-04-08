@@ -856,7 +856,7 @@ export default function GestoresPage() {
                     <Badge variant="outline" className="capitalize text-[10px]">{manager.role}</Badge>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div className="rounded-lg bg-muted/50 p-2">
                       <p className="text-lg font-bold">{manager.totalLeads}</p>
                       <p className="text-[10px] text-muted-foreground">Leads</p>
@@ -869,6 +869,10 @@ export default function GestoresPage() {
                       <p className="text-lg font-bold">{manager.totalCompanies}</p>
                       <p className="text-[10px] text-muted-foreground">Empresas</p>
                     </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <p className="text-lg font-bold">{manager.totalOpportunities}</p>
+                      <p className="text-[10px] text-muted-foreground">Oport.</p>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
@@ -879,7 +883,7 @@ export default function GestoresPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                      <span className="font-medium">{manager.totalLeads > 0 ? Math.round((manager.convertedLeads / manager.totalLeads) * 100) : 0}%</span>
+                      <span className="font-medium">{manager.totalLeads > 0 ? Math.round((manager.convertedLeads / manager.totalLeads) * 100) : "—"}%</span>
                       <span className="text-muted-foreground text-xs">conversão</span>
                     </div>
                   </div>
