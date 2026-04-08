@@ -7,14 +7,17 @@
  * - Workload/capacity per manager
  * - Assignment logs
  * - Module health
+ * - Manager profiles (segments, territories, client_types)
+ * - Profile categories available in the workspace
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
-import { calculateManagerCapacity, type ManagerWorkload } from "@/lib/commercial/assignmentEngine";
+import { calculateManagerCapacity, type ManagerWorkload, type ManagerProfile } from "@/lib/commercial/assignmentEngine";
 import { resolveOwnership, type OwnershipStatus } from "@/lib/commercial/ownershipResolver";
+import { toast } from "sonner";
 
 // ─── Paginated fetch (bypasses 1000-row limit) ──────────────
 
@@ -63,6 +66,7 @@ export interface ManagerStats {
   totalOpportunities: number;
   wonOpportunities: number;
   workload: ManagerWorkload;
+  profile?: ManagerProfile;
 }
 
 export interface UnassignedCounts {
@@ -80,6 +84,16 @@ export interface ModuleHealth {
   orphanEntities: number;
   coveragePct: number;
   lastRefreshedAt: string;
+}
+
+export type CategoryDimension = "segment" | "territory" | "client_type";
+
+export interface ProfileCategory {
+  id: string;
+  workspace_id: string;
+  dimension: CategoryDimension;
+  value: string;
+  is_active: boolean;
 }
 
 // ─── Hook ───────────────────────────────────────────────────
@@ -105,6 +119,38 @@ export function useManagerPortfolio() {
       ]);
       const l = uLeads || 0, c = uContacts || 0, co = uCompanies || 0, o = uOpps || 0;
       return { leads: l, contacts: c, companies: co, opportunities: o, total: l + c + co + o };
+    },
+    enabled: !!currentWorkspace,
+  });
+
+  // ── Manager profiles ──
+  const profilesQuery = useQuery({
+    queryKey: ["manager-profiles", currentWorkspace?.id],
+    queryFn: async (): Promise<ManagerProfile[]> => {
+      if (!currentWorkspace) return [];
+      const { data, error } = await (workspaceClient as any)
+        .from("manager_profiles")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id);
+      if (error) throw error;
+      return (data || []) as ManagerProfile[];
+    },
+    enabled: !!currentWorkspace,
+  });
+
+  // ── Profile categories ──
+  const categoriesQuery = useQuery({
+    queryKey: ["manager-profile-categories", currentWorkspace?.id],
+    queryFn: async (): Promise<ProfileCategory[]> => {
+      if (!currentWorkspace) return [];
+      const { data, error } = await (workspaceClient as any)
+        .from("manager_profile_categories")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("is_active", true)
+        .order("value", { ascending: true });
+      if (error) throw error;
+      return (data || []) as ProfileCategory[];
     },
     enabled: !!currentWorkspace,
   });
@@ -138,6 +184,8 @@ export function useManagerPortfolio() {
         ),
       ]);
 
+      const profiles = profilesQuery.data || [];
+
       return members.map(m => {
         const mLeads = leads.filter((l: any) => l.assigned_to === m.user_id);
         const mContacts = contacts.filter((c: any) => c.assigned_to === m.user_id);
@@ -153,6 +201,8 @@ export function useManagerPortfolio() {
         const wonOpps = mOpps.filter((o: any) => o.status === "won").length;
 
         const capacity = calculateManagerCapacity(mLeads.length, mContacts.length, mCompanies.length, mOpps.filter((o: any) => o.status !== "won" && o.status !== "lost").length);
+
+        const profile = profiles.find(p => p.user_id === m.user_id);
 
         return {
           userId: m.user_id,
@@ -180,6 +230,7 @@ export function useManagerPortfolio() {
             openOpportunities: mOpps.filter((o: any) => o.status !== "won" && o.status !== "lost").length,
             ...capacity,
           },
+          profile,
         };
       });
     },
@@ -227,7 +278,7 @@ export function useManagerPortfolio() {
       totalEntities: total,
       assignedEntities: assigned,
       unassignedEntities: unassigned,
-      orphanEntities: 0, // TODO: calculate from resolveOwnership
+      orphanEntities: 0,
       coveragePct: total > 0 ? Math.round((assigned / total) * 100) : 0,
       lastRefreshedAt: new Date().toISOString(),
     };
@@ -241,8 +292,87 @@ export function useManagerPortfolio() {
     unassigned: unassignedQuery.data || { leads: 0, contacts: 0, companies: 0, opportunities: 0, total: 0 },
     assignmentLogs: logsQuery.data || [],
     rotationGroups: rotationGroupsQuery.data || [],
+    managerProfiles: profilesQuery.data || [],
+    profileCategories: categoriesQuery.data || [],
     health,
     workspaceClient,
     currentWorkspace,
   };
+}
+
+// ─── Mutations for profiles & categories ────────────────────
+
+export function useUpsertManagerProfile() {
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (profile: { user_id: string; segments: string[]; territories: string[]; client_types: string[]; is_active?: boolean }) => {
+      if (!currentWorkspace) throw new Error("No workspace");
+      const payload = {
+        workspace_id: currentWorkspace.id,
+        user_id: profile.user_id,
+        segments: profile.segments,
+        territories: profile.territories,
+        client_types: profile.client_types,
+        is_active: profile.is_active ?? true,
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await (workspaceClient as any)
+        .from("manager_profiles")
+        .upsert(payload, { onConflict: "workspace_id,user_id" })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["manager-profiles"] });
+      qc.invalidateQueries({ queryKey: ["manager-portfolio-stats"] });
+      toast.success("Perfil do gestor atualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useManageProfileCategories() {
+  const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
+  const qc = useQueryClient();
+
+  const addCategory = useMutation({
+    mutationFn: async (params: { dimension: CategoryDimension; value: string }) => {
+      if (!currentWorkspace) throw new Error("No workspace");
+      const { data, error } = await (workspaceClient as any)
+        .from("manager_profile_categories")
+        .insert({ workspace_id: currentWorkspace.id, dimension: params.dimension, value: params.value })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["manager-profile-categories"] });
+      toast.success("Categoria adicionada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeCategory = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (workspaceClient as any)
+        .from("manager_profile_categories")
+        .update({ is_active: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["manager-profile-categories"] });
+      toast.success("Categoria removida");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { addCategory, removeCategory };
 }
