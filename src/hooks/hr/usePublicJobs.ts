@@ -67,6 +67,37 @@ export function usePublicJobs(workspaceId: string | undefined) {
   });
 }
 
+export type ExternalJobOffer = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  location: string | null;
+  source_url: string | null;
+  source_platform: string | null;
+  skills: string[];
+  extracted_data: Record<string, any>;
+  created_at: string;
+};
+
+export function usePublicExternalJobs(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["public-external-jobs", workspaceId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_talent_results")
+        .select("id, title, description, location, source_url, source_platform, skills, extracted_data, created_at")
+        .eq("workspace_id", workspaceId!)
+        .eq("search_type", "job_offer")
+        .in("status", ["new", "reviewed"])
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data as ExternalJobOffer[];
+    },
+    enabled: !!workspaceId,
+  });
+}
+
 export function usePublicJob(workspaceSlug: string | undefined, jobSlug: string | undefined) {
   const resolvedWorkspaceSlug = resolvePublicCareersSlug(workspaceSlug);
 
