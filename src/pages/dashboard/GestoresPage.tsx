@@ -206,10 +206,10 @@ export default function GestoresPage() {
       if (!currentWorkspace || !members) return [];
 
       try {
-        const [leads, contacts, companies] = await Promise.all([
+        const [leads, contacts, companies, opportunities] = await Promise.all([
           fetchAllRows<any>(
             () => workspaceClient.from("leads"),
-            "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at, lifecycle_stage",
+            "id, assigned_to, lead_score, ai_temperature, estimated_value, last_contact_at",
             (q: any) => q.eq("workspace_id", currentWorkspace.id)
           ),
           fetchAllRows<any>(
@@ -222,16 +222,28 @@ export default function GestoresPage() {
             "id, assigned_to",
             (q: any) => q.eq("workspace_id", currentWorkspace.id)
           ),
+          fetchAllRows<any>(
+            () => workspaceClient.from("opportunities"),
+            "id, owner_id, value, status, lead_id",
+            (q: any) => q.eq("workspace_id", currentWorkspace.id)
+          ),
         ]);
 
       return members.map(m => {
         const mLeads = leads.filter((l: any) => l.assigned_to === m.user_id);
         const mContacts = contacts.filter((c: any) => c.assigned_to === m.user_id);
         const mCompanies = companies.filter((c: any) => c.assigned_to === m.user_id);
+        const mOpps = opportunities.filter((o: any) => o.owner_id === m.user_id);
         const scores = [...mLeads.map((l: any) => l.lead_score || 0), ...mContacts.map((c: any) => c.contact_score || 0)];
         const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
         const dates = [...mLeads.map((l: any) => l.last_contact_at), ...mContacts.map((c: any) => c.last_contact_at)].filter(Boolean).sort().reverse();
-        const convertedLeads = mLeads.filter((l: any) => l.lifecycle_stage === "customer" || l.lifecycle_stage === "converted").length;
+
+        // Pipeline = SUM(opportunities.value) WHERE status != 'lost'
+        const pipelineOpps = mOpps.filter((o: any) => o.status !== "lost");
+        const totalPipelineValue = pipelineOpps.reduce((s: number, o: any) => s + (Number(o.value) || 0), 0);
+
+        // Conversão = COUNT(opportunities WHERE status='won') / COUNT(leads atribuídas)
+        const wonOpps = mOpps.filter((o: any) => o.status === "won").length;
 
         return {
           userId: m.user_id,
@@ -245,16 +257,17 @@ export default function GestoresPage() {
           leadsHot: mLeads.filter((l: any) => l.ai_temperature === "hot").length,
           leadsWarm: mLeads.filter((l: any) => l.ai_temperature === "warm").length,
           leadsCold: mLeads.filter((l: any) => l.ai_temperature === "cold").length,
-          totalPipelineValue: mLeads.reduce((s: number, l: any) => s + (l.estimated_value || 0), 0),
+          totalPipelineValue,
           avgScore,
           lastActivityAt: dates[0] || null,
-          convertedLeads,
+          convertedLeads: wonOpps,
           totalActivities: 0,
+          totalOpportunities: mOpps.length,
+          wonOpportunities: wonOpps,
         } as ManagerStats;
       });
       } catch (err) {
         console.error("[GestoresPage] Error fetching manager stats:", err);
-        // Fallback: return members with zero stats
         return members.map(m => ({
           userId: m.user_id,
           name: m.profile?.full_name || m.profile?.email || "Utilizador",
@@ -265,6 +278,7 @@ export default function GestoresPage() {
           leadsHot: 0, leadsWarm: 0, leadsCold: 0,
           totalPipelineValue: 0, avgScore: 0, lastActivityAt: null,
           convertedLeads: 0, totalActivities: 0,
+          totalOpportunities: 0, wonOpportunities: 0,
         } as ManagerStats));
       }
     },
