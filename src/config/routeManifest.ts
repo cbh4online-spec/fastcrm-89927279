@@ -155,6 +155,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("leads",           "Leads",           "/dashboard/leads",          Users,         "comercial", { badgeKey: "new_leads", menuKey: "leads" }),
   e("contacts",        "Contactos",       "/dashboard/contacts",       UserCheck,     "comercial", { menuKey: "contacts" }),
   e("companies",       "Empresas",        "/dashboard/companies",      Building2,     "comercial", { menuKey: "companies" }),
+  e("gestores",        "Gestores",        "/dashboard/gestores",       UsersRound,    "comercial"),
   e("opportunities",   "Pipeline",        "/dashboard/opportunities",  TrendingUp,    "comercial", { menuKey: "pipeline" }),
   e("renewals",        "Renovações",      "/dashboard/renewals",       ArrowUpDown,   "comercial"),
   e("lifecycle",       "Ciclo de Vida",   "/dashboard/lifecycle",      GitBranch,     "comercial"),
