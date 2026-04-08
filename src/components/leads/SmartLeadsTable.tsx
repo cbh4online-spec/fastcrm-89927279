@@ -166,15 +166,17 @@ export function SmartLeadsTable() {
     { value: "last_contact_desc", label: t("sortLastContact") },
   ], [t]);
 
-  const [filters, setFilters] = useState<SmartLeadsFilters>({});
+  const [filters, setFilters] = useState<SmartLeadsFilters>({ page: 0, pageSize: 25 });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const currentPage = (filters.page ?? 0) + 1;
+  const pageSize = filters.pageSize ?? 25;
+  const setCurrentPage = (p: number) => setFilters(prev => ({ ...prev, page: p - 1 }));
+  const setPageSize = (s: number) => setFilters(prev => ({ ...prev, pageSize: s, page: 0 }));
   const [activeTab, setActiveTab] = useState("leads");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
@@ -240,40 +242,12 @@ export function SmartLeadsTable() {
     return map;
   }, [duplicateGroups]);
 
-  const filteredLeads = useMemo(() => {
-    if (!leads) return [];
-    if (!searchValue) return leads;
-    const lower = searchValue.toLowerCase();
-    return leads.filter(l => {
-      const searchableFields = [l.name, l.email, l.phone, (l as any).company_name, (l as any).address, (l as any).city, (l as any).county, (l as any).parish, (l as any).region, (l as any).postal_code, (l as any).tax_id, l.source, l.status, (l as any).website, (l as any).business_category, (l as any).cae_description, (l as any).capital_social, (l as any).legal_nature, l.ai_insight, l.ai_next_action, (l as any).external_email, (l as any).external_username, (l as any).linkedin_url, (l as any).facebook_url, (l as any).instagram_url, (l as any).twitter_url, (l as any).fax, (l as any).company_status, (l as any).assigned_to, (l as any).ai_lead_type];
-      const tags = (l as any).tags || [];
-      const services = (l as any).services || [];
-      const caeCodes = (l as any).cae_codes || [];
-      return searchableFields.some(field => field?.toString().toLowerCase().includes(lower))
-        || tags.some((t: string) => t?.toLowerCase().includes(lower))
-        || services.some((s: string) => s?.toLowerCase().includes(lower))
-        || caeCodes.some((c: string) => c?.toLowerCase().includes(lower));
-    });
-  }, [leads, searchValue]);
-
-  const sortedLeads = useMemo(() => {
-    if (!filteredLeads.length) return filteredLeads;
-    const sorted = [...filteredLeads];
-    switch (sortValue) {
-      case "created_desc": sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
-      case "created_asc": sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); break;
-      case "score_desc": sorted.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0)); break;
-      case "score_asc": sorted.sort((a, b) => (a.lead_score || 0) - (b.lead_score || 0)); break;
-      case "value_desc": sorted.sort((a, b) => (b.estimated_value || 0) - (a.estimated_value || 0)); break;
-      case "last_contact_desc": sorted.sort((a, b) => { const dA = a.last_contact_at ? new Date(a.last_contact_at).getTime() : 0; const dB = b.last_contact_at ? new Date(b.last_contact_at).getTime() : 0; return dB - dA; }); break;
-    }
-    return sorted;
-  }, [filteredLeads, sortValue]);
-
-  const totalLeads = sortedLeads.length;
+  // Server-side pagination — leads already come paginated from useSmartLeads
+  const displayLeads = leads || [];
+  const totalLeads = serverTotalCount;
   const totalPages = Math.ceil(totalLeads / pageSize);
-  const paginatedLeads = useMemo(() => { const s = (currentPage - 1) * pageSize; return sortedLeads.slice(s, s + pageSize); }, [sortedLeads, currentPage, pageSize]);
-  const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); setCurrentPage(1); };
+  const paginatedLeads = displayLeads;
+  const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); };
 
   const handleFilterSelect = (filterId: string) => {
     const newFilterId = filterId === activeFilterId ? undefined : filterId;
