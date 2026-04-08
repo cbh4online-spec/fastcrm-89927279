@@ -36,8 +36,10 @@ export default function TalentSearchPage() {
   const [searchType, setSearchType] = useState<string>("candidate");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  const effectiveSearchType = searchType === "rss_feed" ? undefined : searchType;
+
   const { data: results = [], isLoading } = useTalentResults({
-    search_type: searchType,
+    search_type: effectiveSearchType,
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
 
