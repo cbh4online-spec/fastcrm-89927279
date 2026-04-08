@@ -371,8 +371,8 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
       />
     </div>
   );
+}
 
-// Wrapper with provider
 export function EmailBuilder(props: EmailBuilderProps) {
   return (
     <EmailEditorProvider>
