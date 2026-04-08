@@ -452,16 +452,17 @@ export default function GestoresPage() {
           </div>
 
           {/* Analytics KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <StatCard label="Leads" value={selectedManagerData.totalLeads} icon={Target} />
             <StatCard label="Contactos" value={selectedManagerData.totalContacts} icon={Users} />
             <StatCard label="Empresas" value={selectedManagerData.totalCompanies} icon={Building2} />
+            <StatCard label="Oportunidades" value={selectedManagerData.totalOpportunities} icon={BarChart3} subtitle={`${selectedManagerData.wonOpportunities} ganhas`} />
             <StatCard label="Pipeline" value={formatCurrency(selectedManagerData.totalPipelineValue)} icon={Euro} />
             <StatCard
               label="Conversão"
-              value={`${detailAnalytics?.conversionRate || 0}%`}
+              value={selectedManagerData.totalLeads > 0 ? `${detailAnalytics?.conversionRate || 0}%` : "—"}
               icon={TrendingUp}
-              subtitle={`${detailAnalytics?.converted || 0}/${detailAnalytics?.totalLeads || 0}`}
+              subtitle={selectedManagerData.totalLeads > 0 ? `${detailAnalytics?.converted || 0} ganhas / ${detailAnalytics?.totalLeads || 0} leads` : "Sem leads"}
             />
             <StatCard
               label="SLA Compliance"
