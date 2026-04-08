@@ -242,12 +242,12 @@ export function LeadDetailWithSidebar() {
                         source: lead.source,
                         status: lead.status,
                         tags: lead.tags || [],
-                        company: lead.company,
+                        company: lead.company_name,
                         notes: lead.notes,
-                        score: lead.score,
-                        lifecycle_stage: lead.lifecycle_stage,
+                        score: lead.lead_score,
+                        lifecycle_stage: lead.inferred_type,
                         instagram_url: lead.instagram_url,
-                        website_url: lead.website_url,
+                        website_url: lead.website,
                         created_at: lead.created_at,
                       }}
                     />
