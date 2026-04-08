@@ -47,6 +47,8 @@ const PublicBookingPage = lazy(() => import("@/pages/PublicBookingPage"));
 const PublicEbookPage = lazy(() => import("@/pages/PublicEbookPage"));
 const PublicEbookShortLink = lazy(() => import("@/pages/PublicEbookShortLink"));
 const PublicTicketPortalPage = lazy(() => import("@/pages/PublicTicketPortalPage"));
+const CareersPage = lazy(() => import("@/pages/public/CareersPage"));
+const JobDetailPublicPage = lazy(() => import("@/pages/public/JobDetailPublicPage"));
 
 // Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
 function C2CRedirectToMarketplace() {
