@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Sparkles, Copy, Loader2, AlertCircle, Coins } from 'lucide-react';
+import { Send, Sparkles, Copy, Loader2, AlertCircle, Coins, Paintbrush } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreditWallet } from '@/hooks/useCreditWallet';
 import { triggerNoCreditsDialog } from '@/hooks/useNoCreditsDialog';
@@ -19,9 +19,10 @@ const ACTION_KEY = 'ai_email_campaign_wizard';
 interface EmailCampaignWizardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenEditor?: (html: string) => void;
 }
 
-export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignWizardDialogProps) {
+export function EmailCampaignWizardDialog({ open, onOpenChange, onOpenEditor }: EmailCampaignWizardDialogProps) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
