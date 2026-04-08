@@ -1,10 +1,10 @@
 import { useParams, Link } from "react-router-dom";
-import { usePublicWorkspace, usePublicJobs } from "@/hooks/hr/usePublicJobs";
+import { usePublicWorkspace, usePublicJobs, usePublicExternalJobs, type ExternalJobOffer } from "@/hooks/hr/usePublicJobs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users } from "lucide-react";
+import { Briefcase, MapPin, Search, Building2, ArrowRight, Clock, Users, ExternalLink, Globe } from "lucide-react";
 import { useState, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import { Helmet } from "react-helmet-async";
