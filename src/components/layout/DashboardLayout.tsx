@@ -14,6 +14,7 @@ import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
 import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
 import { GlobalNoCreditsDialog } from "@/components/credits/GlobalNoCreditsDialog";
+import { CopilotDrawer } from "@/components/copilot/CopilotDrawer";
 import { useSessionTracker } from "@/hooks/useSessionTracker";
 
 interface DashboardLayoutProps {
@@ -69,6 +70,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {showFAB && <MQPCFloatingButton />}
           <VoiceConversationWidget />
           <GlobalNoCreditsDialog />
+          <CopilotDrawer />
         </div>
       </div>
     </WorkspaceStatusGuard>

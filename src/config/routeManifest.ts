@@ -403,3 +403,36 @@ export function buildSidebarSections(
     }))
     .filter((g) => g.items.length > 0);
 }
+
+// ─── Mega-Group Mapping ─────────────────────────────────────────────────────
+// Maps fine-grained NavGroups into 6 high-level mega-groups for the App Shell
+
+export type MegaGroup = "core" | "crm" | "sales" | "marketing" | "ai-ops" | "enterprise";
+
+export interface MegaGroupMeta {
+  key: MegaGroup;
+  label: string;
+  icon: LucideIcon;
+  navGroups: NavGroup[];
+}
+
+export const MEGA_GROUPS: MegaGroupMeta[] = [
+  { key: "core",       label: "Core",       icon: LayoutDashboard, navGroups: ["inicio", "comunicacao", "operacoes"] },
+  { key: "crm",        label: "CRM",        icon: Users,           navGroups: ["comercial"] },
+  { key: "sales",      label: "Sales",      icon: TrendingUp,      navGroups: ["vendas", "compras"] },
+  { key: "marketing",  label: "Marketing",  icon: Megaphone,       navGroups: ["marketing"] },
+  { key: "ai-ops",     label: "AI Ops",     icon: Crown,           navGroups: ["ai-strategy", "inteligencia"] },
+  { key: "enterprise", label: "Enterprise", icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "suporte", "rh", "administracao"] },
+];
+
+/** Build mega-group sidebar sections */
+export function buildMegaGroupSections(
+  installedModuleSlugs: string[],
+  canAccess: (menuKey: string) => boolean,
+): Array<MegaGroupMeta & { sections: Array<NavGroupMeta & { items: RouteEntry[] }> }> {
+  const allSections = buildSidebarSections(installedModuleSlugs, canAccess);
+  return MEGA_GROUPS.map((mg) => ({
+    ...mg,
+    sections: allSections.filter((s) => mg.navGroups.includes(s.key)),
+  })).filter((mg) => mg.sections.some((s) => s.items.length > 0));
+}
