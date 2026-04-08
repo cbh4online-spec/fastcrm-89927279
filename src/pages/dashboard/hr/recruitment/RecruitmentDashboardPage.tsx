@@ -4,7 +4,7 @@ import { useInterviews } from "@/hooks/hr/useInterviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Users, Calendar, TrendingUp, UserCheck, ArrowRight } from "lucide-react";
+import { Briefcase, Users, Calendar, TrendingUp, UserCheck, ArrowRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -50,6 +50,7 @@ export default function RecruitmentDashboardPage() {
           <Button variant="outline" onClick={() => navigate("/dashboard/hr/recruitment/jobs")}><Briefcase className="h-4 w-4 mr-2" />Vagas</Button>
           <Button variant="outline" onClick={() => navigate("/dashboard/hr/recruitment/candidates")}><Users className="h-4 w-4 mr-2" />Candidatos</Button>
           <Button variant="outline" onClick={() => navigate("/dashboard/hr/recruitment/interviews")}><Calendar className="h-4 w-4 mr-2" />Entrevistas</Button>
+          <Button variant="outline" onClick={() => navigate("/dashboard/hr/recruitment/talent-search")}><Search className="h-4 w-4 mr-2" />Pesquisa de Talento</Button>
         </div>
       </div>
 
