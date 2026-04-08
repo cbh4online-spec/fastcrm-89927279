@@ -197,6 +197,8 @@ async function importFromPortal({
   const kw = "emprego";
   const searchQuery = portal.searchQuery(kw);
 
+  const importAbort = new AbortController();
+  const importTimeout = setTimeout(() => importAbort.abort(), 25000);
   const fcResponse = await fetch("https://api.firecrawl.dev/v1/search", {
     method: "POST",
     headers: {
@@ -208,9 +210,10 @@ async function importFromPortal({
       limit: maxResults,
       lang: "pt",
       country: "pt",
-      scrapeOptions: { formats: ["markdown"] },
     }),
+    signal: importAbort.signal,
   });
+  clearTimeout(importTimeout);
 
   if (fcResponse.status === 402) {
     console.warn("Firecrawl credits exhausted — stopping");

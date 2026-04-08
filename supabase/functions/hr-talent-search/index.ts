@@ -168,6 +168,8 @@ Deno.serve(async (req) => {
 
     console.log("Searching:", searchQuery);
 
+    const fcAbort = new AbortController();
+    const fcTimeout = setTimeout(() => fcAbort.abort(), 25000);
     const fcResponse = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
@@ -176,12 +178,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 10,
+        limit: 5,
         lang: "pt",
         country: "pt",
-        scrapeOptions: { formats: ["markdown"] },
       }),
+      signal: fcAbort.signal,
     });
+    clearTimeout(fcTimeout);
 
     const fcData = await fcResponse.json();
 
@@ -293,6 +296,8 @@ async function handlePortalImport({ portal_slug, keywords, workspace_id, supabas
     const searchQuery = portal.searchQuery(kw);
     console.log(`Searching portal: ${searchQuery}`);
 
+    const portalAbort = new AbortController();
+    const portalTimeout = setTimeout(() => portalAbort.abort(), 25000);
     const fcResponse = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
@@ -301,12 +306,13 @@ async function handlePortalImport({ portal_slug, keywords, workspace_id, supabas
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 15,
+        limit: 5,
         lang: "pt",
         country: "pt",
-        scrapeOptions: { formats: ["markdown"] },
       }),
+      signal: portalAbort.signal,
     });
+    clearTimeout(portalTimeout);
 
     if (fcResponse.status === 402) {
       return new Response(
