@@ -142,6 +142,7 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(leadData);
       mockFrom.mockReturnValue(chain);
 
+      mockFrom("leads");
       const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("leads");
