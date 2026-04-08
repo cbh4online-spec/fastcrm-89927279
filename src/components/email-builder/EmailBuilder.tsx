@@ -215,6 +215,11 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             <Eye className="h-3.5 w-3.5 mr-1.5" />
             Preview
           </Button>
+
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowTestSend(true)}>
+            <Send className="h-3.5 w-3.5 mr-1.5" />
+            Enviar Teste
+          </Button>
           
           <Button size="sm" className="h-8" onClick={handleSave}>
             <Save className="h-3.5 w-3.5 mr-1.5" />
