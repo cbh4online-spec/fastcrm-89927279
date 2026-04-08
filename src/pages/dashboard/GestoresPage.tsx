@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
-import { useManagerPortfolio, type ManagerStats, type UnassignedCounts } from "@/hooks/useManagerPortfolio";
-import { executeBulkAssign, executeRoundRobin, selectByCapacity } from "@/lib/commercial/assignmentEngine";
+import { useManagerPortfolio, useUpsertManagerProfile, useManageProfileCategories, type ManagerStats, type UnassignedCounts, type CategoryDimension, type ProfileCategory } from "@/hooks/useManagerPortfolio";
+import { executeBulkAssign, executeRoundRobin, selectByCapacity, selectByCapacityWithMatching, type ManagerProfile, type EntityMatchCriteria } from "@/lib/commercial/assignmentEngine";
 import { ENTITY_TABLE, OWNERSHIP_FIELD, type EntityType } from "@/lib/commercial/ownershipResolver";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ import {
   MessageSquare, Calendar, PhoneCall, Activity,
   CheckCircle2, Timer, TrendingUp, Zap, ShieldCheck,
   AlertCircle, RotateCw, Gauge, History, Shuffle,
+  Tag, MapPin, Briefcase, Plus, X, Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
