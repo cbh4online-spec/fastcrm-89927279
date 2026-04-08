@@ -5962,6 +5962,110 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_rotation_groups: {
+        Row: {
+          created_at: string
+          entity_type: string
+          id: string
+          is_active: boolean
+          last_assigned_manager_id: string | null
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          last_assigned_manager_id?: string | null
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          last_assigned_manager_id?: string | null
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_rotation_groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_rules: {
+        Row: {
+          conditions_json: Json | null
+          config_json: Json | null
+          created_at: string
+          entity_type: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rotation_group_id: string | null
+          rule_type: string
+          target_manager_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          conditions_json?: Json | null
+          config_json?: Json | null
+          created_at?: string
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rotation_group_id?: string | null
+          rule_type: string
+          target_manager_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          conditions_json?: Json | null
+          config_json?: Json | null
+          created_at?: string
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rotation_group_id?: string | null
+          rule_type?: string
+          target_manager_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_assignment_rules_rotation_group"
+            columns: ["rotation_group_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_rotation_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]
@@ -21889,6 +21993,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "entity_activities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_assignment_logs: {
+        Row: {
+          assigned_by: string | null
+          assignment_mode: string
+          created_at: string
+          entity_id: string
+          entity_name: string | null
+          entity_type: string
+          id: string
+          new_manager_id: string | null
+          previous_manager_id: string | null
+          reason: string | null
+          rule_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assignment_mode: string
+          created_at?: string
+          entity_id: string
+          entity_name?: string | null
+          entity_type: string
+          id?: string
+          new_manager_id?: string | null
+          previous_manager_id?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assignment_mode?: string
+          created_at?: string
+          entity_id?: string
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          new_manager_id?: string | null
+          previous_manager_id?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_assignment_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_assignment_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -49073,6 +49237,51 @@ export type Database = {
           },
           {
             foreignKeyName: "rfqs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotation_group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          manager_id: string
+          position: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          manager_id: string
+          position?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          manager_id?: string
+          position?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotation_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_rotation_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotation_group_members_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
