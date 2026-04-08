@@ -65,13 +65,13 @@ export default function MarketplaceAdmin() {
   };
 
   const handleCreateModule = (template: ModuleTemplate) => {
-    console.log("Creating module:", template);
+    console.debug("Creating module:", template);
     toast.success("Módulo criado com sucesso!");
     setIsCreating(false);
   };
 
   const handleEditModule = (template: ModuleTemplate) => {
-    console.log("Updating module:", template);
+    console.debug("Updating module:", template);
     toast.success("Módulo atualizado com sucesso!");
     setEditingModule(null);
   };
@@ -90,7 +90,7 @@ export default function MarketplaceAdmin() {
         <ModuleTemplateForm 
           onSave={handleCreateModule}
           onPreview={(template) => {
-            console.log("Preview:", template);
+            console.debug("Preview:", template);
             toast.info("Pré-visualização em desenvolvimento");
           }}
         />
@@ -168,7 +168,7 @@ export default function MarketplaceAdmin() {
           initialData={templateData}
           onSave={handleEditModule}
           onPreview={(template) => {
-            console.log("Preview:", template);
+            console.debug("Preview:", template);
             toast.info("Pré-visualização em desenvolvimento");
           }}
         />

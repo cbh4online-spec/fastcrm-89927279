@@ -21,7 +21,7 @@ export function useEbookTemplates(filters?: { category?: string }) {
   return useQuery({
     queryKey: ["ebook-templates", currentWorkspace?.id, filters],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from("ebook_templates")
         .select("*")
         .eq("is_active", true)
@@ -42,7 +42,7 @@ export function useEbookTemplate(id: string | undefined) {
     queryKey: ["ebook-template", id],
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_templates")
         .select("*")
         .eq("id", id)
@@ -70,7 +70,7 @@ export function useCreateEbookTemplate() {
       const { data: { user } } = await supabase.auth.getUser();
       const baseSlug = input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
       const slug = `${baseSlug}-${Date.now().toString(36).slice(-5)}`;
-      const { data, error } = await (supabase as any).from("ebook_templates").insert({
+      const { data, error } = await supabase.from("ebook_templates").insert({
         workspace_id: currentWorkspace!.id,
         name: input.name,
         slug,
@@ -95,14 +95,14 @@ export function useDuplicateEbookTemplate() {
   const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (templateId: string) => {
-      const { data: original, error: fetchErr } = await (supabase as any)
+      const { data: original, error: fetchErr } = await supabase
         .from("ebook_templates")
         .select("*")
         .eq("id", templateId)
         .single();
       if (fetchErr) throw fetchErr;
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await (supabase as any).from("ebook_templates").insert({
+      const { data, error } = await supabase.from("ebook_templates").insert({
         workspace_id: currentWorkspace!.id,
         name: `${original.name} (cópia)`,
         slug: `${original.slug}-copy-${Date.now()}`,
@@ -129,7 +129,7 @@ export function useUpdateEbookTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<Pick<EbookTemplate, "name" | "description" | "category" | "style_tokens" | "page_layouts" | "default_content" | "is_active">>) => {
-      const { data, error } = await (supabase as any).from("ebook_templates")
+      const { data, error } = await supabase.from("ebook_templates")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id).select().single();
       if (error) throw error;

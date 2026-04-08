@@ -10,7 +10,7 @@ export default function FormStudioPage() {
   const [savedSchema, setSavedSchema] = useState<FormSchema | null>(null);
 
   const handleSave = (schema: FormSchema) => {
-    console.log('Form schema saved:', schema);
+    console.debug('Form schema saved:', schema);
     setSavedSchema(schema);
   };
 
@@ -43,7 +43,7 @@ export default function FormStudioPage() {
           <TabsContent value="blueprint">
             <BlueprintGenerator
               formSchema={savedSchema || undefined}
-              onBlueprintSaved={(bp) => console.log('Blueprint saved:', bp)}
+              onBlueprintSaved={(bp) => console.debug('Blueprint saved:', bp)}
             />
           </TabsContent>
         </Tabs>

@@ -208,7 +208,7 @@ export function useCreateProduct() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto criado com sucesso!");
-      console.log(`[PRODUCTS] Created: ${data.id}`);
+      console.debug(`[PRODUCTS] Created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -310,7 +310,7 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: ["product", data.id] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto atualizado com sucesso!");
-      console.log(`[PRODUCTS] Updated: ${data.id}`);
+      console.debug(`[PRODUCTS] Updated: ${data.id}`);
       if (variables.base_price !== undefined && currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -354,7 +354,7 @@ export function useArchiveProduct() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", data.id] });
-      console.log(`[PRODUCTS] ${data.status === 'archived' ? 'Archived' : 'Reactivated'}: ${data.id}`);
+      console.debug(`[PRODUCTS] ${data.status === 'archived' ? 'Archived' : 'Reactivated'}: ${data.id}`);
       toast.success(
         data.status === "archived"
           ? "Produto arquivado com sucesso!"
@@ -385,7 +385,7 @@ export function useDeleteProduct() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
-      console.log(`[PRODUCTS] Deleted: ${id}`);
+      console.debug(`[PRODUCTS] Deleted: ${id}`);
       toast.success("Produto eliminado com sucesso!");
     },
     onError: (error) => {
@@ -596,7 +596,7 @@ export function useCreateProductsBatch() {
           }
           if (productImageInserts.length > 0) {
             await supabase.from("product_images").insert(productImageInserts);
-            console.log(`[PRODUCTS] Created ${productImageInserts.length} product images from CSV`);
+            console.debug(`[PRODUCTS] Created ${productImageInserts.length} product images from CSV`);
           }
         } catch (imgErr) {
           console.warn("[PRODUCTS] Failed to create product images, products were still created:", imgErr);
@@ -637,7 +637,7 @@ export function useCreateProductsBatch() {
           }
           if (newImageInserts.length > 0) {
             await supabase.from("product_images").insert(newImageInserts);
-            console.log(`[PRODUCTS] Added ${newImageInserts.length} new images to updated products`);
+            console.debug(`[PRODUCTS] Added ${newImageInserts.length} new images to updated products`);
           }
         } catch (imgErr) {
           console.warn("[PRODUCTS] Failed to add images to updated products:", imgErr);
@@ -655,7 +655,7 @@ export function useCreateProductsBatch() {
       if (result.skipped.length > 0) parts.push(`${result.skipped.length} ignorado(s)`);
       const msg = parts.length > 0 ? parts.join(", ") : "Importação concluída";
       toast.success(msg);
-      console.log(`[PRODUCTS] Batch import: ${result.created} created, ${result.updated} updated, ${result.skipped.length} skipped`);
+      console.debug(`[PRODUCTS] Batch import: ${result.created} created, ${result.updated} updated, ${result.skipped.length} skipped`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

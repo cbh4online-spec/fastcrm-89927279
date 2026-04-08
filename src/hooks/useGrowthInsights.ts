@@ -229,7 +229,7 @@ export function useGrowthInsights(options: UseGrowthInsightsOptions = {}) {
       if (error) throw error;
       setAiAnalysis(data);
 
-      console.log('[B2B-INTELLIGENCE] INSIGHT_GENERATED confidence=' + (data?.confidenceLevel ?? 'N/A') + ' insights=' + (data?.insights?.length ?? 0) + ' recommendations=' + (data?.recommendations?.length ?? 0));
+      console.debug('[B2B-INTELLIGENCE] INSIGHT_GENERATED confidence=' + (data?.confidenceLevel ?? 'N/A') + ' insights=' + (data?.insights?.length ?? 0) + ' recommendations=' + (data?.recommendations?.length ?? 0));
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'B2B.INSIGHT_GENERATED',

@@ -28,7 +28,7 @@ export function useOpportunityLayoutPreferences() {
     queryFn: async (): Promise<OpportunityLayoutPreferences | null> => {
       if (!currentWorkspace?.id || !user?.id) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('opportunity_layout_preferences')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
@@ -59,7 +59,7 @@ export function useUpdateOpportunityLayoutPreferences() {
     }) => {
       if (!currentWorkspace?.id || !user?.id) throw new Error('No workspace/user');
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('opportunity_layout_preferences')
         .upsert({
           workspace_id: currentWorkspace.id,

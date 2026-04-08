@@ -57,7 +57,7 @@ export function useDisconnectWhatsApp() {
       queryClient.invalidateQueries({
         queryKey: ["whatsapp-connection", currentWorkspace?.id],
       });
-      console.log(`[INTEGRATIONS] WHATSAPP_DISCONNECTED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      console.debug(`[INTEGRATIONS] WHATSAPP_DISCONNECTED workspace=${currentWorkspace?.id} connection=${connectionId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

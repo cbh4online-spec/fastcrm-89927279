@@ -27,7 +27,7 @@ export default function PublicFormPage() {
       .eq('form_id', slug)
       .then(() => {
         // View tracked via page load - analytics derive from submission data
-        console.log('Form view tracked:', slug);
+        console.debug('Form view tracked:', slug);
       });
   }, [slug]);
 
@@ -108,7 +108,7 @@ export default function PublicFormPage() {
         throw response.error;
       }
 
-      console.log('Form submitted successfully:', response.data);
+      console.debug('Form submitted successfully:', response.data);
     } catch (err) {
       console.error('Error submitting form:', err);
       throw err;

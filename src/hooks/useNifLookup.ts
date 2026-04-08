@@ -88,7 +88,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
             try {
               const body = await ctx.json();
               if (body?.retryable && attempt === 0) {
-                console.log(`[NIF] Retryable error on attempt ${attempt + 1}, retrying...`);
+                console.debug(`[NIF] Retryable error on attempt ${attempt + 1}, retrying...`);
                 await new Promise(r => setTimeout(r, 600));
                 continue;
               }
@@ -106,7 +106,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
 
         // Handle retryable errors from backend (returned as 200 with retryable flag)
         if (response?.retryable && !response?.success && attempt === 0) {
-          console.log(`[NIF] Retryable error on attempt ${attempt + 1}, retrying silently...`);
+          console.debug(`[NIF] Retryable error on attempt ${attempt + 1}, retrying silently...`);
           await new Promise(r => setTimeout(r, 600));
           continue;
         }
@@ -128,7 +128,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
           setStatus("success");
           setMessage("Dados da empresa encontrados!");
           if (showToasts) toast.success("Dados da empresa encontrados!");
-          console.log(`[COMPANIES] NIF lookup success: ${cleanNif}`);
+          console.debug(`[COMPANIES] NIF lookup success: ${cleanNif}`);
           onSuccess?.(result);
           return result;
         } else {

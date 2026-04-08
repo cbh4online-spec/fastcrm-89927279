@@ -48,7 +48,7 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
     if (showUpgrade) { triggerNoCreditsDialog({ actionLabel: "Analisar funil com IA" }); return; }
     setAiLoading(true);
     try {
-      const { data, error } = await (supabase as any).functions.invoke("funnel-ai-insights", { body: { funnel_id: funnelId } });
+      const { data, error } = await supabase.functions.invoke("funnel-ai-insights", { body: { funnel_id: funnelId } });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setAiInsights(data);

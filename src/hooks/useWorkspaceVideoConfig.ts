@@ -49,7 +49,7 @@ export function useWorkspaceVideoConfig() {
     queryFn: async () => {
       if (!workspaceId) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("workspace_video_config")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -83,7 +83,7 @@ export function useWorkspaceVideoConfig() {
       }
 
       if (config?.id) {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("workspace_video_config")
           .update(payload)
           .eq("id", config.id)
@@ -94,7 +94,7 @@ export function useWorkspaceVideoConfig() {
         return data;
       } else {
         payload.workspace_id = workspaceId;
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("workspace_video_config")
           .insert(payload)
           .select()
@@ -160,7 +160,7 @@ export function useWorkspaceVideoConfig() {
         updates.google_meet_enabled = false;
       }
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("workspace_video_config")
         .update(updates)
         .eq("id", config.id);

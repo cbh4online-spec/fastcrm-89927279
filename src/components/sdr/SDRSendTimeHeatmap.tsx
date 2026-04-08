@@ -19,7 +19,7 @@ export function SDRSendTimeHeatmap({ campaignId }: SDRSendTimeHeatmapProps) {
     queryKey: ["sdr-heatmap", currentWorkspace?.id, campaignId],
     queryFn: async () => {
       // Get opened_at timestamps from step logs
-      let query = (supabase as any)
+      let query = supabase
         .from("sdr_sequence_step_logs")
         .select("opened_at")
         .eq("workspace_id", currentWorkspace!.id)
@@ -28,7 +28,7 @@ export function SDRSendTimeHeatmap({ campaignId }: SDRSendTimeHeatmapProps) {
 
       if (campaignId) {
         // Get enrollment IDs for this campaign
-        const { data: enrollments } = await (supabase as any)
+        const { data: enrollments } = await supabase
           .from("sdr_enrollments")
           .select("id")
           .eq("campaign_id", campaignId);

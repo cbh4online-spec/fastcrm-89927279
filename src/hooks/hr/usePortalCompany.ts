@@ -44,7 +44,7 @@ export function useMyPortalCompany(workspaceId: string | undefined) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_companies")
         .select("*")
         .eq("workspace_id", workspaceId!)
@@ -81,7 +81,7 @@ export function useRegisterPortalCompany() {
       if (!authData.user) throw new Error("Erro ao criar conta");
 
       // Create portal company
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("portal_companies")
         .insert({
           workspace_id: params.workspace_id,
@@ -110,7 +110,7 @@ export function useMyPortalJobs(companyId: string | undefined) {
   return useQuery({
     queryKey: ["portal-jobs-mine", companyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_job_postings")
         .select("*")
         .eq("portal_company_id", companyId!)
@@ -136,7 +136,7 @@ export function useCreatePortalJob() {
       salary_range?: string;
       contact_email?: string;
     }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("portal_job_postings")
         .insert({ ...job, status: "pending" });
       if (error) throw error;
@@ -154,7 +154,7 @@ export function usePublicPortalJobs(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["public-portal-jobs", workspaceId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_job_postings")
         .select("id, title, description, location, employment_type, remote_option, salary_range, contact_email, published_at, portal_company_id, portal_companies(name, logo_url)")
         .eq("workspace_id", workspaceId!)

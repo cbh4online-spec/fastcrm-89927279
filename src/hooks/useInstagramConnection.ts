@@ -55,7 +55,7 @@ export function useDisconnectInstagram() {
       queryClient.invalidateQueries({
         queryKey: ["instagram-connection", currentWorkspace?.id],
       });
-      console.log(`[INTEGRATIONS] INSTAGRAM_DISCONNECTED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      console.debug(`[INTEGRATIONS] INSTAGRAM_DISCONNECTED workspace=${currentWorkspace?.id} connection=${connectionId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

@@ -58,7 +58,7 @@ export function useAddUrlAttachment() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", vars.blockId] });
       toast.success("Link adicionado");
-      console.log(`[FILES] URL attachment added: ${vars.name}`);
+      console.debug(`[FILES] URL attachment added: ${vars.name}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -112,7 +112,7 @@ export function useUploadFileAttachment() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", vars.blockId] });
       toast.success("Ficheiro carregado");
-      console.log(`[FILES] File attachment uploaded: ${vars.file.name}`);
+      console.debug(`[FILES] File attachment uploaded: ${vars.file.name}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -147,7 +147,7 @@ export function useDeleteAttachment() {
     onSuccess: (blockId, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", blockId] });
       toast.success("Anexo removido");
-      console.log(`[FILES] Attachment deleted: ${vars.attachmentId}`);
+      console.debug(`[FILES] Attachment deleted: ${vars.attachmentId}`);
       emitKernelEvent({
         workspace_id: currentWorkspace?.id || '',
         type: 'FILE.DELETED',

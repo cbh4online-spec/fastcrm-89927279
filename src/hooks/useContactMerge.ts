@@ -19,7 +19,7 @@ export function useContactMerge() {
       if (!currentWorkspace) throw new Error("No workspace");
       if (duplicateContactIds.length === 0) throw new Error("No duplicates to merge");
 
-      console.log(`[CONTACTS] Merge started: primary=${primaryContactId}, duplicates=${duplicateContactIds.length}`);
+      console.debug(`[CONTACTS] Merge started: primary=${primaryContactId}, duplicates=${duplicateContactIds.length}`);
 
       // Get primary contact data
       const { data: primaryContact, error: primaryError } = await supabase
@@ -78,7 +78,7 @@ export function useContactMerge() {
       });
 
       if (fieldsEnriched.length > 0) {
-        console.log(`[CONTACTS] Merge field enrichment: ${fieldsEnriched.join(', ')}`);
+        console.debug(`[CONTACTS] Merge field enrichment: ${fieldsEnriched.join(', ')}`);
       }
 
       await supabase
@@ -101,7 +101,7 @@ export function useContactMerge() {
       ]);
 
       await Promise.all(migrationPromises);
-      console.log(`[CONTACTS] Merge references migrated for ${duplicateContactIds.length} duplicate(s)`);
+      console.debug(`[CONTACTS] Merge references migrated for ${duplicateContactIds.length} duplicate(s)`);
 
       // Delete duplicate contacts
       const { error: deleteError } = await supabase
@@ -122,7 +122,7 @@ export function useContactMerge() {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contact-duplicate-groups"] });
-      console.log(`[CONTACTS] Merge complete: ${result.mergedCount} contact(s) merged into ${result.primaryContact.id}`);
+      console.debug(`[CONTACTS] Merge complete: ${result.mergedCount} contact(s) merged into ${result.primaryContact.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

@@ -731,7 +731,7 @@ export default function GoogleLocalProspecting() {
 
       const selectedLocation = location && location !== "all-locations" ? location : "";
 
-      console.log("Searching with:", { query, location: selectedLocation, category });
+      console.debug("Searching with:", { query, location: selectedLocation, category });
 
       // Call the Edge Function
       const { data, error } = await supabase.functions.invoke("google-local-search", {

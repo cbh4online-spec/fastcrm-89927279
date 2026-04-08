@@ -106,7 +106,7 @@ export function ConversationIntelligencePanel({
         import("@/lib/requestId").then(({ generateRequestId }) => {
           // We need workspace_id — try to get from context if available
           // For now emit without workspace check since panel may not have direct access
-          console.log(`[CONV-INTELLIGENCE] intent_detected: buying=${result.buyingIntent.level} urgency=${result.urgency.level} risk=${result.dropOffRisk.level}`);
+          console.debug(`[CONV-INTELLIGENCE] intent_detected: buying=${result.buyingIntent.level} urgency=${result.urgency.level} risk=${result.dropOffRisk.level}`);
         });
       });
     }

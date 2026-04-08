@@ -58,7 +58,7 @@ export function PopupRulesManager() {
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["popup_rules", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("popup_rules")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -71,7 +71,7 @@ export function PopupRulesManager() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("popup_rules")
         .update({ enabled })
         .eq("id", id);
@@ -84,7 +84,7 @@ export function PopupRulesManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("popup_rules")
         .delete()
         .eq("id", id);
@@ -110,13 +110,13 @@ export function PopupRulesManager() {
       };
 
       if (editingRule) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("popup_rules")
           .update(payload)
           .eq("id", editingRule.id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("popup_rules")
           .insert(payload);
         if (error) throw error;

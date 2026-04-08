@@ -16,7 +16,7 @@ export function useEbookPages(ebookId: string | undefined) {
     queryKey: ["ebook-pages", ebookId],
     queryFn: async () => {
       if (!ebookId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_pages")
         .select("*")
         .eq("ebook_id", ebookId)
@@ -39,7 +39,7 @@ export function useCreateEbookPage() {
       content?: Record<string, unknown>;
       is_locked?: boolean;
     }) => {
-      const { data, error } = await (supabase as any).from("ebook_pages").insert({
+      const { data, error } = await supabase.from("ebook_pages").insert({
         ebook_id: input.ebook_id,
         page_order: input.page_order,
         page_type: input.page_type || "content",
@@ -59,7 +59,7 @@ export function useUpdateEbookPage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ebook_id, ...updates }: { id: string; ebook_id: string } & Partial<Pick<EbookPage, "page_order" | "page_type" | "layout_key" | "content" | "style_overrides" | "is_locked">>) => {
-      const { data, error } = await (supabase as any).from("ebook_pages")
+      const { data, error } = await supabase.from("ebook_pages")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id).select().single();
       if (error) throw error;
@@ -74,7 +74,7 @@ export function useDeleteEbookPage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ebook_id }: { id: string; ebook_id: string }) => {
-      const { error } = await (supabase as any).from("ebook_pages").delete().eq("id", id);
+      const { error } = await supabase.from("ebook_pages").delete().eq("id", id);
       if (error) throw error;
       return { ebook_id };
     },
@@ -95,7 +95,7 @@ export function useBulkCreateEbookPages() {
       is_locked?: boolean;
     }>) => {
       if (pages.length === 0) return [];
-      const { data, error } = await (supabase as any).from("ebook_pages").insert(
+      const { data, error } = await supabase.from("ebook_pages").insert(
         pages.map(p => ({
           ebook_id: p.ebook_id,
           page_order: p.page_order,

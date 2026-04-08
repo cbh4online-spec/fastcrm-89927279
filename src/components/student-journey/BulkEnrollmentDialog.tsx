@@ -185,7 +185,7 @@ export function BulkEnrollmentDialog({
 
       // Get headers from first row of parsed data
       const headers = Object.keys(json[0]);
-      console.log("Detected headers:", headers);
+      console.debug("Detected headers:", headers);
       
       // Find "Nome" column with robust matching
       const nameColumn = findNameColumn(headers);
@@ -195,7 +195,7 @@ export function BulkEnrollmentDialog({
         return;
       }
       
-      console.log(`Name column found: "${nameColumn}"`);
+      console.debug(`Name column found: "${nameColumn}"`);
 
       // Detect course columns
       const detectedCourses: { columnName: string; courseId: string; courseName: string; count: number }[] = [];

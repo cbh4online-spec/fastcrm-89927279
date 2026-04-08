@@ -78,12 +78,12 @@ export function BotCard({ bot, onToggleStatus, onDelete, onDuplicate, onExport }
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const [{ count: last24h }, { data: lastRun }] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("bot_runs")
           .select("id", { count: "exact", head: true })
           .eq("bot_id", bot.id)
           .gte("created_at", yesterday.toISOString()),
-        (supabase as any)
+        supabase
           .from("bot_runs")
           .select("created_at, status")
           .eq("bot_id", bot.id)

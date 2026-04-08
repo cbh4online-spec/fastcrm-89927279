@@ -74,7 +74,7 @@ export function useContactEnrichment() {
         },
       });
 
-      console.log('[ENRICHER] Contact enriched:', input.email || input.phone);
+      console.debug('[ENRICHER] Contact enriched:', input.email || input.phone);
 
       return result;
     },

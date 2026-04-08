@@ -327,7 +327,7 @@ export function ImportProfilesDialog({
       setOriginalHeaders(headers);
       setStep("mapping");
       
-      console.log("[Excel Import] Detected columns:", columns);
+      console.debug("[Excel Import] Detected columns:", columns);
     } catch (error) {
       console.error("Parse error:", error);
       toast.error("Erro ao processar ficheiro. Verifique o formato.");

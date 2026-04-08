@@ -11,7 +11,7 @@ export function useCampaignAttribution(campaignId?: string) {
     queryFn: async (): Promise<CampaignCommercialImpact> => {
       if (!currentWorkspace?.id) return defaultImpact();
 
-      let query = (supabase as any)
+      let query = supabase
         .from('campaign_attribution')
         .select('*')
         .eq('workspace_id', currentWorkspace.id);
@@ -63,7 +63,7 @@ export function useAllCampaignAttributions() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('campaign_attribution')
         .select('campaign_id, attribution_model, attribution_type, revenue_attributed, revenue_influenced, opportunity_id')
         .eq('workspace_id', currentWorkspace.id);

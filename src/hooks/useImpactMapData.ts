@@ -164,7 +164,7 @@ export function useImpactMapData() {
     if (rows.length > 0) {
       const { error } = await supabase.from('context_dependencies').insert(rows);
       if (!error) {
-        console.log('[IMPACT-MAP] Auto-seeded', rows.length, 'strategic dependencies');
+        console.debug('[IMPACT-MAP] Auto-seeded', rows.length, 'strategic dependencies');
         queryClient.invalidateQueries({ queryKey: ['impact-map-deps', workspaceId] });
       } else {
         console.warn('[IMPACT-MAP] Failed to seed dependencies:', error.message);
@@ -260,7 +260,7 @@ export function useImpactMapData() {
       setImpactedIds(ids);
       setImpactResults(data.impacts);
       setSimulatingId(null);
-      console.log('[IMPACT-MAP] Simulation complete', { source: variables.sourceBlockId, impacted: data.impacts.length });
+      console.debug('[IMPACT-MAP] Simulation complete', { source: variables.sourceBlockId, impacted: data.impacts.length });
 
       if (workspaceId) {
         const { data: userData } = await supabase.auth.getUser();

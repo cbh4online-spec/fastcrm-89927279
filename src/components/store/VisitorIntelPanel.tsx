@@ -25,7 +25,7 @@ export function VisitorIntelPanel({ sessionId, workspaceId }: Props) {
   const { data: session } = useQuery({
     queryKey: ["visitor_intel", workspaceId, sessionId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_visitor_sessions")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -40,7 +40,7 @@ export function VisitorIntelPanel({ sessionId, workspaceId }: Props) {
   const { data: pageViews = [] } = useQuery({
     queryKey: ["visitor_pages", workspaceId, sessionId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_page_views")
         .select("id, page_url, product_id, created_at")
         .eq("workspace_id", workspaceId)
@@ -73,7 +73,7 @@ export function VisitorIntelPanel({ sessionId, workspaceId }: Props) {
   const { data: chatMessages = [] } = useQuery({
     queryKey: ["visitor_chats", workspaceId, sessionId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("chat_conversations")
         .select("id, visitor_name, status, created_at, updated_at")
         .eq("workspace_id", workspaceId)

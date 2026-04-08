@@ -66,7 +66,7 @@ export function useAdminSettings() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
-      console.log(`[ADMIN-SETTINGS] UPDATED key=${result.key} action=${result.action}`);
+      console.debug(`[ADMIN-SETTINGS] UPDATED key=${result.key} action=${result.action}`);
       emitKernelEvent({
         workspace_id: 'global',
         type: 'SETTINGS.UPDATED',
@@ -95,7 +95,7 @@ export function useAdminSettings() {
     },
     onSuccess: (key) => {
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
-      console.log(`[ADMIN-SETTINGS] DELETED key=${key}`);
+      console.debug(`[ADMIN-SETTINGS] DELETED key=${key}`);
       emitKernelEvent({
         workspace_id: 'global',
         type: 'SETTINGS.DELETED',

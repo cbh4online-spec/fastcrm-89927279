@@ -118,7 +118,7 @@ export function useDisconnectWhatsAppQR() {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-qr-connection", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp-connection", currentWorkspace?.id] });
       toast.success("WhatsApp desconectado com sucesso");
-      console.log(`[WHATSAPP_QR] DISCONNECTED workspace=${currentWorkspace?.id}`);
+      console.debug(`[WHATSAPP_QR] DISCONNECTED workspace=${currentWorkspace?.id}`);
     },
     onError: (error) => {
       toast.error("Erro ao desconectar: " + error.message);
@@ -169,7 +169,7 @@ export function useReconnectWhatsAppQR() {
       } else {
         toast.info("Reconexão tentada — a verificar estado...");
       }
-      console.log(`[WHATSAPP_QR] RECONNECT_DONE workspace=${currentWorkspace?.id} recovery_state=${data?.recovery_state}`);
+      console.debug(`[WHATSAPP_QR] RECONNECT_DONE workspace=${currentWorkspace?.id} recovery_state=${data?.recovery_state}`);
     },
     onError: (error) => {
       toast.error("Erro ao reconectar: " + error.message);

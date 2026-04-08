@@ -106,7 +106,7 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       return true;
     },
     onSuccess: (_, variables) => {
-      console.log('[B2B-ORDERS] ORDER_APPROVED', variables.orderId);
+      console.debug('[B2B-ORDERS] ORDER_APPROVED', variables.orderId);
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -146,7 +146,7 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       return true;
     },
     onSuccess: (_, variables) => {
-      console.log('[B2B-ORDERS] ORDER_REJECTED', variables.orderId);
+      console.debug('[B2B-ORDERS] ORDER_REJECTED', variables.orderId);
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -186,7 +186,7 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       return true;
     },
     onSuccess: (_, orderIds) => {
-      console.log('[B2B-ORDERS] BULK_APPROVED', orderIds.length);
+      console.debug('[B2B-ORDERS] BULK_APPROVED', orderIds.length);
       if (workspaceId) {
         for (const id of orderIds) {
           emitKernelEvent({

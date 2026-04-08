@@ -53,7 +53,7 @@ export function PostOnboardingChecklist() {
       path: "/dashboard",
       check: async () => {
         if (!currentWorkspace) return false;
-        const { count } = await (supabase as any).from("daily_briefs").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
+        const { count } = await supabase.from("daily_briefs").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id);
         return (count || 0) > 0;
       },
     },
@@ -75,7 +75,7 @@ export function PostOnboardingChecklist() {
       path: "/dashboard/channels",
       check: async () => {
         if (!currentWorkspace) return false;
-        const { count } = await (supabase as any).from("channel_connections").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).eq("status", "connected");
+        const { count } = await supabase.from("channel_connections").select("id", { count: "exact", head: true }).eq("workspace_id", currentWorkspace.id).eq("status", "connected");
         return (count || 0) > 0;
       },
     },

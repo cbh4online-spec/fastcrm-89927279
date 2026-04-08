@@ -92,7 +92,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
       async (event, session) => {
         if (!isMounted) return;
         
-        console.log("Client auth state change:", event, session?.user?.email);
+        console.debug("Client auth state change:", event, session?.user?.email);
         setUser(session?.user ?? null);
         
         if (session?.user) {
@@ -125,7 +125,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!isMounted) return;
       
-      console.log("Client auth initial session:", session?.user?.email);
+      console.debug("Client auth initial session:", session?.user?.email);
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -165,7 +165,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
       
       // Login bem sucedido - processar directamente
       if (data?.user) {
-        console.log(`[B2B-AUTH] LOGIN_OK email=${data.user.email}`);
+        console.debug(`[B2B-AUTH] LOGIN_OK email=${data.user.email}`);
         setUser(data.user);
         await fetchClientUser(data.user.id);
 

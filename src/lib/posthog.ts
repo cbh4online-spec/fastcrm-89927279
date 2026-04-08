@@ -17,7 +17,7 @@ export function initPostHog() {
     loaded: (ph) => {
       if (import.meta.env.DEV) {
         ph.opt_out_capturing();
-        console.log('[PostHog] Dev mode — capturing disabled');
+        console.debug('[PostHog] Dev mode — capturing disabled');
       }
     },
   });

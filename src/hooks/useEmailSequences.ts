@@ -358,7 +358,7 @@ export function useEnrollContact() {
     },
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', vars.sequenceId] });
-      console.log(`[EMAIL] Contact enrolled: sequence=${vars.sequenceId}, contact=${vars.contactId}`);
+      console.debug(`[EMAIL] Contact enrolled: sequence=${vars.sequenceId}, contact=${vars.contactId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

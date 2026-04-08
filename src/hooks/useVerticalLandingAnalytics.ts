@@ -17,7 +17,7 @@ export function useAllVerticalKPIs() {
     queryFn: async (): Promise<Record<string, VerticalKPI>> => {
       if (!currentWorkspace?.id) return {};
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vertical_landing_events")
         .select("template_slug, event_type")
         .eq("workspace_id", currentWorkspace.id);

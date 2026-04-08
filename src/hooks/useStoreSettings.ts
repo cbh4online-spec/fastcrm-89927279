@@ -96,7 +96,7 @@ export function useUpsertStoreSettings() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["store-settings"] });
-      console.log(`[STORE-SETTINGS] STORE_UPDATED workspace=${currentWorkspace?.id}`);
+      console.debug(`[STORE-SETTINGS] STORE_UPDATED workspace=${currentWorkspace?.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

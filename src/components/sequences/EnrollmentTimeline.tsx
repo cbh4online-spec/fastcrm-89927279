@@ -30,7 +30,7 @@ export function EnrollmentTimeline({ enrollmentId }: EnrollmentTimelineProps) {
     queryKey: ['enrollment-timeline', enrollmentId],
     queryFn: async () => {
       // Fetch real step logs
-      const { data: logs, error } = await (supabase as any)
+      const { data: logs, error } = await supabase
         .from('sdr_sequence_step_logs')
         .select('id, channel, status, sent_at, opened_at, clicked_at, replied_at, error_message, created_at, sequence_step_id')
         .eq('sdr_enrollment_id', enrollmentId)
@@ -100,7 +100,7 @@ export function EnrollmentTimeline({ enrollmentId }: EnrollmentTimelineProps) {
       }
 
       // Check for next scheduled step (waiting state)
-      const { data: enrollment } = await (supabase as any)
+      const { data: enrollment } = await supabase
         .from('sdr_enrollments')
         .select('next_send_at, status, current_step')
         .eq('id', enrollmentId)

@@ -17,7 +17,7 @@ export function useWorkspaceTags() {
   return useQuery({
     queryKey: ["workspace-tags", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("workspace_tags")
         .select("id, name, color, created_at")
         .eq("workspace_id", currentWorkspace!.id)
@@ -37,7 +37,7 @@ export function useCreateWorkspaceTag() {
 
   return useMutation({
     mutationFn: async ({ name, color }: { name: string; color?: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("workspace_tags")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -72,7 +72,7 @@ export function useUpdateWorkspaceTag() {
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name.trim().toLowerCase();
       if (color !== undefined) updates.color = color;
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("workspace_tags")
         .update(updates)
         .eq("id", id);
@@ -91,7 +91,7 @@ export function useDeleteWorkspaceTag() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("workspace_tags")
         .delete()
         .eq("id", id);
@@ -114,7 +114,7 @@ export function useSyncLeadTagsToWorkspace() {
       if (!tags.length || !currentWorkspace?.id) return;
       const uniqueTags = [...new Set(tags.map(t => t.trim().toLowerCase()))];
       for (const tag of uniqueTags) {
-        await (supabase as any)
+        await supabase
           .from("workspace_tags")
           .upsert(
             { workspace_id: currentWorkspace.id, name: tag },

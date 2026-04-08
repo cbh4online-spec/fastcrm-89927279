@@ -264,7 +264,7 @@ export function useSendCartRecovery() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['store_abandoned_carts'] });
-      console.log('[ECOMMERCE] Cart recovery initiated');
+      console.debug('[ECOMMERCE] Cart recovery initiated');
       toast.success('Tentativa de recuperação iniciada');
     },
     onError: (err) => {

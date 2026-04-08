@@ -131,8 +131,8 @@ export function useCreateCustomField() {
 
       // Get current session for debugging
       const { data: sessionData } = await workspaceClient.auth.getSession();
-      console.log("Creating custom field - Session:", sessionData?.session?.user?.id);
-      console.log("Creating custom field - Workspace ID:", currentWorkspace.id);
+      console.debug("Creating custom field - Session:", sessionData?.session?.user?.id);
+      console.debug("Creating custom field - Workspace ID:", currentWorkspace.id);
 
       const { data, error } = await workspaceClient
         .from("custom_fields")
@@ -158,7 +158,7 @@ export function useCreateCustomField() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado criado");
-      console.log(`[CUSTOM-FIELDS] Custom field created: ${data.id}`);
+      console.debug(`[CUSTOM-FIELDS] Custom field created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -200,7 +200,7 @@ export function useUpdateCustomField() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado atualizado");
-      console.log(`[CUSTOM-FIELDS] Custom field updated: ${data.id}`);
+      console.debug(`[CUSTOM-FIELDS] Custom field updated: ${data.id}`);
       if (currentWorkspace?.id) {
         const { id, ...updatedKeys } = variables;
         emitKernelEvent({
@@ -238,7 +238,7 @@ export function useDeleteCustomField() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado eliminado");
-      console.log(`[CUSTOM-FIELDS] Custom field deleted: ${id}`);
+      console.debug(`[CUSTOM-FIELDS] Custom field deleted: ${id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -281,7 +281,7 @@ export function useReorderCustomFields() {
     onSuccess: (_, fields) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Ordem dos campos atualizada");
-      console.log(`[CUSTOM-FIELDS] Custom fields reordered: ${fields.length} fields`);
+      console.debug(`[CUSTOM-FIELDS] Custom fields reordered: ${fields.length} fields`);
       if (currentWorkspace?.id && fields.length > 0) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -380,7 +380,7 @@ export function useSetCustomFieldValue() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_field_values", variables.entityId] });
-      console.log(`[CUSTOM-FIELDS] Custom field value set: ${data.id}`);
+      console.debug(`[CUSTOM-FIELDS] Custom field value set: ${data.id}`);
     },
     onError: (error: Error) => {
       console.warn('[CUSTOM-FIELDS] VALUE_SET_FAILED:', error.message);

@@ -121,7 +121,7 @@ export function useCreateOffer(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-notifications"] });
       toast.success("Oferta enviada!");
-      console.log('[MARKETPLACE] Offer created', { id: data.id });
+      console.debug('[MARKETPLACE] Offer created', { id: data.id });
     },
     onError: (err: Error) => {
       console.warn('[MARKETPLACE] OFFER_CREATE_FAILED', err.message);
@@ -183,7 +183,7 @@ export function useRespondToOffer() {
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-notifications"] });
       toast.success("Resposta enviada!");
-      console.log('[MARKETPLACE] Offer responded');
+      console.debug('[MARKETPLACE] Offer responded');
     },
     onError: (err: Error) => {
       console.warn('[MARKETPLACE] OFFER_RESPOND_FAILED', err.message);

@@ -53,7 +53,7 @@ export function trackStoreEvent(
     }
   }
 
-  (supabase as any)
+  supabase
     .from("store_tracking_events")
     .insert({
       workspace_id: workspaceId,

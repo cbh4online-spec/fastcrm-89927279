@@ -82,7 +82,7 @@ export function useSubmitReview() {
           })
           .eq("id", reviewedProfileId);
 
-        console.log(`[FASTMATCH] Reputation recalculated for ${reviewedProfileId}: score=${Math.round(avg * 10) / 10}`);
+        console.debug(`[FASTMATCH] Reputation recalculated for ${reviewedProfileId}: score=${Math.round(avg * 10) / 10}`);
       }
 
       return { data, connectionId, reviewedProfileId, rating };

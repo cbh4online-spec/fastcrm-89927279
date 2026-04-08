@@ -72,7 +72,7 @@ export function useUpsertCommunitySettings(workspaceId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["community-settings"] });
       toast.success("Definições guardadas!");
-      console.log('[COMMUNITY-FASTCLUB] SETTINGS_UPDATED');
+      console.debug('[COMMUNITY-FASTCLUB] SETTINGS_UPDATED');
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

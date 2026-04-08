@@ -97,7 +97,7 @@ export function useAccountBriefCRMLink(accountId?: string, leadSearchTerm?: stri
   const unlinkLead = useMutation({
     mutationFn: async () => {
       if (!workspaceId || !accountId) throw new Error("Dados insuficientes");
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("account_brief_accounts")
         .update({ lead_id: null })
         .eq("id", accountId)

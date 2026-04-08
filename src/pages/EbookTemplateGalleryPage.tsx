@@ -53,7 +53,7 @@ export default function EbookTemplateGalleryPage() {
       await bulkCreatePages.mutateAsync(pages);
 
       const { supabase } = await import("@/integrations/supabase/client");
-      await (supabase as any).from("ebooks").update({
+      await supabase.from("ebooks").update({
         template_id: template.id,
         global_styles: template.style_tokens,
       }).eq("id", ebook.id);

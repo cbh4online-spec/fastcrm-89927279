@@ -119,7 +119,7 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   };
 
   const handleInsertVariable = useCallback((variable: string) => {
-    console.log('Insert variable via context:', variable);
+    console.debug('Insert variable via context:', variable);
   }, []);
 
   const handleImportHtml = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

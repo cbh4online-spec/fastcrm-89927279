@@ -32,7 +32,7 @@ export function CannedResponsesPanel() {
   const { data: responses = [], isLoading } = useQuery({
     queryKey: ["chat_canned_responses", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("chat_canned_responses")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -45,7 +45,7 @@ export function CannedResponsesPanel() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("chat_canned_responses")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -69,7 +69,7 @@ export function CannedResponsesPanel() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("chat_canned_responses")
         .delete()
         .eq("id", id);

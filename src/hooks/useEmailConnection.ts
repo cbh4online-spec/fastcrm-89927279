@@ -128,7 +128,7 @@ export function useConnectEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
-      console.log(`[INTEGRATIONS] EMAIL_CONNECTED workspace=${currentWorkspace?.id} provider=${variables.provider}`);
+      console.debug(`[INTEGRATIONS] EMAIL_CONNECTED workspace=${currentWorkspace?.id} provider=${variables.provider}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -182,7 +182,7 @@ export function useUpdateEmail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
-      console.log(`[INTEGRATIONS] EMAIL_UPDATED workspace=${currentWorkspace?.id}`);
+      console.debug(`[INTEGRATIONS] EMAIL_UPDATED workspace=${currentWorkspace?.id}`);
       toast.success("Configurações atualizadas!");
     },
     onError: (error) => {
@@ -217,7 +217,7 @@ export function useDisconnectEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
-      console.log(`[INTEGRATIONS] EMAIL_DISCONNECTED workspace=${currentWorkspace?.id} connection=${variables.connectionId}`);
+      console.debug(`[INTEGRATIONS] EMAIL_DISCONNECTED workspace=${currentWorkspace?.id} connection=${variables.connectionId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -260,7 +260,7 @@ export function useSyncEmail() {
     onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      console.log(`[INTEGRATIONS] EMAIL_SYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      console.debug(`[INTEGRATIONS] EMAIL_SYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -315,7 +315,7 @@ export function useForceResyncEmail() {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      console.log(`[INTEGRATIONS] EMAIL_FORCE_RESYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      console.debug(`[INTEGRATIONS] EMAIL_FORCE_RESYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
       toast.success("Re-sincronização completa iniciada");
     },
     onError: (error) => {
@@ -358,7 +358,7 @@ export function useSendEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", variables.conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      console.log(`[INTEGRATIONS][EMAIL] EMAIL_SENT workspace=${currentWorkspace?.id}`);
+      console.debug(`[INTEGRATIONS][EMAIL] EMAIL_SENT workspace=${currentWorkspace?.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

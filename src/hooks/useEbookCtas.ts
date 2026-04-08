@@ -22,7 +22,7 @@ export function useEbookCtas(ebookId: string | undefined) {
     queryKey: ["ebook-ctas", ebookId],
     queryFn: async () => {
       if (!ebookId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_ctas")
         .select("*")
         .eq("ebook_id", ebookId)
@@ -38,7 +38,7 @@ export function useCreateEbookCta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Omit<EbookCta, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_ctas")
         .insert(input)
         .select()
@@ -58,7 +58,7 @@ export function useUpdateEbookCta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; ebook_id: string } & Partial<EbookCta>) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_ctas")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
@@ -78,7 +78,7 @@ export function useDeleteEbookCta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ebookId }: { id: string; ebookId: string }) => {
-      const { error } = await (supabase as any).from("ebook_ctas").delete().eq("id", id);
+      const { error } = await supabase.from("ebook_ctas").delete().eq("id", id);
       if (error) throw error;
       return ebookId;
     },
@@ -99,7 +99,7 @@ export async function trackCtaEvent(params: {
   event_type: "cta_impression" | "cta_click" | "cta_conversion";
   contact_id?: string;
 }) {
-  await (supabase as any).from("ebook_cta_events").insert({
+  await supabase.from("ebook_cta_events").insert({
     ebook_id: params.ebook_id,
     cta_id: params.cta_id,
     view_id: params.view_id || null,

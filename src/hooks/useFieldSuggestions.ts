@@ -106,7 +106,7 @@ export function useGenerateFieldSuggestions() {
         queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
       });
       const count = data.suggestions?.length ?? 0;
-      console.log(`[AI-SUGGESTIONS] Field suggestions generated for ${variables.entityType}:${variables.entityId} — ${count} suggestions`);
+      console.debug(`[AI-SUGGESTIONS] Field suggestions generated for ${variables.entityType}:${variables.entityId} — ${count} suggestions`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -158,7 +158,7 @@ export function useAcceptSuggestion() {
         queryKey: ["field-suggestions", variables.suggestion.entity_type, variables.suggestion.entity_id] 
       });
       toast.success("Sugestão aplicada com sucesso");
-      console.log(`[AI-SUGGESTIONS] Field suggestion accepted: ${variables.suggestion.id}`);
+      console.debug(`[AI-SUGGESTIONS] Field suggestion accepted: ${variables.suggestion.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -197,7 +197,7 @@ export function useRejectSuggestion() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", suggestion.entity_type, suggestion.entity_id] 
       });
-      console.log(`[AI-SUGGESTIONS] Field suggestion rejected: ${suggestion.id}`);
+      console.debug(`[AI-SUGGESTIONS] Field suggestion rejected: ${suggestion.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -241,7 +241,7 @@ export function useDismissAllSuggestions() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
       });
-      console.log(`[AI-SUGGESTIONS] All field suggestions dismissed for ${variables.entityType}:${variables.entityId}`);
+      console.debug(`[AI-SUGGESTIONS] All field suggestions dismissed for ${variables.entityType}:${variables.entityId}`);
     },
   });
 }

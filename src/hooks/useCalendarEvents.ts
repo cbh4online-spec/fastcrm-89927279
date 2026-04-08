@@ -84,7 +84,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
       if (createError) throw createError;
 
-      console.log(`[CALENDAR] Event created: ${event.id}`);
+      console.debug(`[CALENDAR] Event created: ${event.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'CALENDAR_EVENT.CREATED',
@@ -115,7 +115,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
       if (updateError) throw updateError;
 
-      console.log(`[CALENDAR] Event updated: ${id}`);
+      console.debug(`[CALENDAR] Event updated: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'CALENDAR_EVENT.UPDATED',
@@ -158,7 +158,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
         deleteRemoteEvent(eventToDelete.calendar_id, googleEventId);
       }
 
-      console.log(`[CALENDAR] Event deleted: ${id}`);
+      console.debug(`[CALENDAR] Event deleted: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'CALENDAR_EVENT.DELETED',

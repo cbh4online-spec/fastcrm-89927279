@@ -22,7 +22,7 @@ export function SDRAnalyticsDashboard({ campaignId, campaigns = [] }: SDRAnalyti
     queryKey: ["sdr-daily-stats", currentWorkspace?.id, campaignId],
     queryFn: async () => {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-      let query = (supabase as any)
+      let query = supabase
         .from("sdr_daily_stats")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)

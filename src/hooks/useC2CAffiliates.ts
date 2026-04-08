@@ -15,7 +15,7 @@ export function useAffiliateProgram(workspaceId: string | undefined) {
     queryKey: ["c2c-affiliate-program", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliate_programs")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -31,7 +31,7 @@ export function useUpsertAffiliateProgram() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (program: any) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("c2c_affiliate_programs")
         .upsert(program, { onConflict: "id" });
       if (error) throw error;
@@ -50,7 +50,7 @@ export function useMyAffiliate(workspaceId: string | undefined) {
     queryKey: ["c2c-my-affiliate", workspaceId, user?.id],
     queryFn: async () => {
       if (!workspaceId || !user) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliates")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -69,7 +69,7 @@ export function useJoinAffiliateProgram() {
   return useMutation({
     mutationFn: async ({ programId, workspaceId }: { programId: string; workspaceId: string }) => {
       if (!user) throw new Error("Necessário login");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliates")
         .insert({
           program_id: programId,
@@ -85,7 +85,7 @@ export function useJoinAffiliateProgram() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-my-affiliate", v.workspaceId] });
       toast.success("Inscrito como afiliado!");
-      console.log('[MARKETPLACE] Affiliate joined');
+      console.debug('[MARKETPLACE] Affiliate joined');
     },
     onError: (e: Error) => {
       console.warn('[MARKETPLACE] AFFILIATE_JOIN_FAILED', e.message);
@@ -99,7 +99,7 @@ export function useAffiliateLinks(affiliateId: string | undefined) {
     queryKey: ["c2c-affiliate-links", affiliateId],
     queryFn: async () => {
       if (!affiliateId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliate_links")
         .select("*")
         .eq("affiliate_id", affiliateId)
@@ -115,7 +115,7 @@ export function useCreateAffiliateLink() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (link: any) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("c2c_affiliate_links")
         .insert(link);
       if (error) throw error;
@@ -123,7 +123,7 @@ export function useCreateAffiliateLink() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-affiliate-links", v.affiliate_id] });
       toast.success("Link criado!");
-      console.log('[MARKETPLACE] Affiliate link created');
+      console.debug('[MARKETPLACE] Affiliate link created');
     },
     onError: (e: Error) => {
       console.warn('[MARKETPLACE] AFFILIATE_LINK_CREATE_FAILED', e.message);
@@ -137,7 +137,7 @@ export function useAffiliateAttributions(affiliateId: string | undefined) {
     queryKey: ["c2c-affiliate-attributions", affiliateId],
     queryFn: async () => {
       if (!affiliateId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliate_attributions")
         .select("*")
         .eq("affiliate_id", affiliateId)
@@ -154,7 +154,7 @@ export function useAffiliateClicks(affiliateId: string | undefined) {
     queryKey: ["c2c-affiliate-clicks", affiliateId],
     queryFn: async () => {
       if (!affiliateId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliate_clicks")
         .select("*")
         .eq("affiliate_id", affiliateId)
@@ -172,7 +172,7 @@ export function useAllAffiliates(workspaceId: string | undefined) {
     queryKey: ["c2c-all-affiliates", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliates")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -189,7 +189,7 @@ export function useAllAttributions(workspaceId: string | undefined) {
     queryKey: ["c2c-all-attributions", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_affiliate_attributions")
         .select("*")
         .eq("workspace_id", workspaceId)

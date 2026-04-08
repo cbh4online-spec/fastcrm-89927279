@@ -141,7 +141,7 @@ export function PendingOutreachPanel() {
       .update({ outreach_step: item.step_index + 1 } as any)
       .eq("id", item.profile_id);
     setBulkSent((prev) => new Set(prev).add(item.id));
-    console.log(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);
+    console.debug(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);
     if (currentWorkspace?.id) {
       emitKernelEvent({
         workspace_id: currentWorkspace.id,

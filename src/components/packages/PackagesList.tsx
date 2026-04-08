@@ -156,7 +156,7 @@ export function PackagesList({
 
   const handleAlertAction = (action: string, alert: PackageAlert) => {
     // TODO: Implement alert actions
-    console.log("Alert action:", action, alert);
+    console.debug("Alert action:", action, alert);
   };
 
   // Get alerts related to displayed packages

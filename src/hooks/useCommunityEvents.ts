@@ -74,7 +74,7 @@ export function useCreateCommunityEvent(workspaceId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["community-events"] });
       qc.invalidateQueries({ queryKey: ["community-upcoming-event"] });
       toast.success("Evento criado!");
-      console.log('[COMMUNITY-FASTCLUB] EVENT_CREATED', { id: data?.id });
+      console.debug('[COMMUNITY-FASTCLUB] EVENT_CREATED', { id: data?.id });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

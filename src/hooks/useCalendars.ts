@@ -196,7 +196,7 @@ export function useCalendars() {
           is_owner: true,
         });
 
-      console.log(`[CALENDAR] Calendar created: ${calendar.id}`);
+      console.debug(`[CALENDAR] Calendar created: ${calendar.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'CALENDAR.CREATED',
@@ -225,7 +225,7 @@ export function useCalendars() {
 
       if (updateError) throw updateError;
 
-      console.log(`[CALENDAR] Calendar updated: ${id}`);
+      console.debug(`[CALENDAR] Calendar updated: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'CALENDAR.UPDATED',
@@ -253,7 +253,7 @@ export function useCalendars() {
 
       if (deleteError) throw deleteError;
 
-      console.log(`[CALENDAR] Calendar deleted: ${id}`);
+      console.debug(`[CALENDAR] Calendar deleted: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'CALENDAR.DELETED',

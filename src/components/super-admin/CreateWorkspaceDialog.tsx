@@ -108,7 +108,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
       toast.success(`Workspace "${name}" criado com sucesso`);
 
-      console.log(`[WORKSPACES] Admin created workspace: ${workspaceId}`);
+      console.debug(`[WORKSPACES] Admin created workspace: ${workspaceId}`);
       emitKernelEvent({
         workspace_id: workspaceId || 'unknown',
         type: 'WORKSPACE.CREATED',

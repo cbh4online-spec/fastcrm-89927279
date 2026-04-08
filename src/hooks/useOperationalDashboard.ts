@@ -258,7 +258,7 @@ export function useDashboardAIInsights(dashboardData: OperationalKPIs | null, us
         
         // Emit kernel event on successful AI response
         const response = data as DashboardAIResponse;
-        console.log(`[DASHBOARD] AI insights generated: ${response.insights?.length || 0} insights, ${response.nextActions?.length || 0} actions`);
+        console.debug(`[DASHBOARD] AI insights generated: ${response.insights?.length || 0} insights, ${response.nextActions?.length || 0} actions`);
         if (currentWorkspace) {
           emitKernelEvent({
             workspace_id: currentWorkspace.id,

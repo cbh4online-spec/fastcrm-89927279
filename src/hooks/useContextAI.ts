@@ -48,7 +48,7 @@ export function useAISuggestFields() {
         toast.error(data.error);
         throw new Error(data.error);
       }
-      console.log(`[AI-SUGGESTIONS] Context AI suggest_fields success for block ${blockId} — ${data.suggestions?.length ?? 0} suggestions`);
+      console.debug(`[AI-SUGGESTIONS] Context AI suggest_fields success for block ${blockId} — ${data.suggestions?.length ?? 0} suggestions`);
       return data.suggestions || [];
     },
     onError: (err: Error) => toast.error("Erro IA: " + err.message),
@@ -70,7 +70,7 @@ export function useAIGenerateActions() {
         toast.error(data.error);
         throw new Error(data.error);
       }
-      console.log(`[AI-SUGGESTIONS] Context AI generate_actions success — ${data.actions?.length ?? 0} actions`);
+      console.debug(`[AI-SUGGESTIONS] Context AI generate_actions success — ${data.actions?.length ?? 0} actions`);
       return data.actions || [];
     },
     onError: (err: Error) => toast.error("Erro IA: " + err.message),

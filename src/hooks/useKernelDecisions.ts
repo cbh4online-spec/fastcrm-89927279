@@ -47,7 +47,7 @@ export function useKernelDecisions() {
     onSuccess: (decisionId) => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       toast.success('Decisão aceite');
-      console.log('[STRATEGY] DECISION_APPROVED', { id: decisionId });
+      console.debug('[STRATEGY] DECISION_APPROVED', { id: decisionId });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -76,7 +76,7 @@ export function useKernelDecisions() {
     onSuccess: (decisionId) => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       toast.success('Decisão rejeitada');
-      console.log('[STRATEGY] DECISION_REJECTED', { id: decisionId });
+      console.debug('[STRATEGY] DECISION_REJECTED', { id: decisionId });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -123,7 +123,7 @@ export function useKernelDecisions() {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       queryClient.invalidateQueries({ queryKey: ['kernel-action-runs'] });
       toast.success('Ações executadas');
-      console.log('[STRATEGY] ACTION_EXECUTED', { decision_id: decisionId });
+      console.debug('[STRATEGY] ACTION_EXECUTED', { decision_id: decisionId });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

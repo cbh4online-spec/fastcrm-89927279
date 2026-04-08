@@ -203,7 +203,7 @@ export function useUnlockConnection() {
           })
           .eq("id", (connection as any).id);
 
-        console.log(`[FASTMATCH] CRM provisioned: company=${companyId}, contact=${contactId}, opportunity=${opportunityId}`);
+        console.debug(`[FASTMATCH] CRM provisioned: company=${companyId}, contact=${contactId}, opportunity=${opportunityId}`);
 
         return {
           ...(connection as any),
@@ -221,7 +221,7 @@ export function useUnlockConnection() {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-connections"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
-      console.log('[FASTMATCH] Connection unlocked');
+      console.debug('[FASTMATCH] Connection unlocked');
       toast.success("Conexão desbloqueada com sucesso!");
     },
     onError: (err: any) => {

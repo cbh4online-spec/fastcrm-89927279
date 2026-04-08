@@ -10,7 +10,7 @@ export function useDealIntelligenceReport(opportunityId: string | undefined) {
   return useQuery({
     queryKey: ['deal-intel-report', opportunityId],
     queryFn: async (): Promise<DealIntelligenceReport | null> => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('deal_intelligence_reports')
         .select('*')
         .eq('opportunity_id', opportunityId!)
@@ -64,7 +64,7 @@ export function useAllDealReports() {
   return useQuery({
     queryKey: ['all-deal-intel-reports', currentWorkspace?.id],
     queryFn: async (): Promise<DealIntelligenceReport[]> => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('deal_intelligence_reports')
         .select('*')
         .eq('workspace_id', currentWorkspace!.id)

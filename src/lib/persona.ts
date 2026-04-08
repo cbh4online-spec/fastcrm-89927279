@@ -9,7 +9,7 @@ export async function resolvePersonaForContext(
   workspaceId: string,
   context: { channel?: string; is_b2b_portal?: boolean }
 ): Promise<AIPersona | null> {
-  let query = (supabase as any)
+  let query = supabase
     .from('ai_personas')
     .select('*, vibe_profile:vibe_profiles(*)')
     .eq('workspace_id', workspaceId)

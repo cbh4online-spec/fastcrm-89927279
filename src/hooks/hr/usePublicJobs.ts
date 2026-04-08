@@ -37,7 +37,7 @@ export function usePublicWorkspace(workspaceSlug: string | undefined) {
   return useQuery({
     queryKey: ["public-workspace", resolvedWorkspaceSlug],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("workspaces")
         .select("id, name, slug, logo_url, company_name, primary_color, secondary_color, website")
         .eq("slug", resolvedWorkspaceSlug!)
@@ -53,7 +53,7 @@ export function usePublicJobs(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["public-jobs", workspaceId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("hr_job_postings")
         .select("id, title, description, employment_type, location, remote_option, salary_min, salary_max, currency, requirements, nice_to_have, slug, published_at, workspace_id")
         .eq("workspace_id", workspaceId!)
@@ -83,7 +83,7 @@ export function usePublicExternalJobs(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["public-external-jobs", workspaceId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("hr_talent_results")
         .select("id, title, description, location, source_url, source_platform, skills, extracted_data, created_at")
         .eq("workspace_id", workspaceId!)
@@ -104,14 +104,14 @@ export function usePublicJob(workspaceSlug: string | undefined, jobSlug: string 
   return useQuery({
     queryKey: ["public-job", resolvedWorkspaceSlug, jobSlug],
     queryFn: async () => {
-      const { data: ws, error: wsErr } = await (supabase as any)
+      const { data: ws, error: wsErr } = await supabase
         .from("workspaces")
         .select("id")
         .eq("slug", resolvedWorkspaceSlug!)
         .single();
       if (wsErr) throw wsErr;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("hr_job_postings")
         .select("id, title, description, employment_type, location, remote_option, salary_min, salary_max, currency, requirements, nice_to_have, slug, published_at, workspace_id")
         .eq("workspace_id", ws.id)
@@ -140,7 +140,7 @@ interface ApplicationData {
 export function useSubmitApplication() {
   return useMutation({
     mutationFn: async (data: ApplicationData) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("hr_candidates")
         .insert({
           ...data,

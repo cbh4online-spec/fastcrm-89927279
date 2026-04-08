@@ -66,7 +66,7 @@ export function useGenerateStrategicDecisions() {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
       });
-      console.log('[STRATEGY] DECISIONS_GENERATED', { workspace: currentWorkspace?.id });
+      console.debug('[STRATEGY] DECISIONS_GENERATED', { workspace: currentWorkspace?.id });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -131,7 +131,7 @@ export function useDismissDecision() {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
-      console.log('[STRATEGY] DECISION_DISMISSED', { id });
+      console.debug('[STRATEGY] DECISION_DISMISSED', { id });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -198,7 +198,7 @@ export function useBulkConvertAllDecisions() {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
-      console.log('[STRATEGY] BULK_CONVERTED', { total_decisions: result.totalDecisions, total_tasks: result.totalTasks });
+      console.debug('[STRATEGY] BULK_CONVERTED', { total_decisions: result.totalDecisions, total_tasks: result.totalTasks });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -250,7 +250,7 @@ export function useConvertAllDecisionSteps() {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
-      console.log('[STRATEGY] DECISION_CONVERTED', { id: result.decisionId, steps: result.stepsCount });
+      console.debug('[STRATEGY] DECISION_CONVERTED', { id: result.decisionId, steps: result.stepsCount });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

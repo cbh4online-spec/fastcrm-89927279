@@ -72,7 +72,7 @@ export function useCreateBioPage() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
-      console.log(`[BIO] Page created: ${data.slug}`);
+      console.debug(`[BIO] Page created: ${data.slug}`);
       toast.success("Página Bio criada");
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -108,7 +108,7 @@ export function useUpdateBioPage() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
       qc.invalidateQueries({ queryKey: ["bio-page", d.id] });
-      console.log(`[BIO] Page updated: ${d.id}`);
+      console.debug(`[BIO] Page updated: ${d.id}`);
       toast.success("Página atualizada");
     },
     onError: (e) => {
@@ -127,7 +127,7 @@ export function useDeleteBioPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
-      console.log("[BIO] Page deleted");
+      console.debug("[BIO] Page deleted");
       toast.success("Página eliminada");
     },
     onError: (e) => {
@@ -154,7 +154,7 @@ export function usePublishBioPage() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
       qc.invalidateQueries({ queryKey: ["bio-page", d.id] });
-      console.log(`[BIO] Page ${d.status}: ${d.id}`);
+      console.debug(`[BIO] Page ${d.status}: ${d.id}`);
       toast.success(d.status === "live" ? "Página publicada!" : "Página despublicada");
       if (d.status === "live" && currentWorkspace?.id) {
         emitKernelEvent({

@@ -45,7 +45,7 @@ export function SDRSuppressionManager() {
   const { data: suppressions = [], isLoading } = useQuery({
     queryKey: ["sdr-suppressions", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("sdr_suppressions")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -59,7 +59,7 @@ export function SDRSuppressionManager() {
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("sdr_suppressions")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -87,7 +87,7 @@ export function SDRSuppressionManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("sdr_suppressions")
         .delete()
         .eq("id", id);

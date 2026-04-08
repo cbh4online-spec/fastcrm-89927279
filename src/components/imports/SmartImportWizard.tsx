@@ -104,7 +104,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
 
   const processData = (headers: string[], rows: Record<string, string>[]) => {
     setParsedData({ headers, rows });
-    console.log(`[IMPORTS] File parsed: ${file.name}, ${rows.length} rows, ${headers.length} columns`);
+    console.debug(`[IMPORTS] File parsed: ${file.name}, ${rows.length} rows, ${headers.length} columns`);
     
     // Analyze columns
     const detections = headers.map(header => {
@@ -186,7 +186,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
     
     setStep("importing");
     setImportStatus("processing");
-    console.log(`[IMPORTS] Import started: ${importType}, ${parsedData.rows.length} rows, policy: ${conflictPolicy}`);
+    console.debug(`[IMPORTS] Import started: ${importType}, ${parsedData.rows.length} rows, policy: ${conflictPolicy}`);
     
     // Save industry labels
     try {
@@ -360,7 +360,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
 
     setImportResult(result);
     setImportStatus("complete");
-    console.log(`[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped, ${result.duplicatesFound} duplicates found, ${result.duplicatesUpdated} updated`);
+    console.debug(`[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped, ${result.duplicatesFound} duplicates found, ${result.duplicatesUpdated} updated`);
     if (result.errorDetails.length > 0) {
       console.warn(`[IMPORTS] Row issues: ${result.errorDetails.length}`);
       result.errorDetails.slice(0, 10).forEach(e => console.warn(`[IMPORTS]   Row ${e.row}: ${e.error}`));

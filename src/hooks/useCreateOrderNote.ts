@@ -133,7 +133,7 @@ export function useCreateOrderNote() {
     },
     onSuccess: (orderId) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
-      console.log(`[ORDERS] Order note created: ${orderId}`);
+      console.debug(`[ORDERS] Order note created: ${orderId}`);
       toast.success("Nota de encomenda criada com sucesso");
       navigate(`/dashboard/order-notes/${orderId}`);
     },

@@ -224,7 +224,7 @@ export function useCompanies() {
       queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa criada com sucesso");
-      console.log(`[COMPANIES] Company created: ${company.id}`);
+      console.debug(`[COMPANIES] Company created: ${company.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -321,7 +321,7 @@ export function useCompanies() {
       queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       const { id, ...changed } = variables;
       const fieldsChanged = Object.keys(changed);
-      console.log(`[COMPANIES] Company updated: ${id}, fields: ${fieldsChanged.join(', ')}`);
+      console.debug(`[COMPANIES] Company updated: ${id}, fields: ${fieldsChanged.join(', ')}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -361,7 +361,7 @@ export function useCompanies() {
       queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa arquivada com sucesso");
-      console.log(`[COMPANIES] Company deleted (soft): ${id}`);
+      console.debug(`[COMPANIES] Company deleted (soft): ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -393,7 +393,7 @@ export function useCompanies() {
       queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa restaurada com sucesso");
-      console.log(`[COMPANIES] Company restored: ${id}`);
+      console.debug(`[COMPANIES] Company restored: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

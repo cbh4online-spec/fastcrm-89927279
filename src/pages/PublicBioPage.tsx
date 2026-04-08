@@ -85,7 +85,7 @@ function DynamicIcon({ name, className, style }: { name: string; className?: str
 
 // Track page view (fire-and-forget)
 function trackPageView(page: BioPage, blocksCount: number) {
-  console.log(`[BIO] Public page rendered: page=${page.id}, blocks=${blocksCount}`);
+  console.debug(`[BIO] Public page rendered: page=${page.id}, blocks=${blocksCount}`);
   const visitorId = localStorage.getItem("bio_visitor_id") || crypto.randomUUID();
   localStorage.setItem("bio_visitor_id", visitorId);
 
@@ -110,7 +110,7 @@ function trackPageView(page: BioPage, blocksCount: number) {
 
 // Track block click
 function trackBlockClick(page: BioPage, blockId: string) {
-  console.log(`[BIO] Click tracked: block=${blockId}`);
+  console.debug(`[BIO] Click tracked: block=${blockId}`);
   const visitorId = localStorage.getItem("bio_visitor_id") || crypto.randomUUID();
   supabase.from("bio_events").insert({
     workspace_id: page.workspace_id,
@@ -560,7 +560,7 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
         } as any);
       }
 
-      console.log(`[BIO] Lead captured: page=${page.id}, block=${block.id}`);
+      console.debug(`[BIO] Lead captured: page=${page.id}, block=${block.id}`);
       setSubmitted(true);
     } catch (err) {
       console.warn("[BIO] LEAD_CAPTURE_FAILED", err);

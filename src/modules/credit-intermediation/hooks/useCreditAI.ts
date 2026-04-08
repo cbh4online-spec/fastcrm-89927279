@@ -68,7 +68,7 @@ export function useCreditAI() {
       return data.analysis;
     },
     onSuccess: (data: AIViabilityAnalysis, variables: AnalyzeViabilityInput) => {
-      console.log(`[VERTICAL-CREDIT] Viability analyzed proposal=${variables.proposal.id} score=${data.viability_score} risk=${data.risk_level}`);
+      console.debug(`[VERTICAL-CREDIT] Viability analyzed proposal=${variables.proposal.id} score=${data.viability_score} risk=${data.risk_level}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -122,7 +122,7 @@ export function useCreditAI() {
       return data.recommendations;
     },
     onSuccess: (data: BankRecommendation[], variables) => {
-      console.log(`[VERTICAL-CREDIT] Banks matched proposal=${variables.proposal.id} count=${data.length}`);
+      console.debug(`[VERTICAL-CREDIT] Banks matched proposal=${variables.proposal.id} count=${data.length}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -160,7 +160,7 @@ export function useCreditAI() {
       return data.extracted;
     },
     onSuccess: (data, variables) => {
-      console.log(`[AI-DOCINT] Document extracted successfully type=${variables.document_type} confidence=${data.confidence}`);
+      console.debug(`[AI-DOCINT] Document extracted successfully type=${variables.document_type} confidence=${data.confidence}`);
       toast.success("Documento processado com sucesso");
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -198,7 +198,7 @@ export function useCreditAI() {
       return data.response;
     },
     onSuccess: (_data, variables) => {
-      console.log(`[VERTICAL-CREDIT] Copilot responded proposal=${variables.proposal.id} action=${variables.action || "question"}`);
+      console.debug(`[VERTICAL-CREDIT] Copilot responded proposal=${variables.proposal.id} action=${variables.action || "question"}`);
     },
     onError: (error: Error) => {
       console.error(`[VERTICAL-CREDIT] Copilot failed: ${error.message}`);
@@ -226,7 +226,7 @@ export function useCreditAI() {
       return data.suggestions;
     },
     onSuccess: (data, variables) => {
-      console.log(`[VERTICAL-CREDIT] Optimizations generated proposal=${variables.proposal.id} count=${data.length}`);
+      console.debug(`[VERTICAL-CREDIT] Optimizations generated proposal=${variables.proposal.id} count=${data.length}`);
     },
     onError: (error: Error) => {
       console.error(`[VERTICAL-CREDIT] Optimization failed: ${error.message}`);

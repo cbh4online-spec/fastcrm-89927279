@@ -139,8 +139,8 @@ export function EntityAutomationSection({
             </div>
           ) : (
             <AutomationRulesList
-              onEdit={(rule) => console.log('Edit', rule.id)}
-              onViewLogs={(ruleId) => console.log('Logs', ruleId)}
+              onEdit={(rule) => console.debug('Edit', rule.id)}
+              onViewLogs={(ruleId) => console.debug('Logs', ruleId)}
             />
           )}
         </TabsContent>

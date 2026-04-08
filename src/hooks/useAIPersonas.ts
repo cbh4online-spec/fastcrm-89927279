@@ -10,7 +10,7 @@ export function useAIPersonas(includeArchived = false) {
   return useQuery({
     queryKey: ['ai-personas', currentWorkspace?.id, includeArchived],
     queryFn: async (): Promise<AIPersona[]> => {
-      let query = (supabase as any)
+      let query = supabase
         .from('ai_personas')
         .select('*, vibe_profile:vibe_profiles(*)')
         .eq('workspace_id', currentWorkspace!.id)
@@ -34,7 +34,7 @@ export function useDefaultPersona() {
   return useQuery({
     queryKey: ['ai-persona-default', currentWorkspace?.id],
     queryFn: async (): Promise<AIPersona | null> => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('ai_personas')
         .select('*, vibe_profile:vibe_profiles(*)')
         .eq('workspace_id', currentWorkspace!.id)
@@ -54,7 +54,7 @@ export function useCreatePersona() {
 
   return useMutation({
     mutationFn: async (payload: Partial<AIPersona>) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('ai_personas')
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -93,7 +93,7 @@ export function useUpdatePersona() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<AIPersona> }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('ai_personas')
         .update(updates)
         .eq('id', id)
@@ -117,7 +117,7 @@ export function useDeletePersona() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('ai_personas')
         .update({ status: 'archived' })
         .eq('id', id)
@@ -137,13 +137,13 @@ export function useSetDefaultPersona() {
 
   return useMutation({
     mutationFn: async (personaId: string) => {
-      await (supabase as any)
+      await supabase
         .from('ai_personas')
         .update({ is_default: false } as any)
         .eq('workspace_id', currentWorkspace!.id)
         .eq('is_default', true);
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('ai_personas')
         .update({ is_default: true } as any)
         .eq('id', personaId);

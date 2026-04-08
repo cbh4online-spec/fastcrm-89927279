@@ -49,7 +49,7 @@ export function useMyPortalWorker(workspaceId: string | undefined) {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_workers")
         .select("*")
         .eq("workspace_id", workspaceId!)
@@ -88,7 +88,7 @@ export function useRegisterPortalWorker() {
       if (authErr) throw authErr;
       if (!authData.user) throw new Error("Erro ao criar conta");
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("portal_workers")
         .insert({
           workspace_id: params.workspace_id,
@@ -120,7 +120,7 @@ export function useMyWorkerListings(workerId: string | undefined) {
   return useQuery({
     queryKey: ["portal-worker-listings-mine", workerId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_worker_listings")
         .select("*")
         .eq("portal_worker_id", workerId!)
@@ -146,7 +146,7 @@ export function useCreateWorkerListing() {
       desired_salary_range?: string;
       is_immediate?: boolean;
     }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("portal_worker_listings")
         .insert({ ...listing, status: "active" });
       if (error) throw error;
@@ -164,7 +164,7 @@ export function usePublicWorkerListings(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["public-worker-listings", workspaceId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("portal_worker_listings")
         .select("id, title, description, employment_type, remote_option, desired_location, desired_salary_range, is_immediate, published_at, portal_worker_id, portal_workers(first_name, last_name, photo_url, location, skills, experience_years, sector)")
         .eq("workspace_id", workspaceId!)

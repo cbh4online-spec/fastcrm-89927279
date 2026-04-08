@@ -35,7 +35,7 @@ export function useClassifyConversation() {
       channel?: string;
     }): Promise<ConversationClassification> => {
       const correlationId = generateRequestId();
-      console.log(`[CLASSIFY] correlation_id=${correlationId} starting classification`);
+      console.debug(`[CLASSIFY] correlation_id=${correlationId} starting classification`);
 
       const { data, error } = await supabase.functions.invoke("classify-conversation", {
         body: { messages, leadName, channel },
@@ -49,7 +49,7 @@ export function useClassifyConversation() {
         throw new Error(data.error);
       }
 
-      console.log(`[CLASSIFY] correlation_id=${correlationId} result: priority=${data.priority} intent=${data.intent}`);
+      console.debug(`[CLASSIFY] correlation_id=${correlationId} result: priority=${data.priority} intent=${data.intent}`);
       return data as ConversationClassification;
     },
     onError: (error) => {

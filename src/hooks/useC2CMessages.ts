@@ -170,7 +170,7 @@ export function useC2CThread(listingId: string | undefined, otherUserId: string 
   // Realtime subscription for messages + offers
   useEffect(() => {
     if (!listingId || !user) return;
-    console.log('[MARKETPLACE] Realtime subscribe', { listingId });
+    console.debug('[MARKETPLACE] Realtime subscribe', { listingId });
     const channel = supabase
       .channel(`c2c-inbox-${listingId}`)
       .on(
@@ -202,7 +202,7 @@ export function useC2CThread(listingId: string | undefined, otherUserId: string 
       .subscribe();
 
     return () => {
-      console.log('[MARKETPLACE] Realtime unsubscribe', { listingId });
+      console.debug('[MARKETPLACE] Realtime unsubscribe', { listingId });
       supabase.removeChannel(channel);
     };
   }, [listingId, otherUserId, user, queryClient]);
@@ -244,7 +244,7 @@ export function useSendC2CMessage(workspaceId: string | undefined) {
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-thread"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
-      console.log('[MARKETPLACE] Message sent', { listing_id: vars.listingId });
+      console.debug('[MARKETPLACE] Message sent', { listing_id: vars.listingId });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -329,7 +329,7 @@ export function useSendC2COfferMessage(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       toast.success("Proposta enviada!");
-      console.log('[MARKETPLACE] Offer sent', { offer_id: offer.id, listing_id: vars.listingId });
+      console.debug('[MARKETPLACE] Offer sent', { offer_id: offer.id, listing_id: vars.listingId });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -422,7 +422,7 @@ export function useRespondToOfferInChat(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       toast.success("Resposta enviada!");
-      console.log('[MARKETPLACE] Offer responded', { offer_id: result.offerId, action: result.action });
+      console.debug('[MARKETPLACE] Offer responded', { offer_id: result.offerId, action: result.action });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -486,7 +486,7 @@ export function useUpdateListingStatusInChat(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-listings"] });
       toast.success("Estado atualizado!");
-      console.log('[MARKETPLACE] Listing status changed', { listing_id: result.listingId, new_status: result.newStatus });
+      console.debug('[MARKETPLACE] Listing status changed', { listing_id: result.listingId, new_status: result.newStatus });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

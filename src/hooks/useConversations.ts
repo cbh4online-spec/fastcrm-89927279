@@ -115,7 +115,7 @@ export function useConversations(filters?: ConversationFilters) {
         }
       )
       .subscribe((status) => {
-        console.log(`[Inbox Realtime] conversations subscription: ${status}`);
+        console.debug(`[Inbox Realtime] conversations subscription: ${status}`);
       });
 
     return () => {

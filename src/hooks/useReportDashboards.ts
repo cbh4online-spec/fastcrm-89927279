@@ -57,7 +57,7 @@ export function useCreateDashboard() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["report-dashboards"] });
       toast.success("Dashboard criado");
-      console.log(`[DASHBOARD] Dashboard created: ${d.id}`);
+      console.debug(`[DASHBOARD] Dashboard created: ${d.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -88,7 +88,7 @@ export function useDeleteDashboard() {
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["report-dashboards"] });
       toast.success("Dashboard eliminado");
-      console.log(`[DASHBOARD] Dashboard deleted: ${id}`);
+      console.debug(`[DASHBOARD] Dashboard deleted: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -120,7 +120,7 @@ export function useUpdateDashboard() {
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["report-dashboards"] });
-      console.log(`[DASHBOARD] Dashboard updated: ${id}`);
+      console.debug(`[DASHBOARD] Dashboard updated: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

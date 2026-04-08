@@ -99,7 +99,7 @@ export default function PublicEbookPage() {
   useEffect(() => {
     async function load() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
-      const { data, error: err } = await (supabase as any)
+      const { data, error: err } = await supabase
         .from("ebooks")
         .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, consent_required, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
         .eq("slug", slug)
@@ -154,7 +154,7 @@ export default function PublicEbookPage() {
       user_agent_string: navigator.userAgent || null,
     };
 
-    const { data } = await (supabase as any).from("ebook_views").insert(insertPayload).select("id").single();
+    const { data } = await supabase.from("ebook_views").insert(insertPayload).select("id").single();
     if (data) {
       setViewId(data.id);
       // Invoke lead capture edge function for CRM integration

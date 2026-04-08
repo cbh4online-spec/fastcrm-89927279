@@ -238,7 +238,7 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
             delete_after: deleteAfterConversion,
           },
         });
-        console.log('[LEADS] Lead converted:', lead.id, '→', target, newEntityId);
+        console.debug('[LEADS] Lead converted:', lead.id, '→', target, newEntityId);
       }
 
       setOpen(false);

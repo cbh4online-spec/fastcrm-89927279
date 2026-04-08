@@ -135,7 +135,7 @@ export function useCreateSmartForm() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       toast.success("Formulário criado com sucesso!");
-      console.log(`[FORMS] Form created: ${data.id}`);
+      console.debug(`[FORMS] Form created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -186,7 +186,7 @@ export function useUpdateSmartForm() {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       queryClient.invalidateQueries({ queryKey: ["smart-form", data.id] });
       toast.success("Formulário atualizado!");
-      console.log(`[FORMS] Form updated: ${data.id}`);
+      console.debug(`[FORMS] Form updated: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -222,7 +222,7 @@ export function useDeleteSmartForm() {
     onSuccess: (formId) => {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       toast.success("Formulário eliminado!");
-      console.log(`[FORMS] Form deleted: ${formId}`);
+      console.debug(`[FORMS] Form deleted: ${formId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -275,7 +275,7 @@ export function useSubmitForm() {
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["form-submissions", variables.formId] });
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
-      console.log(`[FORMS] Form submitted: ${variables.formId}`, result?.submission);
+      console.debug(`[FORMS] Form submitted: ${variables.formId}`, result?.submission);
       if (currentWorkspace?.id && result?.submission) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

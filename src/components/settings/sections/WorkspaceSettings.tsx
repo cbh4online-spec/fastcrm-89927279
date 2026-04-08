@@ -185,7 +185,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro ao enviar convite");
 
-      console.log(`[WORKSPACES] Invited member: ${inviteEmail} as ${inviteRole}`);
+      console.debug(`[WORKSPACES] Invited member: ${inviteEmail} as ${inviteRole}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'MEMBER.INVITED',
@@ -237,7 +237,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
             throw memberError;
           }
         } else {
-          console.log(`[WORKSPACES] Added member: ${existingProfile.user_id} as ${manualRole}`);
+          console.debug(`[WORKSPACES] Added member: ${existingProfile.user_id} as ${manualRole}`);
           emitKernelEvent({
             workspace_id: currentWorkspace.id,
             type: 'MEMBER.ADDED',
@@ -279,7 +279,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
       if (error) throw error;
 
-      console.log(`[WORKSPACES] Updated role for member: ${selectedMember.id} to ${editRole}`);
+      console.debug(`[WORKSPACES] Updated role for member: ${selectedMember.id} to ${editRole}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'ROLE.UPDATED',
@@ -313,7 +313,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
       if (error) throw error;
 
-      console.log(`[WORKSPACES] Removed member: ${selectedMember.id}`);
+      console.debug(`[WORKSPACES] Removed member: ${selectedMember.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'MEMBER.REMOVED',

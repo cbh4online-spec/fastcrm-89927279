@@ -269,7 +269,7 @@ export function useProductsListState() {
   const { data: tagProductIds } = useQuery({
     queryKey: ["tag-product-ids", currentWorkspace?.id, activeTagName],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("product_tags")
         .select("product_id")
         .eq("workspace_id", currentWorkspace!.id)

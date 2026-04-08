@@ -14,7 +14,7 @@ interface CreatePriceRequestInput {
 export function useCreateStorePriceRequest() {
   return useMutation({
     mutationFn: async (input: CreatePriceRequestInput) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_price_requests")
         .insert({
           workspace_id: input.workspace_id,
@@ -43,7 +43,7 @@ export function useStorePriceRequests(workspaceId: string | undefined, status?: 
   return useQuery({
     queryKey: ["store-price-requests", workspaceId, status],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from("store_price_requests")
         .select("*, products:product_id(name, images, primary_image_index)")
         .eq("workspace_id", workspaceId)
@@ -67,7 +67,7 @@ export function useUpdatePriceRequestStatus() {
     mutationFn: async ({ id, status, admin_notes }: { id: string; status: string; admin_notes?: string }) => {
       const update: any = { status };
       if (admin_notes !== undefined) update.admin_notes = admin_notes;
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("store_price_requests")
         .update(update)
         .eq("id", id);

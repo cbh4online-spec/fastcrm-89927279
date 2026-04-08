@@ -33,7 +33,7 @@ export function useContextBindings(blockId?: string) {
       return binding;
     },
     onSuccess: (_data, variables) => {
-      console.log('[CONTEXT] Binding created', { block_id: variables.block_id, asset_kind: variables.asset_kind });
+      console.debug('[CONTEXT] Binding created', { block_id: variables.block_id, asset_kind: variables.asset_kind });
       queryClient.invalidateQueries({ queryKey: ['context-bindings'] });
       toast.success('Binding criado');
 
@@ -60,7 +60,7 @@ export function useContextBindings(blockId?: string) {
       return bindingId;
     },
     onSuccess: (_data, bindingId) => {
-      console.log('[CONTEXT] Binding removed', { bindingId });
+      console.debug('[CONTEXT] Binding removed', { bindingId });
       queryClient.invalidateQueries({ queryKey: ['context-bindings'] });
       toast.success('Binding removido');
 

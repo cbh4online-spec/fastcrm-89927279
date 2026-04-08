@@ -203,7 +203,7 @@ export function useStoreCategories(workspaceId: string) {
     queryKey: ["store-categories-unified", workspaceId],
     queryFn: async () => {
       // Fetch active + store_visible categories from product_categories
-      const { data: cats, error } = await (supabase as any)
+      const { data: cats, error } = await supabase
         .from("product_categories")
         .select("id, workspace_id, name, slug, description, position, is_active, image_url, color, icon, store_visible")
         .eq("workspace_id", workspaceId)

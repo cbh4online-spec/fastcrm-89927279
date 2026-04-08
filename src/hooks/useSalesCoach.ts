@@ -14,7 +14,7 @@ export function usePipelineRisk(pipelineId?: string) {
   return useQuery({
     queryKey: ['pipeline-risk-report', currentWorkspace?.id, pipelineId ?? 'all'],
     queryFn: async (): Promise<PipelineRiskReport | null> => {
-      let query = (supabase as any)
+      let query = supabase
         .from('pipeline_risk_reports')
         .select('*')
         .eq('workspace_id', currentWorkspace!.id)
@@ -61,7 +61,7 @@ export function useMultiPipelineIntel() {
   return useQuery({
     queryKey: ['multi-pipeline-intel-report', currentWorkspace?.id],
     queryFn: async (): Promise<MultiPipelineIntelReport | null> => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from('multi_pipeline_intel_reports')
         .select('*')
         .eq('workspace_id', currentWorkspace!.id)

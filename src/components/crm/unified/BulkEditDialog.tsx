@@ -206,8 +206,8 @@ export function BulkEditDialog({
       return;
     }
     
-    console.log("Bulk edit - campos a atualizar:", Object.keys(changes));
-    console.log("Bulk edit - valores:", changes);
+    console.debug("Bulk edit - campos a atualizar:", Object.keys(changes));
+    console.debug("Bulk edit - valores:", changes);
 
     setIsApplying(true);
     try {

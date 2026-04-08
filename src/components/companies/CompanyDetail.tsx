@@ -129,7 +129,7 @@ export function CompanyDetail() {
       updateData.industry = generateIndustrySummary(data.cae_description);
     }
 
-    console.log("[NIF] Enrichment data to save:", Object.keys(updateData));
+    console.debug("[NIF] Enrichment data to save:", Object.keys(updateData));
 
     if (Object.keys(updateData).length > 0) {
       try {

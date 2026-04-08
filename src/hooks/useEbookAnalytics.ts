@@ -48,7 +48,7 @@ export function useEbookViews(ebookId: string | undefined) {
     queryKey: ["ebook-views", ebookId],
     queryFn: async () => {
       if (!ebookId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_views")
         .select("*")
         .eq("ebook_id", ebookId)
@@ -65,7 +65,7 @@ export function useEbookPageEvents(ebookId: string | undefined) {
     queryKey: ["ebook-page-events", ebookId],
     queryFn: async () => {
       if (!ebookId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_page_events")
         .select("*")
         .eq("ebook_id", ebookId)
@@ -82,7 +82,7 @@ export function useEbookCtaEvents(ebookId: string | undefined) {
     queryKey: ["ebook-cta-events", ebookId],
     queryFn: async () => {
       if (!ebookId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_cta_events")
         .select("*")
         .eq("ebook_id", ebookId)

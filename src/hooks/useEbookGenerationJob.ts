@@ -36,7 +36,7 @@ export function useEbookGenerationJob(jobId: string | null) {
     queryKey: ["ebook-generation-job", jobId],
     queryFn: async () => {
       if (!jobId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("ebook_generation_jobs")
         .select("*")
         .eq("id", jobId)
@@ -90,7 +90,7 @@ export function useStartEbookGeneration() {
       });
 
       // Update status to generating
-      await (supabase as any).from("ebooks").update({
+      await supabase.from("ebooks").update({
         status: "generating",
         theme: config.theme,
         image_style: config.imageStyle,
@@ -99,7 +99,7 @@ export function useStartEbookGeneration() {
       }).eq("id", ebook.id);
 
       // Insert generation job
-      const { data: job, error } = await (supabase as any)
+      const { data: job, error } = await supabase
         .from("ebook_generation_jobs")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -131,10 +131,10 @@ export function useRetryEbookGeneration() {
   return useMutation({
     mutationFn: async (jobId: string) => {
       // Reset job status for retry
-      await (supabase as any).from("ebook_generation_jobs").update({
+      await supabase.from("ebook_generation_jobs").update({
         status: "queued",
         error_message: null,
-        retry_count: (supabase as any).rpc ? undefined : 0, // will be incremented by the function
+        retry_count: supabase.rpc ? undefined : 0, // will be incremented by the function
         updated_at: new Date().toISOString(),
       }).eq("id", jobId);
 
@@ -156,7 +156,7 @@ export function useCancelEbookGeneration() {
 
   return useMutation({
     mutationFn: async (jobId: string) => {
-      await (supabase as any).from("ebook_generation_jobs").update({
+      await supabase.from("ebook_generation_jobs").update({
         status: "cancelled",
         updated_at: new Date().toISOString(),
       }).eq("id", jobId);

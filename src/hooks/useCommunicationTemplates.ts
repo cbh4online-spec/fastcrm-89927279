@@ -171,7 +171,7 @@ export function useCreateCommunicationTemplate() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['communication-templates'] });
       toast.success('Template criado com sucesso');
-      console.log('[COMM-TEMPLATE] CREATED', { id: data.id, channel: variables.channel });
+      console.debug('[COMM-TEMPLATE] CREATED', { id: data.id, channel: variables.channel });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -232,7 +232,7 @@ export function useUpdateCommunicationTemplate() {
       toast.success('Template atualizado');
       const { id, ...updates } = variables;
       const changedFields = Object.keys(updates);
-      console.log('[COMM-TEMPLATE] UPDATED', { id, changed_fields: changedFields });
+      console.debug('[COMM-TEMPLATE] UPDATED', { id, changed_fields: changedFields });
       const wsId = data.workspace_id;
       if (wsId) {
         emitKernelEvent({
@@ -244,7 +244,7 @@ export function useUpdateCommunicationTemplate() {
           payload: { changed_fields: changedFields },
         });
         if (updates.isActive === true) {
-          console.log('[COMM-TEMPLATE] PUBLISHED', { id, channel: data.channel });
+          console.debug('[COMM-TEMPLATE] PUBLISHED', { id, channel: data.channel });
           emitKernelEvent({
             workspace_id: wsId,
             type: 'TEMPLATE.PUBLISHED',

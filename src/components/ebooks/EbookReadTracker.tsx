@@ -26,7 +26,7 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
 
     // Log previous page duration
     if (duration > 0 && duration < 3600) {
-      (supabase as any).from("ebook_page_events").insert({
+      supabase.from("ebook_page_events").insert({
         ebook_view_id: viewId,
         ebook_id: ebookId,
         workspace_id: workspaceId,
@@ -48,7 +48,7 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
     const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
     const completed = maxPageRef.current >= totalPages - 1;
 
-    (supabase as any).from("ebook_views").update({
+    supabase.from("ebook_views").update({
       pages_viewed: pagesViewedSet.current.size,
       max_page_reached: maxPageRef.current,
       time_on_book_seconds: elapsed,

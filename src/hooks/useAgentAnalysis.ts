@@ -113,7 +113,7 @@ export function useAgentAnalysis(
       const modeConfig = getOutputModifiers(modeResult.selectedMode);
 
       // Emit EXECUTION_STARTED
-      console.log('[AI-AGENT] EXECUTION_STARTED', { agent_type: agentType, entity_id: entityId, trigger: triggerType });
+      console.debug('[AI-AGENT] EXECUTION_STARTED', { agent_type: agentType, entity_id: entityId, trigger: triggerType });
       emitKernelEvent({
         workspace_id: workspaceId,
         type: 'AGENT.EXECUTION_STARTED',
@@ -149,7 +149,7 @@ export function useAgentAnalysis(
 
       // Emit completion/failure kernel event inline
       if (response.success) {
-        console.log('[AI-AGENT] EXECUTION_COMPLETED', { execution_id: response.executionId, duration_ms: response.durationMs, tokens: response.tokensUsed });
+        console.debug('[AI-AGENT] EXECUTION_COMPLETED', { execution_id: response.executionId, duration_ms: response.durationMs, tokens: response.tokensUsed });
         emitKernelEvent({
           workspace_id: workspaceId,
           type: 'AGENT.EXECUTION_COMPLETED',

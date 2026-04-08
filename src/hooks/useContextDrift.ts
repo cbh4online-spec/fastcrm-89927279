@@ -32,7 +32,7 @@ export function useContextDrift() {
       if (error) throw error;
     },
     onSuccess: () => {
-      console.log('[CONTEXT] Drift recomputed', { workspaceId });
+      console.debug('[CONTEXT] Drift recomputed', { workspaceId });
       queryClient.invalidateQueries({ queryKey: ['context-drift', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['context-alerts', workspaceId] });
 

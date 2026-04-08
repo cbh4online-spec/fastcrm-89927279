@@ -127,7 +127,7 @@ export function useUpdateStoreOrderStatus() {
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["store-orders"] });
-      console.log(`[ORDERS] Store order status updated: ${vars.id} → ${vars.status}`);
+      console.debug(`[ORDERS] Store order status updated: ${vars.id} → ${vars.status}`);
       toast.success("Estado da encomenda atualizado");
     },
     onError: (error) => {

@@ -92,7 +92,7 @@ export function useRegisterSeller(workspaceId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["c2c-my-seller"] });
       toast.success("Candidatura submetida com sucesso!");
-      console.log('[MARKETPLACE] Seller registered');
+      console.debug('[MARKETPLACE] Seller registered');
     },
     onError: (err: any) => {
       console.warn('[MARKETPLACE] SELLER_REGISTER_FAILED', err.message);
@@ -151,7 +151,7 @@ export function useUpdateSellerStatus(workspaceId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["c2c-sellers"] });
       toast.success("Estado do vendedor atualizado");
-      console.log('[MARKETPLACE] Seller status updated');
+      console.debug('[MARKETPLACE] Seller status updated');
     },
     onError: (err: Error) => {
       console.warn('[MARKETPLACE] SELLER_STATUS_UPDATE_FAILED', err.message);

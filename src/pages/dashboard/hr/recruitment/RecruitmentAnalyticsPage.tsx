@@ -14,11 +14,11 @@ function useRecruitmentKPIs() {
     queryKey: ["recruitment-kpis", wsId],
     queryFn: async () => {
       const [jobsRes, candidatesRes, talentRes, portalCompaniesRes, portalJobsRes] = await Promise.all([
-        (supabase as any).from("hr_job_postings").select("id, status, published_at", { count: "exact" }).eq("workspace_id", wsId!),
-        (supabase as any).from("hr_candidates").select("id, stage, source, created_at", { count: "exact" }).eq("workspace_id", wsId!),
-        (supabase as any).from("hr_talent_results").select("id, search_type, status", { count: "exact" }).eq("workspace_id", wsId!),
-        (supabase as any).from("portal_companies").select("id, status", { count: "exact" }).eq("workspace_id", wsId!),
-        (supabase as any).from("portal_job_postings").select("id, status", { count: "exact" }).eq("workspace_id", wsId!),
+        supabase.from("hr_job_postings").select("id, status, published_at", { count: "exact" }).eq("workspace_id", wsId!),
+        supabase.from("hr_candidates").select("id, stage, source, created_at", { count: "exact" }).eq("workspace_id", wsId!),
+        supabase.from("hr_talent_results").select("id, search_type, status", { count: "exact" }).eq("workspace_id", wsId!),
+        supabase.from("portal_companies").select("id, status", { count: "exact" }).eq("workspace_id", wsId!),
+        supabase.from("portal_job_postings").select("id, status", { count: "exact" }).eq("workspace_id", wsId!),
       ]);
 
       const jobs = jobsRes.data || [];

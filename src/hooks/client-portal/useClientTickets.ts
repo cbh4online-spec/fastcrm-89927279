@@ -86,7 +86,7 @@ export function useClientTickets() {
       return data;
     },
     onSuccess: (data) => {
-      console.log(`[B2B-SUPPORT] TICKET_CREATED id=${data.id}`);
+      console.debug(`[B2B-SUPPORT] TICKET_CREATED id=${data.id}`);
       emitKernelEvent({
         workspace_id: data.workspace_id,
         type: "TICKET.CREATED",
@@ -157,7 +157,7 @@ export function useTicketMessages(ticketId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      console.log(`[B2B-SUPPORT] MESSAGE_SENT ticket=${ticketId}`);
+      console.debug(`[B2B-SUPPORT] MESSAGE_SENT ticket=${ticketId}`);
       if (workspaceId && ticketId) {
         emitKernelEvent({
           workspace_id: workspaceId,

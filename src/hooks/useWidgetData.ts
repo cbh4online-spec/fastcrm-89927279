@@ -43,18 +43,18 @@ export function useWidgetData(widget: ReportWidget | null, globalFilters?: { dat
     queryKey: ["widget-data", widget?.id, widget?.filters, globalFilters],
     queryFn: async (): Promise<WidgetDataPoint[]> => {
       if (!widget || !currentWorkspace) return [];
-      console.log(`[DASHBOARD] Widget data loading: ${widget.id}, dataset: ${widget.dataset}`);
+      console.debug(`[DASHBOARD] Widget data loading: ${widget.id}, dataset: ${widget.dataset}`);
       const startTime = performance.now();
       try {
         const rows = await fetchDatasetRows(widget.dataset, currentWorkspace.id, widget.filters || {}, globalFilters);
         if (rows.length === 0) {
           const latencyMs = Math.round(performance.now() - startTime);
-          console.log(`[DASHBOARD] Widget data loaded: ${widget.id}, 0 rows, ${latencyMs}ms`);
+          console.debug(`[DASHBOARD] Widget data loaded: ${widget.id}, 0 rows, ${latencyMs}ms`);
           return [];
         }
         const result = aggregateData(rows, widget);
         const latencyMs = Math.round(performance.now() - startTime);
-        console.log(`[DASHBOARD] Widget data loaded: ${widget.id}, ${rows.length} rows, ${latencyMs}ms`);
+        console.debug(`[DASHBOARD] Widget data loaded: ${widget.id}, ${rows.length} rows, ${latencyMs}ms`);
         return result;
       } catch (err) {
         console.warn(`[DASHBOARD] Widget data LOAD_FAILED: ${widget.id}`, err);

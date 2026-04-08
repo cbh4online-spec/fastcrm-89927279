@@ -194,7 +194,7 @@ export default function WebSearchProspecting() {
           console.warn("[WEB-SEARCH] Lead update failed:", updateError);
         } else {
           const fieldNames = Object.keys(updates).join(", ");
-          console.log(`[WEB-SEARCH] Lead ${leadId} enriched: ${fieldNames}`);
+          console.debug(`[WEB-SEARCH] Lead ${leadId} enriched: ${fieldNames}`);
           toast.success(`Dados enriquecidos: ${fieldNames}`, { duration: 3000 });
         }
       }

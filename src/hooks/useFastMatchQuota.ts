@@ -56,7 +56,7 @@ export function useConsumeMatchQuota() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
       const profileId = result.profileId;
-      console.log(`[FASTMATCH] Quota consumed for profile ${profileId}`);
+      console.debug(`[FASTMATCH] Quota consumed for profile ${profileId}`);
     },
     onError: (err: any) => {
       console.warn('[FASTMATCH] QUOTA_CONSUME_FAILED', err?.message);

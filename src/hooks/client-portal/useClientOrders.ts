@@ -146,7 +146,7 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
       return data;
     },
     onSuccess: () => {
-      console.log("[ORDERS] Client order submitted");
+      console.debug("[ORDERS] Client order submitted");
       toast.success("Encomenda enviada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["client-orders"] });
       queryClient.invalidateQueries({ queryKey: ["client-draft-order"] });

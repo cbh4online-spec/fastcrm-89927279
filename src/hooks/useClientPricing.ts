@@ -47,7 +47,7 @@ export function usePriceTiers() {
       return tier;
     },
     onSuccess: (data) => {
-      console.log('[B2B-CATALOG] Tier created:', data.id);
+      console.debug('[B2B-CATALOG] Tier created:', data.id);
       toast.success("Escalão criado com sucesso");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
       if (workspaceId) {
@@ -78,7 +78,7 @@ export function usePriceTiers() {
       return id;
     },
     onSuccess: (id) => {
-      console.log('[B2B-CATALOG] Tier updated:', id);
+      console.debug('[B2B-CATALOG] Tier updated:', id);
       toast.success("Escalão atualizado");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
       if (workspaceId) {
@@ -109,7 +109,7 @@ export function usePriceTiers() {
       return id;
     },
     onSuccess: (id) => {
-      console.log('[B2B-CATALOG] Tier deleted:', id);
+      console.debug('[B2B-CATALOG] Tier deleted:', id);
       toast.success("Escalão eliminado");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
       if (workspaceId) {
@@ -186,7 +186,7 @@ export function useProductTierPrices(productId: string | undefined) {
       return data;
     },
     onSuccess: (data) => {
-      console.log('[B2B-CATALOG] Tier price set:', data.product_id, data.tier_id, data.price_net);
+      console.debug('[B2B-CATALOG] Tier price set:', data.product_id, data.tier_id, data.price_net);
       toast.success("Preço de escalão definido");
       queryClient.invalidateQueries({ queryKey: ["product-tier-prices"] });
       if (workspaceId) {
@@ -217,7 +217,7 @@ export function useProductTierPrices(productId: string | undefined) {
       return id;
     },
     onSuccess: (id) => {
-      console.log('[B2B-CATALOG] Tier price removed:', id);
+      console.debug('[B2B-CATALOG] Tier price removed:', id);
       toast.success("Preço de escalão removido");
       queryClient.invalidateQueries({ queryKey: ["product-tier-prices"] });
       if (workspaceId) {

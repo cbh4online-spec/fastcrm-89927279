@@ -176,7 +176,7 @@ export function useCreateReturnRequest() {
       queryClient.invalidateQueries({ queryKey: ["return-requests"] });
       queryClient.invalidateQueries({ queryKey: ["return-requests-order"] });
       queryClient.invalidateQueries({ queryKey: ["store-order-events"] });
-      console.log('[ECOMMERCE] Return request created');
+      console.debug('[ECOMMERCE] Return request created');
       toast.success("Pedido de devolução criado");
     },
     onError: (err) => {
@@ -213,7 +213,7 @@ export function useProcessReturn() {
       queryClient.invalidateQueries({ queryKey: ["store-orders"] });
       queryClient.invalidateQueries({ queryKey: ["store-order-detail"] });
       queryClient.invalidateQueries({ queryKey: ["store-order-events"] });
-      console.log(`[ECOMMERCE] Return processed: ${data.status}`);
+      console.debug(`[ECOMMERCE] Return processed: ${data.status}`);
       toast.success(data.status === "refunded" ? "Reembolso processado com sucesso" : "Pedido de devolução rejeitado");
     },
     onError: (err) => {

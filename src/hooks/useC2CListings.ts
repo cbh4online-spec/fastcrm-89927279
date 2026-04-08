@@ -129,7 +129,7 @@ export function useC2CListings(workspaceId: string | undefined, filters?: C2CLis
       }
 
       const { data, error } = await query;
-      console.log('[MARKETPLACE] useC2CListings result:', { workspaceId, count: data?.length, error, filters });
+      console.debug('[MARKETPLACE] useC2CListings result:', { workspaceId, count: data?.length, error, filters });
       if (error) throw error;
       return data as C2CListing[];
     },
@@ -234,7 +234,7 @@ export function useCreateC2CListing(workspaceId: string | undefined) {
       if (data.category_id && workspaceId && user) {
         notifyNewInCategory(data.id, workspaceId, data.category_id, data.title, user.id).catch(console.warn);
       }
-      console.log('[MARKETPLACE] Listing created', { id: data.id });
+      console.debug('[MARKETPLACE] Listing created', { id: data.id });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

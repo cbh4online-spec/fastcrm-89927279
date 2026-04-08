@@ -129,7 +129,7 @@ export function useOrderNoteActions() {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["order-note"] });
-      console.log(`[ORDERS] Order note updated: ${vars.orderId}`);
+      console.debug(`[ORDERS] Order note updated: ${vars.orderId}`);
     },
     onError: (error) => {
       console.warn("[ORDERS] ORDER_NOTE_UPDATE_FAILED", error.message);

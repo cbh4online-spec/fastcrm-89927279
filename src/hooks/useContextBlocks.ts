@@ -150,7 +150,7 @@ export function useUpsertContextField() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
-      console.log('[CONTEXT] Field updated', { fieldId: variables.fieldId, blockId: variables.blockId });
+      console.debug('[CONTEXT] Field updated', { fieldId: variables.fieldId, blockId: variables.blockId });
 
       if (currentWorkspace?.id && variables.blockId) {
         emitKernelEvent({
@@ -186,7 +186,7 @@ export function useUpdateBlockStatus() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Status atualizado");
-      console.log('[CONTEXT] Status changed', { blockId: variables.blockId, status: variables.status });
+      console.debug('[CONTEXT] Status changed', { blockId: variables.blockId, status: variables.status });
 
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -222,7 +222,7 @@ export function useUpdateBlockRichText() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Resumo guardado");
-      console.log('[CONTEXT] Rich text updated', { blockId: variables.blockId, length: variables.richText.length });
+      console.debug('[CONTEXT] Rich text updated', { blockId: variables.blockId, length: variables.richText.length });
 
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -257,7 +257,7 @@ export function useUpdateBlockTags() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
-      console.log('[CONTEXT] Tags updated', { blockId: variables.blockId, tags: variables.tags });
+      console.debug('[CONTEXT] Tags updated', { blockId: variables.blockId, tags: variables.tags });
     },
     onError: (err: Error) => {
       console.warn('[CONTEXT] Tags update failed', err.message);

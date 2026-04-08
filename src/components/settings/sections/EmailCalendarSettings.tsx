@@ -131,9 +131,9 @@ export function EmailCalendarSettings() {
         initialSignature={signaturePayload || ""}
         onSave={async (html) => {
           try {
-            console.log("[Signature] Saving payload length:", html?.length);
+            console.debug("[Signature] Saving payload length:", html?.length);
             await saveSignature(html);
-            console.log("[Signature] Save success");
+            console.debug("[Signature] Save success");
             toast.success("Assinatura gravada com sucesso");
           } catch (err) {
             console.error("[Signature] Save error:", err);

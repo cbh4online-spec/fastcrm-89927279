@@ -10,7 +10,7 @@ export function useProductTags(productId?: string) {
   const query = useQuery({
     queryKey: ["product-tags", productId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("product_tags")
         .select("id, tag, created_at")
         .eq("product_id", productId!)
@@ -23,7 +23,7 @@ export function useProductTags(productId?: string) {
 
   const addTag = useMutation({
     mutationFn: async (tag: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("product_tags")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -47,7 +47,7 @@ export function useProductTags(productId?: string) {
 
   const removeTag = useMutation({
     mutationFn: async (tagId: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("product_tags")
         .delete()
         .eq("id", tagId);
@@ -70,7 +70,7 @@ export function useWorkspaceTags() {
   return useQuery({
     queryKey: ["workspace-tags", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("product_tags")
         .select("tag")
         .eq("workspace_id", currentWorkspace!.id);

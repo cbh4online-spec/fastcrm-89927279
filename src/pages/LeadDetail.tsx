@@ -31,7 +31,7 @@ class LeadDetailErrorBoundary extends React.Component<
 }
 
 export default function LeadDetailPage() {
-  console.log("[LeadDetail] Page rendering");
+  console.debug("[LeadDetail] Page rendering");
   return (
     <DashboardLayout>
       <LeadDetailErrorBoundary>

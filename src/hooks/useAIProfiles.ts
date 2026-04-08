@@ -217,7 +217,7 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
-      console.log(`[AI-PERSONAS] PERSONA_CREATED id=${result.id}`);
+      console.debug(`[AI-PERSONAS] PERSONA_CREATED id=${result.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'PERSONA.CREATED',
@@ -277,7 +277,7 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
-      console.log(`[AI-PERSONAS] PERSONA_UPDATED id=${id}`);
+      console.debug(`[AI-PERSONAS] PERSONA_UPDATED id=${id}`);
       if (currentWorkspace?.id) {
         // Check if this is a toggle activation
         if (data.isActive !== undefined && Object.keys(data).length === 1) {
@@ -321,7 +321,7 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
-      console.log(`[AI-PERSONAS] PERSONA_DELETED id=${id}`);
+      console.debug(`[AI-PERSONAS] PERSONA_DELETED id=${id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

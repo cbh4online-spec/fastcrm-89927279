@@ -202,7 +202,7 @@ export function ConversationList({
         }
       })
       .subscribe((status) => {
-        console.log(`[Inbox Realtime] messages subscription: ${status}`);
+        console.debug(`[Inbox Realtime] messages subscription: ${status}`);
       });
     return () => { supabase.removeChannel(channel); };
   }, [currentWorkspace?.id, queryClient]);

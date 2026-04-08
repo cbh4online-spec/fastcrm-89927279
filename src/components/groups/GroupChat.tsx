@@ -83,7 +83,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
 
   // Subscribe to realtime
   useEffect(() => {
-    const channel = (supabase as any)
+    const channel = supabase
       .channel(`group-messages-${group.id}`)
       .on(
         "postgres_changes",
@@ -94,7 +94,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
       )
       .subscribe();
 
-    return () => { (supabase as any).removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [group.id, qc]);
 
   const removeMember = useMutation({

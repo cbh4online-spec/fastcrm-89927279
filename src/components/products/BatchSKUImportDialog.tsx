@@ -697,11 +697,11 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       };
     });
 
-    console.log("[BATCH_CREATE] Items to create:", items.length, JSON.stringify(items.slice(0, 2)));
+    console.debug("[BATCH_CREATE] Items to create:", items.length, JSON.stringify(items.slice(0, 2)));
 
     try {
       const result = await createProductsBatch.mutateAsync(items);
-      console.log("[BATCH_CREATE] Result:", JSON.stringify(result));
+      console.debug("[BATCH_CREATE] Result:", JSON.stringify(result));
       setSummary({
         successCount: result.created,
         updatedCount: result.updated ?? 0,

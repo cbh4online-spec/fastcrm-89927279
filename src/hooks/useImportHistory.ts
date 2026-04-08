@@ -94,7 +94,7 @@ export function useCreateImportRecord() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["import_history", currentWorkspace?.id] });
-      console.log(`[IMPORTS] Import record created: ${data.id}, type=${variables.importType}, file=${variables.fileName}, rows=${variables.totalRows}`);
+      console.debug(`[IMPORTS] Import record created: ${data.id}, type=${variables.importType}, file=${variables.fileName}, rows=${variables.totalRows}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -164,7 +164,7 @@ export function useUpdateImportRecord() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["import_history", currentWorkspace?.id] });
-      console.log(`[IMPORTS] Import record updated: ${variables.id}, status=${variables.status}`);
+      console.debug(`[IMPORTS] Import record updated: ${variables.id}, status=${variables.status}`);
 
       if (currentWorkspace && variables.status === 'complete') {
         emitKernelEvent({

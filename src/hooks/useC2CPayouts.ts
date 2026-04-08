@@ -7,7 +7,7 @@ export function usePayouts(workspaceId: string | undefined) {
     queryKey: ["c2c-payouts", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_payouts")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -26,7 +26,7 @@ export function useMyPayouts(workspaceId: string | undefined) {
       if (!workspaceId) return [];
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_payouts")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -52,7 +52,7 @@ export function useExecutePayout() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-payouts", v.workspaceId] });
       toast.success("Payout atualizado");
-      console.log('[MARKETPLACE] Payout executed', { action: v.action, payout_id: v.payoutId });
+      console.debug('[MARKETPLACE] Payout executed', { action: v.action, payout_id: v.payoutId });
     },
     onError: (e: Error) => {
       console.warn('[MARKETPLACE] PAYOUT_EXECUTE_FAILED', e.message);
@@ -74,7 +74,7 @@ export function useProcessPayouts() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["c2c-payouts"] });
       toast.success("Payouts processados");
-      console.log('[MARKETPLACE] Payouts processed');
+      console.debug('[MARKETPLACE] Payouts processed');
     },
     onError: (e: Error) => {
       console.warn('[MARKETPLACE] PAYOUTS_PROCESS_FAILED', e.message);

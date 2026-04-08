@@ -11,7 +11,7 @@ export function useC2CStorefrontProducts(wsId: string, c2cEnabled: boolean) {
     queryKey: ["c2c-listings-public", wsId],
     queryFn: async () => {
       if (!wsId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_listings")
         .select("*, c2c_sellers!inner(id, display_name, slug, avatar_url, avg_rating)")
         .eq("workspace_id", wsId)

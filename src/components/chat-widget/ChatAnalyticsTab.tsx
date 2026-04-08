@@ -30,7 +30,7 @@ export function ChatAnalyticsTab() {
   const { data: conversations = [] } = useQuery({
     queryKey: ["chat_analytics", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("chat_conversations")
         .select("id, created_at, status, session_id, visitor_name, messages:chat_messages(id, role, created_at)")
         .eq("workspace_id", currentWorkspace!.id)

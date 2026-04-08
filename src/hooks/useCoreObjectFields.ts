@@ -72,7 +72,7 @@ export function useCreateObjectField() {
     onSuccess: (data, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo criado");
-      console.log(`[CUSTOM-FIELDS] Core object field created: ${data.id}`);
+      console.debug(`[CUSTOM-FIELDS] Core object field created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -106,7 +106,7 @@ export function useUpdateObjectField() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo atualizado");
-      console.log(`[CUSTOM-FIELDS] Core object field updated: ${v.id}`);
+      console.debug(`[CUSTOM-FIELDS] Core object field updated: ${v.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -138,7 +138,7 @@ export function useDeleteObjectField() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo removido");
-      console.log(`[CUSTOM-FIELDS] Core object field deleted: ${v.id}`);
+      console.debug(`[CUSTOM-FIELDS] Core object field deleted: ${v.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

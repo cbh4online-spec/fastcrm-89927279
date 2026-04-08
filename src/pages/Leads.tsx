@@ -30,7 +30,7 @@ class LeadsErrorBoundary extends React.Component<
 }
 
 export default function Leads() {
-  console.log("[Leads] Page rendering");
+  console.debug("[Leads] Page rendering");
   return (
     <DashboardLayout>
       <LeadsErrorBoundary>

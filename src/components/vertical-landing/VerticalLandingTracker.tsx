@@ -47,7 +47,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
 
     const utm = getUtmParams();
 
-    (supabase as any)
+    supabase
       .from("vertical_landing_events")
       .insert({
         template_slug: slug,
@@ -88,7 +88,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
 
             if (!sectionsTracked.current.has(sectionId)) {
               sectionsTracked.current.add(sectionId);
-              (supabase as any)
+              supabase
                 .from("vertical_landing_events")
                 .insert({
                   template_slug: slug,
@@ -106,7 +106,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
             if (entryTime) {
               const duration = Math.round(Date.now() - entryTime);
               if (duration > 500) {
-                (supabase as any)
+                supabase
                   .from("vertical_landing_events")
                   .insert({
                     template_slug: slug,
@@ -143,7 +143,7 @@ export function VerticalLandingTracker({ slug, templateId, workspaceId }: Props)
         target.getAttribute("aria-label") ||
         `${tag}${target.className ? '.' + target.className.split(' ')[0] : ''}`;
 
-      (supabase as any)
+      supabase
         .from("vertical_landing_events")
         .insert({
           template_slug: slug,
@@ -191,7 +191,7 @@ export function trackVerticalFieldEvent(
   templateId?: string, workspaceId?: string
 ) {
   const sessionId = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
-  (supabase as any)
+  supabase
     .from("vertical_landing_events")
     .insert({
       template_slug: slug,
@@ -212,7 +212,7 @@ export function trackVerticalFormSubmit(slug: string, templateId?: string, works
   const sessionId = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
   const utm = getUtmParams();
 
-  (supabase as any)
+  supabase
     .from("vertical_landing_events")
     .insert({
       template_slug: slug,

@@ -280,7 +280,7 @@ export function useAnalyzeLead() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
-      console.log('[LEADS] AI analysis complete:', variables.leadId);
+      console.debug('[LEADS] AI analysis complete:', variables.leadId);
 
       if (currentWorkspace?.id && data) {
         emitKernelEvent({

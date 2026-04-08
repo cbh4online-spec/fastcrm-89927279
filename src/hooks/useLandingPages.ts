@@ -121,7 +121,7 @@ export function useCreateLandingPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
-      console.log(`[LANDING] CREATED id=${data.id} slug=${data.slug}`);
+      console.debug(`[LANDING] CREATED id=${data.id} slug=${data.slug}`);
       toast.success("Landing page created");
 
       if (currentWorkspace?.id) {
@@ -167,7 +167,7 @@ export function useUpdateLandingPage() {
     onSuccess: ({ page, changed_fields }) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       queryClient.invalidateQueries({ queryKey: ["landing-page", page.id] });
-      console.log(`[LANDING] UPDATED id=${page.id} fields=${changed_fields.join(',')}`);
+      console.debug(`[LANDING] UPDATED id=${page.id} fields=${changed_fields.join(',')}`);
       toast.success("Landing page updated");
 
       if (currentWorkspace?.id) {
@@ -204,7 +204,7 @@ export function useDeleteLandingPage() {
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
-      console.log(`[LANDING] DELETED id=${id}`);
+      console.debug(`[LANDING] DELETED id=${id}`);
       toast.success("Landing page deleted");
 
       if (currentWorkspace?.id) {
@@ -248,7 +248,7 @@ export function usePublishLandingPage() {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       queryClient.invalidateQueries({ queryKey: ["landing-page", data.id] });
       const action = data.is_published ? 'PUBLISHED' : 'UNPUBLISHED';
-      console.log(`[LANDING] ${action} id=${data.id} slug=${data.slug}`);
+      console.debug(`[LANDING] ${action} id=${data.id} slug=${data.slug}`);
       toast.success(data.is_published ? "Landing page published" : "Landing page unpublished");
 
       if (currentWorkspace?.id) {

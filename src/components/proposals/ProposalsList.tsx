@@ -204,7 +204,7 @@ export function ProposalsList() {
   const { data: convertedProposalIds } = useQuery({
     queryKey: ["converted-proposal-ids", currentWorkspace?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("order_notes")
         .select("proposal_id")
         .eq("workspace_id", currentWorkspace!.id)

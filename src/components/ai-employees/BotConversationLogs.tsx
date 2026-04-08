@@ -52,7 +52,7 @@ export function BotConversationLogs({ bot }: BotConversationLogsProps) {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["bot-runs", bot.id, statusFilter, page],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from("bot_runs")
         .select("*", { count: "exact" })
         .eq("bot_id", bot.id)

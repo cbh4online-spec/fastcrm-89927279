@@ -49,7 +49,7 @@ export function useCreateBookingCalendar() {
       return data;
     },
     onSuccess: (data) => {
-      console.log(`[CALENDAR] Booking calendar added: ${data.calendar_name}`);
+      console.debug(`[CALENDAR] Booking calendar added: ${data.calendar_name}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'BOOKING.CALENDAR_ADDED',
@@ -78,7 +78,7 @@ export function useDeleteBookingCalendar() {
       return id;
     },
     onSuccess: (id) => {
-      console.log(`[CALENDAR] Booking calendar removed: ${id}`);
+      console.debug(`[CALENDAR] Booking calendar removed: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'BOOKING.CALENDAR_REMOVED',

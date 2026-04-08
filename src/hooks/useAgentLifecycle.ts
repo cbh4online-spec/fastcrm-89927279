@@ -111,12 +111,12 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       queryClient.invalidateQueries({ queryKey: ['agent-jobs', workspaceId, entityId] });
 
       if (response.alreadyExists) {
-        console.log('[AI-AGENT] JOB_ALREADY_EXISTS', { job_id: response.jobId, entity_id: entityId });
+        console.debug('[AI-AGENT] JOB_ALREADY_EXISTS', { job_id: response.jobId, entity_id: entityId });
         toast.info('Análise já agendada', {
           description: 'Já existe uma análise pendente para esta entidade.',
         });
       } else {
-        console.log('[AI-AGENT] JOB_DISPATCHED', { job_id: response.jobId, entity_id: entityId, trigger: variables.triggerType, queue_position: response.queuePosition });
+        console.debug('[AI-AGENT] JOB_DISPATCHED', { job_id: response.jobId, entity_id: entityId, trigger: variables.triggerType, queue_position: response.queuePosition });
         toast.success('Análise agendada', {
           description: `Posição na fila: ${response.queuePosition}`,
         });
@@ -166,7 +166,7 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       return data;
     },
     onSuccess: (_data, jobId) => {
-      console.log('[AI-AGENT] JOB_CANCELLED', { job_id: jobId, entity_id: entityId });
+      console.debug('[AI-AGENT] JOB_CANCELLED', { job_id: jobId, entity_id: entityId });
       queryClient.invalidateQueries({ queryKey: ['agent-jobs', workspaceId, entityId] });
       toast.success('Análise cancelada');
 

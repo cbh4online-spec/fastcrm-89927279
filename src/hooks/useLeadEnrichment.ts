@@ -59,7 +59,7 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
       if (!currentWorkspace) throw new Error("No workspace");
 
       // Consume credit before enrichment
-      const { data: creditResult, error: creditError } = await (supabase as any).rpc("consume_funnel_credits", {
+      const { data: creditResult, error: creditError } = await supabase.rpc("consume_funnel_credits", {
         p_workspace_id: currentWorkspace.id,
         p_user_id: (await supabase.auth.getUser()).data.user?.id,
         p_action_key: "lead_enrich_single",
@@ -264,7 +264,7 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
         },
       });
 
-      console.log(`[ENRICHER] Lead enriched: ${lead.id}, fields: ${Object.keys(updates).join(', ')}, company_synced: ${!!companyId}`);
+      console.debug(`[ENRICHER] Lead enriched: ${lead.id}, fields: ${Object.keys(updates).join(', ')}, company_synced: ${!!companyId}`);
 
       return { ...lead, ...updates };
     },
@@ -292,7 +292,7 @@ export function useEnrichLeadsBatch(enricherSettings?: LeadEnricherSettings) {
       const total = leads.length;
       let successCount = 0;
 
-      console.log(`[ENRICHER] Batch started: ${total} leads`);
+      console.debug(`[ENRICHER] Batch started: ${total} leads`);
 
       for (let i = 0; i < total; i++) {
         const lead = leads[i];
@@ -305,7 +305,7 @@ export function useEnrichLeadsBatch(enricherSettings?: LeadEnricherSettings) {
         }
       }
 
-      console.log(`[ENRICHER] Batch completed: ${successCount}/${total}`);
+      console.debug(`[ENRICHER] Batch completed: ${successCount}/${total}`);
       onProgress(total, total, "");
       toast.success(`${successCount}/${total} leads enriquecidos com sucesso`);
       return successCount;

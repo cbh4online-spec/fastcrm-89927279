@@ -56,7 +56,7 @@ export function useNotificationSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-notification-settings"] });
-      console.log(`[NOTIF-SETTINGS] NOTIFICATIONS_UPDATED company=${companyId}`);
+      console.debug(`[NOTIF-SETTINGS] NOTIFICATIONS_UPDATED company=${companyId}`);
       if (workspaceId && companyId) {
         emitKernelEvent({
           workspace_id: workspaceId,

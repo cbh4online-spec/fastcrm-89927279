@@ -49,7 +49,7 @@ export function StatsGoalsTab({ events, templateSlug }: Props) {
   const { data: goals = [] } = useQuery({
     queryKey: ["conversion_goals", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("conversion_goals")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -62,7 +62,7 @@ export function StatsGoalsTab({ events, templateSlug }: Props) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("conversion_goals")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -87,7 +87,7 @@ export function StatsGoalsTab({ events, templateSlug }: Props) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("conversion_goals")
         .delete()
         .eq("id", id);

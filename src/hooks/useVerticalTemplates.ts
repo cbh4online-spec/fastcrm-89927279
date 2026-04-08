@@ -48,7 +48,7 @@ export function useVerticalTemplates() {
     queryKey: [TABLE, currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(TABLE)
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -65,7 +65,7 @@ export function useVerticalTemplate(id: string | null) {
     queryKey: [TABLE, "detail", id],
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(TABLE)
         .select("*")
         .eq("id", id)
@@ -81,7 +81,7 @@ export function useCreateVerticalTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: VerticalTemplateInsert) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(TABLE)
         .insert(input)
         .select()
@@ -101,7 +101,7 @@ export function useUpdateVerticalTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<VerticalTemplateRow> & { id: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(TABLE)
         .update(updates)
         .eq("id", id)
@@ -122,7 +122,7 @@ export function useDeleteVerticalTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from(TABLE).delete().eq("id", id);
+      const { error } = await supabase.from(TABLE).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -144,7 +144,7 @@ export function useEnsureVerticalTemplate(slug: string | undefined) {
       if (!slug || !currentWorkspace?.id) return null;
 
       // 1. Check if already exists
-      const { data: existing, error: findErr } = await (supabase as any)
+      const { data: existing, error: findErr } = await supabase
         .from(TABLE)
         .select("*")
         .eq("slug", slug)
@@ -179,7 +179,7 @@ export function useEnsureVerticalTemplate(slug: string | undefined) {
         is_published: true,
         created_by: null,
       };
-      const { data: created, error: insErr } = await (supabase as any)
+      const { data: created, error: insErr } = await supabase
         .from(TABLE)
         .insert(row)
         .select()
@@ -195,7 +195,7 @@ export function useEnsureVerticalTemplate(slug: string | undefined) {
 
 // Fetch a published template by slug (public, no auth needed)
 export async function fetchPublishedTemplateBySlug(slug: string): Promise<VerticalTemplateRow | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from(TABLE)
     .select("*")
     .eq("slug", slug)

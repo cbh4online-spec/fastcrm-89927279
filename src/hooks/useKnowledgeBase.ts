@@ -114,7 +114,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] BASE_CREATED id=${created.id} name=${created.name}`);
+      console.debug(`[AI-KNOWLEDGE] BASE_CREATED id=${created.id} name=${created.name}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'KNOWLEDGE.BASE_CREATED',
@@ -156,7 +156,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] SOURCE_ADDED id=${source.id} type=${sourceType} kb=${knowledgeBaseId}`);
+      console.debug(`[AI-KNOWLEDGE] SOURCE_ADDED id=${source.id} type=${sourceType} kb=${knowledgeBaseId}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'KNOWLEDGE.SOURCE_ADDED',
@@ -208,7 +208,7 @@ export function useKnowledgeBase() {
       });
 
       if (result) {
-        console.log(`[AI-KNOWLEDGE] DOC_UPLOADED file=${file.name} mime=${file.type} kb=${knowledgeBaseId}`);
+        console.debug(`[AI-KNOWLEDGE] DOC_UPLOADED file=${file.name} mime=${file.type} kb=${knowledgeBaseId}`);
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
           type: 'KNOWLEDGE.DOC_UPLOADED',
@@ -319,7 +319,7 @@ export function useKnowledgeBase() {
         await supabase.from('knowledge_entries').insert(entries);
       }
 
-      console.log(`[AI-KNOWLEDGE] SOURCE_PROCESSED id=${sourceId} faqs=${result.faqs?.length || 0}`);
+      console.debug(`[AI-KNOWLEDGE] SOURCE_PROCESSED id=${sourceId} faqs=${result.faqs?.length || 0}`);
       toast.success('Fonte processada com sucesso');
     } catch (error) {
       console.error('[AI-KNOWLEDGE] SOURCE_PROCESS_FAILED', error);
@@ -358,7 +358,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] ENTRY_CREATED id=${entry.id} type=${data.entryType || 'content'} kb=${knowledgeBaseId}`);
+      console.debug(`[AI-KNOWLEDGE] ENTRY_CREATED id=${entry.id} type=${data.entryType || 'content'} kb=${knowledgeBaseId}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'KNOWLEDGE.ENTRY_CREATED',
@@ -403,7 +403,7 @@ export function useKnowledgeBase() {
         })
         .eq('id', entryId);
 
-      console.log(`[AI-KNOWLEDGE] ENTRY_VALIDATED id=${entryId}`);
+      console.debug(`[AI-KNOWLEDGE] ENTRY_VALIDATED id=${entryId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -450,7 +450,7 @@ export function useKnowledgeBase() {
         }).catch(err => console.warn('[AI-KNOWLEDGE] EMBEDDING_REGEN_FAILED', err));
       }
 
-      console.log(`[AI-KNOWLEDGE] ENTRY_UPDATED id=${entryId}`);
+      console.debug(`[AI-KNOWLEDGE] ENTRY_UPDATED id=${entryId}`);
       toast.success('Entrada atualizada');
     } catch (error) {
       console.error('[AI-KNOWLEDGE] ENTRY_UPDATE_FAILED', error);
@@ -468,7 +468,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] ENTRY_DELETED id=${entryId}`);
+      console.debug(`[AI-KNOWLEDGE] ENTRY_DELETED id=${entryId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -499,7 +499,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] ENTRY_ARCHIVED id=${entryId}`);
+      console.debug(`[AI-KNOWLEDGE] ENTRY_ARCHIVED id=${entryId}`);
       toast.success('Entrada arquivada');
     } catch (error) {
       console.error('[AI-KNOWLEDGE] ENTRY_ARCHIVE_FAILED', error);
@@ -616,7 +616,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] SEARCH_COMPLETED query="${query}" results=${data?.results?.length || 0}`);
+      console.debug(`[AI-KNOWLEDGE] SEARCH_COMPLETED query="${query}" results=${data?.results?.length || 0}`);
 
       return (data?.results || []).map((r: any) => ({
         id: r.id,
@@ -696,7 +696,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-KNOWLEDGE] QUERY latency_ms=${result.responseTimeMs} confidence=${result.confidence} persona=${options?.personaId || 'none'} source=${result.responseSource}`);
+      console.debug(`[AI-KNOWLEDGE] QUERY latency_ms=${result.responseTimeMs} confidence=${result.confidence} persona=${options?.personaId || 'none'} source=${result.responseSource}`);
 
       await supabase.from('knowledge_usage_logs').insert({
         workspace_id: currentWorkspace.id,
@@ -742,7 +742,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-PERSONAS] PERSONA_CREATED id=${persona.id}`);
+      console.debug(`[AI-PERSONAS] PERSONA_CREATED id=${persona.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'PERSONA.CREATED',
@@ -795,7 +795,7 @@ export function useKnowledgeBase() {
       toast.success('Persona atualizada');
       await fetchPersonas();
 
-      console.log(`[AI-PERSONAS] PERSONA_UPDATED id=${personaId}`);
+      console.debug(`[AI-PERSONAS] PERSONA_UPDATED id=${personaId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -828,7 +828,7 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      console.log(`[AI-PERSONAS] PERSONA_DELETED id=${personaId}`);
+      console.debug(`[AI-PERSONAS] PERSONA_DELETED id=${personaId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

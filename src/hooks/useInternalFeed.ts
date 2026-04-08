@@ -223,7 +223,7 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
       toast({ title: 'Post publicado com sucesso' });
-      console.log(`[FEED] Post created: ${data.id}`);
+      console.debug(`[FEED] Post created: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -269,7 +269,7 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
-      console.log(`[FEED] Post updated: ${data.id}`);
+      console.debug(`[FEED] Post updated: ${data.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -293,7 +293,7 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
       toast({ title: 'Post eliminado' });
-      console.log(`[FEED] Post deleted: ${id}`);
+      console.debug(`[FEED] Post deleted: ${id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -320,7 +320,7 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
-      console.log(`[FEED] Post ${variables.is_pinned ? 'pinned' : 'unpinned'}: ${variables.id}`);
+      console.debug(`[FEED] Post ${variables.is_pinned ? 'pinned' : 'unpinned'}: ${variables.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -352,7 +352,7 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
-      console.log(`[FEED] Post ${variables.is_resolved ? 'resolved' : 'unresolved'}: ${variables.id}`);
+      console.debug(`[FEED] Post ${variables.is_resolved ? 'resolved' : 'unresolved'}: ${variables.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -526,7 +526,7 @@ export function usePostComments(postId: string | null) {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
-      console.log(`[FEED] Comment created: ${data.id} on post ${postId}`);
+      console.debug(`[FEED] Comment created: ${data.id} on post ${postId}`);
       // Note: usePostComments doesn't have workspace context, emit with postId as correlation
       if (postId) {
         // We need workspace_id — get it from the query cache if available
@@ -561,7 +561,7 @@ export function usePostComments(postId: string | null) {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
-      console.log(`[FEED] Comment deleted: ${id}`);
+      console.debug(`[FEED] Comment deleted: ${id}`);
       if (postId) {
         const posts = queryClient.getQueryData<Array<{ workspace_id: string }>>(['internal-posts']);
         const workspaceId = posts?.[0]?.workspace_id;
@@ -640,7 +640,7 @@ export function useMyMentions() {
     },
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['my-mentions'] });
-      console.log(`[FEED] Mention marked as read: ${id}`);
+      console.debug(`[FEED] Mention marked as read: ${id}`);
     },
   });
 

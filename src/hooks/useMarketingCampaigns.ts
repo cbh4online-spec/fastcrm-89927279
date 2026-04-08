@@ -162,7 +162,7 @@ export function useCreateCampaign() {
     onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       toast.success('Campanha criada com sucesso');
-      console.log('[EMAIL-MKT] CREATED', { campaign_id: campaign.id, name: campaign.name });
+      console.debug('[EMAIL-MKT] CREATED', { campaign_id: campaign.id, name: campaign.name });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -254,7 +254,7 @@ export function useUpdateCampaign() {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaign', variables.id] });
       toast.success('Campanha atualizada');
       const changedFields = Object.keys(variables).filter(k => k !== 'id');
-      console.log('[EMAIL-MKT] UPDATED', { campaign_id: variables.id, changed_fields: changedFields });
+      console.debug('[EMAIL-MKT] UPDATED', { campaign_id: variables.id, changed_fields: changedFields });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -289,7 +289,7 @@ export function useDeleteCampaign() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       toast.success('Campanha eliminada');
-      console.log('[EMAIL-MKT] DELETED', { campaign_id: id });
+      console.debug('[EMAIL-MKT] DELETED', { campaign_id: id });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -325,7 +325,7 @@ export function useSendCampaign() {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['marketing-campaign', campaignId] });
       toast.success('Campanha iniciada com sucesso');
-      console.log('[EMAIL-MKT] LAUNCHED', { campaign_id: campaignId });
+      console.debug('[EMAIL-MKT] LAUNCHED', { campaign_id: campaignId });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

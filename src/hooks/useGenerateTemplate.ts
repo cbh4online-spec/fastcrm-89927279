@@ -61,7 +61,7 @@ export function useGenerateTemplate() {
     },
     onSuccess: (data, variables) => {
       toast.success("Template gerado com sucesso");
-      console.log('[COMM-TEMPLATE] AI_GENERATED', { type: variables.type, tone: variables.tone });
+      console.debug('[COMM-TEMPLATE] AI_GENERATED', { type: variables.type, tone: variables.tone });
       if (variables.workspaceId) {
         emitKernelEvent({
           workspace_id: variables.workspaceId,

@@ -323,7 +323,7 @@ export function VoiceProposalAssistant({
       });
 
       if (error || data?.error) {
-        console.log("ElevenLabs not available, using Web Speech API");
+        console.debug("ElevenLabs not available, using Web Speech API");
         startSpeechRecognition();
       } else {
         startSpeechRecognition();

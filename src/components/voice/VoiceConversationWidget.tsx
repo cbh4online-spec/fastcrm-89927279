@@ -15,9 +15,9 @@ export function VoiceConversationWidget() {
   const [isMuted, setIsMuted] = useState(false);
 
   const conversation = useConversation({
-    onConnect: () => console.log("Voice conversation connected"),
-    onDisconnect: () => console.log("Voice conversation disconnected"),
-    onMessage: (message) => console.log("Message:", message),
+    onConnect: () => console.debug("Voice conversation connected"),
+    onDisconnect: () => console.debug("Voice conversation disconnected"),
+    onMessage: (message) => console.debug("Message:", message),
     onError: (error) => {
       console.error("Voice error:", error);
       toast.error("Erro na conversa de voz");

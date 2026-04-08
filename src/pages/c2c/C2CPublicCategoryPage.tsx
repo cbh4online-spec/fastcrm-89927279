@@ -21,7 +21,7 @@ export default function C2CPublicCategoryPage() {
     queryKey: ["c2c-category", workspace?.id, category],
     queryFn: async () => {
       if (!workspace?.id || !category) return null;
-      const { data } = await (supabase as any).from("c2c_categories").select("*").eq("workspace_id", workspace.id).eq("slug", category).maybeSingle();
+      const { data } = await supabase.from("c2c_categories").select("*").eq("workspace_id", workspace.id).eq("slug", category).maybeSingle();
       return data;
     },
     enabled: !!workspace?.id && !!category,

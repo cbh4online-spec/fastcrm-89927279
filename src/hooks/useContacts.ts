@@ -169,7 +169,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
-      console.log(`[CONTACTS] Contact created: ${data.id}`);
+      console.debug(`[CONTACTS] Contact created: ${data.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -241,7 +241,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       const { id, ...changedFields } = variables;
-      console.log(`[CONTACTS] Contact updated: ${id}, fields: ${Object.keys(changedFields).join(', ')}`);
+      console.debug(`[CONTACTS] Contact updated: ${id}, fields: ${Object.keys(changedFields).join(', ')}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -282,7 +282,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
-      console.log(`[CONTACTS] Contact soft-deleted: ${id}`);
+      console.debug(`[CONTACTS] Contact soft-deleted: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -312,7 +312,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
-      console.log(`[CONTACTS] Contact restored: ${id}`);
+      console.debug(`[CONTACTS] Contact restored: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -344,7 +344,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
-      console.log(`[CONTACTS] Bulk deleted: ${ids.length} contacts`);
+      console.debug(`[CONTACTS] Bulk deleted: ${ids.length} contacts`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -408,7 +408,7 @@ export function useContacts() {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
-      console.log(`[CONTACTS] Bulk updated: ${variables.ids.length} contacts, fields: ${Object.keys(variables.changes).join(', ')}`);
+      console.debug(`[CONTACTS] Bulk updated: ${variables.ids.length} contacts, fields: ${Object.keys(variables.changes).join(', ')}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

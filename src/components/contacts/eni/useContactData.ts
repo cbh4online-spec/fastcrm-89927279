@@ -72,7 +72,7 @@ export function useContactDocuments(contactId: string | undefined) {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
       toast.success("Documento carregado com sucesso");
-      console.log(`[FILES] Contact document uploaded: ${variables.file.name}`);
+      console.debug(`[FILES] Contact document uploaded: ${variables.file.name}`);
       if (currentWorkspace?.id && contactId) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -110,7 +110,7 @@ export function useContactDocuments(contactId: string | undefined) {
     onSuccess: (_, documentId) => {
       queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
       toast.success("Documento eliminado");
-      console.log(`[FILES] Contact document deleted: ${documentId}`);
+      console.debug(`[FILES] Contact document deleted: ${documentId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

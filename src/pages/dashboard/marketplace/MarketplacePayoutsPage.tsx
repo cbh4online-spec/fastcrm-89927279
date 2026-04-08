@@ -27,7 +27,7 @@ export default function MarketplacePayoutsPage() {
     queryKey: ["marketplace-payouts", wsId],
     queryFn: async () => {
       if (!wsId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("marketplace_payouts")
         .select("*, c2c_sellers(display_name)")
         .eq("workspace_id", wsId)

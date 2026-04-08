@@ -80,7 +80,7 @@ export function useBots() {
     queryKey: ["bots", currentWorkspace?.id],
     queryFn: async (): Promise<Bot[]> => {
       if (!currentWorkspace) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bots")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -94,7 +94,7 @@ export function useBots() {
   const createBot = useMutation({
     mutationFn: async (input: CreateBotData): Promise<Bot> => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bots")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -126,7 +126,7 @@ export function useBots() {
 
   const updateBot = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Bot> & { id: string }): Promise<Bot> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bots")
         .update(updates)
         .eq("id", id)
@@ -144,7 +144,7 @@ export function useBots() {
 
   const deleteBot = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("bots").delete().eq("id", id);
+      const { error } = await supabase.from("bots").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -156,7 +156,7 @@ export function useBots() {
 
   const toggleStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: BotStatus }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("bots")
         .update({ status })
         .eq("id", id);
@@ -187,7 +187,7 @@ export function useBotDetail(botId: string | undefined) {
     queryKey: ["bot", botId],
     queryFn: async (): Promise<Bot | null> => {
       if (!botId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bots")
         .select("*")
         .eq("id", botId)
@@ -206,7 +206,7 @@ export function useBotAnalytics(botId: string | undefined) {
       if (!botId) return null;
 
       // Query bot_analytics aggregated rows
-      const { data: analyticsData, error: analyticsError } = await (supabase as any)
+      const { data: analyticsData, error: analyticsError } = await supabase
         .from("bot_analytics")
         .select("*")
         .eq("bot_id", botId)
@@ -218,24 +218,24 @@ export function useBotAnalytics(botId: string | undefined) {
       }
 
       // Also count from bot_runs as fallback source of truth
-      const { count: runsCount } = await (supabase as any)
+      const { count: runsCount } = await supabase
         .from("bot_runs")
         .select("id", { count: "exact", head: true })
         .eq("bot_id", botId);
 
-      const { count: leadsCount } = await (supabase as any)
+      const { count: leadsCount } = await supabase
         .from("bot_runs")
         .select("id", { count: "exact", head: true })
         .eq("bot_id", botId)
         .contains("side_effects", [{ type: "create_lead" }]);
 
-      const { count: bookingsCount } = await (supabase as any)
+      const { count: bookingsCount } = await supabase
         .from("bot_runs")
         .select("id", { count: "exact", head: true })
         .eq("bot_id", botId)
         .contains("side_effects", [{ type: "book_meeting" }]);
 
-      const { count: handoverCount } = await (supabase as any)
+      const { count: handoverCount } = await supabase
         .from("bot_runs")
         .select("id", { count: "exact", head: true })
         .eq("bot_id", botId)

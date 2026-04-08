@@ -88,7 +88,7 @@ export function useGenerateRevenueForecast() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["revenue-forecast", currentWorkspace?.id] });
-      console.log("[AI-ANALYTICS] FORECAST_GENERATED", { forecast_confidence: result?.forecast_confidence, expected_case: result?.expected_case });
+      console.debug("[AI-ANALYTICS] FORECAST_GENERATED", { forecast_confidence: result?.forecast_confidence, expected_case: result?.expected_case });
 
       if (currentWorkspace && result?.id) {
         // Emit both FORECAST.UPDATED and FORECAST.COMPUTED for matrix compatibility

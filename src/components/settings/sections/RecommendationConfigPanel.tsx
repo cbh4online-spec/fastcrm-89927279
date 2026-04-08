@@ -41,7 +41,7 @@ export function RecommendationConfigPanel() {
   const { data: config, isLoading } = useQuery({
     queryKey: ["recommendation-config", workspaceId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("recommendation_config")
         .select("*")
         .eq("workspace_id", workspaceId!)
@@ -77,12 +77,12 @@ export function RecommendationConfigPanel() {
         updated_at: new Date().toISOString(),
       };
       if (config?.id) {
-        await (supabase as any)
+        await supabase
           .from("recommendation_config")
           .update(payload)
           .eq("id", config.id);
       } else {
-        await (supabase as any)
+        await supabase
           .from("recommendation_config")
           .insert(payload);
       }

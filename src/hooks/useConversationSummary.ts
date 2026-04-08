@@ -40,7 +40,7 @@ export function useConversationSummary({
     }
 
     const correlationId = generateRequestId();
-    console.log(`[CONV-SUMMARY] correlation_id=${correlationId} generating summary for ${conversationId}`);
+    console.debug(`[CONV-SUMMARY] correlation_id=${correlationId} generating summary for ${conversationId}`);
 
     setIsLoading(true);
     setError(null);
@@ -72,7 +72,7 @@ export function useConversationSummary({
       }
 
       setSummary(data as ConversationSummary);
-      console.log(`[CONV-SUMMARY] correlation_id=${correlationId} summary generated successfully`);
+      console.debug(`[CONV-SUMMARY] correlation_id=${correlationId} summary generated successfully`);
 
       // Emit CONVERSATION.SUMMARIZED kernel event
       if (workspaceId) {

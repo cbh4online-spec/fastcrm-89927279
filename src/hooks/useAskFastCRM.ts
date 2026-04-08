@@ -134,7 +134,7 @@ export function useAskFastCRM() {
         // Consume credit for AI copilot
         const userId = user?.id;
         if (userId && currentWorkspace?.id) {
-          const { data: creditResult } = await (supabase as any).rpc("consume_funnel_credits", {
+          const { data: creditResult } = await supabase.rpc("consume_funnel_credits", {
             p_workspace_id: currentWorkspace.id,
             p_user_id: userId,
             p_action_key: "ai_copilot_chat",

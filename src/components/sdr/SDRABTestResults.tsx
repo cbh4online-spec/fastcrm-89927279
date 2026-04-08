@@ -26,7 +26,7 @@ export function SDRABTestResults({ campaignId, variants }: SDRABTestResultsProps
     queryKey: ["sdr-ab-results", campaignId],
     queryFn: async () => {
       // Get all enrollments with their variant
-      const { data: enrollments, error } = await (supabase as any)
+      const { data: enrollments, error } = await supabase
         .from("sdr_enrollments")
         .select("id, message_variant, status")
         .eq("campaign_id", campaignId);
@@ -37,7 +37,7 @@ export function SDRABTestResults({ campaignId, variants }: SDRABTestResultsProps
       const ids = (enrollments || []).map((e: any) => e.id);
       if (!ids.length) return [];
 
-      const { data: logs } = await (supabase as any)
+      const { data: logs } = await supabase
         .from("sdr_sequence_step_logs")
         .select("sdr_enrollment_id, status, opened_at, clicked_at, replied_at")
         .in("sdr_enrollment_id", ids);

@@ -57,7 +57,7 @@ export function useCreateWidget() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["report-widgets", d.dashboard_id] });
       toast.success("Widget adicionado");
-      console.log(`[DASHBOARD] Widget added: ${d.id}`);
+      console.debug(`[DASHBOARD] Widget added: ${d.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -98,7 +98,7 @@ export function useUpdateWidget() {
     },
     onSuccess: ({ id, dashboard_id }) => {
       qc.invalidateQueries({ queryKey: ["report-widgets", dashboard_id] });
-      console.log(`[DASHBOARD] Widget updated: ${id}`);
+      console.debug(`[DASHBOARD] Widget updated: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -132,7 +132,7 @@ export function useDuplicateWidget() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["report-widgets", d.dashboard_id] });
       toast.success("Widget duplicado");
-      console.log(`[DASHBOARD] Widget duplicated: ${d.id}`);
+      console.debug(`[DASHBOARD] Widget duplicated: ${d.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -160,7 +160,7 @@ export function useDeleteWidget() {
     onSuccess: ({ id, dashboardId }) => {
       qc.invalidateQueries({ queryKey: ["report-widgets", dashboardId] });
       toast.success("Widget removido");
-      console.log(`[DASHBOARD] Widget deleted: ${id}`);
+      console.debug(`[DASHBOARD] Widget deleted: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

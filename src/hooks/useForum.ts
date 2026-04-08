@@ -232,7 +232,7 @@ export function useCreateForumTopic(workspaceId: string | undefined) {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["forum-topics"] });
       toast.success("Tópico criado!");
-      console.log('[COMMUNITY-FASTCLUB] TOPIC_CREATED', { id: data?.id });
+      console.debug('[COMMUNITY-FASTCLUB] TOPIC_CREATED', { id: data?.id });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -295,7 +295,7 @@ export function useCreateForumPost(workspaceId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["forum-posts"] });
       qc.invalidateQueries({ queryKey: ["forum-topics"] });
       toast.success("Resposta publicada!");
-      console.log('[COMMUNITY-FASTCLUB] POST_CREATED', { id: data?.id, topic_id: data?.topic_id });
+      console.debug('[COMMUNITY-FASTCLUB] POST_CREATED', { id: data?.id, topic_id: data?.topic_id });
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

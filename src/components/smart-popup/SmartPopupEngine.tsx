@@ -160,7 +160,7 @@ export function SmartPopupEngine({ workspaceId, currentPage }: Props) {
   const handleSubmit = async () => {
     if (!activePopup || !workspaceId) return;
     const sessionId = localStorage.getItem("vertical_landing_session_id") || "";
-    await (supabase as any).from("popup_responses").insert({
+    await supabase.from("popup_responses").insert({
       workspace_id: workspaceId,
       rule_id: activePopup.id,
       session_id: sessionId,

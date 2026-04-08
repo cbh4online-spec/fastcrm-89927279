@@ -99,7 +99,7 @@ export function useOrderNoteStatus() {
       return { orderId, newStatus };
     },
     onSuccess: (result, variables) => {
-      console.log('[B2B-ORDERS] STATUS_CHANGED', result.orderId, result.newStatus);
+      console.debug('[B2B-ORDERS] STATUS_CHANGED', result.orderId, result.newStatus);
       // Emit kernel event - we need workspace from the order context
       // Using a fire-and-forget approach to get workspace_id from the order
       supabase

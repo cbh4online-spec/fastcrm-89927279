@@ -96,7 +96,7 @@ export function useWorkspaceStripeConfig() {
       queryClient.invalidateQueries({ 
         queryKey: ["workspace-stripe-config", currentWorkspace?.id] 
       });
-      console.log(`[INTEGRATIONS] STRIPE_CONFIGURED workspace=${currentWorkspace?.id} is_active=${data.is_active}`);
+      console.debug(`[INTEGRATIONS] STRIPE_CONFIGURED workspace=${currentWorkspace?.id} is_active=${data.is_active}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -128,7 +128,7 @@ export function useWorkspaceStripeConfig() {
     },
     onSuccess: (data) => {
       if (data.success) {
-        console.log(`[INTEGRATIONS] STRIPE_CONNECTED workspace=${currentWorkspace?.id}`);
+        console.debug(`[INTEGRATIONS] STRIPE_CONNECTED workspace=${currentWorkspace?.id}`);
         if (currentWorkspace?.id) {
           emitKernelEvent({
             workspace_id: currentWorkspace.id,

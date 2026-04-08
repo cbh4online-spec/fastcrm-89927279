@@ -11,7 +11,7 @@ export default function PublicEbookShortLink() {
     async function resolve() {
       if (!shortCode) return setError(true);
 
-      const { data: ebook, error: err } = await (supabase as any)
+      const { data: ebook, error: err } = await supabase
         .from("ebooks")
         .select("slug")
         .eq("short_code", shortCode)

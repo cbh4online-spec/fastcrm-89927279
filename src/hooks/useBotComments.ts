@@ -25,7 +25,7 @@ export function useBotCommentJobs() {
     queryKey: ["bot-comment-jobs", currentWorkspace?.id],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("bot_comment_jobs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
@@ -60,7 +60,7 @@ export function useCreateBotCommentJob() {
       if (!user) throw new Error("Not authenticated");
 
       // Create job
-      const { data: job, error: jobErr } = await (supabase as any)
+      const { data: job, error: jobErr } = await supabase
         .from("bot_comment_jobs")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -109,7 +109,7 @@ export function useProductQA(productId: string | undefined) {
     queryKey: ["product-qa", productId],
     queryFn: async () => {
       if (!productId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("product_qa")
         .select("*")
         .eq("product_id", productId)
@@ -127,7 +127,7 @@ export function useWorkspaceQA(statusFilter: "pending" | "approved" | "all" = "a
     queryKey: ["workspace-qa", currentWorkspace?.id, statusFilter],
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      let query = (supabase as any)
+      let query = supabase
         .from("product_qa")
         .select("*, products!inner(name)")
         .eq("workspace_id", currentWorkspace.id)
@@ -155,7 +155,7 @@ export function useApproveQA() {
   return useMutation({
     mutationFn: async (qaId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("product_qa")
         .update({
           is_approved: true,
@@ -177,7 +177,7 @@ export function useRejectQA() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (qaId: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("product_qa")
         .delete()
         .eq("id", qaId);

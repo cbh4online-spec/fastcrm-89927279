@@ -106,10 +106,10 @@ export function useSendInterest() {
       });
 
       if (result.mutual) {
-        console.log('[FASTMATCH] Mutual interest detected');
+        console.debug('[FASTMATCH] Mutual interest detected');
         toast.success("Interesse mútuo detectado! Pode desbloquear a conexão.");
       } else {
-        console.log(`[FASTMATCH] Interest sent: ${result.interestId}`);
+        console.debug(`[FASTMATCH] Interest sent: ${result.interestId}`);
         toast.success("Interesse demonstrado com sucesso.");
       }
     },

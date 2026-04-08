@@ -23,7 +23,7 @@ function usePublicSellerProfile(sellerId: string | undefined, workspaceId: strin
       // Try slug first, fallback to user_id (UUID)
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
       const filter = isUUID ? { column: "user_id", value: sellerId } : { column: "slug", value: sellerId };
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_sellers")
         .select("*")
         .eq("workspace_id", workspaceId)

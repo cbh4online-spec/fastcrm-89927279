@@ -31,7 +31,7 @@ export function RecommendationOpportunitiesWidget() {
     queryKey: ["dashboard-rec-opportunities", workspaceId],
     queryFn: async () => {
       // Use raw rpc since product_recommendations may not be in generated types yet
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("product_recommendations")
         .select("id, score, reason, confidence, strategy, contact_id, company_id, lead_id, product_id")
         .eq("workspace_id", workspaceId!)

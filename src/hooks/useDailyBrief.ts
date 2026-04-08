@@ -46,7 +46,7 @@ export function useDailyBrief() {
     queryKey,
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("daily_briefs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)

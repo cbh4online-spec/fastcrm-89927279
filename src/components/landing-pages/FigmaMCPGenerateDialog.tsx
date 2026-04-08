@@ -149,7 +149,7 @@ export function FigmaMCPGenerateDialog({
     setStep("generating");
 
     try {
-      console.log(
+      console.debug(
         `[FIGMA_MCP] figma_mcp_import_started workspace_id=${workspaceId} provider_id=${selectedProviderId} reference=${externalReference}`
       );
 
@@ -160,7 +160,7 @@ export function FigmaMCPGenerateDialog({
       });
 
       if (result.status === "completed" && result.normalized) {
-        console.log(
+        console.debug(
           `[FIGMA_MCP] figma_mcp_import_succeeded workspace_id=${workspaceId} provider_id=${selectedProviderId} import_id=${result.import_id} sections=${result.normalized.metadata?.section_count}`
         );
 
@@ -206,7 +206,7 @@ export function FigmaMCPGenerateDialog({
     setStep("generating");
 
     try {
-      console.log(
+      console.debug(
         `[FIGMA_MCP] landing_page_generation_from_figma_started workspace_id=${workspaceId} provider_id=${selectedProviderId} import_id=${importResult.import_id}`
       );
 
@@ -216,7 +216,7 @@ export function FigmaMCPGenerateDialog({
         slug: slug || undefined,
       });
 
-      console.log(
+      console.debug(
         `[FIGMA_MCP] landing_page_generation_from_figma_succeeded workspace_id=${workspaceId} provider_id=${selectedProviderId} import_id=${importResult.import_id} page_id=${result.page_id}`
       );
 

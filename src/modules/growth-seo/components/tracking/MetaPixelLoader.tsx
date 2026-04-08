@@ -23,7 +23,7 @@ export function MetaPixelLoader() {
     if (!pixelInitialized.current && hasConsented && consent.marketing) {
       initializeMetaPixel(DEFAULT_META_PIXEL_ID, true);
       pixelInitialized.current = true;
-      console.log('[MetaPixel] Initialized with ID:', DEFAULT_META_PIXEL_ID);
+      console.debug('[MetaPixel] Initialized with ID:', DEFAULT_META_PIXEL_ID);
     }
   }, [consent.marketing, hasConsented]);
 

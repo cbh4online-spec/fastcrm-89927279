@@ -27,7 +27,7 @@ export function useVerticalTemplateSettings(templateId: string | null) {
     queryKey: ["vertical_template_settings", templateId],
     queryFn: async () => {
       if (!templateId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vertical_template_settings")
         .select("*")
         .eq("template_id", templateId)
@@ -45,14 +45,14 @@ export function useUpsertVerticalTemplateSettings() {
   return useMutation({
     mutationFn: async (input: Partial<VerticalTemplateSettings> & { template_id: string }) => {
       const payload = { ...input, workspace_id: currentWorkspace!.id };
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from("vertical_template_settings")
         .select("id")
         .eq("template_id", input.template_id)
         .maybeSingle();
 
       if (existing) {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("vertical_template_settings")
           .update(payload)
           .eq("id", existing.id)
@@ -61,7 +61,7 @@ export function useUpsertVerticalTemplateSettings() {
         if (error) throw error;
         return data;
       } else {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("vertical_template_settings")
           .insert(payload)
           .select()
@@ -95,7 +95,7 @@ export function useVerticalTrackingEvents(templateId: string | null) {
     queryKey: ["vertical_tracking_events", templateId],
     queryFn: async () => {
       if (!templateId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vertical_tracking_events")
         .select("*")
         .eq("template_id", templateId)
@@ -112,7 +112,7 @@ export function useCreateVerticalTrackingEvent() {
   const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (input: { template_id: string; pixel_id: string; access_token?: string; tracking_level?: string; events_tracked?: string[] }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vertical_tracking_events")
         .insert({ ...input, workspace_id: currentWorkspace!.id })
         .select()
@@ -132,7 +132,7 @@ export function useDeleteVerticalTrackingEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, templateId }: { id: string; templateId: string }) => {
-      const { error } = await (supabase as any).from("vertical_tracking_events").delete().eq("id", id);
+      const { error } = await supabase.from("vertical_tracking_events").delete().eq("id", id);
       if (error) throw error;
       return templateId;
     },
@@ -161,7 +161,7 @@ export function useVerticalTemplateSales(templateId: string | null, dateFrom?: s
     queryKey: ["vertical_template_sales", templateId, dateFrom, dateTo],
     queryFn: async () => {
       if (!templateId) return [];
-      let q = (supabase as any)
+      let q = supabase
         .from("vertical_template_sales")
         .select("*")
         .eq("template_id", templateId)
@@ -204,7 +204,7 @@ export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?:
     queryKey: ["vertical_template_stats", templateSlug, dateFrom, dateTo],
     queryFn: async () => {
       if (!templateSlug) return [];
-      let q = (supabase as any)
+      let q = supabase
         .from("vertical_landing_events")
         .select("event_type, session_id, created_at")
         .eq("template_slug", templateSlug);
@@ -247,7 +247,7 @@ export function useVerticalFullEvents(templateSlug: string | null, dateFrom?: st
     queryKey: ["vertical_full_events", templateSlug, dateFrom, dateTo],
     queryFn: async (): Promise<VerticalEventRow[]> => {
       if (!templateSlug) return [];
-      let q = (supabase as any)
+      let q = supabase
         .from("vertical_landing_events")
         .select("event_type, session_id, created_at, referrer, device_type, utm_source, utm_medium, utm_campaign, country, city, page_section")
         .eq("template_slug", templateSlug)

@@ -37,7 +37,7 @@ export function useTrafficAlertRules() {
   return useQuery({
     queryKey: ["store-traffic-alert-rules", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_traffic_alert_rules")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -63,7 +63,7 @@ export function useCreateTrafficAlertRule() {
       cooldown_hours?: number;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("store_traffic_alert_rules")
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -88,7 +88,7 @@ export function useUpdateTrafficAlertRule() {
       id,
       ...updates
     }: Partial<TrafficAlertRule> & { id: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("store_traffic_alert_rules")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -107,7 +107,7 @@ export function useDeleteTrafficAlertRule() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("store_traffic_alert_rules")
         .delete()
         .eq("id", id);
@@ -127,7 +127,7 @@ export function useTrafficAlertLogs(limit = 50) {
   return useQuery({
     queryKey: ["store-traffic-alerts-log", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_traffic_alerts_log")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
@@ -146,7 +146,7 @@ export function useMarkAlertRead() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("store_traffic_alerts_log")
         .update({ is_read: true })
         .eq("id", id);
@@ -164,7 +164,7 @@ export function useUnreadAlertCount() {
   return useQuery({
     queryKey: ["store-traffic-alerts-unread", currentWorkspace?.id],
     queryFn: async () => {
-      const { count, error } = await (supabase as any)
+      const { count, error } = await supabase
         .from("store_traffic_alerts_log")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", currentWorkspace!.id)

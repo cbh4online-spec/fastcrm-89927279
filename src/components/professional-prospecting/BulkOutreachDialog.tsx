@@ -256,7 +256,7 @@ export function BulkOutreachDialog({
       }
     }
 
-    console.log(`[PROSPECTING] Bulk outreach sent: profile=${profile.id}`);
+    console.debug(`[PROSPECTING] Bulk outreach sent: profile=${profile.id}`);
     if (wsId) {
       emitKernelEvent({
         workspace_id: wsId,

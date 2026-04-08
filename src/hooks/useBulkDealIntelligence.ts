@@ -25,7 +25,7 @@ export function useActiveOpportunities() {
     fetch: useCallback(async (): Promise<ActiveOpportunity[]> => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('opportunities')
         .select('id, title, value, pipeline_stages!inner(name)')
         .eq('workspace_id', currentWorkspace.id)
@@ -36,7 +36,7 @@ export function useActiveOpportunities() {
       if (error) {
         console.error('Error fetching opportunities:', error);
         // Fallback: try without join
-        const { data: fallback } = await (supabase as any)
+        const { data: fallback } = await supabase
           .from('opportunities')
           .select('id, title, value, stage_id')
           .eq('workspace_id', currentWorkspace.id)

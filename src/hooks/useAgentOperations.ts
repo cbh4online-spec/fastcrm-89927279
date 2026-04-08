@@ -72,7 +72,7 @@ export function useAgentTeams() {
     queryKey: ["agent-teams", wsId],
     queryFn: async (): Promise<AgentTeam[]> => {
       if (!wsId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("agent_teams")
         .select("*")
         .eq("workspace_id", wsId)
@@ -86,7 +86,7 @@ export function useAgentTeams() {
   const create = useMutation({
     mutationFn: async (input: { name: string; description?: string; objective_type?: string }) => {
       if (!wsId) throw new Error("No workspace");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("agent_teams")
         .insert({ workspace_id: wsId, ...input })
         .select()
@@ -103,7 +103,7 @@ export function useAgentTeams() {
 
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string; objective_type?: string; is_active?: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_teams")
         .update(updates)
         .eq("id", id);
@@ -118,7 +118,7 @@ export function useAgentTeams() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("agent_teams").delete().eq("id", id);
+      const { error } = await supabase.from("agent_teams").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -140,7 +140,7 @@ export function useAgentWorkItems(filters?: { status?: string; work_type?: strin
     queryKey: ["agent-work-items", wsId, filters],
     queryFn: async (): Promise<AgentWorkItem[]> => {
       if (!wsId) return [];
-      let q = (supabase as any)
+      let q = supabase
         .from("agent_work_items")
         .select("*")
         .eq("workspace_id", wsId)
@@ -166,7 +166,7 @@ export function useAgentHandoffs(filters?: { status?: string }) {
     queryKey: ["agent-handoffs", wsId, filters],
     queryFn: async (): Promise<AgentHandoff[]> => {
       if (!wsId) return [];
-      let q = (supabase as any)
+      let q = supabase
         .from("agent_handoffs")
         .select("*")
         .eq("workspace_id", wsId)
@@ -191,7 +191,7 @@ export function useAgentOpsSettings() {
     queryKey: ["agent-ops-settings", wsId],
     queryFn: async (): Promise<AgentOpsSettings | null> => {
       if (!wsId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("agent_ops_settings")
         .select("*")
         .eq("workspace_id", wsId)
@@ -205,7 +205,7 @@ export function useAgentOpsSettings() {
   const upsert = useMutation({
     mutationFn: async (input: Partial<Omit<AgentOpsSettings, "id" | "workspace_id">>) => {
       if (!wsId) throw new Error("No workspace");
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_ops_settings")
         .upsert({ workspace_id: wsId, ...input }, { onConflict: "workspace_id" });
       if (error) throw error;
@@ -230,25 +230,25 @@ export function useAgentOpsStats() {
     queryFn: async () => {
       if (!wsId) return { pending: 0, inProgress: 0, completed: 0, failed: 0, handoffsToday: 0, escalated: 0 };
 
-      const { count: pending } = await (supabase as any)
+      const { count: pending } = await supabase
         .from("agent_work_items")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
         .in("status", ["pending", "assigned"]);
 
-      const { count: inProgress } = await (supabase as any)
+      const { count: inProgress } = await supabase
         .from("agent_work_items")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
         .eq("status", "in_progress");
 
-      const { count: completed } = await (supabase as any)
+      const { count: completed } = await supabase
         .from("agent_work_items")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
         .eq("status", "completed");
 
-      const { count: failed } = await (supabase as any)
+      const { count: failed } = await supabase
         .from("agent_work_items")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
@@ -257,13 +257,13 @@ export function useAgentOpsStats() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const { count: handoffsToday } = await (supabase as any)
+      const { count: handoffsToday } = await supabase
         .from("agent_handoffs")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
         .gte("created_at", todayStart.toISOString());
 
-      const { count: escalated } = await (supabase as any)
+      const { count: escalated } = await supabase
         .from("agent_handoffs")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", wsId)
@@ -303,7 +303,7 @@ export function useAgentPerformanceStats() {
       if (!wsId) return [];
 
       // Get active bots
-      const { data: bots } = await (supabase as any)
+      const { data: bots } = await supabase
         .from("bots")
         .select("id")
         .eq("workspace_id", wsId)
@@ -315,7 +315,7 @@ export function useAgentPerformanceStats() {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      const { data: items } = await (supabase as any)
+      const { data: items } = await supabase
         .from("agent_work_items")
         .select("bot_id, status, assigned_at, completed_at")
         .eq("workspace_id", wsId)
@@ -377,7 +377,7 @@ export function useCreateWorkItem() {
       payload_json?: Record<string, unknown>;
     }) => {
       if (!wsId) throw new Error("No workspace");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("agent_work_items")
         .insert({
           workspace_id: wsId,
@@ -432,7 +432,7 @@ export function useCompleteWorkItem() {
         updates.failed_at = new Date().toISOString();
         updates.error_message = error_message || null;
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_work_items")
         .update(updates)
         .eq("id", id);
@@ -482,7 +482,7 @@ export function useCreateHandoff() {
       context_snapshot?: Record<string, unknown>;
     }) => {
       if (!wsId) throw new Error("No workspace");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("agent_handoffs")
         .insert({
           workspace_id: wsId,
@@ -528,7 +528,7 @@ export function useCompleteHandoff() {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "completed" | "failed" }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_handoffs")
         .update({ status, completed_at: new Date().toISOString() })
         .eq("id", id);

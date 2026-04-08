@@ -19,7 +19,7 @@ export function useCompanyMerge() {
       if (!currentWorkspace) throw new Error("No workspace");
       if (duplicateCompanyIds.length === 0) throw new Error("No duplicates");
 
-      console.log(`[COMPANIES] Merge started: primary=${primaryCompanyId}, duplicates=${duplicateCompanyIds.length}`);
+      console.debug(`[COMPANIES] Merge started: primary=${primaryCompanyId}, duplicates=${duplicateCompanyIds.length}`);
 
       const { data: primary, error: pErr } = await supabase.from("companies").select("*").eq("id", primaryCompanyId).single();
       if (pErr) throw pErr;
@@ -57,7 +57,7 @@ export function useCompanyMerge() {
       });
 
       if (fieldsEnriched.length > 0) {
-        console.log(`[COMPANIES] Merge field enrichment: ${fieldsEnriched.join(', ')}`);
+        console.debug(`[COMPANIES] Merge field enrichment: ${fieldsEnriched.join(', ')}`);
       }
 
       await supabase.from("companies").update(updateData).eq("id", primaryCompanyId);
@@ -71,7 +71,7 @@ export function useCompanyMerge() {
       ]);
       await Promise.all(migrations);
 
-      console.log('[COMPANIES] Merge references migrated');
+      console.debug('[COMPANIES] Merge references migrated');
 
       // Delete duplicates
       const { error: delErr } = await supabase.from("companies").delete().in("id", duplicateCompanyIds);
@@ -84,7 +84,7 @@ export function useCompanyMerge() {
       queryClient.invalidateQueries({ queryKey: ["smart-companies"] });
       queryClient.invalidateQueries({ queryKey: ["company-duplicate-groups"] });
       toast.success(`${result.mergedCount} empresa(s) fundida(s) com ${result.primaryCompany.name}`);
-      console.log(`[COMPANIES] Merge completed: primary=${result.primaryCompany.id}, merged=${result.mergedCount}`);
+      console.debug(`[COMPANIES] Merge completed: primary=${result.primaryCompany.id}, merged=${result.mergedCount}`);
       if (currentWorkspace) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

@@ -145,7 +145,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      console.log("Fetching profiles for workspace:", currentWorkspace.id, "searchId:", searchId);
+      console.debug("Fetching profiles for workspace:", currentWorkspace.id, "searchId:", searchId);
 
       // Build query - RLS will automatically filter by accessible workspaces
       let query = supabase
@@ -168,7 +168,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
       const { data, error } = await query.limit(100);
       
-      console.log("Profiles query result:", data?.length || 0, "profiles, error:", error);
+      console.debug("Profiles query result:", data?.length || 0, "profiles, error:", error);
       
       if (error) {
         console.error("Error fetching profiles:", error);

@@ -70,7 +70,7 @@ export function useVisitorScoreTracker(workspaceId?: string) {
       scoreRef.current = newScore;
       // Update score in DB (best-effort, fire and forget)
       if (workspaceId && sessionId.current) {
-        (supabase as any)
+        supabase
           .from("store_visitor_sessions")
           .update({ visitor_score: newScore })
           .eq("workspace_id", workspaceId)

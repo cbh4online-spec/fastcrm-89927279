@@ -39,7 +39,7 @@ export function useWorkspaceSettings() {
       if (error) throw error;
 
       await refreshWorkspaces();
-      console.log(`[WS-SETTINGS] WORKSPACE_UPDATED workspace=${currentWorkspace.id}`);
+      console.debug(`[WS-SETTINGS] WORKSPACE_UPDATED workspace=${currentWorkspace.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'SETTINGS.WORKSPACE_UPDATED',
@@ -96,7 +96,7 @@ export function useWorkspaceSettings() {
 
       const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-      console.log(`[WS-SETTINGS] LOGO_UPLOADED workspace=${currentWorkspace.id}`);
+      console.debug(`[WS-SETTINGS] LOGO_UPLOADED workspace=${currentWorkspace.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'SETTINGS.LOGO_UPLOADED',
@@ -136,7 +136,7 @@ export function useWorkspaceSettings() {
       if (error) throw error;
 
       await refreshWorkspaces();
-      console.log(`[WS-SETTINGS] BRANDING_UPDATED workspace=${currentWorkspace.id}`);
+      console.debug(`[WS-SETTINGS] BRANDING_UPDATED workspace=${currentWorkspace.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'SETTINGS.BRANDING_UPDATED',

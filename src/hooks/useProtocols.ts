@@ -52,7 +52,7 @@ export function useProtocols() {
     },
     onSuccess: (data, variables) => {
       toast.success("Protocolo criado com sucesso");
-      console.log('[BUNDLES] Protocol created:', data.id);
+      console.debug('[BUNDLES] Protocol created:', data.id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
 
       if (workspaceId) {
@@ -87,7 +87,7 @@ export function useProtocols() {
     },
     onSuccess: ({ id }) => {
       toast.success("Protocolo atualizado");
-      console.log('[BUNDLES] Protocol updated:', id);
+      console.debug('[BUNDLES] Protocol updated:', id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
 
       if (workspaceId) {
@@ -119,7 +119,7 @@ export function useProtocols() {
     },
     onSuccess: (id) => {
       toast.success("Protocolo eliminado");
-      console.log('[BUNDLES] Protocol deleted:', id);
+      console.debug('[BUNDLES] Protocol deleted:', id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {
@@ -138,7 +138,7 @@ export function useProtocols() {
     },
     onSuccess: () => {
       toast.success("Produto adicionado ao protocolo");
-      console.log('[BUNDLES] Product added to protocol');
+      console.debug('[BUNDLES] Product added to protocol');
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {
@@ -158,7 +158,7 @@ export function useProtocols() {
     },
     onSuccess: () => {
       toast.success("Produto removido do protocolo");
-      console.log('[BUNDLES] Product removed from protocol');
+      console.debug('[BUNDLES] Product removed from protocol');
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {

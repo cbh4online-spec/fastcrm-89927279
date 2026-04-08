@@ -16,7 +16,7 @@ export function CrossFunnelAnalytics() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const since = format(subDays(new Date(), 30), "yyyy-MM-dd");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vertical_landing_events")
         .select("template_slug, event_type, created_at, utm_source")
         .eq("workspace_id", currentWorkspace.id)

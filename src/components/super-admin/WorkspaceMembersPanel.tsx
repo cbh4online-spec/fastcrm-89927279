@@ -159,7 +159,7 @@ export function WorkspaceMembersPanel({
       setSearchEmail("");
       toast.success("Membro adicionado com sucesso");
 
-      console.log(`[WORKSPACES] Admin added member: ${userId} as ${role}`);
+      console.debug(`[WORKSPACES] Admin added member: ${userId} as ${role}`);
       emitKernelEvent({
         workspace_id: workspaceId!,
         type: 'MEMBER.ADDED',
@@ -199,7 +199,7 @@ export function WorkspaceMembersPanel({
       queryClient.invalidateQueries({ queryKey: ["workspace-members-admin", workspaceId] });
       toast.success("Role atualizada com sucesso");
 
-      console.log(`[WORKSPACES] Admin updated role: ${userId} to ${newRole}`);
+      console.debug(`[WORKSPACES] Admin updated role: ${userId} to ${newRole}`);
       emitKernelEvent({
         workspace_id: workspaceId!,
         type: 'ROLE.UPDATED',
@@ -239,7 +239,7 @@ export function WorkspaceMembersPanel({
       setMemberToRemove(null);
       toast.success("Membro removido com sucesso");
 
-      console.log(`[WORKSPACES] Admin removed member: ${userId}`);
+      console.debug(`[WORKSPACES] Admin removed member: ${userId}`);
       emitKernelEvent({
         workspace_id: workspaceId!,
         type: 'MEMBER.REMOVED',

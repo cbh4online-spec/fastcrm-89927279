@@ -174,7 +174,7 @@ export function calculateBundleTotals(components: ProductComponent[], bundlePric
   const grossMargin = finalPrice - totalCost;
   const grossMarginPct = finalPrice > 0 ? (grossMargin / finalPrice) * 100 : 0;
 
-  console.log(`[BUNDLES] Price calc: components=${components.length}, mode=${bundlePriceMode}, total=${finalPrice}`);
+  console.debug(`[BUNDLES] Price calc: components=${components.length}, mode=${bundlePriceMode}, total=${finalPrice}`);
 
   return {
     componentsPrice: totalPrice,

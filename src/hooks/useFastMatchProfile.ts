@@ -115,7 +115,7 @@ export function useUpdateFastMatchProfile() {
           is_new: result.is_new,
         },
       });
-      console.log(`[FASTMATCH] Profile ${result.is_new ? 'created' : 'updated'}: ${result.data.id}`);
+      console.debug(`[FASTMATCH] Profile ${result.is_new ? 'created' : 'updated'}: ${result.data.id}`);
 
       // Trigger AI scoring in the background
       if (currentWorkspace) {
@@ -123,7 +123,7 @@ export function useUpdateFastMatchProfile() {
           body: { profile_id: result.data.id, workspace_id: currentWorkspace.id },
         }).then((res) => {
           if (res.data?.scored) {
-            console.log(`[FASTMATCH] Scored ${res.data.scored} profiles`);
+            console.debug(`[FASTMATCH] Scored ${res.data.scored} profiles`);
             queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
           }
         }).catch((err) => {

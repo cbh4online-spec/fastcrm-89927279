@@ -57,7 +57,7 @@ export function ProspectingAnalytics() {
     queryKey: ["prospecting-leads-count", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return 0;
-      const { count, error } = await (supabase as any)
+      const { count, error } = await supabase
         .from("leads")
         .select("*", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)

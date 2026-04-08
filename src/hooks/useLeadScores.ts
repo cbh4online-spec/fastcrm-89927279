@@ -35,7 +35,7 @@ export function useUpdateLeadScores() {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["lead"] });
       toast.success("Scores atualizados");
-      console.log('[LEADS] Scores updated:', leadId);
+      console.debug('[LEADS] Scores updated:', leadId);
 
       if (currentWorkspace?.id) {
         emitKernelEvent({

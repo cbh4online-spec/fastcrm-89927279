@@ -13,7 +13,7 @@ export function useStartAgentSession() {
       lead_id?: string;
       conversation_id?: string;
     }): Promise<AIAgentSession> => {
-      const { data: session, error: sessionErr } = await (supabase as any)
+      const { data: session, error: sessionErr } = await supabase
         .from('ai_agent_sessions')
         .insert({
           workspace_id: currentWorkspace!.id,

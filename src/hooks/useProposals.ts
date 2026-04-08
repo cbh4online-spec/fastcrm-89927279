@@ -83,7 +83,7 @@ export function useCreateProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo de proposta criado!");
-      console.log('[PROPOSALS] Template created');
+      console.debug('[PROPOSALS] Template created');
     },
     onError: (error) => {
       console.warn('[PROPOSALS] TEMPLATE_CREATE_FAILED', error.message);
@@ -118,7 +118,7 @@ export function useUpdateProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo atualizado!");
-      console.log('[PROPOSALS] Template updated');
+      console.debug('[PROPOSALS] Template updated');
     },
     onError: (error) => {
       console.warn('[PROPOSALS] TEMPLATE_UPDATE_FAILED', error.message);
@@ -142,7 +142,7 @@ export function useDeleteProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo removido!");
-      console.log('[PROPOSALS] Template deleted');
+      console.debug('[PROPOSALS] Template deleted');
     },
     onError: (error) => {
       console.warn('[PROPOSALS] TEMPLATE_DELETE_FAILED', error.message);
@@ -399,7 +399,7 @@ export function useUpdateProposal() {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal"] });
       toast.success("Proposta atualizada!");
-      console.log(`[PROPOSALS] Updated: ${data.id}`);
+      console.debug(`[PROPOSALS] Updated: ${data.id}`);
       
       // Track proposal accepted in GTM when status changes to 'accepted'
       if (data.status === 'accepted' && data._previousStatus !== 'accepted') {
@@ -490,7 +490,7 @@ export function useDeleteProposal() {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta removida!");
-      console.log(`[PROPOSALS] Deleted: ${id}`);
+      console.debug(`[PROPOSALS] Deleted: ${id}`);
     },
     onError: (error) => {
       console.warn('[PROPOSALS] DELETE_FAILED', error.message);
@@ -676,7 +676,7 @@ export function useUpdateProposalItems() {
       });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Itens da proposta atualizados!");
-      console.log(`[PROPOSALS] Items updated: ${data.itemsCount} items, total=${data.totalPrice}`);
+      console.debug(`[PROPOSALS] Items updated: ${data.itemsCount} items, total=${data.totalPrice}`);
     },
     onError: (error) => {
       console.warn('[PROPOSALS] ITEMS_UPDATE_FAILED', error.message);
@@ -833,7 +833,7 @@ export function useDuplicateProposal() {
     onSuccess: (data, sourceId) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta duplicada com sucesso!");
-      console.log(`[PROPOSALS] Duplicated: ${sourceId} → ${data.id}`);
+      console.debug(`[PROPOSALS] Duplicated: ${sourceId} → ${data.id}`);
     },
     onError: (error) => {
       console.warn('[PROPOSALS] DUPLICATE_FAILED', error.message);
@@ -972,7 +972,7 @@ export function useRefreshCostSnapshots() {
     onSuccess: (_data, proposalId) => {
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
       toast.success("Custos atualizados com sucesso");
-      console.log('[PROPOSALS] Cost snapshots refreshed');
+      console.debug('[PROPOSALS] Cost snapshots refreshed');
     },
     onError: (error) => {
       console.warn('[PROPOSALS] COST_REFRESH_FAILED', error.message);

@@ -117,7 +117,7 @@ export function useWorkspaceGHLConfig() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace-ghl-config", workspaceId] });
-      console.log(`[INTEGRATIONS] GHL_CONFIGURED workspace=${workspaceId} is_active=${data.is_active}`);
+      console.debug(`[INTEGRATIONS] GHL_CONFIGURED workspace=${workspaceId} is_active=${data.is_active}`);
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,
@@ -144,7 +144,7 @@ export function useWorkspaceGHLConfig() {
       return { success: true };
     },
     onSuccess: () => {
-      console.log(`[INTEGRATIONS] GHL_CONNECTED workspace=${workspaceId}`);
+      console.debug(`[INTEGRATIONS] GHL_CONNECTED workspace=${workspaceId}`);
       if (workspaceId) {
         emitKernelEvent({
           workspace_id: workspaceId,

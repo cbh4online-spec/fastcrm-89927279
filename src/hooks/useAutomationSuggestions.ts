@@ -92,7 +92,7 @@ export function useGenerateAutomationSuggestions() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
       const count = data?.suggestions?.length ?? 0;
-      console.log(`[AI-SUGGESTIONS] Automation suggestions generated — ${count} suggestions`);
+      console.debug(`[AI-SUGGESTIONS] Automation suggestions generated — ${count} suggestions`);
       toast.success("Análise de padrões concluída");
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -132,7 +132,7 @@ export function useAcceptAutomationSuggestion() {
     },
     onSuccess: (suggestionId) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
-      console.log(`[AI-SUGGESTIONS] Automation suggestion accepted: ${suggestionId}`);
+      console.debug(`[AI-SUGGESTIONS] Automation suggestion accepted: ${suggestionId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -166,7 +166,7 @@ export function useDismissAutomationSuggestion() {
     },
     onSuccess: (suggestionId) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
-      console.log(`[AI-SUGGESTIONS] Automation suggestion dismissed: ${suggestionId}`);
+      console.debug(`[AI-SUGGESTIONS] Automation suggestion dismissed: ${suggestionId}`);
       toast.success("Sugestão descartada");
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -203,7 +203,7 @@ export function useDismissAllSuggestions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
-      console.log('[AI-SUGGESTIONS] All automation suggestions dismissed');
+      console.debug('[AI-SUGGESTIONS] All automation suggestions dismissed');
       toast.success("Todas as sugestões descartadas");
       if (currentWorkspace?.id) {
         emitKernelEvent({

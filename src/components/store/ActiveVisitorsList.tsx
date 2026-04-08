@@ -43,7 +43,7 @@ export function ActiveVisitorsList() {
     queryKey: ["active_visitors", workspaceId],
     queryFn: async () => {
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("store_visitor_sessions")
         .select("session_id, device_type, pages_viewed, visitor_score, first_page, started_at, last_activity_at, utm_source, referrer, scroll_depth_max, time_on_site_seconds, ai_intent, ai_score, cart_items, cart_subtotal")
         .eq("workspace_id", workspaceId)

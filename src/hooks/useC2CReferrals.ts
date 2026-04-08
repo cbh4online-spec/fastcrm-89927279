@@ -15,7 +15,7 @@ export function useReferralProgram(workspaceId: string | undefined) {
     queryKey: ["c2c-referral-program", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_referral_programs")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -31,7 +31,7 @@ export function useUpsertReferralProgram() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (program: any) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("c2c_referral_programs")
         .upsert(program, { onConflict: "id" });
       if (error) throw error;
@@ -50,7 +50,7 @@ export function useMyReferrals(workspaceId: string | undefined) {
     queryKey: ["c2c-my-referrals", workspaceId, user?.id],
     queryFn: async () => {
       if (!workspaceId || !user) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_referrals")
         .select("*")
         .eq("workspace_id", workspaceId)
@@ -69,7 +69,7 @@ export function useCreateReferral() {
   return useMutation({
     mutationFn: async ({ programId, workspaceId, email }: { programId: string; workspaceId: string; email?: string }) => {
       if (!user) throw new Error("Necessário login");
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_referrals")
         .insert({
           program_id: programId,
@@ -86,7 +86,7 @@ export function useCreateReferral() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-my-referrals", v.workspaceId] });
       toast.success("Convite criado!");
-      console.log('[MARKETPLACE] Referral created');
+      console.debug('[MARKETPLACE] Referral created');
     },
     onError: (e: Error) => {
       console.warn('[MARKETPLACE] REFERRAL_CREATE_FAILED', e.message);
@@ -101,7 +101,7 @@ export function useMyReferralAttributions(workspaceId: string | undefined) {
     queryKey: ["c2c-my-referral-attributions", workspaceId, user?.id],
     queryFn: async () => {
       if (!workspaceId || !user) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_referral_attributions")
         .select("*, c2c_referrals!inner(referrer_user_id)")
         .eq("workspace_id", workspaceId)
@@ -118,7 +118,7 @@ export function useAllReferrals(workspaceId: string | undefined) {
     queryKey: ["c2c-all-referrals", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("c2c_referrals")
         .select("*")
         .eq("workspace_id", workspaceId)

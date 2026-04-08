@@ -99,7 +99,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Documento carregado com sucesso');
-      console.log(`[FILES] Entity document uploaded: ${variables.file.name}`);
+      console.debug(`[FILES] Entity document uploaded: ${variables.file.name}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -132,7 +132,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
     onSuccess: (_, doc) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Documento eliminado');
-      console.log(`[FILES] Entity document deleted: ${doc.id}`);
+      console.debug(`[FILES] Entity document deleted: ${doc.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -161,7 +161,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Ficheiro movido');
-      console.log(`[FILES] Entity document moved: ${variables.docId} → ${variables.folder || 'root'}`);
+      console.debug(`[FILES] Entity document moved: ${variables.docId} → ${variables.folder || 'root'}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

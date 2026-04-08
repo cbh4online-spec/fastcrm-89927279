@@ -68,7 +68,7 @@ export function useCompanyEnrichment() {
     onSuccess: (result, variables) => {
       const fieldsFound = result ? Object.keys(result) : [];
       const hasSocialLinks = !!(result?.socialLinks);
-      console.log(`[COMPANIES] Company enriched: fields=${fieldsFound.join(', ')}, social=${hasSocialLinks}`);
+      console.debug(`[COMPANIES] Company enriched: fields=${fieldsFound.join(', ')}, social=${hasSocialLinks}`);
       // Note: workspace_id not available here (no context), emitter deferred to caller
     },
     onError: (error) => {
@@ -97,7 +97,7 @@ export function useCompanyInsights() {
       return data.data;
     },
     onSuccess: (_, companyId) => {
-      console.log(`[COMPANIES] Insights generated: company=${companyId}`);
+      console.debug(`[COMPANIES] Insights generated: company=${companyId}`);
     },
     onError: (error) => {
       console.warn('[COMPANIES] INSIGHTS_FAILED', error.message);

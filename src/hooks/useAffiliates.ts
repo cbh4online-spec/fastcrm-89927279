@@ -10,7 +10,7 @@ export function useMyAffiliate(workspaceId?: string) {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliates")
         .select("*, affiliate_balances(*), affiliate_program_tiers(*)")
         .eq("workspace_id", workspaceId!)
@@ -28,7 +28,7 @@ export function useAllAffiliates(status?: string) {
   return useQuery({
     queryKey: ["all-affiliates", currentWorkspace?.id, status],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = supabase
         .from("affiliates")
         .select("*, affiliate_balances(*), affiliate_programs(name), affiliate_program_tiers(name)")
         .eq("workspace_id", currentWorkspace!.id)
@@ -60,7 +60,7 @@ export function useRegisterAffiliate() {
 
       let parent_affiliate_id = null;
       if (payload.parent_code) {
-        const { data: parent } = await (supabase as any)
+        const { data: parent } = await supabase
           .from("affiliates")
           .select("id")
           .eq("workspace_id", payload.workspace_id)
@@ -71,7 +71,7 @@ export function useRegisterAffiliate() {
       }
 
       // Check auto-approve
-      const { data: settings } = await (supabase as any)
+      const { data: settings } = await supabase
         .from("affiliate_settings")
         .select("auto_approve_affiliates")
         .eq("workspace_id", payload.workspace_id)
@@ -79,7 +79,7 @@ export function useRegisterAffiliate() {
 
       const status = settings?.auto_approve_affiliates ? "active" : "pending";
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("affiliates")
         .insert({
           workspace_id: payload.workspace_id,
@@ -122,7 +122,7 @@ export function useUpdateAffiliateStatus() {
         updates.approved_at = new Date().toISOString();
         updates.approved_by = user?.id;
       }
-      const { error } = await (supabase as any).from("affiliates").update(updates).eq("id", id);
+      const { error } = await supabase.from("affiliates").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -137,7 +137,7 @@ export function useAffiliateLinks(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-links", affiliateId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_links")
         .select("*")
         .eq("affiliate_id", affiliateId!)
@@ -152,7 +152,7 @@ export function useCreateAffiliateLink() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (link: Record<string, unknown>) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("affiliate_links")
         .insert(link)
         .select()
@@ -172,7 +172,7 @@ export function useAffiliateConversions(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-conversions", affiliateId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_conversions")
         .select("*")
         .eq("affiliate_id", affiliateId!)
@@ -188,7 +188,7 @@ export function useAllConversions(status?: string) {
   return useQuery({
     queryKey: ["all-affiliate-conversions", currentWorkspace?.id, status],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = supabase
         .from("affiliate_conversions")
         .select("*, affiliates(full_name, affiliate_code)")
         .eq("workspace_id", currentWorkspace!.id)
@@ -212,7 +212,7 @@ export function useUpdateConversionStatus() {
         updates.approved_at = new Date().toISOString();
         updates.approved_by = user?.id;
       }
-      const { error } = await (supabase as any).from("affiliate_conversions").update(updates).eq("id", id);
+      const { error } = await supabase.from("affiliate_conversions").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -228,7 +228,7 @@ export function useAffiliatePayouts(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-payouts", affiliateId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_payouts")
         .select("*")
         .eq("affiliate_id", affiliateId!)
@@ -244,7 +244,7 @@ export function useAllPayouts() {
   return useQuery({
     queryKey: ["all-affiliate-payouts", currentWorkspace?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_payouts")
         .select("*, affiliates(full_name, affiliate_code)")
         .eq("workspace_id", currentWorkspace!.id)
@@ -262,7 +262,7 @@ export function useCreatePayout() {
   return useMutation({
     mutationFn: async (payout: { affiliate_id: string; amount: number; method: string; reference_note?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("affiliate_payouts")
         .insert({
           ...payout,
@@ -292,7 +292,7 @@ export function useUpdatePayoutStatus() {
         updates.processed_at = new Date().toISOString();
         updates.processed_by = user?.id;
       }
-      const { error } = await (supabase as any).from("affiliate_payouts").update(updates).eq("id", id);
+      const { error } = await supabase.from("affiliate_payouts").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -308,7 +308,7 @@ export function useAffiliateNotifications(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-notifications", affiliateId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_notifications")
         .select("*")
         .eq("affiliate_id", affiliateId!)
@@ -325,7 +325,7 @@ export function usePayoutMethods(affiliateId?: string) {
   return useQuery({
     queryKey: ["affiliate-payout-methods", affiliateId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("affiliate_payout_methods")
         .select("*")
         .eq("affiliate_id", affiliateId!)
@@ -341,8 +341,8 @@ export function useUpsertPayoutMethod() {
   return useMutation({
     mutationFn: async (method: Record<string, unknown>) => {
       const { data, error } = method.id
-        ? await (supabase as any).from("affiliate_payout_methods").update(method).eq("id", method.id).select().single()
-        : await (supabase as any).from("affiliate_payout_methods").insert(method).select().single();
+        ? await supabase.from("affiliate_payout_methods").update(method).eq("id", method.id).select().single()
+        : await supabase.from("affiliate_payout_methods").insert(method).select().single();
       if (error) throw error;
       return data;
     },

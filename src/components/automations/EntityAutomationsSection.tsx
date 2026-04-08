@@ -313,8 +313,8 @@ export function EntityAutomationsSection({
         {/* Active Automations Tab */}
         <TabsContent value="active" className="mt-6">
           <AutomationRulesList 
-            onEdit={(rule) => console.log('Edit rule', rule.id)} 
-            onViewLogs={(ruleId) => console.log('View logs', ruleId)} 
+            onEdit={(rule) => console.debug('Edit rule', rule.id)} 
+            onViewLogs={(ruleId) => console.debug('View logs', ruleId)} 
           />
         </TabsContent>
       </Tabs>

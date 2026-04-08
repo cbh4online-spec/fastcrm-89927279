@@ -97,7 +97,7 @@ export function useInviteCommunityMember() {
       queryClient.invalidateQueries({ queryKey: ["community_members", currentWorkspace?.id] });
       const count = variables.length;
       toast.success(`${count} convite${count > 1 ? "s" : ""} enviado${count > 1 ? "s" : ""} com sucesso`);
-      console.log('[COMMUNITY-FASTCLUB] MEMBER_INVITED', { count });
+      console.debug('[COMMUNITY-FASTCLUB] MEMBER_INVITED', { count });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -163,7 +163,7 @@ export function useResendCommunityInvite() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community_members", currentWorkspace?.id] });
       toast.success("Convite reenviado com sucesso");
-      console.log('[COMMUNITY-FASTCLUB] INVITE_RESENT');
+      console.debug('[COMMUNITY-FASTCLUB] INVITE_RESENT');
     },
     onError: (err) => {
       toast.error("Erro ao reenviar convite");

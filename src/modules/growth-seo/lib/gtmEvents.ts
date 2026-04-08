@@ -58,7 +58,7 @@ function pushToDataLayer(eventName: string, eventData: Record<string, unknown>) 
       ...eventData,
       event_timestamp: new Date().toISOString(),
     });
-    console.log(`[GTM Event] ${eventName}:`, eventData);
+    console.debug(`[GTM Event] ${eventName}:`, eventData);
   }
 }
 

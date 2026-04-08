@@ -129,7 +129,7 @@ export function useCreateTask() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", currentWorkspace?.id] });
-      console.log('[TASK] CREATED', { id: data.id, title: data.title });
+      console.debug('[TASK] CREATED', { id: data.id, title: data.title });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -171,7 +171,7 @@ export function useUpdateTask() {
       queryClient.invalidateQueries({ queryKey: ["task", data.id] });
       const { id, ...updates } = variables;
       const changedFields = Object.keys(updates);
-      console.log('[TASK] UPDATED', { id: data.id, changed_fields: changedFields });
+      console.debug('[TASK] UPDATED', { id: data.id, changed_fields: changedFields });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -182,7 +182,7 @@ export function useUpdateTask() {
           payload: { changed_fields: changedFields },
         });
         if ('assigned_to' in updates) {
-          console.log('[TASK] ASSIGNED', { id: data.id, assigned_to: data.assigned_to });
+          console.debug('[TASK] ASSIGNED', { id: data.id, assigned_to: data.assigned_to });
           emitKernelEvent({
             workspace_id: currentWorkspace.id,
             type: 'TASK.ASSIGNED',
@@ -239,7 +239,7 @@ export function useToggleTaskStatus() {
       queryClient.invalidateQueries({ queryKey: ["tasks", currentWorkspace?.id] });
       const newStatus = data.status;
       const eventType = newStatus === 'done' ? 'TASK.COMPLETED' : 'TASK.REOPENED';
-      console.log(`[TASK] ${newStatus === 'done' ? 'COMPLETED' : 'REOPENED'}`, { id: data.id });
+      console.debug(`[TASK] ${newStatus === 'done' ? 'COMPLETED' : 'REOPENED'}`, { id: data.id });
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,

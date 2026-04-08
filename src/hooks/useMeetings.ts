@@ -393,7 +393,7 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
           .insert(attendeeInserts);
       }
 
-      console.log(`[CALENDAR] Meeting booked: ${meeting.id}`);
+      console.debug(`[CALENDAR] Meeting booked: ${meeting.id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: 'MEETING.BOOKED',
@@ -475,7 +475,7 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
         no_show: 'MEETING.NO_SHOW',
         pending: 'MEETING.STATUS_UPDATED',
       };
-      console.log(`[CALENDAR] Meeting status updated: ${id} → ${status}`);
+      console.debug(`[CALENDAR] Meeting status updated: ${id} → ${status}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: eventTypeMap[status],
@@ -504,7 +504,7 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
 
       if (deleteError) throw deleteError;
 
-      console.log(`[CALENDAR] Meeting deleted: ${id}`);
+      console.debug(`[CALENDAR] Meeting deleted: ${id}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'MEETING.DELETED',
@@ -568,7 +568,7 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
 
       if (updateError) throw updateError;
 
-      console.log(`[CALENDAR] Meeting outcome set: ${id} → ${outcome}`);
+      console.debug(`[CALENDAR] Meeting outcome set: ${id} → ${outcome}`);
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
         type: 'MEETING.OUTCOME_SET',
