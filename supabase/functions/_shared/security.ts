@@ -35,9 +35,26 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   });
 
   const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
 
-  if (error || !data?.claims) {
+  // Try getClaims first (faster, no network call), fall back to getUser
+  try {
+    if (typeof supabase.auth.getClaims === "function") {
+      const { data, error } = await supabase.auth.getClaims(token);
+      if (!error && data?.claims) {
+        return {
+          userId: data.claims.sub as string,
+          email: data.claims.email as string | undefined,
+          role: data.claims.role as string | undefined,
+        };
+      }
+    }
+  } catch {
+    // getClaims not available, fall through to getUser
+  }
+
+  // Fallback: getUser (network call to auth server)
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) {
     throw new Response(JSON.stringify({ error: "Invalid or expired token" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -45,9 +62,9 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   }
 
   return {
-    userId: data.claims.sub as string,
-    email: data.claims.email as string | undefined,
-    role: data.claims.role as string | undefined,
+    userId: userData.user.id,
+    email: userData.user.email,
+    role: userData.user.role,
   };
 }
 
