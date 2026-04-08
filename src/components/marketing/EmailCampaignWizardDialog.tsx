@@ -8,6 +8,7 @@ import { Send, Sparkles, Copy, Loader2, AlertCircle, Coins } from 'lucide-react'
 import { toast } from 'sonner';
 import { useCreditWallet } from '@/hooks/useCreditWallet';
 import { triggerNoCreditsDialog } from '@/hooks/useNoCreditsDialog';
+import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 
@@ -46,11 +47,17 @@ export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignW
 
   const streamChat = useCallback(async (allMessages: Msg[]) => {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-campaign-wizard`;
+    
+    // Get user JWT for auth
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${accessToken || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: allMessages }),
     });
@@ -125,7 +132,8 @@ export function EmailCampaignWizardDialog({ open, onOpenChange }: EmailCampaignW
       try {
         await consumeCredits.mutateAsync({ actionKey: ACTION_KEY, referenceType: 'email_campaign_wizard' });
         setCreditsConsumed(true);
-      } catch {
+      } catch (e) {
+        console.error('Credit consumption failed:', e);
         return;
       }
     }
