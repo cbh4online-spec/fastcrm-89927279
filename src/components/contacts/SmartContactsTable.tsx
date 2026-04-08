@@ -704,17 +704,53 @@ export function SmartContactsTable() {
               fields={[
                 { slug: "name", name: t("smartListFieldName"), field_type: "text" },
                 { slug: "email", name: t("smartListFieldEmail"), field_type: "email" },
+                { slug: "phone", name: t("col_phone"), field_type: "text" },
+                { slug: "whatsapp_number", name: t("col_whatsapp"), field_type: "text" },
                 { slug: "company", name: t("smartListFieldCompany"), field_type: "text" },
+                { slug: "job_title", name: t("col_jobTitle"), field_type: "text" },
                 { slug: "source", name: t("smartListFieldSource"), field_type: "select", options: { options: ["website", "referral", "linkedin", "cold_call", "event", "import", "other"] } },
+                { slug: "lead_source", name: t("col_leadSource"), field_type: "text" },
                 { slug: "ai_temperature", name: t("smartListFieldTemperature"), field_type: "select", options: { options: ["hot", "warm", "cold"] } },
                 { slug: "contact_score", name: t("smartListFieldScore"), field_type: "number" },
                 { slug: "client_status", name: t("smartListFieldState"), field_type: "select", options: { options: ["prospect", "lead", "active", "churned", "inactive"] } },
+                { slug: "abc_category", name: t("col_abcCategory"), field_type: "select", options: { options: ["A", "B", "C"] } },
+                { slug: "entity_type", name: t("col_entityType"), field_type: "select", options: { options: ["consumidor_final", "eni", "empresa"] } },
+                { slug: "ai_contact_type", name: t("col_type"), field_type: "select", options: { options: ["decision_maker", "influencer", "champion", "blocker", "end_user", "unknown"] } },
+                { slug: "ai_next_action_type", name: t("col_nextAction"), field_type: "select", options: { options: ["reply_manual", "send_template", "create_opportunity", "activate_automation", "archive", "follow_up", "schedule_meeting", "nurture"] } },
                 { slug: "estimated_value", name: t("smartListFieldEstimatedValue"), field_type: "currency" },
+                { slug: "conversion_probability", name: t("col_conversionProb"), field_type: "number" },
+                { slug: "city", name: t("col_city"), field_type: "text" },
+                { slug: "country", name: t("country"), field_type: "text" },
+                { slug: "tax_id", name: t("col_taxId"), field_type: "text" },
+                { slug: "business_area", name: t("col_businessArea"), field_type: "text" },
+                { slug: "assigned_to", name: t("col_assignedTo"), field_type: "text" },
+                { slug: "automation_active", name: t("col_automation"), field_type: "boolean" },
+                { slug: "is_primary_contact", name: t("col_primaryContact"), field_type: "boolean" },
+                { slug: "marketing_opt_in", name: t("col_marketingOptIn"), field_type: "boolean" },
+                { slug: "has_whatsapp", name: t("col_hasWhatsapp"), field_type: "boolean" },
+                { slug: "credit_active", name: t("col_creditActive"), field_type: "boolean" },
+                { slug: "total_revenue", name: t("col_totalRevenue"), field_type: "currency" },
+                { slug: "average_ticket", name: t("col_averageTicket"), field_type: "currency" },
+                { slug: "linkedin_url", name: t("col_linkedin"), field_type: "url" },
                 { slug: "created_at", name: t("smartListFieldCreatedAt"), field_type: "date" },
                 { slug: "last_contact_at", name: t("smartListFieldLastContact"), field_type: "date" },
+                { slug: "last_purchase_date", name: t("col_lastPurchase"), field_type: "date" },
               ]}
-              records={(filteredContacts || []) as unknown as Record<string, unknown>[]}
+              records={(contacts || []) as unknown as Record<string, unknown>[]}
+              onFilteredRecords={(records) => {
+                // When smart list has conditions, update the smart list conditions state
+              }}
             />
+            {/* Active smart list info */}
+            {smartListConditions.length > 0 && activeTab !== "smart-lists" && (
+              <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>Lista inteligente activa com {smartListConditions.length} condição(ões)</span>
+                <Button size="sm" variant="ghost" className="ml-auto text-xs" onClick={() => setSmartListConditions([])}>
+                  Limpar
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
