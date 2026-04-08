@@ -11,6 +11,7 @@ import {
   Code,
   Upload,
   Send,
+  ClipboardPaste,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -51,6 +52,8 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
   const [showTestSend, setShowTestSend] = useState(false);
+  const [showPasteHtml, setShowPasteHtml] = useState(false);
+  const [pasteHtmlValue, setPasteHtmlValue] = useState('');
   const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
