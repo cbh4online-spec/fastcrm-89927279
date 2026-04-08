@@ -71,11 +71,13 @@ export function useEbookConversionKPIs(
       .sort((a, b) => b.clicks - a.clicks);
 
     // Funnel
+    const notInCrm = Math.max(0, gatedLeads - contactsMatched);
     const funnelStages = [
       { stage: "Views", value: totalViews },
       { stage: "Leads", value: gatedLeads },
       { stage: "Consentidos", value: consentsGiven },
       { stage: "No CRM", value: contactsMatched },
+      { stage: "Fora do CRM", value: notInCrm },
       { stage: "CTA Clicks", value: ctaClicks },
     ];
     const funnelData = funnelStages.map(s => ({
