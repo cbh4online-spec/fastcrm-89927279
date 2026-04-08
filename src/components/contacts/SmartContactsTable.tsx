@@ -753,6 +753,17 @@ export function SmartContactsTable() {
           </div>
         )}
 
+        {/* Smart list active indicator on contacts tab */}
+        {activeTab === "contacts" && smartListConditions.length > 0 && (
+          <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Lista inteligente activa com {smartListConditions.length} condição(ões) — {filteredContacts.length} resultado(s)</span>
+            <Button size="sm" variant="ghost" className="ml-auto text-xs" onClick={() => setSmartListConditions([])}>
+              Limpar
+            </Button>
+          </div>
+        )}
+
         {activeTab === "contacts" && selectedIds.size > 0 && (
           <BulkActionsBar
             entityType="contacts"
