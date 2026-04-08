@@ -116,6 +116,7 @@ export function useImportTalentResult() {
         const nameParts = (ed.name || result.title || "Desconhecido").split(" ");
         const firstName = nameParts[0] || "Desconhecido";
         const lastName = nameParts.slice(1).join(" ") || "";
+        const email = ed.email && ed.email !== "---@---" ? ed.email : `imported-${Date.now()}@talent-search.local`;
 
         const { data: cand, error: candErr } = await supabase
           .from("hr_candidates" as any)
@@ -123,11 +124,12 @@ export function useImportTalentResult() {
             workspace_id: wsId,
             first_name: firstName,
             last_name: lastName,
-            email: ed.email || "",
-            phone: "",
+            email,
+            phone: ed.phone || "",
             linkedin_url: ed.linkedin_url || result.source_url || "",
-            source: `talent-search:${result.source_platform}`,
+            source: `talent-search:${result.source_platform || "web"}`,
             stage: "new",
+            location: result.location || ed.location || "",
           })
           .select("id")
           .single();
