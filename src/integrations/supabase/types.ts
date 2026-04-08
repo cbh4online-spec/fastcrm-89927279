@@ -28498,6 +28498,74 @@ export type Database = {
           },
         ]
       }
+      hr_talent_results: {
+        Row: {
+          created_at: string
+          description: string | null
+          extracted_data: Json | null
+          id: string
+          imported_as: string | null
+          imported_id: string | null
+          location: string | null
+          raw_content: string | null
+          search_query: string
+          search_type: string
+          skills: string[] | null
+          source_platform: string | null
+          source_url: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          extracted_data?: Json | null
+          id?: string
+          imported_as?: string | null
+          imported_id?: string | null
+          location?: string | null
+          raw_content?: string | null
+          search_query: string
+          search_type?: string
+          skills?: string[] | null
+          source_platform?: string | null
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          extracted_data?: Json | null
+          id?: string
+          imported_as?: string | null
+          imported_id?: string | null
+          location?: string | null
+          raw_content?: string | null
+          search_query?: string
+          search_type?: string
+          skills?: string[] | null
+          source_platform?: string | null
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_talent_results_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_time_entries: {
         Row: {
           created_at: string | null
