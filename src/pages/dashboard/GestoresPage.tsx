@@ -371,22 +371,20 @@ export default function GestoresPage() {
 
   // ── DETAIL VIEW ──
   if (selectedManager && selectedManagerData) {
-    const [entityFilter, setEntityFilter] = useState<string>("all");
-    const [entitySearch, setEntitySearch] = useState("");
-
-    const filteredEntities = useMemo(() => {
+  const filteredDetailEntities = useMemo(() => {
       let list = selectedEntities || [];
       if (entityFilter !== "all") {
         list = list.filter(e => e.type === (entityFilter === "leads" ? "lead" : entityFilter === "contacts" ? "contact" : "company"));
       }
-      if (entitySearch.trim()) {
-        const q = entitySearch.toLowerCase();
+      if (detailEntitySearch.trim()) {
+        const q = detailEntitySearch.toLowerCase();
         list = list.filter(e => e.name?.toLowerCase().includes(q) || e.email?.toLowerCase().includes(q));
       }
       return list;
-    }, [selectedEntities, entityFilter, entitySearch]);
+    }, [selectedEntities, entityFilter, detailEntitySearch]);
 
-    return (
+  // ── DETAIL VIEW ──
+  if (selectedManager && selectedManagerData) {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
