@@ -781,6 +781,7 @@ ${content.slice(0, 3000)}`;
       location: extractedLocation,
       skills,
       raw_content: content?.slice(0, 5000),
+      extracted_data: extractedData,
       status: "new",
     });
   }
