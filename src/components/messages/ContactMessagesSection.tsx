@@ -58,12 +58,29 @@ import { TemplateFormDialog } from "@/components/communication/TemplateFormDialo
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 import { ComposeEmailDialog } from "@/components/email";
 
+export interface EntityContext {
+  source?: string | null;
+  status?: string | null;
+  tags?: string[];
+  company?: string | null;
+  notes?: string | null;
+  score?: number | null;
+  lifecycle_stage?: string | null;
+  instagram_url?: string | null;
+  website_url?: string | null;
+  created_at?: string | null;
+  last_interaction?: string | null;
+  opportunities?: Array<{ name: string; value?: number; stage?: string }>;
+  custom_fields?: Record<string, unknown>;
+}
+
 interface ContactMessagesSectionProps {
   entityType: 'contact' | 'company' | 'lead';
   entityId: string;
   entityName: string;
   entityEmail?: string | null;
   entityPhone?: string | null;
+  entityContext?: EntityContext;
 }
 
 type MessageChannel = 'email' | 'whatsapp' | 'instagram' | 'sms';
@@ -122,6 +139,7 @@ export function ContactMessagesSection({
   entityName,
   entityEmail,
   entityPhone,
+  entityContext,
 }: ContactMessagesSectionProps) {
   const { data: templates = [], isLoading: templatesLoading } = useTemplates({ isActive: true });
   const { isLoading: aiLoading, suggestReplies } = useAskAI();
@@ -212,6 +230,35 @@ export function ContactMessagesSection({
     toast.success("Template aplicado");
   }, [entityName, entityEmail, entityPhone, selectedChannel]);
 
+  // Build rich context string from entity data
+  const buildContextString = useCallback(() => {
+    const parts: string[] = [];
+    parts.push(`Nome: ${entityName}`);
+    if (entityEmail) parts.push(`Email: ${entityEmail}`);
+    if (entityPhone) parts.push(`Telefone: ${entityPhone}`);
+    
+    if (entityContext) {
+      if (entityContext.source) parts.push(`Fonte/Origem: ${entityContext.source}`);
+      if (entityContext.status) parts.push(`Estado: ${entityContext.status}`);
+      if (entityContext.tags?.length) parts.push(`Tags: ${entityContext.tags.join(', ')}`);
+      if (entityContext.company) parts.push(`Empresa: ${entityContext.company}`);
+      if (entityContext.lifecycle_stage) parts.push(`Fase do ciclo: ${entityContext.lifecycle_stage}`);
+      if (entityContext.score) parts.push(`Score: ${entityContext.score}`);
+      if (entityContext.instagram_url) parts.push(`Instagram: ${entityContext.instagram_url}`);
+      if (entityContext.website_url) parts.push(`Website: ${entityContext.website_url}`);
+      if (entityContext.notes) parts.push(`Notas: ${entityContext.notes}`);
+      if (entityContext.created_at) parts.push(`Criado em: ${entityContext.created_at}`);
+      if (entityContext.opportunities?.length) {
+        const opps = entityContext.opportunities.map(o => 
+          `${o.name}${o.value ? ` (€${o.value})` : ''}${o.stage ? ` — ${o.stage}` : ''}`
+        ).join('; ');
+        parts.push(`Oportunidades: ${opps}`);
+      }
+    }
+    
+    return parts.join('\n');
+  }, [entityName, entityEmail, entityPhone, entityContext]);
+
   // Generate AI suggestions
   const handleGenerateAISuggestions = useCallback(async () => {
     setIsGenerating(true);
@@ -219,15 +266,15 @@ export function ContactMessagesSection({
     setSelectedSuggestion(null);
     
     try {
-      // Create context messages for the AI
+      const fullContext = buildContextString();
       const contextMessages = [
         {
           role: 'system',
-          content: `Contexto: A comunicar com ${entityName}. ${aiContext ? `Contexto adicional: ${aiContext}` : ''}`
+          content: `Contexto completo do ${entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'} no CRM FastCRM:\n${fullContext}\n\n${aiContext ? `Instruções adicionais do utilizador: ${aiContext}` : ''}\n\nCanal de comunicação: ${selectedChannel}`
         },
         {
           role: 'user',
-          content: `Gera sugestões de mensagem para ${selectedChannel} para ${entityName}.`
+          content: `Gera sugestões de mensagem contextualizada para ${selectedChannel} para ${entityName}, tendo em conta toda a informação disponível sobre este ${entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'}. As mensagens devem ser relevantes para o estado atual e a relação comercial.`
         }
       ];
       
@@ -240,7 +287,7 @@ export function ContactMessagesSection({
     } finally {
       setIsGenerating(false);
     }
-  }, [entityName, selectedChannel, aiContext, suggestReplies]);
+  }, [entityName, entityType, selectedChannel, aiContext, suggestReplies, buildContextString]);
 
   // Use AI suggestion
   const handleUseSuggestion = useCallback((text: string) => {
