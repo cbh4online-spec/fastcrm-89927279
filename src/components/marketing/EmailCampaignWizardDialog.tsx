@@ -252,13 +252,24 @@ export function EmailCampaignWizardDialog({ open, onOpenChange, onOpenEditor }: 
                     )}
 
                     {hasCampaign && (
-                      <div className="mt-3 pt-3 border-t border-border/50 flex gap-2">
+                      <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-2">
                         <Button size="sm" variant="secondary" onClick={() => copyCampaign(msg.content)}>
                           <Copy className="h-3.5 w-3.5 mr-1" /> Copiar JSON
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => copyHtml(msg.content)}>
                           <Copy className="h-3.5 w-3.5 mr-1" /> Copiar HTML
                         </Button>
+                        {onOpenEditor && (
+                          <Button size="sm" variant="default" onClick={() => {
+                            const data = extractCampaignJSON(msg.content);
+                            if (data?.body_html) {
+                              onOpenEditor(data.body_html);
+                              onOpenChange(false);
+                            }
+                          }}>
+                            <Paintbrush className="h-3.5 w-3.5 mr-1" /> Abrir no Editor
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
