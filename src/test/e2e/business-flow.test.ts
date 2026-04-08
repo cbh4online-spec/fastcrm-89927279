@@ -316,8 +316,8 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const validAuth = `Bearer ${serviceRoleKey}`;
       const invalidAuth = `Bearer wrong-key`;
 
-      expect(validAuth === `Bearer ${serviceRoleKey}`).toBe(true);
-      expect(invalidAuth === `Bearer ${serviceRoleKey}`).toBe(false);
+      expect(validAuth).toBe(`Bearer ${serviceRoleKey}`);
+      expect(invalidAuth).not.toBe(`Bearer ${serviceRoleKey}`);
     });
   });
 });
