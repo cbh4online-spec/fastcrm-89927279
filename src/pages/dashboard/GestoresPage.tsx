@@ -713,11 +713,11 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
   };
 
   const toggleAll = () => {
-    if (!unassignedEntities) return;
-    if (selectedIds.length === unassignedEntities.length) {
+    if (!filteredEntities.length) return;
+    if (selectedIds.length === filteredEntities.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(unassignedEntities.map((e: any) => e.id));
+      setSelectedIds(filteredEntities.map((e: any) => e.id));
     }
   };
 
