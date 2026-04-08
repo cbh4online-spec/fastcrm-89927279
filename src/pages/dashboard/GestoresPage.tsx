@@ -951,9 +951,10 @@ function RoundRobinDialog({ open, onOpenChange, members, workspaceId, workspaceC
 
 // ─── Auto-Assign Dialog ──────────────────────────────────────
 
-function AutoAssignDialog({ open, onOpenChange, unassigned, onAssign }: {
+function AutoAssignDialog({ open, onOpenChange, unassigned, onAssign, managerProfiles, managerStats }: {
   open: boolean; onOpenChange: (v: boolean) => void;
   unassigned: UnassignedCounts; onAssign: (type: EntityType) => Promise<void>;
+  managerProfiles: ManagerProfile[]; managerStats: ManagerStats[];
 }) {
   const [isRunning, setIsRunning] = useState(false);
 
@@ -963,6 +964,8 @@ function AutoAssignDialog({ open, onOpenChange, unassigned, onAssign }: {
     setIsRunning(false);
     onOpenChange(false);
   };
+
+  const profiledCount = managerProfiles.filter(p => p.is_active && (p.segments.length > 0 || p.territories.length > 0 || p.client_types.length > 0)).length;
 
   const types: Array<{ type: EntityType; label: string; count: number; icon: React.ElementType }> = [
     { type: "lead", label: "Leads", count: unassigned.leads, icon: Target },
@@ -974,8 +977,20 @@ function AutoAssignDialog({ open, onOpenChange, unassigned, onAssign }: {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5" />Auto-Assign por Capacidade</DialogTitle></DialogHeader>
-        <p className="text-sm text-muted-foreground">Atribui automaticamente ao gestor com mais capacidade disponível (até 50 de cada vez).</p>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5" />Auto-Assign Inteligente</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Atribui ao gestor com matching de perfil + mais capacidade disponível (até 50 de cada vez).</p>
+        {profiledCount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            {profiledCount} gestor{profiledCount > 1 ? "es" : ""} com perfil configurado
+          </div>
+        )}
+        {profiledCount === 0 && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Nenhum gestor com perfil. Configure em "Perfis & Categorias".
+          </div>
+        )}
         <div className="space-y-2 mt-2">
           {types.map(t => (
             <Button key={t.type} variant="outline" className="w-full justify-between" disabled={isRunning || t.count === 0} onClick={() => handleRun(t.type)}>
@@ -987,5 +1002,196 @@ function AutoAssignDialog({ open, onOpenChange, unassigned, onAssign }: {
         <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Manager Profile Dialog ──────────────────────────────────
+
+function ManagerProfileDialog({ open, onOpenChange, userId, categories, profiles, managerStats }: {
+  open: boolean; onOpenChange: (v: boolean) => void;
+  userId: string | null;
+  categories: ProfileCategory[];
+  profiles: ManagerProfile[];
+  managerStats: ManagerStats[];
+}) {
+  const upsertProfile = useUpsertManagerProfile();
+  const profile = profiles.find(p => p.user_id === userId);
+  const manager = managerStats.find(m => m.userId === userId);
+
+  const [segments, setSegments] = useState<string[]>([]);
+  const [territories, setTerritories] = useState<string[]>([]);
+  const [clientTypes, setClientTypes] = useState<string[]>([]);
+
+  // Sync state when dialog opens
+  const prevUserId = useState<string | null>(null);
+  if (userId !== prevUserId[0]) {
+    prevUserId[1](userId);
+    setSegments(profile?.segments || []);
+    setTerritories(profile?.territories || []);
+    setClientTypes(profile?.client_types || []);
+  }
+
+  const segmentOptions = categories.filter(c => c.dimension === "segment");
+  const territoryOptions = categories.filter(c => c.dimension === "territory");
+  const clientTypeOptions = categories.filter(c => c.dimension === "client_type");
+
+  const handleSave = () => {
+    if (!userId) return;
+    upsertProfile.mutate({ user_id: userId, segments, territories, client_types: clientTypes }, {
+      onSuccess: () => onOpenChange(false),
+    });
+  };
+
+  const toggleValue = (list: string[], setter: (v: string[]) => void, value: string) => {
+    setter(list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="w-5 h-5" />
+            Perfil de {manager?.name || "Gestor"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <CategorySection
+            label="Segmentos"
+            icon={Tag}
+            options={segmentOptions}
+            selected={segments}
+            onToggle={(v) => toggleValue(segments, setSegments, v)}
+          />
+          <CategorySection
+            label="Territórios"
+            icon={MapPin}
+            options={territoryOptions}
+            selected={territories}
+            onToggle={(v) => toggleValue(territories, setTerritories, v)}
+          />
+          <CategorySection
+            label="Tipos de Cliente"
+            icon={Briefcase}
+            options={clientTypeOptions}
+            selected={clientTypes}
+            onToggle={(v) => toggleValue(clientTypes, setClientTypes, v)}
+          />
+          {segmentOptions.length === 0 && territoryOptions.length === 0 && clientTypeOptions.length === 0 && (
+            <div className="text-center text-sm text-muted-foreground py-4">
+              <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-40" />
+              Nenhuma categoria disponível. Adicione categorias no separador "Perfis & Categorias".
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={upsertProfile.isPending}>{upsertProfile.isPending ? "A guardar..." : "Guardar"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CategorySection({ label, icon: Icon, options, selected, onToggle }: {
+  label: string; icon: React.ElementType;
+  options: ProfileCategory[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-sm font-medium flex items-center gap-1.5 mb-2">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />{label}
+      </label>
+      {options.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Nenhuma opção disponível</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {options.map(opt => (
+            <Badge
+              key={opt.id}
+              variant={selected.includes(opt.value) ? "default" : "outline"}
+              className={cn("cursor-pointer text-xs", selected.includes(opt.value) && "bg-primary text-primary-foreground")}
+              onClick={() => onToggle(opt.value)}
+            >
+              {opt.value}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Categories Manager ──────────────────────────────────────
+
+function CategoriesManager({ workspaceId, categories }: { workspaceId: string; categories: ProfileCategory[] }) {
+  const { addCategory, removeCategory } = useManageProfileCategories();
+  const [newValue, setNewValue] = useState("");
+  const [newDimension, setNewDimension] = useState<CategoryDimension>("segment");
+
+  const dimensionLabels: Record<CategoryDimension, { label: string; icon: React.ElementType }> = {
+    segment: { label: "Segmentos", icon: Tag },
+    territory: { label: "Territórios", icon: MapPin },
+    client_type: { label: "Tipos de Cliente", icon: Briefcase },
+  };
+
+  const handleAdd = () => {
+    if (!newValue.trim()) return;
+    addCategory.mutate({ dimension: newDimension, value: newValue.trim() }, {
+      onSuccess: () => setNewValue(""),
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm flex items-center gap-2"><Settings2 className="w-4 h-4 text-primary" />Categorias Disponíveis</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Add category */}
+        <div className="flex items-center gap-2">
+          <Select value={newDimension} onValueChange={(v: CategoryDimension) => setNewDimension(v)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="segment">Segmento</SelectItem>
+              <SelectItem value="territory">Território</SelectItem>
+              <SelectItem value="client_type">Tipo de Cliente</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input value={newValue} onChange={e => setNewValue(e.target.value)} placeholder="Nome da categoria..." className="flex-1" onKeyDown={e => e.key === "Enter" && handleAdd()} />
+          <Button size="sm" onClick={handleAdd} disabled={!newValue.trim() || addCategory.isPending} className="gap-1">
+            <Plus className="w-3.5 h-3.5" />Adicionar
+          </Button>
+        </div>
+
+        {/* List by dimension */}
+        {(["segment", "territory", "client_type"] as const).map(dim => {
+          const cfg = dimensionLabels[dim];
+          const Icon = cfg.icon;
+          const items = categories.filter(c => c.dimension === dim);
+          return (
+            <div key={dim}>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1.5">
+                <Icon className="w-3 h-3" />{cfg.label} ({items.length})
+              </p>
+              {items.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/60 ml-4">Nenhuma categoria adicionada</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 ml-4">
+                  {items.map(cat => (
+                    <Badge key={cat.id} variant="secondary" className="text-xs gap-1 pr-1">
+                      {cat.value}
+                      <button onClick={() => removeCategory.mutate(cat.id)} className="ml-0.5 hover:text-destructive"><X className="w-3 h-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
