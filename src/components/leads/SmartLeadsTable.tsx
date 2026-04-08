@@ -166,15 +166,17 @@ export function SmartLeadsTable() {
     { value: "last_contact_desc", label: t("sortLastContact") },
   ], [t]);
 
-  const [filters, setFilters] = useState<SmartLeadsFilters>({});
+  const [filters, setFilters] = useState<SmartLeadsFilters>({ page: 0, pageSize: 25 });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const currentPage = (filters.page ?? 0) + 1;
+  const pageSize = filters.pageSize ?? 25;
+  const setCurrentPage = (p: number) => setFilters(prev => ({ ...prev, page: p - 1 }));
+  const setPageSize = (s: number) => setFilters(prev => ({ ...prev, pageSize: s, page: 0 }));
   const [activeTab, setActiveTab] = useState("leads");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
@@ -240,60 +242,33 @@ export function SmartLeadsTable() {
     return map;
   }, [duplicateGroups]);
 
-  const filteredLeads = useMemo(() => {
-    if (!leads) return [];
-    if (!searchValue) return leads;
-    const lower = searchValue.toLowerCase();
-    return leads.filter(l => {
-      const searchableFields = [l.name, l.email, l.phone, (l as any).company_name, (l as any).address, (l as any).city, (l as any).county, (l as any).parish, (l as any).region, (l as any).postal_code, (l as any).tax_id, l.source, l.status, (l as any).website, (l as any).business_category, (l as any).cae_description, (l as any).capital_social, (l as any).legal_nature, l.ai_insight, l.ai_next_action, (l as any).external_email, (l as any).external_username, (l as any).linkedin_url, (l as any).facebook_url, (l as any).instagram_url, (l as any).twitter_url, (l as any).fax, (l as any).company_status, (l as any).assigned_to, (l as any).ai_lead_type];
-      const tags = (l as any).tags || [];
-      const services = (l as any).services || [];
-      const caeCodes = (l as any).cae_codes || [];
-      return searchableFields.some(field => field?.toString().toLowerCase().includes(lower))
-        || tags.some((t: string) => t?.toLowerCase().includes(lower))
-        || services.some((s: string) => s?.toLowerCase().includes(lower))
-        || caeCodes.some((c: string) => c?.toLowerCase().includes(lower));
-    });
-  }, [leads, searchValue]);
-
-  const sortedLeads = useMemo(() => {
-    if (!filteredLeads.length) return filteredLeads;
-    const sorted = [...filteredLeads];
-    switch (sortValue) {
-      case "created_desc": sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
-      case "created_asc": sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); break;
-      case "score_desc": sorted.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0)); break;
-      case "score_asc": sorted.sort((a, b) => (a.lead_score || 0) - (b.lead_score || 0)); break;
-      case "value_desc": sorted.sort((a, b) => (b.estimated_value || 0) - (a.estimated_value || 0)); break;
-      case "last_contact_desc": sorted.sort((a, b) => { const dA = a.last_contact_at ? new Date(a.last_contact_at).getTime() : 0; const dB = b.last_contact_at ? new Date(b.last_contact_at).getTime() : 0; return dB - dA; }); break;
-    }
-    return sorted;
-  }, [filteredLeads, sortValue]);
-
-  const totalLeads = sortedLeads.length;
+  // Server-side pagination — leads already come paginated from useSmartLeads
+  const displayLeads = leads || [];
+  const totalLeads = serverTotalCount;
   const totalPages = Math.ceil(totalLeads / pageSize);
-  const paginatedLeads = useMemo(() => { const s = (currentPage - 1) * pageSize; return sortedLeads.slice(s, s + pageSize); }, [sortedLeads, currentPage, pageSize]);
-  const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); setCurrentPage(1); };
+  const paginatedLeads = displayLeads;
+  const handlePageSizeChange = (newSize: string) => { setPageSize(Number(newSize)); };
 
   const handleFilterSelect = (filterId: string) => {
     const newFilterId = filterId === activeFilterId ? undefined : filterId;
     setActiveFilterId(newFilterId);
-    if (!newFilterId) { setFilters({}); return; }
-    if (newFilterId === "temp_hot") setFilters({ temperature: "hot" });
-    else if (newFilterId === "temp_warm") setFilters({ temperature: "warm" });
-    else if (newFilterId === "temp_cold") setFilters({ temperature: "cold" });
-    else if (newFilterId === "status_new") setFilters({ status: "new" });
-    else if (newFilterId === "status_contacted") setFilters({ status: "in_progress" });
-    else if (newFilterId === "status_qualified") setFilters({ status: "completed" });
-    else if (newFilterId === "status_proposal") setFilters({ status: "in_progress" });
-    else if (newFilterId === "status_lost") setFilters({ status: "completed" });
-    else if (newFilterId === "activity_waiting") setFilters({ smartFilter: "no_response" });
-    else if (newFilterId === "activity_no_reply") setFilters({ smartFilter: "no_response" });
-    else if (newFilterId === "activity_engaged") setFilters({ smartFilter: "high_intent" });
-    else if (newFilterId === "smart_hot") setFilters({ smartFilter: "hot" });
-    else if (newFilterId === "smart_ready") setFilters({ smartFilter: "high_intent" });
-    else if (newFilterId === "smart_nurture") setFilters({ temperature: "warm" });
-    else if (newFilterId === "smart_risk") setFilters({ smartFilter: "no_response" });
+    const base = { page: 0, pageSize };
+    if (!newFilterId) { setFilters(base); return; }
+    if (newFilterId === "temp_hot") setFilters({ ...base, temperature: "hot" });
+    else if (newFilterId === "temp_warm") setFilters({ ...base, temperature: "warm" });
+    else if (newFilterId === "temp_cold") setFilters({ ...base, temperature: "cold" });
+    else if (newFilterId === "status_new") setFilters({ ...base, status: "new" });
+    else if (newFilterId === "status_contacted") setFilters({ ...base, status: "in_progress" });
+    else if (newFilterId === "status_qualified") setFilters({ ...base, status: "completed" });
+    else if (newFilterId === "status_proposal") setFilters({ ...base, status: "in_progress" });
+    else if (newFilterId === "status_lost") setFilters({ ...base, status: "completed" });
+    else if (newFilterId === "activity_waiting") setFilters({ ...base, smartFilter: "no_response" });
+    else if (newFilterId === "activity_no_reply") setFilters({ ...base, smartFilter: "no_response" });
+    else if (newFilterId === "activity_engaged") setFilters({ ...base, smartFilter: "high_intent" });
+    else if (newFilterId === "smart_hot") setFilters({ ...base, smartFilter: "hot" });
+    else if (newFilterId === "smart_ready") setFilters({ ...base, smartFilter: "high_intent" });
+    else if (newFilterId === "smart_nurture") setFilters({ ...base, temperature: "warm" });
+    else if (newFilterId === "smart_risk") setFilters({ ...base, smartFilter: "no_response" });
   };
 
   const allSelected = paginatedLeads.length > 0 && paginatedLeads.every(l => selectedIds.has(l.id));
@@ -368,10 +343,10 @@ export function SmartLeadsTable() {
           ]}
         />
 
-        <Toolbar searchValue={searchValue} searchPlaceholder={t("searchLeads")} onSearchChange={setSearchValue}
+        <Toolbar searchValue={searchValue} searchPlaceholder={t("searchLeads")} onSearchChange={(v) => { setSearchValue(v); setFilters(prev => ({ ...prev, search: v || undefined, page: 0 })); }}
           showFilters={true} filtersActive={filtersActive}
           onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={() => { setActiveFilterId(undefined); setFilters({}); }}
+          onClearFilters={() => { setActiveFilterId(undefined); setSearchValue(""); setFilters({ page: 0, pageSize }); }}
           sortOptions={sortOptions} sortValue={sortValue} onSortChange={setSortValue}
           leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
@@ -387,7 +362,7 @@ export function SmartLeadsTable() {
         {activeTab === "duplicates" ? (
           <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
         ) : activeTab === "kanban" ? (
-          <LeadsKanbanDnD leads={filteredLeads as SmartLead[]} isLoading={isLoading} />
+          <LeadsKanbanDnD leads={displayLeads as SmartLead[]} isLoading={isLoading} />
         ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
@@ -516,7 +491,7 @@ export function SmartLeadsTable() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow><TableCell colSpan={totalColumns} className="p-0"><TableSkeleton rows={5} columns={totalColumns} showHeader={false} /></TableCell></TableRow>
-                  ) : !filteredLeads.length ? (
+                  ) : !displayLeads.length ? (
                     <TableRow><TableCell colSpan={totalColumns} className="text-center py-8">
                       {searchValue ? <SearchEmptyState query={searchValue} /> : (
                         <EmptyState type="leads" title={t("noLeadsYet")} description={t("noLeadsDesc")} action={{ label: t("addLead"), onClick: () => setIsCreateDialogOpen(true) }} />
