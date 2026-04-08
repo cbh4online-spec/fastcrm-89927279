@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAuth, securityLog, getClientIP } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,10 @@ serve(async (req) => {
   }
 
   try {
+    // ── Auth guard ──
+    const auth = await requireAuth(req);
+    securityLog({ event: "auth_success", functionName: "csv-url-fetch", userId: auth.userId, ip: getClientIP(req) });
+
     const { url, delimiter, encoding, max_rows } = await req.json()
     if (!url) throw new Error('url is required')
 

@@ -17,6 +17,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── Webhook API key verification ──
+    const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+    if (EVOLUTION_API_KEY) {
+      const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key");
+      if (apiKeyHeader !== EVOLUTION_API_KEY) {
+        console.warn("[WA_WEBHOOK] Invalid or missing API key");
+        return jsonRes({ error: "Unauthorized" }, 401);
+      }
+    }
+
     const body = await req.json();
     const event = body?.event;
     const instanceName = body?.instance || body?.data?.instance;
