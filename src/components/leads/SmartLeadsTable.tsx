@@ -342,10 +342,10 @@ export function SmartLeadsTable() {
           ]}
         />
 
-        <Toolbar searchValue={searchValue} searchPlaceholder={t("searchLeads")} onSearchChange={setSearchValue}
+        <Toolbar searchValue={searchValue} searchPlaceholder={t("searchLeads")} onSearchChange={(v) => { setSearchValue(v); setFilters(prev => ({ ...prev, search: v || undefined, page: 0 })); }}
           showFilters={true} filtersActive={filtersActive}
           onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
-          onClearFilters={() => { setActiveFilterId(undefined); setFilters({}); }}
+          onClearFilters={() => { setActiveFilterId(undefined); setSearchValue(""); setFilters({ page: 0, pageSize }); }}
           sortOptions={sortOptions} sortValue={sortValue} onSortChange={setSortValue}
           leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
