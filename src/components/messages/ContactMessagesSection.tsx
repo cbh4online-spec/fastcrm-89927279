@@ -718,19 +718,51 @@ export function ContactMessagesSection({
               <TabsContent value="ai" className="m-0 space-y-4">
                 <div className="flex items-start gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-primary">
-                    A IA analisa o contexto e gera sugestões personalizadas para {entityName}. Forneça contexto adicional para melhores resultados.
-                  </p>
+                  <div className="text-xs text-primary">
+                    <p className="font-medium mb-1">Mensagem contextualizada com IA</p>
+                    <p>A IA utiliza toda a informação deste {entityType === 'lead' ? 'lead' : entityType === 'contact' ? 'contacto' : 'empresa'} para gerar mensagens relevantes e personalizadas.</p>
+                  </div>
                 </div>
+
+                {/* Context summary chips */}
+                {entityContext && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {entityContext.source && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Fonte: {entityContext.source}
+                      </Badge>
+                    )}
+                    {entityContext.status && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Estado: {entityContext.status}
+                      </Badge>
+                    )}
+                    {entityContext.tags?.map(tag => (
+                      <Badge key={tag} variant="outline" className="text-[10px] py-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {entityContext.company && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        {entityContext.company}
+                      </Badge>
+                    )}
+                    {entityContext.score && (
+                      <Badge variant="secondary" className="text-[10px] py-0">
+                        Score: {entityContext.score}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Contexto adicional (opcional)
+                    Instruções adicionais (opcional)
                   </label>
                   <Textarea
                     value={aiContext}
                     onChange={(e) => setAiContext(e.target.value)}
-                    placeholder="Ex: Seguimento após reunião, proposta de serviços, agradecimento por compra..."
+                    placeholder="Ex: Quero apresentar o serviço X, fazer follow-up da proposta, agendar reunião..."
                     className="min-h-[80px] resize-none"
                   />
                 </div>
@@ -745,7 +777,7 @@ export function ContactMessagesSection({
                   ) : (
                     <Wand2 className="h-4 w-4" />
                   )}
-                  Gerar Sugestões AI
+                  Gerar Mensagem Contextualizada
                 </Button>
 
                 {aiSuggestions && aiSuggestions.length > 0 && (
