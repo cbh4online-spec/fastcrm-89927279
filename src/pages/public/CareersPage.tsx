@@ -197,83 +197,117 @@ export default function CareersPage() {
         </motion.div>
       </div>
 
-      {/* Filters + Jobs */}
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Pesquisar vagas ou empresas..." value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 h-11 rounded-xl border-border/60 focus:border-primary/50" />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[160px] h-11 rounded-xl"><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              {Object.entries(EMPLOYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={remoteFilter} onValueChange={setRemoteFilter}>
-            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Modalidade" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {Object.entries(REMOTE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as fontes</SelectItem>
-              <SelectItem value="internal">Nossas vagas</SelectItem>
-              <SelectItem value="external">Mercado</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto">
+            <TabsTrigger value="jobs" className="gap-2"><Briefcase className="h-4 w-4" />Vagas ({filtered.length})</TabsTrigger>
+            <TabsTrigger value="workers" className="gap-2"><Users className="h-4 w-4" />Profissionais ({workerListings.length})</TabsTrigger>
+          </TabsList>
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "vaga" : "vagas"} encontrada{filtered.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+          <TabsContent value="jobs" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Pesquisar vagas ou empresas..." value={search} onChange={e => setSearch(e.target.value)}
+                  className="pl-9 h-11 rounded-xl border-border/60 focus:border-primary/50" />
+              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[160px] h-11 rounded-xl"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {Object.entries(EMPLOYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={remoteFilter} onValueChange={setRemoteFilter}>
+                <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Modalidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {Object.entries(REMOTE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-[150px] h-11 rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as fontes</SelectItem>
+                  <SelectItem value="internal">Nossas vagas</SelectItem>
+                  <SelectItem value="external">Mercado</SelectItem>
+                </SelectContent>
+              </Select>
+            </motion.div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-            <Card className="p-16 text-center border-dashed">
-              <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
-              <h3 className="text-xl font-semibold text-foreground">Sem vagas disponíveis</h3>
-              <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-                De momento não temos vagas abertas. Volte mais tarde ou ajuste os filtros de pesquisa.
-              </p>
-            </Card>
-          </motion.div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            <div className="space-y-3">
-              {filtered.map((job, index) => (
-                <motion.div key={job.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
-                  {job.source === "internal" && job.slug ? (
-                    <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
-                      <JobCard job={job} />
-                    </Link>
-                  ) : job.source === "external" && job.source_url ? (
-                    <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
-                      <JobCard job={job} />
-                    </a>
-                  ) : (
-                    <div className="group">
-                      <JobCard job={job} />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </AnimatePresence>
-        )}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
+              </div>
+            ) : filtered.length === 0 ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <Card className="p-16 text-center border-dashed">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
+                  <h3 className="text-xl font-semibold text-foreground">Sem vagas disponíveis</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    De momento não temos vagas abertas. Volte mais tarde ou ajuste os filtros de pesquisa.
+                  </p>
+                </Card>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <div className="space-y-3">
+                  {filtered.map((job, index) => (
+                    <motion.div key={job.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
+                      {job.source === "internal" && job.slug ? (
+                        <Link to={`/careers/${workspaceSlug}/${job.slug}`} className="block group">
+                          <JobCard job={job} />
+                        </Link>
+                      ) : job.source === "external" && job.source_url ? (
+                        <a href={job.source_url} target="_blank" rel="noopener noreferrer" className="block group">
+                          <JobCard job={job} />
+                        </a>
+                      ) : (
+                        <div className="group">
+                          <JobCard job={job} />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+
+          <TabsContent value="workers" className="space-y-6">
+            {workersLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} height={120} borderRadius={12} />)}
+              </div>
+            ) : workerListings.length === 0 ? (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <Card className="p-16 text-center border-dashed">
+                  <Users className="h-16 w-16 mx-auto text-muted-foreground/30 mb-5" />
+                  <h3 className="text-xl font-semibold text-foreground">Sem profissionais disponíveis</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    De momento nenhum profissional publicou a sua disponibilidade.
+                  </p>
+                  <Link to={`/careers/${workspaceSlug}/register-worker`}>
+                    <Button variant="outline" className="mt-4">Publicar a minha disponibilidade</Button>
+                  </Link>
+                </Card>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <div className="space-y-3">
+                  {workerListings.map((listing, index) => (
+                    <motion.div key={listing.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }} transition={{ delay: Math.min(index * 0.03, 0.5), duration: 0.3 }}>
+                      <WorkerCard listing={listing} />
+                    </motion.div>
+                  ))}
+                </div>
+              </AnimatePresence>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <div className="text-center text-xs text-muted-foreground pt-8 border-t">
           Powered by FastCRM
