@@ -271,7 +271,11 @@ export default function Marketing() {
       {/* Dialogs */}
       <CampaignCreationFlow
         open={showCampaignCreation}
-        onOpenChange={setShowCampaignCreation}
+        onOpenChange={(open) => {
+          setShowCampaignCreation(open);
+          if (!open) setWizardInitialHtml(null);
+        }}
+        initialHtml={wizardInitialHtml}
       />
 
       <CampaignFormDialog
@@ -312,6 +316,7 @@ export default function Marketing() {
       <EmailCampaignWizardDialog
         open={showCampaignWizard}
         onOpenChange={setShowCampaignWizard}
+        onOpenEditor={handleWizardOpenEditor}
       />
     </DashboardLayout>
   );
