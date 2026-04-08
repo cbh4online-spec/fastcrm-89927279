@@ -33,6 +33,7 @@ import { EmailCanvas } from './EmailCanvas';
 import { VariablePicker } from './VariablePicker';
 import { ImageUploader } from './ImageUploader';
 import { EmailEditorProvider, useEmailEditorContext } from '@/contexts/EmailEditorContext';
+import { EmailTestSendDialog } from './EmailTestSendDialog';
 import type { EmailDesign, EmailLayout, EmailBlockType, ImageBlockContent } from '@/types/emailBuilder';
 
 interface EmailBuilderProps {
