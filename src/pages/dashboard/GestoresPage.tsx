@@ -634,7 +634,7 @@ export default function GestoresPage() {
                         return (
                           <Link
                             key={entity.id}
-                            to={`/dashboard/${entity.type === "lead" ? "leads" : entity.type === "contact" ? "contacts" : "companies"}/${entity.id}`}
+                            to={`/dashboard/${entity.type === "lead" ? "leads" : entity.type === "contact" ? "contacts" : entity.type === "opportunity" ? "opportunities" : "companies"}/${entity.id}`}
                             className="grid grid-cols-[1fr_80px_90px_100px_80px_90px] gap-2 items-center px-4 py-2.5 hover:bg-accent/50 transition-colors"
                           >
                             {/* Name */}
