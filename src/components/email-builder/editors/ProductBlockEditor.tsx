@@ -1,9 +1,15 @@
+import { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, Search, Package, Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useProducts } from '@/hooks/useProducts';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import type { ProductBlockContent } from '@/types/emailBuilder';
+import type { Product } from '@/types/product';
 
 interface ProductBlockEditorProps {
   content: ProductBlockContent;
@@ -11,9 +17,144 @@ interface ProductBlockEditorProps {
   onOpenImageUploader?: () => void;
 }
 
+function getProductImage(product: Product): string {
+  if (product.images && product.images.length > 0) {
+    const idx = product.primary_image_index ?? 0;
+    return product.images[idx] || product.images[0] || '';
+  }
+  return '';
+}
+
+function formatPrice(value: number, currency = 'EUR'): string {
+  return new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency,
+  }).format(value);
+}
+
 export function ProductBlockEditor({ content, onUpdate, onOpenImageUploader }: ProductBlockEditorProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const { currentWorkspace } = useWorkspace();
+  const { data: products, isLoading } = useProducts({ status: 'active' });
+
+  const filtered = useMemo(() => {
+    if (!products) return [];
+    if (!search.trim()) return products.slice(0, 30);
+    const q = search.toLowerCase();
+    return products
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q)
+      )
+      .slice(0, 30);
+  }, [products, search]);
+
+  const handleSelectProduct = (product: Product) => {
+    const slug = currentWorkspace?.slug;
+    const storeUrl = slug
+      ? `${window.location.origin}/store/${slug}/product/${product.id}`
+      : '';
+
+    onUpdate({
+      imageSrc: getProductImage(product),
+      imageAlt: product.name,
+      name: product.name,
+      description: product.short_description || product.commercial_description || '',
+      price: formatPrice(product.base_price, product.currency),
+      buttonUrl: storeUrl,
+    });
+    setPickerOpen(false);
+    setSearch('');
+  };
+
   return (
     <div className="space-y-4">
+      {/* Product Picker */}
+      <div className="space-y-2">
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Selecionar Produto do Catálogo
+        </Label>
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full justify-start gap-2 text-sm">
+              <Package className="h-4 w-4 text-primary" />
+              <span className="truncate">
+                {content.name || 'Escolher produto...'}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="start">
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Pesquisar produto..."
+                  className="pl-8 h-9 text-sm"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <ScrollArea className="max-h-64">
+              {isLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  A carregar...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  Nenhum produto encontrado
+                </div>
+              ) : (
+                <div className="p-1">
+                  {filtered.map((product) => {
+                    const img = getProductImage(product);
+                    const isSelected = content.name === product.name;
+                    return (
+                      <button
+                        key={product.id}
+                        onClick={() => handleSelectProduct(product)}
+                        className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent text-left transition-colors"
+                      >
+                        {img ? (
+                          <img
+                            src={img}
+                            alt={product.name}
+                            className="h-10 w-10 rounded object-cover border flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded border bg-muted flex items-center justify-center flex-shrink-0">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatPrice(product.base_price, product.currency)}
+                            {product.category && ` · ${product.category}`}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+        <p className="text-[10px] text-muted-foreground">
+          Seleciona um produto para preencher automaticamente os campos abaixo.
+        </p>
+      </div>
+
+      <div className="border-t pt-4" />
+
       {onOpenImageUploader && (
         <Button variant="outline" className="w-full" onClick={onOpenImageUploader}>
           <Upload className="h-4 w-4 mr-2" />
