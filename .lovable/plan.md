@@ -1,54 +1,61 @@
 
 
-## Diagnóstico: Pesquisa de Ofertas de Emprego Não Funciona
+## Diagnóstico: Envio de Email e Comunicação
 
-### Problema Identificado
+### Análise do Sistema Actual
 
-A edge function `hr-talent-search` está a fazer timeout (>60s) porque o Firecrawl search é chamado com `scrapeOptions: { formats: ["markdown"] }`, o que faz scraping completo de cada página de resultado. Com 10-15 resultados, cada um a ser scraped, a operação excede o limite de tempo da edge function.
+O sistema de email utiliza uma arquitectura SMTP directa:
+1. **Conexão**: O utilizador configura uma conta SMTP/IMAP via `email-connect` (Gmail, Outlook, Hostinger, Custom)
+2. **Envio**: O `ComposeEmailDialog` verifica se existe uma `activeEmailConnection` — se não existir, mostra aviso amarelo "Nenhuma conta de email conectada"
+3. **Edge Function `email-send`**: Implementa um cliente SMTP nativo do Deno (STARTTLS + AUTH LOGIN)
 
-**Evidência dos logs:**
-- A função arranca e inicia a pesquisa
-- Nunca chega ao passo de inserção na DB
-- Erros de AI extraction com 503 (upstream timeout)
-- `context canceled` no lado do cliente
+### Problemas Identificados
+
+1. **Sem logs de email-send** — A edge function nunca foi chamada recentemente, o que sugere que o problema está no frontend (sem conexão configurada) ou a função nunca chega a ser invocada
+2. **Fluxo de envio bloqueado sem conexão** — O `handleSend` retorna imediatamente se `!connection`, mostrando um alert. O screenshot mostra a lead sem mensagens, o que é consistente com falta de conexão SMTP
+3. **O botão "Enviar Email" nas Ações Rápidas** abre o `ComposeEmailDialog`, mas se não houver conexão activa, o utilizador fica bloqueado
+4. **Falta de fallback** — Não há opção de envio sem conexão SMTP (e.g. via Lovable Email infra)
+5. **WhatsApp/Instagram/SMS** — WhatsApp usa `wa.me` link externo (funcional), Instagram não tem handler de envio, SMS usa `sms:` link
 
 ### Plano de Correção
 
-#### 1. Remover scrapeOptions da pesquisa Firecrawl (web search e portal import)
+#### 1. Tornar o envio de email mais robusto e acessível
 
-O Firecrawl `/v1/search` já retorna `title`, `description` e `url` sem necessidade de scraping. Remover `scrapeOptions: { formats: ["markdown"] }` para que a pesquisa retorne apenas metadados, reduzindo o tempo de resposta de ~60s+ para ~3-5s.
+**Ficheiro**: `src/components/email/ComposeEmailDialog.tsx`
+- Melhorar o alerta de "sem conexão" com um botão directo para configurar (link para `/dashboard/settings/integrations`)
+- Adicionar validação clara do estado da conexão antes de permitir escrever
+- Mostrar indicador visual claro do estado (conectado/desconectado) no header do dialog
 
-**Ficheiro:** `supabase/functions/hr-talent-search/index.ts`
-- Linha 182: remover `scrapeOptions: { formats: ["markdown"] }` da web search
-- Linha 307: remover `scrapeOptions: { formats: ["markdown"] }` do portal import
-- Ajustar `extractSearchResults` para funcionar sem markdown (usar `description` do search result)
+#### 2. Melhorar UX do Centro de Mensagens
 
-#### 2. Tornar AI extraction condicional e mais rápida
+**Ficheiro**: `src/components/messages/ContactMessagesSection.tsx`
+- Quando canal é Email e não há conexão, mostrar aviso inline com link de configuração (em vez de falhar silenciosamente)
+- Verificar `useActiveEmailConnection` no componente e mostrar estado
+- Tornar o botão "Compor" mais proeminente e o fluxo AI → Compor mais fluido
 
-Quando não há markdown, a extração AI usa apenas o `title` + `description` do resultado de pesquisa. Isto é suficiente para preencher os campos básicos sem chamar a AI gateway (que também está a dar 503).
+#### 3. Melhorar integração AI no fluxo de email
 
-- Se `description` é curta (<50 chars), salvar resultado sem enriquecimento AI
-- Reduzir limite de resultados de 10 para 5 na web search para maior fiabilidade
+**Ficheiros**: `src/components/email/AIEmailAssistPanel.tsx`, `src/components/messages/ContactMessagesSection.tsx`
+- Quando o utilizador gera conteúdo com AI e clica "Compor", preencher automaticamente o subject e body no `ComposeEmailDialog`
+- Adicionar botão "Enviar com AI" que gera o conteúdo E abre o dialog pré-preenchido
+- Melhorar o fluxo AI → Template → Envio para ser mais linear
 
-#### 3. Aplicar o mesmo fix ao auto-import
+#### 4. Re-deploy das edge functions de email
 
-**Ficheiro:** `supabase/functions/hr-portal-auto-import/index.ts`
-- Linha 211: remover `scrapeOptions` do auto-import
-- Já tem limite de 5 resultados, o que é adequado
+**Ficheiros**: `supabase/functions/email-send/index.ts`, `supabase/functions/email-connect/index.ts`
+- Re-deploy para garantir que estão activas
+- Adicionar logging mais detalhado no email-send para diagnóstico
 
-#### 4. Adicionar timeout handling resiliente
+#### 5. Adicionar feedback visual de estado da conexão email
 
-Adicionar `AbortController` com timeout de 25s nas chamadas Firecrawl para evitar que a edge function fique pendurada até ao limite dos 60s.
-
-### Ficheiros a Modificar
-
-1. `supabase/functions/hr-talent-search/index.ts` - Fix principal
-2. `supabase/functions/hr-portal-auto-import/index.ts` - Fix consistente
+**Ficheiro**: `src/components/messages/ContactMessagesSection.tsx`
+- Badge de estado da conexão email junto ao selector de canal
+- Se desconectado, tooltip explicativo e botão de configuração rápida
+- Estado loading enquanto verifica conexão
 
 ### Resultado Esperado
-
-- Pesquisa web retorna resultados em 3-5s em vez de timeout
-- Portal import funciona de forma fiável
-- Resultados têm título, descrição, URL e plataforma (sem markdown completo)
-- AI enrichment aplica-se apenas quando há conteúdo suficiente
+- O utilizador vê claramente se tem email configurado ou não
+- Se não tem, é guiado para configurar em 1-2 cliques
+- O fluxo AI → Compor → Enviar é linear e sem barreiras
+- O diagnóstico de problemas é mais fácil com logging melhorado
 
