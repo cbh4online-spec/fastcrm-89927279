@@ -62,8 +62,11 @@ Deno.serve(async (req) => {
     const signatureValid = await verifySignature(bodyText, signature);
 
     if (!signatureValid) {
-      console.warn("[meta-webhook-hub] Invalid signature");
-      // Still persist but mark as invalid
+      console.warn("[meta-webhook-hub] Invalid signature — rejecting request");
+      return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const body = JSON.parse(bodyText);

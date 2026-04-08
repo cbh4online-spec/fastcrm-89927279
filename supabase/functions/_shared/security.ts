@@ -35,9 +35,26 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   });
 
   const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
 
-  if (error || !data?.claims) {
+  // Try getClaims first (faster, no network call), fall back to getUser
+  try {
+    if (typeof supabase.auth.getClaims === "function") {
+      const { data, error } = await supabase.auth.getClaims(token);
+      if (!error && data?.claims) {
+        return {
+          userId: data.claims.sub as string,
+          email: data.claims.email as string | undefined,
+          role: data.claims.role as string | undefined,
+        };
+      }
+    }
+  } catch {
+    // getClaims not available, fall through to getUser
+  }
+
+  // Fallback: getUser (network call to auth server)
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) {
     throw new Response(JSON.stringify({ error: "Invalid or expired token" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -45,9 +62,9 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
   }
 
   return {
-    userId: data.claims.sub as string,
-    email: data.claims.email as string | undefined,
-    role: data.claims.role as string | undefined,
+    userId: userData.user.id,
+    email: userData.user.email,
+    role: userData.user.role,
   };
 }
 
@@ -235,4 +252,64 @@ export function getClientIP(req: Request): string {
     req.headers.get("x-real-ip") ||
     "unknown"
   );
+}
+
+// ─── Service Role Guard ─────────────────────────────────────────────────────
+
+/**
+ * Validates that the request is authorized with the service_role key.
+ * Use for internal/cron functions that should only be called by pg_cron or service_role.
+ */
+export function requireServiceRole(req: Request): void {
+  const authHeader = req.headers.get("Authorization");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!authHeader || !serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`) {
+    throw new Response(JSON.stringify({ error: "Unauthorized — service_role required" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+// ─── Distributed Rate Limiting ──────────────────────────────────────────────
+
+/**
+ * Database-backed rate limiter for production use across multiple instances.
+ * Falls back to in-memory rate limiting if DB call fails.
+ * Requires table `edge_function_rate_limits` with columns:
+ *   rate_key TEXT PRIMARY KEY, request_count INT, window_start TIMESTAMPTZ
+ */
+export async function isRateLimitedDistributed(
+  key: string,
+  maxRequests: number = 60,
+  windowMs: number = 60_000,
+): Promise<boolean> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.1");
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - windowMs);
+
+    // Upsert: increment if within window, reset if expired
+    const { data, error } = await supabase.rpc("check_rate_limit", {
+      p_key: key,
+      p_max_requests: maxRequests,
+      p_window_ms: windowMs,
+    });
+
+    if (error) {
+      console.warn("[security] Distributed rate limit DB error, falling back to in-memory:", error.message);
+      return isRateLimited(key, maxRequests, windowMs);
+    }
+
+    return data === true;
+  } catch (e) {
+    console.warn("[security] Distributed rate limit error, falling back to in-memory:", e);
+    return isRateLimited(key, maxRequests, windowMs);
+  }
 }

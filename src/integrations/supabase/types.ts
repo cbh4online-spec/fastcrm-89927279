@@ -21397,6 +21397,24 @@ export type Database = {
           },
         ]
       }
+      edge_function_rate_limits: {
+        Row: {
+          rate_key: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          rate_key: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          rate_key?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       email_connections: {
         Row: {
           auth_type: string
@@ -62010,6 +62028,10 @@ export type Database = {
           message: string
         }[]
       }
+      check_rate_limit: {
+        Args: { p_key: string; p_max_requests: number; p_window_ms: number }
+        Returns: boolean
+      }
       check_user_availability: {
         Args: {
           p_end_time: string
@@ -62040,6 +62062,7 @@ export type Database = {
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
+      cleanup_rate_limits: { Args: { p_max_age_ms?: number }; Returns: number }
       complete_objective: {
         Args: {
           p_collected_value: string

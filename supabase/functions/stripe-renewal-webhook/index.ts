@@ -27,15 +27,22 @@ serve(async (req) => {
     const body = await req.text();
     let event: Stripe.Event;
 
-    if (webhookSecret) {
-      const sig = req.headers.get("stripe-signature");
-      if (!sig) {
-        return new Response(JSON.stringify({ error: "Missing signature" }), { status: 400 });
-      }
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret) as Stripe.Event;
-    } else {
-      event = JSON.parse(body) as Stripe.Event;
+    if (!webhookSecret) {
+      console.error("[RENEWAL-WEBHOOK] STRIPE_RENEWAL_WEBHOOK_SECRET not configured — rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const sig = req.headers.get("stripe-signature");
+    if (!sig) {
+      return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret) as Stripe.Event;
 
     console.log(`[RENEWAL-WEBHOOK] Event: ${event.type}, ID: ${event.id}`);
 

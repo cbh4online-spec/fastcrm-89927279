@@ -77,6 +77,17 @@ async function updateJob(supabase: any, jobId: string, updates: Record<string, a
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // ── Auth guard ──
+  let auth;
+  try {
+    const { requireAuth, securityLog, getClientIP } = await import("../_shared/security.ts");
+    auth = await requireAuth(req);
+    securityLog({ event: "auth_success", functionName: "ebook-generate", userId: auth.userId, ip: getClientIP(req) });
+  } catch (e) {
+    if (e instanceof Response) return e;
+    throw e;
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
