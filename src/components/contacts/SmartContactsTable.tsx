@@ -366,6 +366,7 @@ export function SmartContactsTable() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
+  const [smartListConditions, setSmartListConditions] = useState<FilterCondition[]>([]);
 
   // Column visibility and order state with persistence
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("contacts-table-columns", CONTACT_COLUMNS);
