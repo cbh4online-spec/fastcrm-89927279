@@ -680,7 +680,7 @@ async function extractSearchResults(
   const extractedResults: any[] = [];
 
   for (const result of results) {
-    const markdown = result.markdown || result.description || "";
+    const content = result.description || "";
     const sourceUrl = result.url || "";
     const title = result.title || "";
 
@@ -689,7 +689,7 @@ async function extractSearchResults(
     let extractedLocation = "";
     let description = result.description || "";
 
-    if (lovableKey && markdown && markdown.length > 50) {
+    if (lovableKey && content && content.length > 50) {
       try {
         const extractionPrompt = type === "candidate"
           ? `Extract from this web page about a professional/candidate:
@@ -697,13 +697,13 @@ async function extractSearchResults(
 
 Page title: ${title}
 Content:
-${markdown.slice(0, 3000)}`
+${content.slice(0, 3000)}`
           : `Extract from this job posting:
 - job_title, company, location, salary_range, skills_required (array), employment_type, description (max 200 chars)
 
 Page title: ${title}
 Content:
-${markdown.slice(0, 3000)}`;
+${content.slice(0, 3000)}`;
 
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -780,8 +780,7 @@ ${markdown.slice(0, 3000)}`;
       description: description?.slice(0, 500),
       location: extractedLocation,
       skills,
-      raw_content: markdown?.slice(0, 5000),
-      extracted_data: extractedData,
+      raw_content: content?.slice(0, 5000),
       status: "new",
     });
   }
