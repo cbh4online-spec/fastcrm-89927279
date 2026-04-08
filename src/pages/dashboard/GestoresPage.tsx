@@ -123,6 +123,8 @@ export default function GestoresPage() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [roundRobinDialogOpen, setRoundRobinDialogOpen] = useState(false);
   const [autoAssignDialogOpen, setAutoAssignDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileEditUserId, setProfileEditUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("managers");
   const [entityFilter, setEntityFilter] = useState<string>("all");
   const [detailEntitySearch, setDetailEntitySearch] = useState("");
@@ -131,6 +133,7 @@ export default function GestoresPage() {
   const {
     members, membersLoading, managerStats, statsLoading,
     unassigned, assignmentLogs, rotationGroups, health,
+    managerProfiles, profileCategories,
     workspaceClient, currentWorkspace,
   } = useManagerPortfolio();
 
