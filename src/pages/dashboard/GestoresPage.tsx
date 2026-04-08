@@ -50,25 +50,28 @@ interface ManagerStats {
   leadsHot: number;
   leadsWarm: number;
   leadsCold: number;
+  // Pipeline = SUM(opportunities.value) WHERE owner_id = manager AND status != 'lost'
   totalPipelineValue: number;
   avgScore: number;
   lastActivityAt: string | null;
-  // analytics
+  // Conversão = COUNT(opportunities WHERE status='won' AND owner_id=manager) / COUNT(leads WHERE assigned_to=manager) * 100
   convertedLeads: number;
   totalActivities: number;
+  // Opportunities
+  totalOpportunities: number;
+  wonOpportunities: number;
 }
 
 interface EntityRow {
   id: string;
   name: string;
   email: string | null;
-  type: "lead" | "contact" | "company";
+  type: "lead" | "contact" | "company" | "opportunity";
   score: number;
   temperature: string | null;
   estimatedValue: number | null;
   lastContactAt: string | null;
   status: string | null;
-  lifecycleStage: string | null;
 }
 
 interface InteractionEvent {
@@ -87,6 +90,7 @@ interface UnassignedCounts {
   leads: number;
   contacts: number;
   companies: number;
+  opportunities: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
