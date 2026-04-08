@@ -149,13 +149,21 @@ export function LandingHeroSection() {
       >
         <div className="relative rounded-2xl overflow-hidden border border-[hsl(217,33%,17%)] shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
-          <img
-            src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.png`}
-            alt="FastCRM Dashboard"
-            className="w-full aspect-video object-cover"
-            loading="eager"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
+          <picture>
+            <source
+              srcSet={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.webp`}
+              type="image/webp"
+            />
+            <img
+              src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.png`}
+              alt="FastCRM Dashboard"
+              width={1024}
+              height={1024}
+              className="w-full aspect-video object-cover"
+              loading="eager"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </picture>
         </div>
       </motion.div>
     </section>

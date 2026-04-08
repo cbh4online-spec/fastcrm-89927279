@@ -94,13 +94,21 @@ export function LandingSolutionSection() {
             >
               {/* Card Image */}
               <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/${pillarImages[i]}.png`}
-                  alt={pillar.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                />
+                <picture>
+                  <source
+                    srcSet={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/${pillarImages[i]}.webp`}
+                    type="image/webp"
+                  />
+                  <img
+                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/${pillarImages[i]}.png`}
+                    alt={pillar.name}
+                    width={1024}
+                    height={1024}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                  />
+                </picture>
                 <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,6%)] via-[hsl(222,47%,6%)]/50 to-transparent" />
               </div>
 
