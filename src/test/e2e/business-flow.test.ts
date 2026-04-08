@@ -184,6 +184,7 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(opportunityData);
       mockFrom.mockReturnValue(chain);
 
+      mockFrom("opportunities");
       const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("opportunities");
@@ -228,6 +229,7 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(invoiceData);
       mockFrom.mockReturnValue(chain);
 
+      mockFrom("invoices");
       const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("invoices");
