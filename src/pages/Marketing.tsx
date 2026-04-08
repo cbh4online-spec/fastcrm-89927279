@@ -56,6 +56,7 @@ export default function Marketing() {
   const [showEmailBuilder, setShowEmailBuilder] = useState(false);
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   const handleSelectLibraryTemplate = (html: string, name: string) => {
     toast.success(`Template "${name || 'selecionado'}" carregado`);
