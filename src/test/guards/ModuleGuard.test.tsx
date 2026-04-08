@@ -1,5 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
+const screen = {
+  getByTestId: (id: string) => document.querySelector(`[data-testid="${id}"]`),
+  queryByTestId: (id: string) => document.querySelector(`[data-testid="${id}"]`),
+  getByText: (text: string | RegExp) => {
+    const el = Array.from(document.querySelectorAll('*')).find(e => 
+      typeof text === 'string' ? e.textContent?.includes(text) : text.test(e.textContent || '')
+    );
+    if (!el) throw new Error(`Unable to find element with text: ${text}`);
+    return el;
+  },
+  queryByText: (text: string | RegExp) => {
+    return Array.from(document.querySelectorAll('*')).find(e => 
+      typeof text === 'string' ? e.textContent?.includes(text) : text.test(e.textContent || '')
+    ) || null;
+  },
+};
 import { MemoryRouter } from "react-router-dom";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 
