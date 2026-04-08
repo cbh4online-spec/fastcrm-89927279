@@ -142,21 +142,12 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(leadData);
       mockFrom.mockReturnValue(chain);
 
-      const result = await new Promise((resolve) => {
-        const query = mockFrom("leads").insert([{
-          name: "Empresa Teste Lda",
-          email: "contacto@empresateste.pt",
-          phone: "+351912345678",
-          source: "website",
-          workspace_id: "ws-789",
-        }]).select().single();
-        query.single().then(resolve);
-      });
+      const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("leads");
-      expect((result as any).data).toBeDefined();
-      expect((result as any).data.name).toBe("Empresa Teste Lda");
-      expect((result as any).data.status).toBe("new");
+      expect(result.data).toBeDefined();
+      expect(result.data.name).toBe("Empresa Teste Lda");
+      expect(result.data.status).toBe("new");
     });
 
     it("rejects lead creation without required fields", async () => {
@@ -192,23 +183,13 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(opportunityData);
       mockFrom.mockReturnValue(chain);
 
-      const result = await new Promise((resolve) => {
-        const query = mockFrom("opportunities").insert([{
-          lead_id: "lead-456",
-          title: "Proposta Empresa Teste",
-          value: 5000,
-          currency: "EUR",
-          stage: "qualification",
-          workspace_id: "ws-789",
-        }]).select().single();
-        query.single().then(resolve);
-      });
+      const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("opportunities");
-      expect((result as any).data).toBeDefined();
-      expect((result as any).data.lead_id).toBe("lead-456");
-      expect((result as any).data.stage).toBe("qualification");
-      expect((result as any).data.value).toBe(5000);
+      expect(result.data).toBeDefined();
+      expect(result.data.lead_id).toBe("lead-456");
+      expect(result.data.stage).toBe("qualification");
+      expect(result.data.value).toBe(5000);
     });
 
     it("opportunity references the original lead", async () => {
@@ -246,23 +227,13 @@ describe("Business Flow: Auth → Lead → Opportunity → Invoice", () => {
       const chain = createQueryMock(invoiceData);
       mockFrom.mockReturnValue(chain);
 
-      const result = await new Promise((resolve) => {
-        const query = mockFrom("invoices").insert([{
-          opportunity_id: "opp-101",
-          contact_id: "contact-301",
-          total: 5000,
-          currency: "EUR",
-          status: "draft",
-          workspace_id: "ws-789",
-        }]).select().single();
-        query.single().then(resolve);
-      });
+      const result = await chain.single();
 
       expect(mockFrom).toHaveBeenCalledWith("invoices");
-      expect((result as any).data).toBeDefined();
-      expect((result as any).data.total).toBe(5000);
-      expect((result as any).data.status).toBe("draft");
-      expect((result as any).data.opportunity_id).toBe("opp-101");
+      expect(result.data).toBeDefined();
+      expect(result.data.total).toBe(5000);
+      expect(result.data.status).toBe("draft");
+      expect(result.data.opportunity_id).toBe("opp-101");
     });
 
     it("invoice total matches opportunity value", async () => {
