@@ -168,6 +168,8 @@ Deno.serve(async (req) => {
 
     console.log("Searching:", searchQuery);
 
+    const fcAbort = new AbortController();
+    const fcTimeout = setTimeout(() => fcAbort.abort(), 25000);
     const fcResponse = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
@@ -176,12 +178,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 10,
+        limit: 5,
         lang: "pt",
         country: "pt",
-        scrapeOptions: { formats: ["markdown"] },
       }),
+      signal: fcAbort.signal,
     });
+    clearTimeout(fcTimeout);
 
     const fcData = await fcResponse.json();
 
@@ -293,6 +296,8 @@ async function handlePortalImport({ portal_slug, keywords, workspace_id, supabas
     const searchQuery = portal.searchQuery(kw);
     console.log(`Searching portal: ${searchQuery}`);
 
+    const portalAbort = new AbortController();
+    const portalTimeout = setTimeout(() => portalAbort.abort(), 25000);
     const fcResponse = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
@@ -301,12 +306,13 @@ async function handlePortalImport({ portal_slug, keywords, workspace_id, supabas
       },
       body: JSON.stringify({
         query: searchQuery,
-        limit: 15,
+        limit: 5,
         lang: "pt",
         country: "pt",
-        scrapeOptions: { formats: ["markdown"] },
       }),
+      signal: portalAbort.signal,
     });
+    clearTimeout(portalTimeout);
 
     if (fcResponse.status === 402) {
       return new Response(
@@ -674,7 +680,7 @@ async function extractSearchResults(
   const extractedResults: any[] = [];
 
   for (const result of results) {
-    const markdown = result.markdown || result.description || "";
+    const content = result.description || "";
     const sourceUrl = result.url || "";
     const title = result.title || "";
 
@@ -683,7 +689,7 @@ async function extractSearchResults(
     let extractedLocation = "";
     let description = result.description || "";
 
-    if (lovableKey && markdown && markdown.length > 50) {
+    if (lovableKey && content && content.length > 50) {
       try {
         const extractionPrompt = type === "candidate"
           ? `Extract from this web page about a professional/candidate:
@@ -691,13 +697,13 @@ async function extractSearchResults(
 
 Page title: ${title}
 Content:
-${markdown.slice(0, 3000)}`
+${content.slice(0, 3000)}`
           : `Extract from this job posting:
 - job_title, company, location, salary_range, skills_required (array), employment_type, description (max 200 chars)
 
 Page title: ${title}
 Content:
-${markdown.slice(0, 3000)}`;
+${content.slice(0, 3000)}`;
 
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -774,7 +780,7 @@ ${markdown.slice(0, 3000)}`;
       description: description?.slice(0, 500),
       location: extractedLocation,
       skills,
-      raw_content: markdown?.slice(0, 5000),
+      raw_content: content?.slice(0, 5000),
       extracted_data: extractedData,
       status: "new",
     });
