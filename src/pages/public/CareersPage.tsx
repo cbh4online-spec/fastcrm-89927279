@@ -208,6 +208,10 @@ export default function CareersPage() {
             </div>
           </AnimatePresence>
         )}
+
+        <div className="text-center text-xs text-muted-foreground pt-8 border-t">
+          Powered by FastCRM
+        </div>
       </div>
     </div>
   );
