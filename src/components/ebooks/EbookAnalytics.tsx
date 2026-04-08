@@ -34,7 +34,7 @@ function formatDuration(seconds: number): string {
   return `${h}h ${m % 60}m`;
 }
 
-const FUNNEL_COLORS = ["hsl(var(--primary))", "hsl(210 80% 55%)", "hsl(170 60% 50%)", "hsl(45 90% 55%)", "hsl(350 70% 55%)"];
+const FUNNEL_COLORS = ["hsl(var(--primary))", "hsl(210 80% 55%)", "hsl(170 60% 50%)", "hsl(140 60% 45%)", "hsl(45 90% 55%)", "hsl(350 70% 55%)"];
 
 export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsProps) {
   const navigate = useNavigate();
