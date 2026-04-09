@@ -49,8 +49,8 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
     <Card className={cn("transition-all hover:shadow-md", isHighConfidence && "border-destructive/30")}>
       <CardContent className="p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={cn("text-xs border", config.color)}>
               <Icon className="h-3 w-3 mr-1" />
               {config.label}
@@ -62,7 +62,7 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
               {group.items.length} leads
             </Badge>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
             {group.matched_fields.map(f => (
               <Badge key={f} variant="outline" className="text-[9px] px-1.5 py-0">
                 {f}
@@ -80,7 +80,7 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
             <div
               key={item.id}
               className={cn(
-                "flex items-center justify-between p-2.5 rounded-lg border text-sm",
+                "flex flex-col gap-1.5 p-2.5 rounded-lg border text-sm",
                 item.is_master_candidate ? "border-primary/30 bg-primary/5" : "border-border/50"
               )}
             >
