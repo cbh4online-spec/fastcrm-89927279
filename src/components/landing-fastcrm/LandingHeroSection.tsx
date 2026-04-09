@@ -135,6 +135,7 @@ export function LandingHeroSection() {
           </motion.p>
 
           <motion.form
+            id="hero-form"
             onSubmit={handleSubmit}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
