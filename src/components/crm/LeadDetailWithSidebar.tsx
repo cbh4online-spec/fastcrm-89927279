@@ -515,9 +515,9 @@ export function LeadDetailWithSidebar() {
       />
 
       {/* Main Content - Responsive Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
         {/* Center Content */}
-        <main className="flex-1 overflow-y-auto min-h-0">
+        <main className="flex-1 lg:overflow-y-auto min-h-0">
           <div className="p-3 sm:p-6 max-w-4xl">
             {activeSection === 'overview' && (
               <div className="mb-6">
