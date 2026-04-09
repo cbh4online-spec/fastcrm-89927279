@@ -54,6 +54,7 @@ export function CrmTableView({
   onDeleteContacts,
   onAddTagsToContacts,
 }: CrmTableViewProps) {
+  const isMobile = useIsMobile();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
