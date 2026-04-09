@@ -4,7 +4,7 @@ import { Layers, Brain, Workflow, Puzzle } from "lucide-react";
 import { useRef } from "react";
 
 const pillarIcons = [Layers, Brain, Workflow, Puzzle];
-const pillarAnchors = ["#features", "#intelligence", "#features", "#pricing"];
+const pillarAnchors = ["#hero-form", "#hero-form", "#hero-form", "#hero-form"];
 const pillarImages = ["solution-pipeline", "solution-analytics", "solution-automation", "solution-marketplace"];
 
 const cardVariants = {
