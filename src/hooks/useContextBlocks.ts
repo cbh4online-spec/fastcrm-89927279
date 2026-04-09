@@ -86,7 +86,7 @@ export function useContextBlocks() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data: blocks, error } = await supabase
-        .from("context_blocks" as any)
+        .from("context_blocks")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("block_type");
@@ -97,7 +97,7 @@ export function useContextBlocks() {
         const { error: seedErr } = await supabase.rpc("seed_context_blocks" as any, { p_workspace_id: workspaceId });
         if (seedErr) throw seedErr;
         const { data: seeded, error: e2 } = await supabase
-          .from("context_blocks" as any)
+          .from("context_blocks")
           .select("*")
           .eq("workspace_id", workspaceId)
           .order("block_type");
@@ -116,7 +116,7 @@ async function enrichBlocks(blocks: any[]): Promise<ContextBlock[]> {
   if (!blocks.length) return [];
   const blockIds = blocks.map(b => b.id);
   const { data: fields, error } = await supabase
-    .from("context_fields" as any)
+    .from("context_fields")
     .select("*")
     .in("block_id", blockIds)
     .order("display_order");
@@ -142,7 +142,7 @@ export function useUpsertContextField() {
   return useMutation({
     mutationFn: async ({ fieldId, value, blockId }: { fieldId: string; value: any; blockId?: string }) => {
       const { error } = await supabase
-        .from("context_fields" as any)
+        .from("context_fields")
         .update({ field_value: value, updated_at: new Date().toISOString() } as any)
         .eq("id", fieldId);
       if (error) throw error;
@@ -178,7 +178,7 @@ export function useUpdateBlockStatus() {
   return useMutation({
     mutationFn: async ({ blockId, status }: { blockId: string; status: ContextBlockStatus }) => {
       const { error } = await supabase
-        .from("context_blocks" as any)
+        .from("context_blocks")
         .update({ status, updated_at: new Date().toISOString() } as any)
         .eq("id", blockId);
       if (error) throw error;
@@ -214,7 +214,7 @@ export function useUpdateBlockRichText() {
   return useMutation({
     mutationFn: async ({ blockId, richText }: { blockId: string; richText: string }) => {
       const { error } = await supabase
-        .from("context_blocks" as any)
+        .from("context_blocks")
         .update({ rich_text: richText, updated_at: new Date().toISOString() } as any)
         .eq("id", blockId);
       if (error) throw error;
@@ -250,7 +250,7 @@ export function useUpdateBlockTags() {
   return useMutation({
     mutationFn: async ({ blockId, tags }: { blockId: string; tags: string[] }) => {
       const { error } = await supabase
-        .from("context_blocks" as any)
+        .from("context_blocks")
         .update({ tags, updated_at: new Date().toISOString() } as any)
         .eq("id", blockId);
       if (error) throw error;

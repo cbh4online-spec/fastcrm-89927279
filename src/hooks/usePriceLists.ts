@@ -75,7 +75,7 @@ export function usePriceLists() {
     queryKey: ["price-lists", currentWorkspace?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("price_lists" as any)
+        .from("price_lists")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
         .order("priority", { ascending: false });
@@ -92,7 +92,7 @@ export function useCreatePriceList() {
   return useMutation({
     mutationFn: async (data: Partial<PriceList>) => {
       const { error } = await supabase
-        .from("price_lists" as any)
+        .from("price_lists")
         .insert({ ...data, workspace_id: currentWorkspace!.id });
       if (error) throw error;
     },
@@ -109,7 +109,7 @@ export function useUpdatePriceList() {
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<PriceList> & { id: string }) => {
       const { error } = await supabase
-        .from("price_lists" as any)
+        .from("price_lists")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
@@ -126,7 +126,7 @@ export function useDeletePriceList() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("price_lists" as any).delete().eq("id", id);
+      const { error } = await supabase.from("price_lists").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -145,7 +145,7 @@ export function usePriceListItems(priceListId?: string) {
     queryKey: ["price-list-items", priceListId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("price_list_items" as any)
+        .from("price_list_items")
         .select("*, product:products(name, sku, base_price)")
         .eq("price_list_id", priceListId!)
         .order("min_quantity");
@@ -171,7 +171,7 @@ export function useUpsertPriceListItem() {
     }) => {
       if (data.id) {
         const { error } = await supabase
-          .from("price_list_items" as any)
+          .from("price_list_items")
           .update({
             price: data.price,
             min_quantity: data.min_quantity || 1,
@@ -183,7 +183,7 @@ export function useUpsertPriceListItem() {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("price_list_items" as any)
+          .from("price_list_items")
           .insert({
             workspace_id: currentWorkspace!.id,
             price_list_id: data.price_list_id,
@@ -208,7 +208,7 @@ export function useDeletePriceListItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("price_list_items" as any).delete().eq("id", id);
+      const { error } = await supabase.from("price_list_items").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -225,7 +225,7 @@ export function usePriceRules() {
     queryKey: ["price-rules", currentWorkspace?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("price_rules" as any)
+        .from("price_rules")
         .select("*")
         .eq("workspace_id", currentWorkspace!.id)
         .order("priority", { ascending: false });
@@ -242,7 +242,7 @@ export function useCreatePriceRule() {
   return useMutation({
     mutationFn: async (data: Partial<PriceRule>) => {
       const { error } = await supabase
-        .from("price_rules" as any)
+        .from("price_rules")
         .insert({ ...data, workspace_id: currentWorkspace!.id });
       if (error) throw error;
     },
@@ -259,7 +259,7 @@ export function useUpdatePriceRule() {
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<PriceRule> & { id: string }) => {
       const { error } = await supabase
-        .from("price_rules" as any)
+        .from("price_rules")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
@@ -276,7 +276,7 @@ export function useDeletePriceRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("price_rules" as any).delete().eq("id", id);
+      const { error } = await supabase.from("price_rules").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

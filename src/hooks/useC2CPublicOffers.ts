@@ -21,7 +21,7 @@ export function useCreateC2CPublicOffer() {
   return useMutation({
     mutationFn: async (input: CreatePublicOfferInput) => {
       const { data, error } = await supabase
-        .from("c2c_public_offers" as any)
+        .from("c2c_public_offers")
         .insert({
           workspace_id: input.workspace_id,
           listing_id: input.listing_id,

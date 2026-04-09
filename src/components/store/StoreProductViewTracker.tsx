@@ -32,7 +32,7 @@ export function StoreProductViewTracker({ productId, workspaceId }: StoreProduct
     sessionStorage.setItem(viewKey, "1");
 
     supabase
-      .from("store_page_views" as any)
+      .from("store_page_views")
       .insert({
         workspace_id: workspaceId,
         product_id: productId,

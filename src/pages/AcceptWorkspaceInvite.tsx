@@ -48,7 +48,7 @@ export default function AcceptWorkspaceInvite() {
     try {
       // Use service-level access via RPC or direct query
       const { data, error: fetchError } = await supabase
-        .from("workspace_invites" as any)
+        .from("workspace_invites")
         .select("id, workspace_id, email, role, status, expires_at")
         .eq("invite_token", token)
         .single();
@@ -139,7 +139,7 @@ export default function AcceptWorkspaceInvite() {
 
       // Mark invite as accepted
       await supabase
-        .from("workspace_invites" as any)
+        .from("workspace_invites")
         .update({ status: "accepted", accepted_at: new Date().toISOString() } as any)
         .eq("id", invite.id);
 

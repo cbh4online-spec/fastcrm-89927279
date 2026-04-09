@@ -42,7 +42,7 @@ export function useKBHelp() {
   const { data: categories = [] } = useQuery({
     queryKey: ["kb_help_categories"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("kb_categories" as any).select("*").order("sort_order") as any);
+      const { data, error } = await (supabase.from("kb_categories").select("*").order("sort_order") as any);
       if (error) throw error;
       return data as KBHelpCategory[];
     },
@@ -53,7 +53,7 @@ export function useKBHelp() {
     queryKey: ["kb_help_articles", selectedCategory, searchQuery],
     queryFn: async () => {
       let query = supabase
-        .from("kb_articles" as any)
+        .from("kb_articles")
         .select("id, slug, title, summary, article_type, category_slug, tags, view_count, updated_at, related_slugs, content_md")
         .eq("is_published", true) as any;
 
@@ -81,7 +81,7 @@ export function useKBHelp() {
     queryFn: async () => {
       if (!selectedArticle || !userId) return null;
       const { data } = await (supabase
-        .from("kb_feedback" as any)
+        .from("kb_feedback")
         .select("is_helpful")
         .eq("article_id", selectedArticle.id)
         .eq("user_id", userId)
@@ -97,7 +97,7 @@ export function useKBHelp() {
       setAiAnswer(null);
       if (userId) {
         supabase
-          .from("kb_article_views" as any)
+          .from("kb_article_views")
           .insert({ article_id: article.id, user_id: userId } as any)
           .then(() => {
             supabase.rpc("increment_kb_article_views" as any, { p_article_id: article.id });
@@ -111,7 +111,7 @@ export function useKBHelp() {
     mutationFn: async ({ articleId, isHelpful }: { articleId: string; isHelpful: boolean }) => {
       if (!userId) return;
       await (supabase
-        .from("kb_feedback" as any)
+        .from("kb_feedback")
         .upsert(
           { article_id: articleId, user_id: userId, is_helpful: isHelpful } as any,
           { onConflict: "article_id,user_id" }

@@ -26,7 +26,7 @@ export function useContextVersions(blockId: string | undefined) {
     queryFn: async () => {
       if (!blockId) return [];
       const { data, error } = await supabase
-        .from("context_block_versions" as any)
+        .from("context_block_versions")
         .select("*")
         .eq("block_id", blockId)
         .order("version_number", { ascending: false });
@@ -45,7 +45,7 @@ export function useCreateVersion() {
     mutationFn: async ({ block, changeSummary, changeType, changedFields }: { block: ContextBlock; changeSummary?: string; changeType?: string; changedFields?: string[] }) => {
       // Get current version count
       const { count } = await supabase
-        .from("context_block_versions" as any)
+        .from("context_block_versions")
         .select("*", { count: "exact", head: true })
         .eq("block_id", block.id);
 
@@ -54,7 +54,7 @@ export function useCreateVersion() {
       const { data: userData } = await supabase.auth.getUser();
 
       const { error } = await supabase
-        .from("context_block_versions" as any)
+        .from("context_block_versions")
         .insert({
           block_id: block.id,
           workspace_id: block.workspace_id,

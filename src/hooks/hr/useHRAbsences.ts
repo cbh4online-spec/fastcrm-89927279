@@ -47,7 +47,7 @@ export function useHRAbsences(statusFilter?: string, employeeId?: string) {
     queryKey: ["hr-absences", wsId, statusFilter, employeeId],
     queryFn: async () => {
       let q = supabase
-        .from("hr_absences" as any)
+        .from("hr_absences")
         .select("*, hr_employees(full_name, avatar_url), hr_absence_types(name, color, paid, code)")
         .eq("workspace_id", wsId!)
         .order("start_date", { ascending: false });
@@ -68,7 +68,7 @@ export function useHRAbsenceTypes() {
     queryKey: ["hr-absence-types", wsId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_absence_types" as any)
+        .from("hr_absence_types")
         .select("*")
         .eq("workspace_id", wsId!)
         .eq("is_active", true)

@@ -24,7 +24,7 @@ export function useContextComments(blockId: string | undefined) {
     queryFn: async () => {
       if (!blockId) return [];
       const { data, error } = await supabase
-        .from("context_block_comments" as any)
+        .from("context_block_comments")
         .select("*")
         .eq("block_id", blockId)
         .order("created_at", { ascending: true });
@@ -62,7 +62,7 @@ export function useCreateComment() {
       if (!userData.user) throw new Error("Não autenticado");
 
       const { error } = await supabase
-        .from("context_block_comments" as any)
+        .from("context_block_comments")
         .insert({
           block_id: blockId,
           workspace_id: currentWorkspace?.id,
@@ -84,7 +84,7 @@ export function useDeleteComment() {
   return useMutation({
     mutationFn: async ({ commentId, blockId }: { commentId: string; blockId: string }) => {
       const { error } = await supabase
-        .from("context_block_comments" as any)
+        .from("context_block_comments")
         .delete()
         .eq("id", commentId);
       if (error) throw error;

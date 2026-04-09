@@ -12,7 +12,7 @@ export function useBaselineForecast() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from("forecast_runs" as any)
+        .from("forecast_runs")
         .select("*")
         .eq("workspace_id", wid)
         .eq("run_type", "baseline")
@@ -35,7 +35,7 @@ export function useSimulationScenarios(statusFilter?: string) {
     queryFn: async () => {
       if (!wid) return [];
       let q = supabase
-        .from("simulation_scenarios" as any)
+        .from("simulation_scenarios")
         .select("*")
         .eq("workspace_id", wid)
         .order("created_at", { ascending: false })
@@ -84,7 +84,7 @@ export function useForecastSettings() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from("forecast_settings" as any)
+        .from("forecast_settings")
         .select("*")
         .eq("workspace_id", wid)
         .maybeSingle();
@@ -98,18 +98,18 @@ export function useForecastSettings() {
     mutationFn: async (updates: Record<string, any>) => {
       if (!wid) throw new Error("No workspace");
       const { data: existing } = await supabase
-        .from("forecast_settings" as any)
+        .from("forecast_settings")
         .select("id")
         .eq("workspace_id", wid)
         .maybeSingle();
       if (existing) {
         await supabase
-          .from("forecast_settings" as any)
+          .from("forecast_settings")
           .update({ ...updates, updated_at: new Date().toISOString() } as any)
           .eq("workspace_id", wid);
       } else {
         await supabase
-          .from("forecast_settings" as any)
+          .from("forecast_settings")
           .insert({ workspace_id: wid, ...updates } as any);
       }
     },
@@ -131,7 +131,7 @@ export function useCompareScenarios(ids: string[]) {
     queryFn: async () => {
       if (!wid || ids.length === 0) return [];
       const { data, error } = await supabase
-        .from("simulation_scenarios" as any)
+        .from("simulation_scenarios")
         .select("*")
         .eq("workspace_id", wid)
         .in("id", ids);

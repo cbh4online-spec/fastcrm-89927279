@@ -91,7 +91,7 @@ export function useStoreVisitsAnalytics(days: number) {
     queryKey: ["store-visits-pageviews", days],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_page_views" as any)
+        .from("store_page_views")
         .select("id, product_id, session_id, created_at")
         .gte("created_at", cutoff);
       if (error) throw error;
@@ -108,7 +108,7 @@ export function useStoreVisitsAnalytics(days: number) {
     queryKey: ["store-visits-sessions", days],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_visitor_sessions" as any)
+        .from("store_visitor_sessions")
         .select("*")
         .gte("started_at", cutoff);
       if (error) throw error;
@@ -141,7 +141,7 @@ export function useStoreVisitsAnalytics(days: number) {
     queryKey: ["store-tracking-events", days],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_tracking_events" as any)
+        .from("store_tracking_events")
         .select("id, event_type, event_data, created_at")
         .gte("created_at", cutoff);
       if (error) throw error;

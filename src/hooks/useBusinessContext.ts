@@ -45,7 +45,7 @@ export function useBusinessContext() {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data, error } = await supabase
-        .from("business_context" as any)
+        .from("business_context")
         .select("*")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
@@ -59,20 +59,20 @@ export function useBusinessContext() {
     mutationFn: async (updates: BusinessContextUpdate) => {
       if (!workspaceId) throw new Error("No workspace");
       const { data: existing } = await supabase
-        .from("business_context" as any)
+        .from("business_context")
         .select("id")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
-          .from("business_context" as any)
+          .from("business_context")
           .update({ ...updates, updated_at: new Date().toISOString() } as any)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("business_context" as any)
+          .from("business_context")
           .insert({ workspace_id: workspaceId, ...updates } as any);
         if (error) throw error;
       }

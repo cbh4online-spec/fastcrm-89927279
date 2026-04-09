@@ -42,7 +42,7 @@ export function useInterviews(candidateId?: string) {
     queryKey: ["hr-interviews", wsId, candidateId],
     queryFn: async () => {
       let q = supabase
-        .from("hr_interviews" as any)
+        .from("hr_interviews")
         .select("*, candidate:hr_candidates!candidate_id(id, first_name, last_name, email), job_posting:hr_job_postings!job_posting_id(id, title)")
         .eq("workspace_id", wsId!)
         .order("scheduled_at", { ascending: true });
@@ -62,7 +62,7 @@ export function useCreateInterview() {
   return useMutation({
     mutationFn: async (values: Partial<Interview>) => {
       const { data, error } = await supabase
-        .from("hr_interviews" as any)
+        .from("hr_interviews")
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();
@@ -84,7 +84,7 @@ export function useUpdateInterview() {
   return useMutation({
     mutationFn: async ({ id, ...values }: Partial<Interview> & { id: string }) => {
       const { data, error } = await supabase
-        .from("hr_interviews" as any)
+        .from("hr_interviews")
         .update(values)
         .eq("id", id)
         .select()

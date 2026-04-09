@@ -24,7 +24,7 @@ export function useAccountBriefCompare() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await (supabase
-        .from("account_brief_comparison_runs" as any)
+        .from("account_brief_comparison_runs")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false })

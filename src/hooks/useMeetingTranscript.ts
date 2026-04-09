@@ -58,7 +58,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
     queryFn: async () => {
       if (!meetingId) return null;
       const { data, error } = await supabase
-        .from("meeting_recordings" as any)
+        .from("meeting_recordings")
         .select("*")
         .eq("meeting_id", meetingId)
         .maybeSingle();
@@ -75,7 +75,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
     queryFn: async () => {
       if (!recordingId) return [];
       const { data, error } = await supabase
-        .from("recording_crm_links" as any)
+        .from("recording_crm_links")
         .select("*")
         .eq("recording_id", recordingId);
       if (error) throw error;
@@ -93,7 +93,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
     queryFn: async () => {
       if (!recordingId) return [];
       const { data, error } = await supabase
-        .from("meeting_transcript_segments" as any)
+        .from("meeting_transcript_segments")
         .select("*")
         .eq("recording_id", recordingId)
         .order("start_time_ms", { ascending: true });
@@ -108,7 +108,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
     queryFn: async () => {
       if (!recordingId) return [];
       const { data, error } = await supabase
-        .from("meeting_transcript_highlights" as any)
+        .from("meeting_transcript_highlights")
         .select("*")
         .eq("recording_id", recordingId)
         .order("start_time_ms", { ascending: true });

@@ -30,7 +30,7 @@ export function useTalentResults(filters?: { search_type?: string; status?: stri
     queryKey: ["hr-talent-results", wsId, filters],
     queryFn: async () => {
       let query = supabase
-        .from("hr_talent_results" as any)
+        .from("hr_talent_results")
         .select("*")
         .eq("workspace_id", wsId!)
         .order("created_at", { ascending: false })
@@ -125,7 +125,7 @@ export function useDismissTalentResult() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("hr_talent_results" as any)
+        .from("hr_talent_results")
         .update({ status: "dismissed" })
         .eq("id", id);
       if (error) throw error;
@@ -151,7 +151,7 @@ export function useImportTalentResult() {
         const email = ed.email && ed.email !== "---@---" ? ed.email : `imported-${Date.now()}@talent-search.local`;
 
         const { data: cand, error: candErr } = await supabase
-          .from("hr_candidates" as any)
+          .from("hr_candidates")
           .insert({
             workspace_id: wsId,
             first_name: firstName,
@@ -170,14 +170,14 @@ export function useImportTalentResult() {
         const candData = cand as unknown as { id: string };
 
         await supabase
-          .from("hr_talent_results" as any)
+          .from("hr_talent_results")
           .update({ status: "imported", imported_as: "candidate", imported_id: candData.id })
           .eq("id", result.id);
 
         return { importedId: candData.id, type: "candidate" };
       } else {
         const { data: job, error: jobErr } = await supabase
-          .from("hr_job_postings" as any)
+          .from("hr_job_postings")
           .insert({
             workspace_id: wsId,
             title: ed.job_title || result.title || "Vaga importada",
@@ -193,7 +193,7 @@ export function useImportTalentResult() {
         const jobData = job as unknown as { id: string };
 
         await supabase
-          .from("hr_talent_results" as any)
+          .from("hr_talent_results")
           .update({ status: "imported", imported_as: "job_posting", imported_id: jobData.id })
           .eq("id", result.id);
 

@@ -50,7 +50,7 @@ export function useCandidates(jobPostingId?: string) {
     queryKey: ["hr-candidates", wsId, jobPostingId],
     queryFn: async () => {
       let q = supabase
-        .from("hr_candidates" as any)
+        .from("hr_candidates")
         .select("*, job_posting:hr_job_postings!job_posting_id(id, title)")
         .eq("workspace_id", wsId!)
         .order("applied_at", { ascending: false });
@@ -70,7 +70,7 @@ export function useCandidate(id: string | undefined) {
     queryKey: ["hr-candidate", wsId, id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_candidates" as any)
+        .from("hr_candidates")
         .select("*, job_posting:hr_job_postings!job_posting_id(id, title)")
         .eq("id", id!)
         .single();
@@ -88,7 +88,7 @@ export function useCreateCandidate() {
   return useMutation({
     mutationFn: async (values: Partial<Candidate>) => {
       const { data, error } = await supabase
-        .from("hr_candidates" as any)
+        .from("hr_candidates")
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();
@@ -110,7 +110,7 @@ export function useUpdateCandidate() {
   return useMutation({
     mutationFn: async ({ id, ...values }: Partial<Candidate> & { id: string }) => {
       const { data, error } = await supabase
-        .from("hr_candidates" as any)
+        .from("hr_candidates")
         .update(values)
         .eq("id", id)
         .select()
@@ -133,7 +133,7 @@ export function useDeleteCandidate() {
   const wsId = currentWorkspace?.id;
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("hr_candidates" as any).delete().eq("id", id);
+      const { error } = await supabase.from("hr_candidates").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -151,7 +151,7 @@ export function useUpdateCandidateStage() {
   return useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: CandidateStage }) => {
       const { data, error } = await supabase
-        .from("hr_candidates" as any)
+        .from("hr_candidates")
         .update({ stage })
         .eq("id", id)
         .select()

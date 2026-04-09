@@ -107,7 +107,7 @@ export function useRecordingUpload(workspaceId: string | undefined) {
         // 3. Confirm upload status
         setUploadProgress(95);
         await supabase
-          .from("meeting_recordings" as any)
+          .from("meeting_recordings")
           .update({ status: "uploaded", updated_at: new Date().toISOString() } as any)
           .eq("id", recording_id);
 

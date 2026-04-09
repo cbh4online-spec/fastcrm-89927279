@@ -33,7 +33,7 @@ export function useAccountBriefChangeAlerts(accountId?: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       let query = supabase
-        .from("account_brief_change_alerts" as any)
+        .from("account_brief_change_alerts")
         .select("*, account_brief_accounts(id, name, domain)")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false })
@@ -51,7 +51,7 @@ export function useAccountBriefChangeAlerts(accountId?: string) {
   const markRead = useMutation({
     mutationFn: async (alertId: string) => {
       const { error } = await (supabase
-        .from("account_brief_change_alerts" as any)
+        .from("account_brief_change_alerts")
         .update({ is_read: true })
         .eq("id", alertId) as any);
       if (error) throw error;
@@ -63,7 +63,7 @@ export function useAccountBriefChangeAlerts(accountId?: string) {
     mutationFn: async () => {
       if (!workspaceId) return;
       const { error } = await (supabase
-        .from("account_brief_change_alerts" as any)
+        .from("account_brief_change_alerts")
         .update({ is_read: true })
         .eq("workspace_id", workspaceId)
         .eq("is_read", false) as any);

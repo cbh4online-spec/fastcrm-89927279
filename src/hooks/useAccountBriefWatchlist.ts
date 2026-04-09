@@ -51,7 +51,7 @@ export function useAccountBriefWatchlist() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await (supabase
-        .from("account_brief_watchlists" as any)
+        .from("account_brief_watchlists")
         .select("*, account_brief_accounts(id, name, domain, total_score, score_label, last_analysis_at)")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false }) as any);
@@ -68,7 +68,7 @@ export function useAccountBriefWatchlist() {
     mutationFn: async ({ accountId, reason, frequency }: { accountId: string; reason: string; frequency: string }) => {
       if (!workspaceId || !user) throw new Error("Workspace não encontrado");
       const { error } = await (supabase
-        .from("account_brief_watchlists" as any)
+        .from("account_brief_watchlists")
         .upsert({
           workspace_id: workspaceId,
           account_id: accountId,
@@ -100,7 +100,7 @@ export function useAccountBriefWatchlist() {
   const pauseWatchlist = useMutation({
     mutationFn: async (watchlistId: string) => {
       const { error } = await (supabase
-        .from("account_brief_watchlists" as any)
+        .from("account_brief_watchlists")
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq("id", watchlistId) as any);
       if (error) throw error;
@@ -114,7 +114,7 @@ export function useAccountBriefWatchlist() {
   const resumeWatchlist = useMutation({
     mutationFn: async ({ watchlistId, frequency }: { watchlistId: string; frequency: string }) => {
       const { error } = await (supabase
-        .from("account_brief_watchlists" as any)
+        .from("account_brief_watchlists")
         .update({
           is_active: true,
           next_run_at: computeNextRun(frequency),
@@ -132,7 +132,7 @@ export function useAccountBriefWatchlist() {
   const removeFromWatchlist = useMutation({
     mutationFn: async (watchlistId: string) => {
       const { error } = await (supabase
-        .from("account_brief_watchlists" as any)
+        .from("account_brief_watchlists")
         .delete()
         .eq("id", watchlistId) as any);
       if (error) throw error;

@@ -52,7 +52,7 @@ export function useAttributionSettings() {
     queryKey: ["attribution-settings", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("communication_attribution_settings" as any)
+        .from("communication_attribution_settings")
         .select("*")
         .eq("workspace_id", workspaceId!)
         .maybeSingle();
@@ -71,7 +71,7 @@ export function useUpsertAttributionSettings() {
   return useMutation({
     mutationFn: async (settings: Partial<AttributionSettings>) => {
       const { error } = await supabase
-        .from("communication_attribution_settings" as any)
+        .from("communication_attribution_settings")
         .upsert(
           { workspace_id: workspaceId, ...settings },
           { onConflict: "workspace_id" }
@@ -99,7 +99,7 @@ function useAttributionAggregation(
     queryKey: ["attribution-revenue", groupByField, workspaceId, filters],
     queryFn: async () => {
       let query = supabase
-        .from("communication_attributions" as any)
+        .from("communication_attributions")
         .select("*")
         .eq("workspace_id", workspaceId!);
 
@@ -167,7 +167,7 @@ export function useRevenueByStep(sequenceId?: string) {
     queryKey: ["attribution-revenue-step", workspaceId, sequenceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("communication_attributions" as any)
+        .from("communication_attributions")
         .select("*")
         .eq("workspace_id", workspaceId!)
         .eq("sequence_id", sequenceId!);
@@ -211,7 +211,7 @@ export function useAttributionStats(filters?: { conversionType?: string; dateFro
     queryKey: ["attribution-stats", workspaceId, filters],
     queryFn: async () => {
       let query = supabase
-        .from("communication_attributions" as any)
+        .from("communication_attributions")
         .select("*")
         .eq("workspace_id", workspaceId!);
 

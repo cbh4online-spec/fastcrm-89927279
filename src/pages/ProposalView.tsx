@@ -19,7 +19,7 @@ export default function ProposalView() {
     
     const fetchProposal = async () => {
       const { data, error } = await supabase
-        .from("fastcrm_proposals" as any)
+        .from("fastcrm_proposals")
         .select("proposal_html, company_name")
         .eq("id", id)
         .single();

@@ -62,7 +62,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
     queryKey: ["product-specs", product.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("product_spec_attributes" as any)
+        .from("product_spec_attributes")
         .select("*")
         .eq("product_id", product.id)
         .order("display_order", { ascending: true });
@@ -77,7 +77,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
     queryKey: ["spec-templates", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("spec_attribute_templates" as any)
+        .from("spec_attribute_templates")
         .select("*")
         .eq("workspace_id", workspaceId!);
       if (error) throw error;
@@ -110,7 +110,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
 
       // Delete all existing specs for this product
       await supabase
-        .from("product_spec_attributes" as any)
+        .from("product_spec_attributes")
         .delete()
         .eq("product_id", product.id);
 
@@ -127,7 +127,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
         }));
 
         const { error } = await supabase
-          .from("product_spec_attributes" as any)
+          .from("product_spec_attributes")
           .insert(rows);
         if (error) throw error;
       }

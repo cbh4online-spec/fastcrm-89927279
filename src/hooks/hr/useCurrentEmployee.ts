@@ -12,7 +12,7 @@ export function useCurrentEmployee() {
     queryKey: ["current-employee", wsId, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_employees" as any)
+        .from("hr_employees")
         .select("id, full_name")
         .eq("workspace_id", wsId!)
         .eq("user_id", user!.id)

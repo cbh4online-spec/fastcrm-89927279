@@ -15,7 +15,7 @@ export function useMetaLeads(filters?: {
     queryFn: async () => {
       if (!workspaceId) return [];
       let query = supabase
-        .from("meta_leads" as any)
+        .from("meta_leads")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("received_at", { ascending: false })
@@ -40,7 +40,7 @@ export function useReprocessLead() {
   return useMutation({
     mutationFn: async (leadId: string) => {
       const { error } = await supabase
-        .from("meta_leads" as any)
+        .from("meta_leads")
         .update({ processing_status: "pending", error_message: null })
         .eq("id", leadId);
       if (error) throw error;
@@ -62,7 +62,7 @@ export function useMetaLeadStats() {
       if (!workspaceId) return { total: 0, pending: 0, processed: 0, failed: 0 };
 
       const { data, error } = await supabase
-        .from("meta_leads" as any)
+        .from("meta_leads")
         .select("processing_status")
         .eq("workspace_id", workspaceId);
 
@@ -89,7 +89,7 @@ export function useMetaWebhookEvents(limit = 50) {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from("meta_webhook_events" as any)
+        .from("meta_webhook_events")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false })
@@ -111,7 +111,7 @@ export function useMetaFieldMappings() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from("meta_lead_field_mappings" as any)
+        .from("meta_lead_field_mappings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("meta_field_name");
@@ -132,7 +132,7 @@ export function useMetaFieldMappings() {
     }) => {
       if (!workspaceId) throw new Error("No workspace");
       const { error } = await supabase
-        .from("meta_lead_field_mappings" as any)
+        .from("meta_lead_field_mappings")
         .upsert({
           ...mapping,
           workspace_id: workspaceId,

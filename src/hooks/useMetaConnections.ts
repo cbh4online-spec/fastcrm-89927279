@@ -12,7 +12,7 @@ export function useMetaConnections() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from("meta_connections" as any)
+        .from("meta_connections")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
@@ -32,7 +32,7 @@ export function useMetaAssets(connectionId?: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       let query = supabase
-        .from("meta_assets" as any)
+        .from("meta_assets")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("asset_type", { ascending: true });
@@ -53,7 +53,7 @@ export function useToggleAsset() {
   return useMutation({
     mutationFn: async ({ assetId, selected }: { assetId: string; selected: boolean }) => {
       const { error } = await supabase
-        .from("meta_assets" as any)
+        .from("meta_assets")
         .update({ selected_for_use: selected, updated_at: new Date().toISOString() })
         .eq("id", assetId);
       if (error) throw error;
@@ -114,7 +114,7 @@ export function useDeleteConnection() {
   return useMutation({
     mutationFn: async (connectionId: string) => {
       const { error } = await supabase
-        .from("meta_connections" as any)
+        .from("meta_connections")
         .delete()
         .eq("id", connectionId);
       if (error) throw error;

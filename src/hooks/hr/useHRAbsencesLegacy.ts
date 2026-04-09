@@ -16,7 +16,7 @@ export function useCreateAbsence() {
       end_date: string;
       reason?: string;
     }) => {
-      const { data, error } = await supabase.from("hr_absences" as any).insert({ ...values, workspace_id: wsId }).select().single();
+      const { data, error } = await supabase.from("hr_absences").insert({ ...values, workspace_id: wsId }).select().single();
       if (error) throw error;
       return data;
     },

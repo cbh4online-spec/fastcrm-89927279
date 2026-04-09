@@ -61,7 +61,7 @@ export function WidgetTab() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from("widget_configurations" as any)
+        .from("widget_configurations")
         .select("id, name, primary_color, is_active, allowed_domains, default_agent_id, company_name, welcome_message")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
@@ -93,7 +93,7 @@ export function WidgetTab() {
     mutationFn: async (widgetId: string) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
       const { data: original, error: fetchErr } = await supabase
-        .from("widget_configurations" as any)
+        .from("widget_configurations")
         .select("*")
         .eq("id", widgetId)
         .single();
@@ -101,7 +101,7 @@ export function WidgetTab() {
 
       const { id, created_at, updated_at, ...rest } = original as any;
       const { error } = await supabase
-        .from("widget_configurations" as any)
+        .from("widget_configurations")
         .insert({ ...rest, name: `${rest.name} (cópia)`, is_active: false });
       if (error) throw error;
     },
@@ -116,7 +116,7 @@ export function WidgetTab() {
   const deleteMutation = useMutation({
     mutationFn: async (widgetId: string) => {
       const { error } = await supabase
-        .from("widget_configurations" as any)
+        .from("widget_configurations")
         .delete()
         .eq("id", widgetId);
       if (error) throw error;

@@ -32,7 +32,7 @@ export function useLoyaltySettings(workspaceId?: string) {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data, error } = await supabase
-        .from("loyalty_settings" as any)
+        .from("loyalty_settings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
@@ -50,7 +50,7 @@ export function usePublicLoyaltySettings(workspaceId?: string) {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data, error } = await supabase
-        .from("loyalty_settings" as any)
+        .from("loyalty_settings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true)
@@ -69,7 +69,7 @@ export function useUpsertLoyaltySettings() {
   return useMutation({
     mutationFn: async (settings: Partial<LoyaltySettings> & { workspace_id: string }) => {
       const { data, error } = await supabase
-        .from("loyalty_settings" as any)
+        .from("loyalty_settings")
         .upsert(
           {
             ...settings,
@@ -121,7 +121,7 @@ export function useLoyaltyHistory(workspaceId?: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       const { data, error } = await supabase
-        .from("loyalty_points_transactions" as any)
+        .from("loyalty_points_transactions")
         .select("*")
         .eq("workspace_id", workspaceId)
         .eq("user_id", user.id)
@@ -141,7 +141,7 @@ export function useLoyaltyTopCustomers(workspaceId?: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from("loyalty_points_transactions" as any)
+        .from("loyalty_points_transactions")
         .select("user_id, points")
         .eq("workspace_id", workspaceId);
       if (error) return [];
@@ -176,7 +176,7 @@ export function useRedeemPoints() {
 
       // Get settings
       const { data: settings } = await supabase
-        .from("loyalty_settings" as any)
+        .from("loyalty_settings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true)
@@ -225,7 +225,7 @@ export function useRedeemPoints() {
       // Record redemption transaction
       const newBalance = (balance as number) - pointsToRedeem;
       const { error: txError } = await supabase
-        .from("loyalty_points_transactions" as any)
+        .from("loyalty_points_transactions")
         .insert({
           workspace_id: workspaceId,
           user_id: user.id,

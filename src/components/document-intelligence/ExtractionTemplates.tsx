@@ -79,7 +79,7 @@ function useExtractionTemplates() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await (supabase
-        .from("document_extraction_templates" as any)
+        .from("document_extraction_templates")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false }) as any);
@@ -97,7 +97,7 @@ function useExtractionTemplates() {
     }) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
       const { error } = await (supabase
-        .from("document_extraction_templates" as any)
+        .from("document_extraction_templates")
         .insert({
           workspace_id: currentWorkspace.id,
           ...template,
@@ -115,7 +115,7 @@ function useExtractionTemplates() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase
-        .from("document_extraction_templates" as any)
+        .from("document_extraction_templates")
         .delete()
         .eq("id", id) as any);
       if (error) throw error;

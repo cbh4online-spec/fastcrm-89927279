@@ -17,7 +17,7 @@ export function useFeatureFlags() {
     queryFn: async () => {
       if (!workspaceId) return [] as FeatureFlag[];
       const { data, error } = await supabase
-        .from("workspace_feature_flags" as any)
+        .from("workspace_feature_flags")
         .select("id, flag_key, enabled")
         .eq("workspace_id", workspaceId);
       if (error) throw error;
@@ -44,7 +44,7 @@ export function useToggleFeatureFlag() {
       if (!workspaceId) throw new Error("No workspace");
       
       const { data: existing } = await supabase
-        .from("workspace_feature_flags" as any)
+        .from("workspace_feature_flags")
         .select("id")
         .eq("workspace_id", workspaceId)
         .eq("flag_key", flagKey)
@@ -52,13 +52,13 @@ export function useToggleFeatureFlag() {
 
       if (existing) {
         const { error } = await supabase
-          .from("workspace_feature_flags" as any)
+          .from("workspace_feature_flags")
           .update({ enabled })
           .eq("id", (existing as any).id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("workspace_feature_flags" as any)
+          .from("workspace_feature_flags")
           .insert({ workspace_id: workspaceId, flag_key: flagKey, enabled });
         if (error) throw error;
       }

@@ -198,7 +198,7 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
 
           const segmentProfile = segment ? getSegmentProfile(segment) : null;
 
-          await supabase.from("business_context" as any).upsert({
+          await supabase.from("business_context").upsert({
             workspace_id: currentWorkspace.id,
             business_model: answers.revenueModel || answers.businessType,
             business_description: answers.successDefinition,
@@ -212,7 +212,7 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
 
           // Configure intelligence defaults based on segment
           if (segmentProfile) {
-            await supabase.from("workspace_settings" as any).upsert({
+            await supabase.from("workspace_settings").upsert({
               workspace_id: currentWorkspace.id,
               enable_benchmarks: segmentProfile.intelligenceDefaults.enableBenchmarks,
               enable_forecast: segmentProfile.intelligenceDefaults.enableForecast,
@@ -226,7 +226,7 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
         // Step 6: Finalize — persist answers + segment + trigger Daily Brief
         updateStep("finalize", "loading");
         
-        await supabase.from("workspace_onboarding" as any).upsert({
+        await supabase.from("workspace_onboarding").upsert({
           workspace_id: currentWorkspace.id,
           business_type: answers.businessType,
           custom_business_type: answers.customBusinessType || null,

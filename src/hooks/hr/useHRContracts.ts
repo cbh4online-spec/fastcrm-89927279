@@ -33,7 +33,7 @@ export function useHRContracts(employeeId?: string) {
     enabled: !!wsId,
     queryFn: async () => {
       let q = supabase
-        .from("hr_contracts" as any)
+        .from("hr_contracts")
         .select("*, hr_employees(full_name, employee_number)")
         .eq("workspace_id", wsId!)
         .order("start_date", { ascending: false });
@@ -59,7 +59,7 @@ export function useCreateHRContract() {
       values: Omit<HRContract, "id" | "workspace_id" | "created_at" | "updated_at" | "hr_employees">
     ) => {
       const { error } = await supabase
-        .from("hr_contracts" as any)
+        .from("hr_contracts")
         .insert({ ...values, workspace_id: wsId! });
       if (error) throw error;
     },
@@ -80,7 +80,7 @@ export function useUpdateHRContract() {
       ...values
     }: { id: string } & Partial<HRContract>) => {
       const { error } = await supabase
-        .from("hr_contracts" as any)
+        .from("hr_contracts")
         .update(values)
         .eq("id", id);
       if (error) throw error;
@@ -99,7 +99,7 @@ export function useDeleteHRContract() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("hr_contracts" as any)
+        .from("hr_contracts")
         .delete()
         .eq("id", id);
       if (error) throw error;

@@ -30,7 +30,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
 
       // Try campaign-specific stages first, fallback to workspace global (campaign_id IS NULL)
       let query = supabase
-        .from("sdr_pipeline_stages" as any)
+        .from("sdr_pipeline_stages")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("position", { ascending: true });
@@ -47,7 +47,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
       // If campaign has no stages, fallback to global
       if (campaignId && (!data || data.length === 0)) {
         const { data: globalData, error: globalError } = await supabase
-          .from("sdr_pipeline_stages" as any)
+          .from("sdr_pipeline_stages")
           .select("*")
           .eq("workspace_id", workspaceId)
           .is("campaign_id", null)
@@ -64,7 +64,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
   const updateStage = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SDRPipelineStage> & { id: string }) => {
       const { error } = await supabase
-        .from("sdr_pipeline_stages" as any)
+        .from("sdr_pipeline_stages")
         .update(updates)
         .eq("id", id);
       if (error) throw error;
@@ -79,7 +79,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
     mutationFn: async (input: { key: string; label: string; position: number; color?: string; icon?: string; campaign_id?: string | null }) => {
       if (!workspaceId) throw new Error("No workspace");
       const { error } = await supabase
-        .from("sdr_pipeline_stages" as any)
+        .from("sdr_pipeline_stages")
         .insert({
           workspace_id: workspaceId,
           campaign_id: input.campaign_id ?? null,
@@ -101,7 +101,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
   const deleteStage = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("sdr_pipeline_stages" as any)
+        .from("sdr_pipeline_stages")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -117,7 +117,7 @@ export function useSDRPipelineStages(campaignId?: string | null) {
     mutationFn: async (orderedIds: string[]) => {
       const updates = orderedIds.map((id, i) =>
         supabase
-          .from("sdr_pipeline_stages" as any)
+          .from("sdr_pipeline_stages")
           .update({ position: i })
           .eq("id", id)
       );

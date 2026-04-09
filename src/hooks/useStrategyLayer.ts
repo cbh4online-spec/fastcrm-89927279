@@ -12,7 +12,7 @@ export function useStrategicState() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from("strategic_state_snapshots" as any)
+        .from("strategic_state_snapshots")
         .select("*")
         .eq("workspace_id", wid)
         .order("created_at", { ascending: false })
@@ -33,7 +33,7 @@ export function useStrategicHypotheses(statusFilter?: string) {
     queryFn: async () => {
       if (!wid) return [];
       let q = supabase
-        .from("strategic_hypotheses" as any)
+        .from("strategic_hypotheses")
         .select("*")
         .eq("workspace_id", wid)
         .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export function useStrategicRecommendations(statusFilter?: string) {
     queryFn: async () => {
       if (!wid) return [];
       let q = supabase
-        .from("strategic_recommendations" as any)
+        .from("strategic_recommendations")
         .select("*")
         .eq("workspace_id", wid)
         .order("created_at", { ascending: false })
@@ -79,7 +79,7 @@ export function useStrategySettings() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from("strategy_settings" as any)
+        .from("strategy_settings")
         .select("*")
         .eq("workspace_id", wid)
         .maybeSingle();
@@ -93,19 +93,19 @@ export function useStrategySettings() {
     mutationFn: async (updates: Record<string, any>) => {
       if (!wid) throw new Error("No workspace");
       const { data: existing } = await supabase
-        .from("strategy_settings" as any)
+        .from("strategy_settings")
         .select("id")
         .eq("workspace_id", wid)
         .maybeSingle();
       if (existing) {
         const { error } = await supabase
-          .from("strategy_settings" as any)
+          .from("strategy_settings")
           .update({ ...updates, updated_at: new Date().toISOString() } as any)
           .eq("workspace_id", wid);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("strategy_settings" as any)
+          .from("strategy_settings")
           .insert({ workspace_id: wid, ...updates } as any);
         if (error) throw error;
       }
@@ -155,7 +155,7 @@ export function useActOnRecommendation() {
     mutationFn: async ({ recommendationId, action }: { recommendationId: string; action: "accepted" | "acted" | "dismissed" }) => {
       if (!wid) throw new Error("No workspace");
       const { error } = await supabase
-        .from("strategic_recommendations" as any)
+        .from("strategic_recommendations")
         .update({
           status: action,
           updated_at: new Date().toISOString(),
@@ -189,7 +189,7 @@ export function useStrategyHistory(limit = 10) {
     queryFn: async () => {
       if (!wid) return [];
       const { data, error } = await supabase
-        .from("strategic_state_snapshots" as any)
+        .from("strategic_state_snapshots")
         .select("id, strategic_health_score, growth_mode, bottleneck_type, strategic_focus, confidence, created_at")
         .eq("workspace_id", wid)
         .order("created_at", { ascending: false })

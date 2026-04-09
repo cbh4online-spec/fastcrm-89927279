@@ -27,7 +27,7 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
     queryFn: async () => {
       if (productIds.length === 0) return [];
       const { data } = await supabase
-        .from("product_spec_attributes" as any)
+        .from("product_spec_attributes")
         .select("product_id, spec_key, spec_value, unit, spec_group")
         .in("product_id", productIds)
         .order("spec_group")

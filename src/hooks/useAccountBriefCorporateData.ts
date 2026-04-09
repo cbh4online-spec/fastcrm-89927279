@@ -48,7 +48,7 @@ export function useAccountBriefCorporateData(accountId: string | undefined) {
     queryFn: async () => {
       if (!accountId) return null;
       const { data, error } = await supabase
-        .from("account_brief_corporate_data" as any)
+        .from("account_brief_corporate_data")
         .select("*")
         .eq("account_id", accountId)
         .maybeSingle();

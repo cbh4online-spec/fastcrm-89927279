@@ -104,7 +104,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
     };
 
     const { error } = await supabase
-      .from("store_visitor_sessions" as any)
+      .from("store_visitor_sessions")
       .upsert(sessionData, { onConflict: "workspace_id,session_id" });
 
     if (error) {

@@ -25,7 +25,7 @@ export function useHRLeaveBalances(employeeId?: string, year?: number) {
     queryKey: ["hr-leave-balances", wsId, employeeId, currentYear],
     queryFn: async () => {
       let q = supabase
-        .from("hr_leave_balances" as any)
+        .from("hr_leave_balances")
         .select("*, hr_absence_types(name, color, code)")
         .eq("workspace_id", wsId!)
         .eq("year", currentYear);

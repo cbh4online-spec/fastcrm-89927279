@@ -321,7 +321,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
 
     // Save bundle to workspace_onboarding
     if (currentWorkspace) {
-      await supabase.from("workspace_onboarding" as any).upsert({
+      await supabase.from("workspace_onboarding").upsert({
         workspace_id: currentWorkspace.id,
         activated_bundle: recommendedBundle.id,
       } as any, { onConflict: 'workspace_id' });

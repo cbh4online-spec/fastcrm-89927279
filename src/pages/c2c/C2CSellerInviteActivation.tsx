@@ -34,7 +34,7 @@ export default function C2CSellerInviteActivation() {
       }
 
       const { data, error: fetchError } = await supabase
-        .from("c2c_seller_invites" as any)
+        .from("c2c_seller_invites")
         .select("*")
         .eq("invite_token", token)
         .maybeSingle();

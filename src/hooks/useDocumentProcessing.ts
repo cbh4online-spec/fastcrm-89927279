@@ -248,7 +248,7 @@ export function useUploadDocument() {
             extraction_template_id: params.extractionTemplateId,
             priority: params.priority || "normal",
           },
-        } as any)
+        })
         .select()
         .single() as any);
 
@@ -284,7 +284,7 @@ export function useReprocessDocument() {
           error_message: null,
           started_at: null,
           completed_at: null,
-        } as any)
+        })
         .eq("id", jobId) as any);
 
       const { error } = await supabase.functions.invoke("document-intelligence-process", {
@@ -307,7 +307,7 @@ export function useCancelJob() {
     mutationFn: async (jobId: string) => {
       const { error } = await (supabase
         .from("document_processing_jobs")
-        .update({ status: "cancelled", completed_at: new Date().toISOString() } as any)
+        .update({ status: "cancelled", completed_at: new Date().toISOString() })
         .eq("id", jobId)
         .in("status", ["pending", "processing", "ocr", "classifying", "extracting"]) as any);
       if (error) throw error;
@@ -326,7 +326,7 @@ export function useUpdateExtractedData() {
     mutationFn: async ({ jobId, extractedData }: { jobId: string; extractedData: Record<string, unknown> }) => {
       const { error } = await (supabase
         .from("document_processing_jobs")
-        .update({ extracted_data: extractedData, updated_at: new Date().toISOString() } as any)
+        .update({ extracted_data: extractedData, updated_at: new Date().toISOString() })
         .eq("id", jobId) as any);
       if (error) throw error;
     },

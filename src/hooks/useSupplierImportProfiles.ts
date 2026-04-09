@@ -34,7 +34,7 @@ export function useSupplierImportProfiles(supplierId: string | undefined) {
     if (!currentWorkspace?.id || !supplierId) { setProfiles([]); return; }
     setLoading(true);
     const { data, error } = await supabase
-      .from("supplier_import_profiles" as any)
+      .from("supplier_import_profiles")
       .select("*")
       .eq("workspace_id", currentWorkspace.id)
       .eq("supplier_id", supplierId)
@@ -51,7 +51,7 @@ export function useSupplierImportProfiles(supplierId: string | undefined) {
     if (!currentWorkspace?.id || !supplierId) return null;
     const user = (await supabase.auth.getUser()).data.user;
     const { data, error } = await supabase
-      .from("supplier_import_profiles" as any)
+      .from("supplier_import_profiles")
       .insert({
         workspace_id: currentWorkspace.id,
         supplier_id: supplierId,
@@ -68,7 +68,7 @@ export function useSupplierImportProfiles(supplierId: string | undefined) {
 
   const updateProfile = useCallback(async (id: string, updates: Partial<ImportProfile>) => {
     const { error } = await supabase
-      .from("supplier_import_profiles" as any)
+      .from("supplier_import_profiles")
       .update(updates as any)
       .eq("id", id);
     if (error) { toast.error("Erro ao atualizar perfil"); return; }
@@ -80,13 +80,13 @@ export function useSupplierImportProfiles(supplierId: string | undefined) {
     if (!currentWorkspace?.id || !supplierId) return;
     // Remove default from all
     await supabase
-      .from("supplier_import_profiles" as any)
+      .from("supplier_import_profiles")
       .update({ is_default: false } as any)
       .eq("workspace_id", currentWorkspace.id)
       .eq("supplier_id", supplierId);
     // Set new default
     await supabase
-      .from("supplier_import_profiles" as any)
+      .from("supplier_import_profiles")
       .update({ is_default: true } as any)
       .eq("id", id);
     await fetchProfiles();

@@ -38,7 +38,7 @@ export function ContextAIAssistPanel({ block }: Props) {
 
     // Update origin to 'ai'
     await supabase
-      .from("context_fields" as any)
+      .from("context_fields")
       .update({
         origin: "ai",
         origin_details: {

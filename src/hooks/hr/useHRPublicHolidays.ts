@@ -21,7 +21,7 @@ export function useHRPublicHolidays(year?: number) {
     queryKey: ["hr-public-holidays", wsId, y],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_public_holidays" as any)
+        .from("hr_public_holidays")
         .select("*")
         .eq("workspace_id", wsId!)
         .gte("date", `${y}-01-01`)
@@ -42,7 +42,7 @@ export function useCreatePublicHoliday() {
   return useMutation({
     mutationFn: async (values: { name: string; date: string; country?: string; is_mandatory?: boolean }) => {
       const { data, error } = await supabase
-        .from("hr_public_holidays" as any)
+        .from("hr_public_holidays")
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();
@@ -61,7 +61,7 @@ export function useDeletePublicHoliday() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("hr_public_holidays" as any).delete().eq("id", id);
+      const { error } = await supabase.from("hr_public_holidays").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -94,7 +94,7 @@ export function useSeedPortugueseHolidays() {
       ];
 
       const rows = holidays.map((h) => ({ ...h, workspace_id: wsId, country: "PT", is_mandatory: true }));
-      const { error } = await supabase.from("hr_public_holidays" as any).upsert(rows, { onConflict: "workspace_id,date" });
+      const { error } = await supabase.from("hr_public_holidays").upsert(rows, { onConflict: "workspace_id,date" });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -62,7 +62,7 @@ export function useSupplierImportV2() {
 
       const user = (await supabase.auth.getUser()).data.user;
       const { data: importRecord, error: insertErr } = await supabase
-        .from("supplier_price_imports" as any)
+        .from("supplier_price_imports")
         .insert({
           workspace_id: currentWorkspace.id,
           supplier_id: supplierId,
@@ -146,7 +146,7 @@ export function useSupplierImportV2() {
 
       // Load preview rows
       const { data: rows } = await supabase
-        .from("supplier_price_import_rows" as any)
+        .from("supplier_price_import_rows")
         .select("*")
         .eq("import_id", state.importId)
         .order("row_index")
@@ -192,7 +192,7 @@ export function useSupplierImportV2() {
 
   const updateRowMatch = useCallback(async (rowId: string, productId: string) => {
     const { error } = await supabase
-      .from("supplier_price_import_rows" as any)
+      .from("supplier_price_import_rows")
       .update({ product_id: productId, match_status: "matched", match_method: "manual", match_confidence: 1.0 } as any)
       .eq("id", rowId);
     if (error) { toast.error("Erro ao atualizar match"); return; }
@@ -207,7 +207,7 @@ export function useSupplierImportV2() {
   const loadPreviewRows = useCallback(async (filter?: string) => {
     if (!state.importId) return;
     let query = supabase
-      .from("supplier_price_import_rows" as any)
+      .from("supplier_price_import_rows")
       .select("*")
       .eq("import_id", state.importId)
       .order("row_index");

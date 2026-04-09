@@ -117,7 +117,7 @@ export default function FastClubApplyPage() {
       };
 
       const { data, error } = await supabase
-        .from("fastclub_applications" as any)
+        .from("fastclub_applications")
         .insert(applicationData)
         .select("id")
         .single();

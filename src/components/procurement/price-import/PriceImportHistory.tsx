@@ -12,7 +12,7 @@ export function PriceImportHistory() {
   useEffect(() => {
     if (!currentWorkspace?.id) return;
     supabase
-      .from("supplier_price_imports" as any)
+      .from("supplier_price_imports")
       .select("*, suppliers(name)")
       .eq("workspace_id", currentWorkspace.id)
       .order("created_at", { ascending: false })

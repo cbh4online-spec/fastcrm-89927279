@@ -24,7 +24,7 @@ export function useC2CSellerInvites(workspaceId: string | undefined) {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from("c2c_seller_invites" as any)
+        .from("c2c_seller_invites")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
@@ -75,7 +75,7 @@ export function useRevokeSellerInvite() {
   return useMutation({
     mutationFn: async (inviteId: string) => {
       const { error } = await supabase
-        .from("c2c_seller_invites" as any)
+        .from("c2c_seller_invites")
         .update({ status: "revoked" } as any)
         .eq("id", inviteId);
       if (error) throw error;
@@ -98,7 +98,7 @@ export function useResendSellerInvite(workspaceId: string | undefined) {
 
       // Delete old invite
       await supabase
-        .from("c2c_seller_invites" as any)
+        .from("c2c_seller_invites")
         .delete()
         .eq("id", invite.id);
 

@@ -26,7 +26,7 @@ export function useHRGeofenceZones() {
     queryKey: [QK, wsId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_geofence_zones" as any)
+        .from("hr_geofence_zones")
         .select("*")
         .eq("workspace_id", wsId!)
         .order("name");
@@ -45,7 +45,7 @@ export function useCreateGeofenceZone() {
   return useMutation({
     mutationFn: async (zone: { name: string; latitude: number; longitude: number; radius_meters: number; address?: string | null }) => {
       const { error } = await supabase
-        .from("hr_geofence_zones" as any)
+        .from("hr_geofence_zones")
         .insert({ ...zone, workspace_id: wsId });
       if (error) throw error;
     },
@@ -63,7 +63,7 @@ export function useUpdateGeofenceZone() {
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<GeofenceZone> & { id: string }) => {
       const { error } = await supabase
-        .from("hr_geofence_zones" as any)
+        .from("hr_geofence_zones")
         .update(data)
         .eq("id", id);
       if (error) throw error;
@@ -82,7 +82,7 @@ export function useDeleteGeofenceZone() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("hr_geofence_zones" as any)
+        .from("hr_geofence_zones")
         .delete()
         .eq("id", id);
       if (error) throw error;

@@ -27,7 +27,7 @@ export function useStoreOffers(workspaceId: string) {
     queryKey: ["store-offers", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_offers" as any)
+        .from("store_offers")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
@@ -52,7 +52,7 @@ export function useCreateStoreOffer() {
       message?: string;
     }) => {
       const { data, error } = await supabase
-        .from("store_offers" as any)
+        .from("store_offers")
         .insert(offer)
         .select()
         .single();
@@ -103,7 +103,7 @@ export function useRespondToOffer() {
       }
 
       const { error } = await supabase
-        .from("store_offers" as any)
+        .from("store_offers")
         .update(update)
         .eq("id", offerId);
       if (error) throw error;

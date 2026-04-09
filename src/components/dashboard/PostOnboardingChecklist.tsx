@@ -86,7 +86,7 @@ export function PostOnboardingChecklist() {
     if (!currentWorkspace) return;
     const checkVisibility = async () => {
       const { data } = await supabase
-        .from("workspace_onboarding" as any)
+        .from("workspace_onboarding")
         .select("completed_at")
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();

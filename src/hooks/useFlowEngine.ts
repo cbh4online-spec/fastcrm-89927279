@@ -72,7 +72,7 @@ export function useActiveFlowSession() {
     mutationFn: async (conversationId: string): Promise<ActiveSessionData | null> => {
       // Use rpc or raw query since types may not be generated yet
       const { data: sessions, error } = await supabase
-        .from("conversation_sessions" as any)
+        .from("conversation_sessions")
         .select("id, flow_id, current_step_id, status, variables")
         .eq("conversation_id", conversationId)
         .eq("status", "active")
@@ -89,7 +89,7 @@ export function useActiveFlowSession() {
 
       // Fetch flow details separately
       const { data: flowData } = await supabase
-        .from("conversational_flows" as any)
+        .from("conversational_flows")
         .select("id, name, status")
         .eq("id", sessionData.flow_id)
         .single();

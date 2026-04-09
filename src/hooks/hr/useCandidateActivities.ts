@@ -21,7 +21,7 @@ export function useCandidateActivities(candidateId: string | undefined) {
     queryKey: ["hr-candidate-activities", wsId, candidateId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_candidate_activities" as any)
+        .from("hr_candidate_activities")
         .select("*")
         .eq("candidate_id", candidateId!)
         .order("created_at", { ascending: false });
@@ -39,7 +39,7 @@ export function useCreateCandidateActivity() {
   return useMutation({
     mutationFn: async (values: Partial<CandidateActivity>) => {
       const { data, error } = await supabase
-        .from("hr_candidate_activities" as any)
+        .from("hr_candidate_activities")
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();

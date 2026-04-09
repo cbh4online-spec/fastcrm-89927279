@@ -25,7 +25,7 @@ export function useContextAttachments(blockId: string | undefined) {
     queryFn: async () => {
       if (!blockId) return [];
       const { data, error } = await supabase
-        .from("context_block_attachments" as any)
+        .from("context_block_attachments")
         .select("*")
         .eq("block_id", blockId)
         .order("created_at", { ascending: false });
@@ -44,7 +44,7 @@ export function useAddUrlAttachment() {
     mutationFn: async ({ blockId, url, name }: { blockId: string; url: string; name: string }) => {
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase
-        .from("context_block_attachments" as any)
+        .from("context_block_attachments")
         .insert({
           block_id: blockId,
           workspace_id: currentWorkspace?.id,
@@ -96,7 +96,7 @@ export function useUploadFileAttachment() {
         .getPublicUrl(path);
 
       const { error } = await supabase
-        .from("context_block_attachments" as any)
+        .from("context_block_attachments")
         .insert({
           block_id: blockId,
           workspace_id: currentWorkspace?.id,
@@ -138,7 +138,7 @@ export function useDeleteAttachment() {
   return useMutation({
     mutationFn: async ({ attachmentId, blockId }: { attachmentId: string; blockId: string }) => {
       const { error } = await supabase
-        .from("context_block_attachments" as any)
+        .from("context_block_attachments")
         .delete()
         .eq("id", attachmentId);
       if (error) throw error;

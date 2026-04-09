@@ -71,7 +71,7 @@ export function usePortfolioEntities(typeFilter?: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       let q = supabase
-        .from("portfolio_entities" as any)
+        .from("portfolio_entities")
         .select("*, portfolio_metrics(*)")
         .eq("workspace_id", workspaceId)
         .eq("status", "active")
@@ -115,7 +115,7 @@ export function usePortfolioRecommendations(statusFilter?: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       let q = supabase
-        .from("portfolio_recommendations" as any)
+        .from("portfolio_recommendations")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false })
@@ -139,7 +139,7 @@ export function usePortfolioSettings() {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data, error } = await supabase
-        .from("portfolio_settings" as any)
+        .from("portfolio_settings")
         .select("*")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
@@ -153,20 +153,20 @@ export function usePortfolioSettings() {
     mutationFn: async (updates: Partial<PortfolioSettings>) => {
       if (!workspaceId) throw new Error("No workspace");
       const { data: existing } = await supabase
-        .from("portfolio_settings" as any)
+        .from("portfolio_settings")
         .select("id")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
-          .from("portfolio_settings" as any)
+          .from("portfolio_settings")
           .update({ ...updates, updated_at: new Date().toISOString() } as any)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("portfolio_settings" as any)
+          .from("portfolio_settings")
           .insert({ workspace_id: workspaceId, ...updates } as any);
         if (error) throw error;
       }
@@ -213,7 +213,7 @@ export function useActOnPortfolioRecommendation() {
   return useMutation({
     mutationFn: async ({ id, action }: { id: string; action: "accepted" | "acted" | "dismissed" }) => {
       const { error } = await supabase
-        .from("portfolio_recommendations" as any)
+        .from("portfolio_recommendations")
         .update({
           status: action,
           acted_at: new Date().toISOString(),

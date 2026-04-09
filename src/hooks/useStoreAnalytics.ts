@@ -156,7 +156,7 @@ export function useStoreAnalytics(days: number = 30) {
           .gte("created_at", prevPeriodStart.toISOString())
           .lt("created_at", periodStart.toISOString()),
         supabase
-          .from("store_page_views" as any)
+          .from("store_page_views")
           .select("*", { count: "exact", head: true })
           .eq("workspace_id", wsId)
           .gte("created_at", periodStart.toISOString()),
@@ -259,7 +259,7 @@ export function useStoreAnalytics(days: number = 30) {
           .eq("workspace_id", wsId)
           .eq("store_published", true),
         supabase
-          .from("store_page_views" as any)
+          .from("store_page_views")
           .select("product_id")
           .eq("workspace_id", wsId)
           .gte("created_at", periodStart.toISOString()),
@@ -679,7 +679,7 @@ export function useStoreAnalytics(days: number = 30) {
 
       const [{ count: viewCount }, { data: allOrders, error }] = await Promise.all([
         supabase
-          .from("store_page_views" as any)
+          .from("store_page_views")
           .select("*", { count: "exact", head: true })
           .eq("workspace_id", wsId)
           .gte("created_at", periodStart.toISOString()),

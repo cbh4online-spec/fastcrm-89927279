@@ -80,7 +80,7 @@ export function useWhatsAppQRConnection() {
       if (!currentWorkspace) return null;
 
       const { data, error } = await supabase
-        .from("whatsapp_qr_connections" as any)
+        .from("whatsapp_qr_connections")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();

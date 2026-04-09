@@ -38,7 +38,7 @@ export function useAllFeatureFlags() {
     queryKey: ["all-feature-flags"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("workspace_feature_flags" as any)
+        .from("workspace_feature_flags")
         .select("id, workspace_id, flag_key, enabled");
       if (error) throw error;
       return (data as unknown as FeatureFlagRow[]) || [];
@@ -82,7 +82,7 @@ export function useAllFeatureFlags() {
         enabled,
       }));
       const { error } = await supabase
-        .from("workspace_feature_flags" as any)
+        .from("workspace_feature_flags")
         .upsert(rows as any, { onConflict: "workspace_id,flag_key" });
       if (error) throw error;
     },

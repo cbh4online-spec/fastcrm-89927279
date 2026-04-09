@@ -143,7 +143,7 @@ function useRecentViewers(productId: string | undefined) {
       if (!productId) return 0;
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { count, error } = await supabase
-        .from("store_page_views" as any)
+        .from("store_page_views")
         .select("*", { count: "exact", head: true })
         .eq("product_id", productId)
         .gte("viewed_at", since);

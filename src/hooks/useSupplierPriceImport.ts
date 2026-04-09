@@ -55,7 +55,7 @@ export function useSupplierPriceImport() {
 
       // Create import record
       const { data: importRecord, error: insertErr } = await supabase
-        .from("supplier_price_imports" as any)
+        .from("supplier_price_imports")
         .insert({
           workspace_id: currentWorkspace.id,
           supplier_id: supplierId,
@@ -133,7 +133,7 @@ export function useSupplierPriceImport() {
 
       // Load preview rows
       const { data: rows } = await supabase
-        .from("supplier_price_import_rows" as any)
+        .from("supplier_price_import_rows")
         .select("*")
         .eq("import_id", state.importId)
         .order("row_index")
@@ -176,7 +176,7 @@ export function useSupplierPriceImport() {
 
   const updateRowMatch = useCallback(async (rowId: string, productId: string) => {
     const { error } = await supabase
-      .from("supplier_price_import_rows" as any)
+      .from("supplier_price_import_rows")
       .update({ product_id: productId, match_status: "matched" } as any)
       .eq("id", rowId);
     if (error) { toast.error("Erro ao atualizar match"); return; }

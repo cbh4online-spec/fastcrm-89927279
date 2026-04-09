@@ -59,7 +59,7 @@ export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps)
     queryFn: async () => {
       if (!widgetId) return null;
       const { data, error } = await supabase
-        .from("widget_configurations" as any)
+        .from("widget_configurations")
         .select("id, name, primary_color, secondary_color, text_color, position, bubble_icon, welcome_message, placeholder_text, show_branding, avatar_url, company_name, require_email_before_chat, auto_open_delay_ms, custom_css, is_active, allowed_domains, default_flow_id, default_persona_id, default_agent_id, knowledge_base_ids")
         .eq("id", widgetId)
         .single();
@@ -90,7 +90,7 @@ export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps)
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data } = await supabase
-        .from("conversational_flows" as any)
+        .from("conversational_flows")
         .select("id, name, status")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "active");
@@ -142,13 +142,13 @@ export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps)
       if (!currentWorkspace?.id) throw new Error("No workspace");
       if (widgetId) {
         const { error } = await supabase
-          .from("widget_configurations" as any)
+          .from("widget_configurations")
           .update(data)
           .eq("id", widgetId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("widget_configurations" as any)
+          .from("widget_configurations")
           .insert({ ...data, workspace_id: currentWorkspace.id });
         if (error) throw error;
       }

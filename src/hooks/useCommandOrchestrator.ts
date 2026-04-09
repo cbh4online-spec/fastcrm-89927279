@@ -55,7 +55,7 @@ export function useCommandOrchestrator() {
     if (!currentWorkspace?.id || !user?.id) return;
     const load = async () => {
       const { data } = await supabase
-        .from("command_center_sessions" as any)
+        .from("command_center_sessions")
         .select("command, intent, entity_id, entity_name, response_summary, response_confidence, response_json, created_at")
         .eq("workspace_id", currentWorkspace.id)
         .eq("user_id", user.id)
@@ -88,7 +88,7 @@ export function useCommandOrchestrator() {
   const persistSession = useCallback(async (command: string, response: CommandResponse) => {
     if (!currentWorkspace?.id || !user?.id) return;
     try {
-      await supabase.from("command_center_sessions" as any).insert({
+      await supabase.from("command_center_sessions").insert({
         workspace_id: currentWorkspace.id,
         user_id: user.id,
         command,

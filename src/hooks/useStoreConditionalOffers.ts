@@ -86,7 +86,7 @@ export function useConditionalOffers() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from("store_conditional_offers" as any)
+        .from("store_conditional_offers")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("priority", { ascending: false });
@@ -104,7 +104,7 @@ export function useCreateConditionalOffer() {
     mutationFn: async (offer: Partial<ConditionalOffer>) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
       const { error } = await supabase
-        .from("store_conditional_offers" as any)
+        .from("store_conditional_offers")
         .insert({ ...offer, workspace_id: currentWorkspace.id });
       if (error) throw error;
     },
@@ -121,7 +121,7 @@ export function useUpdateConditionalOffer() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ConditionalOffer> & { id: string }) => {
       const { error } = await supabase
-        .from("store_conditional_offers" as any)
+        .from("store_conditional_offers")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
@@ -139,7 +139,7 @@ export function useDeleteConditionalOffer() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("store_conditional_offers" as any)
+        .from("store_conditional_offers")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -161,7 +161,7 @@ export function useDynamicPricingRules() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from("store_dynamic_pricing" as any)
+        .from("store_dynamic_pricing")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("priority", { ascending: false });
@@ -179,7 +179,7 @@ export function useCreateDynamicPricing() {
     mutationFn: async (rule: Partial<DynamicPricingRule>) => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
       const { error } = await supabase
-        .from("store_dynamic_pricing" as any)
+        .from("store_dynamic_pricing")
         .insert({ ...rule, workspace_id: currentWorkspace.id });
       if (error) throw error;
     },
@@ -196,7 +196,7 @@ export function useDeleteDynamicPricing() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("store_dynamic_pricing" as any)
+        .from("store_dynamic_pricing")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -218,7 +218,7 @@ export function useAIOffers() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from("store_ai_offers" as any)
+        .from("store_ai_offers")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false })
@@ -236,7 +236,7 @@ export function useApproveAIOffer() {
     mutationFn: async (id: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
-        .from("store_ai_offers" as any)
+        .from("store_ai_offers")
         .update({ status: "approved", approved_by: user?.id, approved_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
@@ -254,7 +254,7 @@ export function useRejectAIOffer() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("store_ai_offers" as any)
+        .from("store_ai_offers")
         .update({ status: "rejected" })
         .eq("id", id);
       if (error) throw error;
@@ -319,7 +319,7 @@ export async function resolveOffersForContact(
 
   // Fetch active conditional offers
   const { data: offers } = await supabase
-    .from("store_conditional_offers" as any)
+    .from("store_conditional_offers")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
@@ -357,7 +357,7 @@ export async function resolveOffersForContact(
 
   // Fetch dynamic pricing
   const { data: rules } = await supabase
-    .from("store_dynamic_pricing" as any)
+    .from("store_dynamic_pricing")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
@@ -386,7 +386,7 @@ export async function resolveOffersForContact(
   // Fetch AI offers for this contact
   if (contactContext.contact_id) {
     const { data: aiOffers } = await supabase
-      .from("store_ai_offers" as any)
+      .from("store_ai_offers")
       .select("*")
       .eq("contact_id", contactContext.contact_id)
       .in("status", ["approved", "delivered"])

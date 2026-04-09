@@ -68,7 +68,7 @@ export function useHelpdeskAutomations() {
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("helpdesk_automations" as any)
+        .from("helpdesk_automations")
         .select("*")
         .eq("workspace_id", workspaceId!)
         .order("created_at", { ascending: false });
@@ -81,7 +81,7 @@ export function useHelpdeskAutomations() {
   const create = useMutation({
     mutationFn: async (rule: Omit<HelpdeskAutomation, "id" | "workspace_id" | "execution_count" | "last_executed_at" | "created_at" | "updated_at">) => {
       const { data, error } = await supabase
-        .from("helpdesk_automations" as any)
+        .from("helpdesk_automations")
         .insert({ ...rule, workspace_id: workspaceId! } as any)
         .select()
         .single();
@@ -98,7 +98,7 @@ export function useHelpdeskAutomations() {
   const update = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<HelpdeskAutomation> & { id: string }) => {
       const { data, error } = await supabase
-        .from("helpdesk_automations" as any)
+        .from("helpdesk_automations")
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq("id", id)
         .select()
@@ -116,7 +116,7 @@ export function useHelpdeskAutomations() {
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("helpdesk_automations" as any)
+        .from("helpdesk_automations")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -131,7 +131,7 @@ export function useHelpdeskAutomations() {
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase
-        .from("helpdesk_automations" as any)
+        .from("helpdesk_automations")
         .update({ is_active, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;

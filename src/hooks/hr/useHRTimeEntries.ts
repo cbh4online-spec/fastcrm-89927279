@@ -31,7 +31,7 @@ export function useHRWorkSessions(employeeId?: string, startDate?: string, endDa
     queryKey: ["hr-work-sessions", wsId, employeeId, startDate, endDate],
     queryFn: async () => {
       let q = supabase
-        .from("hr_work_sessions" as any)
+        .from("hr_work_sessions")
         .select("*, hr_employees(full_name, avatar_url, department)")
         .eq("workspace_id", wsId!)
         .order("session_date", { ascending: false })
@@ -109,7 +109,7 @@ export function useHRTimeEntries(employeeId?: string, date?: string) {
     queryKey: ["hr-time-entries", wsId, employeeId, date],
     queryFn: async () => {
       let q = supabase
-        .from("hr_time_entries" as any)
+        .from("hr_time_entries")
         .select("*, hr_employees(full_name)")
         .eq("workspace_id", wsId!)
         .order("recorded_at", { ascending: false });

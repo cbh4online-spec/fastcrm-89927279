@@ -124,7 +124,7 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
 
         // Fire-and-forget: confirm upload intent
         supabase
-          .from("storage_upload_intents" as any)
+          .from("storage_upload_intents")
           .update({ status: "uploaded", updated_at: new Date().toISOString() })
           .eq("id", presigned.file_id)
           .then(({ error }) => {

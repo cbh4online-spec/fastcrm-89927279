@@ -105,7 +105,7 @@ export function useRFQAnalysis(rfqId: string | undefined) {
     queryFn: async () => {
       if (!rfqId) return [];
       const { data, error } = await supabase
-        .from("rfq_awards" as any)
+        .from("rfq_awards")
         .select("*, rfq_award_items:rfq_award_items(*)")
         .eq("rfq_id", rfqId)
         .order("created_at", { ascending: false });

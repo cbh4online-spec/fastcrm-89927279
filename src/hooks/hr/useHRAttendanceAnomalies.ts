@@ -32,7 +32,7 @@ export function useHRAttendanceAnomalies(filters?: {
     queryKey: ["hr-attendance-anomalies", wsId, filters],
     queryFn: async () => {
       let q = supabase
-        .from("hr_attendance_anomalies" as any)
+        .from("hr_attendance_anomalies")
         .select("*, hr_employees(full_name, department)")
         .eq("workspace_id", wsId!)
         .order("anomaly_date", { ascending: false })
@@ -69,7 +69,7 @@ export function useResolveAnomaly() {
       } = await supabase.auth.getUser();
 
       const { error } = await supabase
-        .from("hr_attendance_anomalies" as any)
+        .from("hr_attendance_anomalies")
         .update({
           resolved: true,
           resolved_at: new Date().toISOString(),
@@ -98,7 +98,7 @@ export function useAnomalyStats() {
     queryKey: ["hr-anomaly-stats", wsId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_attendance_anomalies" as any)
+        .from("hr_attendance_anomalies")
         .select("anomaly_type, severity, resolved")
         .eq("workspace_id", wsId!)
         .eq("resolved", false);

@@ -44,7 +44,7 @@ export function StoreLiveSalesNotification({ workspaceId, products }: StoreLiveS
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data } = await supabase
-        .from("store_orders" as any)
+        .from("store_orders")
         .select("customer_name, created_at, items")
         .eq("workspace_id", workspaceId)
         .gte("created_at", since)

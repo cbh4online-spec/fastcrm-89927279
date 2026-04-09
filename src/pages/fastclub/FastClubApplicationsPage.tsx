@@ -86,7 +86,7 @@ export default function FastClubApplicationsPage() {
     queryKey: ["fastclub-applications", currentWorkspace?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("fastclub_applications" as any)
+        .from("fastclub_applications")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -99,7 +99,7 @@ export default function FastClubApplicationsPage() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
-        .from("fastclub_applications" as any)
+        .from("fastclub_applications")
         .update({ status, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;

@@ -34,7 +34,7 @@ export function useAccountBriefSegments() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await (supabase
-        .from("account_brief_segments" as any)
+        .from("account_brief_segments")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false }) as any);
@@ -48,7 +48,7 @@ export function useAccountBriefSegments() {
     mutationFn: async ({ name, filterJson, isDynamic }: { name: string; filterJson: Record<string, unknown>; isDynamic: boolean }) => {
       if (!workspaceId || !user) throw new Error("Workspace não encontrado");
       const { data, error } = await (supabase
-        .from("account_brief_segments" as any)
+        .from("account_brief_segments")
         .insert({
           workspace_id: workspaceId,
           name,
@@ -75,7 +75,7 @@ export function useAccountBriefSegments() {
       if (name) updates.name = name;
       if (filterJson) updates.filter_json = filterJson;
       const { error } = await (supabase
-        .from("account_brief_segments" as any)
+        .from("account_brief_segments")
         .update(updates)
         .eq("id", id) as any);
       if (error) throw error;
@@ -89,7 +89,7 @@ export function useAccountBriefSegments() {
   const deleteSegment = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase
-        .from("account_brief_segments" as any)
+        .from("account_brief_segments")
         .delete()
         .eq("id", id) as any);
       if (error) throw error;
@@ -105,7 +105,7 @@ export function useAccountBriefSegments() {
       if (!workspaceId) throw new Error("Workspace não encontrado");
       // Clear existing members
       await (supabase
-        .from("account_brief_segment_members" as any)
+        .from("account_brief_segment_members")
         .delete()
         .eq("segment_id", segmentId) as any);
       // Insert new members
@@ -116,13 +116,13 @@ export function useAccountBriefSegments() {
           account_id: accountId,
         }));
         const { error } = await (supabase
-          .from("account_brief_segment_members" as any)
+          .from("account_brief_segment_members")
           .insert(rows) as any);
         if (error) throw error;
       }
       // Update count
       await (supabase
-        .from("account_brief_segments" as any)
+        .from("account_brief_segments")
         .update({ member_count: accountIds.length, updated_at: new Date().toISOString() })
         .eq("id", segmentId) as any);
     },

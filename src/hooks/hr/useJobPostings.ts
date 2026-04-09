@@ -34,7 +34,7 @@ export function useJobPostings(statusFilter?: string) {
     queryKey: ["hr-job-postings", wsId, statusFilter],
     queryFn: async () => {
       let q = supabase
-        .from("hr_job_postings" as any)
+        .from("hr_job_postings")
         .select("*")
         .eq("workspace_id", wsId!)
         .order("created_at", { ascending: false });
@@ -54,7 +54,7 @@ export function useJobPosting(id: string | undefined) {
     queryKey: ["hr-job-posting", wsId, id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("hr_job_postings" as any)
+        .from("hr_job_postings")
         .select("*")
         .eq("id", id!)
         .single();
@@ -72,7 +72,7 @@ export function useCreateJobPosting() {
   return useMutation({
     mutationFn: async (values: Partial<JobPosting>) => {
       const { data, error } = await supabase
-        .from("hr_job_postings" as any)
+        .from("hr_job_postings")
         .insert({ ...values, workspace_id: wsId })
         .select()
         .single();
@@ -94,7 +94,7 @@ export function useUpdateJobPosting() {
   return useMutation({
     mutationFn: async ({ id, ...values }: Partial<JobPosting> & { id: string }) => {
       const { data, error } = await supabase
-        .from("hr_job_postings" as any)
+        .from("hr_job_postings")
         .update(values)
         .eq("id", id)
         .select()
@@ -117,7 +117,7 @@ export function useDeleteJobPosting() {
   const wsId = currentWorkspace?.id;
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("hr_job_postings" as any).delete().eq("id", id);
+      const { error } = await supabase.from("hr_job_postings").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -20,7 +20,7 @@ export function useRFQAuditLog(rfqId: string | undefined) {
       if (!rfqId) return [];
 
       const { data, error } = await (supabase
-        .from("rfq_audit_log" as any)
+        .from("rfq_audit_log")
         .select("id, workspace_id, rfq_id, changed_by, changed_at, field_name, old_value, new_value, profile:changed_by(email)")
         .eq("rfq_id", rfqId)
         .order("changed_at", { ascending: false })

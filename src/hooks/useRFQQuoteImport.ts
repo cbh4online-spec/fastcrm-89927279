@@ -79,7 +79,7 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
     const fileType = ["jpg", "jpeg"].includes(ext) ? "jpg" : ext === "png" ? "png" : "pdf";
 
     const { data: record, error: insertErr } = await supabase
-      .from("rfq_quote_imports" as any)
+      .from("rfq_quote_imports")
       .insert({
         workspace_id: workspaceId,
         rfq_id: rfqId,
@@ -128,7 +128,7 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
     queryFn: async () => {
       if (!importId) return [];
       const { data, error } = await supabase
-        .from("rfq_quote_import_lines" as any)
+        .from("rfq_quote_import_lines")
         .select("*")
         .eq("import_id", importId)
         .order("line_no");
