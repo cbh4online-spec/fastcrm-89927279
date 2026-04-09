@@ -27,7 +27,7 @@ export function useSystemMetrics(days = 30) {
       if (!workspaceId) return [];
       const since = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
       const { data, error } = await supabase
-        .from('system_metrics_daily' as any)
+        .from('system_metrics_daily')
         .select('*')
         .eq('workspace_id', workspaceId)
         .gte('metric_date', since)

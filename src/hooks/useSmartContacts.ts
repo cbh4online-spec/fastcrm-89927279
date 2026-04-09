@@ -38,6 +38,29 @@ export interface SmartContact {
   automation_active: boolean;
   hoursSinceLastContact: number | null;
   slaBreach: boolean;
+  // Extended contact fields
+  commercial_name?: string | null;
+  lead_source?: string | null;
+  address?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  tax_id?: string | null;
+  business_area?: string | null;
+  cae_code?: string | null;
+  cae_description?: string | null;
+  whatsapp_number?: string | null;
+  linkedin_url?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  twitter_url?: string | null;
+  client_status?: string | null;
+  client_types?: string[] | null;
+  abc_category?: string | null;
+  fiscal_regime?: string | null;
+  payment_conditions?: string | null;
+  preferred_payment_method?: string | null;
+  entity_type?: string | null;
 }
 
 export interface SmartContactsFilters {
@@ -136,7 +159,7 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const contacts: SmartContact[] = (data || []).map((c: any) => {
+      const contacts: SmartContact[] = (data || []).map((c) => {
         const lastContact = c.last_contact_at ? new Date(c.last_contact_at) : null;
         const hoursSinceLastContact = lastContact ? differenceInHours(now, lastContact) : null;
         const companyName = c.companies?.name || c.company || null;

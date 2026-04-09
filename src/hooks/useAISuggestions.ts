@@ -19,7 +19,7 @@ export function useAISuggestionsHub(filters?: {
       if (!currentWorkspace?.id) return [];
 
       let query = (supabase
-        .from('ai_field_suggestions' as any)
+        .from('ai_field_suggestions')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'pending')
@@ -54,7 +54,7 @@ export function useEntitySuggestions(entityType: SuggestionEntityType, entityId:
       if (!entityId || !currentWorkspace?.id) return [];
 
       const { data, error } = await (supabase
-        .from('ai_field_suggestions' as any)
+        .from('ai_field_suggestions')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('entity_type', entityType)
@@ -83,18 +83,18 @@ export function useSuggestionHubStats() {
 
       const [pendingResult, acceptedResult, dismissedResult] = await Promise.all([
         (supabase
-          .from('ai_field_suggestions' as any)
+          .from('ai_field_suggestions')
           .select('suggestion_type')
           .eq('workspace_id', currentWorkspace.id)
           .eq('status', 'pending') as any),
         (supabase
-          .from('ai_field_suggestions' as any)
+          .from('ai_field_suggestions')
           .select('id', { count: 'exact', head: true })
           .eq('workspace_id', currentWorkspace.id)
           .in('status', ['accepted', 'applied'])
           .gte('updated_at', sevenDaysAgo) as any),
         (supabase
-          .from('ai_field_suggestions' as any)
+          .from('ai_field_suggestions')
           .select('id', { count: 'exact', head: true })
           .eq('workspace_id', currentWorkspace.id)
           .eq('status', 'dismissed')
@@ -125,7 +125,7 @@ export function useAcceptSuggestionHub() {
     mutationFn: async (suggestion: AISuggestion) => {
       // Mark as accepted
       await (supabase
-        .from('ai_field_suggestions' as any)
+        .from('ai_field_suggestions')
         .update({ status: 'accepted', applied_at: new Date().toISOString() } as any)
         .eq('id', suggestion.id) as any);
 
@@ -152,7 +152,7 @@ export function useAcceptSuggestionHub() {
           }
 
           await (supabase
-            .from('ai_field_suggestions' as any)
+            .from('ai_field_suggestions')
             .update({ status: 'applied' } as any)
             .eq('id', suggestion.id) as any);
         }
@@ -162,7 +162,7 @@ export function useAcceptSuggestionHub() {
       if (suggestion.suggestion_type === 'field_value' && suggestion.entity_id) {
         // Field values are applied via the existing useAcceptSuggestion in useFieldSuggestions
         await (supabase
-          .from('ai_field_suggestions' as any)
+          .from('ai_field_suggestions')
           .update({ status: 'applied' } as any)
           .eq('id', suggestion.id) as any);
       }
@@ -182,7 +182,7 @@ export function useDismissSuggestionHub() {
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
       const { error } = await (supabase
-        .from('ai_field_suggestions' as any)
+        .from('ai_field_suggestions')
         .update({
           status: 'dismissed',
           dismissed_at: new Date().toISOString(),

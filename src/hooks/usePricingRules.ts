@@ -91,7 +91,7 @@ export function useTogglePricingRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase.from("pricing_rules").update({ is_active: isActive } as any).eq("id", id);
+      const { error } = await supabase.from("pricing_rules").update({ is_active: isActive }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

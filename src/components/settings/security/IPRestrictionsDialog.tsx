@@ -151,7 +151,7 @@ export function IPRestrictionsDialog({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { error } = await supabase
         .from("ip_restrictions")
-        .update({ is_active: isActive } as any)
+        .update({ is_active: isActive })
         .eq("id", id);
 
       if (error) throw error;

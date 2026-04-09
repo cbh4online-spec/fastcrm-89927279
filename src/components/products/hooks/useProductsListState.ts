@@ -202,7 +202,7 @@ export function useProductsListState() {
     mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
       const { error } = await supabase
         .from("products")
-        .update({ store_published: published } as any)
+        .update({ store_published: published })
         .eq("id", id);
       if (error) throw error;
     },
@@ -495,7 +495,7 @@ export function useProductsListState() {
     if (selected.length === 0) return;
     const { error } = await supabase
       .from("products")
-      .update({ store_published: published } as any)
+      .update({ store_published: published })
       .in("id", selectedIds);
     if (error) {
       toast.error("Erro ao atualizar visibilidade em massa");

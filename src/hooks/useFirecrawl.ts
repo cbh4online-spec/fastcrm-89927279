@@ -103,7 +103,7 @@ export function useCompetitors() {
     queryKey: ['competitors', workspaceId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('competitors' as any)
+        .from('competitors')
         .select('*')
         .eq('workspace_id', workspaceId!)
         .eq('is_active', true)
@@ -139,7 +139,7 @@ export function useAddCompetitor() {
       notes?: string
     }) => {
       const { data, error } = await supabase
-        .from('competitors' as any)
+        .from('competitors')
         .insert({
           workspace_id: currentWorkspace?.id,
           name: params.name,
@@ -187,7 +187,7 @@ export function useCompetitorSnapshots(competitorId: string) {
     queryKey: ['competitor-snapshots', competitorId],
     queryFn: async () => {
       const { data } = await supabase
-        .from('competitor_snapshots' as any)
+        .from('competitor_snapshots')
         .select('*')
         .eq('competitor_id', competitorId)
         .eq('workspace_id', currentWorkspace?.id!)

@@ -57,7 +57,7 @@ export function useSupplierFeeds() {
     queryKey: ['supplier_feeds', workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await (supabase.from('supplier_feeds' as any).select('*') as any)
+      const { data, error } = await (supabase.from('supplier_feeds').select('*') as any)
         .eq('workspace_id', workspaceId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -70,7 +70,7 @@ export function useSupplierFeeds() {
   const createFeed = useMutation({
     mutationFn: async (config: Partial<SupplierFeed>) => {
       if (!workspaceId) throw new Error('No workspace');
-      const { error } = await (supabase.from('supplier_feeds' as any).insert as any)({
+      const { error } = await (supabase.from('supplier_feeds').insert as any)({
         workspace_id: workspaceId,
         ...config,
       });
@@ -85,7 +85,7 @@ export function useSupplierFeeds() {
 
   const updateFeed = useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<SupplierFeed>) => {
-      const { error } = await (supabase.from('supplier_feeds' as any).update as any)({
+      const { error } = await (supabase.from('supplier_feeds').update as any)({
         ...updates,
         updated_at: new Date().toISOString(),
       }).eq('id', id);
@@ -100,7 +100,7 @@ export function useSupplierFeeds() {
 
   const deleteFeed = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from('supplier_feeds' as any).update as any)({
+      const { error } = await (supabase.from('supplier_feeds').update as any)({
         is_active: false,
         updated_at: new Date().toISOString(),
       }).eq('id', id);
@@ -167,7 +167,7 @@ export function useSupplierFeedLogs(feedId: string | undefined) {
     queryKey: ['supplier_feed_logs', feedId],
     queryFn: async () => {
       if (!feedId) return [];
-      const { data, error } = await (supabase.from('supplier_feed_logs' as any).select('*') as any)
+      const { data, error } = await (supabase.from('supplier_feed_logs').select('*') as any)
         .eq('feed_id', feedId)
         .order('started_at', { ascending: false })
         .limit(20);

@@ -52,7 +52,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('entity_documents' as any)
+        .from('entity_documents')
         .select('*')
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
@@ -81,7 +81,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
       const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase
-        .from('entity_documents' as any)
+        .from('entity_documents')
         .insert({
           entity_type: entityType,
           entity_id: entityId,
@@ -124,7 +124,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
         if (path) await supabase.storage.from('entity-documents').remove([decodeURIComponent(path)]);
       }
       const { error } = await supabase
-        .from('entity_documents' as any)
+        .from('entity_documents')
         .delete()
         .eq('id', doc.id);
       if (error) throw error;
@@ -153,7 +153,7 @@ function useEntityDocuments(entityType: string, entityId: string) {
   const moveToFolder = useMutation({
     mutationFn: async ({ docId, folder }: { docId: string; folder: string | null }) => {
       const { error } = await supabase
-        .from('entity_documents' as any)
+        .from('entity_documents')
         .update({ folder })
         .eq('id', docId);
       if (error) throw error;

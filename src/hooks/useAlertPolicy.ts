@@ -20,7 +20,7 @@ export function useAlertPolicy() {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data, error } = await supabase
-        .from('alert_policy' as any)
+        .from('alert_policy')
         .select('*')
         .eq('workspace_id', workspaceId)
         .maybeSingle();
@@ -34,7 +34,7 @@ export function useAlertPolicy() {
     mutationFn: async (updates: Partial<Omit<AlertPolicy, 'workspace_id'>>) => {
       if (!workspaceId) throw new Error('No workspace');
       const { error } = await supabase
-        .from('alert_policy' as any)
+        .from('alert_policy')
         .upsert({
           workspace_id: workspaceId,
           ...updates,

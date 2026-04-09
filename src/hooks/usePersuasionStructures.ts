@@ -36,7 +36,7 @@ export function useStructures() {
     queryKey: ['persuasion-structures'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('persuasion_structures' as any)
+        .from('persuasion_structures')
         .select('*')
         .order('key');
       if (error) throw error;
@@ -52,7 +52,7 @@ export function useStructureStats() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('workspace_structure_stats' as any)
+        .from('workspace_structure_stats')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('score', { ascending: false });

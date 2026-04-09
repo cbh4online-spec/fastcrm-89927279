@@ -13,7 +13,7 @@ export function useJobs() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from('jobs' as any)
+        .from('jobs')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
@@ -27,7 +27,7 @@ export function useJobs() {
   const createJob = useMutation({
     mutationFn: async (job: { type: string; payload_json?: Record<string, unknown>; run_after?: string }) => {
       if (!workspaceId) throw new Error('No workspace');
-      const { error } = await supabase.from('jobs' as any).insert({
+      const { error } = await supabase.from('jobs').insert({
         workspace_id: workspaceId,
         type: job.type,
         payload_json: job.payload_json ?? { workspace_id: workspaceId },

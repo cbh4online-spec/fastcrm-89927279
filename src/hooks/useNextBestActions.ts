@@ -63,7 +63,7 @@ export function useNextBestActions(filters?: { status?: string; entity_type?: st
     queryFn: async () => {
       if (!wid) return [];
       let q = supabase
-        .from('next_best_actions' as any)
+        .from('next_best_actions')
         .select('*')
         .eq('workspace_id', wid)
         .order('priority_score', { ascending: false })
@@ -110,7 +110,7 @@ export function useNBASettings() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from('next_best_action_settings' as any)
+        .from('next_best_action_settings')
         .select('*')
         .eq('workspace_id', wid)
         .maybeSingle();
@@ -124,7 +124,7 @@ export function useNBASettings() {
     mutationFn: async (updates: Partial<NBASettings>) => {
       if (!wid) throw new Error('No workspace');
       const { error } = await supabase
-        .from('next_best_action_settings' as any)
+        .from('next_best_action_settings')
         .upsert({ workspace_id: wid, ...updates, updated_at: new Date().toISOString() } as any, { onConflict: 'workspace_id' });
       if (error) throw error;
     },
@@ -147,13 +147,13 @@ export function useActOnNBA() {
 
       // Update status
       const { error } = await supabase
-        .from('next_best_actions' as any)
+        .from('next_best_actions')
         .update({ status: 'acted', acted_at: now, updated_at: now } as any)
         .eq('id', action.id);
       if (error) throw error;
 
       // Log
-      await supabase.from('next_best_action_logs' as any).insert({
+      await supabase.from('next_best_action_logs').insert({
         workspace_id: wid,
         action_id: action.id,
         event_type: 'acted',
@@ -189,12 +189,12 @@ export function useDismissNBA() {
       const now = new Date().toISOString();
 
       const { error } = await supabase
-        .from('next_best_actions' as any)
+        .from('next_best_actions')
         .update({ status: 'dismissed', dismissed_at: now, updated_at: now } as any)
         .eq('id', action.id);
       if (error) throw error;
 
-      await supabase.from('next_best_action_logs' as any).insert({
+      await supabase.from('next_best_action_logs').insert({
         workspace_id: wid,
         action_id: action.id,
         event_type: 'dismissed',
@@ -227,7 +227,7 @@ export function useNBAStats() {
       if (!wid) return { open: 0, acted_today: 0, potential_revenue: 0, overdue: 0 };
 
       const { data: all } = await supabase
-        .from('next_best_actions' as any)
+        .from('next_best_actions')
         .select('status, impact_estimate, due_at, acted_at')
         .eq('workspace_id', wid)
         .in('status', ['open', 'acted']);
@@ -260,7 +260,7 @@ export function useNBALogs(actionId?: string) {
     queryFn: async () => {
       if (!wid) return [];
       let q = supabase
-        .from('next_best_action_logs' as any)
+        .from('next_best_action_logs')
         .select('*')
         .eq('workspace_id', wid)
         .order('created_at', { ascending: false })

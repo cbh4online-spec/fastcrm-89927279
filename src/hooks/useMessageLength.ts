@@ -35,7 +35,7 @@ export function useLeadBehaviorSignals(contactId?: string, leadId?: string) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return null;
       let query = supabase
-        .from('lead_behavior_signals' as any)
+        .from('lead_behavior_signals')
         .select('*')
         .eq('workspace_id', currentWorkspace.id);
       if (contactId) query = query.eq('contact_id', contactId);
@@ -105,7 +105,7 @@ export function useStructureLengthStats() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('workspace_structure_stats' as any)
+        .from('workspace_structure_stats')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .not('chosen_length', 'is', null)

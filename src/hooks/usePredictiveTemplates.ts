@@ -26,7 +26,7 @@ export function useTemplateVariants(templateId?: string) {
     queryFn: async () => {
       if (!templateId || !currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('communication_template_variants' as any)
+        .from('communication_template_variants')
         .select('*')
         .eq('template_id', templateId)
         .eq('workspace_id', currentWorkspace.id)
@@ -44,7 +44,7 @@ export function useCreateVariant() {
   return useMutation({
     mutationFn: async (variant: Omit<TemplateVariant, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('communication_template_variants' as any)
+        .from('communication_template_variants')
         .insert(variant as any)
         .select()
         .single();
@@ -92,7 +92,7 @@ export function useWorkspaceTemplateStats(templateId?: string) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       let query = supabase
-        .from('workspace_template_stats' as any)
+        .from('workspace_template_stats')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('score', { ascending: false });

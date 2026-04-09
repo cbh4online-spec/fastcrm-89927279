@@ -15,7 +15,7 @@ export function useWorkspaceState() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from('workspace_operating_state' as any)
+        .from('workspace_operating_state')
         .select('*')
         .eq('workspace_id', wid)
         .maybeSingle();
@@ -48,7 +48,7 @@ export function useWorkspaceMissions(statusFilter?: string[]) {
     queryKey: ['workspace-missions', wid, statusFilter],
     queryFn: async () => {
       if (!wid) return [];
-      let q = supabase.from('workspace_missions' as any).select('*').eq('workspace_id', wid).order('created_at', { ascending: false }).limit(50);
+      let q = supabase.from('workspace_missions').select('*').eq('workspace_id', wid).order('created_at', { ascending: false }).limit(50);
       if (statusFilter?.length) q = q.in('status', statusFilter);
       const { data, error } = await q;
       if (error) throw error;
@@ -81,7 +81,7 @@ export function useWorkspaceAlerts() {
     queryFn: async () => {
       if (!wid) return [];
       const { data, error } = await supabase
-        .from('workspace_alerts' as any)
+        .from('workspace_alerts')
         .select('*')
         .eq('workspace_id', wid)
         .in('status', ['open', 'acknowledged'])
@@ -117,7 +117,7 @@ export function useWorkspaceEngineSettings() {
     queryFn: async () => {
       if (!wid) return null;
       const { data, error } = await supabase
-        .from('workspace_engine_settings' as any)
+        .from('workspace_engine_settings')
         .select('*')
         .eq('workspace_id', wid)
         .maybeSingle();
@@ -130,7 +130,7 @@ export function useWorkspaceEngineSettings() {
   const upsert = useMutation({
     mutationFn: async (values: Record<string, any>) => {
       if (!wid) throw new Error('No workspace');
-      const { error } = await supabase.from('workspace_engine_settings' as any).upsert({
+      const { error } = await supabase.from('workspace_engine_settings').upsert({
         workspace_id: wid,
         ...values,
         updated_at: new Date().toISOString(),
@@ -200,7 +200,7 @@ export function useResolveMission() {
 
   return useMutation({
     mutationFn: async (missionId: string) => {
-      const { error } = await supabase.from('workspace_missions' as any)
+      const { error } = await supabase.from('workspace_missions')
         .update({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', missionId);
       if (error) throw error;
@@ -220,7 +220,7 @@ export function useResolveAlert() {
 
   return useMutation({
     mutationFn: async (alertId: string) => {
-      const { error } = await supabase.from('workspace_alerts' as any)
+      const { error } = await supabase.from('workspace_alerts')
         .update({ status: 'resolved', resolved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', alertId);
       if (error) throw error;

@@ -100,7 +100,7 @@ export default function PublicBookingPage() {
     async function fetchPage() {
       if (!slug) return;
       const { data, error: err } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .select('*')
         .eq('slug', slug)
         .eq('is_active', true)
@@ -131,8 +131,8 @@ export default function PublicBookingPage() {
 
       if (pageData.availability_id) {
         const [slotsRes, exceptionsRes] = await Promise.all([
-          supabase.from('availability_slots' as any).select('day_of_week, start_time, end_time').eq('availability_id', pageData.availability_id),
-          supabase.from('availability_exceptions' as any).select('exception_date, is_blocked').eq('availability_id', pageData.availability_id),
+          supabase.from('availability_slots').select('day_of_week, start_time, end_time').eq('availability_id', pageData.availability_id),
+          supabase.from('availability_exceptions').select('exception_date, is_blocked').eq('availability_id', pageData.availability_id),
         ]);
         if (slotsRes.data) setAvailSlots(slotsRes.data as unknown as AvailabilitySlot[]);
         if (exceptionsRes.data) setAvailExceptions(exceptionsRes.data as unknown as AvailabilityException[]);

@@ -41,7 +41,7 @@ export function useMeetingIntelligence(recordingId: string | undefined) {
       if (!recordingId) return null;
       
       const { data, error } = await supabase
-        .from('meeting_ai_analysis' as any)
+        .from('meeting_ai_analysis')
         .select('*')
         .eq('recording_id', recordingId)
         .maybeSingle();

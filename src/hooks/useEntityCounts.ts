@@ -110,7 +110,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
       // Count files (entity_documents)
       let filesCount = 0;
       const filesResult = await (supabase
-        .from('entity_documents' as any)
+        .from('entity_documents')
         .select('id') as any)
         .eq('entity_type', entityType)
         .eq('entity_id', entityId);
@@ -119,7 +119,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
       // Count notes (entity_notes)
       let notesCount = 0;
       const notesResult = await (supabase
-        .from('entity_notes' as any)
+        .from('entity_notes')
         .select('id') as any)
         .eq('entity_type', entityType)
         .eq('entity_id', entityId);

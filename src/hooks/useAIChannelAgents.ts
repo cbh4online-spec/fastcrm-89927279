@@ -71,7 +71,7 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
     
     try {
       const { data, error: fetchError } = await (supabase
-        .from('ai_agents' as any)
+        .from('ai_agents')
         .select(`
           *,
           ai_personas:persona_id (id, name, tone_of_voice),
@@ -99,7 +99,7 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
     
     try {
       const { data, error: fetchError } = await (supabase
-        .from('ai_agents' as any)
+        .from('ai_agents')
         .select(`
           *,
           ai_personas:persona_id (id, name, tone_of_voice),
@@ -143,7 +143,7 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
       };
 
       const { data: newAgent, error: insertError } = await (supabase
-        .from('ai_agents' as any)
+        .from('ai_agents')
         .insert(insertData)
         .select(`
           *,
@@ -196,7 +196,7 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
       updateData.updated_at = new Date().toISOString();
 
       const { error: updateError } = await (supabase
-        .from('ai_agents' as any)
+        .from('ai_agents')
         .update(updateData)
         .eq('id', id) as any);
 
@@ -233,7 +233,7 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
   const deleteAgent = useCallback(async (id: string): Promise<boolean> => {
     try {
       const { error: deleteError } = await (supabase
-        .from('ai_agents' as any)
+        .from('ai_agents')
         .delete()
         .eq('id', id) as any);
 

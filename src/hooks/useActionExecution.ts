@@ -88,7 +88,7 @@ export function useActionExecutions(filters?: Record<string, string>) {
     queryFn: async () => {
       if (!workspaceId) return [];
       let query = supabase
-        .from('action_executions' as any)
+        .from('action_executions')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
@@ -121,13 +121,13 @@ export function useActionStats() {
       const todayISO = today.toISOString();
 
       const [pendingRes, completedTodayRes, failedRes, approvalsRes] = await Promise.all([
-        supabase.from('action_executions' as any).select('id', { count: 'exact', head: true })
+        supabase.from('action_executions').select('id', { count: 'exact', head: true })
           .eq('workspace_id', workspaceId).eq('status', 'pending'),
-        supabase.from('action_executions' as any).select('id', { count: 'exact', head: true })
+        supabase.from('action_executions').select('id', { count: 'exact', head: true })
           .eq('workspace_id', workspaceId).eq('status', 'completed').gte('executed_at', todayISO),
-        supabase.from('action_executions' as any).select('id', { count: 'exact', head: true })
+        supabase.from('action_executions').select('id', { count: 'exact', head: true })
           .eq('workspace_id', workspaceId).eq('status', 'failed'),
-        supabase.from('action_approvals' as any).select('id', { count: 'exact', head: true })
+        supabase.from('action_approvals').select('id', { count: 'exact', head: true })
           .eq('workspace_id', workspaceId).eq('approval_status', 'pending'),
       ]);
 
@@ -152,7 +152,7 @@ export function useActionApprovals() {
     queryFn: async () => {
       if (!workspaceId) return [];
       const { data, error } = await supabase
-        .from('action_approvals' as any)
+        .from('action_approvals')
         .select('*, action_executions(*)')
         .eq('workspace_id', workspaceId)
         .eq('approval_status', 'pending')
@@ -174,7 +174,7 @@ export function useApproveAction() {
       if (!currentWorkspace?.id || !user?.id) throw new Error('No context');
 
       await supabase
-        .from('action_approvals' as any)
+        .from('action_approvals')
         .update({
           approval_status: 'approved',
           approved_by: user.id,
@@ -185,7 +185,7 @@ export function useApproveAction() {
 
       // Get the execution and re-trigger it
       const { data: approval } = await supabase
-        .from('action_approvals' as any)
+        .from('action_approvals')
         .select('action_execution_id')
         .eq('id', approvalId)
         .single();
@@ -219,7 +219,7 @@ export function useRejectAction() {
       if (!currentWorkspace?.id || !user?.id) throw new Error('No context');
 
       await supabase
-        .from('action_approvals' as any)
+        .from('action_approvals')
         .update({
           approval_status: 'rejected',
           approved_by: user.id,
@@ -231,14 +231,14 @@ export function useRejectAction() {
 
       // Cancel the execution
       const { data: approval } = await supabase
-        .from('action_approvals' as any)
+        .from('action_approvals')
         .select('action_execution_id')
         .eq('id', approvalId)
         .single();
 
       if (approval) {
         await supabase
-          .from('action_executions' as any)
+          .from('action_executions')
           .update({
             status: 'cancelled',
             cancelled_at: new Date().toISOString(),
@@ -267,7 +267,7 @@ export function useActionExecutionSettings() {
     queryFn: async () => {
       if (!workspaceId) return null;
       const { data } = await supabase
-        .from('action_execution_settings' as any)
+        .from('action_execution_settings')
         .select('*')
         .eq('workspace_id', workspaceId)
         .maybeSingle();
@@ -280,7 +280,7 @@ export function useActionExecutionSettings() {
     mutationFn: async (settings: Record<string, unknown>) => {
       if (!workspaceId) throw new Error('No workspace');
       const { error } = await supabase
-        .from('action_execution_settings' as any)
+        .from('action_execution_settings')
         .upsert({
           workspace_id: workspaceId,
           ...settings,

@@ -16,7 +16,7 @@ export function useKnowledgeDocuments(knowledgeBaseId: string | null) {
     queryFn: async () => {
       if (!knowledgeBaseId || !workspaceId) return [];
       const { data, error } = await (supabase
-        .from('knowledge_documents' as any)
+        .from('knowledge_documents')
         .select('*')
         .eq('knowledge_base_id', knowledgeBaseId)
         .eq('workspace_id', workspaceId)
@@ -50,7 +50,7 @@ export function useKnowledgeDocuments(knowledgeBaseId: string | null) {
 
       // Create document record
       const { data: doc, error: docError } = await (supabase
-        .from('knowledge_documents' as any)
+        .from('knowledge_documents')
         .insert({
           workspace_id: workspaceId,
           knowledge_base_id: knowledgeBaseId,
@@ -92,9 +92,9 @@ export function useKnowledgeDocuments(knowledgeBaseId: string | null) {
   const deleteMutation = useMutation({
     mutationFn: async (documentId: string) => {
       // Delete chunks first
-      await (supabase.from('knowledge_chunks' as any).delete().eq('document_id', documentId) as any);
+      await (supabase.from('knowledge_chunks').delete().eq('document_id', documentId) as any);
       // Delete document
-      const { error } = await (supabase.from('knowledge_documents' as any).delete().eq('id', documentId) as any);
+      const { error } = await (supabase.from('knowledge_documents').delete().eq('id', documentId) as any);
       if (error) throw error;
     },
     onSuccess: () => {

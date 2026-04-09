@@ -62,7 +62,7 @@ export function useSchedulingAnalytics() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .select('id, title, slug, is_active')
         .eq('workspace_id', currentWorkspace.id);
       if (error) throw error;

@@ -30,7 +30,7 @@ export function useTemplateActivityLogs(entityType?: string, entityId?: string) 
       if (!currentWorkspace) return [];
 
       let query = supabase
-        .from('template_activity_logs' as any)
+        .from('template_activity_logs')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
@@ -83,13 +83,13 @@ export function useLogTemplateActivity() {
       let name = templateName;
       if (!version || !name) {
         const { data: template } = await supabase
-          .from('templates' as any)
+          .from('templates')
           .select('name')
           .eq('id', templateId)
           .single();
         
         const { data: latestVersion } = await supabase
-          .from('template_versions' as any)
+          .from('template_versions')
           .select('version')
           .eq('template_id', templateId)
           .order('version', { ascending: false })
@@ -101,7 +101,7 @@ export function useLogTemplateActivity() {
       }
 
       const { data, error } = await supabase
-        .from('template_activity_logs' as any)
+        .from('template_activity_logs')
         .insert({
           workspace_id: currentWorkspace.id,
           template_id: templateId,
@@ -173,13 +173,13 @@ export function useApplyTemplate() {
 
       // Increment template usage
       const { data: current } = await supabase
-        .from('templates' as any)
+        .from('templates')
         .select('usage_count')
         .eq('id', templateId)
         .single();
 
       await supabase
-        .from('templates' as any)
+        .from('templates')
         .update({
           usage_count: ((current as any)?.usage_count || 0) + 1,
           last_used_at: new Date().toISOString(),

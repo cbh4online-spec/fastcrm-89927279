@@ -45,8 +45,10 @@ export function useLeadEnricherSettings() {
     queryFn: async (): Promise<LeadEnricherSettings> => {
       if (!currentWorkspace) return DEFAULT_SETTINGS;
 
-      const { data, error } = await workspaceClient
-        .from("lead_enricher_settings" as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wc = workspaceClient as any;
+      const { data, error } = await wc
+        .from("lead_enricher_settings")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();
@@ -54,21 +56,22 @@ export function useLeadEnricherSettings() {
       if (error) throw error;
       if (!data) return DEFAULT_SETTINGS;
 
+      const row = data as LeadEnricherSettings & { id?: string; workspace_id?: string };
       return {
-        id: (data as any).id,
-        workspace_id: (data as any).workspace_id,
-        google_enabled: (data as any).google_enabled,
-        linkedin_enabled: (data as any).linkedin_enabled,
-        webscraping_enabled: (data as any).webscraping_enabled,
-        auto_enrich_enabled: (data as any).auto_enrich_enabled,
-        email_validation_enabled: (data as any).email_validation_enabled,
-        google_places_enabled: (data as any).google_places_enabled ?? false,
-        nif_lookup_enabled: (data as any).nif_lookup_enabled ?? false,
-        instagram_enrich_enabled: (data as any).instagram_enrich_enabled ?? false,
-        icp_score_enabled: (data as any).icp_score_enabled ?? false,
-        default_prospecting_tone: (data as any).default_prospecting_tone ?? "casual",
-        service_offer: (data as any).service_offer ?? "",
-        service_pain_points: (data as any).service_pain_points ?? "",
+        id: row.id,
+        workspace_id: row.workspace_id,
+        google_enabled: row.google_enabled,
+        linkedin_enabled: row.linkedin_enabled,
+        webscraping_enabled: row.webscraping_enabled,
+        auto_enrich_enabled: row.auto_enrich_enabled,
+        email_validation_enabled: row.email_validation_enabled,
+        google_places_enabled: row.google_places_enabled ?? false,
+        nif_lookup_enabled: row.nif_lookup_enabled ?? false,
+        instagram_enrich_enabled: row.instagram_enrich_enabled ?? false,
+        icp_score_enabled: row.icp_score_enabled ?? false,
+        default_prospecting_tone: row.default_prospecting_tone ?? "casual",
+        service_offer: row.service_offer ?? "",
+        service_pain_points: row.service_pain_points ?? "",
       };
     },
     enabled: !!currentWorkspace,
@@ -78,22 +81,24 @@ export function useLeadEnricherSettings() {
     mutationFn: async (updates: Partial<LeadEnricherSettings>) => {
       if (!currentWorkspace) throw new Error("No workspace");
 
-      const { data: existing } = await workspaceClient
-        .from("lead_enricher_settings" as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wc = workspaceClient as any;
+      const { data: existing } = await wc
+        .from("lead_enricher_settings")
         .select("id")
         .eq("workspace_id", currentWorkspace.id)
         .maybeSingle();
 
       if (existing) {
-        const { error } = await workspaceClient
-          .from("lead_enricher_settings" as any)
-          .update(updates as any)
+        const { error } = await wc
+          .from("lead_enricher_settings")
+          .update(updates)
           .eq("workspace_id", currentWorkspace.id);
         if (error) throw error;
       } else {
-        const { error } = await workspaceClient
-          .from("lead_enricher_settings" as any)
-          .insert({ workspace_id: currentWorkspace.id, ...updates } as any);
+        const { error } = await wc
+          .from("lead_enricher_settings")
+          .insert({ workspace_id: currentWorkspace.id, ...updates });
         if (error) throw error;
       }
     },

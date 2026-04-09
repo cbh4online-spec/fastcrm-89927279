@@ -274,7 +274,7 @@ const actions: Action[] = [
     keywords: ['alertas', 'limpar', 'cleanup', 'antigos'],
     run: async (ctx) => {
       toast.info('A limpar alertas...');
-      const { error } = await supabase.from('jobs' as any).insert({
+      const { error } = await supabase.from('jobs').insert({
         workspace_id: ctx.workspaceId,
         type: 'cleanup_alerts',
         payload_json: { workspace_id: ctx.workspaceId },

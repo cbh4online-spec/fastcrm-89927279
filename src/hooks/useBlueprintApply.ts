@@ -246,7 +246,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
       }
 
       // Create audit log
-      await supabase.from('blueprint_apply_logs' as any).insert({
+      await supabase.from('blueprint_apply_logs').insert({
         workspace_id: currentWorkspace.id,
         blueprint_id: blueprint.id,
         applied_by: user.id,

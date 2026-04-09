@@ -75,7 +75,7 @@ export function WidgetConfigPanel({ widgetId, onClose }: WidgetConfigPanelProps)
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data } = await supabase
-        .from("ai_agents" as any)
+        .from('ai_agents')
         .select("id, name, channel, persona_id, flow_id")
         .eq("workspace_id", currentWorkspace.id)
         .eq("is_active", true);

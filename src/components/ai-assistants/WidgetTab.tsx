@@ -77,7 +77,7 @@ export function WidgetTab() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data } = await supabase
-        .from("ai_agents" as any)
+        .from('ai_agents')
         .select("id, name, channel")
         .eq("workspace_id", currentWorkspace.id)
         .eq("is_active", true);

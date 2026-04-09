@@ -44,7 +44,7 @@ export function useBookingPages() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false });
@@ -61,7 +61,7 @@ export function useCreateBookingPage() {
   return useMutation({
     mutationFn: async (data: CreateBookingPageData) => {
       const { data: result, error } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .insert({ ...data, workspace_id: currentWorkspace!.id } as any)
         .select()
         .single();
@@ -83,7 +83,7 @@ export function useUpdateBookingPage() {
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<BookingPage> & { id: string }) => {
       const { error } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .update({ ...data, updated_at: new Date().toISOString() } as any)
         .eq('id', id);
       if (error) throw error;
@@ -103,7 +103,7 @@ export function useDeleteBookingPage() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('booking_pages' as any)
+        .from('booking_pages')
         .delete()
         .eq('id', id);
       if (error) throw error;
