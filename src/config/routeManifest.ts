@@ -365,6 +365,8 @@ export function getSidebarItems(
     if (r.status !== "active") return false;
     if (r.moduleSlug && !installed.has(r.moduleSlug)) return false;
     if (r.menuKey && !canAccess(r.menuKey)) return false;
+    // Also check by route key for profile-level submenu permissions
+    if (!canAccess(r.key)) return false;
     return true;
   });
 }

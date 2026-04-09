@@ -53,7 +53,7 @@ export function useMenuPermissions() {
 
   // Combined check: role permission ∩ profile permission
   const canAccessMenu = (menuKey: string): boolean => {
-    // 1. Role-based check (existing logic)
+    // 1. Role-based check (existing logic — only applies to known role-menu entries)
     let roleAllowed = true;
     if (currentUserRole && permissions) {
       if (currentUserRole === "owner") {
@@ -62,11 +62,14 @@ export function useMenuPermissions() {
         const permission = permissions.find(
           p => p.role === currentUserRole && p.menu_key === menuKey
         );
-        roleAllowed = permission?.can_access ?? false;
+        // Only restrict if a role permission entry exists for this menu
+        if (permission !== undefined) {
+          roleAllowed = permission.can_access;
+        }
       }
     }
 
-    // 2. Profile-based check (new layer — intersection, never expands)
+    // 2. Profile-based check (checks both menuKey and route key)
     let profileAllowed = true;
     if (profilePerms && salesFunction) {
       const profilePerm = profilePerms.find(
