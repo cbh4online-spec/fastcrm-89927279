@@ -609,10 +609,10 @@ export function CompanyDetailWithSidebar() {
         counts={counts}
       />
 
-      {/* Main Content - 2 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
         {/* Center Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 lg:overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
               {activeSection === 'overview' && (
