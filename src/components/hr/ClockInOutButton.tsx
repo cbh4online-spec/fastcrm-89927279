@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Timer, AlertTriangle, Coffee, Play, MapPin } from "lucide-react";
+import { LogIn, LogOut, Timer, AlertTriangle, Coffee, Play } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/hr/useCurrentEmployee";
 import { useClockAction, useHRWorkSessions } from "@/hooks/hr/useHRTimeEntries";
 import { useWeatherLocation, getWeatherIcon } from "@/hooks/useWeatherLocation";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { toast } from "sonner";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(ms / 1000);
@@ -32,7 +33,8 @@ export function ClockInOutButton() {
   const clockAction = useClockAction();
   const today = format(new Date(), "yyyy-MM-dd");
   const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
-  const { city, temperature, weatherCode, isLoading: weatherLoading } = useWeatherLocation();
+  const { city, temperature, weatherCode } = useWeatherLocation();
+  const [isResolvingLocation, setIsResolvingLocation] = useState(false);
 
   const getLocation = async (): Promise<{ lat: number; lng: number; name: string | null } | null> => {
     if (!navigator.geolocation) return null;
@@ -44,7 +46,7 @@ export function ClockInOutButton() {
       );
     });
     if (!coords) return null;
-    // Reverse geocoding via OpenStreetMap Nominatim for precise locality
+
     let name: string | null = city || null;
     try {
       const res = await fetch(
@@ -56,22 +58,13 @@ export function ClockInOutButton() {
         const addr = data.address || {};
         name = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || addr.municipality || name;
       }
-    } catch { /* fallback to city from weather */ }
+    } catch {
+      // fallback to city from weather
+    }
+
     return { ...coords, name };
   };
 
-  const handleClock = async (entry_type: "clock_in" | "clock_out" | "break_start" | "break_end") => {
-    const loc = entry_type === "clock_in" ? await getLocation() : null;
-    clockAction.mutate({
-      employee_id: employeeId!,
-      entry_type,
-      method: "app",
-      ...(loc ? { location_lat: loc.lat, location_lng: loc.lng } : {}),
-      ...(loc?.name ? { location_name: loc.name } : {}),
-    });
-  };
-
-  // Find active session (no clock_out_at)
   const activeSession = useMemo(
     () => sessions.find((s) => s.clock_in_at && !s.clock_out_at),
     [sessions]
@@ -79,7 +72,6 @@ export function ClockInOutButton() {
   const isActive = !!activeSession;
   const onBreak = !!(activeSession?.break_start_at && !activeSession?.break_end_at);
 
-  // Completed sessions
   const completedSessions = useMemo(
     () => sessions.filter((s) => s.clock_out_at),
     [sessions]
@@ -92,6 +84,32 @@ export function ClockInOutButton() {
     () => completedSessions.reduce((sum, s) => sum + (s.break_minutes || (s.break_start_at ? 1 : 0)), 0),
     [completedSessions]
   );
+
+  const handleClock = async (entry_type: "clock_in" | "clock_out" | "break_start" | "break_end") => {
+    if (!employeeId || clockAction.isPending || isResolvingLocation) return;
+
+    if (entry_type === "clock_in" && activeSession) {
+      toast.warning("Já existe uma sessão aberta. Faça clock-out primeiro.");
+      return;
+    }
+
+    const shouldResolveLocation = entry_type === "clock_in";
+
+    try {
+      if (shouldResolveLocation) setIsResolvingLocation(true);
+      const loc = shouldResolveLocation ? await getLocation() : null;
+
+      await clockAction.mutateAsync({
+        employee_id: employeeId,
+        entry_type,
+        method: "app",
+        ...(loc ? { location_lat: loc.lat, location_lng: loc.lng } : {}),
+        ...(loc?.name ? { location_name: loc.name } : {}),
+      });
+    } finally {
+      if (shouldResolveLocation) setIsResolvingLocation(false);
+    }
+  };
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -111,6 +129,7 @@ export function ClockInOutButton() {
     : city
       ? `📍 ${city}`
       : null;
+  const isActionPending = clockAction.isPending || isResolvingLocation;
 
   if (!empLoading && !hasEmployee) {
     return (
@@ -126,7 +145,6 @@ export function ClockInOutButton() {
   return (
     <div className="flex flex-col gap-4 p-5 rounded-xl border bg-card shadow-sm">
       <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-        {/* Left — Clock & context */}
         <div className="flex flex-col items-center sm:items-start gap-1 min-w-0">
           <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
             {format(now, "HH:mm:ss", { locale: pt })}
@@ -138,7 +156,6 @@ export function ClockInOutButton() {
           )}
         </div>
 
-        {/* Center — Session timer */}
         {isActive && !onBreak && (
           <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
             <span className="relative flex h-2.5 w-2.5">
@@ -169,14 +186,13 @@ export function ClockInOutButton() {
           </div>
         )}
 
-        {/* Right — Action buttons */}
         <div className="sm:ml-auto flex gap-2">
           {isActive && onBreak ? (
             <Button
               size="lg"
               className="gap-2"
               onClick={() => handleClock("break_end")}
-              disabled={clockAction.isPending}
+              disabled={isActionPending}
             >
               <Play className="h-5 w-5" />
               Retomar
@@ -188,7 +204,7 @@ export function ClockInOutButton() {
                 variant="outline"
                 className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900/20"
                 onClick={() => handleClock("break_start")}
-                disabled={clockAction.isPending}
+                disabled={isActionPending}
               >
                 <Coffee className="h-5 w-5" />
                 Pausa
@@ -198,7 +214,7 @@ export function ClockInOutButton() {
                 variant="destructive"
                 className="gap-2"
                 onClick={() => handleClock("clock_out")}
-                disabled={clockAction.isPending}
+                disabled={isActionPending}
               >
                 <LogOut className="h-5 w-5" />
                 Terminar
@@ -209,16 +225,19 @@ export function ClockInOutButton() {
               size="lg"
               className="gap-2"
               onClick={() => handleClock("clock_in")}
-              disabled={clockAction.isPending || empLoading}
+              disabled={isActionPending || empLoading}
             >
               <LogIn className="h-5 w-5" />
-              {completedSessions.length > 0 ? "Retomar Trabalho" : "Iniciar Trabalho"}
+              {isResolvingLocation
+                ? "A obter localização..."
+                : completedSessions.length > 0
+                  ? "Retomar Trabalho"
+                  : "Iniciar Trabalho"}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Day summary — completed sessions */}
       {completedSessions.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-border/50">
           <span className="text-xs text-muted-foreground font-medium">Hoje:</span>
