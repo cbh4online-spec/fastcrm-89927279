@@ -118,8 +118,28 @@ export function AdaptiveDashboardProvider({ children }: { children: React.ReactN
   );
 }
 
+const defaultValue: AdaptiveDashboardContextValue = {
+  ageGroup: 'standard',
+  salesFunction: 'gestor',
+  realSalesFunction: 'gestor',
+  layoutConfig: {
+    textSizeClass: 'text-base',
+    showGamification: false,
+    metricsColumns: 4,
+    showBenchmarks: true,
+    showProjections: true,
+    maxAlerts: 5,
+    compactMode: false,
+  },
+  needsSetup: false,
+  isLoading: true,
+  profile: null,
+  isOverridden: false,
+  setSalesFunctionOverride: () => {},
+  clearOverride: () => {},
+};
+
 export function useAdaptiveDashboard() {
   const ctx = useContext(AdaptiveDashboardContext);
-  if (!ctx) throw new Error('useAdaptiveDashboard must be used within AdaptiveDashboardProvider');
-  return ctx;
+  return ctx ?? defaultValue;
 }
