@@ -28,6 +28,7 @@ type ClockActionResponse = {
   success?: boolean;
   fallback?: boolean;
   error?: string;
+  error_code?: string;
   recorded_at?: string;
   overtime_alert?: {
     exceeded: boolean;
@@ -43,6 +44,28 @@ type ClockActionResponse = {
     nearest_zone?: string;
   } | null;
 };
+
+const CLOCK_ACTION_BUSINESS_ERROR_CODES = new Set([
+  "OPEN_SESSION_EXISTS",
+  "NO_OPEN_SESSION",
+  "BREAK_ACTIVE",
+  "BREAK_ALREADY_STARTED",
+  "NO_ACTIVE_BREAK",
+]);
+
+const CLOCK_ACTION_BUSINESS_ERROR_MESSAGES = [
+  "Já existe uma sessão aberta",
+  "Nenhuma sessão aberta",
+  "Termine a pausa antes de fazer clock-out",
+  "Já está em pausa",
+  "Não existe pausa activa",
+];
+
+function isClockActionBusinessError(message: string, payload?: Partial<ClockActionResponse> | null) {
+  if (payload?.fallback || payload?.success === false) return true;
+  if (payload?.error_code && CLOCK_ACTION_BUSINESS_ERROR_CODES.has(payload.error_code)) return true;
+  return CLOCK_ACTION_BUSINESS_ERROR_MESSAGES.some((candidate) => message.includes(candidate));
+}
 
 export function useHRWorkSessions(employeeId?: string, startDate?: string, endDate?: string) {
   const { currentWorkspace } = useWorkspace();
@@ -88,6 +111,7 @@ export function useClockAction() {
 
       if (res.error) {
         let errorMsg = "Erro ao registar";
+        let errorPayload: Partial<ClockActionResponse> | null = null;
 
         try {
           if (res.error.context) {
@@ -95,6 +119,7 @@ export function useClockAction() {
             if (rawBody) {
               try {
                 const parsed = JSON.parse(rawBody);
+                errorPayload = parsed;
                 errorMsg = parsed?.error || rawBody || errorMsg;
               } catch {
                 errorMsg = rawBody || res.error.message || errorMsg;
@@ -107,6 +132,15 @@ export function useClockAction() {
           }
         } catch {
           errorMsg = res.error.message || errorMsg;
+        }
+
+        if (isClockActionBusinessError(errorMsg, errorPayload)) {
+          return {
+            success: false,
+            fallback: true,
+            error: errorPayload?.error || errorMsg,
+            error_code: errorPayload?.error_code,
+          } satisfies ClockActionResponse;
         }
 
         throw new Error(errorMsg);
