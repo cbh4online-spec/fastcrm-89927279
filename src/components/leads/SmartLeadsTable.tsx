@@ -151,7 +151,7 @@ export function SmartLeadsTable() {
     ]},
   ], [t]);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
     { id: "kanban", label: "Kanban" },
