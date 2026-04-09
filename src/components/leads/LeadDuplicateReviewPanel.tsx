@@ -203,12 +203,12 @@ export function LeadDuplicateReviewPanel() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch] pb-1">
         <Button
           variant={filter === "all" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("all")}
-          className="text-xs h-7"
+          className="text-xs h-7 shrink-0"
         >
           Todos ({groups.length})
         </Button>
@@ -216,7 +216,7 @@ export function LeadDuplicateReviewPanel() {
           variant={filter === "exact" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("exact")}
-          className="text-xs h-7 gap-1"
+          className="text-xs h-7 gap-1 shrink-0"
         >
           <Shield className="h-3 w-3" />
           Exactos ({exactCount})
@@ -225,7 +225,7 @@ export function LeadDuplicateReviewPanel() {
           variant={filter === "strong" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("strong")}
-          className="text-xs h-7 gap-1"
+          className="text-xs h-7 gap-1 shrink-0"
         >
           <AlertTriangle className="h-3 w-3" />
           Fortes ({strongCount})
@@ -234,7 +234,7 @@ export function LeadDuplicateReviewPanel() {
           variant={filter === "probable" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("probable")}
-          className="text-xs h-7 gap-1"
+          className="text-xs h-7 gap-1 shrink-0"
         >
           <Search className="h-3 w-3" />
           Prováveis ({probableCount})
