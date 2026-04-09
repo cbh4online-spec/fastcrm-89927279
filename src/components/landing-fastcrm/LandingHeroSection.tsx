@@ -88,51 +88,31 @@ export function LandingHeroSection() {
           transition={{ duration: 1, ease: [0.25, 0.4, 0.25, 1] }}
           className="space-y-8"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm text-sm font-semibold text-primary tracking-wide uppercase"
-          >
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            {t("hero.badge")}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6 }}
+              className="space-y-4"
+            >
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm text-sm font-semibold text-primary tracking-wide uppercase">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                CRM para {verticals[activeIndex].label}
+              </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
-            <motion.span
-              className="block"
-              initial={{ opacity: 0, x: -60 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.4, 0.25, 1] }}
-            >
-              {t("hero.title1")}
-            </motion.span>
-            <motion.span
-              className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.9, delay: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
-            >
-              {t("hero.title2")}
-            </motion.span>
-            <motion.span
-              className="block"
-              initial={{ opacity: 0, x: 60 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
-            >
-              {t("hero.title3")}
-            </motion.span>
-          </h1>
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
+                <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
+                  {verticals[activeIndex].headline}
+                </span>
+              </h1>
 
-          <motion.p
-            className="text-lg sm:text-xl text-[hsl(210,40%,90%)] max-w-2xl mx-auto leading-relaxed drop-shadow-md"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.9 }}
-          >
-            {t("hero.subtitle")}
-          </motion.p>
+              <p className="text-lg sm:text-xl text-[hsl(210,40%,90%)] max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+                {verticals[activeIndex].subtitle}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
           <motion.form
             id="hero-form"
