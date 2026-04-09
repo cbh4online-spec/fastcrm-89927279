@@ -199,7 +199,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("agent");
-    } catch (error: any) {
+    } catch (error) {
       console.warn('[WORKSPACES] INVITE_FAILED', error.message || error);
       toast.error(error.message || "Erro ao enviar convite");
     } finally {

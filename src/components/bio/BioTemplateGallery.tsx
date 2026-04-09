@@ -414,7 +414,7 @@ export function BioTemplateGallery({ open, onOpenChange, onPageCreated }: BioTem
         onPageCreated(page.id);
         toast.success("Template aplicado com sucesso!");
       }, 1500);
-    } catch (e: any) {
+    } catch (e) {
       console.error("Template apply error:", e);
       toast.error(e.message || "Erro ao aplicar template");
       setPhase("gallery");

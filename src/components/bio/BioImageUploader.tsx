@@ -74,7 +74,7 @@ export function BioImageUploader({ workspaceId, currentImage, onImageSelected, l
       onImageSelected(publicUrl);
       toast.success("Imagem carregada com sucesso!");
       setOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Upload error:", err);
       toast.error("Erro ao carregar imagem: " + (err.message || "Erro desconhecido"));
     } finally {
@@ -114,7 +114,7 @@ export function BioImageUploader({ workspaceId, currentImage, onImageSelected, l
         toast.success("Imagem gerada com sucesso!");
         setOpen(false);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Generate error:", err);
       toast.error("Erro ao gerar imagem: " + (err.message || "Erro desconhecido"));
     } finally {

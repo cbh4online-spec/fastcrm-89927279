@@ -154,7 +154,7 @@ export function AIProviderSettings() {
         if (data?.error) throw new Error(data.error);
         toast.success("Lovable AI OK ✓");
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`Erro ao testar ${provider}: ${e.message || "Erro desconhecido"}`);
     } finally {
       setTesting(null);

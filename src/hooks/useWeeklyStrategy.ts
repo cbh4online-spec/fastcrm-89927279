@@ -70,7 +70,7 @@ export function useWeeklyStrategy() {
       if (data?.strategy) {
         setStrategy(data.strategy);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Weekly strategy unexpected error:", err);
       toast.error("Erro ao gerar estratégia semanal");
     } finally {

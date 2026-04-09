@@ -33,7 +33,7 @@ export default function EbooksPage() {
       setShowBlankPicker(false);
       setSelectedId(ebook.id);
       toast.success("eBook criado!");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro: " + e.message);
     }
   };

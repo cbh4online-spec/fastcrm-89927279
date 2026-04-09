@@ -291,7 +291,7 @@ export default function GestoresPage() {
 
       toast.success(`${unassignedItems.length} ${entityType}s atribuídas a ${bestName} (matching + capacidade)`);
       invalidateAll();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Erro na auto-atribuição");
     }
   };
@@ -818,7 +818,7 @@ function BulkAssignDialog({ open, onOpenChange, members, workspaceId, workspaceC
       setTargetManager("");
       onAssigned();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Erro ao atribuir entidades.");
     } finally { setIsAssigning(false); }
   };
@@ -916,7 +916,7 @@ function RoundRobinDialog({ open, onOpenChange, members, workspaceId, workspaceC
       queryClient.invalidateQueries({ queryKey: ["rotation-groups"] });
       onDone();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Erro no Round Robin");
     } finally { setIsRunning(false); }
   };

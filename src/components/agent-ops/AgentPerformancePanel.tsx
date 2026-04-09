@@ -29,7 +29,7 @@ export function AgentPerformancePanel() {
       } else {
         toast.success("Supervisor: sem alertas");
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message || "Erro ao executar supervisor");
     } finally {
       setRunningCheck(false);

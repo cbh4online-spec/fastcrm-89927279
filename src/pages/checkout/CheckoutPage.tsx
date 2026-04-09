@@ -79,7 +79,7 @@ export default function CheckoutPage() {
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
       else toast.error("Erro ao criar sessão de pagamento");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message || "Erro no checkout");
     } finally {
       setProcessing(false);

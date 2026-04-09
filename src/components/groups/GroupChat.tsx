@@ -114,7 +114,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
     setText("");
     try {
       await sendMessage.mutateAsync({ groupId: group.id, content });
-    } catch (err: any) {
+    } catch (err) {
       setText(content);
       toast.error(err?.message || "Falha ao enviar mensagem");
     }
@@ -128,7 +128,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
         contentType: "product",
         productId: product.id,
       });
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Falha ao enviar produto");
     }
   };
@@ -428,7 +428,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
                   });
                   toast.success("Grupo atualizado");
                   setEditOpen(false);
-                } catch (err: any) {
+                } catch (err) {
                   toast.error(err.message);
                 }
               }}
@@ -456,7 +456,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
                   await deleteGroupMut.mutateAsync(group.id);
                   toast.success("Grupo apagado");
                   onBack();
-                } catch (err: any) {
+                } catch (err) {
                   toast.error(err.message);
                 }
               }}

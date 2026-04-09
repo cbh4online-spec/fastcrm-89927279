@@ -49,7 +49,7 @@ export function BioSmartLinkGenerator({ blockType, workspaceId, onGenerated }: B
       onGenerated(data.data);
       toast.success("Conteúdo gerado com IA!");
       setUrl("");
-    } catch (e: any) {
+    } catch (e) {
       console.error("Smart link error:", e);
       toast.error("Erro ao gerar: " + (e.message || "Tente novamente"));
     } finally {

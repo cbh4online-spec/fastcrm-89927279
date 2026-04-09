@@ -25,7 +25,7 @@ export function KernelDebugPanel() {
       });
       if (error) throw error;
       toast.success(`${fn} executado com sucesso`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(`Erro: ${err.message}`);
     } finally {
       setRunning(null);

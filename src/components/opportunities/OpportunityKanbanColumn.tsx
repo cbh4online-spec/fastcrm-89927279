@@ -96,7 +96,7 @@ export const OpportunityKanbanColumn = memo(function OpportunityKanbanColumn({
     try {
       await deleteStage.mutateAsync(stage.id);
       toast.success("Estágio removido");
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes("foreign key")) {
         toast.error("Não é possível remover estágio com oportunidades.");
       } else {

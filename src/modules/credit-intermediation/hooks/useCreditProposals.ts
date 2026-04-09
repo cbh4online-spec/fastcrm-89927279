@@ -160,7 +160,7 @@ export function useCreateCreditProposal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: CreditProposal) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       toast.success("Proposta de crédito criada com sucesso");
       console.debug(`[VERTICAL-CREDIT] Case created id=${data.id} ref=${data.reference_number} type=${data.credit_type}`);
@@ -211,7 +211,7 @@ export function useUpdateCreditProposal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any, variables: UpdateProposalInput) => {
+    onSuccess: (data: CreditProposal, variables: UpdateProposalInput) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       queryClient.invalidateQueries({ queryKey: ["credit-proposal", data.id] });
       toast.success("Proposta atualizada com sucesso");

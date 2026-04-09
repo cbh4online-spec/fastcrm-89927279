@@ -61,7 +61,7 @@ export function StoreIdentitySettings({ form, setForm, slugError }: StoreIdentit
                     if (!data.success) throw new Error(data.error);
                     setForm((p: any) => ({ ...p, store_description: data.data.fullDescription || data.data.metaDescription }));
                     toast.success("Descrição gerada com IA!");
-                  } catch (err: any) {
+                  } catch (err) {
                     toast.error("Erro ao gerar descrição: " + (err.message || "Erro desconhecido"));
                   } finally {
                     setIsGeneratingDesc(false);

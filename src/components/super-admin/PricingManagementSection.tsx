@@ -65,7 +65,7 @@ function useAIAssistant() {
       }
 
       return data?.result;
-    } catch (e: any) {
+    } catch (e) {
       const msg = e.message || "Erro desconhecido";
       if (msg.includes("quota") || msg.includes("créditos") || msg.includes("402")) {
         triggerNoCreditsDialog({ actionLabel: actionLabel || "Assistente IA Pricing" });

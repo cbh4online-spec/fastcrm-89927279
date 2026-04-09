@@ -101,7 +101,7 @@ export function BlueprintRefineChat({
           },
         ]);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error refining blueprint:', error);
       if (error.message?.includes('429')) {
         toast.error('Limite de pedidos excedido. Tente novamente mais tarde.');

@@ -128,7 +128,7 @@ export function StoreProductEditDialog({
       } else {
         toast.info("Sem sugestões disponíveis para este produto");
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao obter sugestão: " + (err.message || "Erro desconhecido"));
     } finally {
       setAiLoading(false);

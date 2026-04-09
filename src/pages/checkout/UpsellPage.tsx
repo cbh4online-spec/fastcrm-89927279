@@ -44,7 +44,7 @@ export default function UpsellPage() {
       });
       if (error) throw error;
       if (data?.nextUrl) navigate(data.nextUrl);
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message || "Erro ao processar");
     } finally {
       setProcessing(false);

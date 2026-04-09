@@ -35,7 +35,7 @@ export default function StoreRecoverCartPage() {
         return;
       }
       setData(result);
-    } catch (e: any) {
+    } catch (e) {
       setError(e?.message || "Erro ao recuperar carrinho");
     } finally {
       setLoading(false);

@@ -140,7 +140,9 @@ export function useGHLContactSync() {
           }
         }
       } finally {
-        reader.cancel().catch(() => {});
+        reader.cancel().catch((err) => {
+          if (!(err instanceof TypeError)) console.warn("[GHL Sync] Reader cancel failed:", err);
+        });
       }
 
       if (result) {

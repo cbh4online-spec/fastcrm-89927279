@@ -63,7 +63,7 @@ export default function SupplierPortalPage() {
         };
       });
       setQuoteEntries(entries);
-    } catch (e: any) {
+    } catch (e) {
       setError(e.message || "Erro ao carregar dados");
     } finally {
       setLoading(false);
@@ -98,7 +98,7 @@ export default function SupplierPortalPage() {
       if (result?.error) throw new Error(result.error);
       setSubmitted(true);
       toast.success("Cotação enviada com sucesso!");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`Erro: ${e.message}`);
     } finally {
       setSubmitting(false);

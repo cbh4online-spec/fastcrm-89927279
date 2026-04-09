@@ -115,7 +115,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
         },
       }));
       toast.success("Conteúdo AIDA gerado com sucesso! Revê e ajusta antes de guardar.");
-    } catch (e: any) {
+    } catch (e) {
       console.error("AI generation error:", e);
       toast.error(e?.message || "Erro ao gerar conteúdo com IA");
     } finally {

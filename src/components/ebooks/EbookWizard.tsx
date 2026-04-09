@@ -197,7 +197,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
       });
 
       setActiveJobId(result.jobId);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao iniciar geração: " + e.message);
     }
   };
@@ -206,7 +206,7 @@ export function EbookWizard({ onComplete, onCancel }: Props) {
     if (!activeJobId) return;
     try {
       await retryGeneration.mutateAsync(activeJobId);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao retomar: " + e.message);
     }
   };

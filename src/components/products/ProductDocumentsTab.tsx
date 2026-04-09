@@ -128,7 +128,7 @@ export function ProductDocumentsTab({ product }: ProductDocumentsTabProps) {
       toast.success("Documento carregado");
       setNewName("");
       setNewVersion("1.0");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       toast.error("Erro ao carregar documento");
     } finally {

@@ -145,7 +145,7 @@ export default function AcceptWorkspaceInvite() {
 
       toast.success(`Bem-vindo à equipa ${invite.workspace_name}!`);
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error accepting invite:", err);
       toast.error(err.message || "Erro ao aceitar convite");
     } finally {
@@ -162,7 +162,7 @@ export default function AcceptWorkspaceInvite() {
       });
       if (error) throw error;
       // onAuthStateChange will trigger acceptInvite via useEffect
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro no login");
       setAccepting(false);
     }
@@ -182,7 +182,7 @@ export default function AcceptWorkspaceInvite() {
       if (error) throw error;
       toast.success("Conta criada! Verifique o seu email para confirmar e depois volte a este link.");
       setAccepting(false);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro no registo");
       setAccepting(false);
     }

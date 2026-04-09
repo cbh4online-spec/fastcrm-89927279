@@ -59,7 +59,7 @@ export function RenewalPaymentDialog({
       setPaymentUrl(data.url);
       onPaymentCreated?.(data.url);
       toast.success("Link de pagamento gerado com sucesso!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao gerar link de pagamento");
     } finally {
       setIsLoading(false);

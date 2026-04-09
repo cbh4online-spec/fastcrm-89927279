@@ -94,7 +94,7 @@ export function InsertPaymentLinkDialog({ open, onOpenChange, onInsert, recipien
       const greeting = recipientName ? `Caro(a) ${recipientName},\n\n` : "";
       setContextText(`${greeting}Segue o link para efetuar o pagamento de ${name}:`);
       setSuggestedSubject(`Link de Pagamento - ${name}`);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error creating payment link:", err);
       toast.error(`Erro ao gerar link: ${err.message}`);
       resetState();

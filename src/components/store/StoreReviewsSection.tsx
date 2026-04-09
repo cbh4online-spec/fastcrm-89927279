@@ -84,7 +84,7 @@ export function StoreReviewsSection({ productId, workspaceId }: StoreReviewsSect
       setRating(0);
       setTitle("");
       setComment("");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao enviar avaliação");
     }
   };

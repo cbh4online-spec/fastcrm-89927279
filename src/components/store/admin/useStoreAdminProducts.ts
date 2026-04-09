@@ -172,7 +172,7 @@ export function useStoreAdminProducts(search: string) {
       const count = data?.data?.length || 0;
       toast.success(count > 0 ? `${count} preços encontrados` : "Sem preços encontrados");
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao pesquisar preços: " + (err.message || "Erro desconhecido"));
     } finally {
       setLoadingPrices((prev) => ({ ...prev, [productId]: false }));

@@ -233,7 +233,7 @@ export function CampaignReportExport({ campaignId }: CampaignReportExportProps) 
 
       doc.save(fileName);
       toast.success('Relatório PDF gerado com sucesso');
-    } catch (err: any) {
+    } catch (err) {
       console.error('PDF generation error:', err);
       toast.error('Erro ao gerar relatório');
     } finally {

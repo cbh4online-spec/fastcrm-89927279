@@ -99,7 +99,7 @@ export function QualificationModal({ open, onClose, prefilledPlan }: Qualificati
       setResult(data);
       setStep(3);
       toast.success("Proposta gerada com sucesso!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao gerar proposta: " + (err.message || "Tente novamente"));
     } finally {
       setLoading(false);

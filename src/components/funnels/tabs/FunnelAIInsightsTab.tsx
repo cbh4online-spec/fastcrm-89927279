@@ -36,7 +36,7 @@ export function FunnelAIInsightsTab({ funnelId }: FunnelAIInsightsTabProps) {
       });
       if (error) throw error;
       setInsights(data);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao gerar insights: " + e.message);
     } finally {
       setLoading(false);

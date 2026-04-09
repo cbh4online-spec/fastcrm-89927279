@@ -182,7 +182,7 @@ export function FunnelsList() {
               setEditingFunnelId(result.id);
             }
             toast.success("Funil criado com sucesso!");
-          } catch (e: any) {
+          } catch (e) {
             toast.error("Erro ao criar funil: " + (e?.message || "Erro desconhecido"));
           }
         }}

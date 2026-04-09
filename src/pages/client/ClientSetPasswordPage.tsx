@@ -70,7 +70,7 @@ export default function ClientSetPasswordPage() {
 
       toast.success("Palavra-passe alterada com sucesso!");
       navigate("/client/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error updating password:", err);
       setError(err.message || "Erro ao alterar palavra-passe");
     } finally {

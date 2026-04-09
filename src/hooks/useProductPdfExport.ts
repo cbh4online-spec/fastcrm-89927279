@@ -252,7 +252,7 @@ export function useProductPdfExport(): UseProductPdfExportReturn {
       pdf.save(filename);
 
       toast.success("PDF descarregado com sucesso!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error generating PDF:", error);
       toast.error("Erro ao gerar PDF: " + error.message);
     } finally {

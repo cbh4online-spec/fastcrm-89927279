@@ -274,7 +274,7 @@ export function useDashboardAIInsights(dashboardData: OperationalKPIs | null, us
           });
         }
         return response;
-      } catch (error: any) {
+      } catch (error) {
         console.error("[DASHBOARD] AI insights exception:", error);
         console.warn("[DASHBOARD] AI insights fallback used");
         return generateFallbackInsights(dashboardData, userName);

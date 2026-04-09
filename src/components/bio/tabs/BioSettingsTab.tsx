@@ -50,7 +50,7 @@ export function BioSettingsTab({ pageId }: BioSettingsTabProps) {
         seo_description: data.seo_description || f.seo_description,
       }));
       toast.success("Título e descrição gerados com IA!");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao gerar com IA: " + (e.message || "erro desconhecido"));
     } finally {
       setGenerating(false);

@@ -116,6 +116,8 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
   const fetchConfig = useCallback(async () => {
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-widget`, {
         method: "POST",
@@ -125,6 +127,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
           widgetId,
           visitorId: visitorId.current,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) throw new Error("Failed to load widget");
@@ -133,9 +136,11 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
       if (!data.config) throw new Error("Invalid widget config response");
       setConfig(data.config);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("[ChatWidget] Config error:", err);
       setError("Widget não disponível");
     } finally {
+      clearTimeout(timeout);
       setIsLoading(false);
     }
   }, [widgetId, supabaseUrl]);
@@ -144,6 +149,8 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     if (!config) return;
 
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-widget`, {
         method: "POST",
@@ -153,6 +160,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
           widgetId,
           visitorId: visitorId.current,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) throw new Error("Failed to initialize chat");
@@ -172,9 +180,11 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
         setMessages(prev => [...prev, proactiveMsg]);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("[ChatWidget] Init error:", err);
       setError("Erro ao iniciar conversa");
     } finally {
+      clearTimeout(timeout);
       setIsLoading(false);
     }
   };
@@ -196,6 +206,8 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     // Track CTA click score event
     (window as any).__fastcrm_visitor?.trackEvent?.("cta_click");
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-widget`, {
         method: "POST",
@@ -207,6 +219,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
           conversationId,
           message: userMessage.content,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) throw new Error("Failed to send message");
@@ -216,6 +229,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
         setMessages((prev) => [...prev, data.message!]);
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("[ChatWidget] Send error:", err);
       setMessages((prev) => [
         ...prev,
@@ -227,6 +241,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
         },
       ]);
     } finally {
+      clearTimeout(timeout);
       setIsSending(false);
     }
   }, [inputValue, conversationId, isSending, widgetId, supabaseUrl]);

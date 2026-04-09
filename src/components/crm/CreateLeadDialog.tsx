@@ -235,7 +235,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       setNifData(emptyEnrichment);
       setOptionalsOpen(false);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       if (error?.message === "DUPLICATE_EMAIL") {
         toast.error("Já existe um lead com este email neste workspace.");
       } else {

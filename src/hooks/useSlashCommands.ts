@@ -193,7 +193,7 @@ export function useSlashCommands() {
               loading: false,
               type: "brief",
             });
-          } catch (err: any) {
+          } catch (err) {
             setResult({ command: command.command, title: "📋 Brief Executivo", content: "Erro ao gerar o brief. Tenta novamente.", loading: false });
           }
           break;

@@ -140,7 +140,7 @@ export function ENIContactDetailWithSidebar() {
       }
       await updateContact.mutateAsync(updateData as { id: string });
       toast.success(t('common:fieldUpdated'));
-    } catch (e: any) {
+    } catch (e) {
       if (e?.message?.startsWith('DUPLICATE_')) throw e;
       toast.error(t('common:errorUpdatingField'));
     }

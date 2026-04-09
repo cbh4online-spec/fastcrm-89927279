@@ -60,7 +60,7 @@ export default function EbookTemplateGalleryPage() {
 
       toast.success("eBook criado a partir do template!");
       navigate("/dashboard/ebooks");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro: " + e.message);
     } finally {
       setCreating(false);

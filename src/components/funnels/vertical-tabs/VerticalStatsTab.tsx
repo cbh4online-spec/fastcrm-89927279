@@ -107,7 +107,7 @@ export function VerticalStatsTab({ templateSlug }: Props) {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setAiInsights(data);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao analisar: " + e.message);
     } finally {
       setAiLoading(false);

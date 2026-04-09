@@ -545,7 +545,7 @@ export function CompanyDetailWithSidebar() {
                           } else {
                             toast.info("Dados extraídos parcialmente");
                           }
-                        } catch (e: any) {
+                        } catch (e) {
                           toast.error(`Erro ao enriquecer: ${e.message}`);
                         } finally {
                           setFirecrawlEnriching(false);

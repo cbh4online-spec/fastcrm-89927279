@@ -65,7 +65,7 @@ export function useGoogleCalendarSync(calendarId?: string) {
       if (data?.error) throw new Error(data.error);
 
       setGoogleCalendars(data.calendars || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error listing Google calendars:', err);
       toast.error(err.message || 'Erro ao listar calendários Google');
     } finally {
@@ -94,7 +94,7 @@ export function useGoogleCalendarSync(calendarId?: string) {
       toast.success('Calendário Google conectado');
       await fetchSyncConfig();
       return true;
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || 'Erro ao conectar');
       return false;
     } finally {
@@ -121,7 +121,7 @@ export function useGoogleCalendarSync(calendarId?: string) {
       setSyncConfig(null);
       setIsConnected(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       toast.error('Erro ao desconectar');
       return false;
     } finally {
@@ -149,7 +149,7 @@ export function useGoogleCalendarSync(calendarId?: string) {
       const { created = 0, updated = 0, deleted = 0 } = data;
       toast.success(`Sincronizado: ${created} novos, ${updated} atualizados, ${deleted} removidos`);
       await fetchSyncConfig();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || 'Erro ao sincronizar');
     } finally {
       setIsSyncing(false);

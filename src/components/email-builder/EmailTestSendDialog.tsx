@@ -52,7 +52,7 @@ export function EmailTestSendDialog({ open, onOpenChange, html, subject }: Email
 
       setSent(true);
       toast.success(`Teste enviado para ${validEmails.length} email(s)`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || 'Erro ao enviar teste');
       console.error(err);
     } finally {

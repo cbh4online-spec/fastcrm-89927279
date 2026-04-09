@@ -115,7 +115,7 @@ export default function FastMatchDiscoveryPage() {
         oppId: connection.crm_opportunity_id || undefined,
       });
       toast.success("Conexão desbloqueada!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.message || "Erro ao aceitar interesse.");
     }
   };

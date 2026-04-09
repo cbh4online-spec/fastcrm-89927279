@@ -60,7 +60,7 @@ export function QuickTwilioSMSDialog({ open, onOpenChange }: QuickTwilioSMSDialo
       onOpenChange(false);
       setPhone("");
       setMessage("");
-    } catch (error: any) {
+    } catch (error) {
       console.error("[QuickTwilioSMSDialog] Error:", error);
       toast.error(error.message || "Erro ao enviar SMS");
     } finally {

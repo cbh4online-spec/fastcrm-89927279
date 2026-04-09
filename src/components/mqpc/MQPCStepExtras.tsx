@@ -55,7 +55,7 @@ export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryNa
       setAiDone(true);
       trackMQPCAIImproveSuccess();
       toast.success("Descrições geradas com IA!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao gerar descrição: " + err.message);
     }
   };

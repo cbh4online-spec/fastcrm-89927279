@@ -52,7 +52,7 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setAiInsights(data);
-    } catch (e: any) { toast.error("Erro ao gerar insights: " + e.message); }
+    } catch (e) { toast.error("Erro ao gerar insights: " + e.message); }
     finally { setAiLoading(false); }
   };
 

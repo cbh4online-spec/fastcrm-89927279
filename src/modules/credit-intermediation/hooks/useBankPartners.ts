@@ -72,7 +72,7 @@ export function useCreateBankPartner() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: BankPartner) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro bancário adicionado");
       console.debug(`[VERTICAL-CREDIT] Bank partner added id=${data.id} name=${data.name}`);
@@ -118,7 +118,7 @@ export function useUpdateBankPartner() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: BankPartner) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro atualizado");
       console.debug(`[VERTICAL-CREDIT] Bank partner updated id=${data.id}`);

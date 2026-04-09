@@ -88,7 +88,7 @@ export function PipelineSettingsDialog({ open, onOpenChange }: PipelineSettingsD
     try {
       await deleteStage.mutateAsync(id);
       toast.success("Stage deleted successfully");
-    } catch (error: any) {
+    } catch (error) {
       if (error.message?.includes("violates foreign key constraint")) {
         toast.error("Cannot delete stage with opportunities. Move or delete them first.");
       } else {

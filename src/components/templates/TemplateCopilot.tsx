@@ -124,7 +124,7 @@ export function TemplateCopilot({
       } else {
         throw new Error('Resposta inválida da IA');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Generate template error:', err);
       const errorMessage = err.message || 'Erro ao gerar template';
       setError(errorMessage);

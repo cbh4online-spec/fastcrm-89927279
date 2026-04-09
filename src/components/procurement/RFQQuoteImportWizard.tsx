@@ -67,7 +67,7 @@ export default function RFQQuoteImportWizard({
       setLastImportId(id);
       await process(id);
       setStep(3);
-    } catch (err: any) {
+    } catch (err) {
       setProcessError(err?.message || "Erro desconhecido no processamento.");
       setStep(1);
     }
@@ -80,7 +80,7 @@ export default function RFQQuoteImportWizard({
     try {
       await process(lastImportId);
       setStep(3);
-    } catch (err: any) {
+    } catch (err) {
       setProcessError(err?.message || "Erro desconhecido no processamento.");
       setStep(1);
     }

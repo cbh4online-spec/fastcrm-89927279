@@ -66,7 +66,7 @@ export default function PipelineMetricsPage() {
       if (data?.error) { toast.error(data.error); return; }
       setAiSuggestions(data.suggestions || []);
       setAiOpen(true);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
     } finally { setAiLoading(false); }
   };
@@ -98,7 +98,7 @@ export default function PipelineMetricsPage() {
       if (data?.error) { toast.error(data.error); return; }
       setAiAlertSuggestions(data.suggestions || []);
       setAiAlertOpen(true);
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro IA: " + (e.message || "Erro desconhecido"));
     } finally { setAiAlertLoading(false); }
   };

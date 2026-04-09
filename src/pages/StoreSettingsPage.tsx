@@ -86,7 +86,7 @@ export default function StoreSettingsPage() {
       const { data: { publicUrl } } = supabase.storage.from("store-assets").getPublicUrl(filePath);
       setForm(p => ({ ...p, [type === "logo" ? "logo_url" : "banner_url"]: publicUrl }));
       toast.success(`${type === "logo" ? "Logotipo" : "Banner"} carregado com sucesso!`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro no upload: " + (err.message || "Erro desconhecido"));
     } finally {
       setUploading(false);
@@ -119,7 +119,7 @@ export default function StoreSettingsPage() {
       const { data: { publicUrl } } = supabase.storage.from("store-assets").getPublicUrl(filePath);
       setForm(p => ({ ...p, banner_url: publicUrl }));
       toast.success("Banner gerado com IA!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao gerar banner: " + (err.message || "Erro desconhecido"));
     } finally {
       setIsGeneratingBanner(false);
@@ -138,7 +138,7 @@ export default function StoreSettingsPage() {
       const { primaryColor, accentColor, rationale } = data.data;
       setForm(p => ({ ...p, primary_color: primaryColor, accent_color: accentColor }));
       toast.success(rationale || "Cores sugeridas com IA!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao sugerir cores: " + (err.message || "Erro desconhecido"));
     } finally {
       setIsSuggestingColors(false);

@@ -128,7 +128,7 @@ function FaceCaptureCore({ employees, preselectedEmployeeId, onResult }: {
         setState("error");
         toast.error(data.error || "Verificação falhou");
       }
-    } catch (err: any) {
+    } catch (err) {
       setState("error");
       setResult({ success: false, verified: false, error: err?.message || "Erro de rede" });
       toast.error("Erro ao verificar");

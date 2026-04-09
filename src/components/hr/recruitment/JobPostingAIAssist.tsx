@@ -63,7 +63,7 @@ export function JobPostingAIAssist({ form }: Props) {
       }
 
       toast.success("Conteúdo gerado com sucesso!");
-    } catch (err: any) {
+    } catch (err) {
       console.error("AI assist error:", err);
       toast.error("Erro ao gerar conteúdo com IA.");
     } finally {

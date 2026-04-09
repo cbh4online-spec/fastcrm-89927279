@@ -184,7 +184,7 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
     let presignedUrls: PresignedUpload[];
     try {
       presignedUrls = await requestPresignedUrls(fileMeta, currentWorkspace.id);
-    } catch (err: any) {
+    } catch (err) {
       onImagesChange(
         imagesRef.current.map((img) =>
           newItems.some((ni) => ni.id === img.id)

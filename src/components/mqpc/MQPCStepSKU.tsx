@@ -45,7 +45,7 @@ export function MQPCStepSKU({ onSKUResult, onSkip }: MQPCStepSKUProps) {
       const result = await searchBySKU.mutateAsync(sku);
       setSearchResult(result);
       setSearched(true);
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro na pesquisa: " + err.message);
       setSearched(true);
       setSearchResult({ found: false });

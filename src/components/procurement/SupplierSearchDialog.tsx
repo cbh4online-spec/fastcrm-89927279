@@ -46,7 +46,7 @@ export function SupplierSearchDialog({ open, onOpenChange, onImport }: SupplierS
       if (!data?.error && !data?.suppliers?.length) {
         toast.info("Nenhum fornecedor encontrado. Tente termos diferentes.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Search error:", err);
       toast.error("Erro na pesquisa. Verifique a sua ligação e tente novamente.");
     } finally {

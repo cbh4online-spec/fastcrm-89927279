@@ -43,7 +43,7 @@ export function AdaptiveProfileSetup({ open, onComplete }: AdaptiveProfileSetupP
       await queryClient.invalidateQueries({ queryKey: ['adaptive-profile'] });
       toast.success('Perfil atualizado com sucesso');
       onComplete();
-    } catch (e: any) {
+    } catch (e) {
       toast.error('Erro ao guardar perfil: ' + e.message);
     } finally {
       setSaving(false);

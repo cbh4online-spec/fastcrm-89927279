@@ -82,7 +82,7 @@ export function BotTestChat({ bot }: BotTestChatProps) {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err: any) {
+    } catch (err) {
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",

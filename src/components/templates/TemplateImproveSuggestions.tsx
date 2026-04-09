@@ -122,7 +122,7 @@ export function TemplateImproveSuggestions({
       if (data?.result) {
         setImprovements(data.result);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Improve template error:', err);
       setError(err.message || 'Erro ao obter sugestões');
     } finally {

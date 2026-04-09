@@ -339,7 +339,7 @@ export function EbookAnalytics({ ebookId, ebookTitle, onBack }: EbookAnalyticsPr
                                       tags: [`ebook:${ebookTitle}`],
                                     });
                                     toast.success("Lead criado com sucesso");
-                                  } catch (err: any) {
+                                  } catch (err) {
                                     toast.error("Erro ao criar lead: " + (err?.message || "erro desconhecido"));
                                   }
                                 }}

@@ -135,7 +135,7 @@ export default function AccountBriefHealthPage() {
       });
       if (error) throw error;
       toast.success("Smoke test concluído com sucesso");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Smoke test falhou: " + (e.message || "Erro desconhecido"));
     } finally {
       setRunningSmoke(false);

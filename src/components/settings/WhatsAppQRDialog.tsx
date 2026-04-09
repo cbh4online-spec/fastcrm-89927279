@@ -68,7 +68,7 @@ export function WhatsAppQRDialog({ open, onOpenChange }: WhatsAppQRDialogProps) 
       } else {
         throw new Error("QR code não recebido");
       }
-    } catch (err: any) {
+    } catch (err) {
       setErrorMsg(err.message);
       setStatus("error");
     }

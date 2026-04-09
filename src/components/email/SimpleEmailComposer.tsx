@@ -431,7 +431,7 @@ export function SimpleEmailComposer({
       await createMeetingEvent();
       setSent(true);
       onSent?.();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending email:", error);
       toast.error(`Não foi possível enviar o email. ${error.message || "Tenta novamente."}`);
     }
@@ -456,7 +456,7 @@ export function SimpleEmailComposer({
       });
       toast.success(`Email agendado para ${format(scheduleAt, "dd/MM/yyyy HH:mm")}`);
       onSent?.(); onCancel?.();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Não foi possível agendar. ${error.message || "Tenta novamente."}`);
     }
   };

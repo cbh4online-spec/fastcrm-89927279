@@ -126,7 +126,7 @@ export function BotControlPanel({ groupId }: BotControlPanelProps) {
       }
 
       toast.success("Configuração do bot guardada");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao guardar");
     } finally {
       setSaving(false);

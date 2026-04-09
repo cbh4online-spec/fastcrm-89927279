@@ -135,7 +135,7 @@ export default function ProfessionalProspecting() {
       if (data?.suggestions) {
         setSuggestions(data.suggestions);
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       toast.error("Erro ao gerar sugestões");
     } finally {

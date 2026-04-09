@@ -111,7 +111,7 @@ export default function C2CSellerInviteActivation() {
           navigate("/");
         }
       }, 2000);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao ativar conta");
     } finally {
       setSubmitting(false);

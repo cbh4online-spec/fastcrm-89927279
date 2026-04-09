@@ -155,7 +155,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             });
             result.fieldsCreated++;
             changesApplied.push({ type: 'field_created', name: field.name, fieldType: field.type });
-          } catch (err: any) {
+          } catch (err) {
             result.errors.push(`Field "${field.name}": ${err.message}`);
           }
         }
@@ -181,7 +181,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
             if (error) throw error;
             result.stagesCreated++;
             changesApplied.push({ type: 'stage_created', name: stage.name });
-          } catch (err: any) {
+          } catch (err) {
             result.errors.push(`Stage "${stage.name}": ${err.message}`);
           }
         }
@@ -239,7 +239,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
 
             result.automationsCreated++;
             changesApplied.push({ type: 'automation_created', name: automation.name });
-          } catch (err: any) {
+          } catch (err) {
             result.errors.push(`Automation "${automation.name}": ${err.message}`);
           }
         }
@@ -266,7 +266,7 @@ export function useBlueprintApply(blueprint: CrmBlueprint | null) {
         toast.success('Blueprint aplicado com sucesso!');
       }
 
-    } catch (err: any) {
+    } catch (err) {
       result.success = false;
       result.errors.push(err.message);
       toast.error('Erro ao aplicar blueprint');

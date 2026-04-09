@@ -18,7 +18,7 @@ export function useAICatalog() {
       });
       if (error) throw error;
       return data as AICatalogSuggestion;
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message || "Erro na sugestão IA");
       return null;
     } finally {

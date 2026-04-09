@@ -36,7 +36,7 @@ export default function ClientForgotPasswordPage() {
       }
 
       setIsSuccess(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error sending reset email:", err);
       setError(err.message || "Erro ao enviar email de recuperação");
     } finally {

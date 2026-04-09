@@ -239,7 +239,7 @@ export function useBlueprintUndo() {
       setLastApply(null);
       fetchLastApply();
 
-    } catch (err: any) {
+    } catch (err) {
       result.success = false;
       result.errors.push(err.message);
       toast.error('Erro ao reverter aplicação');

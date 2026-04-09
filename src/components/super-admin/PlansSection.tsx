@@ -203,7 +203,7 @@ export function PlansSection() {
       } else {
         toast.error("Resposta IA inesperada");
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro IA: " + (e.message || "Tente novamente"));
     } finally {
       setIsSuggesting(false);
@@ -232,7 +232,7 @@ export function PlansSection() {
       } else {
         toast.error("Resposta IA inesperada");
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro IA: " + (e.message || "Tente novamente"));
     } finally {
       setIsOptimizing(false);

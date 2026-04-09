@@ -378,7 +378,7 @@ function WhatsAppFields({ block, content, onUpdate, onBulkUpdate, page }: {
 
       onBulkUpdate({ text: data.data.text, message: data.data.message });
       toast.success("Texto gerado com IA!");
-    } catch (e: any) {
+    } catch (e) {
       console.error("WhatsApp AI error:", e);
       toast.error("Erro ao gerar: " + (e.message || "Tente novamente"));
     } finally {

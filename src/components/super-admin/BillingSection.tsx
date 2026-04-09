@@ -312,7 +312,7 @@ export function BillingSection({ initialTab = "subscriptions" }: BillingSectionP
       });
       toast.success("Sincronização concluída");
       refetchData();
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao sincronizar: " + err.message);
     }
   };

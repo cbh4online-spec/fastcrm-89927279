@@ -118,7 +118,7 @@ export function AIPersonalizeDialog({
       } else {
         throw new Error('Resposta inválida da IA');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('AI personalization error:', err);
       const errorMessage = err.message || 'Não foi possível personalizar';
       setError(errorMessage);

@@ -51,7 +51,7 @@ export function usePipelineRiskReport() {
         return;
       }
       setReport(data);
-    } catch (err: any) {
+    } catch (err) {
       console.error("[CEO-COPILOT] Pipeline risk error:", err);
       if (err?.message?.includes("429")) {
         toast.error("Limite de requisições excedido. Tente novamente em breve.");

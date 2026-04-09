@@ -53,7 +53,7 @@ export function usePostCreationSuggestions(
 
         setSuggestions(data.data.relations || []);
         setAdded(data.data.added || 0);
-      } catch (e: any) {
+      } catch (e) {
         if (!cancelled) {
           setError(e.message || "Erro ao sugerir relações");
         }

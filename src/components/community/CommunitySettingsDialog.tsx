@@ -186,7 +186,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       if (!data?.success) throw new Error(data?.error || "Erro ao gerar banner");
       upsert.mutate({ banner_url: data.url } as any);
       toast.success("Banner gerado com IA!");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e?.message || "Erro ao gerar banner com IA");
     } finally {
       setGeneratingBanner(false);

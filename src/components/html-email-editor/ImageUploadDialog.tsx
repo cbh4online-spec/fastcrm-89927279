@@ -73,7 +73,7 @@ export function ImageUploadDialog({ open, onClose, onSelect }: ImageUploadDialog
       onSelect(urlData.publicUrl);
       toast.success('Imagem carregada');
       onClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Upload error:', err);
       toast.error(err.message || 'Erro ao carregar imagem');
     } finally {

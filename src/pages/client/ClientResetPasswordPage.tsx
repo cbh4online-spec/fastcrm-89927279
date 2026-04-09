@@ -90,7 +90,7 @@ export default function ClientResetPasswordPage() {
 
       toast.success("Palavra-passe redefinida com sucesso!");
       navigate("/client/login");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error resetting password:", err);
       setError(err.message || "Erro ao redefinir palavra-passe");
     } finally {

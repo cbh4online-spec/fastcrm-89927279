@@ -120,7 +120,7 @@ export default function RFQDetailPage() {
         URL.revokeObjectURL(url);
         toast.success(t("pdfGeneratedSuccess"));
       }
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`${t("errorGeneratingPDF")}: ${e.message}`);
     } finally {
       setGeneratingPDF(false);

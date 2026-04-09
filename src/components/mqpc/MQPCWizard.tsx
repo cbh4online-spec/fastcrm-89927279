@@ -209,7 +209,7 @@ export function MQPCWizard() {
 
       toast.success("Produto criado com sucesso! 🎉");
       navigate("/dashboard/store-products");
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao criar: " + err.message);
     } finally {
       submittingRef.current = false;

@@ -174,7 +174,7 @@ export function useAskFastCRM() {
         if (data?.error) throw new Error(data.error);
 
         setResult(data as AskResult);
-      } catch (e: any) {
+      } catch (e) {
         const msg = e?.message || "Failed to process question";
         setError(msg);
         toast.error(msg);
@@ -272,7 +272,7 @@ export function useAskFastCRM() {
 
             queryClient.invalidateQueries({ queryKey: ["tasks"] });
             toast.success(`${entityIds.length} follow-up${entityIds.length !== 1 ? "s" : ""} criado${entityIds.length !== 1 ? "s" : ""}.`);
-          } catch (e: any) {
+          } catch (e) {
             toast.error(e?.message || "Erro ao criar follow-up");
           }
           break;
@@ -316,7 +316,7 @@ export function useAskFastCRM() {
             toast.success(
               `${dealIds.length} task${dealIds.length !== 1 ? "s" : ""} created.`
             );
-          } catch (e: any) {
+          } catch (e) {
             toast.error(e?.message || "Failed to create tasks");
           }
           break;
@@ -345,7 +345,7 @@ export function useAskFastCRM() {
             if (updateError) throw updateError;
 
             toast.success(`${dealIds.length} deal${dealIds.length !== 1 ? "s" : ""} moved.`);
-          } catch (e: any) {
+          } catch (e) {
             toast.error(e?.message || "Failed to move deals");
           }
           break;
@@ -374,7 +374,7 @@ export function useAskFastCRM() {
             if (updateError) throw updateError;
 
             toast.success(`${dealIds.length} deal${dealIds.length !== 1 ? "s" : ""} reassigned.`);
-          } catch (e: any) {
+          } catch (e) {
             toast.error(e?.message || "Failed to assign deals");
           }
           break;
@@ -394,7 +394,7 @@ export function useAskFastCRM() {
             if (insertError) throw insertError;
 
             toast.success("View saved.");
-          } catch (e: any) {
+          } catch (e) {
             toast.error(e?.message || "Failed to save view");
           }
           break;
@@ -518,7 +518,7 @@ export function useAskFastCRM() {
         queryClient.invalidateQueries({ queryKey: ["automation_rules", currentWorkspace.id] });
         toast.success("Rule activated — it will run automatically.");
         setResult(null);
-      } catch (e: any) {
+      } catch (e) {
         toast.error(e?.message || "Failed to create automation rule");
       } finally {
         setIsConfirmingAutomation(false);

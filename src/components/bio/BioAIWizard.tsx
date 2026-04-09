@@ -252,7 +252,7 @@ export function BioAIWizard({ open, onOpenChange, onPageCreated }: BioAIWizardPr
         onPageCreated(page.id);
         toast.success("Página gerada com IA!");
       }, 1800);
-    } catch (e: any) {
+    } catch (e) {
       console.error("AI wizard error:", e);
       toast.error(e.message || "Erro ao gerar página com IA");
       setPhase("steps");

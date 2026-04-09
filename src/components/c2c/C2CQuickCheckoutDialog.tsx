@@ -107,7 +107,7 @@ export function C2CQuickCheckoutDialog({
         window.open(data.url, "_blank");
         onOpenChange(false);
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao iniciar checkout");
     } finally {
       setSubmitting(false);

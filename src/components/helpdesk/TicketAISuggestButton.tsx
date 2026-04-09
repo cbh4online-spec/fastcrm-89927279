@@ -26,7 +26,7 @@ export function TicketAISuggestButton({ ticketId, workspaceId, onSuggestion }: T
       } else {
         toast.error("Sem resposta da IA");
       }
-    } catch (e: any) {
+    } catch (e) {
       if (e?.message?.includes("429")) {
         toast.error("Limite de pedidos excedido. Tente novamente em breve.");
       } else if (e?.message?.includes("402")) {

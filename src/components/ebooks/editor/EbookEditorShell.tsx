@@ -245,7 +245,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return null; }
       return data?.url || null;
-    } catch (e: any) { toast.error("Erro ao gerar imagem: " + e.message); return null; }
+    } catch (e) { toast.error("Erro ao gerar imagem: " + e.message); return null; }
   };
 
   // Cover & chapter image handlers
@@ -281,7 +281,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       if (data?.url) { updateEbook.mutate({ id: ebookId, cover_url: data.url }); toast.success("Capa gerada com IA!"); }
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingCoverAI(false); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGeneratingCoverAI(false); }
   };
 
   const generateChapterImageAI = async () => {
@@ -297,7 +297,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       if (data?.url) { saveChapters(ebook.chapters.map(c => c.id === activeChapterId ? { ...c, cover_image: data.url } : c)); toast.success("Imagem do capítulo gerada com IA!"); }
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGeneratingChapterImgAI(false); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGeneratingChapterImgAI(false); }
   };
 
   const generateChapterContent = async (chapter: EbookChapter) => {
@@ -311,7 +311,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || "");
       toast.success("Capítulo gerado com sucesso!");
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const improveContent = async (chapter: EbookChapter) => {
@@ -325,7 +325,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || chapter.content);
       toast.success("Conteúdo melhorado!");
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const condenseContent = async (chapter: EbookChapter) => {
@@ -339,7 +339,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || chapter.content);
       toast.success("Conteúdo condensado!");
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const expandContent = async (chapter: EbookChapter) => {
@@ -353,7 +353,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       if (data?.error) { toast.error(data.error); return; }
       updateChapter(chapter.id, "content", data?.content || chapter.content);
       toast.success("Conteúdo expandido!");
-    } catch (e: any) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
+    } catch (e) { toast.error("Erro: " + e.message); } finally { setGenerating(null); }
   };
 
   const publishEbook = () => {

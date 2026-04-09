@@ -95,7 +95,7 @@ export function useSupplierPriceImport() {
       }));
 
       return { importId, columns: parseResult.columns, sampleRows: parseResult.sample_rows };
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error" }));
       toast.error("Erro no upload: " + err.message);
       throw err;
@@ -147,7 +147,7 @@ export function useSupplierPriceImport() {
       }));
 
       return data.stats;
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error" }));
       toast.error("Erro na validação: " + err.message);
       throw err;
@@ -167,7 +167,7 @@ export function useSupplierPriceImport() {
       setState(s => ({ ...s, status: "done", commitStats: data.stats }));
       toast.success("Importação concluída com sucesso!");
       return data.stats;
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error" }));
       toast.error("Erro no commit: " + err.message);
       throw err;

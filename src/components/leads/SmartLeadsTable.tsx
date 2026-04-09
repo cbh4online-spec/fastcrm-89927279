@@ -320,7 +320,7 @@ export function SmartLeadsTable() {
   const handleAnalyzeLead = async (leadId: string) => {
     setAnalyzingId(leadId);
     try { await analyzeLead.mutateAsync({ leadId }); toast.success(t("leadAnalyzed")); }
-    catch (error: any) {
+    catch (error) {
       if (error?.message?.includes("Rate limit")) toast.error(t("rateLimitReached"));
       else if (error?.message?.includes("Payment required")) toast.error(t("aiCreditsExhausted"));
       else toast.error(t("errorAnalyzing"));

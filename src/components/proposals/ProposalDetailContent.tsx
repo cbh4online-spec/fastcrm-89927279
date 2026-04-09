@@ -257,7 +257,7 @@ export function ProposalDetailContent({
       
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar preço: ${error.message}`);
     }
   };
@@ -273,7 +273,7 @@ export function ProposalDetailContent({
       
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar quantidade: ${error.message}`);
     }
   };
@@ -287,7 +287,7 @@ export function ProposalDetailContent({
         .eq("id", itemId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar nome: ${error.message}`);
     }
   };
@@ -301,7 +301,7 @@ export function ProposalDetailContent({
         .eq("id", itemId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar descrição: ${error.message}`);
     }
   };
@@ -320,7 +320,7 @@ export function ProposalDetailContent({
         .eq("id", itemId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar desconto: ${error.message}`);
     }
   };
@@ -450,7 +450,7 @@ export function ProposalDetailContent({
       toast.success("Proposta atualizada!");
       setMode("view");
       setCurrentStep(0);
-    } catch (error: any) {
+    } catch (error) {
       toast.error(`Erro ao atualizar proposta: ${error.message}`);
     }
   };

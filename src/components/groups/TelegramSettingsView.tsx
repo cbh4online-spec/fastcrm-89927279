@@ -64,7 +64,7 @@ export function TelegramSettingsView() {
       } else {
         toast.error(data.error || "Falha na conexão");
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     } finally {
       setTestLoading(false);
@@ -83,7 +83,7 @@ export function TelegramSettingsView() {
         notify_invoices: notifyInvoices,
       });
       toast.success("Configuração Telegram guardada");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     }
   };

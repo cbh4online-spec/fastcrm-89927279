@@ -65,7 +65,7 @@ export default function StoreCategoriesPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-store-categories"] });
       queryClient.invalidateQueries({ queryKey: ["store-categories-db"] });
       toast.success("Imagem atualizada");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao carregar imagem: " + e.message);
     } finally {
       setUploading(null);
@@ -93,7 +93,7 @@ export default function StoreCategoriesPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-store-categories"] });
       queryClient.invalidateQueries({ queryKey: ["store-categories-db"] });
       toast.success("Imagem removida");
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro: " + e.message);
     } finally {
       setUploading(null);

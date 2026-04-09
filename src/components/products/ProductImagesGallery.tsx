@@ -122,7 +122,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
         title: product.name,
         caption: product.short_description || product.name,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Erro ao carregar imagem: " + error.message);
     } finally {
       setIsUploading(false);
@@ -213,7 +213,7 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
 
       setAiPrompt("");
       setAiDialogOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Erro ao gerar imagem: " + error.message);
     } finally {
       setIsGenerating(false);

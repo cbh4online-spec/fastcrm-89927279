@@ -95,7 +95,7 @@ export default function MarketplaceConfigPage() {
         ...form,
       });
       toast.success("Configuração guardada!");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message);
     }
   };

@@ -42,7 +42,7 @@ export function ValidationPanel({ campaignId, recipientCount, validationData, on
       setResults(data);
       onValidated?.();
       toast.success('Validação concluída');
-    } catch (e: any) {
+    } catch (e) {
       toast.error(e.message || 'Erro na validação');
     } finally {
       setIsValidating(false);

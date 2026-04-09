@@ -110,7 +110,7 @@ export function GroupsView() {
       toast.success("Grupo criado com sucesso");
       setCreateOpen(false);
       resetForm();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     }
   };
@@ -130,7 +130,7 @@ export function GroupsView() {
       setEditOpen(false);
       setEditingGroup(null);
       resetForm();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     }
   };
@@ -142,7 +142,7 @@ export function GroupsView() {
       toast.success("Grupo apagado com sucesso");
       setDeleteOpen(false);
       setDeletingGroup(null);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message);
     }
   };

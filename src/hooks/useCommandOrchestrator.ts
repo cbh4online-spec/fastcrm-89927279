@@ -128,7 +128,7 @@ export function useCommandOrchestrator() {
 
       // Persist async
       persistSession(command, response);
-    } catch (err: any) {
+    } catch (err) {
       console.error("[COMMAND-CENTER] Error:", err);
       if (err?.message?.includes("429")) {
         toast.error("Limite de requisições excedido. Tente novamente em breve.");

@@ -179,7 +179,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
         autoCols.forEach(c => next.add(c));
         return next;
       });
-    } catch (e: any) {
+    } catch (e) {
       toast.error("Erro ao testar URL: " + e.message);
     } finally {
       setIsPreviewing(false);

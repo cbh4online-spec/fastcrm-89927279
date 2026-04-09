@@ -107,7 +107,7 @@ export function useSupplierImportV2() {
       }));
 
       return { importId, columns: parseResult.columns, sampleRows: parseResult.sample_rows, totalRows: parseResult.total_rows };
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error", currentStep: "error" }));
       toast.error("Erro no upload: " + err.message);
       throw err;
@@ -162,7 +162,7 @@ export function useSupplierImportV2() {
       }));
 
       return data.stats;
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error", currentStep: "error" }));
       toast.error("Erro na validação: " + err.message);
       throw err;
@@ -183,7 +183,7 @@ export function useSupplierImportV2() {
       setState(s => ({ ...s, status: "done", currentStep: "committed", progressPercent: 100, commitStats: data.stats }));
       toast.success("Importação concluída com sucesso!");
       return data.stats;
-    } catch (err: any) {
+    } catch (err) {
       setState(s => ({ ...s, status: "error", currentStep: "error" }));
       toast.error("Erro no commit: " + err.message);
       throw err;

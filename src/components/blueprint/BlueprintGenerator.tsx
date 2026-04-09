@@ -137,7 +137,7 @@ export function BlueprintGenerator({ formSchema, onBlueprintSaved }: BlueprintGe
       } else {
         throw new Error('Invalid response from AI');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating blueprint:', error);
       if (error.message?.includes('429')) {
         toast.error('Limite de pedidos excedido. Tente novamente mais tarde.');

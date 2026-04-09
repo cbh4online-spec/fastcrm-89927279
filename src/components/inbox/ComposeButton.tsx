@@ -334,7 +334,7 @@ function QuickComposeDialog({
       setCc("");
       setBcc("");
       setShowCcBcc(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending email:", error);
       toast.error(error.message || "Erro ao enviar email");
     } finally {

@@ -82,7 +82,7 @@ export function BarcodeScannerModal({ open, onOpenChange, onScan }: Props) {
           },
           () => {} // ignore errors during scanning
         );
-      } catch (err: any) {
+      } catch (err) {
         if (!cancelled) {
           setCameraError(err?.message || "Câmara não disponível");
           setScanning(false);

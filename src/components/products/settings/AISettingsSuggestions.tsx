@@ -55,7 +55,7 @@ export function AISettingsSuggestions({
       if ((data.data.suggestions || []).length === 0) {
         setError("A IA não encontrou sugestões adicionais relevantes para este contexto.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("AI settings suggestions error:", err);
       setError(err.message || "Erro ao obter sugestões da IA");
     } finally {
@@ -77,7 +77,7 @@ export function AISettingsSuggestions({
       await onAddEntry(suggestion);
       setAddedCodes((prev) => new Set(prev).add(code));
       toast.success(`"${suggestion.label || suggestion.name}" adicionado!`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(`Erro ao adicionar: ${err.message}`);
     } finally {
       setAddingCode(null);

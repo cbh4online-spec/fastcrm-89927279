@@ -151,7 +151,7 @@ export default function IMOAIPage() {
                 if (error) throw error;
                 toast.success(`Dados de mercado actualizados com ${data?.sources_used ?? 0} fontes web`);
                 handleRefresh();
-              } catch (e: any) { toast.error(`Erro: ${e.message}`); }
+              } catch (e) { toast.error(`Erro: ${e.message}`); }
             }}>
               <Globe className="h-4 w-4 mr-1" />
               Dados Reais Web

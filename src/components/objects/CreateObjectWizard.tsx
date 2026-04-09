@@ -164,7 +164,7 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
 
       // 5. Navigate to the new object's list page
       navigate(`/objects/${typeSlug}`);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error creating object:", err);
       toast.error(err.message || "Erro ao criar objeto");
     } finally {

@@ -118,7 +118,7 @@ export function useRecordingUpload(workspaceId: string | undefined) {
 
         toast.success("Recording uploaded successfully");
         return { recordingId: recording_id, crmLinks: crm_links || [] };
-      } catch (err: any) {
+      } catch (err) {
         console.error("Upload error:", err);
         toast.error(err?.message || "Upload failed");
         return null;

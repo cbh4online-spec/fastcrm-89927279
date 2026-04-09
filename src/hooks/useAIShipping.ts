@@ -62,7 +62,7 @@ export function useAIShipping() {
       if (data?.error) throw new Error(data.error);
 
       return data?.data;
-    } catch (err: any) {
+    } catch (err) {
       const msg = err?.message || "Erro ao obter sugestões da IA";
       toast.error(msg);
       return null;

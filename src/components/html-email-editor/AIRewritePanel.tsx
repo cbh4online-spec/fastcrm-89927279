@@ -42,7 +42,7 @@ export function AIRewritePanel({ currentText, onApply }: AIRewritePanelProps) {
       if (data?.error) throw new Error(data.error);
 
       setSuggestions(data.suggestions || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('AI rewrite error:', err);
       toast.error(err.message || 'Erro ao gerar sugestões');
     } finally {

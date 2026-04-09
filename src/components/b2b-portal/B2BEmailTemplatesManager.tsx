@@ -124,7 +124,7 @@ export function B2BEmailTemplatesManager({ workspaceId }: B2BEmailTemplatesManag
 
       if (error) throw error;
       toast.success(`Email de teste enviado para ${user.email}`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao enviar teste: " + (err.message || "Erro desconhecido"));
     }
   };

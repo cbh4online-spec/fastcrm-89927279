@@ -121,7 +121,7 @@ export function SDRProspectActions({
       setSelectedIds(new Set());
       queryClient.invalidateQueries({ queryKey: ["sdr-enrollments", campaignId] });
       queryClient.invalidateQueries({ queryKey: ["sdr-aggregated-stats"] });
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao mover prospects");
     } finally {
       setBulkMoving(false);
@@ -191,7 +191,7 @@ export function SDRProspectActions({
       });
       if (error) throw error;
       setPreviewResult(data);
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Erro ao gerar preview: " + (err.message || "erro desconhecido"));
     } finally {
       setPreviewLoading(false);
