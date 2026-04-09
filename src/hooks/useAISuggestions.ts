@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import type { AISuggestion, SuggestionType, SuggestionEntityType, SuggestionHubStats } from '@/types/ai-suggestions';
 
 const QK = 'ai-suggestions-hub';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseAny = supabase as any;
 
 // ── Fetch all pending suggestions for the workspace hub ──────────────────────
 export function useAISuggestionsHub(filters?: {
@@ -18,14 +20,13 @@ export function useAISuggestionsHub(filters?: {
     queryFn: async (): Promise<AISuggestion[]> => {
       if (!currentWorkspace?.id) return [];
 
-      let query = (supabase
+      let query = supabase
         .from('ai_field_suggestions')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('status', 'pending')
         .order('confidence', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(200) as any);
+        .order('created_at', { ascending: false });
 
       if (filters?.suggestion_type) {
         query = query.eq('suggestion_type', filters.suggestion_type);
@@ -34,7 +35,7 @@ export function useAISuggestionsHub(filters?: {
         query = query.eq('entity_type', filters.entity_type);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(200);
       if (error) throw error;
       return (data || []) as AISuggestion[];
     },
@@ -53,14 +54,14 @@ export function useEntitySuggestions(entityType: SuggestionEntityType, entityId:
     queryFn: async (): Promise<AISuggestion[]> => {
       if (!entityId || !currentWorkspace?.id) return [];
 
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('ai_field_suggestions')
         .select('*')
         .eq('workspace_id', currentWorkspace.id)
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
         .eq('status', 'pending')
-        .order('confidence', { ascending: false }) as any);
+        .order('confidence', { ascending: false });
 
       if (error) throw error;
       return (data || []) as AISuggestion[];
@@ -82,23 +83,23 @@ export function useSuggestionHubStats() {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const [pendingResult, acceptedResult, dismissedResult] = await Promise.all([
-        (supabase
+        supabase
           .from('ai_field_suggestions')
           .select('suggestion_type')
           .eq('workspace_id', currentWorkspace.id)
-          .eq('status', 'pending') as any),
-        (supabase
+          .eq('status', 'pending'),
+        supabase
           .from('ai_field_suggestions')
           .select('id', { count: 'exact', head: true })
           .eq('workspace_id', currentWorkspace.id)
           .in('status', ['accepted', 'applied'])
-          .gte('updated_at', sevenDaysAgo) as any),
-        (supabase
+          .gte('updated_at', sevenDaysAgo),
+        supabase
           .from('ai_field_suggestions')
           .select('id', { count: 'exact', head: true })
           .eq('workspace_id', currentWorkspace.id)
           .eq('status', 'dismissed')
-          .gte('updated_at', sevenDaysAgo) as any),
+          .gte('updated_at', sevenDaysAgo),
       ]);
 
       const pending = (pendingResult.data || []) as Array<{ suggestion_type: string }>;
@@ -124,10 +125,10 @@ export function useAcceptSuggestionHub() {
   return useMutation({
     mutationFn: async (suggestion: AISuggestion) => {
       // Mark as accepted
-      await (supabase
+      await supabase
         .from('ai_field_suggestions')
-        .update({ status: 'accepted', applied_at: new Date().toISOString() } as any)
-        .eq('id', suggestion.id) as any);
+        .update({ status: 'accepted', applied_at: new Date().toISOString() })
+        .eq('id', suggestion.id);
 
       // Apply tag
       if (suggestion.suggestion_type === 'tag' && suggestion.entity_id && suggestion.tag_value) {
@@ -137,34 +138,34 @@ export function useAcceptSuggestionHub() {
         };
         const table = tableMap[suggestion.entity_type!];
         if (table) {
-          const { data: entity } = await (supabase
-            .from(table as any)
+          const { data: entity } = await supabaseAny
+            .from(table)
             .select('tags')
             .eq('id', suggestion.entity_id)
-            .single() as any);
+            .single();
 
-          const currentTags: string[] = (entity as any)?.tags ?? [];
+          const currentTags: string[] = entity?.tags ?? [];
           if (!currentTags.includes(suggestion.tag_value)) {
-            await (supabase
-              .from(table as any)
-              .update({ tags: [...currentTags, suggestion.tag_value] } as any)
-              .eq('id', suggestion.entity_id) as any);
+            await supabaseAny
+              .from(table)
+              .update({ tags: [...currentTags, suggestion.tag_value] })
+              .eq('id', suggestion.entity_id);
           }
 
-          await (supabase
+          await supabase
             .from('ai_field_suggestions')
-            .update({ status: 'applied' } as any)
-            .eq('id', suggestion.id) as any);
+            .update({ status: 'applied' })
+            .eq('id', suggestion.id);
         }
       }
 
       // Apply field value
       if (suggestion.suggestion_type === 'field_value' && suggestion.entity_id) {
         // Field values are applied via the existing useAcceptSuggestion in useFieldSuggestions
-        await (supabase
+        await supabase
           .from('ai_field_suggestions')
-          .update({ status: 'applied' } as any)
-          .eq('id', suggestion.id) as any);
+          .update({ status: 'applied' })
+          .eq('id', suggestion.id);
       }
     },
     onSuccess: () => {
@@ -181,14 +182,14 @@ export function useDismissSuggestionHub() {
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('ai_field_suggestions')
         .update({
           status: 'dismissed',
           dismissed_at: new Date().toISOString(),
           dismissed_reason: reason ?? null,
-        } as any)
-        .eq('id', id) as any);
+        })
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

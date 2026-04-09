@@ -26,6 +26,8 @@ export interface StoreProduct {
   specifications: Record<string, string> | null;
   demo_video_url: string | null;
   price_on_request?: boolean;
+  product_condition?: string | null;
+  brand?: string | null;
   // Promotion fields (Omnibus Directive)
   compare_at_price?: number | null;
   promo_start_at?: string | null;

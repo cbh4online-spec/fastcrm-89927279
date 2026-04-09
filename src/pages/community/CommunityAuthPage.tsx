@@ -31,9 +31,9 @@ export default function CommunityAuthPage() {
   const [inviteData, setInviteData] = useState<{ name: string; email: string } | null>(null);
 
   // Questions step
-  const questionsEnabled = (settings as any)?.membership_questions_enabled === true;
+  const questionsEnabled = settings?.membership_questions_enabled === true;
   const { data: questions = [] } = usePublicMembershipQuestions(
-    questionsEnabled && mode === "signup" ? (settings as any)?.workspace_id : undefined
+    questionsEnabled && mode === "signup" ? settings?.workspace_id : undefined
   );
   const [step, setStep] = useState<"credentials" | "questions">("credentials");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -47,12 +47,12 @@ export default function CommunityAuthPage() {
       .eq("invite_token", inviteToken)
       .maybeSingle()
       .then(({ data }) => {
-        if (data && (data as any).status === "pending") {
-          const expires = new Date((data as any).invite_expires_at);
+        if (data && data.status === "pending") {
+          const expires = new Date(data.invite_expires_at ?? 0);
           if (expires > new Date()) {
-            setInviteData({ name: (data as any).name, email: (data as any).email });
-            setFullName((data as any).name);
-            setEmail((data as any).email);
+            setInviteData({ name: data.name, email: data.email });
+            setFullName(data.name);
+            setEmail(data.email);
           } else {
             toast.error("Este convite expirou");
           }
@@ -124,23 +124,23 @@ export default function CommunityAuthPage() {
       toast.success("Conta criada! Verifique o seu email para confirmar.");
 
       // Create community_members entry with status "pending" (if no invite token)
-      if (!inviteToken && (settings as any)?.workspace_id) {
+      if (!inviteToken && settings?.workspace_id) {
         try {
           await supabase
             .from("community_members")
             .insert({
-              workspace_id: (settings as any).workspace_id,
+              workspace_id: settings.workspace_id,
               email: email,
               name: fullName,
               status: "pending",
-            } as any);
+            });
         } catch (err) {
           console.error("Error creating pending membership:", err);
         }
       }
 
       // Save answers if any
-      if (hasQuestions && Object.keys(answers).length > 0 && (settings as any)?.workspace_id) {
+      if (hasQuestions && Object.keys(answers).length > 0 && settings?.workspace_id) {
         try {
           let memberId: string | null = null;
           if (inviteToken) {
@@ -153,9 +153,9 @@ export default function CommunityAuthPage() {
           }
 
           const answerRows = Object.entries(answers)
-            .filter(([_, val]) => val.trim())
+            .filter(([, val]) => val.trim())
             .map(([questionId, answerText]) => ({
-              workspace_id: (settings as any).workspace_id,
+              workspace_id: settings.workspace_id,
               question_id: questionId,
               member_id: memberId,
               user_id: null,
@@ -165,7 +165,7 @@ export default function CommunityAuthPage() {
           if (answerRows.length > 0) {
             await supabase
               .from("community_membership_answers")
-              .insert(answerRows as any);
+              .insert(answerRows);
           }
         } catch (err) {
           console.error("Error saving answers:", err);
@@ -177,7 +177,7 @@ export default function CommunityAuthPage() {
         try {
           await supabase
             .from("community_members")
-            .update({ status: "active", joined_at: new Date().toISOString() } as any)
+            .update({ status: "active", joined_at: new Date().toISOString() })
             .eq("invite_token", inviteToken);
         } catch (e) {
           console.error("Error activating invite:", e);
@@ -199,9 +199,9 @@ export default function CommunityAuthPage() {
 
         {/* Community branding */}
         <div className="text-center space-y-3">
-          {(settings as any).logo_url && (
+          {settings.logo_url && (
             <img
-              src={(settings as any).logo_url}
+              src={settings.logo_url}
               alt={settings.name}
               className="h-16 w-16 rounded-xl mx-auto object-cover border"
             />

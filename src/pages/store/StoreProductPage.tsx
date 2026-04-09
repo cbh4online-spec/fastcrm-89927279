@@ -238,11 +238,11 @@ export default function StoreProductPage() {
   const isPriceOnRequest = !!product?.price_on_request;
   const pricing = product ? getStorePrice(product.base_price, product.id, tierPricing, product) : null;
   const { average: reviewAvg, count: reviewCount } = useStoreReviewStats(productId);
-  const { data: wishlist = [] } = useStoreWishlist((product as any)?.workspace_id);
+  const { data: wishlist = [] } = useStoreWishlist(product?.workspace_id);
   const toggleWishlist = useToggleWishlist();
   const isInWishlist = product ? wishlist.some((w) => w.product_id === product.id) : false;
-  const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed((product as any)?.workspace_id || "");
-  const { data: salesCounts } = useProductSalesCount((product as any)?.workspace_id);
+  const { items: recentlyViewed, addItem: addRecentlyViewed } = useRecentlyViewed(product?.workspace_id || "");
+  const { data: salesCounts } = useProductSalesCount(product?.workspace_id);
   const { data: recentViewers = 0 } = useRecentViewers(productId);
   const addToCartRef = useRef<HTMLButtonElement>(null);
 
@@ -270,8 +270,8 @@ export default function StoreProductPage() {
       price: pricing?.price ?? product.base_price,
       quantity: 1,
       currency: product.currency,
-      item_brand: (product as any).brand || undefined,
-      item_category: (product as any).category?.name || undefined,
+      item_brand: product.brand || undefined,
+      item_category: product.category || undefined,
       sku: product.sku || undefined,
     });
   }, [product?.id]);
@@ -358,8 +358,8 @@ export default function StoreProductPage() {
       <div className="min-h-screen bg-background">
         <StoreHeader workspaceSlug={wsSlug} />
         <StoreCartDrawer workspaceSlug={wsSlug} />
-        <StoreProductViewTracker productId={product.id} workspaceId={(product as any).workspace_id} />
-        <StoreVisitorTracker workspaceId={(product as any).workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
+        <StoreProductViewTracker productId={product.id} workspaceId={product.workspace_id} />
+        <StoreVisitorTracker workspaceId={product.workspace_id} currentPage={`/store/${wsSlug}/product/${product.id}`} productId={product.id} />
 
         {/* Sticky Add to Cart bar — hidden for price on request */}
         {!isPriceOnRequest && (
@@ -584,7 +584,7 @@ export default function StoreProductPage() {
                 isFeatured={product.store_featured}
                 compact={false}
               />
-              <StoreProductConditionBadge condition={(product as any).product_condition} compact={false} />
+              <StoreProductConditionBadge condition={product.product_condition} compact={false} />
 
               {/* Loyalty Points */}
               <StoreLoyaltyWidget
@@ -651,8 +651,8 @@ export default function StoreProductPage() {
                 )}
 
                 {/* Urgency Countdown for time-limited offers */}
-                {!isPriceOnRequest && pricing?.isDiscounted && ((product as any).offer_ends_at || pricing?.promoEndAt) && (
-                  <StoreOfferCountdown endsAt={(product as any).offer_ends_at || pricing.promoEndAt} />
+                {!isPriceOnRequest && pricing?.isDiscounted && pricing?.promoEndAt && (
+                  <StoreOfferCountdown endsAt={pricing.promoEndAt} />
                 )}
 
                 {/* Stock status */}
@@ -684,7 +684,7 @@ export default function StoreProductPage() {
                       <StorePriceRequestDialog
                         productId={product.id}
                         productName={product.name}
-                        workspaceId={(product as any).workspace_id}
+                        workspaceId={product.workspace_id}
                       />
                       <Button
                         variant="outline"
@@ -692,7 +692,7 @@ export default function StoreProductPage() {
                         className="h-9 w-9 rounded-xl"
                         onClick={() => product && toggleWishlist.mutate({
                           productId: product.id,
-                          workspaceId: (product as any).workspace_id,
+                          workspaceId: product.workspace_id,
                           isInWishlist,
                         })}
                       >
@@ -729,7 +729,7 @@ export default function StoreProductPage() {
                           className="h-9 w-9 rounded-xl ml-auto"
                           onClick={() => product && toggleWishlist.mutate({
                             productId: product.id,
-                            workspaceId: (product as any).workspace_id,
+                            workspaceId: product.workspace_id,
                             isInWishlist,
                           })}
                         >
@@ -768,12 +768,12 @@ export default function StoreProductPage() {
                         productName={product.name}
                         originalPrice={pricing?.price ?? product.base_price}
                         currency={product.currency}
-                        workspaceId={(product as any).workspace_id}
+                        workspaceId={product.workspace_id}
                       />
 
                       <StoreProductAlertWidget
                         productId={product.id}
-                        workspaceId={(product as any).workspace_id}
+                        workspaceId={product.workspace_id}
                         productName={product.name}
                         currentPrice={pricing?.price ?? product.base_price}
                         isOutOfStock={isOutOfStock}
@@ -837,7 +837,7 @@ export default function StoreProductPage() {
                 productName={product.name}
                 currentPrice={pricing?.price ?? product.base_price}
                 category={product.category || undefined}
-                workspaceId={(product as any).workspace_id}
+                workspaceId={product.workspace_id}
                 workspaceSlug={wsSlug}
                 currency={product.currency}
               />
@@ -855,12 +855,12 @@ export default function StoreProductPage() {
           <StoreProductDocuments productId={product.id} />
 
           {/* Reviews */}
-          <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
+          <StoreReviewsSection productId={product.id} workspaceId={product.workspace_id} />
 
           {/* Compatible Products */}
           <StoreCompatibleProducts
             productId={product.id}
-            workspaceId={(product as any).workspace_id}
+            workspaceId={product.workspace_id}
             workspaceSlug={wsSlug}
           />
 
@@ -868,7 +868,7 @@ export default function StoreProductPage() {
           <StoreBoughtTogether
             productId={product.id}
             categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
+            workspaceId={product.workspace_id}
             currentPrice={pricing?.price ?? product.base_price}
             currency={product.currency}
           />
@@ -877,7 +877,7 @@ export default function StoreProductPage() {
           <StoreRelatedProducts
             productId={product.id}
             categoryId={product.store_category_id}
-            workspaceId={(product as any).workspace_id}
+            workspaceId={product.workspace_id}
             workspaceSlug={wsSlug}
           />
 
@@ -898,7 +898,7 @@ export default function StoreProductPage() {
 
         {/* AI Advisor */}
         <StoreAIAdvisor
-          workspaceId={(product as any).workspace_id}
+          workspaceId={product.workspace_id}
           workspaceSlug={wsSlug}
           productContext={{ name: product.name, category: product.category || undefined }}
         />

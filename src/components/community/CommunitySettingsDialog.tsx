@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCommunitySettings, useUpsertCommunitySettings, useCommunityLinks, useManageCommunityLinks } from "@/hooks/useCommunitySettings";
+import { useCommunitySettings, useUpsertCommunitySettings, useCommunityLinks, useManageCommunityLinks, type CommunitySettings } from "@/hooks/useCommunitySettings";
 import { useSuggestCommunityCategory } from "@/hooks/useCommunityAI";
 import { useMembershipQuestions, useAddMembershipQuestion, useUpdateMembershipQuestion, useDeleteMembershipQuestion } from "@/hooks/useMembershipQuestions";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,17 +105,17 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       setIsPrivate(settings.is_private);
       setPrimaryColor(settings.primary_color || "");
       setNewsletterFreq(settings.newsletter_frequency);
-      setSubscriptionType((settings as any).subscription_type || "free");
-      setSubscriptionPrice((settings as any).subscription_price?.toString() || "");
-      setThemePreset((settings as any).theme_preset || "default");
-      setCategory((settings as any).category || "");
-      setIsDiscoverable((settings as any).is_discoverable || false);
-      setCustomDomain((settings as any).custom_domain || "");
-      setAllowAnonymousProfiles((settings as any).allow_anonymous_profiles || false);
-      setDefaultProfilePrivate((settings as any).default_profile_private || false);
-      setForceAnonymous((settings as any).force_anonymous || false);
-      if ((settings as any).visible_tabs) {
-        setVisibleTabs((settings as any).visible_tabs);
+      setSubscriptionType(settings.subscription_type || "free");
+      setSubscriptionPrice(settings.subscription_price?.toString() || "");
+      setThemePreset(settings.theme_preset || "default");
+      setCategory(settings.category || "");
+      setIsDiscoverable(settings.is_discoverable || false);
+      setCustomDomain(settings.custom_domain || "");
+      setAllowAnonymousProfiles(settings.allow_anonymous_profiles || false);
+      setDefaultProfilePrivate(settings.default_profile_private || false);
+      setForceAnonymous(settings.force_anonymous || false);
+      if (settings.visible_tabs) {
+        setVisibleTabs(settings.visible_tabs);
       }
     }
   }, [settings]);
@@ -138,7 +138,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       allow_anonymous_profiles: allowAnonymousProfiles,
       default_profile_private: defaultProfilePrivate,
       force_anonymous: forceAnonymous,
-    } as any);
+    });
   };
 
   const handleAddLink = () => {
@@ -158,8 +158,8 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       const { error: uploadError } = await supabase.storage.from("community-assets").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("community-assets").getPublicUrl(path);
-      const field = type === "favicon" ? "logo_url" : "banner_url";
-      upsert.mutate({ [field]: publicUrl } as any);
+      const field: keyof CommunitySettings = type === "favicon" ? "logo_url" : "banner_url";
+      upsert.mutate({ [field]: publicUrl });
       toast.success(`${type === "favicon" ? "Favicon" : "Banner"} carregado!`);
     } catch {
       toast.error("Erro ao carregar ficheiro");
@@ -184,7 +184,7 @@ export function CommunitySettingsDialog({ open, onOpenChange, workspaceId }: Com
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro ao gerar banner");
-      upsert.mutate({ banner_url: data.url } as any);
+      upsert.mutate({ banner_url: data.url });
       toast.success("Banner gerado com IA!");
     } catch (e) {
       toast.error(e?.message || "Erro ao gerar banner com IA");
@@ -615,7 +615,7 @@ function QuestionsTabContent({ workspaceId, settings, upsert }: { workspaceId: s
         </div>
         <Switch
           checked={settings?.membership_questions_enabled || false}
-          onCheckedChange={(val) => upsert.mutate({ membership_questions_enabled: val } as any)}
+          onCheckedChange={(val) => upsert.mutate({ membership_questions_enabled: val })}
         />
       </div>
 

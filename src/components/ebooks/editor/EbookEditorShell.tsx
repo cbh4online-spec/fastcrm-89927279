@@ -89,29 +89,29 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   // Sync branding from server
   useEffect(() => {
     if (ebook && !brandingInitRef.current) {
-      setLocalHeaderText((ebook as any).header_text || "");
-      setLocalFooterText((ebook as any).footer_text || "");
-      setLocalContactPage((ebook as any).contact_page || {});
-      setLocalConsentRequired((ebook as any).consent_required || false);
-      setLocalConsentText((ebook as any).consent_text || "");
-      setLocalPrivacyPolicyUrl((ebook as any).privacy_policy_url || "");
-      setLocalMarketingOptInEnabled((ebook as any).marketing_opt_in_enabled || false);
-      setLocalMarketingOptInLabel((ebook as any).marketing_opt_in_label || "");
-      setLocalSeoTitle((ebook as any).seo_title || "");
-      setLocalSeoDescription((ebook as any).seo_description || "");
-      setLocalOgImageUrl((ebook as any).og_image_url || "");
-      setLocalCanonicalUrl((ebook as any).canonical_url || "");
-      setLocalNoindex((ebook as any).noindex || false);
+      setLocalHeaderText(ebook.header_text || "");
+      setLocalFooterText(ebook.footer_text || "");
+      setLocalContactPage(ebook.contact_page || {});
+      setLocalConsentRequired(ebook.consent_required || false);
+      setLocalConsentText(ebook.consent_text || "");
+      setLocalPrivacyPolicyUrl(ebook.privacy_policy_url || "");
+      setLocalMarketingOptInEnabled(ebook.marketing_opt_in_enabled || false);
+      setLocalMarketingOptInLabel(ebook.marketing_opt_in_label || "");
+      setLocalSeoTitle(ebook.seo_title || "");
+      setLocalSeoDescription(ebook.seo_description || "");
+      setLocalOgImageUrl(ebook.og_image_url || "");
+      setLocalCanonicalUrl(ebook.canonical_url || "");
+      setLocalNoindex(ebook.noindex || false);
       brandingInitRef.current = true;
     }
   }, [ebook]);
 
   // Load Google Fonts
   useEffect(() => {
-    const gs = (ebook as any)?.global_styles;
+    const gs = ebook?.global_styles;
     if (!gs) return;
     const fonts = new Set<string>();
-    [gs.headingFont, gs.bodyFont].forEach((f: string) => {
+    [gs.headingFont, gs.bodyFont].forEach((f) => {
       if (f) {
         const match = f.match(/'([^']+)'/);
         if (match) fonts.add(match[1]);
@@ -126,7 +126,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       link.id = id; link.rel = 'stylesheet'; link.href = href;
       document.head.appendChild(link);
     }
-  }, [(ebook as any)?.global_styles?.headingFont, (ebook as any)?.global_styles?.bodyFont]);
+  }, [ebook?.global_styles?.headingFont, ebook?.global_styles?.bodyFont]);
 
   // Debounced branding save — via centralised persistence
   useEffect(() => {
@@ -359,7 +359,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
   const publishEbook = () => {
     if (!ebook) return;
     // Run preflight
-    const preflightResult = runPreflight(ebook as any, ctas);
+    const preflightResult = runPreflight(ebook, ctas);
     if (!preflightResult.canPublish || preflightResult.warnings.length > 0) {
       setShowPreflight(true);
       return;
@@ -409,7 +409,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       <EbookEditorHeader
         ebook={ebook}
         onBack={() => { if (isDirty) forceSave(); onBack(); }}
-        onUpdateTitle={(title) => queueSave({ title } as any)}
+        onUpdateTitle={(title) => queueSave({ title })}
         onGenerateCoverAI={generateCoverAI}
         onUploadCover={() => coverInputRef.current?.click()}
         onPreview={() => setShowPresentation(true)}
@@ -477,8 +477,8 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           localHeaderText={localHeaderText}
           localFooterText={localFooterText}
           localContactPage={localContactPage}
-          protectionEnabled={(ebook as any).protection_enabled !== false}
-          leadGateEnabled={(ebook as any).lead_gate_enabled === true}
+          protectionEnabled={ebook.protection_enabled !== false}
+          leadGateEnabled={ebook.lead_gate_enabled === true}
           onHeaderTextChange={setLocalHeaderText}
           onFooterTextChange={setLocalFooterText}
           onContactPageChange={setLocalContactPage}
@@ -504,12 +504,12 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onOgImageUrlChange={setLocalOgImageUrl}
           onCanonicalUrlChange={setLocalCanonicalUrl}
           onNoindexChange={setLocalNoindex}
-          theme={(ebook as any).theme || "modern-dark"}
-          headingFont={(ebook as any).global_styles?.headingFont || "Georgia, serif"}
-          bodyFont={(ebook as any).global_styles?.bodyFont || "Georgia, serif"}
+          theme={ebook.theme || "modern-dark"}
+          headingFont={ebook.global_styles?.headingFont || "Georgia, serif"}
+          bodyFont={ebook.global_styles?.bodyFont || "Georgia, serif"}
           onThemeChange={(theme) => queueSave({ theme })}
-          onHeadingFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), headingFont: val }; queueSave({ global_styles: gs }); }}
-          onBodyFontChange={(val) => { const gs = { ...((ebook as any).global_styles || {}), bodyFont: val }; queueSave({ global_styles: gs }); }}
+          onHeadingFontChange={(val) => { const gs = { ...(ebook.global_styles || {}), headingFont: val }; queueSave({ global_styles: gs }); }}
+          onBodyFontChange={(val) => { const gs = { ...(ebook.global_styles || {}), bodyFont: val }; queueSave({ global_styles: gs }); }}
           notes={notes}
           notesLoading={notesLoading}
           addNote={addNote}
@@ -542,7 +542,7 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
       <EbookPreflightDialog
         open={showPreflight}
         onOpenChange={setShowPreflight}
-        result={runPreflight(ebook as any, ctas)}
+        result={runPreflight(ebook, ctas)}
         onPublish={handlePreflightPublish}
         publishing={updateEbook.isPending}
       />

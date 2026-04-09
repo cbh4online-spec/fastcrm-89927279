@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type CrmEntityType = Database["public"]["Enums"]["crm_entity_type"];
+type CrmViewMode = Database["public"]["Enums"]["crm_view_mode"];
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
@@ -27,11 +31,11 @@ export function useSavedViews(entityType: string) {
     queryKey: ["saved-views", currentWorkspace?.id, entityType],
     queryFn: async () => {
       if (!currentWorkspace) return [];
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("crm_saved_views")
-        .select("*") as any)
+        .select("*")
         .eq("workspace_id", currentWorkspace.id)
-        .eq("entity_type", entityType)
+        .eq("entity_type", entityType as CrmEntityType)
         .order("position")
         .order("name");
       if (error) throw error;
@@ -56,18 +60,18 @@ export function useCreateSavedView() {
     }) => {
       if (!currentWorkspace) throw new Error("No workspace");
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("crm_saved_views")
         .insert({
           workspace_id: currentWorkspace.id,
           name: input.name,
-          entity_type: input.entity_type as any,
+          entity_type: input.entity_type as CrmEntityType,
           filters: input.filters || null,
           sort_config: input.sort_config || null,
           visible_columns: input.visible_columns || null,
-          view_mode: (input.view_mode || "table") as any,
+          view_mode: (input.view_mode || "table") as CrmViewMode,
           user_id: userId,
-        } as any) as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -87,9 +91,9 @@ export function useDeleteSavedView() {
 
   return useMutation({
     mutationFn: async (input: { id: string; entity_type: string }) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("crm_saved_views")
-        .delete() as any)
+        .delete()
         .eq("id", input.id);
       if (error) throw error;
     },
@@ -107,9 +111,9 @@ export function useToggleFavorite() {
 
   return useMutation({
     mutationFn: async (input: { id: string; entity_type: string; is_favorite: boolean }) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("crm_saved_views")
-        .update({ is_favorite: input.is_favorite } as any) as any)
+        .update({ is_favorite: input.is_favorite })
         .eq("id", input.id);
       if (error) throw error;
     },
@@ -126,9 +130,9 @@ export function useUpdateSavedView() {
 
   return useMutation({
     mutationFn: async (input: { id: string; entity_type: string; updates: Partial<Pick<SavedView, "name" | "icon" | "filters" | "sort_config" | "visible_columns">> }) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("crm_saved_views")
-        .update(input.updates as any) as any)
+        .update(input.updates)
         .eq("id", input.id);
       if (error) throw error;
     },
@@ -149,21 +153,21 @@ export function useDuplicateSavedView() {
       if (!currentWorkspace) throw new Error("No workspace");
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const { view } = input;
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("crm_saved_views")
         .insert({
           workspace_id: currentWorkspace.id,
           name: `${view.name} (copy)`,
-          entity_type: view.entity_type as any,
+          entity_type: view.entity_type as CrmEntityType,
           filters: view.filters || null,
           sort_config: view.sort_config || null,
           visible_columns: view.visible_columns || null,
-          view_mode: (view.view_mode || "table") as any,
+          view_mode: (view.view_mode || "table") as CrmViewMode,
           icon: view.icon || null,
           is_default: false,
           is_favorite: false,
           user_id: userId,
-        } as any) as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -184,9 +188,9 @@ export function useReorderSavedViews() {
   return useMutation({
     mutationFn: async (input: { entity_type: string; items: { id: string; position: number }[] }) => {
       for (const item of input.items) {
-        const { error } = await (supabase
+        const { error } = await supabase
           .from("crm_saved_views")
-          .update({ position: item.position } as any) as any)
+          .update({ position: item.position })
           .eq("id", item.id);
         if (error) throw error;
       }

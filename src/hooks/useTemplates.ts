@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseAny = supabase as any;
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -162,28 +164,28 @@ export function useCreateTemplate() {
     mutationFn: async (template: Partial<Template>) => {
       if (!currentWorkspace || !user) throw new Error('No workspace');
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from('templates')
         .insert({
           ...template,
           workspace_id: currentWorkspace.id,
           created_by: user.id,
-        } as any)
+        })
         .select()
         .single();
 
       if (error) throw error;
 
       // Create initial version
-      await supabase.from('template_versions').insert({
-        template_id: (data as any).id,
+      await supabaseAny.from('template_versions').insert({
+        template_id: data.id,
         version: 1,
         content: template.content || '',
         rich_content: template.rich_content,
         subject: template.subject,
         change_summary: 'Versão inicial',
         created_by: user.id,
-      } as any);
+      });
 
       return data as unknown as Template;
     },
@@ -203,15 +205,15 @@ export function useUpdateTemplate() {
 
   return useMutation({
     mutationFn: async ({ id, createVersion, ...updates }: Partial<Template> & { id: string; createVersion?: boolean }) => {
-      const { data: current } = await supabase
+      const { data: current } = await supabaseAny
         .from('templates')
         .select('*')
         .eq('id', id)
         .single();
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from('templates')
-        .update(updates as any)
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -219,25 +221,25 @@ export function useUpdateTemplate() {
       if (error) throw error;
 
       // Create new version if content changed
-      if (createVersion && current && (updates.content !== (current as any).content || updates.rich_content !== (current as any).rich_content)) {
-        const { data: versions } = await supabase
+      if (createVersion && current && (updates.content !== current.content || updates.rich_content !== current.rich_content)) {
+        const { data: versions } = await supabaseAny
           .from('template_versions')
           .select('version')
           .eq('template_id', id)
           .order('version', { ascending: false })
           .limit(1);
 
-        const nextVersion = ((versions as any)?.[0]?.version || 0) + 1;
+        const nextVersion = (versions?.[0]?.version || 0) + 1;
 
-        await supabase.from('template_versions').insert({
+        await supabaseAny.from('template_versions').insert({
           template_id: id,
           version: nextVersion,
-          content: updates.content || (current as any).content,
-          rich_content: updates.rich_content || (current as any).rich_content,
-          subject: updates.subject || (current as any).subject,
+          content: updates.content || current.content,
+          rich_content: updates.rich_content || current.rich_content,
+          subject: updates.subject || current.subject,
           change_summary: `Versão ${nextVersion}`,
           created_by: user?.id,
-        } as any);
+        });
       }
 
       return data;
@@ -279,12 +281,12 @@ export function useCreateFolder() {
     mutationFn: async (folder: Partial<TemplateFolder>) => {
       if (!currentWorkspace) throw new Error('No workspace');
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAny
         .from('template_folders')
         .insert({
           ...folder,
           workspace_id: currentWorkspace.id,
-        } as any)
+        })
         .select()
         .single();
 
@@ -306,18 +308,18 @@ export function useIncrementTemplateUsage() {
 
   return useMutation({
     mutationFn: async (templateId: string) => {
-      const { data: current } = await supabase
+      const { data: current } = await supabaseAny
         .from('templates')
         .select('usage_count')
         .eq('id', templateId)
         .single();
 
-      const { error } = await supabase
+      const { error } = await supabaseAny
         .from('templates')
         .update({
-          usage_count: ((current as any)?.usage_count || 0) + 1,
+          usage_count: (current?.usage_count || 0) + 1,
           last_used_at: new Date().toISOString(),
-        } as any)
+        })
         .eq('id', templateId);
 
       if (error) throw error;

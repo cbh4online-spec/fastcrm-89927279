@@ -38,7 +38,7 @@ export function useSecurityConversions() {
             contact_person_phone: payload.responsible_phone,
             contact_email: payload.responsible_email,
             created_by: user.user?.id,
-          } as any)
+          })
           .select()
           .single();
         if (client) clientId = client.id;
@@ -63,7 +63,7 @@ export function useSecurityConversions() {
             onsite_responsible_email: payload.responsible_email,
             partner_id: request.partner_id,
             created_by: user.user?.id,
-          } as any)
+          })
           .select()
           .single();
         if (site) siteId = site.id;
@@ -89,7 +89,7 @@ export function useSecurityConversions() {
           status: "new",
           priority: "medium",
           created_by: user.user?.id,
-        } as any)
+        })
         .select()
         .single();
 
@@ -103,7 +103,7 @@ export function useSecurityConversions() {
           linked_company_id: clientId,
           linked_site_id: siteId,
           updated_by: user.user?.id,
-        } as any)
+        })
         .eq("id", request.id);
 
       return lead;
@@ -141,7 +141,7 @@ export function useSecurityConversions() {
           status: "draft",
           version: 1,
           created_by: user.user?.id,
-        } as any)
+        })
         .select()
         .single();
 
@@ -150,7 +150,7 @@ export function useSecurityConversions() {
       // Update lead status
       await supabase
         .from("security_leads")
-        .update({ status: "proposal_sent", updated_by: user.user?.id } as any)
+        .update({ status: "proposal_sent", updated_by: user.user?.id })
         .eq("id", lead.id);
 
       return proposal;
@@ -192,7 +192,7 @@ export function useSecurityConversions() {
             equipment_value: proposal.equipment_value,
             labor_value: proposal.labor_value,
           },
-        } as any)
+        })
         .select()
         .single();
 
@@ -201,14 +201,14 @@ export function useSecurityConversions() {
       // Update proposal status
       await supabase
         .from("security_proposals")
-        .update({ status: "accepted", accepted_at: new Date().toISOString(), updated_by: user.user?.id } as any)
+        .update({ status: "accepted", accepted_at: new Date().toISOString(), updated_by: user.user?.id })
         .eq("id", proposal.id);
 
       // Update lead status
       if (proposal.lead_id) {
         await supabase
           .from("security_leads")
-          .update({ status: "won", updated_by: user.user?.id } as any)
+          .update({ status: "won", updated_by: user.user?.id })
           .eq("id", proposal.lead_id);
       }
 
@@ -273,7 +273,7 @@ export function useSecurityConversions() {
           lifecycle_type: "new_installation",
           status: "draft",
           technical_notes: contract.notes || "",
-        } as any)
+        })
         .select()
         .single();
 
@@ -285,7 +285,7 @@ export function useSecurityConversions() {
         .update({
           system_id: system.id,
           contract_status: "active",
-        } as any)
+        })
         .eq("id", contract.id);
 
       return system;

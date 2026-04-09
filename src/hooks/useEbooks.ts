@@ -66,6 +66,12 @@ export interface EbookContactPage {
   social_links?: { label: string; url: string }[];
 }
 
+export interface EbookGlobalStyles {
+  headingFont?: string;
+  bodyFont?: string;
+  [key: string]: unknown;
+}
+
 export interface Ebook {
   id: string;
   workspace_id: string;
@@ -83,7 +89,9 @@ export interface Ebook {
   footer_text?: string | null;
   contact_page?: EbookContactPage | null;
   template_id?: string | null;
-  global_styles?: Record<string, unknown> | null;
+  theme?: string | null;
+  protection_enabled?: boolean;
+  global_styles?: EbookGlobalStyles | null;
   lead_gate_enabled?: boolean;
   consent_required?: boolean;
   // Consent / RGPD

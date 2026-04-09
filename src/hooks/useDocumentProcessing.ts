@@ -92,11 +92,11 @@ export function useDocumentJobs(filters?: DocumentFilters) {
     queryFn: async () => {
       if (!currentWorkspace?.id) return [];
 
-      let query = (supabase
+      let query = supabase
         .from("document_processing_jobs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false });
 
       if (filters?.status) {
         if (Array.isArray(filters.status)) {
@@ -144,11 +144,11 @@ export function useDocumentJob(jobId: string | null) {
     queryKey: [QK, "detail", jobId],
     queryFn: async () => {
       if (!jobId) return null;
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("document_processing_jobs")
         .select("*")
         .eq("id", jobId)
-        .single() as any);
+        .single();
       if (error) throw error;
       return data as DocumentJob;
     },
@@ -171,10 +171,10 @@ export function useDocumentStats() {
     queryFn: async () => {
       if (!currentWorkspace?.id) return null;
 
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("document_processing_jobs")
         .select("status, document_type, created_at")
-        .eq("workspace_id", currentWorkspace.id) as any);
+        .eq("workspace_id", currentWorkspace.id);
 
       if (error) throw error;
       const jobs = (data || []) as { status: string; document_type: string | null; created_at: string }[];
@@ -232,7 +232,7 @@ export function useUploadDocument() {
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
       // 2. Create job record
-      const { data: job, error: jobError } = await (supabase
+      const { data: job, error: jobError } = await supabase
         .from("document_processing_jobs")
         .insert({
           workspace_id: currentWorkspace.id,
@@ -250,13 +250,13 @@ export function useUploadDocument() {
           },
         })
         .select()
-        .single() as any);
+        .single();
 
       if (jobError) throw new Error(`Job creation failed: ${jobError.message}`);
 
       // 3. Trigger processing
       supabase.functions.invoke("document-intelligence-process", {
-        body: { job_id: (job as any).id, workspace_id: currentWorkspace.id },
+        body: { job_id: job.id, workspace_id: currentWorkspace.id },
       }).catch(console.error);
 
       return job as DocumentJob;
@@ -276,7 +276,7 @@ export function useReprocessDocument() {
 
   return useMutation({
     mutationFn: async (jobId: string) => {
-      await (supabase
+      await supabase
         .from("document_processing_jobs")
         .update({
           status: "pending",
@@ -285,7 +285,7 @@ export function useReprocessDocument() {
           started_at: null,
           completed_at: null,
         })
-        .eq("id", jobId) as any);
+        .eq("id", jobId);
 
       const { error } = await supabase.functions.invoke("document-intelligence-process", {
         body: { job_id: jobId },
@@ -305,11 +305,11 @@ export function useCancelJob() {
 
   return useMutation({
     mutationFn: async (jobId: string) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("document_processing_jobs")
         .update({ status: "cancelled", completed_at: new Date().toISOString() })
         .eq("id", jobId)
-        .in("status", ["pending", "processing", "ocr", "classifying", "extracting"]) as any);
+        .in("status", ["pending", "processing", "ocr", "classifying", "extracting"]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -324,10 +324,10 @@ export function useUpdateExtractedData() {
 
   return useMutation({
     mutationFn: async ({ jobId, extractedData }: { jobId: string; extractedData: Record<string, unknown> }) => {
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("document_processing_jobs")
         .update({ extracted_data: extractedData, updated_at: new Date().toISOString() })
-        .eq("id", jobId) as any);
+        .eq("id", jobId);
       if (error) throw error;
     },
     onSuccess: (_, { jobId }) => {
@@ -342,20 +342,20 @@ export function useDeleteDocumentJob() {
 
   return useMutation({
     mutationFn: async (jobId: string) => {
-      const { data: job } = await (supabase
+      const { data: job } = await supabase
         .from("document_processing_jobs")
         .select("file_path")
         .eq("id", jobId)
-        .single() as any);
+        .single();
 
-      if ((job as any)?.file_path) {
-        await supabase.storage.from("document-intelligence").remove([(job as any).file_path]);
+      if (job?.file_path) {
+        await supabase.storage.from("document-intelligence").remove([job.file_path]);
       }
 
-      const { error } = await (supabase
+      const { error } = await supabase
         .from("document_processing_jobs")
         .delete()
-        .eq("id", jobId) as any);
+        .eq("id", jobId);
       if (error) throw error;
     },
     onSuccess: () => {
