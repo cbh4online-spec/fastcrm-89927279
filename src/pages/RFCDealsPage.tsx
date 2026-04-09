@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, RefreshCw, Loader2, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useDealProbabilityScores,
   useRecomputeRevenueFlightControl,
@@ -16,6 +17,7 @@ import {
 
 function RFCDealsPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { data: dealScores, isLoading } = useDealProbabilityScores();
   const recompute = useRecomputeRevenueFlightControl();
 
@@ -55,115 +57,161 @@ function RFCDealsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/revenue-flight-control")}>
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/dashboard/revenue-flight-control")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">Deals Intelligence</h1>
-              <p className="text-sm text-muted-foreground">{filtered.length} negócios analisados</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">Deals Intelligence</h1>
+              <p className="text-[10px] sm:text-sm text-muted-foreground">{filtered.length} negócios</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => recompute.mutate()} disabled={recompute.isPending}>
+          <Button variant="outline" size="sm" onClick={() => recompute.mutate()} disabled={recompute.isPending} className="shrink-0 h-8">
             {recompute.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-2">Recalcular</span>
+            <span className="ml-1.5 hidden sm:inline">Recalcular</span>
           </Button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Pesquisar negócio ou empresa..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Pesquisar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9" />
           </div>
-          <Select value={probFilter} onValueChange={setProbFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Probabilidade" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="high">Alta (≥70%)</SelectItem>
-              <SelectItem value="medium">Média (40-70%)</SelectItem>
-              <SelectItem value="low">Baixa (&lt;40%)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={riskFilter} onValueChange={setRiskFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Risco" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="high">Alto (≥60)</SelectItem>
-              <SelectItem value="medium">Médio (30-60)</SelectItem>
-              <SelectItem value="low">Baixo (&lt;30)</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+            <Select value={probFilter} onValueChange={setProbFilter}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs sm:text-sm"><SelectValue placeholder="Probabilidade" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="high">Alta (≥70%)</SelectItem>
+                <SelectItem value="medium">Média (40-70%)</SelectItem>
+                <SelectItem value="low">Baixa (&lt;40%)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={riskFilter} onValueChange={setRiskFilter}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs sm:text-sm"><SelectValue placeholder="Risco" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="high">Alto (≥60)</SelectItem>
+                <SelectItem value="medium">Médio (30-60)</SelectItem>
+                <SelectItem value="low">Baixo (&lt;30)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left p-3 font-medium text-muted-foreground">Negócio</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Empresa</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Fase</th>
-                    <th className="text-right p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("value")}>
-                      <span className="flex items-center justify-end gap-1">Valor <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="text-center p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("probability_score")}>
-                      <span className="flex items-center justify-center gap-1">Prob <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="text-center p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("risk_score")}>
-                      <span className="flex items-center justify-center gap-1">Risco <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="text-center p-3 font-medium text-muted-foreground">Health</th>
-                    <th className="text-center p-3 font-medium text-muted-foreground">Momentum</th>
-                    <th className="text-center p-3 font-medium text-muted-foreground">Confiança</th>
-                    <th className="text-left p-3 font-medium text-muted-foreground">Ação Recomendada</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">A carregar...</td></tr>
-                  ) : filtered.length === 0 ? (
-                    <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Nenhum negócio encontrado</td></tr>
-                  ) : (
-                    filtered.map((deal: any) => {
-                      const opp = deal.opportunities;
-                      return (
-                        <tr key={deal.id} className="border-b hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/dashboard/opportunities/${deal.opportunity_id}`)}>
-                          <td className="p-3 font-medium max-w-[200px] truncate">{opp?.title}</td>
-                          <td className="p-3 text-muted-foreground">{opp?.companies?.name || "—"}</td>
-                          <td className="p-3"><Badge variant="outline" className="text-xs">{opp?.pipeline_stages?.name || "—"}</Badge></td>
-                          <td className="p-3 text-right font-semibold">{formatCurrency(opp?.value || 0)}</td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline" className={cn("text-xs",
-                              deal.probability_score >= 70 ? "text-emerald-400 border-emerald-400/30" :
-                              deal.probability_score >= 40 ? "text-amber-400 border-amber-400/30" :
-                              "text-red-400 border-red-400/30"
-                            )}>{deal.probability_score}%</Badge>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline" className={cn("text-xs",
-                              deal.risk_score >= 60 ? "text-red-400 border-red-400/30" :
-                              deal.risk_score >= 30 ? "text-amber-400 border-amber-400/30" :
-                              "text-emerald-400 border-emerald-400/30"
-                            )}>{deal.risk_score}</Badge>
-                          </td>
-                          <td className="p-3 text-center">{deal.health_score}</td>
-                          <td className="p-3 text-center">{deal.momentum_score}</td>
-                          <td className="p-3 text-center">{deal.confidence_score}</td>
-                          <td className="p-3 text-xs text-muted-foreground max-w-[180px] truncate">{deal.recommended_action}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Mobile: Card view / Desktop: Table */}
+        {isMobile ? (
+          <div className="space-y-2">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-8">A carregar...</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum negócio encontrado</p>
+            ) : (
+              filtered.map((deal: any) => {
+                const opp = deal.opportunities;
+                return (
+                  <Card key={deal.id} className="cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate(`/dashboard/opportunities/${deal.opportunity_id}`)}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{opp?.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{opp?.companies?.name || "—"}</p>
+                        </div>
+                        <span className="text-sm font-bold shrink-0">{formatCurrency(opp?.value || 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px]">{opp?.pipeline_stages?.name || "—"}</Badge>
+                        <Badge variant="outline" className={cn("text-[10px]",
+                          deal.probability_score >= 70 ? "text-emerald-400 border-emerald-400/30" :
+                          deal.probability_score >= 40 ? "text-amber-400 border-amber-400/30" :
+                          "text-red-400 border-red-400/30"
+                        )}>Prob: {deal.probability_score}%</Badge>
+                        <Badge variant="outline" className={cn("text-[10px]",
+                          deal.risk_score >= 60 ? "text-red-400 border-red-400/30" :
+                          deal.risk_score >= 30 ? "text-amber-400 border-amber-400/30" :
+                          "text-emerald-400 border-emerald-400/30"
+                        )}>Risco: {deal.risk_score}</Badge>
+                      </div>
+                      {deal.recommended_action && (
+                        <p className="text-[10px] text-muted-foreground mt-2 line-clamp-1">{deal.recommended_action}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="text-left p-3 font-medium text-muted-foreground">Negócio</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Empresa</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Fase</th>
+                      <th className="text-right p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("value")}>
+                        <span className="flex items-center justify-end gap-1">Valor <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="text-center p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("probability_score")}>
+                        <span className="flex items-center justify-center gap-1">Prob <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="text-center p-3 font-medium text-muted-foreground cursor-pointer" onClick={() => toggleSort("risk_score")}>
+                        <span className="flex items-center justify-center gap-1">Risco <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="text-center p-3 font-medium text-muted-foreground">Health</th>
+                      <th className="text-center p-3 font-medium text-muted-foreground">Momentum</th>
+                      <th className="text-center p-3 font-medium text-muted-foreground">Confiança</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Ação Recomendada</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">A carregar...</td></tr>
+                    ) : filtered.length === 0 ? (
+                      <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">Nenhum negócio encontrado</td></tr>
+                    ) : (
+                      filtered.map((deal: any) => {
+                        const opp = deal.opportunities;
+                        return (
+                          <tr key={deal.id} className="border-b hover:bg-muted/20 cursor-pointer" onClick={() => navigate(`/dashboard/opportunities/${deal.opportunity_id}`)}>
+                            <td className="p-3 font-medium max-w-[200px] truncate">{opp?.title}</td>
+                            <td className="p-3 text-muted-foreground">{opp?.companies?.name || "—"}</td>
+                            <td className="p-3"><Badge variant="outline" className="text-xs">{opp?.pipeline_stages?.name || "—"}</Badge></td>
+                            <td className="p-3 text-right font-semibold">{formatCurrency(opp?.value || 0)}</td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className={cn("text-xs",
+                                deal.probability_score >= 70 ? "text-emerald-400 border-emerald-400/30" :
+                                deal.probability_score >= 40 ? "text-amber-400 border-amber-400/30" :
+                                "text-red-400 border-red-400/30"
+                              )}>{deal.probability_score}%</Badge>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className={cn("text-xs",
+                                deal.risk_score >= 60 ? "text-red-400 border-red-400/30" :
+                                deal.risk_score >= 30 ? "text-amber-400 border-amber-400/30" :
+                                "text-emerald-400 border-emerald-400/30"
+                              )}>{deal.risk_score}</Badge>
+                            </td>
+                            <td className="p-3 text-center">{deal.health_score}</td>
+                            <td className="p-3 text-center">{deal.momentum_score}</td>
+                            <td className="p-3 text-center">{deal.confidence_score}</td>
+                            <td className="p-3 text-xs text-muted-foreground max-w-[180px] truncate">{deal.recommended_action}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

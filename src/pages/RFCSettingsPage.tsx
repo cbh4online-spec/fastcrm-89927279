@@ -56,32 +56,36 @@ function RFCSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-[900px] mx-auto">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/revenue-flight-control")}>
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[900px] mx-auto">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/dashboard/revenue-flight-control")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">Configurações</h1>
-            <p className="text-sm text-muted-foreground">Targets e parâmetros do modelo de previsão</p>
+            <h1 className="text-base sm:text-xl font-bold">Configurações</h1>
+            <p className="text-[10px] sm:text-sm text-muted-foreground">Targets e parâmetros do modelo</p>
           </div>
         </div>
 
         {/* Revenue Target */}
         <Card>
-          <CardHeader><CardTitle className="text-sm">Target Mensal ({now.toLocaleString("pt-PT", { month: "long", year: "numeric" })})</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm">
+              Target Mensal ({now.toLocaleString("pt-PT", { month: "long", year: "numeric" })})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 px-3 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Receita target (€)</Label>
-                <Input type="number" value={targetRevenue} onChange={e => setTargetRevenue(Number(e.target.value))} />
+                <Label className="text-xs">Receita target (€)</Label>
+                <Input type="number" value={targetRevenue} onChange={e => setTargetRevenue(Number(e.target.value))} className="h-9 mt-1" />
               </div>
               <div>
-                <Label>Negócios target</Label>
-                <Input type="number" value={targetDeals} onChange={e => setTargetDeals(Number(e.target.value))} />
+                <Label className="text-xs">Negócios target</Label>
+                <Input type="number" value={targetDeals} onChange={e => setTargetDeals(Number(e.target.value))} className="h-9 mt-1" />
               </div>
             </div>
-            <Button onClick={handleSaveTarget} disabled={saveTarget.isPending}>
+            <Button onClick={handleSaveTarget} disabled={saveTarget.isPending} className="w-full sm:w-auto h-9">
               {saveTarget.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               Guardar Target
             </Button>
@@ -90,31 +94,31 @@ function RFCSettingsPage() {
 
         {/* Model Config */}
         <Card>
-          <CardHeader><CardTitle className="text-sm">Modelo de Previsão</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardHeader className="px-3 sm:px-6"><CardTitle className="text-xs sm:text-sm">Modelo de Previsão</CardTitle></CardHeader>
+          <CardContent className="space-y-4 px-3 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Dias para considerar estagnado</Label>
-                <Input type="number" value={stalledDays} onChange={e => setStalledDays(Number(e.target.value))} />
+                <Label className="text-xs">Dias para estagnado</Label>
+                <Input type="number" value={stalledDays} onChange={e => setStalledDays(Number(e.target.value))} className="h-9 mt-1" />
               </div>
               <div>
-                <Label>Threshold deal HOT (%)</Label>
-                <Input type="number" value={hotDealThreshold} onChange={e => setHotDealThreshold(Number(e.target.value))} />
+                <Label className="text-xs">Threshold HOT (%)</Label>
+                <Input type="number" value={hotDealThreshold} onChange={e => setHotDealThreshold(Number(e.target.value))} className="h-9 mt-1" />
               </div>
               <div>
-                <Label>Ciclo de vendas médio (dias)</Label>
-                <Input type="number" value={avgSalesCycle} onChange={e => setAvgSalesCycle(Number(e.target.value))} />
+                <Label className="text-xs">Ciclo vendas médio (dias)</Label>
+                <Input type="number" value={avgSalesCycle} onChange={e => setAvgSalesCycle(Number(e.target.value))} className="h-9 mt-1" />
               </div>
               <div>
-                <Label>Taxa proposta → fecho</Label>
-                <Input type="number" step="0.05" value={proposalToClose} onChange={e => setProposalToClose(Number(e.target.value))} />
+                <Label className="text-xs">Proposta → fecho</Label>
+                <Input type="number" step="0.05" value={proposalToClose} onChange={e => setProposalToClose(Number(e.target.value))} className="h-9 mt-1" />
               </div>
               <div>
-                <Label>Taxa reunião → proposta</Label>
-                <Input type="number" step="0.05" value={meetingToProposal} onChange={e => setMeetingToProposal(Number(e.target.value))} />
+                <Label className="text-xs">Reunião → proposta</Label>
+                <Input type="number" step="0.05" value={meetingToProposal} onChange={e => setMeetingToProposal(Number(e.target.value))} className="h-9 mt-1" />
               </div>
             </div>
-            <Button onClick={handleSaveConfig} disabled={saveConfig.isPending}>
+            <Button onClick={handleSaveConfig} disabled={saveConfig.isPending} className="w-full sm:w-auto h-9">
               {saveConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               Guardar Configuração
             </Button>
