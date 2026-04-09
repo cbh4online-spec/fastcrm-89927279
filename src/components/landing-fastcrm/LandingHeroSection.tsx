@@ -72,8 +72,8 @@ export function LandingHeroSection() {
       </AnimatePresence>
 
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-[hsl(222,47%,4%)]/75 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-[hsl(222,47%,4%)]/60 pointer-events-none" />
+      <div className="absolute inset-0 bg-[hsl(222,47%,4%)]/55 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-[hsl(222,47%,4%)]/40 pointer-events-none" />
 
       {/* Subtle glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
