@@ -172,7 +172,7 @@ serve(async (req) => {
 
     } else if (entry_type === "break_end" && activeSession) {
       const breakStartTime = new Date(activeSession.break_start_at).getTime();
-      const breakDurationMin = Math.round((now.getTime() - breakStartTime) / 60000);
+      const breakDurationMin = Math.max(1, Math.ceil((now.getTime() - breakStartTime) / 60000));
       const totalBreakMin = (activeSession.break_minutes || 0) + breakDurationMin;
 
       await supabase.from("hr_work_sessions").update({
@@ -183,13 +183,22 @@ serve(async (req) => {
       session_action = "break_end";
 
     } else if (entry_type === "clock_out" && activeSession) {
+      // If currently on break, end it first
+      let breakMin = activeSession.break_minutes || 0;
+      if (activeSession.break_start_at && !activeSession.break_end_at) {
+        const breakStartTime = new Date(activeSession.break_start_at).getTime();
+        const pendingBreakMin = Math.max(1, Math.ceil((now.getTime() - breakStartTime) / 60000));
+        breakMin += pendingBreakMin;
+      }
+
       const clockInTime = new Date(activeSession.clock_in_at).getTime();
       const totalMin = Math.round((now.getTime() - clockInTime) / 60000);
-      const breakMin = activeSession.break_minutes || 0;
       const workedMin = Math.max(0, totalMin - breakMin);
 
       await supabase.from("hr_work_sessions").update({
         clock_out_at: now.toISOString(),
+        break_end_at: activeSession.break_start_at && !activeSession.break_end_at ? now.toISOString() : activeSession.break_end_at,
+        break_minutes: breakMin,
         total_minutes: totalMin,
         worked_minutes: workedMin,
         status: "complete",
