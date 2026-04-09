@@ -14,22 +14,22 @@ export function AIUsageBanner() {
     <div className="px-4 py-2 border-b border-border">
       {isAtLimit ? (
         <Alert variant="destructive" className="py-2">
-          <AlertDescription className="flex items-center justify-between">
-            <span>Atingiste o limite de chamadas IA este mês ({callsIncluded} chamadas).</span>
-            <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/settings/billing")}>
+          <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm">Atingiste o limite de chamadas IA este mês ({callsIncluded} chamadas).</span>
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => navigate("/dashboard/settings/billing")}>
               Fazer upgrade
             </Button>
           </AlertDescription>
         </Alert>
       ) : isNearLimit ? (
         <Alert className="py-2 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
-          <AlertDescription className="flex items-center gap-4">
-            <span className="text-amber-800 dark:text-amber-200 text-sm">
-              IA: {callsUsed}/{callsIncluded} chamadas usadas este mês ({callsPct}%)
+          <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <span className="text-amber-800 dark:text-amber-200 text-xs sm:text-sm">
+              IA: {callsUsed}/{callsIncluded} chamadas ({callsPct}%)
             </span>
-            <Progress value={callsPct} className="w-32 h-2" />
+            <Progress value={callsPct} className="w-full sm:w-32 h-2" />
             {pendingOverage > 0 && (
-              <span className="text-amber-700 dark:text-amber-300 text-xs">
+              <span className="text-amber-700 dark:text-amber-300 text-xs shrink-0">
                 +€{pendingOverage.toFixed(2)} overage
               </span>
             )}

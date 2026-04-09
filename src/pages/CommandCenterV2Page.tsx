@@ -20,7 +20,7 @@ export default function CommandCenterV2Page() {
 
   return (
     <DashboardLayout>
-    <div className="space-y-6 p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto">
       <PageHeader
         title="Command Center"
         description="Execute comandos inteligentes com contexto CRM completo"

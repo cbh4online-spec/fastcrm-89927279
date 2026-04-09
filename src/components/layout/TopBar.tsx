@@ -74,7 +74,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 sm:gap-1.5 overflow-hidden">
         {/* Ask FastCRM */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -124,11 +124,11 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </Tooltip>
         )}
 
-        <LanguageSelector />
-        <OnlineUsersIndicator />
-        <TopBarCreditsBadge />
-        <ContextScoreIndicator />
-        <HelpSupportDropdown />
+        <div className="hidden sm:block"><LanguageSelector /></div>
+        <div className="hidden md:block"><OnlineUsersIndicator /></div>
+        <div className="hidden sm:block"><TopBarCreditsBadge /></div>
+        <div className="hidden lg:block"><ContextScoreIndicator /></div>
+        <div className="hidden sm:block"><HelpSupportDropdown /></div>
 
         <NotificationBell />
 
