@@ -92,13 +92,6 @@ export function LandingSolutionSection() {
               transition={{ duration: 0.3 }}
               className="group relative rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] hover:border-primary/40 hover:bg-[hsl(222,47%,8%)] transition-colors duration-300 overflow-hidden"
             >
-              {/* Card Visual Header */}
-              <div className="relative aspect-[2/1] overflow-hidden bg-gradient-to-br from-primary/10 via-[hsl(222,47%,8%)] to-[hsl(250,83%,60%)]/10 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-2xl bg-primary/15 flex items-center justify-center">
-                  <pillar.icon className="h-10 w-10 text-primary/60" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,6%)] via-transparent to-transparent" />
-              </div>
 
               <div className="p-7">
                 <motion.div
