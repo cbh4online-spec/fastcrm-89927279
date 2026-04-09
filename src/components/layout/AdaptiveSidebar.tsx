@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
+import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";

@@ -7,7 +7,7 @@ import { BenchmarkCard } from "./BenchmarkCard";
 import { ArrowRight, TrendingUp, TrendingDown, Phone, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import type { AdaptiveLayoutConfig } from "@/hooks/useAdaptiveDashboard";
+import type { AdaptiveLayoutConfig } from "@/contexts/AdaptiveDashboardContext";
 import {
   mockMetrics,
   mockAlerts,

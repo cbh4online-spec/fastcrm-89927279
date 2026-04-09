@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { AdaptiveDashboardProvider } from "@/contexts/AdaptiveDashboardContext";
 import { Sidebar } from "./Sidebar";
 import { SidebarV1 } from "./SidebarV1";
 import { AdaptiveSidebar } from "./AdaptiveSidebar";
@@ -52,27 +53,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <WorkspaceStatusGuard>
-      <div className="h-screen flex bg-background overflow-hidden">
-        {useAdaptive ? (
-          <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
-        ) : shellV2 ? (
-          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        ) : (
-          <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        )}
-        <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
-          <TopBar onMenuClick={() => setSidebarOpen(true)} />
-          <AIUsageBanner />
-          <main className="flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background">
-            {children}
-          </main>
-          {showFAB && <MQPCFloatingButton />}
-          <VoiceConversationWidget />
-          <GlobalNoCreditsDialog />
-          <CopilotDrawer />
+    <AdaptiveDashboardProvider>
+      <WorkspaceStatusGuard>
+        <div className="h-screen flex bg-background overflow-hidden">
+          {useAdaptive ? (
+            <AdaptiveSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpen={() => setSidebarOpen(true)} />
+          ) : shellV2 ? (
+            <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          ) : (
+            <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          )}
+          <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${useAdaptive ? (collapsed ? "lg:pl-16" : "lg:pl-[280px]") : collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
+            <TopBar onMenuClick={() => setSidebarOpen(true)} />
+            <AIUsageBanner />
+            <main className="flex-1 animate-fade-in p-3 sm:p-4 md:p-6 overflow-auto bg-background">
+              {children}
+            </main>
+            {showFAB && <MQPCFloatingButton />}
+            <VoiceConversationWidget />
+            <GlobalNoCreditsDialog />
+            <CopilotDrawer />
+          </div>
         </div>
-      </div>
-    </WorkspaceStatusGuard>
+      </WorkspaceStatusGuard>
+    </AdaptiveDashboardProvider>
   );
 }
