@@ -209,14 +209,14 @@ export function AutomationTemplatesPanel({ onEditRule }: Props) {
           ))}
         </TabsList>
 
-        <TabsContent value={activeCategory} className="mt-6">
+        <TabsContent value={activeCategory} className="mt-4 sm:mt-6 overflow-x-hidden">
           {filteredTemplates.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Zap className="h-12 w-12 mx-auto mb-4 opacity-20" />
               <p>Nenhum template encontrado.</p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => (
                 <TemplateCard
                   key={template.id}
@@ -302,20 +302,22 @@ function TemplateCard({ template, onInstall }: TemplateCardProps) {
   const Icon = ICON_MAP[template.icon] || Zap;
 
   return (
-    <Card className="relative transition-all hover:shadow-md">
+    <Card className="relative overflow-hidden transition-all hover:shadow-md">
       {template.isNew && (
-        <Badge className="absolute -top-2 -right-2 bg-primary">
-          <Sparkles className="h-3 w-3 mr-1" />
+        <Badge className="absolute right-3 top-3 z-10 gap-1 px-2 py-0.5 text-[10px] sm:-top-2 sm:-right-2 sm:px-2.5 sm:text-xs bg-primary">
+          <Sparkles className="hidden sm:block h-3 w-3" />
           Novo
         </Badge>
       )}
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 pr-16 sm:pr-6">
         <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-lg ${template.color} text-white`}>
+          <div className={`shrink-0 p-2 rounded-lg ${template.color} text-white`}>
             <Icon className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-medium truncate">{template.name}</CardTitle>
+            <CardTitle className="text-sm sm:text-base font-medium leading-tight line-clamp-2">
+              {template.name}
+            </CardTitle>
             <div className="flex flex-wrap gap-1 mt-1">
               {template.industry.slice(0, 2).map((ind) => (
                 <Badge key={ind} variant="outline" className="text-xs">
@@ -332,22 +334,22 @@ function TemplateCard({ template, onInstall }: TemplateCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <CardDescription className="text-sm line-clamp-2">
+        <CardDescription className="text-sm leading-relaxed line-clamp-2">
           {template.description}
         </CardDescription>
 
         <div className="space-y-1 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Zap className="h-3 w-3" />
-            <span>Gatilho: <span className="text-foreground">{template.trigger}</span></span>
+          <div className="flex items-start gap-2">
+            <Zap className="h-3 w-3 shrink-0 mt-0.5" />
+            <span className="min-w-0 break-words">Gatilho: <span className="text-foreground break-all">{template.trigger}</span></span>
           </div>
           <div className="flex items-center gap-2">
-            <Play className="h-3 w-3" />
+            <Play className="h-3 w-3 shrink-0" />
             <span>{template.actions.length} ação(ões)</span>
           </div>
           {template.conditions.length > 0 && (
             <div className="flex items-center gap-2">
-              <Settings className="h-3 w-3" />
+              <Settings className="h-3 w-3 shrink-0" />
               <span>{template.conditions.length} condição(ões)</span>
             </div>
           )}
