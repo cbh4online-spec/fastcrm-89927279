@@ -203,12 +203,12 @@ export function LeadDuplicateReviewPanel() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch] pb-1">
+      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
         <Button
           variant={filter === "all" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("all")}
-          className="text-xs h-7 shrink-0"
+          className="text-xs h-7 px-2 sm:px-3"
         >
           Todos ({groups.length})
         </Button>
@@ -216,28 +216,28 @@ export function LeadDuplicateReviewPanel() {
           variant={filter === "exact" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("exact")}
-          className="text-xs h-7 gap-1 shrink-0"
+          className="text-xs h-7 gap-1 px-2 sm:px-3"
         >
-          <Shield className="h-3 w-3" />
+          <Shield className="h-3 w-3 hidden sm:inline" />
           Exactos ({exactCount})
         </Button>
         <Button
           variant={filter === "strong" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("strong")}
-          className="text-xs h-7 gap-1 shrink-0"
+          className="text-xs h-7 gap-1 px-2 sm:px-3"
         >
-          <AlertTriangle className="h-3 w-3" />
+          <AlertTriangle className="h-3 w-3 hidden sm:inline" />
           Fortes ({strongCount})
         </Button>
         <Button
           variant={filter === "probable" ? "default" : "outline"}
           size="sm"
           onClick={() => setFilter("probable")}
-          className="text-xs h-7 gap-1 shrink-0"
+          className="text-xs h-7 gap-1 px-2 sm:px-3"
         >
-          <Search className="h-3 w-3" />
-          Prováveis ({probableCount})
+          <Search className="h-3 w-3 hidden sm:inline" />
+          Prov. ({probableCount})
         </Button>
       </div>
 

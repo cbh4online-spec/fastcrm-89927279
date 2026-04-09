@@ -151,14 +151,15 @@ export function SmartLeadsTable() {
     ]},
   ], [t]);
 
+  
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
     { id: "kanban", label: "Kanban" },
-    { id: "duplicates", label: "Duplicate Review" },
-    { id: "smart-lists", label: t("tabSmartLists") },
-    { id: "automations", label: t("tabAutomations") },
+    { id: "duplicates", label: isMobile ? "Duplicados" : "Duplicate Review" },
+    { id: "smart-lists", label: isMobile ? "Listas" : t("tabSmartLists") },
+    { id: "automations", label: isMobile ? "Auto." : t("tabAutomations") },
     { id: "import", label: t("tabImport") },
-  ], [t]);
+  ], [t, isMobile]);
 
   const leadBulkEditFields: BulkEditField[] = useMemo(() => [
     { key: "status", label: t("col_status"), type: "select", section: "info", options: [
