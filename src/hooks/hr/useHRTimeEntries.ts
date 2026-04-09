@@ -64,7 +64,21 @@ export function useClockAction() {
       const res = await supabase.functions.invoke("hr-clock-action", {
         body: { ...payload, workspace_id: wsId }
       });
-      if (res.error) throw res.error;
+      if (res.error) {
+        // Extract the actual error message from the edge function response
+        let errorMsg = "Erro ao registar";
+        try {
+          if (res.error.context) {
+            const body = await res.error.context.json();
+            errorMsg = body?.error || errorMsg;
+          } else {
+            errorMsg = res.error.message || errorMsg;
+          }
+        } catch {
+          errorMsg = res.error.message || errorMsg;
+        }
+        throw new Error(errorMsg);
+      }
       return res.data;
     },
     onSuccess: (data) => {
