@@ -15,14 +15,14 @@ import verticalEmpresas from "@/assets/verticals/vertical-empresas.jpg";
 import verticalAgencias from "@/assets/verticals/vertical-agencias.jpg";
 
 const verticals = [
-  { src: verticalImobiliario, label: "Imobiliário" },
-  { src: verticalConstrucao, label: "Construção" },
-  { src: verticalLideranca, label: "Liderança" },
-  { src: verticalFormacao, label: "Formação" },
-  { src: verticalClinicas, label: "Clínicas" },
-  { src: verticalSeguranca, label: "Segurança" },
-  { src: verticalEmpresas, label: "Empresas" },
-  { src: verticalAgencias, label: "Agências" },
+  { src: verticalImobiliario, label: "Imobiliário", headline: "Venda mais imóveis", subtitle: "Pipeline visual, alertas de visitas e follow-up automático para fechar negócios mais rápido.", cta: "Experimentar para Imobiliário" },
+  { src: verticalConstrucao, label: "Construção", headline: "Obras sob controlo", subtitle: "Gestão de orçamentos, acompanhamento de clientes e propostas enviadas num só lugar.", cta: "Experimentar para Construção" },
+  { src: verticalLideranca, label: "Liderança", headline: "Lidere com dados", subtitle: "Dashboards executivos, KPIs de equipa e previsões de receita em tempo real.", cta: "Experimentar para Líderes" },
+  { src: verticalFormacao, label: "Formação", headline: "Mais inscrições, menos esforço", subtitle: "Capture leads de cursos, automatize comunicações e acompanhe conversões.", cta: "Experimentar para Formação" },
+  { src: verticalClinicas, label: "Clínicas", headline: "Pacientes fidelizados", subtitle: "Agendamento inteligente, lembretes automáticos e histórico completo de cada paciente.", cta: "Experimentar para Clínicas" },
+  { src: verticalSeguranca, label: "Segurança", headline: "Contratos sempre em dia", subtitle: "Gestão de contratos recorrentes, alertas de renovação e propostas profissionais.", cta: "Experimentar para Segurança" },
+  { src: verticalEmpresas, label: "Empresas", headline: "Escale a sua operação", subtitle: "CRM completo para equipas comerciais com automação, relatórios e integrações.", cta: "Experimentar para Empresas" },
+  { src: verticalAgencias, label: "Agências", headline: "Clientes & projetos alinhados", subtitle: "Pipeline multi-cliente, propostas rápidas e visibilidade total sobre cada conta.", cta: "Experimentar para Agências" },
 ];
 
 const INTERVAL = 4000;
