@@ -5,6 +5,7 @@ import { LandingProblemSection } from "@/components/landing-fastcrm/LandingProbl
 import { LandingSolutionSection } from "@/components/landing-fastcrm/LandingSolutionSection";
 import { LandingArchitectureSection } from "@/components/landing-fastcrm/LandingArchitectureSection";
 import { LandingComparisonSection } from "@/components/landing-fastcrm/LandingComparisonSection";
+import { LandingDetailedComparison } from "@/components/landing-fastcrm/LandingDetailedComparison";
 import { LandingIntegrationsSection } from "@/components/landing-fastcrm/LandingIntegrationsSection";
 import { LandingPositioningSection } from "@/components/landing-fastcrm/LandingPositioningSection";
 import { LandingTestimonialsSection } from "@/components/landing-fastcrm/LandingTestimonialsSection";
@@ -63,6 +64,7 @@ export default function FastCRMLanding() {
           <LandingSolutionSection />
           <LandingIntegrationsSection />
           <LandingComparisonSection />
+          <LandingDetailedComparison />
           <LandingArchitectureSection />
           <LandingPositioningSection />
           <LandingTestimonialsSection />
