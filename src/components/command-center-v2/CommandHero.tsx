@@ -68,13 +68,13 @@ export function CommandHero({ onSubmit, isLoading, onCommandSelect }: CommandHer
       </div>
 
       {/* Command Chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none sm:flex-wrap sm:overflow-visible sm:pb-0">
         {COMMANDS.map((cmd) => (
           <button
             key={cmd.key}
             onClick={() => onCommandSelect(cmd.key === "pipeline-status" ? "Mostra o status do pipeline" : `${cmd.label}`)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-muted/30 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-border transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-muted/30 text-xs font-medium text-foreground hover:bg-muted/60 hover:border-border transition-all disabled:opacity-50 whitespace-nowrap shrink-0"
           >
             <span>{cmd.emoji}</span>
             <span>{cmd.label}</span>

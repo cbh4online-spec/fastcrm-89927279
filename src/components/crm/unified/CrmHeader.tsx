@@ -138,7 +138,7 @@ export function CrmHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
           {/* Saved Views Selector */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -191,8 +191,8 @@ export function CrmHeader({
       </div>
 
       {/* Second row: Search + Filters + Column selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={entityType === "contacts" 
