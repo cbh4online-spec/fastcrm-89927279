@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import pricingBg from "@/assets/pricing-bg.jpg";
 
 import verticalImobiliario from "@/assets/verticals/vertical-imobiliario.jpg";
 import verticalConstrucao from "@/assets/verticals/vertical-construcao.jpg";
@@ -26,112 +25,63 @@ const verticals = [
   { src: verticalAgencias, label: "Agências" },
 ];
 
-const carouselItems = [...verticals, ...verticals];
-
-function InfiniteCarousel() {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
-  const offsetRef = useRef(0);
-  const isPausedRef = useRef(false);
-
-  useEffect(() => {
-    const speed = 0.4;
-    const track = trackRef.current;
-    if (!track) return;
-
-    const animate = () => {
-      if (!isPausedRef.current) {
-        offsetRef.current += speed;
-        const halfWidth = track.scrollWidth / 2;
-        if (offsetRef.current >= halfWidth) offsetRef.current = 0;
-        track.style.transform = `translateX(-${offsetRef.current}px)`;
-      }
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-    return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
-  }, []);
-
-  return (
-    <div className="relative w-full overflow-hidden">
-      {/* Fade edges */}
-      <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-r from-[hsl(222,47%,4%)] to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-l from-[hsl(222,47%,4%)] to-transparent z-10 pointer-events-none" />
-
-      <div
-        className="flex gap-3 sm:gap-4 will-change-transform"
-        ref={trackRef}
-        onMouseEnter={() => { isPausedRef.current = true; }}
-        onMouseLeave={() => { isPausedRef.current = false; }}
-      >
-        {carouselItems.map((v, i) => (
-          <div
-            key={`${v.label}-${i}`}
-            className="relative flex-shrink-0 w-[220px] sm:w-[280px] md:w-[340px] rounded-xl overflow-hidden group"
-          >
-            <img
-              src={v.src}
-              alt={`Ambiente profissional — ${v.label}`}
-              width={1280}
-              height={720}
-              loading="lazy"
-              decoding="async"
-              className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30 text-[11px] sm:text-xs font-semibold text-primary">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                {v.label}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const INTERVAL = 4000;
 
 export function LandingHeroSection() {
   const { t } = useTranslation("landing");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const navigate = useNavigate();
   const { scrollY } = useScroll();
-  const bgY = useTransform(scrollY, [0, 800], [0, 250]);
   const textY = useTransform(scrollY, [0, 600], [0, -80]);
   const opacity = useTransform(scrollY, [0, 500], [1, 0]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`/auth?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
-  };
+  // Auto-advance slides
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % verticals.length);
+    }, INTERVAL);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      navigate(`/auth?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
+    },
+    [name, email, navigate]
+  );
 
   return (
-    <section className="relative min-h-[100vh] flex flex-col justify-center overflow-hidden">
-      <motion.div
-        className="absolute inset-0 opacity-20 pointer-events-none"
-        style={{
-          backgroundImage: `url(${pricingBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          y: bgY,
-          scale: 1.1,
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222,47%,4%)]/70 via-[hsl(222,47%,4%)]/50 to-[hsl(222,47%,4%)] pointer-events-none" />
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-primary/8 blur-[180px]"
-          style={{ y: useTransform(scrollY, [0, 600], [0, 120]) }}
+    <section className="relative h-[100vh] min-h-[700px] flex flex-col justify-center overflow-hidden">
+      {/* Fullscreen crossfading background images */}
+      <AnimatePresence mode="popLayout">
+        <motion.img
+          key={activeIndex}
+          src={verticals[activeIndex].src}
+          alt={`Ambiente profissional — ${verticals[activeIndex].label}`}
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ opacity: { duration: 1.2 }, scale: { duration: 6, ease: "linear" } }}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
         />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      </AnimatePresence>
+
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-[hsl(222,47%,4%)]/75 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-[hsl(222,47%,4%)]/60 pointer-events-none" />
+
+      {/* Subtle glow */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-primary/6 blur-[160px]" />
       </div>
 
       {/* Text content */}
-      <motion.div className="relative max-w-5xl mx-auto px-6 pt-28 pb-10 text-center" style={{ y: textY, opacity }}>
+      <motion.div className="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-10 text-center" style={{ y: textY, opacity }}>
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
@@ -142,13 +92,13 @@ export function LandingHeroSection() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 text-sm font-semibold text-primary tracking-wide uppercase"
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm text-sm font-semibold text-primary tracking-wide uppercase"
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             {t("hero.badge")}
           </motion.div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
             <motion.span
               className="block"
               initial={{ opacity: 0, x: -60 }}
@@ -176,7 +126,7 @@ export function LandingHeroSection() {
           </h1>
 
           <motion.p
-            className="text-lg sm:text-xl text-[hsl(215,20%,65%)] max-w-2xl mx-auto leading-relaxed"
+            className="text-lg sm:text-xl text-[hsl(210,40%,90%)] max-w-2xl mx-auto leading-relaxed drop-shadow-md"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.9 }}
@@ -197,7 +147,7 @@ export function LandingHeroSection() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("hero.namePlaceholder")}
-              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
             />
             <input
               type="email"
@@ -205,7 +155,7 @@ export function LandingHeroSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("hero.emailPlaceholder")}
-              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
             />
             <Button
               type="submit"
@@ -218,7 +168,7 @@ export function LandingHeroSection() {
           </motion.form>
 
           <motion.p
-            className="text-xs text-[hsl(215,20%,45%)]"
+            className="text-xs text-[hsl(210,40%,75%)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 1.3 }}
@@ -228,14 +178,41 @@ export function LandingHeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* Verticals Carousel — inside hero */}
+      {/* Active vertical label + progress dots */}
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 1.4, ease: [0.25, 0.4, 0.25, 1] }}
-        className="relative pb-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 0.8 }}
+        className="absolute bottom-8 left-0 right-0 z-10 flex flex-col items-center gap-3"
       >
-        <InfiniteCarousel />
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={activeIndex}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-sm font-semibold text-white"
+          >
+            <span className="w-2 h-2 rounded-full bg-primary" />
+            {verticals[activeIndex].label}
+          </motion.span>
+        </AnimatePresence>
+
+        <div className="flex gap-1.5">
+          {verticals.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              aria-label={`Ver ${verticals[i].label}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                i === activeIndex
+                  ? "w-6 bg-primary"
+                  : "w-1.5 bg-white/30 hover:bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
       </motion.div>
     </section>
   );
