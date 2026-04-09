@@ -231,13 +231,20 @@ export function ClockInOutButton() {
                 {s.clock_out_at ? format(new Date(s.clock_out_at), "HH:mm") : "—"}
               </span>
               {s.break_minutes > 0 && (
-                <span className="text-amber-600 dark:text-amber-400">({s.break_minutes}m pausa)</span>
+                <span className="text-amber-600 dark:text-amber-400">☕ {s.break_minutes}m</span>
               )}
             </div>
           ))}
-          <span className="ml-auto text-xs font-semibold text-foreground">
-            Total: {Math.floor(totalWorkedToday / 60)}h {totalWorkedToday % 60}m
-          </span>
+          <div className="ml-auto flex items-center gap-3 text-xs">
+            {totalBreakToday > 0 && (
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                Pausas: {totalBreakToday >= 60 ? `${Math.floor(totalBreakToday / 60)}h ${totalBreakToday % 60}m` : `${totalBreakToday}m`}
+              </span>
+            )}
+            <span className="font-semibold text-foreground">
+              Total: {Math.floor(totalWorkedToday / 60)}h {totalWorkedToday % 60}m
+            </span>
+          </div>
         </div>
       )}
     </div>
