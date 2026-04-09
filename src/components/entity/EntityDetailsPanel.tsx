@@ -10,7 +10,6 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 import { EntityType, Entity, CompanyEntity, ContactEntity, LeadEntity } from '@/types/entity';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { formatDate, formatRelativeTime } from '@/lib/formatters';
@@ -251,17 +250,17 @@ function DatesSection({ entity }: { entity: Entity }) {
 
 export function EntityDetailsPanel({ entityType, entity, onUpdate, onEmailClick }: EntityDetailsPanelProps) {
   return (
-    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-card flex-shrink-0 overflow-hidden flex flex-col lg:max-h-none">
+    <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-card flex-shrink-0 lg:flex lg:flex-col lg:overflow-hidden">
       <div className="border-b px-4 py-2.5 flex items-center gap-4">
         <span className="text-sm font-medium text-foreground">Detalhes</span>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="overflow-visible lg:flex-1 lg:overflow-y-auto">
         {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
         {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
         {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} onUpdate={onUpdate} onEmailClick={onEmailClick} />}
         <DatesSection entity={entity} />
-      </ScrollArea>
+      </div>
     </div>
   );
 }

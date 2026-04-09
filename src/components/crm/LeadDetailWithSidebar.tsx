@@ -345,7 +345,7 @@ export function LeadDetailWithSidebar() {
   };
 
   return (
-    <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 h-[calc(100vh-64px)]">
+    <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)]">
       {/* Breadcrumbs */}
       <div className="bg-background px-3 sm:px-6 pt-4">
         <PageBreadcrumbs
@@ -515,9 +515,9 @@ export function LeadDetailWithSidebar() {
       />
 
       {/* Main Content - Responsive Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 lg:flex lg:flex-row lg:min-h-0 lg:overflow-hidden">
         {/* Center Content */}
-        <main className="flex-1 lg:overflow-y-auto min-h-0">
+        <main className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto">
           <div className="p-3 sm:p-6 max-w-4xl">
             {activeSection === 'overview' && (
               <div className="mb-6">
