@@ -88,6 +88,10 @@ export function ClockInOutButton() {
     () => completedSessions.reduce((sum, s) => sum + (s.worked_minutes || 0), 0),
     [completedSessions]
   );
+  const totalBreakToday = useMemo(
+    () => completedSessions.reduce((sum, s) => sum + (s.break_minutes || 0), 0),
+    [completedSessions]
+  );
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
