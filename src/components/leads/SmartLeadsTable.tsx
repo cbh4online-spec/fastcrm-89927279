@@ -512,98 +512,140 @@ export function SmartLeadsTable() {
               );
             })()}
 
-            <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 min-h-0 overflow-y-auto">
-              <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
-                      <Checkbox checked={allSelected} ref={(el) => { if (el) (el as any).indeterminate = someSelected; }} onCheckedChange={toggleSelectAll} />
-                    </TableHead>
-                    <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>{t("col_lead")}</TableHead>
-                    {orderedVisibleColumns.map(col => (
-                      <TableHead key={col.id} className="whitespace-nowrap">
-                        {col.category === "ai" ? <span className="flex items-center gap-1">{col.label}<span className="text-[10px] text-muted-foreground">IA</span></span> : col.label}
-                      </TableHead>
+            {/* Mobile: Card View / Desktop: Table View */}
+            {isMobile ? (
+              <div className="mt-3 space-y-2">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="rounded-lg border bg-card p-3 animate-pulse">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-5 w-5 rounded bg-muted" />
+                          <div className="h-9 w-9 rounded-full bg-muted" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-4 w-32 rounded bg-muted" />
+                            <div className="h-3 w-20 rounded bg-muted" />
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                    <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={totalColumns} className="p-0"><TableSkeleton rows={5} columns={totalColumns} showHeader={false} /></TableCell></TableRow>
-                  ) : !displayLeads.length ? (
-                    <TableRow><TableCell colSpan={totalColumns} className="text-center py-8">
-                      {searchValue ? <SearchEmptyState query={searchValue} /> : (
-                        <EmptyState type="leads" title={t("noLeadsYet")} description={t("noLeadsDesc")} action={{ label: t("addLead"), onClick: () => setIsCreateDialogOpen(true) }} />
-                      )}
-                    </TableCell></TableRow>
-                  ) : (
-                    paginatedLeads.map((lead) => {
-                      const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-                      const dupCount = duplicateLeadIds.get(lead.id);
-                      return (
-                        <TableRow key={lead.id} className={cn("group transition-colors cursor-pointer", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")} onClick={() => navigate(`/dashboard/leads/${lead.id}`)}>
-                          <TableCell className={cn("w-[40px]", stickyCheckboxStyles)} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
-                          <TableCell className={stickyNameStyles}>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</Link>
-                                  {dupCount && (
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-[9px] px-1.5 py-0 h-4 border-warning/40 bg-warning/10 text-warning cursor-pointer shrink-0"
-                                      onClick={(e) => { e.stopPropagation(); setActiveTab("duplicates"); }}
-                                    >
-                                      <Copy className="h-2.5 w-2.5 mr-0.5" />
-                                      {dupCount}
-                                    </Badge>
-                                  )}
+                  </div>
+                ) : !displayLeads.length ? (
+                  <div className="text-center py-8">
+                    {searchValue ? <SearchEmptyState query={searchValue} /> : (
+                      <EmptyState type="leads" title={t("noLeadsYet")} description={t("noLeadsDesc")} action={{ label: t("addLead"), onClick: () => setIsCreateDialogOpen(true) }} />
+                    )}
+                  </div>
+                ) : (
+                  paginatedLeads.map((lead) => (
+                    <LeadMobileCard
+                      key={lead.id}
+                      lead={lead}
+                      isSelected={selectedIds.has(lead.id)}
+                      onToggleSelect={() => toggleSelect(lead.id)}
+                      onAnalyze={() => handleAnalyzeLead(lead.id)}
+                      isAnalyzing={analyzingId === lead.id}
+                      onClick={() => navigate(`/dashboard/leads/${lead.id}`)}
+                      duplicateCount={duplicateLeadIds.get(lead.id)}
+                      onShowDuplicates={() => setActiveTab("duplicates")}
+                    />
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0 min-h-0 overflow-y-auto">
+                <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className={cn("w-[40px] whitespace-nowrap", stickyHeaderCheckboxStyles)}>
+                        <Checkbox checked={allSelected} ref={(el) => { if (el) (el as any).indeterminate = someSelected; }} onCheckedChange={toggleSelectAll} />
+                      </TableHead>
+                      <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>{t("col_lead")}</TableHead>
+                      {orderedVisibleColumns.map(col => (
+                        <TableHead key={col.id} className="whitespace-nowrap">
+                          {col.category === "ai" ? <span className="flex items-center gap-1">{col.label}<span className="text-[10px] text-muted-foreground">IA</span></span> : col.label}
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-[100px] whitespace-nowrap"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={totalColumns} className="p-0"><TableSkeleton rows={5} columns={totalColumns} showHeader={false} /></TableCell></TableRow>
+                    ) : !displayLeads.length ? (
+                      <TableRow><TableCell colSpan={totalColumns} className="text-center py-8">
+                        {searchValue ? <SearchEmptyState query={searchValue} /> : (
+                          <EmptyState type="leads" title={t("noLeadsYet")} description={t("noLeadsDesc")} action={{ label: t("addLead"), onClick: () => setIsCreateDialogOpen(true) }} />
+                        )}
+                      </TableCell></TableRow>
+                    ) : (
+                      paginatedLeads.map((lead) => {
+                        const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                        const dupCount = duplicateLeadIds.get(lead.id);
+                        return (
+                          <TableRow key={lead.id} className={cn("group transition-colors cursor-pointer", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")} onClick={() => navigate(`/dashboard/leads/${lead.id}`)}>
+                            <TableCell className={cn("w-[40px]", stickyCheckboxStyles)} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
+                            <TableCell className={stickyNameStyles}>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</Link>
+                                    {dupCount && (
+                                      <Badge 
+                                        variant="outline" 
+                                        className="text-[9px] px-1.5 py-0 h-4 border-warning/40 bg-warning/10 text-warning cursor-pointer shrink-0"
+                                        onClick={(e) => { e.stopPropagation(); setActiveTab("duplicates"); }}
+                                      >
+                                        <Copy className="h-2.5 w-2.5 mr-0.5" />
+                                        {dupCount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {(lead as any).company_name && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" /><span className="truncate">{(lead as any).company_name}</span></div>}
                                 </div>
-                                {(lead as any).company_name && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" /><span className="truncate">{(lead as any).company_name}</span></div>}
                               </div>
-                            </div>
-                          </TableCell>
-                          {orderedVisibleColumns.map(col => <TableCell key={col.id} onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={lead as any} entityType="lead" onUpdate={handleInlineUpdate} /></TableCell>)}
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>
-                              <Link to={`/dashboard/leads/${lead.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-4 h-4" /></Button></Link>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-popover z-50">
-                                  <DropdownMenuItem><Reply className="w-4 h-4 mr-2" />{t("sendMessage")}</DropdownMenuItem>
-                                  <DropdownMenuItem><Target className="w-4 h-4 mr-2" />{t("createOpportunity")}</DropdownMenuItem>
-                                  <DropdownMenuItem><Settings2 className="w-4 h-4 mr-2" />{t("activateAutomation")}</DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem><Archive className="w-4 h-4 mr-2" />{t("archive")}</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </StickyTableWrapper>
-            </div>
+                            </TableCell>
+                            {orderedVisibleColumns.map(col => <TableCell key={col.id} onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={lead as any} entityType="lead" onUpdate={handleInlineUpdate} /></TableCell>)}
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>
+                                <Link to={`/dashboard/leads/${lead.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-4 h-4" /></Button></Link>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="bg-popover z-50">
+                                    <DropdownMenuItem><Reply className="w-4 h-4 mr-2" />{t("sendMessage")}</DropdownMenuItem>
+                                    <DropdownMenuItem><Target className="w-4 h-4 mr-2" />{t("createOpportunity")}</DropdownMenuItem>
+                                    <DropdownMenuItem><Settings2 className="w-4 h-4 mr-2" />{t("activateAutomation")}</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem><Archive className="w-4 h-4 mr-2" />{t("archive")}</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </StickyTableWrapper>
+              </div>
+            )}
 
             {totalLeads > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 px-1 sm:px-2">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                   <span>{t("show")}</span>
                   <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                    <SelectTrigger className="w-[70px] h-8"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[60px] sm:w-[70px] h-8 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-popover z-50">{PAGE_SIZE_OPTIONS.map(size => <SelectItem key={size} value={size.toString()}>{size}</SelectItem>)}</SelectContent>
                   </Select>
-                  <span>{t("perPage")}</span>
-                  <span className="text-muted-foreground/70 ml-2">({t("totalLeads", { count: totalLeads })})</span>
+                  <span className="hidden sm:inline">{t("perPage")}</span>
+                  <span className="text-muted-foreground/70">({totalLeads})</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{t("pageOf", { current: currentPage, total: totalPages || 1 })}</span>
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="text-xs sm:text-sm text-muted-foreground">{currentPage}/{totalPages || 1}</span>
+                  <div className="flex items-center gap-0.5 sm:gap-1">
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /><ChevronLeft className="h-4 w-4 -ml-2" /></Button>
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}><ChevronRight className="h-4 w-4" /></Button>
