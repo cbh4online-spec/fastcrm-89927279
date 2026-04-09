@@ -1,55 +1,81 @@
 
-# Plano: Perfis de Gestor + Auto-Assign Inteligente
 
-## 1. Migration — Tabela `manager_profiles`
+# Plano: Configuração de Acessos por Perfil (Menus + Campos)
 
-Criar tabela com categorias fixas por dimensão:
+## Diagnóstico
 
-- **manager_profiles**
-  - `id`, `workspace_id`, `user_id` (unique por workspace)
-  - `segments` (text[]) — ex: ["Tecnologia", "Saúde"]
-  - `territories` (text[]) — ex: ["Norte", "Centro"]
-  - `client_types` (text[]) — ex: ["Enterprise", "PME", "Governo"]
-  - `is_active` (boolean, default true)
-  - `created_at`, `updated_at`
+O sistema já tem uma infraestrutura completa de permissões de menu baseada em **workspace roles** (owner, admin, agent, viewer, agency). O que falta é:
 
-- **manager_profile_categories** (valores disponíveis por workspace)
-  - `id`, `workspace_id`
-  - `dimension` (enum: segment, territory, client_type)
-  - `value` (text)
-  - `is_active` (boolean)
+1. **Ligação ao perfil comercial** (Vendedor, Gestor, Diretor, CEO) — quando o utilizador troca de perfil no dropdown da sidebar, os menus visíveis devem mudar
+2. **Controlo de visibilidade de campos** — poder esconder campos específicos por perfil (ex: Vendedor não vê "Margem", CEO não vê detalhes operacionais)
+3. **UI de configuração acessível** — painel para configurar isto sem ser super admin
 
-RLS: membros do workspace podem ler; admins/owners podem modificar.
+## Decisões de Produto
 
-## 2. Matching obrigatório no Auto-Assign
+- Manter as permissões por **workspace role** como base, e adicionar uma camada de **sales_function** que restringe ainda mais (intersecção — nunca expande)
+- Campos configuráveis por perfil via nova tabela `field_permissions`
+- UI de configuração integrada nas **Definições** do workspace (não apenas super-admin)
 
-Alterar o `assignmentEngine.ts`:
-- Ao atribuir, verificar se a lead/contacto/empresa tem `segment`, `territory` ou `client_type`
-- Filtrar gestores que tenham match nas dimensões correspondentes
-- Se nenhum gestor tem match → entidade fica na queue (não atribuída)
-- Se múltiplos gestores com match → escolher por menor carga
+## Estrutura Técnica
 
-## 3. UI — Perfil do Gestor
+### 1. Nova tabela `profile_menu_permissions`
+```sql
+CREATE TABLE public.profile_menu_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sales_function TEXT NOT NULL, -- vendedor, gestor, diretor, ceo
+  menu_key TEXT NOT NULL,
+  visible BOOLEAN DEFAULT true,
+  UNIQUE(sales_function, menu_key)
+);
+```
 
-No card/detalhe do gestor, adicionar:
-- Badges com segmentos, territórios e tipos de cliente
-- Edição inline das categorias atribuídas
+### 2. Nova tabela `profile_field_permissions`
+```sql
+CREATE TABLE public.profile_field_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sales_function TEXT NOT NULL,
+  page_key TEXT NOT NULL,     -- ex: 'leads', 'pipeline', 'dashboard'
+  field_key TEXT NOT NULL,    -- ex: 'margin', 'cost', 'commission'
+  visible BOOLEAN DEFAULT true,
+  UNIQUE(sales_function, page_key, field_key)
+);
+```
 
-## 4. UI — Configuração de Categorias
+### 3. Alterações no hook `useMenuPermissions`
+- Adicionar consulta a `profile_menu_permissions` filtrada pela `salesFunction` activa
+- `canAccessMenu()` passa a verificar **ambas** as camadas: role + profile
 
-No cockpit, adicionar secção para gerir as categorias disponíveis por dimensão (CRUD simples).
+### 4. Novo hook `useFieldPermissions`
+- Consulta `profile_field_permissions` pela `salesFunction`
+- Exporta `canSeeField(pageKey, fieldKey): boolean`
 
-## 5. UI — Auto-Assign melhorado
+### 5. UI de Configuração (nova secção em Definições)
+- Tabs: **Menus por Perfil** | **Campos por Perfil**
+- Matriz visual semelhante ao `MenuPermissionsSection` existente
+- Colunas: Vendedor, Gestor, Diretor, CEO
+- Linhas: menus/campos disponíveis
+- Checkboxes de visibilidade
+- Botão Guardar com contagem de alterações pendentes
 
-O diálogo de Auto-Assign passa a mostrar:
-- Contagem de entidades por dimensão
-- Warning quando há entidades sem match possível
+### 6. Sidebar — aplicar filtro combinado
+- `buildSidebarSections()` já recebe `canAccessMenu` — basta que o hook devolva o resultado combinado
 
-## Ficheiros a alterar
-- Migration (nova tabela)
-- `src/lib/commercial/assignmentEngine.ts` — matching logic
-- `src/pages/dashboard/GestoresPage.tsx` — UI perfis + categorias
-- `src/hooks/useManagerPortfolio.ts` — buscar perfis
+## Ficheiros a Criar/Alterar
 
-## Riscos
-- As leads/contactos/empresas precisam de ter campos de segmento/território para o matching funcionar. Se não tiverem, o matching não se aplica e a lead fica não atribuída (comportamento correcto para matching obrigatório).
+| Ficheiro | Acção |
+|---|---|
+| Migração SQL | Criar tabelas + seed de defaults + RLS |
+| `src/hooks/useMenuPermissions.ts` | Adicionar consulta profile + lógica combinada |
+| `src/hooks/useFieldPermissions.ts` | **Novo** — hook para campos |
+| `src/components/settings/ProfilePermissionsSettings.tsx` | **Novo** — UI de configuração |
+| `src/components/layout/AdaptiveSidebar.tsx` | Passa salesFunction ao hook |
+| Rotas de Definições | Adicionar entrada para nova página |
+
+## Critérios de Aceitação
+
+- Ao mudar perfil (Vendedor→Diretor), menus visíveis mudam imediatamente
+- Owner/Admin pode configurar quais menus cada perfil vê
+- Campos sensíveis podem ser ocultados por perfil
+- RLS protege as tabelas de permissões
+- Defaults razoáveis no seed (Vendedor vê menos, CEO vê resumos)
+
