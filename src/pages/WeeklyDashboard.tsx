@@ -16,7 +16,7 @@ import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
-import { useAdaptiveDashboard } from "@/hooks/useAdaptiveDashboard";
+import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
 import { AdaptiveProfileSetup } from "@/components/adaptive-dashboard/AdaptiveProfileSetup";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Lightbulb, Target } from "lucide-react";
