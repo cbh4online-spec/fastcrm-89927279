@@ -49,8 +49,8 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
     <Card className={cn("transition-all hover:shadow-md", isHighConfidence && "border-destructive/30")}>
       <CardContent className="p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={cn("text-xs border", config.color)}>
               <Icon className="h-3 w-3 mr-1" />
               {config.label}
@@ -62,7 +62,7 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
               {group.items.length} leads
             </Badge>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
             {group.matched_fields.map(f => (
               <Badge key={f} variant="outline" className="text-[9px] px-1.5 py-0">
                 {f}
@@ -80,56 +80,62 @@ function DuplicateGroupCard({ group, onMerge, onIgnore, onMarkNotDuplicate, onQu
             <div
               key={item.id}
               className={cn(
-                "flex items-center justify-between p-2.5 rounded-lg border text-sm",
+                "flex flex-col gap-1.5 p-2.5 rounded-lg border text-sm",
                 item.is_master_candidate ? "border-primary/30 bg-primary/5" : "border-border/50"
               )}
             >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {item.is_master_candidate && (
-                  <Badge variant="default" className="text-[9px] shrink-0">Master</Badge>
-                )}
-                <span className="font-medium truncate">{item.lead?.name || "—"}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                {item.lead?.email && (
-                  <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{item.lead.email}</span>
-                )}
-                {item.lead?.phone && (
-                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{item.lead.phone}</span>
-                )}
-                {item.lead?.company_name && (
-                  <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{item.lead.company_name}</span>
-                )}
-                {item.lead?.tax_id && (
-                  <span className="flex items-center gap-1"><Hash className="h-3 w-3" />{item.lead.tax_id}</span>
-                )}
-                {(item.lead?._relatedCounts?.opportunities > 0 || item.lead?._relatedCounts?.conversations > 0) && (
-                  <Badge variant="outline" className="text-[9px]">
-                    {item.lead._relatedCounts.opportunities}opp · {item.lead._relatedCounts.conversations}conv
-                  </Badge>
-                )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  {item.is_master_candidate && (
+                    <Badge variant="default" className="text-[9px] shrink-0">Master</Badge>
+                  )}
+                  <span className="font-medium truncate text-sm">{item.lead?.name || "—"}</span>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground flex-wrap">
+                  {item.lead?.email && (
+                    <span className="flex items-center gap-1 truncate max-w-[180px]"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{item.lead.email}</span></span>
+                  )}
+                  {item.lead?.phone && (
+                    <span className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" />{item.lead.phone}</span>
+                  )}
+                  <span className="hidden sm:flex items-center gap-1">
+                    {item.lead?.company_name && (
+                      <><Building2 className="h-3 w-3 shrink-0" />{item.lead.company_name}</>
+                    )}
+                  </span>
+                  <span className="hidden sm:flex items-center gap-1">
+                    {item.lead?.tax_id && (
+                      <><Hash className="h-3 w-3 shrink-0" />{item.lead.tax_id}</>
+                    )}
+                  </span>
+                  {(item.lead?._relatedCounts?.opportunities > 0 || item.lead?._relatedCounts?.conversations > 0) && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {item.lead._relatedCounts.opportunities}opp · {item.lead._relatedCounts.conversations}conv
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-1">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => onIgnore(group.id)}>
-              <X className="h-3 w-3 mr-1" /> Ignorar
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => onIgnore(group.id)}>
+              <X className="h-3 w-3 mr-1" /> <span className="hidden xs:inline">Ignorar</span>
             </Button>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => onMarkNotDuplicate(group.id)}>
-              <CheckCircle2 className="h-3 w-3 mr-1" /> Não é duplicado
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={() => onMarkNotDuplicate(group.id)}>
+              <CheckCircle2 className="h-3 w-3 mr-1" /> <span className="hidden sm:inline">Não é duplicado</span><span className="sm:hidden">Não dup.</span>
             </Button>
           </div>
           <div className="flex items-center gap-1">
             {isHighConfidence && (
-              <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => onQuickMerge(group)}>
-                <Zap className="h-3 w-3" /> Quick Merge
+              <Button variant="outline" size="sm" className="text-xs h-7 gap-1 px-2" onClick={() => onQuickMerge(group)}>
+                <Zap className="h-3 w-3" /> <span className="hidden sm:inline">Quick Merge</span><span className="sm:hidden">Quick</span>
               </Button>
             )}
-            <Button size="sm" className="text-xs h-7 gap-1" onClick={() => onMerge(group)}>
+            <Button size="sm" className="text-xs h-7 gap-1 px-2" onClick={() => onMerge(group)}>
               <Merge className="h-3 w-3" /> Merge
             </Button>
           </div>
@@ -170,13 +176,13 @@ export function LeadDuplicateReviewPanel() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary shrink-0" />
             Duplicate Review
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {groups.length} grupo(s) de duplicados pendentes
           </p>
         </div>
@@ -184,7 +190,8 @@ export function LeadDuplicateReviewPanel() {
           onClick={() => detectDuplicates.mutate()}
           disabled={detectDuplicates.isPending}
           variant="outline"
-          className="gap-2"
+          size="sm"
+          className="gap-2 shrink-0 self-start sm:self-auto"
         >
           {detectDuplicates.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -196,7 +203,7 @@ export function LeadDuplicateReviewPanel() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
         <Button
           variant={filter === "all" ? "default" : "outline"}
           size="sm"
