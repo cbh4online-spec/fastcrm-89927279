@@ -86,7 +86,7 @@ export function PageHeader({
 
       {/* Tabs Navigation - Nexus Style Pills */}
       {tabs && tabs.length > 0 && (
-        <div className="-mx-1 px-1 flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 overflow-x-auto max-w-full flex-nowrap scrollbar-none">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 overflow-x-auto max-w-full flex-nowrap scrollbar-none [-webkit-overflow-scrolling:touch]">
           {tabs.map((tab) => (
             <button
               key={tab.id}
