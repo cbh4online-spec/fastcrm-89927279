@@ -192,157 +192,184 @@ export function CrmTableView({
           availableTags={availableTags}
         />
         
-        <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
-          <ScrollArea className="flex-1">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={isAllOnPageSelected}
-                      onCheckedChange={handleSelectAllOnPage}
-                      aria-label="Selecionar todos nesta página"
-                      className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                    />
-                  </TableHead>
-                  {visibleColumns.includes("name") && <TableHead>Nome</TableHead>}
-                  {visibleColumns.includes("email") && <TableHead>Email</TableHead>}
-                  {visibleColumns.includes("phone") && <TableHead>Telefone</TableHead>}
-                  {visibleColumns.includes("company") && <TableHead>Empresa</TableHead>}
-                  {visibleColumns.includes("job_title") && <TableHead>Cargo</TableHead>}
-                  {visibleColumns.includes("tags") && <TableHead>Tags</TableHead>}
-                  {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedContacts.map((contact) => (
-                  <TableRow
-                    key={contact.id}
-                    className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(contact.id) ? "bg-primary/5" : ""}`}
-                    onClick={() => onRowClick(contact.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+        {/* Mobile: Card view */}
+        {isMobile ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {paginatedContacts.map((contact) => (
+                <ContactMobileCard
+                  key={contact.id}
+                  contact={contact}
+                  isSelected={selectedIds.has(contact.id)}
+                  onSelect={handleSelectItem}
+                  onClick={onRowClick}
+                  onDelete={(id) => onDeleteContact(id)}
+                />
+              ))}
+            </div>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </div>
+        ) : (
+          /* Desktop: Table view */
+          <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
+            <ScrollArea className="flex-1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">
                       <Checkbox
-                        checked={selectedIds.has(contact.id)}
-                        onCheckedChange={(checked) => handleSelectItem(contact.id, checked as boolean)}
-                        aria-label={`Selecionar ${contact.name}`}
+                        checked={isAllOnPageSelected}
+                        onCheckedChange={handleSelectAllOnPage}
+                        aria-label="Selecionar todos nesta página"
+                        className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
                       />
-                    </TableCell>
-                    {visibleColumns.includes("name") && (
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{contact.name}</p>
-                          {contact.job_title && !visibleColumns.includes("job_title") && (
-                            <p className="text-sm text-muted-foreground">{contact.job_title}</p>
-                          )}
-                        </div>
+                    </TableHead>
+                    {visibleColumns.includes("name") && <TableHead>Nome</TableHead>}
+                    {visibleColumns.includes("email") && <TableHead>Email</TableHead>}
+                    {visibleColumns.includes("phone") && <TableHead>Telefone</TableHead>}
+                    {visibleColumns.includes("company") && <TableHead>Empresa</TableHead>}
+                    {visibleColumns.includes("job_title") && <TableHead>Cargo</TableHead>}
+                    {visibleColumns.includes("tags") && <TableHead>Tags</TableHead>}
+                    {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedContacts.map((contact) => (
+                    <TableRow
+                      key={contact.id}
+                      className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(contact.id) ? "bg-primary/5" : ""}`}
+                      onClick={() => onRowClick(contact.id)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(contact.id)}
+                          onCheckedChange={(checked) => handleSelectItem(contact.id, checked as boolean)}
+                          aria-label={`Selecionar ${contact.name}`}
+                        />
                       </TableCell>
-                    )}
-                    {visibleColumns.includes("email") && (
-                      <TableCell>
-                        {contact.email ? (
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-primary hover:underline">{contact.email}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("phone") && (
-                      <TableCell>
-                        {contact.phone ? (
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            {contact.phone}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("company") && (
-                      <TableCell>
-                        {contact.company ? (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                            {contact.company}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("job_title") && (
-                      <TableCell>
-                        {contact.job_title || <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("tags") && (
-                      <TableCell>
-                        {contact.tags && contact.tags.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {contact.tags.slice(0, 2).map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                            {contact.tags.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{contact.tags.length - 2}
-                              </Badge>
+                      {visibleColumns.includes("name") && (
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{contact.name}</p>
+                            {contact.job_title && !visibleColumns.includes("job_title") && (
+                              <p className="text-sm text-muted-foreground">{contact.job_title}</p>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("email") && (
+                        <TableCell>
+                          {contact.email ? (
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-primary hover:underline">{contact.email}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("phone") && (
+                        <TableCell>
+                          {contact.phone ? (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              {contact.phone}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("company") && (
+                        <TableCell>
+                          {contact.company ? (
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              {contact.company}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("job_title") && (
+                        <TableCell>
+                          {contact.job_title || <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("tags") && (
+                        <TableCell>
+                          {contact.tags && contact.tags.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {contact.tags.slice(0, 2).map((tag) => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {contact.tags.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{contact.tags.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("created_at") && (
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
+                        </TableCell>
+                      )}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onRowClick(contact.id)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onDeleteContact(contact.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
-                    )}
-                    {visibleColumns.includes("created_at") && (
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
-                      </TableCell>
-                    )}
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onRowClick(contact.id)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onDeleteContact(contact.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-          
-          <TablePagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        </div>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </div>
+        )}
       </div>
     );
   }
