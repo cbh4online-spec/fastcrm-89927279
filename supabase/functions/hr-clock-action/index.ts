@@ -8,13 +8,27 @@ const corsHeaders = {
 
 function errorResponse(message: string, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function businessRuleResponse(message: string, error_code: string) {
+  return new Response(JSON.stringify({
+    success: false,
+    fallback: true,
+    error: message,
+    error_code,
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
@@ -63,25 +77,25 @@ serve(async (req) => {
     // State validations
     if (entry_type === "clock_in") {
       if (activeSession) {
-        return errorResponse("Já existe uma sessão aberta. Faça clock-out primeiro.");
+        return businessRuleResponse("Já existe uma sessão aberta. Faça clock-out primeiro.", "OPEN_SESSION_EXISTS");
       }
     } else if (entry_type === "clock_out") {
       if (!activeSession) {
-        return errorResponse("Nenhuma sessão aberta para terminar.");
+        return businessRuleResponse("Nenhuma sessão aberta para terminar.", "NO_OPEN_SESSION");
       }
       if (onBreak) {
-        return errorResponse("Termine a pausa antes de fazer clock-out.");
+        return businessRuleResponse("Termine a pausa antes de fazer clock-out.", "BREAK_ACTIVE");
       }
     } else if (entry_type === "break_start") {
       if (!activeSession) {
-        return errorResponse("Nenhuma sessão aberta para registar pausa.");
+        return businessRuleResponse("Nenhuma sessão aberta para registar pausa.", "NO_OPEN_SESSION");
       }
       if (onBreak) {
-        return errorResponse("Já está em pausa.");
+        return businessRuleResponse("Já está em pausa.", "BREAK_ALREADY_STARTED");
       }
     } else if (entry_type === "break_end") {
       if (!activeSession || !onBreak) {
-        return errorResponse("Não existe pausa activa para terminar.");
+        return businessRuleResponse("Não existe pausa activa para terminar.", "NO_ACTIVE_BREAK");
       }
     }
 

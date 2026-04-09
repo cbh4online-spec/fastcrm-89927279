@@ -24,6 +24,26 @@ export type HRWorkSession = {
   hr_employees?: { full_name: string; avatar_url: string | null; department: string | null };
 };
 
+type ClockActionResponse = {
+  success?: boolean;
+  fallback?: boolean;
+  error?: string;
+  recorded_at?: string;
+  overtime_alert?: {
+    exceeded: boolean;
+    overtime_minutes: number;
+    max_daily_minutes: number;
+    worked_minutes: number;
+  } | null;
+  employee_name?: string | null;
+  session_action?: string | null;
+  geofence_alert?: {
+    outside: boolean;
+    distance_meters?: number;
+    nearest_zone?: string;
+  } | null;
+};
+
 export function useHRWorkSessions(employeeId?: string, startDate?: string, endDate?: string) {
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
@@ -51,6 +71,7 @@ export function useClockAction() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
+
   return useMutation({
     mutationFn: async (payload: {
       employee_id: string;
@@ -61,27 +82,48 @@ export function useClockAction() {
       location_name?: string;
       notes?: string;
     }) => {
-      const res = await supabase.functions.invoke("hr-clock-action", {
-        body: { ...payload, workspace_id: wsId }
+      const res = await supabase.functions.invoke<ClockActionResponse>("hr-clock-action", {
+        body: { ...payload, workspace_id: wsId },
       });
+
       if (res.error) {
-        // Extract the actual error message from the edge function response
         let errorMsg = "Erro ao registar";
+
         try {
           if (res.error.context) {
-            const body = await res.error.context.json();
-            errorMsg = body?.error || errorMsg;
+            const rawBody = await res.error.context.text();
+            if (rawBody) {
+              try {
+                const parsed = JSON.parse(rawBody);
+                errorMsg = parsed?.error || rawBody || errorMsg;
+              } catch {
+                errorMsg = rawBody || res.error.message || errorMsg;
+              }
+            } else {
+              errorMsg = res.error.message || errorMsg;
+            }
           } else {
             errorMsg = res.error.message || errorMsg;
           }
         } catch {
           errorMsg = res.error.message || errorMsg;
         }
+
         throw new Error(errorMsg);
       }
+
+      if (!res.data) {
+        throw new Error("Resposta inválida da ação de ponto");
+      }
+
       return res.data;
     },
     onSuccess: (data) => {
+      if (data?.fallback || data?.success === false) {
+        toast.warning(data.error || "Ação não permitida");
+        return;
+      }
+
       const labels: Record<string, string> = {
         clock_in_morning: "Entrada manhã registada",
         clock_in_afternoon: "Entrada tarde registada",
@@ -90,7 +132,8 @@ export function useClockAction() {
         break_end: "Pausa terminada",
         clock_out: "Saída registada",
       };
-      toast.success(labels[data?.session_action] || "Registo efetuado");
+
+      toast.success(labels[data?.session_action || ""] || "Registo efetuado");
       queryClient.invalidateQueries({ queryKey: ["hr-work-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["hr-time-entries"] });
 
