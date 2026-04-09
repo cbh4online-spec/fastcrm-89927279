@@ -106,6 +106,8 @@ export function ClockInOutButton() {
         ...(loc ? { location_lat: loc.lat, location_lng: loc.lng } : {}),
         ...(loc?.name ? { location_name: loc.name } : {}),
       });
+    } catch {
+      // O hook já trata o feedback ao utilizador via onError/onSuccess.
     } finally {
       if (shouldResolveLocation) setIsResolvingLocation(false);
     }
