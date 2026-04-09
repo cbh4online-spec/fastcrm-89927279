@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
 
 export interface MenuPermission {
   id: string;
@@ -10,8 +11,15 @@ export interface MenuPermission {
   can_edit: boolean;
 }
 
+interface ProfileMenuPerm {
+  sales_function: string;
+  menu_key: string;
+  visible: boolean;
+}
+
 export function useMenuPermissions() {
   const { currentWorkspace, workspaces } = useWorkspace();
+  const { salesFunction } = useAdaptiveDashboard();
   
   // Get current user's role in the workspace
   const currentUserRole = currentWorkspace 
@@ -28,20 +36,48 @@ export function useMenuPermissions() {
       if (error) throw error;
       return data as MenuPermission[];
     },
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 
+  const { data: profilePerms } = useQuery({
+    queryKey: ["profile-menu-permissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profile_menu_permissions")
+        .select("sales_function, menu_key, visible");
+      if (error) throw error;
+      return data as ProfileMenuPerm[];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Combined check: role permission ∩ profile permission
   const canAccessMenu = (menuKey: string): boolean => {
-    if (!currentUserRole || !permissions) return true; // Default to allow if loading
-    
-    // Super admins and owners have full access
-    if (currentUserRole === "owner") return true;
-    
-    const permission = permissions.find(
-      p => p.role === currentUserRole && p.menu_key === menuKey
-    );
-    
-    return permission?.can_access ?? false;
+    // 1. Role-based check (existing logic)
+    let roleAllowed = true;
+    if (currentUserRole && permissions) {
+      if (currentUserRole === "owner") {
+        roleAllowed = true;
+      } else {
+        const permission = permissions.find(
+          p => p.role === currentUserRole && p.menu_key === menuKey
+        );
+        roleAllowed = permission?.can_access ?? false;
+      }
+    }
+
+    // 2. Profile-based check (new layer — intersection, never expands)
+    let profileAllowed = true;
+    if (profilePerms && salesFunction) {
+      const profilePerm = profilePerms.find(
+        p => p.sales_function === salesFunction && p.menu_key === menuKey
+      );
+      if (profilePerm !== undefined) {
+        profileAllowed = profilePerm.visible;
+      }
+    }
+
+    return roleAllowed && profileAllowed;
   };
 
   const canEditMenu = (menuKey: string): boolean => {
