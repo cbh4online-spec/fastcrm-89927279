@@ -175,11 +175,38 @@
 
   html {
     @apply scroll-smooth bg-background;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure minimum touch target for interactive elements */
+  @media (pointer: coarse) {
+    button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    /* Except icon buttons that explicitly set smaller sizes */
+    button[class*="h-7"], button[class*="h-8"], button[class*="h-9"],
+    a[class*="h-7"], a[class*="h-8"], a[class*="h-9"] {
+      min-height: unset;
+      min-width: unset;
+    }
+  }
+
+  /* Scrollbar hiding utility */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
