@@ -100,7 +100,7 @@ export function AdaptiveSidebar({ open, onClose, onOpen }: AdaptiveSidebarProps)
   // ── Build sidebar sections from manifest ──
   const sections = useMemo(
     () => buildSidebarSections(installedModuleIds, canAccessMenu),
-    [installedModuleIds, canAccessMenu]
+    [installedModuleIds, canAccessMenu, salesFunction]
   );
 
   // ── Filter sections by search ──

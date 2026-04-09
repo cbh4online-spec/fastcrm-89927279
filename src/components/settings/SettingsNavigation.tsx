@@ -22,6 +22,7 @@ import {
   Search,
   Crown,
   Tag,
+  Eye,
 } from "lucide-react";
 
 export type SettingsCategory =
@@ -36,6 +37,7 @@ export type SettingsCategory =
   | "templates"
   | "automation"
   | "experience"
+  | "profilePermissions"
   | "security"
   | "integrations"
   | "billing"
@@ -73,6 +75,7 @@ const navGroups: NavGroup[] = [
       { id: "crm", labelKey: "nav_crmData", icon: Database },
       { id: "templates", labelKey: "nav_templates", icon: FileText },
       { id: "automation", labelKey: "nav_automationAI", icon: Sparkles, isPremium: true },
+      { id: "profilePermissions", labelKey: "nav_profilePermissions", icon: Eye },
     ],
   },
   {

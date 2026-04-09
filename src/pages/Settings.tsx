@@ -21,6 +21,7 @@ import { BillingSettings } from "@/components/settings/sections/BillingSettings"
 import { FeatureFlagsSettings } from "@/components/settings/FeatureFlagsSettings";
 import { ExtensionAuditLog } from "@/components/settings/ExtensionAuditLog";
 import { ExtensionSettingsSection } from "@/components/settings/ExtensionSettingsSection";
+import { ProfilePermissionsSettings } from "@/components/settings/ProfilePermissionsSettings";
 import { searchSettings } from "@/components/settings/settingsSearchData";
 
 export default function Settings() {
@@ -45,6 +46,7 @@ export default function Settings() {
     billing: { titleKey: "nav_billing", descKey: "nav_billing" },
     extensions: { titleKey: "nav_extensions", descKey: "nav_extensions" },
     flags: { titleKey: "nav_developer", descKey: "nav_developer" },
+    profilePermissions: { titleKey: "nav_profilePermissions", descKey: "nav_profilePermissions_desc" },
   };
 
   const validCategories = Object.keys(categoryMeta) as SettingsCategory[];
@@ -106,6 +108,8 @@ export default function Settings() {
         return <AutomationAISettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "experience":
         return <ExperienceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+      case "profilePermissions":
+        return <ProfilePermissionsSettings />;
       case "security":
         return <SecuritySettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "integrations":
