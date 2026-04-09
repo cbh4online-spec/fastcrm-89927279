@@ -89,7 +89,7 @@ export function ClockInOutButton() {
     [completedSessions]
   );
   const totalBreakToday = useMemo(
-    () => completedSessions.reduce((sum, s) => sum + (s.break_minutes || 0), 0),
+    () => completedSessions.reduce((sum, s) => sum + (s.break_minutes || (s.break_start_at ? 1 : 0)), 0),
     [completedSessions]
   );
 
