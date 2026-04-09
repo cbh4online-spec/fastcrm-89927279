@@ -46,6 +46,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 export function SmartLeadsTable() {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const sourceFromUrl = searchParams.get("source") || "";
 
