@@ -143,7 +143,7 @@ export function LandingHeroSection() {
               size="lg"
               className="w-full sm:w-auto gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-bold uppercase tracking-wide gap-2"
             >
-              {t("hero.startFree")}
+              {verticals[activeIndex].cta}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </motion.form>
