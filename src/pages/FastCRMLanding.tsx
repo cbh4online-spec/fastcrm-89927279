@@ -59,7 +59,6 @@ export default function FastCRMLanding() {
         <LandingStickyHeader />
         <main>
           <LandingHeroSection />
-          <LandingVerticalsCarousel />
           <LandingProblemSection />
           <LandingSolutionSection />
           <LandingIntegrationsSection />
