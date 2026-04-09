@@ -67,7 +67,7 @@ export function EntityDetailLayout({
   children,
 }: EntityDetailLayoutProps) {
   return (
-    <div className="h-full flex flex-col -m-6">
+    <div className="h-full flex flex-col -mx-3 -mt-3 sm:-m-6">
       {/* Breadcrumbs */}
       <div className="bg-background px-6 pt-4">
         <PageBreadcrumbs items={breadcrumbs} />

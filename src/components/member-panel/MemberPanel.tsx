@@ -39,10 +39,10 @@ export function MemberPanel() {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex">
+    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] flex flex-col sm:flex-row">
       {/* Main Content */}
       <ScrollArea className="flex-1">
-        <div className="p-6 space-y-6 max-w-5xl">
+        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-5xl">
           {/* 1. Day Overview */}
           <DayOverview
             greeting={greeting}
