@@ -93,7 +93,7 @@ export function useDocumentJobs(filters?: DocumentFilters) {
       if (!currentWorkspace?.id) return [];
 
       let query = (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false }) as any);
@@ -145,7 +145,7 @@ export function useDocumentJob(jobId: string | null) {
     queryFn: async () => {
       if (!jobId) return null;
       const { data, error } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .select("*")
         .eq("id", jobId)
         .single() as any);
@@ -172,7 +172,7 @@ export function useDocumentStats() {
       if (!currentWorkspace?.id) return null;
 
       const { data, error } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .select("status, document_type, created_at")
         .eq("workspace_id", currentWorkspace.id) as any);
 
@@ -233,7 +233,7 @@ export function useUploadDocument() {
 
       // 2. Create job record
       const { data: job, error: jobError } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
@@ -277,7 +277,7 @@ export function useReprocessDocument() {
   return useMutation({
     mutationFn: async (jobId: string) => {
       await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .update({
           status: "pending",
           progress: 0,
@@ -306,7 +306,7 @@ export function useCancelJob() {
   return useMutation({
     mutationFn: async (jobId: string) => {
       const { error } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .update({ status: "cancelled", completed_at: new Date().toISOString() } as any)
         .eq("id", jobId)
         .in("status", ["pending", "processing", "ocr", "classifying", "extracting"]) as any);
@@ -325,7 +325,7 @@ export function useUpdateExtractedData() {
   return useMutation({
     mutationFn: async ({ jobId, extractedData }: { jobId: string; extractedData: Record<string, unknown> }) => {
       const { error } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .update({ extracted_data: extractedData, updated_at: new Date().toISOString() } as any)
         .eq("id", jobId) as any);
       if (error) throw error;
@@ -343,7 +343,7 @@ export function useDeleteDocumentJob() {
   return useMutation({
     mutationFn: async (jobId: string) => {
       const { data: job } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .select("file_path")
         .eq("id", jobId)
         .single() as any);
@@ -353,7 +353,7 @@ export function useDeleteDocumentJob() {
       }
 
       const { error } = await (supabase
-        .from("document_processing_jobs" as any)
+        .from("document_processing_jobs")
         .delete()
         .eq("id", jobId) as any);
       if (error) throw error;

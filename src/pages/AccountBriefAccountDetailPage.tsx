@@ -129,11 +129,11 @@ export default function AccountBriefAccountDetailPage() {
     setNewNote("");
   };
 
-  const identityJson = brief?.identity_json as any;
-  const offerJson = brief?.offer_json as any;
-  const signalsJson = brief?.signals_json as any;
-  const persJson = brief?.personalization_json as any;
-  const outreachJson = brief?.outreach_json as any;
+  const identityJson = brief?.identity_json as Record<string, unknown> | null;
+  const offerJson = brief?.offer_json as Record<string, unknown> | null;
+  const signalsJson = brief?.signals_json as Record<string, unknown> | null;
+  const persJson = brief?.personalization_json as Record<string, unknown> | null;
+  const outreachJson = brief?.outreach_json as Record<string, unknown> | null;
 
   const allOutreachAngles = outreachJson?.outreach_angles || persJson?.outreach_angles || [];
   const allObjections = outreachJson?.objections_attention || persJson?.objections_attention || [];
@@ -344,7 +344,7 @@ export default function AccountBriefAccountDetailPage() {
               )}
 
               {/* Corporate Data */}
-              <AccountBriefCorporateData accountId={account.id} accountNif={(account as any).nif} />
+              <AccountBriefCorporateData accountId={account.id} accountNif={account?.nif} />
 
               {/* Diffs Section */}
               {diffs.length > 0 && (
@@ -481,13 +481,13 @@ export default function AccountBriefAccountDetailPage() {
                   {/* Lead link */}
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Lead</p>
-                    {(account as any).lead_id ? (
+                    {account?.lead_id ? (
                       <div className="space-y-2">
                         <Badge variant="outline" className="gap-1">
                           <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Lead associada
                         </Badge>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={() => navigate(`/dashboard/leads/${(account as any).lead_id}`)}>
+                          <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={() => navigate(`/dashboard/leads/${account?.lead_id}`)}>
                             <ExternalLink className="w-3 h-3" /> Abrir Lead
                           </Button>
                           <Button variant="ghost" size="sm" className="gap-1" onClick={() => unlinkLead.mutate()} disabled={unlinkLead.isPending}>
@@ -538,11 +538,11 @@ export default function AccountBriefAccountDetailPage() {
                 <CardContent className="space-y-3 text-sm">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Owner</p>
-                    <p className="text-sm">{(account as any).owner_user_id ? "Atribuído" : "Sem owner"}</p>
+                    <p className="text-sm">{account?.owner_user_id ? "Atribuído" : "Sem owner"}</p>
                   </div>
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Atribuído a</p>
-                    <p className="text-sm">{(account as any).assigned_user_id ? "Atribuído" : "Não atribuído"}</p>
+                    <p className="text-sm">{account?.assigned_user_id ? "Atribuído" : "Não atribuído"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -566,7 +566,7 @@ export default function AccountBriefAccountDetailPage() {
               </Card>
 
               {/* Social Media */}
-              {((account as any).linkedin_url || (account as any).instagram_url || (account as any).facebook_url || (account as any).twitter_url || (account as any).youtube_url || (account as any).tiktok_url || (account as any).email_main || (account as any).phone_main) && (
+              {(account?.linkedin_url || account?.instagram_url || account?.facebook_url || account?.twitter_url || account?.youtube_url || account?.tiktok_url || account?.email_main || account?.phone_main) && (
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
@@ -575,49 +575,49 @@ export default function AccountBriefAccountDetailPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex flex-wrap gap-2">
-                      {(account as any).linkedin_url && (
-                        <a href={(account as any).linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.linkedin_url && (
+                        <a href={account?.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Linkedin className="w-4 h-4 text-blue-600" /> LinkedIn
                         </a>
                       )}
-                      {(account as any).instagram_url && (
-                        <a href={(account as any).instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.instagram_url && (
+                        <a href={account?.instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Instagram className="w-4 h-4 text-pink-500" /> Instagram
                         </a>
                       )}
-                      {(account as any).facebook_url && (
-                        <a href={(account as any).facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.facebook_url && (
+                        <a href={account?.facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Facebook className="w-4 h-4 text-blue-500" /> Facebook
                         </a>
                       )}
-                      {(account as any).twitter_url && (
-                        <a href={(account as any).twitter_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.twitter_url && (
+                        <a href={account?.twitter_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Twitter className="w-4 h-4" /> X
                         </a>
                       )}
-                      {(account as any).youtube_url && (
-                        <a href={(account as any).youtube_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.youtube_url && (
+                        <a href={account?.youtube_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Youtube className="w-4 h-4 text-red-500" /> YouTube
                         </a>
                       )}
-                      {(account as any).tiktok_url && (
-                        <a href={(account as any).tiktok_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                      {account?.tiktok_url && (
+                        <a href={account?.tiktok_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
                           <Globe className="w-4 h-4" /> TikTok
                         </a>
                       )}
                     </div>
-                    {((account as any).email_main || (account as any).phone_main) && (
+                    {(account?.email_main || account?.phone_main) && (
                       <div className="space-y-2 pt-2 border-t border-border">
-                        {(account as any).email_main && (
+                        {account?.email_main && (
                           <div className="flex items-center gap-2 text-sm">
                             <Mail className="w-4 h-4 text-muted-foreground" />
-                            <a href={`mailto:${(account as any).email_main}`} className="hover:underline">{(account as any).email_main}</a>
+                            <a href={`mailto:${account?.email_main}`} className="hover:underline">{account?.email_main}</a>
                           </div>
                         )}
-                        {(account as any).phone_main && (
+                        {account?.phone_main && (
                           <div className="flex items-center gap-2 text-sm">
                             <Phone className="w-4 h-4 text-muted-foreground" />
-                            <a href={`tel:${(account as any).phone_main}`} className="hover:underline">{(account as any).phone_main}</a>
+                            <a href={`tel:${account?.phone_main}`} className="hover:underline">{account?.phone_main}</a>
                           </div>
                         )}
                       </div>

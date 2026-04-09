@@ -38,7 +38,7 @@ export function useCallIntelligenceConfig() {
       if (!workspaceId) return DEFAULT_CONFIG;
 
       const { data, error } = await supabase
-        .from("workspace_call_intelligence_config" as any)
+        .from("workspace_call_intelligence_config")
         .select("*")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
@@ -47,14 +47,14 @@ export function useCallIntelligenceConfig() {
       if (!data) return DEFAULT_CONFIG;
 
       return {
-        auto_record_mode: (data as any).auto_record_mode as CallIntelligenceConfig["auto_record_mode"],
-        transcription_enabled: (data as any).transcription_enabled as boolean,
-        transcription_language: (data as any).transcription_language as string,
-        ai_summary_enabled: (data as any).ai_summary_enabled as boolean,
-        consent_notification: (data as any).consent_notification as boolean,
-        crm_auto_link: (data as any).crm_auto_link as boolean,
-        retention_days: (data as any).retention_days as number,
-        default_insights_template: (data as any).default_insights_template as string | null,
+        auto_record_mode: (data.auto_record_mode ?? "none") as CallIntelligenceConfig["auto_record_mode"],
+        transcription_enabled: data.transcription_enabled ?? true,
+        transcription_language: data.transcription_language ?? "pt",
+        ai_summary_enabled: data.ai_summary_enabled ?? true,
+        consent_notification: data.consent_notification ?? true,
+        crm_auto_link: data.crm_auto_link ?? true,
+        retention_days: data.retention_days ?? 90,
+        default_insights_template: data.default_insights_template ?? null,
       } satisfies CallIntelligenceConfig;
     },
     enabled: !!workspaceId,
@@ -67,20 +67,20 @@ export function useCallIntelligenceConfig() {
       const payload = { ...updates, workspace_id: workspaceId, updated_at: new Date().toISOString() };
 
       const { data: existing } = await supabase
-        .from("workspace_call_intelligence_config" as any)
+        .from("workspace_call_intelligence_config")
         .select("id")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
-          .from("workspace_call_intelligence_config" as any)
+          .from("workspace_call_intelligence_config")
           .update(payload as any)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("workspace_call_intelligence_config" as any)
+          .from("workspace_call_intelligence_config")
           .insert(payload as any);
         if (error) throw error;
       }
