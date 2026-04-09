@@ -21,6 +21,7 @@ import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
 import { SmartImportWizard } from "@/components/imports/SmartImportWizard";
+import { LeadMobileCard } from "@/components/leads/LeadMobileCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,7 +40,7 @@ import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog"
 import { LeadDuplicateReviewPanel } from "@/components/leads/LeadDuplicateReviewPanel";
 import { LeadsKanbanDnD } from "@/components/leads/LeadsKanbanDnD";
 import { useTranslation } from "react-i18next";
-
+import { useIsMobile } from "@/hooks/use-mobile";
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export function SmartLeadsTable() {
@@ -383,10 +384,15 @@ export function SmartLeadsTable() {
           sortOptions={sortOptions} sortValue={sortValue} onSortChange={setSortValue}
           leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
-              <Button variant="outline" size="sm" onClick={() => setActiveTab("duplicates")} className={cn("gap-2", duplicateGroups.length > 0 && "border-warning/40")}><Users className="w-4 h-4" />Duplicados{duplicateGroups.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-warning/10 text-warning">{duplicateGroups.length}</Badge>}</Button>
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("duplicates")} className={cn("gap-1.5 text-xs sm:text-sm", duplicateGroups.length > 0 && "border-warning/40")}>
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Duplicados</span>
+                {duplicateGroups.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-warning/10 text-warning">{duplicateGroups.length}</Badge>}
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 sm:hidden" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 hidden sm:inline-flex"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
           className="mt-4"
