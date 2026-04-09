@@ -149,7 +149,7 @@ export function ColumnSelector({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Columns3 className="h-4 w-4" />
-          Colunas
+          <span className="hidden sm:inline">Colunas</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">

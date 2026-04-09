@@ -383,7 +383,7 @@ export function SmartLeadsTable() {
           onToggleFilters={() => setShowFilterSidebar(!showFilterSidebar)}
           onClearFilters={() => { setActiveFilterId(undefined); setSearchValue(""); setFilters({ page: 0, pageSize }); }}
           sortOptions={sortOptions} sortValue={sortValue} onSortChange={setSortValue}
-          leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
+          leftActions={<Button variant="ghost" size="sm" onClick={() => setShowFilterSidebar(!showFilterSidebar)} className="gap-2 hidden sm:inline-flex">{showFilterSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button>}
           rightActions={
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
