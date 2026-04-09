@@ -175,6 +175,8 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
     if (!aiPrompt.trim()) return;
 
     setIsGenerating(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       // Call AI image generation
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -190,7 +192,8 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
             content: `Generate a professional product image: ${aiPrompt}. Make it modern, clean, and suitable for commercial use.`
           }],
           modalities: ["image", "text"]
-        })
+        }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -214,8 +217,10 @@ export function ProductImagesGallery({ product }: ProductImagesGalleryProps) {
       setAiPrompt("");
       setAiDialogOpen(false);
     } catch (error) {
-      toast.error("Erro ao gerar imagem: " + error.message);
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("Erro ao gerar imagem: " + (error instanceof Error ? error.message : "Erro desconhecido"));
     } finally {
+      clearTimeout(timeout);
       setIsGenerating(false);
     }
   };

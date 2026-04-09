@@ -104,7 +104,7 @@ export function useCreateLeaveRequest() {
       queryClient.invalidateQueries({ queryKey: ["hr-absences"] });
       queryClient.invalidateQueries({ queryKey: ["hr-leave-balances"] });
     },
-    onError: (err: any) => toast.error(err?.message || "Erro ao criar pedido"),
+    onError: (err: Error) => toast.error(err?.message || "Erro ao criar pedido"),
   });
 }
 
@@ -122,7 +122,7 @@ export function useApproveLeaveRequest() {
       queryClient.invalidateQueries({ queryKey: ["hr-absences"] });
       queryClient.invalidateQueries({ queryKey: ["hr-leave-balances"] });
     },
-    onError: (err: any) => toast.error(err?.message || "Erro ao processar pedido"),
+    onError: (err: Error) => toast.error(err?.message || "Erro ao processar pedido"),
   });
 }
 

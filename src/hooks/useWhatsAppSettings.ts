@@ -85,7 +85,7 @@ export function useSaveWhatsAppSettings() {
       queryClient.invalidateQueries({ queryKey: ["whatsapp-settings", currentWorkspace?.id] });
       toast.success("Definições WhatsApp guardadas");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error("Erro ao guardar: " + err.message);
     },
   });

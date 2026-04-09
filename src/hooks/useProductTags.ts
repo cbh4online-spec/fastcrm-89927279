@@ -36,7 +36,7 @@ export function useProductTags(productId?: string) {
       qc.invalidateQueries({ queryKey: ["product-tags", productId] });
       qc.invalidateQueries({ queryKey: ["workspace-tags"] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       if (err?.code === "23505") {
         toast.info("Tag já existe neste produto");
       } else {

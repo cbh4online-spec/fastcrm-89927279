@@ -377,6 +377,8 @@ registerStepExecutor('http_call', async (ctx: StepExecutorContext): Promise<Step
     };
   }
   
+  const httpController = new AbortController();
+  const httpTimeout = setTimeout(() => httpController.abort(), 30000);
   try {
     const response = await fetch(url, {
       method,
@@ -385,17 +387,18 @@ registerStepExecutor('http_call', async (ctx: StepExecutorContext): Promise<Step
         ...headers,
       },
       body: body ? JSON.stringify(body) : undefined,
+      signal: httpController.signal,
     });
-    
+
     const responseBody = await response.text();
     let parsedBody: unknown;
-    
+
     try {
       parsedBody = JSON.parse(responseBody);
     } catch {
       parsedBody = responseBody;
     }
-    
+
     if (!response.ok) {
       return {
         success: false,
@@ -407,23 +410,26 @@ registerStepExecutor('http_call', async (ctx: StepExecutorContext): Promise<Step
         },
       };
     }
-    
+
     return {
       success: true,
       output: { status: response.status, body: parsedBody },
     };
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    
+    const isTimeout = error.name === "AbortError";
+
     return {
       success: false,
       output: {},
       error: {
-        message: error.message,
-        code: 'HTTP_FETCH_ERROR',
+        message: isTimeout ? 'HTTP call timed out after 30s' : error.message,
+        code: isTimeout ? 'HTTP_TIMEOUT' : 'HTTP_FETCH_ERROR',
         retryable: true,
       },
     };
+  } finally {
+    clearTimeout(httpTimeout);
   }
 });
 

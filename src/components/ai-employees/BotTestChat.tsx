@@ -46,6 +46,8 @@ export function BotTestChat({ bot }: BotTestChatProps) {
     setInput("");
     setLoading(true);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const { data: sessionData } = await supabase.auth.getSession();
@@ -69,28 +71,31 @@ export function BotTestChat({ bot }: BotTestChatProps) {
               content: m.content,
             })),
           }),
+          signal: controller.signal,
         }
       );
 
-      const result: any = await response.json();
+      const result: Record<string, unknown> = await response.json();
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: result.reply || result.message || result.error || "Sem resposta",
-        debug: result.debug || { actions: result.actions, side_effects: result.side_effects },
+        content: (result.reply || result.message || result.error || "Sem resposta") as string,
+        debug: (result.debug as Record<string, unknown>) || { actions: result.actions, side_effects: result.side_effects },
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `❌ Erro: ${err.message}`,
+        content: `❌ Erro: ${err instanceof Error ? err.message : "Erro desconhecido"}`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMsg]);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
       inputRef.current?.focus();
     }

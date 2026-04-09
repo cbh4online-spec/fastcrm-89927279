@@ -271,21 +271,32 @@ function WorkspaceGHLSettingsInner() {
         dateAdded: new Date().toISOString(),
         messageId: `test-${Date.now()}`,
       };
-      const res = await fetch(webhookMessageUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(testPayload),
-      });
-      if (res.ok) {
-        setWebhookTestResult("success");
-        toast.success("Webhook respondeu corretamente! A configuração está funcional.");
-      } else {
-        setWebhookTestResult("error");
-        toast.error(`Webhook devolveu erro: ${res.status} ${res.statusText}`);
+      const whController = new AbortController();
+      const whTimeout = setTimeout(() => whController.abort(), 10000);
+      try {
+        const res = await fetch(webhookMessageUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(testPayload),
+          signal: whController.signal,
+        });
+        if (res.ok) {
+          setWebhookTestResult("success");
+          toast.success("Webhook respondeu corretamente! A configuração está funcional.");
+        } else {
+          setWebhookTestResult("error");
+          toast.error(`Webhook devolveu erro: ${res.status} ${res.statusText}`);
+        }
+      } finally {
+        clearTimeout(whTimeout);
       }
     } catch (err) {
       setWebhookTestResult("error");
-      toast.error("Não foi possível contactar o endpoint de webhook");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("Timeout: o webhook não respondeu em 10 segundos");
+      } else {
+        toast.error("Não foi possível contactar o endpoint de webhook");
+      }
     } finally {
       setIsTestingWebhook(false);
       setTimeout(() => setWebhookTestResult(null), 5000);

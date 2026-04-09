@@ -95,7 +95,7 @@ export function useAIRecommendations(campaignId?: string) {
       queryClient.invalidateQueries({ queryKey: qk });
       toast.success('Recomendação gerada');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao gerar recomendação'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao gerar recomendação'),
   });
 
   return {

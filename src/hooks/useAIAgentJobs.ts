@@ -210,7 +210,7 @@ export function useRunProcessor() {
       if (error) throw error
       return data
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
       const msg = data?.processed > 0
         ? `${data.succeeded} jobs executados com sucesso, ${data.failed} falhados`
         : 'Nenhum job pendente para processar'

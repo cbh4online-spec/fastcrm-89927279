@@ -76,7 +76,7 @@ export function SDRSuppressionManager() {
       setNewEmail("");
       setNewNotes("");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       if (err.message?.includes("duplicate")) {
         toast.error("Este email já está na lista de supressão");
       } else {

@@ -140,7 +140,7 @@ export function useTriggerLearningCycle() {
       queryClient.invalidateQueries({ queryKey: ['learning-cycles', wid] });
       toast.success(`Ciclo concluído: ${data?.memories_created || 0} novas memórias, ${data?.memories_updated || 0} reforçadas`);
     },
-    onError: (err: any) => toast.error(err.message || 'Erro ao processar memória'),
+    onError: (err: Error) => toast.error(err.message || 'Erro ao processar memória'),
   });
 }
 

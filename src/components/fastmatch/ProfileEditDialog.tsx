@@ -60,7 +60,7 @@ export function ProfileEditDialog({ open, onOpenChange, profile }: ProfileEditDi
     }
   }, [open, profile]);
 
-  const updateField = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateField = (key: string, value: unknown) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const addService = (type: "services_offered" | "services_needed", value: string) => {
     const trimmed = value.trim();

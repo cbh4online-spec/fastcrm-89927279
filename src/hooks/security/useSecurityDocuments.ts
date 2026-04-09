@@ -44,7 +44,7 @@ export function useSecurityDocuments(filters?: { status?: string; document_type?
       qc.invalidateQueries({ queryKey: ["security-documents"] });
       toast.success("Documento criado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateDocument = useMutation({
@@ -62,7 +62,7 @@ export function useSecurityDocuments(filters?: { status?: string; document_type?
       qc.invalidateQueries({ queryKey: ["security-documents"] });
       toast.success("Documento atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const validateDocument = useMutation({
@@ -80,7 +80,7 @@ export function useSecurityDocuments(filters?: { status?: string; document_type?
       qc.invalidateQueries({ queryKey: ["security-documents"] });
       toast.success("Documento validado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const emitDocument = useMutation({
@@ -105,7 +105,7 @@ export function useSecurityDocuments(filters?: { status?: string; document_type?
       qc.invalidateQueries({ queryKey: ["security-documents"] });
       toast.success("Documento emitido com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const createNewVersion = useMutation({
@@ -142,7 +142,7 @@ export function useSecurityDocuments(filters?: { status?: string; document_type?
       qc.invalidateQueries({ queryKey: ["security-documents"] });
       toast.success("Nova versão criada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { documents, isLoading, createDocument, updateDocument, validateDocument, emitDocument, createNewVersion };

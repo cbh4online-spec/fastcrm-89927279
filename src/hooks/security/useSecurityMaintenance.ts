@@ -32,7 +32,7 @@ export function useSecurityMaintenancePlans() {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-maintenance-plans"] }); toast.success("Plano de manutenção criado"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updatePlan = useMutation({
@@ -42,7 +42,7 @@ export function useSecurityMaintenancePlans() {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-maintenance-plans"] }); toast.success("Plano atualizado"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { plans, isLoading, createPlan, updatePlan };
@@ -78,7 +78,7 @@ export function useSecurityMaintenanceVisits(planId?: string) {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-maintenance-visits"] }); toast.success("Visita criada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateVisit = useMutation({
@@ -88,7 +88,7 @@ export function useSecurityMaintenanceVisits(planId?: string) {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-maintenance-visits"] }); toast.success("Visita atualizada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { visits, isLoading, createVisit, updateVisit };

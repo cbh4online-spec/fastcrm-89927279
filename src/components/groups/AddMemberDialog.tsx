@@ -79,7 +79,7 @@ export function AddMemberDialog({ open, onClose, groupId, existingMemberIds }: A
       qc.invalidateQueries({ queryKey: ["group-members", groupId] });
       toast.success("Membro adicionado");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const filteredUsers = workspaceMembers.filter((u: any) =>

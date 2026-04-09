@@ -85,7 +85,7 @@ export function PipelineTriggersPanel() {
       setShowModal(false);
       setForm({ to_stage: '', from_stage: '', action_type: 'send_email', email_subject: '', email_body: '', delay_minutes: 0 });
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao criar trigger'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao criar trigger'),
   });
 
   const toggleTrigger = useMutation({

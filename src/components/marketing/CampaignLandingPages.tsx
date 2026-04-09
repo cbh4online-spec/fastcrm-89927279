@@ -94,7 +94,7 @@ export function CampaignLandingPages() {
       setShowCreate(false);
       setFormData({ title: '', slug: '', description: '', thank_you_message: 'Obrigado pelo seu registo!' });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const togglePublish = useMutation({

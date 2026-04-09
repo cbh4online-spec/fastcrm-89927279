@@ -66,7 +66,7 @@ export interface SingleProductAnalytics {
   monthly_trend: Array<{ month: string; revenue: number; qty: number; proposals: number }>;
 }
 
-async function fetchAnalytics(workspaceId: string, productId?: string, daysInactive?: number) {
+async function fetchAnalytics(workspaceId: string, productId?: string, daysInactive?: number, signal?: AbortSignal) {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/compute-product-analytics`,
@@ -81,19 +81,20 @@ async function fetchAnalytics(workspaceId: string, productId?: string, daysInact
         product_id: productId,
         days_inactive: daysInactive ?? 90,
       }),
+      signal,
     }
   );
   if (!res.ok) {
-    const err: any = await res.json().catch(() => ({}));
+    const err = await res.json().catch(() => ({})) as { error?: string };
     throw new Error(err.error || "Erro ao calcular analytics");
   }
-  return res.json() as Promise<any>;
+  return res.json() as Promise<ProductAnalyticsSummary | SingleProductAnalytics>;
 }
 
 export function useProductAnalytics(workspaceId: string | undefined, daysInactive = 90) {
   return useQuery<ProductAnalyticsSummary>({
     queryKey: ["product-analytics", workspaceId, daysInactive],
-    queryFn: () => fetchAnalytics(workspaceId!, undefined, daysInactive),
+    queryFn: ({ signal }) => fetchAnalytics(workspaceId!, undefined, daysInactive, signal) as Promise<ProductAnalyticsSummary>,
     enabled: !!workspaceId,
     staleTime: 1000 * 60 * 15,
   });
@@ -102,7 +103,7 @@ export function useProductAnalytics(workspaceId: string | undefined, daysInactiv
 export function useSingleProductAnalytics(workspaceId: string | undefined, productId: string | undefined) {
   return useQuery<SingleProductAnalytics>({
     queryKey: ["product-analytics-single", workspaceId, productId],
-    queryFn: () => fetchAnalytics(workspaceId!, productId),
+    queryFn: ({ signal }) => fetchAnalytics(workspaceId!, productId, undefined, signal) as Promise<SingleProductAnalytics>,
     enabled: !!workspaceId && !!productId,
     staleTime: 1000 * 60 * 15,
   });

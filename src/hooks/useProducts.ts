@@ -719,7 +719,7 @@ export function useDeleteProductsBatch() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(`${data.deleted} produto${data.deleted !== 1 ? "s" : ""} apagado${data.deleted !== 1 ? "s" : ""}`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro ao apagar produtos: " + error.message);
     },
   });

@@ -38,7 +38,7 @@ export function useSecurityContracts() {
       qc.invalidateQueries({ queryKey: ["security-contracts"] });
       toast.success("Contrato criado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateContract = useMutation({
@@ -56,7 +56,7 @@ export function useSecurityContracts() {
       qc.invalidateQueries({ queryKey: ["security-contracts"] });
       toast.success("Contrato atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { contracts, isLoading, createContract, updateContract };

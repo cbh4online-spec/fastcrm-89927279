@@ -47,14 +47,20 @@ export function ClockInOutButton() {
     // Reverse geocoding via OpenStreetMap Nominatim for precise locality
     let name: string | null = city || null;
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=16&addressdetails=1`,
-        { headers: { "Accept-Language": "pt" } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const addr = data.address || {};
-        name = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || addr.municipality || name;
+      const geoController = new AbortController();
+      const geoTimeout = setTimeout(() => geoController.abort(), 5000);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=16&addressdetails=1`,
+          { headers: { "Accept-Language": "pt" }, signal: geoController.signal }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          name = addr.village || addr.suburb || addr.neighbourhood || addr.town || addr.city || addr.municipality || name;
+        }
+      } finally {
+        clearTimeout(geoTimeout);
       }
     } catch { /* fallback to city from weather */ }
     return { ...coords, name };

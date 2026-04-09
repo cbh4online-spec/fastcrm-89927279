@@ -106,7 +106,7 @@ export function useSubmitReview() {
 
       toast.success("Avaliação enviada com sucesso!");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[FASTMATCH] REVIEW_FAILED', err?.message);
       toast.error("Erro ao enviar avaliação.");
     },

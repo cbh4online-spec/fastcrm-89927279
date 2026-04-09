@@ -2,10 +2,30 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, ShieldAlert, TrendingUp, Zap, Lock } from 'lucide-react';
 
+interface WorkspaceState {
+  [key: string]: number | string | null | undefined;
+}
+
+interface MissionItem {
+  id: string;
+  status?: string;
+  impact_estimate?: number;
+  created_at: string;
+  title?: string;
+}
+
+interface AlertItem {
+  id: string;
+  severity?: string;
+  status?: string;
+  created_at: string;
+  title?: string;
+}
+
 interface Props {
-  state: any;
-  missions: any[];
-  alerts: any[];
+  state: WorkspaceState;
+  missions: MissionItem[];
+  alerts: AlertItem[];
 }
 
 const SUB_SCORE_LABELS: Record<string, string> = {
@@ -27,12 +47,12 @@ export function WorkspaceExecutiveBrief({ state, missions, alerts }: Props) {
   const healthy = subScores.filter(s => s.value >= 70);
   const atRisk = subScores.filter(s => s.value < 50);
   const criticalAlerts = alerts.filter(a => a.severity === 'high' || a.severity === 'critical');
-  const topMission = missions.sort((a: any, b: any) => (b.impact_estimate || 0) - (a.impact_estimate || 0))[0];
-  const staleItems = [...missions.filter((m: any) => {
+  const topMission = [...missions].sort((a, b) => (b.impact_estimate || 0) - (a.impact_estimate || 0))[0];
+  const staleItems = [...missions.filter((m) => {
     if (m.status === 'completed' || m.status === 'cancelled') return false;
     const age = Date.now() - new Date(m.created_at).getTime();
     return age > 48 * 60 * 60 * 1000;
-  }), ...alerts.filter((a: any) => {
+  }), ...alerts.filter((a) => {
     if (a.status === 'resolved') return false;
     const age = Date.now() - new Date(a.created_at).getTime();
     return age > 48 * 60 * 60 * 1000;
@@ -80,7 +100,7 @@ export function WorkspaceExecutiveBrief({ state, missions, alerts }: Props) {
               <ShieldAlert className="h-4 w-4" /> Requer ação humana ({criticalAlerts.length})
             </div>
             <ul className="text-sm text-muted-foreground space-y-0.5 pl-6 list-disc">
-              {criticalAlerts.slice(0, 3).map((a: any) => <li key={a.id}>{a.title}</li>)}
+              {criticalAlerts.slice(0, 3).map((a) => <li key={a.id}>{a.title}</li>)}
             </ul>
           </div>
         )}

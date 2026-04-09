@@ -11,7 +11,7 @@ export function StoreVisitorTracker({ workspaceId, currentPage, productId }: Sto
 
   // Expose trackEvent and getScore on window for cross-component access (e.g. ChatWidget proactive triggers)
   if (typeof window !== "undefined") {
-    (window as any).__fastcrm_visitor = { trackEvent, getScore };
+    window.__fastcrm_visitor = { trackEvent, getScore };
   }
 
   return null;

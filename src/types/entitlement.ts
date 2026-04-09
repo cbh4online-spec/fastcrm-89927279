@@ -30,7 +30,16 @@ export const INACTIVITY_DAYS_THRESHOLD = 14;
 export const EXPIRY_WARNING_DAYS = 7;
 export const LOW_REMAINING_THRESHOLD = 0.2; // 20% remaining
 
-export const packageAlertMessages: Record<PackageAlertType, { title: string; message: (data: any) => string }> = {
+interface PackageAlertData {
+  clientName: string;
+  remaining?: number;
+  unitName?: string;
+  daysLeft?: number;
+  daysSince?: number;
+  productName?: string;
+}
+
+export const packageAlertMessages: Record<PackageAlertType, { title: string; message: (data: PackageAlertData) => string }> = {
   low_remaining: {
     title: 'Pacote quase a terminar',
     message: (data) => `${data.clientName} tem apenas ${data.remaining} ${data.unitName}(s) restantes. Considere sugerir renovação ou upgrade.`,

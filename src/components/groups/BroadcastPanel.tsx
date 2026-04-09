@@ -110,7 +110,7 @@ export function BroadcastPanel({ open, onClose }: BroadcastPanelProps) {
       setSelectedProduct(null);
       onClose();
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   return (

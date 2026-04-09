@@ -257,6 +257,8 @@ export function ConversationObjectiveForm({
     }
 
     setIsGenerating(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     try {
       const systemPrompt = `És um especialista em CRM e conversational AI. Gera configurações para objetivos de conversa.
@@ -291,6 +293,7 @@ Responde APENAS com JSON válido no formato:
           ],
           temperature: 0.7,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) throw new Error("Erro na API");
@@ -323,9 +326,11 @@ Responde APENAS com JSON válido no formato:
       setShowAiHelper(false);
       toast.success("Objetivo gerado com sucesso!");
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error("AI generation error:", error);
       toast.error("Erro ao gerar objetivo. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsGenerating(false);
     }
   };

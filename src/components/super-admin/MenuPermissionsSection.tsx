@@ -123,7 +123,7 @@ export function MenuPermissionsSection() {
         p_details: { changes_count: changes.length, changes },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro ao atualizar permissões: " + error.message);
     },
   });

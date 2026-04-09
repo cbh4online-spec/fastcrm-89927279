@@ -54,7 +54,7 @@ export function useReengagementAI() {
     onSuccess: (data) => {
       setPreviewSubjects(data.preview_subjects || []);
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao gerar pré-visualização'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao gerar pré-visualização'),
   });
 
   const generateCampaign = useMutation({
@@ -78,7 +78,7 @@ export function useReengagementAI() {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       toast.success('Campanha de re-engajamento criada');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao gerar campanha de re-engajamento'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao gerar campanha de re-engajamento'),
   });
 
   return {

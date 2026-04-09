@@ -95,7 +95,7 @@ export function useCreateBotCommentJob() {
       const qaGenerated = result?.result?.qa_generated ?? 0;
       toast.success(`Comentários gerados: ${reviewsGenerated} reviews, ${qaGenerated} Q&A.`);
     },
-    onError: (e: any) => {
+    onError: (e: Error) => {
       queryClient.invalidateQueries({ queryKey: ["bot-comment-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["store-reviews-moderation"] });
       queryClient.invalidateQueries({ queryKey: ["workspace-qa"] });
@@ -169,7 +169,7 @@ export function useApproveQA() {
       queryClient.invalidateQueries({ queryKey: ["workspace-qa"] });
       toast.success("Q&A aprovado");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 }
 
@@ -187,6 +187,6 @@ export function useRejectQA() {
       queryClient.invalidateQueries({ queryKey: ["workspace-qa"] });
       toast.success("Q&A eliminado");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 }

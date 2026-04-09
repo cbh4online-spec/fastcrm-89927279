@@ -45,7 +45,7 @@ export function useSecurityClients(filters?: { client_type?: string; status?: st
       qc.invalidateQueries({ queryKey: ["security-clients"] });
       toast.success("Cliente criado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateClient = useMutation({
@@ -63,7 +63,7 @@ export function useSecurityClients(filters?: { client_type?: string; status?: st
       qc.invalidateQueries({ queryKey: ["security-clients"] });
       toast.success("Cliente atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { clients, isLoading, createClient, updateClient };

@@ -199,6 +199,8 @@ export default function PublicBookingPage() {
     setSavingLead(true);
     setError(null);
     emitEvent('booking_details_started');
+    const leadController = new AbortController();
+    const leadTimeout = setTimeout(() => leadController.abort(), 20000);
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const url = `https://${projectId}.supabase.co/functions/v1/public-booking`;
@@ -214,6 +216,7 @@ export default function PublicBookingPage() {
           guest_message: guestMessage || null,
           custom_field_values: Object.keys(customFieldValues).length > 0 ? customFieldValues : null,
         }),
+        signal: leadController.signal,
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao guardar dados');
@@ -223,6 +226,8 @@ export default function PublicBookingPage() {
     } catch (err) {
       setError((err as Error).message);
       setSavingLead(false);
+    } finally {
+      clearTimeout(leadTimeout);
     }
   };
 
@@ -231,6 +236,8 @@ export default function PublicBookingPage() {
     if (!page || !selectedDate || !selectedSlot) return;
     setSubmitting(true);
     emitEvent('booking_submitted');
+    const bookController = new AbortController();
+    const bookTimeout = setTimeout(() => bookController.abort(), 20000);
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const url = `https://${projectId}.supabase.co/functions/v1/public-booking`;
@@ -246,6 +253,7 @@ export default function PublicBookingPage() {
           guest_name: guestName,
           guest_email: guestEmail,
         }),
+        signal: bookController.signal,
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao agendar');
@@ -254,6 +262,7 @@ export default function PublicBookingPage() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
+      clearTimeout(bookTimeout);
       setSubmitting(false);
       setSavingLead(false);
     }

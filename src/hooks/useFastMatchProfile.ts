@@ -131,7 +131,7 @@ export function useUpdateFastMatchProfile() {
         });
       }
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[FASTMATCH] PROFILE_UPDATE_FAILED', err?.message);
     },
   });

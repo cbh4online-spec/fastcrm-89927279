@@ -53,7 +53,7 @@ export function CommandInput({ onSubmit, onSlashCommand, isLoading }: Props) {
   };
 
   const toggleVoice = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { return; }
 
     if (listening) {
@@ -78,7 +78,7 @@ export function CommandInput({ onSubmit, onSlashCommand, isLoading }: Props) {
     setListening(true);
   };
 
-  const hasSpeechAPI = typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const hasSpeechAPI = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   return (
     <div className="relative w-full">

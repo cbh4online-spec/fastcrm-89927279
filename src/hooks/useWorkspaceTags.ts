@@ -53,7 +53,7 @@ export function useCreateWorkspaceTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workspace-tags", currentWorkspace?.id] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       if (err?.code === "23505") {
         toast.info("Esta etiqueta já existe");
       } else {

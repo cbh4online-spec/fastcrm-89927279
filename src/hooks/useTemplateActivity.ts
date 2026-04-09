@@ -129,7 +129,7 @@ export function useLogTemplateActivity() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['template-activity-logs'] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.error('Failed to log template activity:', err);
     },
   });
@@ -192,7 +192,7 @@ export function useApplyTemplate() {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       toast.success('Template aplicado com sucesso');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao aplicar template: ${err.message}`);
     },
   });

@@ -11,34 +11,51 @@ interface BioAnalyticsTabProps {
   pageId: string;
 }
 
+interface DailyRow {
+  date: string;
+  views: number;
+  uniques: number;
+  clicks: number;
+  leads: number;
+  top_links?: Array<{ url: string; clicks: number }> | Record<string, number>;
+  top_sources?: Array<{ source: string; count: number }> | Record<string, number>;
+}
+
+interface EventRow {
+  event_type: string;
+}
+
 export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
   const thirtyDaysAgo = subDays(new Date(), 30).toISOString().split("T")[0];
 
-  const { data: dailyData = [] } = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabaseAny = supabase as any;
+
+  const { data: dailyData = [] } = useQuery<DailyRow[]>({
     queryKey: ["bio-analytics-daily", pageId],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("bio_analytics_daily" as any)
+      const { data, error } = await supabaseAny
+        .from("bio_analytics_daily")
         .select("*")
         .eq("bio_page_id", pageId)
         .gte("date", thirtyDaysAgo)
-        .order("date", { ascending: true }) as any);
+        .order("date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as DailyRow[];
     },
   });
 
-  const { data: eventCounts = {} } = useQuery({
+  const { data: eventCounts = {} } = useQuery<Record<string, number>>({
     queryKey: ["bio-events-counts", pageId],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("bio_events" as any)
+      const { data, error } = await supabaseAny
+        .from("bio_events")
         .select("event_type")
         .eq("bio_page_id", pageId)
-        .gte("created_at", thirtyDaysAgo) as any);
+        .gte("created_at", thirtyDaysAgo);
       if (error) throw error;
       const counts: Record<string, number> = {};
-      ((data ?? []) as any[]).forEach((e: any) => {
+      (data as EventRow[] ?? []).forEach((e) => {
         counts[e.event_type] = (counts[e.event_type] || 0) + 1;
       });
       return counts;
@@ -46,7 +63,7 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
   });
 
   const totals = dailyData.reduce(
-    (acc, d: any) => ({
+    (acc, d) => ({
       views: acc.views + (d.views || 0),
       uniques: acc.uniques + (d.uniques || 0),
       clicks: acc.clicks + (d.clicks || 0),
@@ -55,7 +72,7 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
     { views: 0, uniques: 0, clicks: 0, leads: 0 }
   );
 
-  const chartData = dailyData.map((d: any) => ({
+  const chartData = dailyData.map((d) => ({
     date: format(new Date(d.date), "dd/MM", { locale: pt }),
     views: d.views || 0,
     uniques: d.uniques || 0,
@@ -63,10 +80,12 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
 
   // Aggregate top_links from all daily rows
   const topLinksMap = new Map<string, number>();
-  dailyData.forEach((d: any) => {
+  dailyData.forEach((d) => {
     if (d.top_links && typeof d.top_links === "object") {
-      const links = Array.isArray(d.top_links) ? d.top_links : Object.entries(d.top_links).map(([url, clicks]) => ({ url, clicks }));
-      links.forEach((l: any) => {
+      const links = Array.isArray(d.top_links)
+        ? d.top_links
+        : Object.entries(d.top_links as Record<string, number>).map(([url, clicks]) => ({ url, clicks }));
+      links.forEach((l) => {
         topLinksMap.set(l.url, (topLinksMap.get(l.url) || 0) + (l.clicks || 0));
       });
     }
@@ -78,10 +97,12 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
 
   // Aggregate top_sources
   const topSourcesMap = new Map<string, number>();
-  dailyData.forEach((d: any) => {
+  dailyData.forEach((d) => {
     if (d.top_sources && typeof d.top_sources === "object") {
-      const sources = Array.isArray(d.top_sources) ? d.top_sources : Object.entries(d.top_sources).map(([source, count]) => ({ source, count }));
-      sources.forEach((s: any) => {
+      const sources = Array.isArray(d.top_sources)
+        ? d.top_sources
+        : Object.entries(d.top_sources as Record<string, number>).map(([source, count]) => ({ source, count }));
+      sources.forEach((s) => {
         topSourcesMap.set(s.source, (topSourcesMap.get(s.source) || 0) + (s.count || 0));
       });
     }

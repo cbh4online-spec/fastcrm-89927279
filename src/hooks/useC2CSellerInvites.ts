@@ -65,7 +65,7 @@ export function useSendSellerInvite(workspaceId: string | undefined) {
         toast.success(`${sent} convite(s) enviado(s) com sucesso!`);
       }
     },
-    onError: (err: any) => toast.error(err.message || "Erro ao enviar convites"),
+    onError: (err: Error) => toast.error(err.message || "Erro ao enviar convites"),
   });
 }
 
@@ -119,6 +119,6 @@ export function useResendSellerInvite(workspaceId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["c2c-seller-invites"] });
       toast.success("Convite reenviado com sucesso!");
     },
-    onError: (err: any) => toast.error(err.message || "Erro ao reenviar convite"),
+    onError: (err: Error) => toast.error(err.message || "Erro ao reenviar convite"),
   });
 }

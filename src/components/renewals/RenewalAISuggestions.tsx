@@ -53,7 +53,7 @@ export function RenewalAISuggestions({ contractId, riskLevel, reasonsJson, healt
       setSuggestions(data);
       if (data.length === 0) toast.info("Sem sugestões para este contrato");
     },
-    onError: (e: any) => {
+    onError: (e: Error) => {
       console.error(e);
       toast.error("Erro ao gerar sugestões IA");
     },

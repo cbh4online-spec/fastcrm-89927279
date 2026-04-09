@@ -224,7 +224,7 @@ export function useUnlockConnection() {
       console.debug('[FASTMATCH] Connection unlocked');
       toast.success("Conexão desbloqueada com sucesso!");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[FASTMATCH] UNLOCK_FAILED', err?.message);
       toast.error("Erro ao desbloquear conexão.");
     },

@@ -109,7 +109,7 @@ export function useInviteCommunityMember() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("[COMMUNITY-FASTCLUB] INVITE_FAILED", error?.message);
       toast.error(error?.message || "Erro ao enviar convites");
     },

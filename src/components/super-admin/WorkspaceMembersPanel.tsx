@@ -177,7 +177,7 @@ export function WorkspaceMembersPanel({
         p_details: { user_id: userId, role, workspace_id: workspaceId },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.warn('[WORKSPACES] ADMIN_ADD_MEMBER_FAILED', error.message);
       toast.error("Erro ao adicionar membro: " + error.message);
     },
@@ -217,7 +217,7 @@ export function WorkspaceMembersPanel({
         p_details: { user_id: userId, new_role: newRole, workspace_id: workspaceId },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.warn('[WORKSPACES] ADMIN_UPDATE_ROLE_FAILED', error.message);
       toast.error("Erro ao atualizar role: " + error.message);
     },
@@ -257,7 +257,7 @@ export function WorkspaceMembersPanel({
         p_details: { user_id: userId, workspace_id: workspaceId },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.warn('[WORKSPACES] ADMIN_REMOVE_MEMBER_FAILED', error.message);
       toast.error("Erro ao remover membro: " + error.message);
     },

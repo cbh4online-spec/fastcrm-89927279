@@ -58,7 +58,7 @@ export function useConsumeMatchQuota() {
       const profileId = result.profileId;
       console.debug(`[FASTMATCH] Quota consumed for profile ${profileId}`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[FASTMATCH] QUOTA_CONSUME_FAILED', err?.message);
     },
   });

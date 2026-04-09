@@ -168,7 +168,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
         });
       }
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err?.message || "Failed to analyze transcript");
     },
   });

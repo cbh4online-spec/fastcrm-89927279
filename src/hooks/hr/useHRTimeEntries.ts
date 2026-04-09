@@ -95,7 +95,7 @@ export function useClockAction() {
         toast.warning(`📍 Pica ponto fora de zona autorizada. Zona mais próxima: ${zone} (${dist}m)`);
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       const msg = error?.message || error?.context?.body?.error || "Erro ao registar";
       toast.error(msg);
     },

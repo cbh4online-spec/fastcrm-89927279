@@ -113,7 +113,7 @@ export function useSendInterest() {
         toast.success("Interesse demonstrado com sucesso.");
       }
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[FASTMATCH] INTEREST_FAILED', err?.message);
       if (err?.message?.includes("duplicate")) {
         toast.error("Já demonstrou interesse neste perfil.");

@@ -121,7 +121,7 @@ export function CreateUserWithWorkspaceDialog({
       resetForm();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro ao criar utilizador: " + error.message);
     },
   });

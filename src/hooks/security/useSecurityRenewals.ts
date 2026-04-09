@@ -34,7 +34,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-renewals"] }); toast.success("Renovação criada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateRenewal = useMutation({
@@ -48,7 +48,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       qc.invalidateQueries({ queryKey: ["security-renewal-activities"] });
       toast.success("Renovação atualizada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const advanceStage = useMutation({
@@ -66,7 +66,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       qc.invalidateQueries({ queryKey: ["security-renewal-activities"] });
       toast.success("Estágio atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const logContact = useMutation({
@@ -96,7 +96,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       qc.invalidateQueries({ queryKey: ["security-renewal-activities"] });
       toast.success("Contacto registado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const addRenewalNote = useMutation({
@@ -116,7 +116,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       qc.invalidateQueries({ queryKey: ["security-renewal-activities"] });
       toast.success("Nota adicionada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // Trigger auto-create renewals
@@ -129,7 +129,7 @@ export function useSecurityRenewals(filters?: { stage?: string }) {
       qc.invalidateQueries({ queryKey: ["security-renewals"] });
       toast.success("Renovações verificadas");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { renewals, isLoading, createRenewal, updateRenewal, advanceStage, logContact, addRenewalNote, triggerAutoCreate };

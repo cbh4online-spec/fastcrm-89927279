@@ -195,7 +195,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
       });
       toast.success(`${extracted.length} especificações extraídas`);
     },
-    onError: (e: any) => {
+    onError: (e: Error) => {
       if (e.message?.includes("429")) toast.error("Limite IA excedido, tente mais tarde");
       else if (e.message?.includes("402")) toast.error("Créditos IA insuficientes");
       else toast.error(e.message || "Erro ao extrair especificações");
@@ -254,7 +254,7 @@ export function ProductSpecsTab({ product }: ProductSpecsTabProps) {
       });
       toast.success(`${suggested.length} specs sugeridas`);
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao sugerir"),
+    onError: (e: Error) => toast.error(e.message || "Erro ao sugerir"),
   });
 
   // Apply template

@@ -207,7 +207,7 @@ function AddCompetitorForm({ onSuccess }: { onSuccess: () => void }) {
     addMutation.mutate(
       { name, website_url: url, tracked_pages: trackedPages, notes: notes || undefined },
       {
-        onSuccess: (data: any) => {
+        onSuccess: (data: unknown) => {
           toast.success("Concorrente adicionado!");
           // Trigger first analysis
           trackMutation.mutate({

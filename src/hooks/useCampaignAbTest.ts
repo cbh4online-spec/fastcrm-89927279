@@ -76,7 +76,7 @@ export function useCampaignAbTest(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-ab-test', campaignId] });
       toast.success('Teste A/B configurado');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao criar teste A/B'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao criar teste A/B'),
   });
 
   const deleteAbTest = useMutation({
@@ -91,7 +91,7 @@ export function useCampaignAbTest(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-ab-test', campaignId] });
       toast.success('Teste A/B removido');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao remover teste A/B'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao remover teste A/B'),
   });
 
   const getAbTestResults = useMutation({
@@ -108,7 +108,7 @@ export function useCampaignAbTest(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-ab-test', campaignId] });
       toast.success('Resultados do teste A/B atualizados');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao obter resultados'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao obter resultados'),
   });
 
   const test = abTestQuery.data;

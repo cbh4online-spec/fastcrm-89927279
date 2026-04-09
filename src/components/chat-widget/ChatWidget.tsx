@@ -64,7 +64,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
 
   // Proactive chat triggers
   const getVisitorScore = useCallback(() => {
-    return (window as any).__fastcrm_visitor?.getScore?.() ?? 0;
+    return window.__fastcrm_visitor?.getScore?.() ?? 0;
   }, []);
 
   const { triggered, dismiss } = useProactiveChatTriggers({
@@ -204,7 +204,7 @@ export function ChatWidget({ widgetId, supabaseUrl }: ChatWidgetProps) {
     setIsSending(true);
 
     // Track CTA click score event
-    (window as any).__fastcrm_visitor?.trackEvent?.("cta_click");
+    window.__fastcrm_visitor?.trackEvent?.("cta_click");
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);

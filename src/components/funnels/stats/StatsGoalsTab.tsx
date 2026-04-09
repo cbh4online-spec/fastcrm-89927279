@@ -82,7 +82,7 @@ export function StatsGoalsTab({ events, templateSlug }: Props) {
       setGoalType("form_submit");
       setTargetValue("");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMutation = useMutation({

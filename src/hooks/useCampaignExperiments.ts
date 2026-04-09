@@ -110,7 +110,7 @@ export function useCampaignExperiments(campaignId?: string) {
       queryClient.invalidateQueries({ queryKey: qk });
       toast.success('Experiência criada');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao criar experiência'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao criar experiência'),
   });
 
   const declareWinner = useMutation({
@@ -125,7 +125,7 @@ export function useCampaignExperiments(campaignId?: string) {
       queryClient.invalidateQueries({ queryKey: qk });
       toast.success('Variante vencedora declarada');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao declarar vencedora'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao declarar vencedora'),
   });
 
   const deleteExperiment = useMutation({
@@ -137,7 +137,7 @@ export function useCampaignExperiments(campaignId?: string) {
       queryClient.invalidateQueries({ queryKey: qk });
       toast.success('Experiência removida');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao remover'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao remover'),
   });
 
   const startExperiment = useMutation({

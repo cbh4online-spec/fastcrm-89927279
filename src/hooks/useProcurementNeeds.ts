@@ -65,7 +65,7 @@ export function useRecomputeNeeds(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["procurement-needs-board", workspaceId] });
       toast.success(`Recálculo completo: ${data?.needs_updated || 0} atualizados, ${data?.needs_resolved || 0} resolvidos`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error("Erro ao recalcular: " + (err.message || "Erro desconhecido"));
     },
   });
@@ -104,7 +104,7 @@ export function useCreatePOsFromNeeds(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["procurement-needs-board", workspaceId] });
       toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       const msg = err?.context?.json?.error || err?.message || "Erro desconhecido";
       toast.error("Erro ao criar OC: " + msg);
     },
@@ -130,7 +130,7 @@ export function useUpdateNeedSupplier(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["procurement-needs-board", workspaceId] });
       toast.success("Fornecedor atualizado");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error("Erro ao atualizar fornecedor: " + (err.message || "Erro desconhecido"));
     },
   });
@@ -172,7 +172,7 @@ export function useCreateRFQFromNeeds(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["procurement-needs-board", workspaceId] });
       toast.success("RFQ criada com sucesso");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error("Erro ao criar RFQ: " + (err.message || "Erro desconhecido"));
     },
   });

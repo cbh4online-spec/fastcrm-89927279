@@ -102,7 +102,7 @@ export function useSaveMarketplaceConfig() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
       qc.invalidateQueries({ queryKey: ["marketplace-admin-config"] });
       qc.invalidateQueries({ queryKey: ["marketplace-config", data?.slug] });
     },

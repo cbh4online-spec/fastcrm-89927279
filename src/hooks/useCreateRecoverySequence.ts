@@ -110,6 +110,6 @@ export function useCreateRecoverySequence() {
       queryClient.invalidateQueries({ queryKey: ["email-sequences"] });
       toast.success("Sequência de recuperação criada com 3 steps");
     },
-    onError: (e: any) => toast.error("Erro ao criar sequência: " + e.message),
+    onError: (e: Error) => toast.error("Erro ao criar sequência: " + e.message),
   });
 }

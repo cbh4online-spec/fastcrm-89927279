@@ -265,7 +265,7 @@ export function UsersSection() {
         p_details: { user_id: userId, workspace_id: workspaceId, role },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro: " + error.message);
     },
   });
@@ -295,7 +295,7 @@ export function UsersSection() {
         p_details: { user_id: userId, workspace_id: workspaceId },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro: " + error.message);
     },
   });
@@ -322,7 +322,7 @@ export function UsersSection() {
         p_details: { user_id: userId, new_status: status },
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro: " + error.message);
     },
   });
@@ -345,7 +345,7 @@ export function UsersSection() {
       setConfirmPassword("");
       toast.success("Palavra-passe alterada com sucesso");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro: " + error.message);
     },
   });
@@ -364,7 +364,7 @@ export function UsersSection() {
     onSuccess: () => {
       toast.success("Email de recuperação enviado");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error("Erro: " + error.message);
     },
   });

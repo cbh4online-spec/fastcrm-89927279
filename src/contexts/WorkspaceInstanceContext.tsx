@@ -113,6 +113,8 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
         return null;
       }
 
+      const cpController = new AbortController();
+      const cpTimeout = setTimeout(() => cpController.abort(), 10000);
       try {
         const response = await fetch(`${config.url}/resolve-workspace`, {
           method: "POST",
@@ -121,6 +123,7 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({ workspace_id: workspaceId }),
+          signal: cpController.signal,
         });
 
         if (!response.ok) {
@@ -129,10 +132,15 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
           return { success: false, error: `Control Plane error: ${response.status}` };
         }
 
-        return await response.json() as any;
+        return await response.json() as ControlPlaneResponse;
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return { success: false, error: "Control Plane timeout" };
+        }
         console.error("Error calling Control Plane:", err);
         return { success: false, error: "Failed to connect to Control Plane" };
+      } finally {
+        clearTimeout(cpTimeout);
       }
     },
     [session?.access_token]

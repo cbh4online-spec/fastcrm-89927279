@@ -64,7 +64,7 @@ export function CannedResponsesPanel() {
       setTitle("");
       setContent("");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMutation = useMutation({

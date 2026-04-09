@@ -76,7 +76,7 @@ export function useCampaignTriggers(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-triggers', campaignId] });
       toast.success('Trigger criado');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao criar trigger'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao criar trigger'),
   });
 
   const updateTrigger = useMutation({
@@ -88,7 +88,7 @@ export function useCampaignTriggers(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-triggers', campaignId] });
       toast.success('Trigger atualizado');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao atualizar trigger'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao atualizar trigger'),
   });
 
   const deleteTrigger = useMutation({
@@ -100,7 +100,7 @@ export function useCampaignTriggers(campaignId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['campaign-triggers', campaignId] });
       toast.success('Trigger eliminado');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao eliminar trigger'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao eliminar trigger'),
   });
 
   return {

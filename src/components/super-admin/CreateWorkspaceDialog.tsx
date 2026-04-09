@@ -128,7 +128,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       resetForm();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.warn('[WORKSPACES] ADMIN_CREATE_FAILED', error.message);
       toast.error("Erro ao criar workspace: " + error.message);
     },

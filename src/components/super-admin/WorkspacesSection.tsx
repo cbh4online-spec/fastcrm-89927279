@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase as _supabase } from "@/integrations/supabase/client";
-const supabase = _supabase as any;
+import { supabase } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseAny = supabase as any;
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -207,7 +208,7 @@ export function WorkspacesSection() {
       });
 
       // Get onboarding data per workspace
-      const { data: onboardingData } = await supabase
+      const { data: onboardingData } = await supabaseAny
         .from("workspace_onboarding")
         .select("*");
 
@@ -225,7 +226,7 @@ export function WorkspacesSection() {
       }, {}) || {};
 
       // Get credit wallet balances
-      const { data: walletsData } = await supabase
+      const { data: walletsData } = await supabaseAny
         .from("credit_wallets")
         .select("workspace_id, balance");
 
@@ -333,7 +334,7 @@ export function WorkspacesSection() {
       trialEnd?: string;
       periodEnd?: string;
     }) => {
-      const { data: existingSub } = await supabase
+      const { data: existingSub } = await supabaseAny
         .from("workspace_subscriptions")
         .select("id")
         .eq("workspace_id", workspaceId)
@@ -357,13 +358,13 @@ export function WorkspacesSection() {
       }
 
       if (existingSub) {
-        const { error } = await supabase
+        const { error } = await supabaseAny
           .from("workspace_subscriptions")
           .update(updateData)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await supabaseAny
           .from("workspace_subscriptions")
           .insert([{
             workspace_id: workspaceId,

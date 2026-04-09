@@ -337,7 +337,7 @@ export function useSendCampaign() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.warn('[EMAIL-MKT] LAUNCH_FAILED', { error: error.message });
       toast.error(error.message || 'Erro ao enviar campanha');
     },

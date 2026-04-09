@@ -94,7 +94,7 @@ export function useRegisterSeller(workspaceId: string | undefined) {
       toast.success("Candidatura submetida com sucesso!");
       console.debug('[MARKETPLACE] Seller registered');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       console.warn('[MARKETPLACE] SELLER_REGISTER_FAILED', err.message);
       if (err.message?.includes("duplicate")) {
         toast.error("Já tens uma candidatura registada");

@@ -39,7 +39,7 @@ export function useSecurityEquipmentCatalog() {
       qc.invalidateQueries({ queryKey: ["security-equipment-catalog"] });
       toast.success("Equipamento adicionado ao catálogo");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateItem = useMutation({
@@ -57,7 +57,7 @@ export function useSecurityEquipmentCatalog() {
       qc.invalidateQueries({ queryKey: ["security-equipment-catalog"] });
       toast.success("Equipamento atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { items, isLoading, createItem, updateItem };

@@ -36,7 +36,7 @@ export function useCampaignSuppressions() {
       queryClient.invalidateQueries({ queryKey: ['campaign-suppressions'] });
       toast.success('Email adicionado à lista de supressão');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao adicionar supressão'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao adicionar supressão'),
   });
 
   const removeSuppression = useMutation({
@@ -48,7 +48,7 @@ export function useCampaignSuppressions() {
       queryClient.invalidateQueries({ queryKey: ['campaign-suppressions'] });
       toast.success('Supressão removida');
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao remover supressão'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao remover supressão'),
   });
 
   const importSuppressions = useMutation({
@@ -67,7 +67,7 @@ export function useCampaignSuppressions() {
       queryClient.invalidateQueries({ queryKey: ['campaign-suppressions'] });
       toast.success(`${count} supressões importadas`);
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao importar'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao importar'),
   });
 
   return {

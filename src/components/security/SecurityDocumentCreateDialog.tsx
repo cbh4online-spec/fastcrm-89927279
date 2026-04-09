@@ -92,7 +92,7 @@ export function SecurityDocumentCreateDialog({ open, onOpenChange, defaultSystem
         validation_notes: form.validation_notes || null,
       },
       {
-        onSuccess: (data: any) => {
+        onSuccess: (data: unknown) => {
           onOpenChange(false);
           setForm({ system_id: "", document_type: "", validation_notes: "" });
           if (data?.id) navigate(`/dashboard/security/documents/${data.id}`);

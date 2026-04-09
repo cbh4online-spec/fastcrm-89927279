@@ -45,7 +45,7 @@ export function useSecurityLeads(filters?: { status?: string; origin?: string; s
       qc.invalidateQueries({ queryKey: ["security-leads"] });
       toast.success("Lead criado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateLead = useMutation({
@@ -64,7 +64,7 @@ export function useSecurityLeads(filters?: { status?: string; origin?: string; s
       qc.invalidateQueries({ queryKey: ["security-leads"] });
       toast.success("Lead atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { leads, isLoading, createLead, updateLead };

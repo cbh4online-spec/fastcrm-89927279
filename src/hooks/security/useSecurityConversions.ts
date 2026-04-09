@@ -117,7 +117,7 @@ export function useSecurityConversions() {
         action: { label: "Ver Lead", onClick: () => navigate(`/dashboard/security/leads/${lead.id}`) },
       });
     },
-    onError: (e: any) => toast.error("Erro ao converter: " + e.message),
+    onError: (e: Error) => toast.error("Erro ao converter: " + e.message),
   });
 
   /**
@@ -163,7 +163,7 @@ export function useSecurityConversions() {
         action: { label: "Ver Proposta", onClick: () => navigate(`/dashboard/security/proposals/${proposal.id}`) },
       });
     },
-    onError: (e: any) => toast.error("Erro ao criar proposta: " + e.message),
+    onError: (e: Error) => toast.error("Erro ao criar proposta: " + e.message),
   });
 
   /**
@@ -223,7 +223,7 @@ export function useSecurityConversions() {
         action: { label: "Ver Contrato", onClick: () => navigate(`/dashboard/security/contracts/${contract.id}`) },
       });
     },
-    onError: (e: any) => toast.error("Erro na adjudicação: " + e.message),
+    onError: (e: Error) => toast.error("Erro na adjudicação: " + e.message),
   });
 
   /**
@@ -298,7 +298,7 @@ export function useSecurityConversions() {
         action: { label: "Ver Instalação", onClick: () => navigate(`/dashboard/security/systems/${system.id}`) },
       });
     },
-    onError: (e: any) => toast.error("Erro ao criar instalação: " + e.message),
+    onError: (e: Error) => toast.error("Erro ao criar instalação: " + e.message),
   });
 
   return {

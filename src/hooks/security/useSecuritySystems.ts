@@ -38,7 +38,7 @@ export function useSecuritySystems() {
       qc.invalidateQueries({ queryKey: ["security-systems"] });
       toast.success("Sistema criado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateSystem = useMutation({
@@ -56,7 +56,7 @@ export function useSecuritySystems() {
       qc.invalidateQueries({ queryKey: ["security-systems"] });
       toast.success("Sistema atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { systems, isLoading, createSystem, updateSystem };

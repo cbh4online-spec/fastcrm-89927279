@@ -43,7 +43,7 @@ export function useC2CTransactions(filters?: { status?: string; sellerId?: strin
       qc.invalidateQueries({ queryKey: ["c2c-transactions"] });
       toast.success("Transação atualizada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { transactions, isLoading, updateTransaction };
@@ -83,7 +83,7 @@ export function useC2CDisputes() {
       qc.invalidateQueries({ queryKey: ["c2c-disputes"] });
       toast.success("Disputa criada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const resolveDispute = useMutation({
@@ -108,7 +108,7 @@ export function useC2CDisputes() {
       qc.invalidateQueries({ queryKey: ["c2c-disputes"] });
       toast.success("Disputa resolvida");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { disputes, isLoading, createDispute, resolveDispute };

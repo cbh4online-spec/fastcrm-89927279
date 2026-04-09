@@ -40,6 +40,8 @@ export function TelegramSettingsView() {
 
   const handleTestConnection = async () => {
     setTestLoading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
@@ -54,9 +56,10 @@ export function TelegramSettingsView() {
             action: "getMe",
             workspace_id: currentWorkspace?.id || "",
           }),
+          signal: controller.signal,
         }
       );
-      const data: any = await res.json();
+      const data = await res.json() as { success?: boolean; result?: { username?: string; first_name?: string }; error?: string };
       if (data.success && data.result) {
         setBotUsername(data.result.username || "");
         setBotName(data.result.first_name || "");
@@ -65,8 +68,13 @@ export function TelegramSettingsView() {
         toast.error(data.error || "Falha na conexão");
       }
     } catch (err) {
-      toast.error(err.message);
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("Timeout ao testar conexão Telegram");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Erro desconhecido");
+      }
     } finally {
+      clearTimeout(timeout);
       setTestLoading(false);
     }
   };

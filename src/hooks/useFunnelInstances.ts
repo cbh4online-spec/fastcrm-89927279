@@ -195,7 +195,7 @@ export function useCreateCaptureType() {
       qc.invalidateQueries({ queryKey: ["capture-types"] });
       toast.success("Tipo de captura criado");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 }
 
@@ -216,7 +216,7 @@ export function useUpdateCaptureType() {
       qc.invalidateQueries({ queryKey: ["capture-types"] });
       toast.success("Tipo de captura atualizado");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 }
 
@@ -231,7 +231,7 @@ export function useDeleteCaptureType() {
       qc.invalidateQueries({ queryKey: ["capture-types"] });
       toast.success("Tipo de captura eliminado");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 }
 

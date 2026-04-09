@@ -79,7 +79,7 @@ export function useGenerateBrief(workspaceId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["decision-packs", workspaceId] });
       toast({ title: "Briefing executivo gerado com sucesso" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erro ao gerar briefing", description: err.message, variant: "destructive" });
     },
   });

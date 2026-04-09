@@ -43,7 +43,7 @@ export function useSecurityProposals(filters?: { status?: string }) {
       qc.invalidateQueries({ queryKey: ["security-proposals"] });
       toast.success("Proposta criada com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateProposal = useMutation({
@@ -62,7 +62,7 @@ export function useSecurityProposals(filters?: { status?: string }) {
       qc.invalidateQueries({ queryKey: ["security-proposals"] });
       toast.success("Proposta atualizada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { proposals, isLoading, createProposal, updateProposal };

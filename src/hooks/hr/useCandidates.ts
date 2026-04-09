@@ -183,7 +183,7 @@ export function useParseCV() {
       qc.invalidateQueries({ queryKey: ["hr-candidate"] });
       toast.success("CV analisado com sucesso");
     },
-    onError: (err: any) => toast.error(err?.message || "Erro ao analisar CV"),
+    onError: (err: Error) => toast.error(err?.message || "Erro ao analisar CV"),
   });
 }
 
@@ -203,6 +203,6 @@ export function useScoreCandidate() {
       qc.invalidateQueries({ queryKey: ["hr-candidate"] });
       toast.success("Score IA calculado");
     },
-    onError: (err: any) => toast.error(err?.message || "Erro ao calcular score"),
+    onError: (err: Error) => toast.error(err?.message || "Erro ao calcular score"),
   });
 }

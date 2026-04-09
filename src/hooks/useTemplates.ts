@@ -191,7 +191,7 @@ export function useCreateTemplate() {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       toast.success('Template criado com sucesso');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao criar template: ${err.message}`);
     },
   });
@@ -247,7 +247,7 @@ export function useUpdateTemplate() {
       queryClient.invalidateQueries({ queryKey: ['template-versions'] });
       toast.success('Template atualizado');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao atualizar: ${err.message}`);
     },
   });
@@ -265,7 +265,7 @@ export function useDeleteTemplate() {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       toast.success('Template eliminado');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao eliminar: ${err.message}`);
     },
   });
@@ -295,7 +295,7 @@ export function useCreateFolder() {
       queryClient.invalidateQueries({ queryKey: ['template-folders'] });
       toast.success('Pasta criada');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao criar pasta: ${err.message}`);
     },
   });

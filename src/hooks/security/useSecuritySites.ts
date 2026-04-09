@@ -39,7 +39,7 @@ export function useSecuritySites() {
       qc.invalidateQueries({ queryKey: ["security-sites"] });
       toast.success("Local criado com sucesso");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateSite = useMutation({
@@ -57,7 +57,7 @@ export function useSecuritySites() {
       qc.invalidateQueries({ queryKey: ["security-sites"] });
       toast.success("Local atualizado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { sites, isLoading, createSite, updateSite };

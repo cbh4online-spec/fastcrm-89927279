@@ -106,7 +106,7 @@ export default function SDRDashboardPage() {
       createData.auto_enroll_min_score = newMinScore;
     }
     createCampaign.mutate(createData, {
-      onSuccess: (data: any) => {
+      onSuccess: (data: unknown) => {
         setShowCreate(false);
         setNewName("");
         setNewDesc("");

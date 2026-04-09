@@ -46,7 +46,7 @@ export function useC2CModeration() {
       qc.invalidateQueries({ queryKey: ["c2c-moderation-queue"] });
       toast.success("Item moderado");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const pendingCount = queue.filter((q: any) => q.status === "pending").length;

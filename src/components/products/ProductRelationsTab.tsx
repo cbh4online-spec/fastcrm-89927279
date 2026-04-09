@@ -284,7 +284,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
       setReason("");
       toast.success("Relação adicionada");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       if (error.message?.includes("duplicate")) {
         toast.error("Esta relação já existe");
       } else {
@@ -349,7 +349,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
       queryClient.invalidateQueries({
         queryKey: ["product-relations", product.id],
       });

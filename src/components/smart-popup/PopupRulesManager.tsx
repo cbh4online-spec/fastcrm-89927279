@@ -128,7 +128,7 @@ export function PopupRulesManager() {
       resetForm();
       setDialogOpen(false);
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const resetForm = () => {

@@ -115,7 +115,7 @@ export function useDetectLeadDuplicates() {
       queryClient.invalidateQueries({ queryKey: ["lead-duplicate-groups-persisted"] });
       toast.success(`Scan concluído: ${data.groups} grupo(s) de duplicados encontrados`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       const msg = err?.message || "Erro ao detetar duplicados";
       toast.error(msg);
       console.error("Detect duplicates error:", err);

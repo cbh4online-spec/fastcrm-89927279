@@ -256,6 +256,8 @@ export function ConversationRuleForm({
     }
 
     setIsGenerating(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -294,6 +296,7 @@ Responde APENAS com o JSON, sem texto adicional.`
           temperature: 0.7,
           max_tokens: 500
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -324,9 +327,11 @@ Responde APENAS com o JSON, sem texto adicional.`
         }
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       console.error("Error generating rule:", error);
       toast.error("Erro ao gerar regra. Por favor, tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsGenerating(false);
     }
   };

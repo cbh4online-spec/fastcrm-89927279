@@ -20,7 +20,7 @@ export function useDynamicSegment() {
       if (error) throw error;
       return data as { count: number; contact_ids: string[] };
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao avaliar segmento'),
+    onError: (e: Error) => toast.error(e.message || 'Erro ao avaliar segmento'),
   });
 
   return {

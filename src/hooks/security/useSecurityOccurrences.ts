@@ -36,7 +36,7 @@ export function useSecurityOccurrences(filters?: { status?: string; severity?: s
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["security-occurrences"] }); toast.success("Ocorrência criada"); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateOccurrence = useMutation({
@@ -50,7 +50,7 @@ export function useSecurityOccurrences(filters?: { status?: string; severity?: s
       qc.invalidateQueries({ queryKey: ["security-occurrence-activities"] });
       toast.success("Ocorrência atualizada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const closeOccurrence = useMutation({
@@ -71,7 +71,7 @@ export function useSecurityOccurrences(filters?: { status?: string; severity?: s
       qc.invalidateQueries({ queryKey: ["security-occurrence-activities"] });
       toast.success("Ocorrência fechada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const escalateOccurrence = useMutation({
@@ -100,7 +100,7 @@ export function useSecurityOccurrences(filters?: { status?: string; severity?: s
       qc.invalidateQueries({ queryKey: ["security-occurrence-activities"] });
       toast.success("Ocorrência escalada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const addOccurrenceNote = useMutation({
@@ -120,7 +120,7 @@ export function useSecurityOccurrences(filters?: { status?: string; severity?: s
       qc.invalidateQueries({ queryKey: ["security-occurrence-activities"] });
       toast.success("Nota adicionada");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { occurrences, isLoading, createOccurrence, updateOccurrence, closeOccurrence, escalateOccurrence, addOccurrenceNote };

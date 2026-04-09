@@ -105,7 +105,7 @@ export function StoreRecoverySettings() {
       setDirty(false);
       toast.success("Configurações de recuperação guardadas");
     },
-    onError: (e: any) => toast.error("Erro: " + e.message),
+    onError: (e: Error) => toast.error("Erro: " + e.message),
   });
 
   if (isLoading) {

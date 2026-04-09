@@ -171,7 +171,7 @@ export function StoreCartsTab() {
       queryClient.invalidateQueries({ queryKey: ["store-abandoned-carts"] });
       toast.success("Inscrito na sequência");
     },
-    onError: (e: any) => toast.error(e.message || "Erro ao inscrever"),
+    onError: (e: Error) => toast.error(e.message || "Erro ao inscrever"),
   });
 
   const stopSequence = useMutation({

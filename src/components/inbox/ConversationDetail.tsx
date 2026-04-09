@@ -270,7 +270,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       source: conversation.channel,
                     }, {
                       onSuccess: () => toast.success("Lead criado com sucesso"),
-                      onError: (err: any) => {
+                      onError: (err: Error) => {
                         if (err?.message === "DUPLICATE_EMAIL") {
                           toast.error("Já existe um lead com este email.");
                         } else {
