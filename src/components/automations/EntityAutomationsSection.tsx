@@ -102,31 +102,33 @@ export function EntityAutomationsSection({
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="overview" className="gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Visão Geral
+        <TabsList className="w-full justify-start overflow-x-auto scrollbar-none flex-nowrap">
+          <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3 shrink-0">
+            <BarChart3 className="w-4 h-4 hidden sm:inline" />
+            Geral
           </TabsTrigger>
-          <TabsTrigger value="suggestions" className="gap-2">
-            <Sparkles className="w-4 h-4" />
-            Sugestões IA
+          <TabsTrigger value="suggestions" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3 shrink-0">
+            <Sparkles className="w-4 h-4 hidden sm:inline" />
+            <span className="sm:hidden">IA</span>
+            <span className="hidden sm:inline">Sugestões IA</span>
             {pendingSuggestions.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5">
                 {pendingSuggestions.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-2">
-            <FileText className="w-4 h-4" />
+          <TabsTrigger value="templates" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3 shrink-0">
+            <FileText className="w-4 h-4 hidden sm:inline" />
             Templates
           </TabsTrigger>
-          <TabsTrigger value="recipes" className="gap-2">
-            <Target className="w-4 h-4" />
+          <TabsTrigger value="recipes" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3 shrink-0">
+            <Target className="w-4 h-4 hidden sm:inline" />
             Receitas
           </TabsTrigger>
-          <TabsTrigger value="active" className="gap-2">
-            <Play className="w-4 h-4" />
-            Minhas Automações
+          <TabsTrigger value="active" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3 shrink-0">
+            <Play className="w-4 h-4 hidden sm:inline" />
+            <span className="sm:hidden">Minhas</span>
+            <span className="hidden sm:inline">Minhas Automações</span>
           </TabsTrigger>
         </TabsList>
 
