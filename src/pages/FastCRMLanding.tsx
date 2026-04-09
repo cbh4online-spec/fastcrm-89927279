@@ -14,7 +14,6 @@ import { LandingFinalCTA } from "@/components/landing-fastcrm/LandingFinalCTA";
 import { LandingFAQSection } from "@/components/landing-fastcrm/LandingFAQSection";
 import { LandingFooter } from "@/components/landing-fastcrm/LandingFooter";
 import { LandingStickyHeader } from "@/components/landing-fastcrm/LandingStickyHeader";
-import { LandingVerticalsCarousel } from "@/components/landing-fastcrm/LandingVerticalsCarousel";
 import { StoreCookieConsent } from "@/components/store/StoreCookieConsent";
 
 export default function FastCRMLanding() {
@@ -60,7 +59,6 @@ export default function FastCRMLanding() {
         <LandingStickyHeader />
         <main>
           <LandingHeroSection />
-          <LandingVerticalsCarousel />
           <LandingProblemSection />
           <LandingSolutionSection />
           <LandingIntegrationsSection />

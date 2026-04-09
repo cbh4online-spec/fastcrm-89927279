@@ -1,10 +1,97 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import pricingBg from "@/assets/pricing-bg.jpg";
+
+import verticalImobiliario from "@/assets/verticals/vertical-imobiliario.jpg";
+import verticalConstrucao from "@/assets/verticals/vertical-construcao.jpg";
+import verticalLideranca from "@/assets/verticals/vertical-lideranca.jpg";
+import verticalFormacao from "@/assets/verticals/vertical-formacao.jpg";
+import verticalClinicas from "@/assets/verticals/vertical-clinicas.jpg";
+import verticalSeguranca from "@/assets/verticals/vertical-seguranca.jpg";
+import verticalEmpresas from "@/assets/verticals/vertical-empresas.jpg";
+import verticalAgencias from "@/assets/verticals/vertical-agencias.jpg";
+
+const verticals = [
+  { src: verticalImobiliario, label: "Imobiliário" },
+  { src: verticalConstrucao, label: "Construção" },
+  { src: verticalLideranca, label: "Liderança" },
+  { src: verticalFormacao, label: "Formação" },
+  { src: verticalClinicas, label: "Clínicas" },
+  { src: verticalSeguranca, label: "Segurança" },
+  { src: verticalEmpresas, label: "Empresas" },
+  { src: verticalAgencias, label: "Agências" },
+];
+
+const carouselItems = [...verticals, ...verticals];
+
+function InfiniteCarousel() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number>();
+  const offsetRef = useRef(0);
+  const isPausedRef = useRef(false);
+
+  useEffect(() => {
+    const speed = 0.4;
+    const track = trackRef.current;
+    if (!track) return;
+
+    const animate = () => {
+      if (!isPausedRef.current) {
+        offsetRef.current += speed;
+        const halfWidth = track.scrollWidth / 2;
+        if (offsetRef.current >= halfWidth) offsetRef.current = 0;
+        track.style.transform = `translateX(-${offsetRef.current}px)`;
+      }
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
+  }, []);
+
+  return (
+    <div className="relative w-full overflow-hidden">
+      {/* Fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-r from-[hsl(222,47%,4%)] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-l from-[hsl(222,47%,4%)] to-transparent z-10 pointer-events-none" />
+
+      <div
+        className="flex gap-3 sm:gap-4 will-change-transform"
+        ref={trackRef}
+        onMouseEnter={() => { isPausedRef.current = true; }}
+        onMouseLeave={() => { isPausedRef.current = false; }}
+      >
+        {carouselItems.map((v, i) => (
+          <div
+            key={`${v.label}-${i}`}
+            className="relative flex-shrink-0 w-[220px] sm:w-[280px] md:w-[340px] rounded-xl overflow-hidden group"
+          >
+            <img
+              src={v.src}
+              alt={`Ambiente profissional — ${v.label}`}
+              width={1280}
+              height={720}
+              loading="lazy"
+              decoding="async"
+              className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30 text-[11px] sm:text-xs font-semibold text-primary">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                {v.label}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function LandingHeroSection() {
   const { t } = useTranslation("landing");
@@ -22,7 +109,7 @@ export function LandingHeroSection() {
   };
 
   return (
-    <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[100vh] flex flex-col justify-center overflow-hidden">
       <motion.div
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
@@ -43,12 +130,13 @@ export function LandingHeroSection() {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       </div>
 
-      <motion.div className="relative max-w-5xl mx-auto px-6 py-32 text-center" style={{ y: textY, opacity }}>
+      {/* Text content */}
+      <motion.div className="relative max-w-5xl mx-auto px-6 pt-28 pb-10 text-center" style={{ y: textY, opacity }}>
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: [0.25, 0.4, 0.25, 1] }}
-          className="space-y-10"
+          className="space-y-8"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -140,31 +228,14 @@ export function LandingHeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* Hero Dashboard Mockup */}
+      {/* Verticals Carousel — inside hero */}
       <motion.div
-        initial={{ opacity: 0, y: 60, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 1.2, delay: 1.5, ease: [0.25, 0.4, 0.25, 1] }}
-        className="relative mt-16 max-w-4xl mx-auto px-6"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 1.4, ease: [0.25, 0.4, 0.25, 1] }}
+        className="relative pb-12"
       >
-        <div className="relative rounded-2xl overflow-hidden border border-[hsl(217,33%,17%)] shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
-          <picture>
-            <source
-              srcSet={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.webp`}
-              type="image/webp"
-            />
-            <img
-              src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.png`}
-              alt="FastCRM Dashboard"
-              width={1024}
-              height={1024}
-              className="w-full aspect-video object-cover"
-              loading="eager"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </picture>
-        </div>
+        <InfiniteCarousel />
       </motion.div>
     </section>
   );
