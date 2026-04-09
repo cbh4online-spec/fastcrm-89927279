@@ -42,16 +42,16 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3 sm:space-y-4", className)}>
       {/* Title Row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-foreground">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2 sm:gap-3 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
             {title}
           </h1>
           {typeof count === "number" && (
-            <span className="text-sm font-medium text-muted-foreground">
-              {count.toLocaleString("pt-PT")} {count === 1 ? "registo" : "registos"}
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">
+              {count.toLocaleString("pt-PT")}
             </span>
           )}
         </div>
@@ -86,7 +86,7 @@ export function PageHeader({
 
       {/* Tabs Navigation - Nexus Style Pills */}
       {tabs && tabs.length > 0 && (
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 w-fit overflow-x-auto max-w-full flex-nowrap scrollbar-none">
+        <div className="-mx-1 px-1 flex items-center gap-1 p-1 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50 overflow-x-auto max-w-full flex-nowrap scrollbar-none">
           {tabs.map((tab) => (
             <button
               key={tab.id}
