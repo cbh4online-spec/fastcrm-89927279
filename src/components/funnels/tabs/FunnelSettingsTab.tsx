@@ -51,21 +51,21 @@ export function FunnelSettingsTab({ funnelId }: FunnelSettingsTabProps) {
     if (funnel) {
       setName(funnel.name);
       setSlug(funnel.slug);
-      setDomain((funnel as any).domain || "");
-      setPath((funnel as any).path || `/${funnel.slug}`);
-      setFaviconUrl((funnel as any).favicon_url || "");
-      setHeadCode((funnel as any).head_tracking_code || "");
-      setBodyCode((funnel as any).body_tracking_code || "");
-      setIsPublished((funnel as any).is_published || false);
-      setSeoTitle((funnel as any).seo_title || "");
-      setSeoDescription((funnel as any).seo_description || "");
-      setOgImageUrl((funnel as any).og_image_url || "");
-      setCanonicalUrl((funnel as any).canonical_url || "");
-      setNoindex((funnel as any).noindex || false);
-      setConsentRequired((funnel as any).consent_required || false);
-      setConsentText((funnel as any).consent_text || "");
-      setConsentTextVersion((funnel as any).consent_text_version || "");
-      setPrivacyPolicyUrl((funnel as any).privacy_policy_url || "");
+      setDomain(funnel.domain || "");
+      setPath(funnel.path || `/${funnel.slug}`);
+      setFaviconUrl(funnel.favicon_url || "");
+      setHeadCode(funnel.head_tracking_code || "");
+      setBodyCode(funnel.body_tracking_code || "");
+      setIsPublished(funnel.is_published || false);
+      setSeoTitle(funnel.seo_title || "");
+      setSeoDescription(funnel.seo_description || "");
+      setOgImageUrl(funnel.og_image_url || "");
+      setCanonicalUrl(funnel.canonical_url || "");
+      setNoindex(funnel.noindex || false);
+      setConsentRequired(funnel.consent_required || false);
+      setConsentText(funnel.consent_text || "");
+      setConsentTextVersion(funnel.consent_text_version || "");
+      setPrivacyPolicyUrl(funnel.privacy_policy_url || "");
       setMarketingOptInEnabled((funnel as any).marketing_opt_in_enabled || false);
       setMarketingOptInLabel((funnel as any).marketing_opt_in_label || "");
     }

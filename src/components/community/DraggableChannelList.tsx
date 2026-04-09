@@ -100,11 +100,11 @@ export function DraggableChannelList({
     name: c.name,
     description: c.description,
     icon: c.icon,
-    color: (c as any).color || null,
-    is_private: (c as any).is_private || false,
-    is_read_only: (c as any).is_read_only || false,
-    is_paid: (c as any).is_paid || false,
-    price: (c as any).price || null,
+    color: c.color || null,
+    is_private: c.is_private || false,
+    is_read_only: c.is_read_only || false,
+    is_paid: c.is_paid || false,
+    price: c.price || null,
   });
 
   return (

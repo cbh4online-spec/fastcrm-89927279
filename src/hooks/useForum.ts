@@ -12,6 +12,11 @@ export interface ForumCategory {
   description: string | null;
   icon: string | null;
   sort_order: number;
+  color?: string | null;
+  is_private?: boolean;
+  is_read_only?: boolean;
+  is_paid?: boolean;
+  price?: number | null;
 }
 
 export interface ForumTopic {

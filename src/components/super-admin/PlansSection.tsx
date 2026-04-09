@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 
 interface PlanFeature {
+  [key: string]: unknown;
   id: string;
   plan_id: string;
   leads_limit: number;
@@ -245,7 +246,7 @@ export function PlansSection() {
     const updated = { ...editPlan };
     for (const key of Object.keys(suggestions)) {
       if (key in updated) {
-        (updated as any)[key] = suggestions[key];
+        updated[key] = suggestions[key];
       }
     }
     setEditPlan(updated);
@@ -259,7 +260,7 @@ export function PlansSection() {
     const updated = { ...plan };
     for (const key of Object.keys(suggestion.suggestions)) {
       if (key in updated) {
-        (updated as any)[key] = suggestion.suggestions[key];
+        updated[key] = suggestion.suggestions[key];
       }
     }
     setEditPlan(updated);
@@ -499,7 +500,7 @@ export function PlansSection() {
                     <TableCell>{feature.label}</TableCell>
                     {plans?.map((p) => (
                       <TableCell key={p.id} className="text-center">
-                        {(p as any)[feature.key] ? (
+                        {p[feature.key] ? (
                           <Check className="h-4 w-4 text-success mx-auto" />
                         ) : (
                           <X className="h-4 w-4 text-muted-foreground mx-auto" />
@@ -596,13 +597,13 @@ export function PlansSection() {
                 <div className="grid grid-cols-3 gap-4">
                   {limitFields.map((field) => {
                     const hasSuggestion = optimizeSuggestion?.suggestions?.[field.key] !== undefined &&
-                      optimizeSuggestion.suggestions[field.key] !== (editPlan as any)[field.key];
+                      optimizeSuggestion.suggestions[field.key] !== editPlan[field.key];
                     return (
                       <div key={field.key} className="relative">
                         <Label className="text-xs">{field.label}</Label>
                         <Input
                           type="number"
-                          value={(editPlan as any)[field.key]}
+                          value={editPlan[field.key]}
                           onChange={(e) =>
                             setEditPlan({
                               ...editPlan,
@@ -636,7 +637,7 @@ export function PlansSection() {
                 <div className="grid grid-cols-2 gap-4">
                   {featureFields.map((feature) => {
                     const hasSuggestion = optimizeSuggestion?.suggestions?.[feature.key] !== undefined &&
-                      optimizeSuggestion.suggestions[feature.key] !== (editPlan as any)[feature.key];
+                      optimizeSuggestion.suggestions[feature.key] !== editPlan[feature.key];
                     return (
                       <div
                         key={feature.key}
@@ -652,7 +653,7 @@ export function PlansSection() {
                           )}
                         </div>
                         <Switch
-                          checked={(editPlan as any)[feature.key]}
+                          checked={editPlan[feature.key]}
                           onCheckedChange={(checked) =>
                             setEditPlan({
                               ...editPlan,
@@ -711,7 +712,7 @@ export function PlansSection() {
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-4 gap-2 text-xs">
                       {limitFields.map((field) => {
-                        const current = currentPlan ? (currentPlan as any)[field.key] : null;
+                        const current = currentPlan ? currentPlan[field.key] : null;
                         const suggested = suggestion.suggestions[field.key];
                         if (suggested === undefined) return null;
                         const changed = current !== suggested;

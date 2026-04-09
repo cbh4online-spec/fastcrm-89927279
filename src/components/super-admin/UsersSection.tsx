@@ -376,7 +376,7 @@ export function UsersSection() {
       .map(m => ({
         workspace_id: m.workspace_id,
         role: m.role,
-        workspace_name: (m.workspaces as any)?.name || "Unknown",
+        workspace_name: (m.workspaces as { id: string; name: string } | null)?.name || "Unknown",
       }));
 
     return {
