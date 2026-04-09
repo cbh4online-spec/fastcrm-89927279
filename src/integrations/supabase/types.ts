@@ -46090,6 +46090,63 @@ export type Database = {
           },
         ]
       }
+      profile_field_permissions: {
+        Row: {
+          created_at: string
+          field_key: string
+          id: string
+          page_key: string
+          sales_function: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          id?: string
+          page_key: string
+          sales_function: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          id?: string
+          page_key?: string
+          sales_function?: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
+      profile_menu_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          menu_key: string
+          sales_function: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_key: string
+          sales_function: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_key?: string
+          sales_function?: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
