@@ -394,137 +394,164 @@ export function CrmTableView({
         onAddTags={async () => {}}
       />
       
-      <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
-        <ScrollArea className="flex-1">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={isAllOnPageSelected}
-                    onCheckedChange={handleSelectAllOnPage}
-                    aria-label="Selecionar todos nesta página"
-                    className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                  />
-                </TableHead>
-                {visibleColumns.includes("title") && <TableHead>Título</TableHead>}
-                {visibleColumns.includes("value") && <TableHead>Valor</TableHead>}
-                {visibleColumns.includes("stage") && <TableHead>Etapa</TableHead>}
-                {visibleColumns.includes("lead") && <TableHead>Lead</TableHead>}
-                {visibleColumns.includes("status") && <TableHead>Estado</TableHead>}
-                {visibleColumns.includes("expected_close_date") && <TableHead>Data Prevista</TableHead>}
-                {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedOpportunities.map((opp) => {
-                const stage = getStageById(opp.stage_id);
-                return (
-                  <TableRow
-                    key={opp.id}
-                    className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(opp.id) ? "bg-primary/5" : ""}`}
-                    onClick={() => onRowClick(opp.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedIds.has(opp.id)}
-                        onCheckedChange={(checked) => handleSelectItem(opp.id, checked as boolean)}
-                        aria-label={`Selecionar ${opp.title}`}
-                      />
-                    </TableCell>
-                    {visibleColumns.includes("title") && (
-                      <TableCell>
-                        <p className="font-medium">{opp.title}</p>
+      {/* Mobile: Card view */}
+      {isMobile ? (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+            {paginatedOpportunities.map((opp) => (
+              <OpportunityMobileCard
+                key={opp.id}
+                opportunity={opp}
+                stage={getStageById(opp.stage_id)}
+                isSelected={selectedIds.has(opp.id)}
+                onSelect={handleSelectItem}
+                onClick={onRowClick}
+              />
+            ))}
+          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      ) : (
+        /* Desktop: Table view */
+        <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
+          <ScrollArea className="flex-1">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={isAllOnPageSelected}
+                      onCheckedChange={handleSelectAllOnPage}
+                      aria-label="Selecionar todos nesta página"
+                      className={isSomeOnPageSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                    />
+                  </TableHead>
+                  {visibleColumns.includes("title") && <TableHead>Título</TableHead>}
+                  {visibleColumns.includes("value") && <TableHead>Valor</TableHead>}
+                  {visibleColumns.includes("stage") && <TableHead>Etapa</TableHead>}
+                  {visibleColumns.includes("lead") && <TableHead>Lead</TableHead>}
+                  {visibleColumns.includes("status") && <TableHead>Estado</TableHead>}
+                  {visibleColumns.includes("expected_close_date") && <TableHead>Data Prevista</TableHead>}
+                  {visibleColumns.includes("created_at") && <TableHead>Criado em</TableHead>}
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedOpportunities.map((opp) => {
+                  const stage = getStageById(opp.stage_id);
+                  return (
+                    <TableRow
+                      key={opp.id}
+                      className={`cursor-pointer hover:bg-muted/50 ${selectedIds.has(opp.id) ? "bg-primary/5" : ""}`}
+                      onClick={() => onRowClick(opp.id)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(opp.id)}
+                          onCheckedChange={(checked) => handleSelectItem(opp.id, checked as boolean)}
+                          aria-label={`Selecionar ${opp.title}`}
+                        />
                       </TableCell>
-                    )}
-                    {visibleColumns.includes("value") && (
-                      <TableCell>
-                        <div className="flex items-center gap-1 font-medium text-primary">
-                          <DollarSign className="w-4 h-4" />
-                          {Number(opp.value).toLocaleString("pt-PT", { minimumFractionDigits: 0 })}
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("stage") && (
-                      <TableCell>
-                        {stage ? (
-                          <Badge 
-                            variant="outline" 
-                            style={{ borderColor: stage.color, color: stage.color }}
-                          >
-                            {stage.name}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("lead") && (
-                      <TableCell>
-                        {opp.lead ? (
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            {opp.lead.name}
+                      {visibleColumns.includes("title") && (
+                        <TableCell>
+                          <p className="font-medium">{opp.title}</p>
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("value") && (
+                        <TableCell>
+                          <div className="flex items-center gap-1 font-medium text-primary">
+                            <DollarSign className="w-4 h-4" />
+                            {Number(opp.value).toLocaleString("pt-PT", { minimumFractionDigits: 0 })}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("stage") && (
+                        <TableCell>
+                          {stage ? (
+                            <Badge 
+                              variant="outline" 
+                              style={{ borderColor: stage.color, color: stage.color }}
+                            >
+                              {stage.name}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("lead") && (
+                        <TableCell>
+                          {opp.lead ? (
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              {opp.lead.name}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("status") && (
+                        <TableCell>
+                          <Badge 
+                            variant={opp.status === "won" ? "default" : opp.status === "lost" ? "destructive" : "secondary"}
+                          >
+                            {opp.status === "open" ? "Aberta" : opp.status === "won" ? "Ganha" : "Perdida"}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("expected_close_date") && (
+                        <TableCell className="text-muted-foreground">
+                          {opp.expected_close_date 
+                            ? format(new Date(opp.expected_close_date), "dd MMM yyyy", { locale: pt })
+                            : "—"}
+                        </TableCell>
+                      )}
+                      {visibleColumns.includes("created_at") && (
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(opp.created_at), "dd MMM yyyy", { locale: pt })}
+                        </TableCell>
+                      )}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onRowClick(opp.id)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
-                    )}
-                    {visibleColumns.includes("status") && (
-                      <TableCell>
-                        <Badge 
-                          variant={opp.status === "won" ? "default" : opp.status === "lost" ? "destructive" : "secondary"}
-                        >
-                          {opp.status === "open" ? "Aberta" : opp.status === "won" ? "Ganha" : "Perdida"}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("expected_close_date") && (
-                      <TableCell className="text-muted-foreground">
-                        {opp.expected_close_date 
-                          ? format(new Date(opp.expected_close_date), "dd MMM yyyy", { locale: pt })
-                          : "—"}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes("created_at") && (
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(opp.created_at), "dd MMM yyyy", { locale: pt })}
-                      </TableCell>
-                    )}
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onRowClick(opp.id)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-        
-        <TablePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      </div>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }
