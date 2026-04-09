@@ -77,7 +77,7 @@ export function VoiceConversationWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
+          className="fixed bottom-24 right-4 sm:right-6 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-primary shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
           aria-label="Activar assistente de voz"
         >
           <Mic className="h-6 w-6 text-primary-foreground" />
@@ -86,7 +86,7 @@ export function VoiceConversationWidget() {
 
       {/* Voice panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-72 rounded-2xl bg-card border shadow-xl overflow-hidden">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100%-2rem)] sm:w-72 max-w-sm rounded-2xl bg-card border shadow-xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-muted/50">
             <div className="flex items-center gap-2">
