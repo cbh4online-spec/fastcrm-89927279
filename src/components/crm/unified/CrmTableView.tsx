@@ -26,6 +26,8 @@ import { CrmEntityType } from "@/hooks/useCrmViews";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { TablePagination } from "./TablePagination";
+import { ContactMobileCard, OpportunityMobileCard } from "./CrmMobileCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CrmTableViewProps {
   entityType: CrmEntityType;
