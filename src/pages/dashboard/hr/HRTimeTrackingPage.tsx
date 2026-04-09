@@ -299,8 +299,16 @@ export default function HRTimeTrackingPage() {
 
           {/* Sessions table */}
           <Card>
-            <CardHeader><CardTitle>Sessões</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                Sessões
+                {!isLoading && sessions.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">{sessions.length} registos</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
             <CardContent>
+              <div className="max-h-[600px] overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -328,17 +336,17 @@ export default function HRTimeTrackingPage() {
                         <TableCell>{format(new Date(s.session_date + "T00:00:00"), "dd/MM/yyyy", { locale: pt })}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {sessionTypeLabels[(s as any).session_type] || (s as any).session_type || "—"}
+                            {sessionTypeLabels[s.session_type] || s.session_type || "—"}
                           </Badge>
                         </TableCell>
                         <TableCell>{s.clock_in_at ? format(new Date(s.clock_in_at), "HH:mm") : "—"}</TableCell>
                         <TableCell>{s.clock_out_at ? format(new Date(s.clock_out_at), "HH:mm") : "—"}</TableCell>
                          <TableCell>{s.break_minutes > 0 ? `${s.break_minutes}m` : "—"}</TableCell>
                          <TableCell>
-                           {(s as any).clock_in_location_name ? (
+                           {s.clock_in_location_name ? (
                              <div className="flex items-center gap-1 text-sm">
                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                               <span className="truncate max-w-[120px]">{(s as any).clock_in_location_name}</span>
+                               <span className="truncate max-w-[150px]">{s.clock_in_location_name}</span>
                              </div>
                            ) : "—"}
                          </TableCell>
@@ -358,6 +366,7 @@ export default function HRTimeTrackingPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
