@@ -1,42 +1,81 @@
 
 
-# Plano: Documento de Funcionalidades do FastCRM
+# Plano: Adicionar módulos e sub-páginas em falta ao menu
 
-## Objectivo
-Gerar um documento DOCX profissional e detalhado com todas as funcionalidades do sistema FastCRM, organizado por módulos.
+## Diagnóstico
 
-## Estrutura do Documento
+Cruzando o `routeManifest.ts` (fonte do sidebar) com as rotas reais em `src/routes/`, identifiquei **~35 rotas** que existem no código mas não aparecem no menu porque:
+1. **Não estão no manifest** (nunca foram adicionadas)
+2. **Estão marcadas como `visibleInSidebar: false`** sem necessidade
+3. **Faltam grupos de navegação** (ex: "Segurança" como grupo próprio, "Performance/Gamificação" como grupo próprio)
 
-1. **Capa** — FastCRM: Manual de Funcionalidades
-2. **Índice**
-3. **Visão Geral** — Stack, arquitectura, multi-idioma
-4. **Módulos Core** — Command Center, Executive Brief, AI CEO Copilot, Context OS, Impact Map, Revenue Flight Control
-5. **CRM** — Leads, Contactos, Empresas, Gestores, Pipeline/Oportunidades, Lifecycle, FastMatch, Agendamento
-6. **Relatórios** — Overview, KPIs, Metas, Previsões, Consumo
-7. **Comunicação** — Inbox unificada, WhatsApp, Grupos, Telegram, Feed interno, Templates
-8. **Performance & Gamificação** — Dashboard, Métricas, Leaderboard, Desafios, Reconhecimentos, TV Mode
-9. **Vendas** — Propostas, Faturas, Produtos, Notas de Encomenda, Bundles, SDR/Outbound, Sequences
-10. **Marketing** — Landing Pages, Bio OS, Prospecção (Google Local, Profissional, Instagram), Funnels, Lead Enricher, Email Campaigns, SEO, Monitor Concorrentes
-11. **Compras (Procurement)** — Dashboard, Necessidades, Fornecedores, Requisições, Ordens, Recepções, Faturas, Catálogo, RFQs
-12. **Portal B2B** — Encomendas, Aprovações, Clientes, Produtos, Stock, Configuração
-13. **Loja Online** — Produtos, Encomendas, Categorias, Cupões, Analytics, Checkout
-14. **Marketplace C2C** — Listagens, Vendedores, Boost, Sponsors, Afiliados, Verificação, Disputas, Tiers
-15. **FastClub** — Comunidade, Candidaturas
-16. **Account Brief** — Dashboard, Contas, Análises, Watchlist, Alertas, Segmentos, Score, Saúde
-17. **Recursos Humanos** — Dashboard, Colaboradores, Departamentos, Cargos, Relógio de Ponto, Ausências, Horários, Onboarding, Avaliações, OKRs, Feedback, Recrutamento, Kiosk
-18. **Segurança** — Dashboard, Pedidos Parceiros, Leads, Propostas, Clientes, Sites, Sistemas, Equipamentos, Contratos, Manutenção, Ocorrências, Renovações
-19. **Student Journey** — Painel, Perfis, Cursos, Coortes
-20. **Checkout System** — Funis, Ofertas, Abandonados, Bundles, Descontos, A/B Tests, Analytics
-21. **Método Vision** — Dashboard
-22. **Helpdesk & Tickets** — Sistema de tickets, SLA, CSAT, Portal do Cliente, IA
-23. **IA & Automações** — AI Assistants, AI Employees, AI Agents, Knowledge Base, Motor Conversacional, Automações
-24. **Ferramentas & Sistema** — System Health, Event Map, Integrações, Definições
-25. **Arquitectura Backend** — Edge Functions (508+), Jobs agendados (Trigger.dev), Kernel Events
+## Módulos/páginas em falta no sidebar
 
-## Abordagem
-- Script Node.js com `docx` library para gerar o DOCX
-- Formatação profissional com cores da marca, tabelas, ícones por módulo
-- ~40-50 páginas de conteúdo detalhado
-- Output em `/mnt/documents/FastCRM_Funcionalidades.docx`
-- QA visual após geração
+### 1. Performance & Gamificação (rotas existem, faltam no manifest)
+- `/dashboard/performance/leaderboard` — Leaderboard
+- `/dashboard/performance/challenges` — Desafios
+- `/dashboard/performance/recognition` — Reconhecimentos
+- `/dashboard/performance/tv-mode` — TV Mode
+- `/dashboard/performance/settings` — Configurações
+
+### 2. Segurança (existe como grupo, mas só tem 1 entrada hidden)
+Precisa de grupo próprio com sub-páginas:
+- `/dashboard/security` — Dashboard (tornar visível)
+- `/dashboard/security/partner-requests` — Pedidos Parceiros
+- `/dashboard/security/leads` — Leads
+- `/dashboard/security/proposals` — Propostas
+- `/dashboard/security/clients` — Clientes
+- `/dashboard/security/sites` — Sites
+- `/dashboard/security/systems` — Sistemas
+- `/dashboard/security/equipment` — Equipamentos
+- `/dashboard/security/contracts` — Contratos
+- `/dashboard/security/documents` — Documentos
+- `/dashboard/security/maintenance` — Manutenção
+- `/dashboard/security/occurrences` — Ocorrências
+- `/dashboard/security/renewals` — Renovações
+- `/dashboard/security/management` — Gestão
+
+### 3. Marketplace C2C (tem 1 entrada, faltam sub-páginas)
+- `/dashboard/c2c/my-listings` — Meus Anúncios
+- `/dashboard/c2c/seller-area` — Área Vendedor
+- `/dashboard/c2c/messages` — Mensagens
+- `/dashboard/c2c/analytics` — Analíticas
+- `/dashboard/c2c/boost` — Boost
+- `/dashboard/c2c/sponsors` — Sponsors
+- `/dashboard/c2c/sellers` — Vendedores
+- `/dashboard/c2c/affiliates` — Afiliados
+- `/dashboard/c2c/orders` — Encomendas
+- `/dashboard/c2c/moderation` — Moderação
+
+### 4. Itens avulsos em falta ou hidden sem razão
+- `/dashboard/automations` — Automações (rota existe, falta no manifest)
+- `/dashboard/vision` — Método Vision (rota existe, falta no manifest)
+- `/dashboard/whatsapp` — WhatsApp (redirect, falta no manifest)
+- `/dashboard/credit` — Crédito (hidden, tornar visível)
+- `/dashboard/community` — Comunidade (no moduleNavRegistry mas sem rota)
+
+### 5. Novo grupo: "Segurança" no NAV_GROUPS
+- Adicionar `"seguranca"` como NavGroup com ícone `Shield` e ordem entre operações e inteligência
+
+## Ficheiros a alterar
+
+1. **`src/config/routeManifest.ts`**
+   - Adicionar NavGroup `"seguranca"` e `"performance"` ao `NAV_GROUPS`
+   - Adicionar ~35 novas entradas ao `ROUTE_MANIFEST`
+   - Tornar visíveis entradas que estavam hidden sem necessidade
+   - Mapear novos grupos nos `MEGA_GROUPS`
+
+2. **`src/config/moduleNavRegistry.ts`**
+   - Alinhar slugs/hrefs com as novas entradas do manifest (corrigir `metodo-vision` href)
+
+3. **`src/i18n/locales/en/nav.json`** e **`src/i18n/locales/pt/nav.json`**
+   - Adicionar chaves de tradução para os novos itens
+
+## Critérios de aceitação
+- Todos os módulos documentados no DOCX aparecem navegáveis no sidebar
+- Sub-páginas de Segurança, C2C, Performance visíveis no menu
+- Automações, Método Vision e WhatsApp acessíveis pelo sidebar
+- Nenhuma rota com página existente fica escondida sem justificação
+- Build sem erros
+- Testes `navigation-expanded.test.ts` passam
 
