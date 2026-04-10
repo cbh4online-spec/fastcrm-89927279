@@ -76,6 +76,8 @@ export function DashboardCoreRoutes() {
       <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
       <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
       <Route path="/dashboard/sponsors" element={<SponsorsManagement />} />
+      <Route path="/dashboard/metodo-vision" element={<VisionPage />} />
+      <Route path="/dashboard/community" element={<Navigate to="/club/fastclub" replace />} />
       <Route path="/dashboard/blog" element={<BlogDashboard />} />
 
       {/* Settings */}
