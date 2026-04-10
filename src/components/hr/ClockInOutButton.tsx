@@ -33,6 +33,7 @@ export function ClockInOutButton() {
   const clockAction = useClockAction();
   const today = format(new Date(), "yyyy-MM-dd");
   const { data: sessions = [] } = useHRWorkSessions(employeeId ?? undefined, today, today);
+  const { data: globalActiveSession, isLoading: activeLoading } = useActiveWorkSession(employeeId ?? undefined);
   const { city, temperature, weatherCode } = useWeatherLocation();
   const [isResolvingLocation, setIsResolvingLocation] = useState(false);
 
@@ -65,10 +66,8 @@ export function ClockInOutButton() {
     return { ...coords, name };
   };
 
-  const activeSession = useMemo(
-    () => sessions.find((s) => s.clock_in_at && !s.clock_out_at),
-    [sessions]
-  );
+  // Use global active session (no date filter) so it works across midnight
+  const activeSession = globalActiveSession ?? null;
   const isActive = !!activeSession;
   const onBreak = !!(activeSession?.break_start_at && !activeSession?.break_end_at);
 
