@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, Timer, AlertTriangle, Coffee, Play } from "lucide-react";
 import { useCurrentEmployee } from "@/hooks/hr/useCurrentEmployee";
-import { useClockAction, useHRWorkSessions } from "@/hooks/hr/useHRTimeEntries";
+import { useClockAction, useHRWorkSessions, useActiveWorkSession } from "@/hooks/hr/useHRTimeEntries";
 import { useWeatherLocation, getWeatherIcon } from "@/hooks/useWeatherLocation";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";

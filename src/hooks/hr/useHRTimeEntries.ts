@@ -201,6 +201,7 @@ export function useClockAction() {
 
       toast.success(labels[data?.session_action || ""] || "Registo efetuado");
       queryClient.invalidateQueries({ queryKey: ["hr-work-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-active-session"] });
       queryClient.invalidateQueries({ queryKey: ["hr-time-entries"] });
 
       if (data?.overtime_alert?.exceeded) {
