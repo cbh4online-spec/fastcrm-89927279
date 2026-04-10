@@ -90,6 +90,35 @@ export function useHRWorkSessions(employeeId?: string, startDate?: string, endDa
   });
 }
 
+/**
+ * Dedicated query for the active session (no date filter).
+ * Returns the most recent session where clock_in_at is set and clock_out_at is null.
+ * This ensures the user always sees pause/stop controls even after midnight.
+ */
+export function useActiveWorkSession(employeeId?: string) {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+  return useQuery({
+    queryKey: ["hr-active-session", wsId, employeeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_work_sessions" as any)
+        .select("*, hr_employees(full_name, avatar_url, department)")
+        .eq("workspace_id", wsId!)
+        .eq("employee_id", employeeId!)
+        .not("clock_in_at", "is", null)
+        .is("clock_out_at", null)
+        .order("clock_in_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const sessions = data as unknown as HRWorkSession[];
+      return sessions.length > 0 ? sessions[0] : null;
+    },
+    enabled: !!wsId && !!employeeId,
+    refetchInterval: 30000, // poll every 30s for safety
+  });
+}
+
 export function useClockAction() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
@@ -155,6 +184,9 @@ export function useClockAction() {
     onSuccess: (data) => {
       if (data?.fallback || data?.success === false) {
         toast.warning(data.error || "Ação não permitida");
+        // Force refetch to resync UI (e.g. show correct pause/stop buttons)
+        queryClient.invalidateQueries({ queryKey: ["hr-work-sessions"] });
+        queryClient.invalidateQueries({ queryKey: ["hr-active-session"] });
         return;
       }
 
