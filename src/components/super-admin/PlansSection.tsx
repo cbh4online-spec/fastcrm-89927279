@@ -1,6 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MarketplaceModulesTab } from "./tabs/MarketplaceModulesTab";
+import { BundlesTab } from "./tabs/BundlesTab";
+import { CreditsTab } from "./tabs/CreditsTab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -435,7 +438,26 @@ export function PlansSection() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Top-level Tabs */}
+      <Tabs defaultValue="plans" className="w-full">
+        <TabsList className="w-full max-w-lg">
+          <TabsTrigger value="plans" className="flex-1">Planos Base</TabsTrigger>
+          <TabsTrigger value="modules" className="flex-1">Módulos Marketplace</TabsTrigger>
+          <TabsTrigger value="bundles" className="flex-1">Packs & Bundles</TabsTrigger>
+          <TabsTrigger value="credits" className="flex-1">Créditos IA</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="modules" className="mt-6">
+          <MarketplaceModulesTab />
+        </TabsContent>
+        <TabsContent value="bundles" className="mt-6">
+          <BundlesTab />
+        </TabsContent>
+        <TabsContent value="credits" className="mt-6">
+          <CreditsTab />
+        </TabsContent>
+
+        <TabsContent value="plans" className="mt-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
@@ -891,6 +913,8 @@ export function PlansSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
