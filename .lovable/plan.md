@@ -1,81 +1,53 @@
 
 
-# Plano: Adicionar módulos e sub-páginas em falta ao menu
+# Plano: Corrigir responsividade das secções da landing page
 
 ## Diagnóstico
 
-Cruzando o `routeManifest.ts` (fonte do sidebar) com as rotas reais em `src/routes/`, identifiquei **~35 rotas** que existem no código mas não aparecem no menu porque:
-1. **Não estão no manifest** (nunca foram adicionadas)
-2. **Estão marcadas como `visibleInSidebar: false`** sem necessidade
-3. **Faltam grupos de navegação** (ex: "Segurança" como grupo próprio, "Performance/Gamificação" como grupo próprio)
+Analisei todas as 15 secções da landing page ao viewport de 390px (mobile actual do utilizador). Os problemas identificados:
 
-## Módulos/páginas em falta no sidebar
+### Problemas encontrados
 
-### 1. Performance & Gamificação (rotas existem, faltam no manifest)
-- `/dashboard/performance/leaderboard` — Leaderboard
-- `/dashboard/performance/challenges` — Desafios
-- `/dashboard/performance/recognition` — Reconhecimentos
-- `/dashboard/performance/tv-mode` — TV Mode
-- `/dashboard/performance/settings` — Configurações
+1. **LandingDetailedComparison** — A tabela de comparação usa `grid-cols-[1fr_100px_100px]`, resultando em apenas ~190px para o texto das funcionalidades. Texto truncado e ilegível em mobile. Os botões de selecção de concorrente (`FastCRM vs HubSpot`, etc.) também transbordam.
 
-### 2. Segurança (existe como grupo, mas só tem 1 entrada hidden)
-Precisa de grupo próprio com sub-páginas:
-- `/dashboard/security` — Dashboard (tornar visível)
-- `/dashboard/security/partner-requests` — Pedidos Parceiros
-- `/dashboard/security/leads` — Leads
-- `/dashboard/security/proposals` — Propostas
-- `/dashboard/security/clients` — Clientes
-- `/dashboard/security/sites` — Sites
-- `/dashboard/security/systems` — Sistemas
-- `/dashboard/security/equipment` — Equipamentos
-- `/dashboard/security/contracts` — Contratos
-- `/dashboard/security/documents` — Documentos
-- `/dashboard/security/maintenance` — Manutenção
-- `/dashboard/security/occurrences` — Ocorrências
-- `/dashboard/security/renewals` — Renovações
-- `/dashboard/security/management` — Gestão
+2. **LandingIntegrationsSection** — O h2 usa `text-4xl` como base (sem breakpoint mobile), demasiado grande a 390px.
 
-### 3. Marketplace C2C (tem 1 entrada, faltam sub-páginas)
-- `/dashboard/c2c/my-listings` — Meus Anúncios
-- `/dashboard/c2c/seller-area` — Área Vendedor
-- `/dashboard/c2c/messages` — Mensagens
-- `/dashboard/c2c/analytics` — Analíticas
-- `/dashboard/c2c/boost` — Boost
-- `/dashboard/c2c/sponsors` — Sponsors
-- `/dashboard/c2c/sellers` — Vendedores
-- `/dashboard/c2c/affiliates` — Afiliados
-- `/dashboard/c2c/orders` — Encomendas
-- `/dashboard/c2c/moderation` — Moderação
+3. **LandingFinalCTA** — O h2 usa `text-4xl` como base, que em títulos longos em maiúsculas transborda a 390px.
 
-### 4. Itens avulsos em falta ou hidden sem razão
-- `/dashboard/automations` — Automações (rota existe, falta no manifest)
-- `/dashboard/vision` — Método Vision (rota existe, falta no manifest)
-- `/dashboard/whatsapp` — WhatsApp (redirect, falta no manifest)
-- `/dashboard/credit` — Crédito (hidden, tornar visível)
-- `/dashboard/community` — Comunidade (no moduleNavRegistry mas sem rota)
+4. **LandingHeroSection** — O botão CTA tem texto dinâmico longo (ex: "EXPERIMENTAR PARA CLÍNICAS →") que pode comprimir ou transbordar em mobile. O h1 `text-5xl` é grande a 390px.
 
-### 5. Novo grupo: "Segurança" no NAV_GROUPS
-- Adicionar `"seguranca"` como NavGroup com ícone `Shield` e ordem entre operações e inteligência
+5. **LandingPricingSection** — O h2 usa `text-3xl md:text-4xl` que está bem, mas os cards de bundles em `grid-cols-1 md:grid-cols-3` — OK. Os botões de preço têm `truncate` que pode cortar texto.
 
-## Ficheiros a alterar
+6. **LandingStickyHeader** — Adequado (usa Sheet em mobile). OK.
 
-1. **`src/config/routeManifest.ts`**
-   - Adicionar NavGroup `"seguranca"` e `"performance"` ao `NAV_GROUPS`
-   - Adicionar ~35 novas entradas ao `ROUTE_MANIFEST`
-   - Tornar visíveis entradas que estavam hidden sem necessidade
-   - Mapear novos grupos nos `MEGA_GROUPS`
+7. **LandingPositioningSection** — Grid `sm:grid-cols-3` sem breakpoint intermédio: a 390px empilha correctamente. OK mas as imagens de 96px + ícone de 56px ocupam muito espaço vertical.
 
-2. **`src/config/moduleNavRegistry.ts`**
-   - Alinhar slugs/hrefs com as novas entradas do manifest (corrigir `metodo-vision` href)
+## Alterações
 
-3. **`src/i18n/locales/en/nav.json`** e **`src/i18n/locales/pt/nav.json`**
-   - Adicionar chaves de tradução para os novos itens
+### Ficheiro 1: `LandingHeroSection.tsx`
+- h1: `text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl` (reduzir base de 5xl para 4xl)
+- Botão CTA: adicionar `text-sm` em mobile, `sm:text-base`
+- Subtitle: `text-base sm:text-lg`
+
+### Ficheiro 2: `LandingDetailedComparison.tsx`
+- Grid mobile: `grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_100px_100px] md:grid-cols-[1fr_140px_140px]`
+- Botões de concorrente: mostrar apenas nome curto em mobile (sem "FastCRM vs"), usando classes `hidden sm:inline` / `sm:hidden`
+- Texto de funcionalidade: `text-xs sm:text-sm`
+- Padding: reduzir `p-3 sm:p-4`
+
+### Ficheiro 3: `LandingIntegrationsSection.tsx`
+- h2: `text-3xl sm:text-4xl md:text-5xl` (adicionar breakpoint base menor)
+
+### Ficheiro 4: `LandingFinalCTA.tsx`
+- h2: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl` (reduzir base de 4xl para 3xl)
+
+### Ficheiro 5: `LandingFastClubSection.tsx`
+- Grid: já usa `sm:grid-cols-3`, OK em mobile. Sem alteração necessária.
 
 ## Critérios de aceitação
-- Todos os módulos documentados no DOCX aparecem navegáveis no sidebar
-- Sub-páginas de Segurança, C2C, Performance visíveis no menu
-- Automações, Método Vision e WhatsApp acessíveis pelo sidebar
-- Nenhuma rota com página existente fica escondida sem justificação
+- Todas as secções legíveis e sem overflow horizontal a 390px
+- Tabela de comparação navegável em mobile sem scroll horizontal
+- Títulos proporcionais ao viewport em todos os breakpoints
+- Botões com texto completo visível
 - Build sem erros
-- Testes `navigation-expanded.test.ts` passam
 
