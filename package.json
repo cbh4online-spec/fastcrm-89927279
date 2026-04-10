@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "fuser -k 8080/tcp >/dev/null 2>&1 || true; vite",
     "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build:dev": "NODE_OPTIONS='--max-old-space-size=4096' vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
