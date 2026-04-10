@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ConversationList } from "./ConversationList";
 import { ConversationDetail } from "./ConversationDetail";
 import { InboxContextPanel } from "./InboxContextPanel";
