@@ -1,51 +1,42 @@
 
 
-## Diagnóstico
+# Plano: Documento de Funcionalidades do FastCRM
 
-O problema é que a edge function `hr-clock-action` está a crashar em **todos os pedidos** porque utiliza `anonClient.auth.getClaims()`, que **não existe** no SDK do Supabase JS. O método correcto é `anonClient.auth.getUser()`.
+## Objectivo
+Gerar um documento DOCX profissional e detalhado com todas as funcionalidades do sistema FastCRM, organizado por módulos.
 
-Isto explica:
-- Os logs mostram apenas ciclos de boot/shutdown, sem nenhum pedido processado com sucesso
-- Nenhuma chamada a `hr-clock-action` aparece nos analytics de edge functions
-- A lista de sessões não actualiza porque nenhuma acção de clock-in/out completa com sucesso
+## Estrutura do Documento
 
-## Plano de Correcção
+1. **Capa** — FastCRM: Manual de Funcionalidades
+2. **Índice**
+3. **Visão Geral** — Stack, arquitectura, multi-idioma
+4. **Módulos Core** — Command Center, Executive Brief, AI CEO Copilot, Context OS, Impact Map, Revenue Flight Control
+5. **CRM** — Leads, Contactos, Empresas, Gestores, Pipeline/Oportunidades, Lifecycle, FastMatch, Agendamento
+6. **Relatórios** — Overview, KPIs, Metas, Previsões, Consumo
+7. **Comunicação** — Inbox unificada, WhatsApp, Grupos, Telegram, Feed interno, Templates
+8. **Performance & Gamificação** — Dashboard, Métricas, Leaderboard, Desafios, Reconhecimentos, TV Mode
+9. **Vendas** — Propostas, Faturas, Produtos, Notas de Encomenda, Bundles, SDR/Outbound, Sequences
+10. **Marketing** — Landing Pages, Bio OS, Prospecção (Google Local, Profissional, Instagram), Funnels, Lead Enricher, Email Campaigns, SEO, Monitor Concorrentes
+11. **Compras (Procurement)** — Dashboard, Necessidades, Fornecedores, Requisições, Ordens, Recepções, Faturas, Catálogo, RFQs
+12. **Portal B2B** — Encomendas, Aprovações, Clientes, Produtos, Stock, Configuração
+13. **Loja Online** — Produtos, Encomendas, Categorias, Cupões, Analytics, Checkout
+14. **Marketplace C2C** — Listagens, Vendedores, Boost, Sponsors, Afiliados, Verificação, Disputas, Tiers
+15. **FastClub** — Comunidade, Candidaturas
+16. **Account Brief** — Dashboard, Contas, Análises, Watchlist, Alertas, Segmentos, Score, Saúde
+17. **Recursos Humanos** — Dashboard, Colaboradores, Departamentos, Cargos, Relógio de Ponto, Ausências, Horários, Onboarding, Avaliações, OKRs, Feedback, Recrutamento, Kiosk
+18. **Segurança** — Dashboard, Pedidos Parceiros, Leads, Propostas, Clientes, Sites, Sistemas, Equipamentos, Contratos, Manutenção, Ocorrências, Renovações
+19. **Student Journey** — Painel, Perfis, Cursos, Coortes
+20. **Checkout System** — Funis, Ofertas, Abandonados, Bundles, Descontos, A/B Tests, Analytics
+21. **Método Vision** — Dashboard
+22. **Helpdesk & Tickets** — Sistema de tickets, SLA, CSAT, Portal do Cliente, IA
+23. **IA & Automações** — AI Assistants, AI Employees, AI Agents, Knowledge Base, Motor Conversacional, Automações
+24. **Ferramentas & Sistema** — System Health, Event Map, Integrações, Definições
+25. **Arquitectura Backend** — Edge Functions (508+), Jobs agendados (Trigger.dev), Kernel Events
 
-### Passo 1 — Corrigir autenticação na edge function `hr-clock-action`
-
-Substituir:
-```typescript
-const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(
-  authHeader.replace("Bearer ", "")
-);
-if (claimsError || !claimsData?.claims) { ... }
-const authenticatedUserId = claimsData.claims.sub;
-```
-
-Por:
-```typescript
-const { data: { user }, error: userError } = await anonClient.auth.getUser();
-if (userError || !user) {
-  return errorResponse("Token inválido ou expirado", 401);
-}
-const authenticatedUserId = user.id;
-```
-
-### Passo 2 — Aplicar a mesma correcção nas outras edge functions afectadas
-
-Verificar se `hr-clock-qr` e `hr-face-verify` também usam `getClaims()` e corrigir da mesma forma.
-
-### Passo 3 — Validar build
-
-Confirmar que o build compila sem erros após as alterações.
-
-## Ficheiros a alterar
-- `supabase/functions/hr-clock-action/index.ts`
-- `supabase/functions/hr-clock-qr/index.ts` (se aplicável)
-- `supabase/functions/hr-face-verify/index.ts` (se aplicável)
-
-## Critérios de aceitação
-- A edge function processa pedidos de clock-in/out sem erro 500
-- A lista de sessões actualiza após cada acção
-- Os botões de pausa/terminar aparecem correctamente
+## Abordagem
+- Script Node.js com `docx` library para gerar o DOCX
+- Formatação profissional com cores da marca, tabelas, ícones por módulo
+- ~40-50 páginas de conteúdo detalhado
+- Output em `/mnt/documents/FastCRM_Funcionalidades.docx`
+- QA visual após geração
 
