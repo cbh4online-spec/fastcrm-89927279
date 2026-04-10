@@ -154,7 +154,12 @@ export function InboxSidebar({
                         ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50"
                     )}
-                    onClick={() => folder.category ? onCategoryChange(folder.category) : undefined}
+                    onClick={() => {
+                      if (folder.category) {
+                        onCategoryChange(folder.category);
+                        onChannelChange("all");
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       <Icon className="w-3.5 h-3.5" />

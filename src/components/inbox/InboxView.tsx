@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { ConversationList } from "./ConversationList";
 import { ConversationDetail } from "./ConversationDetail";
 import { InboxContextPanel } from "./InboxContextPanel";
@@ -31,7 +31,7 @@ type ViewMode = "list" | "columns";
 export function InboxView() {
   const isMobile = useIsMobile();
   const { data: whatsappConnection } = useWhatsAppQRConnection();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -282,7 +282,22 @@ export function InboxView() {
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
                 selectedChannel={selectedChannel}
-                onChannelChange={setSelectedChannel}
+                onChannelChange={(ch) => {
+                  setSelectedChannel(ch);
+                  if (ch === "all") {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.delete("channel");
+                      return next;
+                    });
+                  } else {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.set("channel", ch);
+                      return next;
+                    });
+                  }
+                }}
               />
             </div>
           )}
