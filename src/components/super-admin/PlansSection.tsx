@@ -438,8 +438,26 @@ export function PlansSection() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Top-level Tabs */}
+      <Tabs defaultValue="plans" className="w-full">
+        <TabsList className="w-full max-w-lg">
+          <TabsTrigger value="plans" className="flex-1">Planos Base</TabsTrigger>
+          <TabsTrigger value="modules" className="flex-1">Módulos Marketplace</TabsTrigger>
+          <TabsTrigger value="bundles" className="flex-1">Packs & Bundles</TabsTrigger>
+          <TabsTrigger value="credits" className="flex-1">Créditos IA</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="modules" className="mt-6">
+          <MarketplaceModulesTab />
+        </TabsContent>
+        <TabsContent value="bundles" className="mt-6">
+          <BundlesTab />
+        </TabsContent>
+        <TabsContent value="credits" className="mt-6">
+          <CreditsTab />
+        </TabsContent>
+
+        <TabsContent value="plans" className="mt-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
           <p className="text-muted-foreground">Configurar limites e funcionalidades por plano</p>
