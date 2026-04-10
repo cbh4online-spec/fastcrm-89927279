@@ -36,7 +36,7 @@ export function LandingFinalCTA() {
           className="space-y-8"
         >
           <motion.h2
-            className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-[0.95]"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-[0.95]"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}

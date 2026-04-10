@@ -203,7 +203,7 @@ export function LandingIntegrationsSection() {
           <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.2em] uppercase bg-white/[0.06] border border-white/[0.1] text-white/70 mb-6">
             {t("integrations.badge")}
           </span>
-          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white mb-4">
             {t("integrations.title")}
           </h2>
           <p className="text-lg text-white/50 max-w-2xl mx-auto">

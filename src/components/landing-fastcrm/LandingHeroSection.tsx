@@ -102,13 +102,13 @@ export function LandingHeroSection() {
                 CRM para {verticals[activeIndex].label}
               </div>
 
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
                 <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-primary-foreground">
                   {verticals[activeIndex].headline}
                 </span>
               </h1>
 
-              <p className="text-lg sm:text-xl text-[hsl(210,40%,90%)] max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+              <p className="text-base sm:text-lg md:text-xl text-[hsl(210,40%,90%)] max-w-2xl mx-auto leading-relaxed drop-shadow-md">
                 {verticals[activeIndex].subtitle}
               </p>
             </motion.div>
@@ -143,7 +143,7 @@ export function LandingHeroSection() {
             <Button
               type="submit"
               size="lg"
-              className="w-full sm:w-auto gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-bold uppercase tracking-wide gap-2"
+              className="w-full sm:w-auto gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-sm sm:text-base font-bold uppercase tracking-wide gap-2"
             >
               {verticals[activeIndex].cta}
               <ArrowRight className="h-4 w-4" />

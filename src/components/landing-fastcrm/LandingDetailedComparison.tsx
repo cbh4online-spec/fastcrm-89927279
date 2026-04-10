@@ -272,13 +272,13 @@ export function LandingDetailedComparison() {
               key={c.name}
               onClick={() => setSelectedCompetitor(i)}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide transition-all duration-300 border",
+                "px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wide transition-all duration-300 border",
                 i === selectedCompetitor
                   ? "bg-primary/15 border-primary/50 text-primary shadow-lg shadow-primary/10"
                   : "bg-[hsl(222,47%,6%)] border-[hsl(217,33%,17%)] text-[hsl(215,20%,55%)] hover:border-[hsl(215,20%,35%)] hover:text-[hsl(215,20%,75%)]"
               )}
             >
-              FastCRM vs {c.name}
+              <span className="hidden sm:inline">FastCRM vs </span>{c.name}
             </button>
           ))}
         </motion.div>
@@ -294,7 +294,7 @@ export function LandingDetailedComparison() {
             className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] overflow-hidden"
           >
             {/* Table Header */}
-            <div className="grid grid-cols-[1fr_100px_100px] sm:grid-cols-[1fr_140px_140px] border-b border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)]">
+            <div className="grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_100px_100px] md:grid-cols-[1fr_140px_140px] border-b border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)]">
               <div className="p-4 sm:p-5 text-xs font-bold uppercase tracking-wider text-[hsl(215,20%,45%)]">
                 Funcionalidade
               </div>
@@ -324,14 +324,14 @@ export function LandingDetailedComparison() {
                   <div
                     key={feat}
                     className={cn(
-                      "grid grid-cols-[1fr_100px_100px] sm:grid-cols-[1fr_140px_140px] items-center",
+                      "grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_100px_100px] md:grid-cols-[1fr_140px_140px] items-center",
                       fi < cat.features.length - 1 || ci < categories.length - 1
                         ? "border-b border-[hsl(217,33%,12%)]"
                         : "",
                       "hover:bg-[hsl(222,47%,7%)] transition-colors"
                     )}
                   >
-                    <div className="p-3 sm:p-4 text-sm text-[hsl(215,20%,70%)]">
+                    <div className="p-3 sm:p-4 text-xs sm:text-sm text-[hsl(215,20%,70%)]">
                       {feat}
                     </div>
                     <div className="p-3 sm:p-4 flex justify-center">
@@ -346,7 +346,7 @@ export function LandingDetailedComparison() {
             ))}
 
             {/* Summary Footer */}
-            <div className="grid grid-cols-[1fr_100px_100px] sm:grid-cols-[1fr_140px_140px] border-t border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)]">
+            <div className="grid grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_100px_100px] md:grid-cols-[1fr_140px_140px] border-t border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)]">
               <div className="p-4 sm:p-5 text-sm font-bold text-[hsl(210,40%,98%)]">
                 Total ✓
               </div>
