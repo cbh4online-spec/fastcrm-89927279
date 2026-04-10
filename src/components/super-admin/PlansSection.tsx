@@ -298,12 +298,16 @@ export function PlansSection() {
       toast.success(`Plano ${editPlanId} atualizado (${promises.length} alterações)`);
       setEditPlanId(null);
 
-      await supabase.rpc("log_admin_action", {
-        p_action_type: "plan_updated",
-        p_target_type: "plan_features",
-        p_target_id: editPlanId,
-        p_details: { changes: promises.length },
-      }).catch(() => {});
+      try {
+        await supabase.rpc("log_admin_action", {
+          p_action_type: "plan_updated",
+          p_target_type: "plan_features",
+          p_target_id: editPlanId,
+          p_details: { changes: promises.length },
+        });
+      } catch {
+        // ignore audit log errors
+      }
     } catch (e: any) {
       toast.error("Erro ao guardar: " + e.message);
     }
