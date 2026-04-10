@@ -184,13 +184,19 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("followups",   "Seguimentos", "/dashboard/scheduling?view=followups", Phone,    "comunicacao"),
   e("groups",      "Grupos",      "/dashboard/groups",                   Users,     "comunicacao"),
   e("telegram",    "Telegram",    "/dashboard/telegram",                 Send,      "comunicacao"),
+  e("whatsapp",    "WhatsApp",    "/dashboard/whatsapp",                 MessageSquare, "comunicacao", { moduleSlug: "whatsapp-business" }),
   e("templates",   "Modelos",     "/dashboard/communication/templates",  FileText,  "comunicacao"),
 
   // ══════════════════════════════════════════════════════════════
-  // MARKETING
+  // PERFORMANCE & GAMIFICAÇÃO
   // ══════════════════════════════════════════════════════════════
-  e("email-campaigns", "Campanhas Email",  "/dashboard/email-campaigns",  Mail,      "marketing", { moduleSlug: "email-campaigns", menuKey: "marketing" }),
-  e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
+  e("perf-dashboard",  "Dashboard",        "/dashboard/performance",              BarChart3,   "performance"),
+  e("perf-metrics",    "Métricas & Metas", "/dashboard/performance/metrics",      BarChart3,   "performance"),
+  e("perf-leaderboard","Leaderboard",      "/dashboard/performance/leaderboard",  Trophy,      "performance"),
+  e("perf-challenges", "Desafios",         "/dashboard/performance/challenges",   Flame,       "performance"),
+  e("perf-recognition","Reconhecimentos",  "/dashboard/performance/recognition",  Star,        "performance"),
+  e("perf-tv-mode",    "TV Mode",          "/dashboard/performance/tv-mode",      Tv,          "performance"),
+  e("perf-settings",   "Configurações",    "/dashboard/performance/settings",     Settings,    "performance"),
   e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
   e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", { visibleInSidebar: false }),
   e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", { visibleInSidebar: false }),
@@ -214,8 +220,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("bundles",      "Pacotes",          "/dashboard/bundles",           Layers,      "vendas"),
   e("payments",     "Pagamentos",       "/dashboard/payments",          CreditCard,  "vendas"),
   e("packages",     "Pacotes",          "/dashboard/packages",          Package,     "vendas", { visibleInSidebar: false }),
-  e("performance",  "Performance",      "/dashboard/performance",       BarChart3,   "vendas"),
-  e("perf-metrics", "Métricas & Metas", "/dashboard/performance/metrics", BarChart3, "vendas"),
+  e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("kpis",         "KPIs",             "/dashboard/kpis",              Gauge,       "vendas"),
   e("reports",      "Relatórios",       "/dashboard/reports",           BarChart3,   "vendas", { menuKey: "reports" }),
   e("strategy",     "Estratégia",       "/dashboard/strategy",          Brain,       "vendas", { visibleInSidebar: false }),
@@ -237,7 +242,17 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   // MARKETPLACE C2C
   // ══════════════════════════════════════════════════════════════
-  e("c2c",              "Marketplace C2C", "/dashboard/c2c",             Store,        "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c",              "Marketplace C2C", "/dashboard/c2c",                  Store,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-seller-area", "Área Vendedor",   "/dashboard/c2c/seller-area",      UserCog,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-my-listings", "Meus Anúncios",   "/dashboard/c2c/my-listings",      Package,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-messages",    "Mensagens",        "/dashboard/c2c/messages",         MessageSquare, "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-analytics",   "Analíticas",       "/dashboard/c2c/analytics",        BarChart3,     "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-boost",       "Boost",            "/dashboard/c2c/boost",            Rocket,        "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-sponsors",    "Sponsors",         "/dashboard/c2c/sponsors",         Award,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-sellers",     "Vendedores",       "/dashboard/c2c/sellers",          Users,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-affiliates",  "Afiliados",        "/dashboard/c2c/affiliates",       Link2,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-orders",      "Encomendas",       "/dashboard/c2c/orders",           ShoppingBasket,"marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-moderation",  "Moderação",        "/dashboard/c2c/moderation",       Eye,           "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
 
   // ══════════════════════════════════════════════════════════════
   // PORTAL B2B
@@ -313,8 +328,28 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("procurement-price-import","Import. Preços",         "/dashboard/procurement/price-import",      Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
   e("procurement-supplier-import","Import. Fornecedores","/dashboard/procurement/supplier-import",   Upload,      "compras", { moduleSlug: "procurement", visibleInSidebar: false }),
   e("student-journey",         "Jornada do Aluno",       "/dashboard/student-journey",               Briefcase,   "operacoes", { moduleSlug: "student-journey" }),
-  e("security",                "Segurança",              "/dashboard/security",                      Shield,      "operacoes", { moduleSlug: "security-ops", visibleInSidebar: false }),
-  e("credit",                  "Crédito",                "/dashboard/credit",                        CreditCard,  "operacoes", { moduleSlug: "credit-intermediation", visibleInSidebar: false }),
+  e("automations",             "Automações",             "/dashboard/automations",                   Zap,         "operacoes"),
+  e("metodo-vision",           "Método Vision",          "/dashboard/metodo-vision",                 Target,      "operacoes", { moduleSlug: "metodo-vision" }),
+  e("credit",                  "Crédito",                "/dashboard/credit",                        Landmark,    "operacoes", { moduleSlug: "credit-intermediation" }),
+  e("community",               "Comunidade",             "/dashboard/community",                     Users,       "operacoes", { moduleSlug: "fastclub" }),
+
+  // ══════════════════════════════════════════════════════════════
+  // SEGURANÇA
+  // ══════════════════════════════════════════════════════════════
+  e("security",                "Dashboard",              "/dashboard/security",                      Shield,          "seguranca", { moduleSlug: "security-ops" }),
+  e("security-partner-req",    "Pedidos Parceiros",      "/dashboard/security/partner-requests",     UserPlus,        "seguranca", { moduleSlug: "security-ops" }),
+  e("security-leads",          "Leads",                  "/dashboard/security/leads",                Users,           "seguranca", { moduleSlug: "security-ops" }),
+  e("security-proposals",      "Propostas",              "/dashboard/security/proposals",            FileText,        "seguranca", { moduleSlug: "security-ops" }),
+  e("security-clients",        "Clientes",               "/dashboard/security/clients",              UserCheck,       "seguranca", { moduleSlug: "security-ops" }),
+  e("security-sites",          "Locais",                 "/dashboard/security/sites",                MapPin,          "seguranca", { moduleSlug: "security-ops" }),
+  e("security-systems",        "Sistemas",               "/dashboard/security/systems",              Cpu,             "seguranca", { moduleSlug: "security-ops" }),
+  e("security-equipment",      "Equipamentos",           "/dashboard/security/equipment",            Wrench,          "seguranca", { moduleSlug: "security-ops" }),
+  e("security-contracts",      "Contratos",              "/dashboard/security/contracts",            FileCheck,       "seguranca", { moduleSlug: "security-ops" }),
+  e("security-documents",      "Documentos",             "/dashboard/security/documents",            FileText,        "seguranca", { moduleSlug: "security-ops" }),
+  e("security-maintenance",    "Manutenção",             "/dashboard/security/maintenance",          Wrench,          "seguranca", { moduleSlug: "security-ops" }),
+  e("security-occurrences",    "Ocorrências",            "/dashboard/security/occurrences",          AlertTriangle,   "seguranca", { moduleSlug: "security-ops" }),
+  e("security-renewals",       "Renovações",             "/dashboard/security/renewals",             RotateCcw,       "seguranca", { moduleSlug: "security-ops" }),
+  e("security-management",     "Gestão",                 "/dashboard/security/management",           BarChart3,       "seguranca", { moduleSlug: "security-ops" }),
 
   // ══════════════════════════════════════════════════════════════
   // INTELIGÊNCIA
@@ -426,11 +461,11 @@ export interface MegaGroupMeta {
 
 export const MEGA_GROUPS: MegaGroupMeta[] = [
   { key: "core",       label: "Core",       icon: LayoutDashboard, navGroups: ["inicio", "comunicacao", "operacoes"] },
-  { key: "crm",        label: "CRM",        icon: Users,           navGroups: ["comercial"] },
+  { key: "crm",        label: "CRM",        icon: Users,           navGroups: ["comercial", "performance"] },
   { key: "sales",      label: "Sales",      icon: TrendingUp,      navGroups: ["vendas", "compras"] },
   { key: "marketing",  label: "Marketing",  icon: Megaphone,       navGroups: ["marketing"] },
   { key: "ai-ops",     label: "AI Ops",     icon: Crown,           navGroups: ["ai-strategy", "inteligencia"] },
-  { key: "enterprise", label: "Enterprise", icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "suporte", "rh", "administracao"] },
+  { key: "enterprise", label: "Enterprise", icon: Building2,       navGroups: ["loja-online", "marketplace-c2c", "portal-b2b", "seguranca", "suporte", "rh", "administracao"] },
 ];
 
 /** Build mega-group sidebar sections */
