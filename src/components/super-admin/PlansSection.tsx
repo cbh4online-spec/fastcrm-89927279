@@ -458,6 +458,7 @@ export function PlansSection() {
         </TabsContent>
 
         <TabsContent value="plans" className="mt-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
           <p className="text-muted-foreground">Configurar limites e funcionalidades por plano</p>
