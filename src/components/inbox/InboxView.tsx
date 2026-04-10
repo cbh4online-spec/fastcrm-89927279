@@ -31,7 +31,7 @@ type ViewMode = "list" | "columns";
 export function InboxView() {
   const isMobile = useIsMobile();
   const { data: whatsappConnection } = useWhatsAppQRConnection();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
