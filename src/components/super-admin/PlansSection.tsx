@@ -912,6 +912,8 @@ export function PlansSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
