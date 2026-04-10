@@ -282,7 +282,22 @@ export function InboxView() {
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
                 selectedChannel={selectedChannel}
-                onChannelChange={setSelectedChannel}
+                onChannelChange={(ch) => {
+                  setSelectedChannel(ch);
+                  if (ch === "all") {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.delete("channel");
+                      return next;
+                    });
+                  } else {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.set("channel", ch);
+                      return next;
+                    });
+                  }
+                }}
               />
             </div>
           )}
