@@ -103,7 +103,7 @@ export function LandingHeroSection() {
               </div>
 
               <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight drop-shadow-lg">
-                <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-primary-foreground">
                   {verticals[activeIndex].headline}
                 </span>
               </h1>
