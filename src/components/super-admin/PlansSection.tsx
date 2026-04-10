@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -45,155 +46,331 @@ import {
   Zap,
   Sparkles,
   Loader2,
+  Infinity,
+  Save,
+  LayoutDashboard,
+  PanelLeft,
+  Crown,
 } from "lucide-react";
 
-interface PlanFeature {
+// ── Types ──────────────────────────────────────────────────────────
+
+interface PlanFeatureRow {
   id: string;
-  plan_id: string;
-  leads_limit: number;
-  contacts_limit: number;
-  companies_limit: number;
-  opportunities_limit: number;
-  templates_limit: number;
-  automations_limit: number;
-  automation_executions_limit: number;
-  emails_limit: number;
-  whatsapp_limit: number;
-  instagram_limit: number;
-  ai_calls_limit: number;
-  storage_limit_mb: number;
-  users_limit: number;
-  inbox_enabled: boolean;
-  automations_enabled: boolean;
-  form_studio_enabled: boolean;
-  templates_enabled: boolean;
-  proposals_enabled: boolean;
-  ai_suggestions_enabled: boolean;
-  landing_pages_enabled: boolean;
-  integrations_enabled: boolean;
+  plan: string;
+  feature_key: string;
+  enabled: boolean;
+  limit_value: number | null;
+  updated_at: string | null;
 }
 
-interface AISuggestion {
-  plan_id: string;
-  suggestions: Record<string, number>;
-  reasoning: string;
-}
+type PlanId = "free" | "basic" | "pro" | "agency";
+type GroupedFeatures = Record<PlanId, PlanFeatureRow[]>;
 
-const limitFields = [
-  { key: "leads_limit", label: "Leads" },
-  { key: "contacts_limit", label: "Contactos" },
-  { key: "companies_limit", label: "Empresas" },
-  { key: "opportunities_limit", label: "Oportunidades" },
-  { key: "templates_limit", label: "Templates" },
-  { key: "automations_limit", label: "Automações" },
-  { key: "automation_executions_limit", label: "Exec. Automações" },
-  { key: "emails_limit", label: "Emails/mês" },
-  { key: "whatsapp_limit", label: "WhatsApp/mês" },
-  { key: "instagram_limit", label: "Instagram/mês" },
-  { key: "ai_calls_limit", label: "IA Calls/mês" },
-  { key: "storage_limit_mb", label: "Storage (MB)" },
-  { key: "users_limit", label: "Utilizadores" },
-];
+// ── Feature labels & categories ────────────────────────────────────
 
-const featureFields = [
-  { key: "inbox_enabled", label: "Inbox" },
-  { key: "automations_enabled", label: "Automações" },
-  { key: "form_studio_enabled", label: "Form Studio" },
-  { key: "templates_enabled", label: "Templates" },
-  { key: "proposals_enabled", label: "Propostas" },
-  { key: "ai_suggestions_enabled", label: "IA Suggestions" },
-  { key: "landing_pages_enabled", label: "Landing Pages" },
-  { key: "integrations_enabled", label: "Integrações" },
-];
-
-const defaultPlanFeature: Partial<PlanFeature> = {
-  leads_limit: 100,
-  contacts_limit: 100,
-  companies_limit: 50,
-  opportunities_limit: 50,
-  templates_limit: 10,
-  automations_limit: 5,
-  automation_executions_limit: 100,
-  emails_limit: 500,
-  whatsapp_limit: 100,
-  instagram_limit: 100,
-  ai_calls_limit: 100,
-  storage_limit_mb: 500,
-  users_limit: 1,
-  inbox_enabled: true,
-  automations_enabled: false,
-  form_studio_enabled: false,
-  templates_enabled: true,
-  proposals_enabled: false,
-  ai_suggestions_enabled: false,
-  landing_pages_enabled: false,
-  integrations_enabled: false,
+const featureLabels: Record<string, string> = {
+  max_users: "Utilizadores",
+  max_leads: "Leads",
+  max_contacts: "Contactos",
+  max_companies: "Empresas",
+  max_opportunities: "Oportunidades",
+  max_emails_month: "Emails / mês",
+  max_whatsapp_month: "WhatsApp / mês",
+  max_instagram_month: "Instagram / mês",
+  max_templates: "Templates",
+  max_automations: "Automações",
+  max_ai_calls: "IA Calls / mês",
+  inbox: "Inbox",
+  automations: "Automações",
+  form_studio: "Form Studio",
+  templates: "Templates",
+  proposals: "Propostas",
+  ai_suggestions: "Sugestões IA",
+  ai_insights: "IA Insights",
+  landing_pages: "Landing Pages",
+  integrations: "Integrações",
+  dashboard_customization: "Personalização Dashboard",
+  sidebar_customization: "Personalização Sidebar",
+  white_label: "White Label",
 };
 
+interface FeatureCategory {
+  label: string;
+  icon: React.ReactNode;
+  keys: string[];
+  type: "limit" | "toggle";
+}
+
+const categories: FeatureCategory[] = [
+  {
+    label: "Limites de Dados",
+    icon: <Package className="h-4 w-4" />,
+    keys: ["max_leads", "max_contacts", "max_companies", "max_opportunities"],
+    type: "limit",
+  },
+  {
+    label: "Limites de Comunicação",
+    icon: <Mail className="h-4 w-4" />,
+    keys: ["max_emails_month", "max_whatsapp_month", "max_instagram_month"],
+    type: "limit",
+  },
+  {
+    label: "Limites de Plataforma",
+    icon: <Users className="h-4 w-4" />,
+    keys: ["max_users", "max_templates", "max_automations", "max_ai_calls"],
+    type: "limit",
+  },
+  {
+    label: "Módulos",
+    icon: <Zap className="h-4 w-4" />,
+    keys: ["inbox", "automations", "form_studio", "templates", "proposals", "landing_pages", "integrations"],
+    type: "toggle",
+  },
+  {
+    label: "IA",
+    icon: <Brain className="h-4 w-4" />,
+    keys: ["ai_suggestions", "ai_insights"],
+    type: "toggle",
+  },
+  {
+    label: "Personalização",
+    icon: <LayoutDashboard className="h-4 w-4" />,
+    keys: ["dashboard_customization", "sidebar_customization", "white_label"],
+    type: "toggle",
+  },
+];
+
+const PLAN_ORDER: PlanId[] = ["free", "basic", "pro", "agency"];
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+function groupByPlan(rows: PlanFeatureRow[]): GroupedFeatures {
+  const grouped: GroupedFeatures = { free: [], basic: [], pro: [], agency: [] };
+  for (const row of rows) {
+    const plan = row.plan as PlanId;
+    if (grouped[plan]) grouped[plan].push(row);
+  }
+  return grouped;
+}
+
+function getFeatureRow(features: PlanFeatureRow[], key: string): PlanFeatureRow | undefined {
+  return features.find((f) => f.feature_key === key);
+}
+
+function formatLimit(value: number | null | undefined) {
+  if (value === undefined || value === null) return "-";
+  if (value === -1) return "∞";
+  if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+  return value.toString();
+}
+
+function getPlanBadge(planId: string) {
+  switch (planId) {
+    case "agency": return <Badge className="bg-primary text-primary-foreground">Agency</Badge>;
+    case "pro": return <Badge className="bg-info text-info-foreground">Pro</Badge>;
+    case "basic": return <Badge variant="secondary">Basic</Badge>;
+    default: return <Badge variant="outline">Free</Badge>;
+  }
+}
+
+function getLabel(key: string) {
+  return featureLabels[key] || key;
+}
+
+// ── All known feature_keys (union of DB + hardcoded) ───────────────
+
+function getAllFeatureKeys(grouped: GroupedFeatures): string[] {
+  const set = new Set<string>();
+  // Add from categories first (preserves order)
+  for (const cat of categories) {
+    for (const k of cat.keys) set.add(k);
+  }
+  // Add any extra from DB
+  for (const plan of PLAN_ORDER) {
+    for (const row of grouped[plan]) {
+      set.add(row.feature_key);
+    }
+  }
+  return Array.from(set);
+}
+
+// ── Component ──────────────────────────────────────────────────────
+
 export function PlansSection() {
-  const [editPlan, setEditPlan] = useState<PlanFeature | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[] | null>(null);
-  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
-  const [optimizeSuggestion, setOptimizeSuggestion] = useState<Record<string, any> | null>(null);
-  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [editPlanId, setEditPlanId] = useState<PlanId | null>(null);
+  const [editBuffer, setEditBuffer] = useState<Record<string, { enabled: boolean; limit_value: number | null }>>({});
+  const [newFeatureKey, setNewFeatureKey] = useState("");
+  const [newFeatureType, setNewFeatureType] = useState<"limit" | "toggle">("limit");
+  const [showAddFeature, setShowAddFeature] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any[] | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: plans, isLoading, refetch } = useQuery({
-    queryKey: ["super-admin-plans"],
+  // ── Query ──────────────────────────────────────────────────────
+
+  const { data: rawFeatures, isLoading, refetch } = useQuery({
+    queryKey: ["super-admin-plan-features"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("plan_features")
         .select("*")
-        .order("plan");
-
+        .order("plan")
+        .order("feature_key");
       if (error) throw error;
-      return (data || []).map((p: any) => ({
-        ...p,
-        plan_id: p.plan,
-      })) as PlanFeature[];
+      return (data || []) as PlanFeatureRow[];
     },
   });
 
-  const updatePlan = useMutation({
-    mutationFn: async (plan: PlanFeature) => {
+  const grouped = useMemo(() => groupByPlan(rawFeatures || []), [rawFeatures]);
+  const allKeys = useMemo(() => getAllFeatureKeys(grouped), [grouped]);
+
+  // ── Mutations ──────────────────────────────────────────────────
+
+  const updateFeature = useMutation({
+    mutationFn: async (row: { id: string; enabled: boolean; limit_value: number | null }) => {
       const { error } = await supabase
         .from("plan_features")
-        .update(plan)
-        .eq("id", plan.id);
-
+        .update({ enabled: row.enabled, limit_value: row.limit_value })
+        .eq("id", row.id);
       if (error) throw error;
-
-      await supabase.rpc("log_admin_action", {
-        p_action_type: "plan_updated",
-        p_target_type: "plan_features",
-        p_target_id: plan.id,
-        p_details: { plan_id: plan.plan_id },
-      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["super-admin-plans"] });
-      toast.success("Plano atualizado");
-      setEditPlan(null);
-      setOptimizeSuggestion(null);
-    },
-    onError: (error) => {
-      toast.error("Erro: " + error.message);
+      queryClient.invalidateQueries({ queryKey: ["super-admin-plan-features"] });
     },
   });
 
+  const addFeatureToAllPlans = useMutation({
+    mutationFn: async ({ featureKey, type }: { featureKey: string; type: "limit" | "toggle" }) => {
+      const rows = PLAN_ORDER.map((plan) => ({
+        plan,
+        feature_key: featureKey,
+        enabled: type === "toggle" ? false : true,
+        limit_value: type === "limit" ? 0 : null,
+      }));
+      const { error } = await supabase.from("plan_features").insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-plan-features"] });
+      setShowAddFeature(false);
+      setNewFeatureKey("");
+      toast.success("Feature adicionada a todos os planos");
+    },
+    onError: (e) => toast.error("Erro: " + e.message),
+  });
+
+  // ── Edit handlers ──────────────────────────────────────────────
+
+  const openEditDialog = (planId: PlanId) => {
+    const features = grouped[planId];
+    const buffer: Record<string, { enabled: boolean; limit_value: number | null }> = {};
+    for (const f of features) {
+      buffer[f.feature_key] = { enabled: f.enabled, limit_value: f.limit_value };
+    }
+    setEditBuffer(buffer);
+    setEditPlanId(planId);
+  };
+
+  const saveEditPlan = async () => {
+    if (!editPlanId) return;
+    const features = grouped[editPlanId];
+    const promises: Promise<void>[] = [];
+    for (const f of features) {
+      const buf = editBuffer[f.feature_key];
+      if (!buf) continue;
+      if (buf.enabled !== f.enabled || buf.limit_value !== f.limit_value) {
+        promises.push(
+          updateFeature.mutateAsync({ id: f.id, enabled: buf.enabled, limit_value: buf.limit_value })
+        );
+      }
+    }
+    if (promises.length === 0) {
+      toast.info("Sem alterações");
+      setEditPlanId(null);
+      return;
+    }
+    try {
+      await Promise.all(promises);
+      toast.success(`Plano ${editPlanId} atualizado (${promises.length} alterações)`);
+      setEditPlanId(null);
+
+      try {
+        await supabase.rpc("log_admin_action", {
+          p_action_type: "plan_updated",
+          p_target_type: "plan_features",
+          p_target_id: editPlanId,
+          p_details: { changes: promises.length },
+        });
+      } catch {
+        // ignore audit log errors
+      }
+    } catch (e: any) {
+      toast.error("Erro ao guardar: " + e.message);
+    }
+  };
+
+  // ── Inline bulk edit (table row) ───────────────────────────────
+
+  const [inlineEditing, setInlineEditing] = useState<string | null>(null);
+  const [inlineValues, setInlineValues] = useState<Record<PlanId, { enabled: boolean; limit_value: number | null }>>({
+    free: { enabled: false, limit_value: null },
+    basic: { enabled: false, limit_value: null },
+    pro: { enabled: false, limit_value: null },
+    agency: { enabled: false, limit_value: null },
+  });
+
+  const startInlineEdit = (featureKey: string) => {
+    const vals = {} as any;
+    for (const plan of PLAN_ORDER) {
+      const row = getFeatureRow(grouped[plan], featureKey);
+      vals[plan] = row
+        ? { enabled: row.enabled, limit_value: row.limit_value }
+        : { enabled: false, limit_value: null };
+    }
+    setInlineValues(vals);
+    setInlineEditing(featureKey);
+  };
+
+  const saveInlineEdit = async () => {
+    if (!inlineEditing) return;
+    const promises: Promise<void>[] = [];
+    for (const plan of PLAN_ORDER) {
+      const row = getFeatureRow(grouped[plan], inlineEditing);
+      if (!row) continue;
+      const val = inlineValues[plan];
+      if (val.enabled !== row.enabled || val.limit_value !== row.limit_value) {
+        promises.push(updateFeature.mutateAsync({ id: row.id, enabled: val.enabled, limit_value: val.limit_value }));
+      }
+    }
+    try {
+      await Promise.all(promises);
+      toast.success(`${getLabel(inlineEditing)} atualizado em ${promises.length} planos`);
+      setInlineEditing(null);
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    }
+  };
+
+  // ── AI Suggest ─────────────────────────────────────────────────
+
   const handleSuggestAllLimits = async () => {
-    if (!plans?.length) return;
+    if (!rawFeatures?.length) return;
     setIsSuggesting(true);
     try {
+      const context = PLAN_ORDER.map((plan) => {
+        const features = grouped[plan];
+        const map: Record<string, any> = { plan_id: plan };
+        for (const f of features) {
+          map[f.feature_key] = f.limit_value ?? f.enabled;
+        }
+        return map;
+      });
       const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
-        body: {
-          action: "suggest_plan_limits",
-          context: plans.map((p) => ({
-            plan_id: p.plan_id,
-            ...Object.fromEntries(limitFields.map((f) => [f.key, (p as any)[f.key]])),
-          })),
-        },
+        body: { action: "suggest_plan_limits", context },
       });
       if (error) throw error;
       const result = data?.result;
@@ -210,100 +387,67 @@ export function PlansSection() {
     }
   };
 
-  const handleOptimizePlan = async () => {
-    if (!editPlan) return;
-    setIsOptimizing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pricing-ai-assistant", {
-        body: {
-          action: "optimize_plan_balance",
-          context: {
-            plan_id: editPlan.plan_id,
-            ...Object.fromEntries(limitFields.map((f) => [f.key, (editPlan as any)[f.key]])),
-            ...Object.fromEntries(featureFields.map((f) => [f.key, (editPlan as any)[f.key]])),
-          },
-        },
+  // ── Determine if a feature_key is a limit (has limit_value set) or toggle ──
+
+  const isLimitFeature = (featureKey: string): boolean => {
+    for (const cat of categories) {
+      if (cat.keys.includes(featureKey)) return cat.type === "limit";
+    }
+    // Check DB: if any plan has a non-null limit_value, it's a limit
+    for (const plan of PLAN_ORDER) {
+      const row = getFeatureRow(grouped[plan], featureKey);
+      if (row && row.limit_value !== null) return true;
+    }
+    return false;
+  };
+
+  // ── Category for a feature_key ─────────────────────────────────
+
+  const getCategoryForKey = (key: string): FeatureCategory | null => {
+    return categories.find((c) => c.keys.includes(key)) || null;
+  };
+
+  // Build categories with uncategorized
+  const categorizedKeys = useMemo(() => {
+    const result: { category: FeatureCategory | { label: string; icon: React.ReactNode; keys: string[]; type: "limit" | "toggle" }; keys: string[] }[] = [];
+    const used = new Set<string>();
+
+    for (const cat of categories) {
+      const present = cat.keys.filter((k) => allKeys.includes(k));
+      if (present.length > 0) {
+        result.push({ category: cat, keys: present });
+        present.forEach((k) => used.add(k));
+      }
+    }
+
+    const uncategorized = allKeys.filter((k) => !used.has(k));
+    if (uncategorized.length > 0) {
+      result.push({
+        category: { label: "Outros", icon: <Package className="h-4 w-4" />, keys: uncategorized, type: "limit" },
+        keys: uncategorized,
       });
-      if (error) throw error;
-      const result = data?.result;
-      if (result?.suggestions) {
-        setOptimizeSuggestion(result);
-        toast.success("Sugestões IA geradas");
-      } else {
-        toast.error("Resposta IA inesperada");
-      }
-    } catch (e: any) {
-      toast.error("Erro IA: " + (e.message || "Tente novamente"));
-    } finally {
-      setIsOptimizing(false);
     }
-  };
 
-  const applyOptimizeSuggestions = () => {
-    if (!editPlan || !optimizeSuggestion?.suggestions) return;
-    const suggestions = optimizeSuggestion.suggestions;
-    const updated = { ...editPlan };
-    for (const key of Object.keys(suggestions)) {
-      if (key in updated) {
-        (updated as any)[key] = suggestions[key];
-      }
-    }
-    setEditPlan(updated);
-    setOptimizeSuggestion(null);
-    toast.success("Sugestões aplicadas — reveja e guarde");
-  };
+    return result;
+  }, [allKeys]);
 
-  const applySuggestionToPlan = (suggestion: AISuggestion) => {
-    const plan = plans?.find((p) => p.plan_id === suggestion.plan_id);
-    if (!plan) return;
-    const updated = { ...plan };
-    for (const key of Object.keys(suggestion.suggestions)) {
-      if (key in updated) {
-        (updated as any)[key] = suggestion.suggestions[key];
-      }
-    }
-    setEditPlan(updated);
-    setShowSuggestionsDialog(false);
-  };
-
-  const getPlanBadge = (planId: string) => {
-    switch (planId) {
-      case "agency": return <Badge className="bg-primary text-primary-foreground">Agency</Badge>;
-      case "pro": return <Badge className="bg-info text-info-foreground">Pro</Badge>;
-      case "basic": return <Badge variant="secondary">Basic</Badge>;
-      default: return <Badge variant="outline">Free</Badge>;
-    }
-  };
-
-  const formatLimit = (value: number | undefined | null) => {
-    if (value === undefined || value === null) return "-";
-    if (value === -1) return "∞";
-    if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
-    return value.toString();
-  };
+  // ── Render ─────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
-          <p className="text-muted-foreground">
-            Configurar limites e funcionalidades por plano
-          </p>
+          <p className="text-muted-foreground">Configurar limites e funcionalidades por plano</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSuggestAllLimits}
-            disabled={isSuggesting || !plans?.length}
-          >
-            {isSuggesting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
+          <Button variant="outline" size="sm" onClick={() => setShowAddFeature(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Feature
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleSuggestAllLimits} disabled={isSuggesting || !rawFeatures?.length}>
+            {isSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Sugerir Limites IA
           </Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -313,55 +457,44 @@ export function PlansSection() {
         </div>
       </div>
 
-      {/* Plans Overview */}
-      <div className="grid grid-cols-4 gap-4">
-        {["free", "basic", "pro", "agency"].map((planId) => {
-          const plan = plans?.find((p) => p.plan_id === planId);
+      {/* Plan Cards Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {PLAN_ORDER.map((planId) => {
+          const features = grouped[planId];
+          const limitKeys = categories.filter((c) => c.type === "limit").flatMap((c) => c.keys);
+          const toggleKeys = categories.filter((c) => c.type === "toggle").flatMap((c) => c.keys);
+          const enabledToggles = toggleKeys.filter((k) => getFeatureRow(features, k)?.enabled);
+
           return (
             <Card key={planId} className="relative">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   {getPlanBadge(planId)}
-                  {plan && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditPlan(plan)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="icon" onClick={() => openEditDialog(planId)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </div>
                 <CardTitle className="capitalize">{planId}</CardTitle>
               </CardHeader>
               <CardContent>
-                {plan ? (
+                {isLoading ? (
+                  <Skeleton className="h-24" />
+                ) : (
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Leads</span>
-                      <span className="font-medium">{formatLimit(plan.leads_limit)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Utilizadores</span>
-                      <span className="font-medium">{formatLimit(plan.users_limit)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">IA Calls</span>
-                      <span className="font-medium">{formatLimit(plan.ai_calls_limit)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Automações</span>
-                      <span className="font-medium">
-                        {plan.automations_enabled ? (
-                          <Check className="h-4 w-4 text-success inline" />
-                        ) : (
-                          <X className="h-4 w-4 text-destructive inline" />
-                        )}
-                      </span>
+                    {["max_users", "max_leads", "max_ai_calls"].map((key) => {
+                      const row = getFeatureRow(features, key);
+                      return (
+                        <div key={key} className="flex justify-between">
+                          <span className="text-muted-foreground">{getLabel(key)}</span>
+                          <span className="font-medium font-mono">{formatLimit(row?.limit_value)}</span>
+                        </div>
+                      );
+                    })}
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="text-muted-foreground">Módulos ativos</span>
+                      <span className="font-medium">{enabledToggles.length}/{toggleKeys.length}</span>
                     </div>
                   </div>
-                ) : (
-                  <Skeleton className="h-20" />
                 )}
               </CardContent>
             </Card>
@@ -369,316 +502,322 @@ export function PlansSection() {
         })}
       </div>
 
-      {/* Full Plans Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparação de Limites</CardTitle>
-          <CardDescription>
-            Visão detalhada de todos os limites por plano
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-64" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Recurso</TableHead>
-                  {plans?.map((p) => (
-                    <TableHead key={p.id} className="text-center">
-                      {getPlanBadge(p.plan_id)}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="flex items-center gap-2">
-                    <Users className="h-4 w-4" /> Utilizadores
-                  </TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.users_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell>Leads</TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.leads_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell>Contactos</TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.contacts_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell>Empresas</TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.companies_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" /> Emails/mês
-                  </TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.emails_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" /> WhatsApp/mês
-                  </TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.whatsapp_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell className="flex items-center gap-2">
-                    <Brain className="h-4 w-4" /> IA Calls/mês
-                  </TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.ai_calls_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-                <TableRow>
-                  <TableCell className="flex items-center gap-2">
-                    <Zap className="h-4 w-4" /> Automações
-                  </TableCell>
-                  {plans?.map((p) => (
-                    <TableCell key={p.id} className="text-center font-mono">
-                      {formatLimit(p.automations_limit)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Features Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Funcionalidades por Plano</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-64" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Funcionalidade</TableHead>
-                  {plans?.map((p) => (
-                    <TableHead key={p.id} className="text-center">
-                      {getPlanBadge(p.plan_id)}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {featureFields.map((feature) => (
-                  <TableRow key={feature.key}>
-                    <TableCell>{feature.label}</TableCell>
-                    {plans?.map((p) => (
-                      <TableCell key={p.id} className="text-center">
-                        {(p as any)[feature.key] ? (
-                          <Check className="h-4 w-4 text-success mx-auto" />
-                        ) : (
-                          <X className="h-4 w-4 text-muted-foreground mx-auto" />
-                        )}
-                      </TableCell>
+      {/* Full Comparison Table by Category */}
+      {categorizedKeys.map(({ category, keys }) => (
+        <Card key={category.label}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              {category.icon}
+              {category.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-32" />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Recurso</TableHead>
+                    {PLAN_ORDER.map((p) => (
+                      <TableHead key={p} className="text-center">{getPlanBadge(p)}</TableHead>
                     ))}
+                    <TableHead className="w-[80px] text-center">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {keys.map((key) => {
+                    const isLimit = isLimitFeature(key);
+                    const isEditing = inlineEditing === key;
+
+                    return (
+                      <TableRow key={key}>
+                        <TableCell className="font-medium">{getLabel(key)}</TableCell>
+                        {PLAN_ORDER.map((plan) => {
+                          const row = getFeatureRow(grouped[plan], key);
+
+                          if (isEditing) {
+                            const val = inlineValues[plan];
+                            if (isLimit) {
+                              const isUnlimited = val.limit_value === -1;
+                              return (
+                                <TableCell key={plan} className="text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        type="number"
+                                        value={isUnlimited ? "" : (val.limit_value ?? 0)}
+                                        disabled={isUnlimited}
+                                        onChange={(e) => setInlineValues((prev) => ({
+                                          ...prev,
+                                          [plan]: { ...prev[plan], limit_value: parseInt(e.target.value) || 0 },
+                                        }))}
+                                        className="w-20 h-8 text-xs text-center"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => setInlineValues((prev) => ({
+                                        ...prev,
+                                        [plan]: { ...prev[plan], limit_value: isUnlimited ? 0 : -1 },
+                                      }))}
+                                      className={`text-[10px] px-1.5 py-0.5 rounded ${isUnlimited ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                                    >
+                                      {isUnlimited ? "∞ Ilimitado" : "Ilimitado?"}
+                                    </button>
+                                  </div>
+                                </TableCell>
+                              );
+                            } else {
+                              return (
+                                <TableCell key={plan} className="text-center">
+                                  <Switch
+                                    checked={val.enabled}
+                                    onCheckedChange={(checked) => setInlineValues((prev) => ({
+                                      ...prev,
+                                      [plan]: { ...prev[plan], enabled: checked },
+                                    }))}
+                                  />
+                                </TableCell>
+                              );
+                            }
+                          }
+
+                          // Display mode
+                          if (isLimit) {
+                            return (
+                              <TableCell key={plan} className="text-center font-mono">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-default">{formatLimit(row?.limit_value)}</span>
+                                    </TooltipTrigger>
+                                    {row?.updated_at && (
+                                      <TooltipContent>
+                                        <p className="text-xs">Atualizado: {new Date(row.updated_at).toLocaleString("pt-PT")}</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            );
+                          } else {
+                            return (
+                              <TableCell key={plan} className="text-center">
+                                {row?.enabled ? (
+                                  <Check className="h-4 w-4 text-success mx-auto" />
+                                ) : (
+                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                                )}
+                              </TableCell>
+                            );
+                          }
+                        })}
+                        <TableCell className="text-center">
+                          {isEditing ? (
+                            <div className="flex gap-1 justify-center">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveInlineEdit}>
+                                <Save className="h-3.5 w-3.5 text-success" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setInlineEditing(null)}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startInlineEdit(key)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ))}
 
       {/* Edit Plan Dialog */}
-      <Dialog open={!!editPlan} onOpenChange={() => { setEditPlan(null); setOptimizeSuggestion(null); }}>
+      <Dialog open={!!editPlanId} onOpenChange={() => setEditPlanId(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              Editar Plano {editPlan?.plan_id}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOptimizePlan}
-                disabled={isOptimizing}
-                className="ml-auto"
-              >
-                {isOptimizing ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1" />
-                )}
-                Optimizar com IA
-              </Button>
+              Editar Plano — {editPlanId && getPlanBadge(editPlanId)}
             </DialogTitle>
-            <DialogDescription>
-              Alterações afetam novos workspaces. Existentes mantêm limites atuais.
-            </DialogDescription>
+            <DialogDescription>Alterações afetam novos workspaces. Existentes mantêm limites atuais.</DialogDescription>
           </DialogHeader>
 
-          {/* AI Optimization Banner */}
-          {optimizeSuggestion && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Sugestões IA</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setOptimizeSuggestion(null)}>
-                    Descartar
-                  </Button>
-                  <Button size="sm" onClick={applyOptimizeSuggestions}>
-                    Aplicar Todas
-                  </Button>
-                </div>
-              </div>
-              {optimizeSuggestion.reasoning && (
-                <p className="text-xs text-muted-foreground">{optimizeSuggestion.reasoning}</p>
-              )}
-              {optimizeSuggestion.changes?.length > 0 && (
-                <div className="space-y-1">
-                  {optimizeSuggestion.changes.map((c: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-xs">
-                      <Badge variant="secondary" className="text-[10px] h-5 gap-1">
-                        <Sparkles className="w-2.5 h-2.5" /> IA
-                      </Badge>
-                      <span className="text-muted-foreground">{c.field}:</span>
-                      <span className="line-through text-destructive">{formatLimit(c.from)}</span>
-                      <span>→</span>
-                      <span className="font-medium text-primary">{formatLimit(c.to)}</span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-muted-foreground cursor-help">ⓘ</span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs text-xs">{c.justification}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+          {editPlanId && (
+            <Tabs defaultValue="limits" className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="limits" className="flex-1">Limites</TabsTrigger>
+                <TabsTrigger value="modules" className="flex-1">Módulos</TabsTrigger>
+                <TabsTrigger value="customization" className="flex-1">Personalização</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="limits" className="space-y-4 mt-4">
+                {categories.filter((c) => c.type === "limit").map((cat) => (
+                  <div key={cat.label}>
+                    <h4 className="font-medium mb-3 flex items-center gap-2">{cat.icon} {cat.label}</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {cat.keys.map((key) => {
+                        const val = editBuffer[key];
+                        if (!val) return null;
+                        const isUnlimited = val.limit_value === -1;
+                        return (
+                          <div key={key} className="space-y-1">
+                            <Label className="text-xs">{getLabel(key)}</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                value={isUnlimited ? "" : (val.limit_value ?? 0)}
+                                disabled={isUnlimited}
+                                onChange={(e) => setEditBuffer((prev) => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], limit_value: parseInt(e.target.value) || 0 },
+                                }))}
+                                className="h-9"
+                              />
+                              <button
+                                onClick={() => setEditBuffer((prev) => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], limit_value: isUnlimited ? 0 : -1 },
+                                }))}
+                                className={`shrink-0 text-xs px-2 py-1 rounded border ${isUnlimited ? "bg-primary/10 text-primary border-primary/30" : "text-muted-foreground border-border hover:border-primary/30"}`}
+                              >
+                                ∞
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </TabsContent>
+
+              <TabsContent value="modules" className="space-y-3 mt-4">
+                {["Módulos", "IA"].map((catLabel) => {
+                  const cat = categories.find((c) => c.label === catLabel);
+                  if (!cat) return null;
+                  return (
+                    <div key={catLabel}>
+                      <h4 className="font-medium mb-3 flex items-center gap-2">{cat.icon} {cat.label}</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {cat.keys.map((key) => {
+                          const val = editBuffer[key];
+                          if (!val) return null;
+                          return (
+                            <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                              <Label>{getLabel(key)}</Label>
+                              <Switch
+                                checked={val.enabled}
+                                onCheckedChange={(checked) => setEditBuffer((prev) => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], enabled: checked },
+                                }))}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </TabsContent>
+
+              <TabsContent value="customization" className="space-y-3 mt-4">
+                {(() => {
+                  const cat = categories.find((c) => c.label === "Personalização");
+                  if (!cat) return null;
+                  return (
+                    <div className="grid grid-cols-1 gap-3">
+                      {cat.keys.map((key) => {
+                        const val = editBuffer[key];
+                        if (!val) return null;
+                        return (
+                          <div key={key} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              {key === "white_label" ? <Crown className="h-4 w-4 text-primary" /> :
+                               key === "sidebar_customization" ? <PanelLeft className="h-4 w-4" /> :
+                               <LayoutDashboard className="h-4 w-4" />}
+                              <Label className="text-base">{getLabel(key)}</Label>
+                            </div>
+                            <Switch
+                              checked={val.enabled}
+                              onCheckedChange={(checked) => setEditBuffer((prev) => ({
+                                ...prev,
+                                [key]: { ...prev[key], enabled: checked },
+                              }))}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </TabsContent>
+            </Tabs>
           )}
 
-          {editPlan && (
-            <div className="space-y-6">
-              {/* Limits */}
-              <div>
-                <h4 className="font-medium mb-3">Limites</h4>
-                <div className="grid grid-cols-3 gap-4">
-                  {limitFields.map((field) => {
-                    const hasSuggestion = optimizeSuggestion?.suggestions?.[field.key] !== undefined &&
-                      optimizeSuggestion.suggestions[field.key] !== (editPlan as any)[field.key];
-                    return (
-                      <div key={field.key} className="relative">
-                        <Label className="text-xs">{field.label}</Label>
-                        <Input
-                          type="number"
-                          value={(editPlan as any)[field.key]}
-                          onChange={(e) =>
-                            setEditPlan({
-                              ...editPlan,
-                              [field.key]: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          className={hasSuggestion ? "border-primary/50" : ""}
-                        />
-                        {hasSuggestion && (
-                          <button
-                            onClick={() =>
-                              setEditPlan({
-                                ...editPlan,
-                                [field.key]: optimizeSuggestion.suggestions[field.key],
-                              })
-                            }
-                            className="absolute right-1 top-6 text-[10px] text-primary hover:underline cursor-pointer"
-                          >
-                            → {formatLimit(optimizeSuggestion.suggestions[field.key])}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Features */}
-              <div>
-                <h4 className="font-medium mb-3">Funcionalidades</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {featureFields.map((feature) => {
-                    const hasSuggestion = optimizeSuggestion?.suggestions?.[feature.key] !== undefined &&
-                      optimizeSuggestion.suggestions[feature.key] !== (editPlan as any)[feature.key];
-                    return (
-                      <div
-                        key={feature.key}
-                        className={`flex items-center justify-between p-3 border rounded-lg ${hasSuggestion ? "border-primary/50 bg-primary/5" : ""}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Label>{feature.label}</Label>
-                          {hasSuggestion && (
-                            <Badge variant="secondary" className="text-[10px] h-5 gap-1">
-                              <Sparkles className="w-2.5 h-2.5" />
-                              {optimizeSuggestion.suggestions[feature.key] ? "Ativar" : "Desativar"}
-                            </Badge>
-                          )}
-                        </div>
-                        <Switch
-                          checked={(editPlan as any)[feature.key]}
-                          onCheckedChange={(checked) =>
-                            setEditPlan({
-                              ...editPlan,
-                              [feature.key]: checked,
-                            })
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditPlan(null); setOptimizeSuggestion(null); }}>
-              Cancelar
-            </Button>
-            <Button onClick={() => editPlan && updatePlan.mutate(editPlan)}>
-              Guardar Alterações
+            <Button variant="outline" onClick={() => setEditPlanId(null)}>Cancelar</Button>
+            <Button onClick={saveEditPlan}>Guardar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Feature Dialog */}
+      <Dialog open={showAddFeature} onOpenChange={setShowAddFeature}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Feature</DialogTitle>
+            <DialogDescription>Será adicionada a todos os 4 planos.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Feature Key</Label>
+              <Input
+                placeholder="ex: max_reports, custom_domains"
+                value={newFeatureKey}
+                onChange={(e) => setNewFeatureKey(e.target.value.toLowerCase().replace(/\s/g, "_"))}
+              />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <div className="flex gap-3 mt-2">
+                <Button
+                  variant={newFeatureType === "limit" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewFeatureType("limit")}
+                >
+                  Limite (numérico)
+                </Button>
+                <Button
+                  variant={newFeatureType === "toggle" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewFeatureType("toggle")}
+                >
+                  Toggle (on/off)
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddFeature(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addFeatureToAllPlans.mutate({ featureKey: newFeatureKey, type: newFeatureType })}
+              disabled={!newFeatureKey || addFeatureToAllPlans.isPending}
+            >
+              {addFeatureToAllPlans.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Adicionar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* AI Suggestions Dialog (all plans) */}
+      {/* AI Suggestions Dialog */}
       <Dialog open={showSuggestionsDialog} onOpenChange={setShowSuggestionsDialog}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -687,60 +826,68 @@ export function PlansSection() {
               Sugestões IA — Limites por Plano
             </DialogTitle>
             <DialogDescription>
-              Sugestões baseadas em benchmarks de mercado (HubSpot, Pipedrive, Monday CRM). Selecione um plano para editar com os valores sugeridos.
+              Baseadas em benchmarks de mercado. Selecione um plano para editar com valores sugeridos.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
-            {aiSuggestions?.map((suggestion) => {
-              const currentPlan = plans?.find((p) => p.plan_id === suggestion.plan_id);
-              return (
-                <Card key={suggestion.plan_id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      {getPlanBadge(suggestion.plan_id)}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => applySuggestionToPlan(suggestion)}
-                      >
-                        Editar com sugestões
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-4 gap-2 text-xs">
-                      {limitFields.map((field) => {
-                        const current = currentPlan ? (currentPlan as any)[field.key] : null;
-                        const suggested = suggestion.suggestions[field.key];
-                        if (suggested === undefined) return null;
-                        const changed = current !== suggested;
-                        return (
-                          <div key={field.key} className={`p-2 rounded border ${changed ? "border-primary/40 bg-primary/5" : "border-border"}`}>
-                            <div className="text-muted-foreground">{field.label}</div>
-                            <div className="font-mono font-medium">
-                              {changed && current !== null && (
-                                <span className="text-destructive line-through mr-1">{formatLimit(current)}</span>
-                              )}
-                              <span className={changed ? "text-primary" : ""}>{formatLimit(suggested)}</span>
-                            </div>
+            {aiSuggestions?.map((suggestion: any) => (
+              <Card key={suggestion.plan_id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    {getPlanBadge(suggestion.plan_id)}
+                    <Button size="sm" variant="outline" onClick={() => {
+                      openEditDialog(suggestion.plan_id as PlanId);
+                      // Apply suggestions to buffer
+                      if (suggestion.suggestions) {
+                        setEditBuffer((prev) => {
+                          const updated = { ...prev };
+                          for (const [key, val] of Object.entries(suggestion.suggestions)) {
+                            if (updated[key]) {
+                              if (typeof val === "boolean") {
+                                updated[key] = { ...updated[key], enabled: val };
+                              } else if (typeof val === "number") {
+                                updated[key] = { ...updated[key], limit_value: val };
+                              }
+                            }
+                          }
+                          return updated;
+                        });
+                      }
+                      setShowSuggestionsDialog(false);
+                    }}>
+                      Editar com sugestões
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {suggestion.reasoning && (
+                    <p className="text-xs text-muted-foreground italic mb-3">{suggestion.reasoning}</p>
+                  )}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
+                    {Object.entries(suggestion.suggestions || {}).map(([key, val]) => {
+                      const row = getFeatureRow(grouped[suggestion.plan_id as PlanId] || [], key);
+                      const current = row?.limit_value;
+                      const suggested = val as number;
+                      const changed = current !== suggested;
+                      return (
+                        <div key={key} className={`p-2 rounded border ${changed ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+                          <div className="text-muted-foreground">{getLabel(key)}</div>
+                          <div className="font-mono font-medium">
+                            {changed && current !== null && current !== undefined && (
+                              <span className="text-destructive line-through mr-1">{formatLimit(current)}</span>
+                            )}
+                            <span className={changed ? "text-primary" : ""}>{formatLimit(suggested)}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                    {suggestion.reasoning && (
-                      <p className="text-xs text-muted-foreground italic">{suggestion.reasoning}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSuggestionsDialog(false)}>
-              Fechar
-            </Button>
+            <Button variant="outline" onClick={() => setShowSuggestionsDialog(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
