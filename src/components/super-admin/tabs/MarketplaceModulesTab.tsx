@@ -220,7 +220,7 @@ export function MarketplaceModulesTab() {
                           {isEditing ? (
                             <div className="flex gap-1 justify-center">
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateModule.mutate({ id: mod.id, ...editValues })}>
-                                <Save className="h-3.5 w-3.5 text-green-600" />
+                                <Save className="h-3.5 w-3.5 text-success" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>
                                 <X className="h-3.5 w-3.5" />
