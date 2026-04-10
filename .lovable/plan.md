@@ -1,53 +1,77 @@
 
 
-# Plano: Corrigir responsividade das secções da landing page
+# Plano: Reescrever PlansSection para personalização completa
 
 ## Diagnóstico
 
-Analisei todas as 15 secções da landing page ao viewport de 390px (mobile actual do utilizador). Os problemas identificados:
+O componente `PlansSection.tsx` tem dois problemas críticos:
 
-### Problemas encontrados
+1. **Schema mismatch**: A BD usa schema key-value (`plan` + `feature_key` + `enabled` + `limit_value`), mas o componente tenta ler colunas flat (`leads_limit`, `contacts_limit`, etc.) que não existem. Isto causa erros de runtime.
 
-1. **LandingDetailedComparison** — A tabela de comparação usa `grid-cols-[1fr_100px_100px]`, resultando em apenas ~190px para o texto das funcionalidades. Texto truncado e ilegível em mobile. Os botões de selecção de concorrente (`FastCRM vs HubSpot`, etc.) também transbordam.
+2. **Features em falta**: A BD tem 23 feature_keys por plano, mas o componente só mostra 13 limites + 8 features = 21. Faltam: `ai_insights_enabled`, `dashboard_customization`, `sidebar_customization`, `white_label`.
 
-2. **LandingIntegrationsSection** — O h2 usa `text-4xl` como base (sem breakpoint mobile), demasiado grande a 390px.
-
-3. **LandingFinalCTA** — O h2 usa `text-4xl` como base, que em títulos longos em maiúsculas transborda a 390px.
-
-4. **LandingHeroSection** — O botão CTA tem texto dinâmico longo (ex: "EXPERIMENTAR PARA CLÍNICAS →") que pode comprimir ou transbordar em mobile. O h1 `text-5xl` é grande a 390px.
-
-5. **LandingPricingSection** — O h2 usa `text-3xl md:text-4xl` que está bem, mas os cards de bundles em `grid-cols-1 md:grid-cols-3` — OK. Os botões de preço têm `truncate` que pode cortar texto.
-
-6. **LandingStickyHeader** — Adequado (usa Sheet em mobile). OK.
-
-7. **LandingPositioningSection** — Grid `sm:grid-cols-3` sem breakpoint intermédio: a 390px empilha correctamente. OK mas as imagens de 96px + ícone de 56px ocupam muito espaço vertical.
+3. **Sem criação de novas features**: Não é possível adicionar novos feature_keys dinamicamente.
 
 ## Alterações
 
-### Ficheiro 1: `LandingHeroSection.tsx`
-- h1: `text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl` (reduzir base de 5xl para 4xl)
-- Botão CTA: adicionar `text-sm` em mobile, `sm:text-base`
-- Subtitle: `text-base sm:text-lg`
+### Ficheiro: `src/components/super-admin/PlansSection.tsx` (reescrever)
 
-### Ficheiro 2: `LandingDetailedComparison.tsx`
-- Grid mobile: `grid-cols-[1fr_70px_70px] sm:grid-cols-[1fr_100px_100px] md:grid-cols-[1fr_140px_140px]`
-- Botões de concorrente: mostrar apenas nome curto em mobile (sem "FastCRM vs"), usando classes `hidden sm:inline` / `sm:hidden`
-- Texto de funcionalidade: `text-xs sm:text-sm`
-- Padding: reduzir `p-3 sm:p-4`
+**Query**: Alterar para ler correctamente da tabela key-value:
+```typescript
+// Agrupar por plano: { free: [{feature_key, enabled, limit_value}], ... }
+const { data } = await supabase
+  .from("plan_features")
+  .select("*")
+  .order("plan")
+  .order("feature_key");
+```
 
-### Ficheiro 3: `LandingIntegrationsSection.tsx`
-- h2: `text-3xl sm:text-4xl md:text-5xl` (adicionar breakpoint base menor)
+**Transformação**: Agrupar rows por `plan` e construir mapa de features/limites.
 
-### Ficheiro 4: `LandingFinalCTA.tsx`
-- h2: `text-3xl sm:text-4xl md:text-5xl lg:text-6xl` (reduzir base de 4xl para 3xl)
+**UI melhorada**:
+1. **Cards de plano** — mostrar resumo com todas as features, não apenas 4
+2. **Tabela de comparação** — dinâmica, baseada nos feature_keys reais da BD (não hardcoded)
+3. **Funcionalidades em falta** — adicionar `ai_insights_enabled`, `dashboard_customization`, `sidebar_customization`, `white_label`
+4. **Dialog de edição** — separar em tabs/secções: Limites (numéricos), Módulos (toggles), Personalização (toggles), com labels legíveis
+5. **Adicionar nova feature_key** — botão para criar um novo feature_key em todos os planos de uma vez
+6. **Valores -1 como "Ilimitado"** — toggle no input para alternar entre valor numérico e ilimitado
+7. **Bulk edit** — permitir editar o mesmo feature_key em todos os planos lado a lado (vista inline na tabela)
+8. **Histórico** — mostrar `updated_at` no tooltip de cada feature
 
-### Ficheiro 5: `LandingFastClubSection.tsx`
-- Grid: já usa `sm:grid-cols-3`, OK em mobile. Sem alteração necessária.
+**Mapeamento de labels** (para display legível):
+```typescript
+const featureLabels: Record<string, string> = {
+  max_users: "Utilizadores",
+  max_leads: "Leads",
+  max_contacts: "Contactos",
+  // ... todos os 23 keys
+  white_label: "White Label",
+  dashboard_customization: "Personalização Dashboard",
+  sidebar_customization: "Personalização Sidebar",
+};
+```
+
+**Categorização**:
+- **Limites de dados**: max_leads, max_contacts, max_companies, max_opportunities
+- **Limites de comunicação**: max_emails_month, max_whatsapp_month, max_instagram_month
+- **Limites de plataforma**: max_users, max_templates, max_automations, max_ai_calls
+- **Módulos**: inbox, automations, form_studio, templates, proposals, landing_pages, integrations
+- **IA**: ai_suggestions, ai_insights
+- **Personalização**: dashboard_customization, sidebar_customization, white_label
+
+## Secção técnica
+
+- Query usa schema real key-value da tabela `plan_features`
+- Update individual por `id` (row-level), mantendo compatibilidade com RLS
+- Sugestões IA adaptadas ao novo formato (enviar feature_keys em vez de campos flat)
+- Mutação de update usa `.eq("id", row.id)` para cada feature_key alterada
+- Tipo `subscription_plan` do enum: `free | basic | pro | agency`
 
 ## Critérios de aceitação
-- Todas as secções legíveis e sem overflow horizontal a 390px
-- Tabela de comparação navegável em mobile sem scroll horizontal
-- Títulos proporcionais ao viewport em todos os breakpoints
-- Botões com texto completo visível
-- Build sem erros
+- Todas as 23 feature_keys visíveis e editáveis
+- Categorização clara por secção
+- Toggle ilimitado (-1) funcional
+- Possibilidade de adicionar nova feature_key
+- Build sem erros (sem referências a colunas inexistentes)
+- Sugestões IA continuam a funcionar
 
