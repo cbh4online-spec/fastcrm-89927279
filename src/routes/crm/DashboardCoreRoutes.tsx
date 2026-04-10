@@ -29,6 +29,7 @@ const EventMatrixPage = lazy(() => import("@/pages/EventMatrixPage"));
 const EventTestsPage = lazy(() => import("@/pages/EventTestsPage"));
 const RevenueRadarPage = lazy(() => import("@/pages/RevenueRadarPage"));
 const SponsorsManagement = lazy(() => import("@/pages/SponsorsManagement"));
+const VisionPage = lazy(() => import("@/pages/VisionPage"));
 const KernelMonitorPage = lazy(() => import("@/pages/KernelMonitorPage"));
 const GenerateLandingImages = lazy(() => import("@/pages/GenerateLandingImages"));
 const ProposalView = lazy(() => import("@/pages/ProposalView"));
