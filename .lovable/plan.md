@@ -1,77 +1,114 @@
 
 
-# Plano: Reescrever PlansSection para personalização completa
+# Plano: Expandir PlansSection com Módulos Marketplace, Créditos e Packs (conforme brochura)
 
 ## Diagnóstico
 
-O componente `PlansSection.tsx` tem dois problemas críticos:
+A brochura comercial define uma estrutura completa de pricing que não está reflectida na BD nem na interface admin:
 
-1. **Schema mismatch**: A BD usa schema key-value (`plan` + `feature_key` + `enabled` + `limit_value`), mas o componente tenta ler colunas flat (`leads_limit`, `contacts_limit`, etc.) que não existem. Isto causa erros de runtime.
+1. **Módulos marketplace** — A brochura lista ~30 módulos com preços específicos (Account Brief 79€, AI Assistants 49€+créditos, Helpdesk 59€, etc.), mas na BD quase todos têm `price_eur: 0.00` e `pricing_model: free`.
+2. **Packs/Bundles** — A brochura define 6 packs (B2B Revenue 129€, Finance 19€, Commerce 79€, etc.) mas a tabela `module_bundles` está vazia.
+3. **Créditos IA** — A brochura define 4 packs (100 créditos 9€, 300 créditos 24€, 1000 créditos 69€, 3000 créditos 179€) mas a BD tem valores diferentes (50 créditos 4.99€, 200 créditos 14.99€, 500 créditos 29.99€).
+4. **Planos base** — A brochura usa START/GROW/PRO (79€/179€/349€) com utilizadores incluídos e créditos IA, mas a BD usa free/basic/pro/agency.
 
-2. **Features em falta**: A BD tem 23 feature_keys por plano, mas o componente só mostra 13 limites + 8 features = 21. Faltam: `ai_insights_enabled`, `dashboard_customization`, `sidebar_customization`, `white_label`.
-
-3. **Sem criação de novas features**: Não é possível adicionar novos feature_keys dinamicamente.
+Já existe um `PricingManagementSection` separado no super admin, mas o utilizador quer poder gerir tudo de forma integrada a partir do menu Planos.
 
 ## Alterações
 
-### Ficheiro: `src/components/super-admin/PlansSection.tsx` (reescrever)
+### 1. Atualizar dados na BD (via insert tool)
 
-**Query**: Alterar para ler correctamente da tabela key-value:
-```typescript
-// Agrupar por plano: { free: [{feature_key, enabled, limit_value}], ... }
-const { data } = await supabase
-  .from("plan_features")
-  .select("*")
-  .order("plan")
-  .order("feature_key");
-```
+Atualizar `marketplace_modules` com os preços da brochura:
+- Account Brief → 79€/monthly
+- Lead Enricher → 39€/monthly
+- Prospecção Profissional → 59€/monthly
+- SEO & Growth → 39€/monthly
+- Email Marketing Pro → 9€/monthly
+- Instagram Looter → 39€/monthly
+- Meta → 19€/monthly
+- Bio OS → 9€/monthly
+- Proposals Pack → 19€/monthly
+- AI Assistants → 49€/monthly
+- AI Sales Coach → 29€/monthly
+- AI Copilot → 49€/monthly
+- AI Suggestions → 19€/monthly
+- AI Profiles → 29€/monthly
+- Conversational Engine → 59€/monthly
+- Knowledge Base AI → 39€/monthly
+- AI Document OCR → 49€/monthly
+- IMO AI → 39€/monthly
+- Loja Online → 49€/monthly
+- Portal B2B → 79€/monthly
+- Marketplace C2C → 99€/monthly
+- Purchase & Procurement → 79€/monthly
+- Helpdesk → 59€/monthly
+- Recursos Humanos → 69€/monthly
 
-**Transformação**: Agrupar rows por `plan` e construir mapa de features/limites.
+Inserir bundles na tabela `module_bundles`:
+- B2B Revenue Pack 129€
+- Finance Pack 19€
+- Proposals Pack 19€
+- Education Pack 49€
+- Commerce Pack 79€
+- Advanced Intelligence 99€
 
-**UI melhorada**:
-1. **Cards de plano** — mostrar resumo com todas as features, não apenas 4
-2. **Tabela de comparação** — dinâmica, baseada nos feature_keys reais da BD (não hardcoded)
-3. **Funcionalidades em falta** — adicionar `ai_insights_enabled`, `dashboard_customization`, `sidebar_customization`, `white_label`
-4. **Dialog de edição** — separar em tabs/secções: Limites (numéricos), Módulos (toggles), Personalização (toggles), com labels legíveis
-5. **Adicionar nova feature_key** — botão para criar um novo feature_key em todos os planos de uma vez
-6. **Valores -1 como "Ilimitado"** — toggle no input para alternar entre valor numérico e ilimitado
-7. **Bulk edit** — permitir editar o mesmo feature_key em todos os planos lado a lado (vista inline na tabela)
-8. **Histórico** — mostrar `updated_at` no tooltip de cada feature
+Atualizar `credit_packages` com valores da brochura:
+- 100 créditos 9€
+- 300 créditos 24€
+- 1.000 créditos 69€
+- 3.000 créditos 179€
 
-**Mapeamento de labels** (para display legível):
-```typescript
-const featureLabels: Record<string, string> = {
-  max_users: "Utilizadores",
-  max_leads: "Leads",
-  max_contacts: "Contactos",
-  // ... todos os 23 keys
-  white_label: "White Label",
-  dashboard_customization: "Personalização Dashboard",
-  sidebar_customization: "Personalização Sidebar",
-};
-```
+### 2. Expandir PlansSection com tabs adicionais
 
-**Categorização**:
-- **Limites de dados**: max_leads, max_contacts, max_companies, max_opportunities
-- **Limites de comunicação**: max_emails_month, max_whatsapp_month, max_instagram_month
-- **Limites de plataforma**: max_users, max_templates, max_automations, max_ai_calls
-- **Módulos**: inbox, automations, form_studio, templates, proposals, landing_pages, integrations
-- **IA**: ai_suggestions, ai_insights
-- **Personalização**: dashboard_customization, sidebar_customization, white_label
+Adicionar ao `PlansSection.tsx` 3 novas tabs após o conteúdo existente:
+
+**Tab "Módulos Marketplace":**
+- Tabela com todos os módulos agrupados por categoria (Comercial, Marketing, IA, Commerce, Operações)
+- Colunas: Nome, Categoria, Preço, Modelo de pricing, Plano mínimo, Status
+- Edição inline de preço, pricing_model e min_plan
+- Botão para adicionar novo módulo
+
+**Tab "Packs & Bundles":**
+- Cards dos bundles com módulos incluídos, preço original vs bundle, desconto
+- CRUD de bundles
+
+**Tab "Créditos IA":**
+- Tabela de credit packages com nome, créditos, preço, desconto
+- Edição inline
+- Tabela de referência de consumo por operação (informativa, hardcoded da brochura)
+
+### 3. Ficheiros
+
+**`src/components/super-admin/PlansSection.tsx`** — Adicionar Tabs wrapper ao nível do topo com:
+- Tab "Planos" (conteúdo actual)
+- Tab "Módulos" (nova)
+- Tab "Packs" (nova)
+- Tab "Créditos IA" (nova)
+
+Extrair sub-componentes para manter o ficheiro gerível:
+- `PlansFeaturesTab.tsx` — conteúdo actual do PlansSection
+- `MarketplaceModulesTab.tsx` — gestão de módulos com preços da brochura
+- `BundlesTab.tsx` — gestão de packs/bundles
+- `CreditsTab.tsx` — gestão de credit packages + tabela de consumo
+
+### 4. Hooks necessários
+
+O hook `useMarketplaceModulesAdmin` já existe. Verificar se cobre update de preços. Criar hooks adicionais se necessário para bundles e credit packages.
 
 ## Secção técnica
 
-- Query usa schema real key-value da tabela `plan_features`
-- Update individual por `id` (row-level), mantendo compatibilidade com RLS
-- Sugestões IA adaptadas ao novo formato (enviar feature_keys em vez de campos flat)
-- Mutação de update usa `.eq("id", row.id)` para cada feature_key alterada
-- Tipo `subscription_plan` do enum: `free | basic | pro | agency`
+- Updates de dados via insert tool (UPDATE statements) para preços dos módulos, bundles e credit packages
+- Novas queries no frontend para `module_bundles` e `credit_packages`
+- Mutations de update usam `.eq("id", row.id)` para cada módulo/bundle/package
+- RLS: tabelas de configuração acessíveis apenas a super admin (verificar políticas existentes)
+- Tipo de dados: `price_eur` é numeric, `pricing_model` é text, `min_plan` é text
 
 ## Critérios de aceitação
-- Todas as 23 feature_keys visíveis e editáveis
-- Categorização clara por secção
-- Toggle ilimitado (-1) funcional
-- Possibilidade de adicionar nova feature_key
-- Build sem erros (sem referências a colunas inexistentes)
-- Sugestões IA continuam a funcionar
+
+- Todos os preços da brochura reflectidos na BD
+- Módulos editáveis com preço, modelo e plano mínimo
+- Bundles CRUD funcional
+- Credit packages editáveis com valores da brochura
+- Tabela de consumo de referência visível
+- Build sem erros
+- Interface organizada por tabs dentro de Planos
 
