@@ -39,6 +39,8 @@ import {
   Radio, Search, MapPin,
   ArrowUpDown, Headphones, Clock, Timer,
   Facebook, LayoutGrid, Award, ClipboardCheck, UserSearch, Video, CalendarCheck,
+  Trophy, Flame, Star, Tv, Wrench, FileCheck, AlertTriangle, Landmark,
+  Eye, Rocket, ShoppingBasket, UserCog, Gavel,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -56,6 +58,8 @@ export type NavGroup =
   | "marketplace-c2c"
   | "portal-b2b"
   | "operacoes"
+  | "seguranca"
+  | "performance"
   | "ai-strategy"
   | "inteligencia"
   | "administracao";
