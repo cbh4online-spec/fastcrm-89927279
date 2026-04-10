@@ -65,13 +65,11 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
       return errorResponse("Token inválido ou expirado", 401);
     }
-    const authenticatedUserId = claimsData.claims.sub;
+    const authenticatedUserId = user.id;
 
     // ── Service role client for DB operations ──
     const supabase = createClient(
