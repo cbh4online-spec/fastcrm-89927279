@@ -197,6 +197,12 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("perf-recognition","Reconhecimentos",  "/dashboard/performance/recognition",  Star,        "performance"),
   e("perf-tv-mode",    "TV Mode",          "/dashboard/performance/tv-mode",      Tv,          "performance"),
   e("perf-settings",   "Configurações",    "/dashboard/performance/settings",     Settings,    "performance"),
+
+  // ══════════════════════════════════════════════════════════════
+  // MARKETING
+  // ══════════════════════════════════════════════════════════════
+  e("email-campaigns", "Campanhas Email",  "/dashboard/email-campaigns",  Mail,      "marketing", { moduleSlug: "email-campaigns", menuKey: "marketing" }),
+  e("marketing-hub",   "Marketing",        "/dashboard/marketing",        Megaphone, "marketing", { visibleInSidebar: false }),
   e("conversion-hub",  "Funis & Landing Pages", "/dashboard/conversion", Workflow, "marketing"),
   e("funnels",         "Funis",            "/dashboard/funnels",          Workflow,  "marketing", { visibleInSidebar: false }),
   e("landing-pages",   "Landing Pages",    "/dashboard/landing-pages",    Globe,     "marketing", { visibleInSidebar: false }),
