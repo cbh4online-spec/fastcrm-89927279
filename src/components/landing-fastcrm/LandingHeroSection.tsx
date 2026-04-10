@@ -120,24 +120,26 @@ export function LandingHeroSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 1.1 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto"
+            className="flex flex-col items-center gap-3 max-w-xl mx-auto w-full"
           >
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("hero.namePlaceholder")}
-              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
-            />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("hero.emailPlaceholder")}
-              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
-            />
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("hero.namePlaceholder")}
+                className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+              />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t("hero.emailPlaceholder")}
+                className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-white/15 bg-[hsl(222,47%,4%)]/70 backdrop-blur-md text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,55%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+              />
+            </div>
             <Button
               type="submit"
               size="lg"
