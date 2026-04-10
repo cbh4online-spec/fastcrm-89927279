@@ -76,6 +76,7 @@ export default function FastCRMLanding() {
         </main>
         <LandingFooter />
         <StoreCookieConsent />
+        <LandingInsaneOfferPopup />
       </div>
     </>
   );
