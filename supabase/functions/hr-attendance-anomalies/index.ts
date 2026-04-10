@@ -17,8 +17,8 @@ Deno.serve(async (req) => {
 
   try {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const yesterdayStr = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
+    const todayStr = now.toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
+    const yesterdayStr = new Date(now.getTime() - 86400000).toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
     const twelveHoursAgo = new Date(now.getTime() - 12 * 3600000).toISOString();
 
     // Get all active workspaces that have HR employees

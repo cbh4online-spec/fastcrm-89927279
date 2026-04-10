@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function errorResponse(message: string, status = 400) {
@@ -32,9 +32,14 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+/** Get the current business date in Europe/Lisbon timezone (YYYY-MM-DD) */
+function getBusinessDate(date: Date, tz = "Europe/Lisbon"): string {
+  return date.toLocaleDateString("sv-SE", { timeZone: tz }); // sv-SE gives YYYY-MM-DD
+}
+
 /** Haversine distance in meters between two lat/lng points */
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000; // Earth radius in meters
+  const R = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -48,6 +53,27 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // ── JWT validation ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return errorResponse("Não autenticado", 401);
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(
+      authHeader.replace("Bearer ", "")
+    );
+    if (claimsError || !claimsData?.claims) {
+      return errorResponse("Token inválido ou expirado", 401);
+    }
+    const authenticatedUserId = claimsData.claims.sub;
+
+    // ── Service role client for DB operations ──
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -59,10 +85,35 @@ serve(async (req) => {
       return errorResponse("Missing required fields");
     }
 
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    // ── Workspace membership check ──
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .eq("user_id", authenticatedUserId)
+      .limit(1);
 
-    // Fetch all sessions for today
+    if (!membership || membership.length === 0) {
+      return errorResponse("Não pertence a este workspace", 403);
+    }
+
+    const now = new Date();
+    const today = getBusinessDate(now);
+
+    // Find active session globally (no date filter) to handle cross-midnight
+    const { data: activeSessionArr } = await supabase
+      .from("hr_work_sessions")
+      .select("id, clock_in_at, clock_out_at, break_minutes, break_start_at, break_end_at, session_type, status, session_date")
+      .eq("employee_id", employee_id)
+      .not("clock_in_at", "is", null)
+      .is("clock_out_at", null)
+      .order("clock_in_at", { ascending: false })
+      .limit(1);
+
+    const activeSession = activeSessionArr && activeSessionArr.length > 0 ? activeSessionArr[0] : null;
+    const onBreak = activeSession?.break_start_at && !activeSession?.break_end_at;
+
+    // Fetch today's completed sessions for session_type determination
     const { data: todaySessions } = await supabase
       .from("hr_work_sessions")
       .select("id, clock_in_at, clock_out_at, break_minutes, break_start_at, break_end_at, session_type, status")
@@ -71,8 +122,6 @@ serve(async (req) => {
       .order("clock_in_at", { ascending: true });
 
     const sessions = todaySessions || [];
-    const activeSession = sessions.find(s => s.clock_in_at && !s.clock_out_at);
-    const onBreak = activeSession?.break_start_at && !activeSession?.break_end_at;
 
     // State validations
     if (entry_type === "clock_in") {
@@ -162,7 +211,6 @@ serve(async (req) => {
               nearest_zone: nearestName,
             };
 
-            // Create anomaly
             await supabase.from("hr_attendance_anomalies").insert({
               workspace_id,
               employee_id,
@@ -197,7 +245,6 @@ serve(async (req) => {
       session_action = "break_end";
 
     } else if (entry_type === "clock_out" && activeSession) {
-      // If currently on break, end it first
       let breakMin = activeSession.break_minutes || 0;
       if (activeSession.break_start_at && !activeSession.break_end_at) {
         const breakStartTime = new Date(activeSession.break_start_at).getTime();
@@ -225,25 +272,26 @@ serve(async (req) => {
         .reduce((sum, s) => sum + ((s as any).worked_minutes || 0), 0);
       const totalWorkedToday = previousWorked + workedMin;
 
-      // Fetch labor rules for overtime check
       const { data: laborRule } = await supabase
         .from("hr_country_labor_rules")
         .select("rules")
         .eq("workspace_id", workspace_id)
         .eq("is_active", true)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
-      const maxDailyHours = (laborRule?.rules as any)?.max_daily_hours || 8;
+      const rule = laborRule && laborRule.length > 0 ? laborRule[0] : null;
+      const maxDailyHours = (rule?.rules as any)?.max_daily_hours || 8;
       const maxDailyMin = maxDailyHours * 60;
       const overtimeMin = Math.max(0, totalWorkedToday - maxDailyMin);
 
       if (overtimeMin > 0) {
-        const { data: emp } = await supabase
+        const { data: empArr } = await supabase
           .from("hr_employees")
           .select("full_name")
           .eq("id", employee_id)
-          .maybeSingle();
-        employee_name = emp?.full_name || null;
+          .limit(1);
+        employee_name = empArr && empArr.length > 0 ? empArr[0].full_name : null;
       }
 
       overtime_alert = {

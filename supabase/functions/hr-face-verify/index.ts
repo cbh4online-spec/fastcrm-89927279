@@ -114,15 +114,19 @@ serve(async (req) => {
 
     // 3. Face matched — determine entry_type and register attendance
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    const today = now.toLocaleDateString("sv-SE", { timeZone: "Europe/Lisbon" });
 
-    const { data: openSession } = await supabase
+    // Find active session globally (no date filter) to handle cross-midnight
+    const { data: openSessionArr } = await supabase
       .from("hr_work_sessions")
       .select("id, clock_in_at, break_minutes")
       .eq("employee_id", employee_id)
-      .eq("session_date", today)
+      .not("clock_in_at", "is", null)
       .is("clock_out_at", null)
-      .maybeSingle();
+      .order("clock_in_at", { ascending: false })
+      .limit(1);
+
+    const openSession = openSessionArr && openSessionArr.length > 0 ? openSessionArr[0] : null;
 
     const entry_type = openSession ? "clock_out" : "clock_in";
 
