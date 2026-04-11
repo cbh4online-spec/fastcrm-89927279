@@ -41,6 +41,8 @@ export default function C2CSellerRegistration() {
   const { data: workspace } = useWorkspaceBySlug(workspaceSlug);
   const workspaceId = workspace?.id;
 
+  usePublicMarketplaceTheme();
+
   const { data: sellerProfile, isLoading: profileLoading } = useMySellerProfile(workspaceId);
   const registerSeller = useRegisterSeller(workspaceId);
 
