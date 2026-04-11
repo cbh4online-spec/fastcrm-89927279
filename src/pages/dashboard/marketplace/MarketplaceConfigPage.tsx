@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMarketplaceAdmin, useSaveMarketplaceConfig } from "@/hooks/useMarketplace";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3 } from "lucide-react";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
   const { currentWorkspace } = useWorkspace();
