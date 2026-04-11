@@ -132,7 +132,7 @@ export function SmartCompaniesTable() {
     .filter(col => visibleColumns.has(col.id))
     .sort((a, b) => columnOrder.indexOf(a.id) - columnOrder.indexOf(b.id));
 
-  const { data: companiesResult, isLoading, refetch } = useSmartCompanies(filters);
+  const { data: companiesResult, isLoading, refetch } = useSmartCompanies({ ...filters, sortBy: sortValue });
   const companies = companiesResult?.data;
   const { deleteCompany, updateCompany, addTagsToCompanies, bulkUpdateCompanies } = useCompanies();
   const { data: workspaceTags } = useWorkspaceTags();

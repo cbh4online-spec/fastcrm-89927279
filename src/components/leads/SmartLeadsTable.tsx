@@ -231,7 +231,7 @@ export function SmartLeadsTable() {
 
   const totalColumns = orderedVisibleColumns.length + 3;
 
-  const { data: leadsResult, isLoading, refetch } = useSmartLeads(filters);
+  const { data: leadsResult, isLoading, refetch } = useSmartLeads({ ...filters, sortBy: sortValue });
   const leads = leadsResult?.data;
   const serverTotalCount = leadsResult?.totalCount ?? 0;
   const deleteLeads = useDeleteLeads();
