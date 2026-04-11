@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { SellerStories } from "@/components/c2c/marketplace/SellerStories";
 
 /* ── Public listings ─────────────────────────────────────────────── */
 function usePublicListings(workspaceId: string | undefined, filters?: C2CListingFilters) {
@@ -780,6 +781,9 @@ export default function C2CPublicMarketplace() {
 
       {/* Listings content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
+        {/* Seller Stories */}
+        <SellerStories workspaceId={workspaceId} />
+
         <div>
           <CategoryCarousel
             categories={categories}
