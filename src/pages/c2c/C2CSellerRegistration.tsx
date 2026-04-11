@@ -102,9 +102,6 @@ export default function C2CSellerRegistration() {
     );
   }
 
-  usePublicMarketplaceTheme();
-
-
 
   if (sellerProfile) {
     // If approved, the useEffect above will redirect — show nothing briefly
