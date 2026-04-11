@@ -25,12 +25,8 @@ export function StoreVisualSearch({ onSearchTerms }: StoreVisualSearchProps) {
 
     setIsLoading(true);
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const { resizeImageForAIAsDataUrl } = await import("@/utils/resizeImageForAI");
+      const base64 = await resizeImageForAIAsDataUrl(file);
 
       const { data, error } = await supabase.functions.invoke("store-visual-search", {
         body: { image: base64 },
