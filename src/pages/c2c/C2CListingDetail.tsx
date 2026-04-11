@@ -144,7 +144,7 @@ export default function C2CListingDetail() {
     const key = `c2c_viewed_${id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
-    supabase.rpc("increment_listing_views", { p_listing_id: id });
+    supabase.rpc("increment_listing_views", { listing_id: id });
   }, [id]);
   const { data: sellerReviews } = useC2CSellerReviews(listing?.seller_id);
   const { data: sellerProfile } = useSellerProfile(listing?.seller_id);

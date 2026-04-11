@@ -45832,6 +45832,7 @@ export type Database = {
           unit_name: string | null
           updated_at: string
           validity_days: number | null
+          views_count: number
           weight: number | null
           workspace_id: string
         }
@@ -45938,6 +45939,7 @@ export type Database = {
           unit_name?: string | null
           updated_at?: string
           validity_days?: number | null
+          views_count?: number
           weight?: number | null
           workspace_id: string
         }
@@ -46044,6 +46046,7 @@ export type Database = {
           unit_name?: string | null
           updated_at?: string
           validity_days?: number | null
+          views_count?: number
           weight?: number | null
           workspace_id?: string
         }
@@ -63251,7 +63254,11 @@ export type Database = {
         Returns: undefined
       }
       increment_listing_views: {
-        Args: { p_listing_id: string }
+        Args: { listing_id: string }
+        Returns: undefined
+      }
+      increment_product_views: {
+        Args: { product_id: string }
         Returns: undefined
       }
       init_conversation_journey: {
