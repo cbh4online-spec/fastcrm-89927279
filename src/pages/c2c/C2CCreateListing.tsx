@@ -11,9 +11,104 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
 import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360, useSearchWebImages } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe, Search, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface SkuProduct {
+  name: string;
+  description: string | null;
+  base_price: number;
+  images: string[] | null;
+  sku: string | null;
+  image_url: string | null;
+}
+
+function SkuLookup({
+  workspaceId,
+  onProductFound,
+}: {
+  workspaceId: string | undefined;
+  onProductFound: (product: SkuProduct) => void;
+}) {
+  const [skuQuery, setSkuQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [result, setResult] = useState<SkuProduct | null>(null);
+  const [notFound, setNotFound] = useState(false);
+
+  const handleSearch = async () => {
+    if (!skuQuery.trim() || !workspaceId) return;
+    setSearching(true);
+    setResult(null);
+    setNotFound(false);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("name, description, base_price, images, sku, image_url")
+        .eq("workspace_id", workspaceId)
+        .or(`sku.ilike.%${skuQuery.trim()}%,name.ilike.%${skuQuery.trim()}%`)
+        .limit(1);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const p = data[0] as unknown as SkuProduct;
+        setResult(p);
+      } else {
+        setNotFound(true);
+      }
+    } catch {
+      toast.error("Erro ao pesquisar produto");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+      <div className="flex items-center gap-2">
+        <Package className="h-5 w-5 text-primary" />
+        <div>
+          <p className="font-medium text-sm">Importar do Catálogo por SKU</p>
+          <p className="text-xs text-muted-foreground">Pesquisa por SKU ou nome para preencher automaticamente</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Introduzir SKU ou nome do produto..."
+            value={skuQuery}
+            onChange={(e) => setSkuQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" size="default" onClick={handleSearch} disabled={searching || !skuQuery.trim()}>
+          {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pesquisar"}
+        </Button>
+      </div>
+      {result && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+          {(result.images?.[0] || result.image_url) && (
+            <img src={result.images?.[0] || result.image_url!} alt="" className="w-12 h-12 rounded object-cover" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{result.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {result.sku && `SKU: ${result.sku} • `}
+              {new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(result.base_price)}
+            </p>
+          </div>
+          <Button size="sm" onClick={() => onProductFound(result)}>
+            Usar
+          </Button>
+        </div>
+      )}
+      {notFound && (
+        <p className="text-sm text-muted-foreground text-center py-2">Nenhum produto encontrado com esse SKU/nome</p>
+      )}
+    </div>
+  );
+}
 
 export default function C2CCreateListing() {
   const navigate = useNavigate();
@@ -328,6 +423,18 @@ export default function C2CCreateListing() {
           </div>
           <Progress value={progress} className="h-2" />
         </div>
+
+        {/* SKU Lookup Section */}
+        <SkuLookup
+          workspaceId={workspaceId}
+          onProductFound={(product) => {
+            if (product.name) setTitle(product.name);
+            if (product.description) setDescription(product.description);
+            if (product.base_price) setPrice(String(product.base_price));
+            if (product.images?.length) setPhotos(product.images);
+            toast.success("Produto encontrado e campos preenchidos!");
+          }}
+        />
 
         <div className="space-y-5">
           {/* Media Section with Tabs */}
