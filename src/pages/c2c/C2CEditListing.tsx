@@ -30,6 +30,9 @@ export default function C2CEditListing() {
   const [condition, setCondition] = useState("used");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState("both");
+  const [shippingCost, setShippingCost] = useState("");
+  const [meetupLocation, setMeetupLocation] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [photos360, setPhotos360] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
