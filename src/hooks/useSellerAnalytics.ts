@@ -183,6 +183,7 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
         avgRating: Number(seller.avg_rating || 0),
         totalReviews: seller.total_reviews || 0,
         activeListings: activeListings || 0,
+        activeListingsValue,
         soldListings: soldListings || 0,
         activeBoosts: activeBoosts || 0,
         monthlySales,
