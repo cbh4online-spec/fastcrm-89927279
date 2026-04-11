@@ -361,11 +361,12 @@ Deno.serve(async (req) => {
           if (listing) {
             const priceStr = listing.price ? ` — ${Number(listing.price).toFixed(2)}€` : "";
             pageTitle = `${listing.title || "Anúncio"}${priceStr}`;
-            pageDescription = listing.description || `Vê este anúncio no marketplace C2C.`;
+            const rawDesc = listing.description || `Vê este anúncio no marketplace C2C.`;
+            pageDescription = rawDesc.length > 160 ? rawDesc.slice(0, 157) + "..." : rawDesc;
             const photos = listing.photos as string[] | null;
             if (photos && photos.length > 0) pageImage = photos[0];
           }
-          pageUrl = `${BASE_URL}/c2c/${wsSlug}/listing/${listingId}`;
+          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/${listingId}`;
         }
       }
     }
