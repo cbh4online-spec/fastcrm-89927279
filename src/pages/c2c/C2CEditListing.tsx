@@ -30,6 +30,7 @@ export default function C2CEditListing() {
   const [condition, setCondition] = useState("used");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("1");
   const [deliveryMode, setDeliveryMode] = useState("both");
   const [shippingCost, setShippingCost] = useState("");
   const [meetupLocation, setMeetupLocation] = useState("");
@@ -72,6 +73,7 @@ export default function C2CEditListing() {
       setCondition(listing.condition);
       setCategoryId(listing.category_id || "");
       setLocation(listing.location || "");
+      setStockQuantity(String((listing as any).stock_quantity || 1));
       setDeliveryMode((listing as any).delivery_mode || "both");
       setShippingCost(String((listing as any).shipping_cost || ""));
       setMeetupLocation((listing as any).meetup_location || "");
@@ -299,6 +301,7 @@ export default function C2CEditListing() {
       description: description.trim(),
       price: Number(price),
       condition: condition as any,
+      stock_quantity: Math.max(1, parseInt(stockQuantity) || 1),
       category_id: categoryId || null,
       location: location || null,
       delivery_mode: deliveryMode,
@@ -620,6 +623,22 @@ export default function C2CEditListing() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Stock Quantity */}
+          <div>
+            <Label htmlFor="stockQuantity">Quantidade em stock</Label>
+            <Input
+              id="stockQuantity"
+              type="number"
+              min="1"
+              step="1"
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value)}
+              placeholder="1"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Número de unidades disponíveis para venda</p>
           </div>
 
           {/* Category + Location */}
