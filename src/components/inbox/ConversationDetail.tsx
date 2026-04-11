@@ -216,9 +216,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const simplifiedStatus = (conversation as any).conversation_status_simplified;
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full min-h-0 min-w-0 flex flex-col bg-background">
       {/* Compact Header */}
-      <div className="px-2 md:px-4 py-2.5 border-b border-border flex items-center justify-between bg-card">
+      <div className="px-2 md:px-4 py-2.5 border-b border-border flex flex-shrink-0 items-center justify-between bg-card">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           {onBack && (
             <Button
@@ -320,23 +320,23 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <InstagramWindowAlert
           messages={messages || []}
           channel={conversation.channel}
           onExpiredChange={setIgWindowExpired}
         />
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 min-h-0">
           {messagesLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center p-4 py-8">
               <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : !messages?.length ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <div className="flex items-center justify-center p-4 py-8 text-muted-foreground">
               Sem mensagens
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 p-4 min-w-0">
               {messages.map((message, index) => {
                 const msgDate = new Date(message.created_at || message.sent_at);
                 const prevDate = index > 0 ? new Date(messages[index - 1].created_at || messages[index - 1].sent_at) : null;
