@@ -118,15 +118,7 @@ function toFacebookSafeImage(imageUrl: string): string {
   return `${transformed}${separator}width=1200`;
 }
 
-function buildOgHtml(
-  title: string,
-  description: string,
-  image: string,
-  ogUrl: string,
-  extra = "",
-  ogType = "website",
-  canonicalUrl = ogUrl,
-): string {
+function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeImage = toFacebookSafeImage(image);
   return `<!DOCTYPE html>
@@ -138,7 +130,7 @@ function buildOgHtml(
 <meta property="og:image" content="${esc(safeImage)}"/>
 <meta property="og:image:type" content="image/jpeg"/>
 <meta property="og:image:width" content="1200"/>
-<meta property="og:url" content="${esc(ogUrl)}"/>
+<meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="${esc(ogType)}"/>
 <meta property="og:site_name" content="FastCRM"/>
 ${extra}
@@ -146,10 +138,10 @@ ${extra}
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(description)}"/>
 <meta name="twitter:image" content="${esc(safeImage)}"/>
-<link rel="canonical" href="${esc(canonicalUrl)}"/>
+<meta http-equiv="refresh" content="0;url=${esc(url)}"/>
 <title>${esc(title)}</title>
 </head>
-<body><a href="${esc(canonicalUrl)}">Abrir página</a></body>
+<body>Redirecting...</body>
 </html>`;
 }
 
@@ -270,7 +262,7 @@ Deno.serve(async (req) => {
           const imgW = pageImage.includes("banner") ? "1200" : "800";
           const imgH = pageImage.includes("banner") ? "630" : "800";
           const extra = `<meta property="og:image:width" content="${imgW}"/>\n<meta property="og:image:height" content="${imgH}"/>`;
-          const html = buildOgHtml(pageTitle, pageDescription, pageImage, req.url, extra, "website", pageUrl);
+          const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extra);
           return new Response(html, {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
@@ -328,7 +320,7 @@ Deno.serve(async (req) => {
             const extraTags = (product as any)._extraOgTags;
             // For crawlers: serve product-specific OG HTML
             if (isCrawler(req.headers.get("user-agent"))) {
-              const html = buildOgHtml(pageTitle, pageDescription, pageImage, req.url, extraTags, "product", pageUrl);
+              const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags, "product");
               return new Response(html, {
                 status: 200,
                 headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
@@ -391,14 +383,33 @@ Deno.serve(async (req) => {
             const photos = listing.photos as string[] | null;
             if (photos && photos.length > 0) pageImage = photos[0];
           }
-          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/listing/${listingId}`;
+          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/${listingId}`;
+
+          // Early return for crawlers with product-specific OG
+          if (isCrawler(userAgent)) {
+            const esc2 = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            let extraTags = `<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
+            if (listing?.price) {
+              extraTags += `\n<meta property="product:price:amount" content="${esc2(Number(listing.price).toFixed(2))}"/>`;
+              extraTags += `\n<meta property="product:price:currency" content="EUR"/>`;
+            }
+            const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags, "product");
+            return new Response(html, {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
+            });
+          }
+          return new Response(null, {
+            status: 302,
+            headers: { ...corsHeaders, Location: pageUrl },
+          });
         }
       }
     }
 
     // For crawlers: serve OG HTML
     if (isCrawler(userAgent)) {
-      const html = buildOgHtml(pageTitle, pageDescription, pageImage, req.url, "", "website", pageUrl);
+      const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl);
       return new Response(html, {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
