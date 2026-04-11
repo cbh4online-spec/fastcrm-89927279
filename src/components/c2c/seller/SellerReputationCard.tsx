@@ -177,10 +177,10 @@ export function SellerReputationCard({
         </div>
 
         {/* Badges */}
-        {badges.length > 0 && (
+        {allBadges.length > 0 && (
           <TooltipProvider>
             <div className="flex flex-wrap gap-1.5">
-              {badges.map((badge) => (
+              {allBadges.map((badge) => (
                 <Tooltip key={badge.key}>
                   <TooltipTrigger asChild>
                     <Badge
@@ -203,12 +203,24 @@ export function SellerReputationCard({
           </TooltipProvider>
         )}
 
-        {/* Endorse button */}
-        <EndorseSellerButton
-          sellerId={sellerId}
-          workspaceId={workspaceId}
-          endorsements={endorsements}
-        />
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <FollowSellerButton
+              sellerId={sellerId}
+              workspaceId={workspaceId}
+              sellerUserId={sellerUserId}
+              className="w-full"
+            />
+          </div>
+          <div className="flex-1">
+            <EndorseSellerButton
+              sellerId={sellerId}
+              workspaceId={workspaceId}
+              endorsements={endorsements}
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
