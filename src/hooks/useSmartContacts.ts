@@ -92,12 +92,30 @@ export function useSmartContacts(filters?: SmartContactsFilters): ReturnType<typ
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
+      // Determine sort column and direction
+      const sortBy = filters?.sortBy || "score_desc";
+      let sortColumn = "contact_score";
+      let sortAscending = false;
+      switch (sortBy) {
+        case "created_desc": sortColumn = "created_at"; sortAscending = false; break;
+        case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
+        case "score_desc": sortColumn = "contact_score"; sortAscending = false; break;
+        case "score_asc": sortColumn = "contact_score"; sortAscending = true; break;
+        case "name_asc": sortColumn = "name"; sortAscending = true; break;
+        case "name_desc": sortColumn = "name"; sortAscending = false; break;
+        case "company_asc": sortColumn = "company"; sortAscending = true; break;
+        case "company_desc": sortColumn = "company"; sortAscending = false; break;
+        case "temperature_hot": sortColumn = "ai_temperature"; sortAscending = false; break;
+        case "temperature_cold": sortColumn = "ai_temperature"; sortAscending = true; break;
+        default: sortColumn = "contact_score"; sortAscending = false;
+      }
+
       let query = workspaceClient
         .from("contacts")
         .select(CONTACTS_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .is("deleted_at", null)
-        .order("contact_score", { ascending: false });
+        .order(sortColumn, { ascending: sortAscending });
 
       if (filters?.temperature && filters.temperature !== "all") {
         query = query.eq("ai_temperature", filters.temperature);

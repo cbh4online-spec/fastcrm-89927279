@@ -113,11 +113,25 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters): ReturnType<t
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold48h = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
+      // Determine sort column and direction
+      const sortBy = filters?.sortBy || "score_desc";
+      let sortColumn = "company_score";
+      let sortAscending = false;
+      switch (sortBy) {
+        case "created_desc": sortColumn = "created_at"; sortAscending = false; break;
+        case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
+        case "score_desc": sortColumn = "company_score"; sortAscending = false; break;
+        case "name_asc": sortColumn = "name"; sortAscending = true; break;
+        case "name_desc": sortColumn = "name"; sortAscending = false; break;
+        case "revenue_desc": sortColumn = "annual_revenue"; sortAscending = false; break;
+        default: sortColumn = "company_score"; sortAscending = false;
+      }
+
       let query = workspaceClient
         .from("companies")
         .select(COMPANIES_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
-        .order("company_score", { ascending: false });
+        .order(sortColumn, { ascending: sortAscending });
 
       if (filters?.temperature && filters.temperature !== "all") {
         query = query.eq("ai_temperature", filters.temperature);

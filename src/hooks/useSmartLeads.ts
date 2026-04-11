@@ -60,6 +60,7 @@ export interface SmartLeadsFilters {
   assignedTo?: string | "all";
   hasField?: string;
   missingField?: string;
+  sortBy?: string;
   page?: number;
   pageSize?: number;
 }
@@ -108,11 +109,25 @@ export function useSmartLeads(filters?: SmartLeadsFilters): ReturnType<typeof us
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
+      // Determine sort column and direction
+      const sortBy = filters?.sortBy || "score_desc";
+      let sortColumn = "lead_score";
+      let sortAscending = false;
+      switch (sortBy) {
+        case "created_desc": sortColumn = "created_at"; sortAscending = false; break;
+        case "created_asc": sortColumn = "created_at"; sortAscending = true; break;
+        case "score_desc": sortColumn = "lead_score"; sortAscending = false; break;
+        case "score_asc": sortColumn = "lead_score"; sortAscending = true; break;
+        case "value_desc": sortColumn = "estimated_value"; sortAscending = false; break;
+        case "last_contact_desc": sortColumn = "last_contact_at"; sortAscending = false; break;
+        default: sortColumn = "lead_score"; sortAscending = false;
+      }
+
       let query = workspaceClient
         .from("leads")
         .select(LEADS_SELECT_COLUMNS, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
-        .order("lead_score", { ascending: false });
+        .order(sortColumn, { ascending: sortAscending });
 
       // Apply filters at SQL level
       if (filters?.status && filters.status !== "all") {
