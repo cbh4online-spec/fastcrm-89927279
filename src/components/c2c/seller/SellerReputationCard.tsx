@@ -164,14 +164,14 @@ export function SellerReputationCard({
               label="Vendas"
             />
             <MetricItem
+              icon={<Users className="h-4 w-4 text-teal-500" />}
+              value={followerCount.toString()}
+              label="Seguidores"
+            />
+            <MetricItem
               icon={<ThumbsUp className="h-4 w-4 text-purple-500" />}
               value={totalEndorsements.toString()}
               label="Recomendações"
-            />
-            <MetricItem
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-              value={formatMemberSince(memberSince)}
-              label="Na plataforma"
             />
           </div>
         </div>
