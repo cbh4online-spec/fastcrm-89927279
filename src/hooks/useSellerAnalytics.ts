@@ -11,6 +11,7 @@ export interface SellerAnalytics {
   avgRating: number;
   totalReviews: number;
   activeListings: number;
+  activeListingsValue: number;
   soldListings: number;
   activeBoosts: number;
   monthlySales: { month: string; sales: number; revenue: number }[];
