@@ -39,7 +39,7 @@ export function InboxView() {
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    return (localStorage.getItem("inbox-view-mode") as ViewMode) || "columns";
+    return (localStorage.getItem("inbox-view-mode") as ViewMode) || "list";
   });
   const [columnsSearch, setColumnsSearch] = useState("");
 
