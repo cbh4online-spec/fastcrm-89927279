@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -68,9 +68,10 @@ function HtmlEmailFrame({ html, isOutbound }: { html: string; isOutbound: boolea
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(200);
 
-  const writeContent = useCallback(() => {
+  useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+
     const doc = iframe.contentDocument;
     if (!doc) return;
 
@@ -79,22 +80,43 @@ function HtmlEmailFrame({ html, isOutbound }: { html: string; isOutbound: boolea
       <html>
       <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+            background: transparent;
+          }
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 14px;
             line-height: 1.5;
-            color: ${isOutbound ? '#fff' : '#1a1a1a'};
-            background: transparent;
+            color: ${isOutbound ? '#ffffff' : '#1a1a1a'};
             padding: 8px;
-            overflow-x: hidden;
-            word-wrap: break-word;
+            width: 100% !important;
+            overflow-wrap: anywhere;
+            word-break: break-word;
           }
-          a { color: ${isOutbound ? '#93c5fd' : '#2563eb'}; }
-          img { max-width: 100%; height: auto; }
-          table { max-width: 100%; border-collapse: collapse; }
-          td, th { padding: 4px 8px; }
+          img, video, canvas, svg {
+            max-width: 100% !important;
+            height: auto !important;
+          }
+          table {
+            max-width: 100% !important;
+            width: 100% !important;
+            border-collapse: collapse;
+          }
+          td, th, p, div, span, a, li {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+          pre, code {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+          }
+          a { color: ${isOutbound ? '#bfdbfe' : '#2563eb'}; }
         </style>
       </head>
       <body>${html}</body>
@@ -105,26 +127,66 @@ function HtmlEmailFrame({ html, isOutbound }: { html: string; isOutbound: boolea
     doc.write(wrappedHtml);
     doc.close();
 
-    // Auto-resize after content loads
-    const resize = () => {
-      if (doc.body) {
-        const h = Math.min(doc.body.scrollHeight + 16, 1200);
-        setHeight(Math.max(h, 80));
-      }
-    };
-    setTimeout(resize, 100);
-    setTimeout(resize, 500);
-  }, [html, isOutbound]);
+    let frameId: number | null = null;
+    const timeouts: number[] = [];
 
-  useEffect(() => {
-    writeContent();
-  }, [writeContent]);
+    const resize = () => {
+      const body = doc.body;
+      const root = doc.documentElement;
+      if (!body || !root) return;
+
+      const nextHeight = Math.ceil(
+        Math.max(
+          body.scrollHeight,
+          body.offsetHeight,
+          root.scrollHeight,
+          root.offsetHeight,
+          root.clientHeight,
+        ) + 16,
+      );
+
+      setHeight(Math.max(nextHeight, 80));
+    };
+
+    const scheduleResize = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(resize);
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleResize)
+        : null;
+
+    if (doc.body && resizeObserver) resizeObserver.observe(doc.body);
+    if (doc.documentElement && resizeObserver) resizeObserver.observe(doc.documentElement);
+
+    const images = Array.from(doc.images);
+    images.forEach((img) => {
+      img.addEventListener("load", scheduleResize);
+      img.addEventListener("error", scheduleResize);
+    });
+
+    timeouts.push(window.setTimeout(scheduleResize, 0));
+    timeouts.push(window.setTimeout(scheduleResize, 100));
+    timeouts.push(window.setTimeout(scheduleResize, 500));
+
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      images.forEach((img) => {
+        img.removeEventListener("load", scheduleResize);
+        img.removeEventListener("error", scheduleResize);
+      });
+      timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
+  }, [html, isOutbound]);
 
   return (
     <iframe
       ref={iframeRef}
       sandbox="allow-same-origin"
-      className="w-full border-0 rounded"
+      className="w-full min-w-0 border-0 rounded"
       style={{ height: `${height}px`, background: "transparent" }}
       title="Email HTML"
     />
@@ -151,9 +213,9 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
   const isLongContent = message.content.length > 300 || (message.content.match(/\n/g) || []).length > 5;
 
   return (
-    <div className={cn("flex", isOutbound ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full min-w-0", isOutbound ? "justify-end" : "justify-start")}>
       <div className={cn(
-        "max-w-full rounded-lg overflow-hidden",
+        "w-full max-w-[56rem] rounded-lg overflow-hidden",
         isOutbound ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
       )}>
         {/* Email Header */}
@@ -212,43 +274,7 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
         {/* Email Body */}
         <div className="px-3 py-2">
           {hasHtmlContentCleaned && showHtml ? (
-            /* Sandboxed iframe for HTML emails */
-            isLongContent ? (
-              <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-                {!isExpanded && (
-                  <div className="relative" style={{ maxHeight: "250px", overflow: "hidden" }}>
-                    <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
-                    <div className={cn(
-                      "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t pointer-events-none",
-                      isOutbound ? "from-primary to-transparent" : "from-muted to-transparent"
-                    )} />
-                  </div>
-                )}
-                <CollapsibleContent>
-                  <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
-                </CollapsibleContent>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full h-6 text-xs mt-1",
-                      isOutbound
-                        ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {isExpanded ? (
-                      <><ChevronUp className="w-3 h-3 mr-1" />Mostrar menos</>
-                    ) : (
-                      <><ChevronDown className="w-3 h-3 mr-1" />Mostrar mais</>
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
-            ) : (
-              <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
-            )
+            <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
           ) : (
             /* Plain text fallback */
             isLongContent ? (

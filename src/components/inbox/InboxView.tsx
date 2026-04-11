@@ -274,10 +274,10 @@ export function InboxView() {
         </div>
 
         {/* Main Layout */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* LEFT — Sidebar (hidden on mobile) */}
           {showSidebar && (
-            <div className="w-56 flex-shrink-0 border-r border-border hidden lg:block">
+            <div className="w-56 min-h-0 flex-shrink-0 border-r border-border hidden lg:block">
               <InboxSidebar
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
@@ -306,7 +306,7 @@ export function InboxView() {
             <>
               {/* Multi-column view */}
               <div className={cn(
-                "flex-1 min-w-0",
+                "flex-1 min-h-0 min-w-0",
                 selectedConversationId && "hidden xl:flex xl:flex-1"
               )}>
                 <SalesInboxColumns
@@ -320,7 +320,7 @@ export function InboxView() {
               {/* Conversation Detail (overlay on smaller screens, side panel on xl) */}
               {selectedConversationId && (
                 <div className={cn(
-                  "flex-1 min-w-0 xl:max-w-[50%] border-l border-border"
+                  "flex-1 min-h-0 min-w-0 xl:max-w-[50%] border-l border-border"
                 )}>
                   <ConversationDetail conversationId={selectedConversationId} onBack={isMobile ? handleMobileBack : undefined} />
                 </div>
@@ -330,8 +330,8 @@ export function InboxView() {
             <>
               {/* Classic list view - master-detail on mobile */}
               <div className={cn(
-                "flex-shrink-0 border-r border-border",
-                isMobile ? "w-full" : "w-[280px] md:w-[340px] xl:w-[380px]",
+                "min-h-0 flex-shrink-0 border-r border-border",
+                isMobile ? "w-full" : "w-[300px] md:w-[320px] lg:w-[340px] xl:w-[380px]",
                 mobileShowDetail && "hidden"
               )}>
                 <ConversationList
@@ -343,7 +343,7 @@ export function InboxView() {
                 />
               </div>
               <div className={cn(
-                "flex-1 min-w-0 h-full overflow-hidden",
+                "flex-1 min-h-0 min-w-0 h-full overflow-hidden",
                 isMobile && !mobileShowDetail && "hidden"
               )}>
                 <ConversationDetail conversationId={selectedConversationId} onBack={isMobile ? handleMobileBack : undefined} />
@@ -353,7 +353,7 @@ export function InboxView() {
 
           {/* RIGHT — Context Panel (hidden on mobile) */}
           {showContextPanel && (
-            <div className="w-80 flex-shrink-0 border-l border-border hidden xl:block">
+            <div className="w-80 min-h-0 flex-shrink-0 border-l border-border hidden xl:block">
               <InboxContextPanel
                 conversationId={selectedConversationId}
                 onClose={() => setShowContextPanel(false)}
