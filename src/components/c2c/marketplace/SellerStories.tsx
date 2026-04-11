@@ -38,7 +38,7 @@ function useSellerStories(workspaceId: string | undefined) {
       const sellerIds = sellers.map((s) => s.id);
       const { data: listings, error: lErr } = await supabase
         .from("c2c_listings")
-        .select("id, title, price, images, seller_id, created_at")
+        .select("id, title, price, photos, seller_id, created_at")
         .in("seller_id", sellerIds)
         .eq("status", "active")
         .eq("moderation_status", "approved")
@@ -60,7 +60,7 @@ function useSellerStories(workspaceId: string | undefined) {
       for (const l of listings || []) {
         const story = map.get(l.seller_id);
         if (story && story.listings.length < 5) {
-          const imgs = l.images as string[] | null;
+          const imgs = l.photos as string[] | null;
           story.listings.push({
             id: l.id,
             title: l.title,
