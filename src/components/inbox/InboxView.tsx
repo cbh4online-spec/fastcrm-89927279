@@ -343,7 +343,7 @@ export function InboxView() {
                 />
               </div>
               <div className={cn(
-                "flex-1 min-w-0",
+                "flex-1 min-w-0 h-full overflow-hidden",
                 isMobile && !mobileShowDetail && "hidden"
               )}>
                 <ConversationDetail conversationId={selectedConversationId} onBack={isMobile ? handleMobileBack : undefined} />
