@@ -16,8 +16,7 @@ export async function resizeImageForAI(
 
   const { width, height } = img;
   if (width <= maxDimension && height <= maxDimension) {
-    // Already within limits – return as-is
-    return src;
+    return stripDataUrlPrefix(src);
   }
 
   const scale = Math.min(maxDimension / width, maxDimension / height);
@@ -33,7 +32,7 @@ export async function resizeImageForAI(
 
   ctx.drawImage(img, 0, 0, newW, newH);
 
-  return canvas.toDataURL("image/jpeg", 0.85);
+  return stripDataUrlPrefix(canvas.toDataURL("image/jpeg", 0.85));
 }
 
 /* ── helpers ─────────────────────────────────────────────── */
