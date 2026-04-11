@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Send, ThumbsUp, Smile, Image as ImageIcon, Phone, Video, Info } from "lucide-react";
+import { Send, ThumbsUp, Smile, Image as ImageIcon, Phone, Video, Info, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { C2CMessage } from "@/hooks/useC2CMessages";
 import { format, type Locale as DateLocale, isToday, isYesterday } from "date-fns";
