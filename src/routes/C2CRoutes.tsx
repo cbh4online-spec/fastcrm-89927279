@@ -28,6 +28,7 @@ const C2CDisputesPage = lazy(() => import("@/pages/c2c/C2CDisputesPage"));
 const C2CSellerTiersPage = lazy(() => import("@/pages/c2c/C2CSellerTiersPage"));
 const C2CSellersAdmin = lazy(() => import("@/pages/c2c/C2CSellersAdmin"));
 const C2CModerationPage = lazy(() => import("@/pages/c2c/C2CModerationPage"));
+const C2CBuyerArea = lazy(() => import("@/pages/c2c/C2CBuyerArea"));
 const MarketplaceConfigPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceConfigPage"));
 const MarketplaceOrdersPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceOrdersPage"));
 const MarketplacePayoutsPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplacePayoutsPage"));
@@ -56,6 +57,7 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/c2c/verification" element={<C2CVerificationPage />} />
       <Route path="/dashboard/c2c/disputes" element={<C2CDisputesPage />} />
       <Route path="/dashboard/c2c/tiers" element={<C2CSellerTiersPage />} />
+      <Route path="/dashboard/c2c/buyer-area" element={<C2CBuyerArea />} />
       <Route path="/dashboard/c2c/config" element={<MarketplaceConfigPage />} />
       {/* Unified marketplace admin routes */}
       <Route path="/dashboard/marketplace/sellers" element={<C2CSellersAdmin />} />

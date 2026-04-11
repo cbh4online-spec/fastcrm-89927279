@@ -8955,6 +8955,65 @@ export type Database = {
           },
         ]
       }
+      c2c_buyers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_verified: boolean
+          loyalty_points: number
+          phone: string | null
+          shipping_address: Json | null
+          status: Database["public"]["Enums"]["c2c_buyer_status"]
+          total_purchases: number
+          total_spent: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_verified?: boolean
+          loyalty_points?: number
+          phone?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["c2c_buyer_status"]
+          total_purchases?: number
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_verified?: boolean
+          loyalty_points?: number
+          phone?: string | null
+          shipping_address?: Json | null
+          status?: Database["public"]["Enums"]["c2c_buyer_status"]
+          total_purchases?: number
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_buyers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_categories: {
         Row: {
           created_at: string
@@ -63838,6 +63897,7 @@ export type Database = {
       billing_type: "one_time" | "recurring"
       bot_status: "draft" | "active" | "paused"
       bot_type: "guided" | "prompt" | "flow"
+      c2c_buyer_status: "active" | "suspended"
       c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
       client_role:
         | "client_admin"
@@ -64363,6 +64423,7 @@ export const Constants = {
       billing_type: ["one_time", "recurring"],
       bot_status: ["draft", "active", "paused"],
       bot_type: ["guided", "prompt", "flow"],
+      c2c_buyer_status: ["active", "suspended"],
       c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
       client_role: [
         "client_admin",
