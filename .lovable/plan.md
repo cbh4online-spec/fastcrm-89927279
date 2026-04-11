@@ -1,29 +1,31 @@
 
 
-## Correção: Imagem do produto não aparece na partilha de anúncios C2C
+## Correção: Pesquisa visual falha no marketplace (mobile e desktop)
 
-### Diagnóstico
+### Causa raiz
 
-Existem **3 bugs** que causam o problema:
+No ficheiro `supabase/functions/store-visual-search/index.ts`, linha 18, é referenciada a variável `workspace_id` que **nunca foi declarada**. A linha 15 só extrai `image` do body:
 
-1. **Coluna errada no og-proxy** — A edge function `og-proxy` faz `SELECT title, description, price, images` da tabela `c2c_listings`, mas a coluna real chama-se `photos` (não `images`). Resultado: retorna `null` e usa a imagem genérica do site.
+```typescript
+const { image } = await req.json();  // ← workspace_id não é extraído
+if (workspace_id) {                   // ← ReferenceError: workspace_id is not defined
+```
 
-2. **Rotas `/marketplace/` não reconhecidas** — A função `parsePathToTypeSlug` só trata paths `/c2c/...` mas o URL real de partilha é `/marketplace/{slug}/listing/{id}`. Quando o Cloudflare Worker redireciona com `?path=/marketplace/...`, o og-proxy não o consegue mapear.
-
-3. **Cloudflare Worker não intercepta `/marketplace/`** — O worker só intercepta `/store/`, `/bio/`, `/p/`, `/c2c/`. Falta `/marketplace/`.
+Isto causa um crash imediato na Edge Function, devolvendo erro 500 em todas as chamadas de pesquisa visual.
 
 ### Correção
 
-**Ficheiro: `supabase/functions/og-proxy/index.ts`**
-- Linha 338: mudar `.select("title, description, price, images")` → `.select("title, description, price, photos")`
-- Linhas 345-346: mudar referências de `listing.images` → `listing.photos`
-- Adicionar parsing de `/marketplace/{slug}/listing/{id}` em `parsePathToTypeSlug` → mapear para `type: "c2c-listing"`
+**Ficheiro: `supabase/functions/store-visual-search/index.ts`**
 
-**Ficheiro: `cloudflare-worker-og-rewrite.js`**
-- Adicionar `"/marketplace/"` ao array `INTERCEPTED_PREFIXES`
+1. Alterar a linha 15 para extrair também `workspace_id`:
+   ```typescript
+   const { image, workspace_id } = await req.json();
+   ```
+
+2. Redeployar a edge function.
 
 ### Impacto
-- Crawlers (WhatsApp, Facebook, etc.) passam a receber a imagem real do produto
-- Zero impacto em funcionalidades existentes
-- Correção imediata após deploy
+- Corrige pesquisa visual no marketplace (mobile e desktop)
+- Zero alterações no frontend — o componente `MarketplaceSearchOverlay` já envia correctamente a imagem
+- A edge function passa a funcionar sem crash
 
