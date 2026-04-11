@@ -9,6 +9,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ArrowLeft, Star, ShieldCheck, Calendar, Package } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { SellerReputationCard } from "@/components/c2c/seller/SellerReputationCard";
 
 function useSellerProfile(sellerId: string | undefined) {
   return useQuery({
@@ -86,25 +87,23 @@ export default function C2CSellerProfile() {
               {seller?.bio && (
                 <p className="text-sm text-muted-foreground mb-2">{seller.bio}</p>
               )}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {reviewData && reviewData.count > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    {reviewData.average} ({reviewData.count} avaliações)
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <Package className="h-4 w-4" /> {listings.length} anúncios
-                </span>
-                {seller?.created_at && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> Na plataforma desde {format(new Date(seller.created_at), "MMMM yyyy", { locale: pt })}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </div>
+
+        {/* Reputation Card */}
+        {sellerId && workspaceId && (
+          <SellerReputationCard
+            sellerId={sellerId}
+            workspaceId={workspaceId}
+            avgRating={reviewData?.average || 0}
+            totalReviews={reviewData?.count || 0}
+            totalSales={listings.length}
+            isVerified={seller?.is_verified || false}
+            memberSince={seller?.created_at || new Date().toISOString()}
+            className="mb-6"
+          />
+        )}
 
         {/* Reviews */}
         {reviewData && reviewData.reviews.length > 0 && (
