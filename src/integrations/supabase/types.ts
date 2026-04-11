@@ -8807,6 +8807,154 @@ export type Database = {
           },
         ]
       }
+      c2c_boost_config: {
+        Row: {
+          cpc_cost_per_click: number
+          created_at: string
+          credit_unit_price: number
+          currency: string
+          highlight_cost_per_day: number
+          id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cpc_cost_per_click?: number
+          created_at?: string
+          credit_unit_price?: number
+          currency?: string
+          highlight_cost_per_day?: number
+          id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cpc_cost_per_click?: number
+          created_at?: string
+          credit_unit_price?: number
+          currency?: string
+          highlight_cost_per_day?: number
+          id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_boost_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_boost_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          listing_id: string | null
+          stripe_session_id: string | null
+          type: string
+          wallet_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          listing_id?: string | null
+          stripe_session_id?: string | null
+          type: string
+          wallet_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          listing_id?: string | null
+          stripe_session_id?: string | null
+          type?: string
+          wallet_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_boost_transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_boost_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_boost_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_boost_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_boost_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          seller_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          seller_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          seller_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_boost_wallets_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_boost_wallets_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_boost_wallets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_categories: {
         Row: {
           created_at: string
@@ -10437,8 +10585,10 @@ export type Database = {
       c2c_sponsored_listings: {
         Row: {
           amount_paid: number
+          boost_type: string | null
           clicks: number | null
           created_at: string
+          daily_cpc_budget: number | null
           ends_at: string
           id: string
           impressions: number | null
@@ -10451,8 +10601,10 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          boost_type?: string | null
           clicks?: number | null
           created_at?: string
+          daily_cpc_budget?: number | null
           ends_at: string
           id?: string
           impressions?: number | null
@@ -10465,8 +10617,10 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          boost_type?: string | null
           clicks?: number | null
           created_at?: string
+          daily_cpc_budget?: number | null
           ends_at?: string
           id?: string
           impressions?: number | null
@@ -63323,6 +63477,16 @@ export type Database = {
       sj_match_profile_to_contact: {
         Args: { p_profile_id: string }
         Returns: string
+      }
+      spend_boost_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_listing_id?: string
+          p_wallet_id: string
+          p_workspace_id?: string
+        }
+        Returns: Json
       }
       start_module_trial: {
         Args: {
