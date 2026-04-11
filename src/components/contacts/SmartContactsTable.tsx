@@ -387,7 +387,7 @@ export function SmartContactsTable() {
 
   const totalColumns = orderedVisibleColumns.length + 3; // +3 for checkbox, name, actions
 
-  const { data: contactsResult, isLoading, refetch } = useSmartContacts(filters);
+  const { data: contactsResult, isLoading, refetch } = useSmartContacts({ ...filters, sortBy: sortValue });
   const contacts = contactsResult?.data;
   const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
   const analyze = useAnalyzeContact();
