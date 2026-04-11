@@ -1,0 +1,1 @@
+UPDATE profile_menu_permissions SET visible = true WHERE menu_key = 'inbox' AND sales_function = 'ceo';
