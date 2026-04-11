@@ -32,46 +32,46 @@ function CategoryCarousel({ categories, onSelect, selected }: {
 
   if (categories.length === 0) return null;
 
+  const categoryButton = (cat: typeof categories[0]) => (
+    <button
+      key={cat.id}
+      onClick={() => onSelect(selected === cat.id ? undefined : cat.id)}
+      className={cn(
+        "flex flex-col items-center gap-2 px-3 py-3 rounded-xl border transition-all hover:shadow-md min-w-0",
+        selected === cat.id
+          ? "bg-primary/10 border-primary shadow-sm"
+          : "bg-card border-border hover:border-primary/30"
+      )}
+    >
+      {cat.image_url ? (
+        <img src={cat.image_url} alt={cat.name} className="w-10 h-10 object-contain rounded-lg" />
+      ) : (
+        <span className="text-xl">{cat.icon || "📦"}</span>
+      )}
+      <span className="text-[11px] font-medium text-center leading-tight line-clamp-2">{cat.name}</span>
+    </button>
+  );
+
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex"
-        onClick={() => scroll("left")}
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-2 px-1">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => onSelect(selected === cat.id ? undefined : cat.id)}
-            className={cn(
-              "flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition-all shrink-0 snap-start min-w-[100px] hover:shadow-md",
-              selected === cat.id
-                ? "bg-primary/10 border-primary shadow-sm"
-                : "bg-card border-border hover:border-primary/30"
-            )}
-          >
-            {cat.image_url ? (
-              <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain rounded-lg" />
-            ) : (
-              <span className="text-2xl">{cat.icon || "📦"}</span>
-            )}
-            <span className="text-xs font-medium text-center leading-tight">{cat.name}</span>
-          </button>
-        ))}
+    <>
+      {/* Desktop: grid 2 rows */}
+      <div className="hidden md:grid grid-rows-2 grid-flow-col auto-cols-fr gap-2 py-2">
+        {categories.map(categoryButton)}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex"
-        onClick={() => scroll("right")}
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
+
+      {/* Mobile: horizontal scroll with fade indicators */}
+      <div className="relative md:hidden">
+        <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-2 px-4">
+          {categories.map((cat) => (
+            <div key={cat.id} className="shrink-0 snap-start w-[90px]">
+              {categoryButton(cat)}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
