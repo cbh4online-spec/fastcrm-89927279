@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMySellerProfile, useRegisterSeller } from "@/hooks/useC2CSellers";
@@ -40,6 +41,8 @@ export default function C2CSellerRegistration() {
   const { data: workspace } = useWorkspaceBySlug(workspaceSlug);
   const workspaceId = workspace?.id;
 
+  usePublicMarketplaceTheme();
+
   const { data: sellerProfile, isLoading: profileLoading } = useMySellerProfile(workspaceId);
   const registerSeller = useRegisterSeller(workspaceId);
 
@@ -53,6 +56,13 @@ export default function C2CSellerRegistration() {
     account_holder: "",
     nif: "",
   });
+
+  // Already registered — approved sellers go straight to create listing
+  useEffect(() => {
+    if (sellerProfile?.status === "approved") {
+      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
+    }
+  }, [sellerProfile, workspaceSlug, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,12 +102,6 @@ export default function C2CSellerRegistration() {
     );
   }
 
-  // Already registered — approved sellers go straight to create listing
-  useEffect(() => {
-    if (sellerProfile?.status === "approved") {
-      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
-    }
-  }, [sellerProfile, workspaceSlug, navigate]);
 
   if (sellerProfile) {
     // If approved, the useEffect above will redirect — show nothing briefly
