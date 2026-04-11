@@ -5,11 +5,11 @@
  * Works entirely in the browser via Canvas.
  */
 export async function resizeImageForAI(
-  base64OrFile: string | File,
+  base64OrFile: string | File | Blob,
   maxDimension = 1568,
 ): Promise<string> {
-  const src = base64OrFile instanceof File
-    ? await fileToDataUrl(base64OrFile)
+  const src = base64OrFile instanceof Blob
+    ? await blobToDataUrl(base64OrFile)
     : base64OrFile;
 
   const img = await loadImage(src);
@@ -38,12 +38,12 @@ export async function resizeImageForAI(
 
 /* ── helpers ─────────────────────────────────────────────── */
 
-function fileToDataUrl(file: File): Promise<string> {
+function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
 }
 
