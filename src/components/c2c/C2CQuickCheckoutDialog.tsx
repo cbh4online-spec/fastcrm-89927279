@@ -116,7 +116,7 @@ export function C2CQuickCheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-zinc-700 bg-zinc-900 text-zinc-100">
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto border-zinc-700 bg-zinc-900 text-zinc-100 rounded-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-zinc-100">
             <ShoppingBag className="h-5 w-5 text-amber-400" />
