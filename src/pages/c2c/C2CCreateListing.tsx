@@ -21,6 +21,7 @@ interface SkuProduct {
   base_price: number;
   images: string[] | null;
   sku: string | null;
+  _source?: "catalog" | "web";
 }
 
 function SkuLookup({
@@ -32,27 +33,82 @@ function SkuLookup({
 }) {
   const [skuQuery, setSkuQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState<SkuProduct | null>(null);
+  const [searchingWeb, setSearchingWeb] = useState(false);
+  const [results, setResults] = useState<SkuProduct[]>([]);
   const [notFound, setNotFound] = useState(false);
+
+  const searchCatalog = async (trimmed: string): Promise<SkuProduct[]> => {
+    const { data, error } = await (supabase
+      .from("products")
+      .select("name, short_description, base_price, images, sku")
+      .eq("workspace_id", workspaceId!)
+      .or(`sku.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
+      .limit(5) as any);
+    if (error) throw error;
+    return (data || []).map((p: any) => ({ ...p, _source: "catalog" as const }));
+  };
+
+  const searchWeb = async (trimmed: string): Promise<SkuProduct[]> => {
+    try {
+      setSearchingWeb(true);
+      const { data, error } = await supabase.functions.invoke("firecrawl-search", {
+        body: {
+          query: `${trimmed} product price specifications`,
+          limit: 5,
+          include_content: true,
+        },
+      });
+      if (error || !data?.success) return [];
+
+      const webResults: SkuProduct[] = (data.data || [])
+        .filter((r: any) => r.title)
+        .slice(0, 3)
+        .map((r: any) => {
+          // Try to extract price from description/content
+          const text = (r.description || "") + " " + (r.markdown || "");
+          const priceMatch = text.match(/(?:€|EUR)\s*([\d.,]+)|(\d+[.,]\d{2})\s*€/);
+          const price = priceMatch
+            ? parseFloat((priceMatch[1] || priceMatch[2]).replace(",", "."))
+            : 0;
+
+          return {
+            name: r.title || trimmed,
+            short_description: r.description?.slice(0, 200) || null,
+            base_price: price,
+            images: null,
+            sku: trimmed,
+            _source: "web" as const,
+          };
+        });
+      return webResults;
+    } catch {
+      return [];
+    } finally {
+      setSearchingWeb(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!skuQuery.trim() || !workspaceId) return;
     setSearching(true);
-    setResult(null);
+    setResults([]);
     setNotFound(false);
     try {
       const trimmed = skuQuery.trim();
-      const { data, error } = await (supabase
-        .from("products")
-        .select("name, short_description, base_price, images, sku")
-        .eq("workspace_id", workspaceId)
-        .or(`sku.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
-        .limit(1) as any);
-      if (error) throw error;
-      if (data && data.length > 0) {
-        setResult(data[0] as SkuProduct);
+
+      // 1. Search local catalog
+      const catalogResults = await searchCatalog(trimmed);
+
+      if (catalogResults.length > 0) {
+        setResults(catalogResults);
       } else {
-        setNotFound(true);
+        // 2. If not found locally, search the web
+        const webResults = await searchWeb(trimmed);
+        if (webResults.length > 0) {
+          setResults(webResults);
+        } else {
+          setNotFound(true);
+        }
       }
     } catch (err) {
       console.error("SKU search error:", err);
@@ -67,8 +123,8 @@ function SkuLookup({
       <div className="flex items-center gap-2">
         <Package className="h-5 w-5 text-primary" />
         <div>
-          <p className="font-medium text-sm">Importar do Catálogo por SKU</p>
-          <p className="text-xs text-muted-foreground">Pesquisa por SKU ou nome para preencher automaticamente</p>
+          <p className="font-medium text-sm">Importar por SKU / Pesquisa</p>
+          <p className="text-xs text-muted-foreground">Pesquisa no catálogo interno e na internet</p>
         </div>
       </div>
       <div className="flex gap-2">
@@ -82,29 +138,56 @@ function SkuLookup({
             className="pl-9"
           />
         </div>
-        <Button variant="outline" size="default" onClick={handleSearch} disabled={searching || !skuQuery.trim()}>
-          {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pesquisar"}
+        <Button variant="outline" size="default" onClick={handleSearch} disabled={searching || searchingWeb || !skuQuery.trim()}>
+          {(searching || searchingWeb) ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pesquisar"}
         </Button>
       </div>
-      {result && (
-        <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
-          {result.images?.[0] && (
-            <img src={result.images[0]} alt="" className="w-12 h-12 rounded object-cover" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{result.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {result.sku && `SKU: ${result.sku} • `}
-              {new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(result.base_price)}
-            </p>
-          </div>
-          <Button size="sm" onClick={() => onProductFound(result)}>
-            Usar
-          </Button>
+
+      {searchingWeb && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+          <Globe className="h-3.5 w-3.5" />
+          <span>A pesquisar na internet...</span>
         </div>
       )}
+
+      {results.length > 0 && (
+        <div className="space-y-2">
+          {results.map((r, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+              {r.images?.[0] && (
+                <img src={r.images[0]} alt="" className="w-12 h-12 rounded object-cover" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium truncate">{r.name}</p>
+                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                    r._source === "catalog"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                  }`}>
+                    {r._source === "catalog" ? "Catálogo" : "Internet"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {r.sku && `SKU: ${r.sku} • `}
+                  {r.base_price > 0
+                    ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(r.base_price)
+                    : "Preço não encontrado"}
+                </p>
+                {r.short_description && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{r.short_description}</p>
+                )}
+              </div>
+              <Button size="sm" onClick={() => onProductFound(r)}>
+                Usar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {notFound && (
-        <p className="text-sm text-muted-foreground text-center py-2">Nenhum produto encontrado com esse SKU/nome</p>
+        <p className="text-sm text-muted-foreground text-center py-2">Nenhum produto encontrado no catálogo nem na internet</p>
       )}
     </div>
   );
