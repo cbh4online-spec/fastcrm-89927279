@@ -319,6 +319,8 @@ export default function MarketplaceConfigPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
+      </div>
     </div>
   );
 }
