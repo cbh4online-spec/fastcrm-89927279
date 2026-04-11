@@ -1,0 +1,1 @@
+UPDATE c2c_categories SET icon = 'Briefcase' WHERE name = 'Serviços';
