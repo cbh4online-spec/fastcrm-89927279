@@ -145,12 +145,19 @@ export default function C2CSellerArea() {
 
       {/* KPIs */}
       {analytics && (
-        <KPIGrid columns={4}>
+        <KPIGrid columns={5}>
           <KPICard
             title="Anúncios Ativos"
             value={analytics.activeListings}
             icon={<Package className="h-4 w-4" />}
             variant="primary"
+          />
+          <KPICard
+            title="Valor em Venda"
+            value={`${analytics.activeListingsValue.toFixed(2)}€`}
+            icon={<DollarSign className="h-4 w-4" />}
+            variant="primary"
+            description={`${analytics.activeListings} anúncios`}
           />
           <KPICard
             title="Total Vendas"
