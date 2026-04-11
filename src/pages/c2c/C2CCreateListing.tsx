@@ -206,6 +206,7 @@ export default function C2CCreateListing() {
   const [condition, setCondition] = useState("used");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("1");
   const [deliveryMode, setDeliveryMode] = useState("both");
   const [shippingCost, setShippingCost] = useState("");
   const [meetupLocation, setMeetupLocation] = useState("");
@@ -451,6 +452,7 @@ export default function C2CCreateListing() {
       price: Number(price),
       currency: "EUR",
       condition: condition as any,
+      stock_quantity: Math.max(1, parseInt(stockQuantity) || 1),
       category_id: categoryId || null,
       photos,
       photos_360: photos360,
@@ -795,6 +797,22 @@ export default function C2CCreateListing() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Stock Quantity */}
+          <div>
+            <Label htmlFor="stockQuantity">Quantidade em stock</Label>
+            <Input
+              id="stockQuantity"
+              type="number"
+              min="1"
+              step="1"
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value)}
+              placeholder="1"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Número de unidades disponíveis para venda</p>
           </div>
 
           {/* Category + Location */}
