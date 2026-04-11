@@ -329,6 +329,18 @@ export default function C2CCreateListing() {
           <Progress value={progress} className="h-2" />
         </div>
 
+        {/* SKU Lookup Section */}
+        <SkuLookup
+          workspaceId={workspaceId}
+          onProductFound={(product) => {
+            if (product.name) setTitle(product.name);
+            if (product.description) setDescription(product.description);
+            if (product.base_price) setPrice(String(product.base_price));
+            if (product.images?.length) setPhotos(product.images);
+            toast.success("Produto encontrado e campos preenchidos!");
+          }}
+        />
+
         <div className="space-y-5">
           {/* Media Section with Tabs */}
           <div>
