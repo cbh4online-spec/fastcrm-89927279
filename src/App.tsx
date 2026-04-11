@@ -105,6 +105,7 @@ const App = () => (
                 <Route path="/marketplace/:workspaceSlug/category/:category" element={<C2CPublicCategoryPage />} />
                 <Route path="/marketplace/:workspaceSlug/search" element={<C2CPublicSearchPage />} />
                 <Route path="/marketplace/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
+                <Route path="/marketplace/:workspaceSlug/create" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
                 <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
