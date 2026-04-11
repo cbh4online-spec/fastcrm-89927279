@@ -86,6 +86,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <NuqsAdapter>
         <BrowserRouter>
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
