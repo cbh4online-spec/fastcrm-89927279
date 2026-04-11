@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -9,21 +9,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp, Mail, FileText } from "lucide-react";
+import { ChevronDown, ChevronUp, Mail, FileText, Code, Type } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
 import { cleanEmailContent } from "@/lib/cleanEmailPreview";
 
-interface EmailMessageBubbleProps {
-  message: Message;
-  channelMetadata?: Record<string, unknown> | null;
-}
-
-// Fix UTF-8 encoding issues (mojibake) - common double-encoded patterns
+// Fix UTF-8 encoding issues (mojibake)
 function fixEncoding(text: string): string {
   if (!text) return text;
-  
   try {
-    // Common mojibake patterns: UTF-8 bytes interpreted as Latin-1, then encoded as UTF-8 again
     const replacements: [RegExp, string][] = [
       [/Ã§/g, 'ç'], [/Ã£/g, 'ã'], [/Ãµ/g, 'õ'], [/Ã¡/g, 'á'],
       [/Ã©/g, 'é'], [/Ã­/g, 'í'], [/Ã³/g, 'ó'], [/Ãº/g, 'ú'],
@@ -37,46 +30,25 @@ function fixEncoding(text: string): string {
       [/Ãˆ/g, 'È'], [/ÃŒ/g, 'Ì'], [/Ã'/g, 'Ò'], [/Ã™/g, 'Ù'],
       [/Ã„/g, 'Ä'], [/Ã‹/g, 'Ë'], [/Ã/g, 'Ï'], [/Ã–/g, 'Ö'],
       [/Ãœ/g, 'Ü'], [/Ã'/g, 'Ñ'], [/ÃŽ/g, 'Î'], [/Ã›/g, 'Û'],
-      // Fix â€ patterns (curly quotes, etc.)
       [/â€œ/g, '"'], [/â€/g, '"'], [/â€™/g, "'"], [/â€˜/g, "'"],
       [/â€"/g, '—'], [/â€"/g, '–'], [/â€¦/g, '…'], [/Â /g, ' '],
       [/Â«/g, '«'], [/Â»/g, '»'], [/Âº/g, 'º'], [/Âª/g, 'ª'],
     ];
-    
     let fixed = text;
     for (const [pattern, replacement] of replacements) {
       fixed = fixed.replace(pattern, replacement);
     }
-    
     return fixed;
   } catch {
     return text;
   }
 }
 
-// Simple HTML sanitizer - removes dangerous tags but keeps formatting
-function sanitizeHtml(html: string): string {
-  // First fix encoding
-  let clean = fixEncoding(html);
-  // Remove script tags and their content
-  clean = clean.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  // Remove style tags and their content  
-  clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-  // Remove event handlers
-  clean = clean.replace(/\s*on\w+="[^"]*"/gi, '');
-  clean = clean.replace(/\s*on\w+='[^']*'/gi, '');
-  // Remove javascript: URLs
-  clean = clean.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
-  return clean;
-}
-
-// Check if content appears to be HTML
 function isHtmlContent(content: string): boolean {
   const htmlTags = /<\/?(?:div|p|br|span|a|table|tr|td|th|ul|ol|li|h[1-6]|strong|em|b|i|img|hr|blockquote|pre|code)[^>]*>/i;
   return htmlTags.test(content);
 }
 
-// Convert plain text to preserve line breaks
 function plainTextToHtml(text: string): string {
   const fixed = fixEncoding(text);
   return fixed
@@ -84,6 +56,79 @@ function plainTextToHtml(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br />');
+}
+
+interface EmailMessageBubbleProps {
+  message: Message;
+  channelMetadata?: Record<string, unknown> | null;
+}
+
+/** Sandboxed iframe for HTML email rendering */
+function HtmlEmailFrame({ html, isOutbound }: { html: string; isOutbound: boolean }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(200);
+
+  const writeContent = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+
+    const wrappedHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: ${isOutbound ? '#fff' : '#1a1a1a'};
+            background: transparent;
+            padding: 8px;
+            overflow-x: hidden;
+            word-wrap: break-word;
+          }
+          a { color: ${isOutbound ? '#93c5fd' : '#2563eb'}; }
+          img { max-width: 100%; height: auto; }
+          table { max-width: 100%; border-collapse: collapse; }
+          td, th { padding: 4px 8px; }
+        </style>
+      </head>
+      <body>${html}</body>
+      </html>
+    `;
+
+    doc.open();
+    doc.write(wrappedHtml);
+    doc.close();
+
+    // Auto-resize after content loads
+    const resize = () => {
+      if (doc.body) {
+        const h = Math.min(doc.body.scrollHeight + 16, 600);
+        setHeight(Math.max(h, 80));
+      }
+    };
+    setTimeout(resize, 100);
+    setTimeout(resize, 500);
+  }, [html, isOutbound]);
+
+  useEffect(() => {
+    writeContent();
+  }, [writeContent]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      sandbox="allow-same-origin"
+      className="w-full border-0 rounded"
+      style={{ height: `${height}px`, background: "transparent" }}
+      title="Email HTML"
+    />
+  );
 }
 
 export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBubbleProps) {
@@ -94,69 +139,60 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
   const hasHtmlContent = isHtmlContent(message.content);
   const hasSubject = !!message.email_subject;
   
-  // Fix encoding in subject
   const displaySubject = hasSubject ? fixEncoding(message.email_subject!) : null;
 
-  // Extract email metadata
   const fromEmail = (channelMetadata?.from_email as string) || (channelMetadata?.from_name as string) || null;
   const toEmail = (channelMetadata?.to_email as string) || (channelMetadata?.email as string) || null;
   const ccEmail = (channelMetadata?.cc as string) || null;
   
-  // Clean MIME artifacts, then prepare for display
   const cleanedContent = cleanEmailContent(message.content);
   const hasHtmlContentCleaned = isHtmlContent(cleanedContent);
-  const displayContent = hasHtmlContentCleaned && showHtml 
-    ? sanitizeHtml(cleanedContent)
-    : plainTextToHtml(cleanedContent);
 
-  // Check if content is long (more than 300 chars or more than 5 lines)
   const isLongContent = message.content.length > 300 || (message.content.match(/\n/g) || []).length > 5;
 
   return (
-    <div
-      className={cn(
-        "flex",
-        isOutbound ? "justify-end" : "justify-start"
-      )}
-    >
-      <div
-        className={cn(
-          "max-w-[85%] rounded-lg overflow-hidden",
-          isOutbound
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
-        )}
-      >
-        {/* Email Header with Subject and From/To */}
+    <div className={cn("flex", isOutbound ? "justify-end" : "justify-start")}>
+      <div className={cn(
+        "max-w-[85%] rounded-lg overflow-hidden",
+        isOutbound ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+      )}>
+        {/* Email Header */}
         {(displaySubject || fromEmail || toEmail) && (
           <div className={cn(
             "px-3 py-2 border-b space-y-1",
-            isOutbound 
-              ? "bg-primary/90 border-primary-foreground/20" 
-              : "bg-muted/80 border-border"
+            isOutbound ? "bg-primary/90 border-primary-foreground/20" : "bg-muted/80 border-border"
           )}>
             {displaySubject && (
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">
-                  {displaySubject}
-                </span>
+                <span className="text-sm font-medium truncate flex-1">{displaySubject}</span>
                 {hasHtmlContent && (
-                  <Badge 
-                    variant="outline" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className={cn(
-                      "text-[10px] py-0 cursor-pointer",
-                      isOutbound 
-                        ? "border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10"
-                        : "border-border"
+                      "h-6 px-2 text-[10px] gap-1",
+                      isOutbound
+                        ? "text-primary-foreground/80 hover:bg-primary-foreground/10"
+                        : "text-muted-foreground hover:bg-muted-foreground/10"
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowHtml(!showHtml);
                     }}
                   >
-                    {showHtml ? "HTML" : "Texto"}
-                  </Badge>
+                    {showHtml ? (
+                      <>
+                        <Type className="w-3 h-3" />
+                        Ver Texto
+                      </>
+                    ) : (
+                      <>
+                        <Code className="w-3 h-3" />
+                        Ver HTML
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
             )}
@@ -165,15 +201,9 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
                 "text-[11px] space-y-0.5",
                 isOutbound ? "text-primary-foreground/70" : "text-muted-foreground"
               )}>
-                {fromEmail && (
-                  <div><span className="font-medium">De:</span> {fromEmail}</div>
-                )}
-                {toEmail && (
-                  <div><span className="font-medium">Para:</span> {toEmail}</div>
-                )}
-                {ccEmail && (
-                  <div><span className="font-medium">Cc:</span> {ccEmail}</div>
-                )}
+                {fromEmail && <div><span className="font-medium">De:</span> {fromEmail}</div>}
+                {toEmail && <div><span className="font-medium">Para:</span> {toEmail}</div>}
+                {ccEmail && <div><span className="font-medium">Cc:</span> {ccEmail}</div>}
               </div>
             )}
           </div>
@@ -181,102 +211,88 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
 
         {/* Email Body */}
         <div className="px-3 py-2">
-          {isLongContent ? (
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <div className="relative">
+          {hasHtmlContentCleaned && showHtml ? (
+            /* Sandboxed iframe for HTML emails */
+            isLongContent ? (
+              <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
                 {!isExpanded && (
-                  <div 
-                    className="text-sm overflow-hidden"
-                    style={{ maxHeight: "150px" }}
-                  >
-                    {hasHtmlContent && showHtml ? (
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: displayContent }}
-                        className={cn(
-                          "prose prose-sm max-w-none",
-                          isOutbound ? "prose-invert" : "",
-                          "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
-                        )}
-                      />
-                    ) : (
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: displayContent }}
-                        className="whitespace-pre-wrap"
-                      />
-                    )}
+                  <div className="relative" style={{ maxHeight: "150px", overflow: "hidden" }}>
+                    <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
                     <div className={cn(
                       "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t pointer-events-none",
-                      isOutbound 
-                        ? "from-primary to-transparent" 
-                        : "from-muted to-transparent"
+                      isOutbound ? "from-primary to-transparent" : "from-muted to-transparent"
                     )} />
                   </div>
                 )}
-                
                 <CollapsibleContent>
-                  <ScrollArea className="max-h-[500px]">
-                    {hasHtmlContent && showHtml ? (
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: displayContent }}
-                        className={cn(
-                          "prose prose-sm max-w-none",
-                          isOutbound ? "prose-invert" : "",
-                          "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
-                        )}
-                      />
-                    ) : (
-                      <div 
-                        dangerouslySetInnerHTML={{ __html: displayContent }}
-                        className="whitespace-pre-wrap"
-                      />
-                    )}
-                  </ScrollArea>
+                  <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
                 </CollapsibleContent>
-
                 <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className={cn(
                       "w-full h-6 text-xs mt-1",
-                      isOutbound 
-                        ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10" 
+                      isOutbound
+                        ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
                         : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {isExpanded ? (
-                      <>
-                        <ChevronUp className="w-3 h-3 mr-1" />
-                        Mostrar menos
-                      </>
+                      <><ChevronUp className="w-3 h-3 mr-1" />Mostrar menos</>
                     ) : (
-                      <>
-                        <ChevronDown className="w-3 h-3 mr-1" />
-                        Mostrar mais
-                      </>
+                      <><ChevronDown className="w-3 h-3 mr-1" />Mostrar mais</>
                     )}
                   </Button>
                 </CollapsibleTrigger>
-              </div>
-            </Collapsible>
-          ) : (
-            // Short content - show directly
-            hasHtmlContent && showHtml ? (
-              <div 
-                dangerouslySetInnerHTML={{ __html: displayContent }}
-                className={cn(
-                  "prose prose-sm max-w-none text-sm",
-                  isOutbound ? "prose-invert" : "",
-                  "[&_a]:underline [&_img]:max-w-full [&_img]:h-auto"
-                )}
-              />
+              </Collapsible>
             ) : (
-              <p className="text-sm whitespace-pre-wrap">{fixEncoding(message.content)}</p>
+              <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
+            )
+          ) : (
+            /* Plain text fallback */
+            isLongContent ? (
+              <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+                {!isExpanded && (
+                  <div className="relative text-sm overflow-hidden" style={{ maxHeight: "150px" }}>
+                    <div dangerouslySetInnerHTML={{ __html: plainTextToHtml(cleanedContent) }} className="whitespace-pre-wrap" />
+                    <div className={cn(
+                      "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t pointer-events-none",
+                      isOutbound ? "from-primary to-transparent" : "from-muted to-transparent"
+                    )} />
+                  </div>
+                )}
+                <CollapsibleContent>
+                  <ScrollArea className="max-h-[500px]">
+                    <p className="text-sm whitespace-pre-wrap">{fixEncoding(cleanedContent)}</p>
+                  </ScrollArea>
+                </CollapsibleContent>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full h-6 text-xs mt-1",
+                      isOutbound
+                        ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {isExpanded ? (
+                      <><ChevronUp className="w-3 h-3 mr-1" />Mostrar menos</>
+                    ) : (
+                      <><ChevronDown className="w-3 h-3 mr-1" />Mostrar mais</>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap">{fixEncoding(cleanedContent)}</p>
             )
           )}
         </div>
 
-        {/* Footer with timestamp */}
+        {/* Footer */}
         <div className={cn(
           "px-3 py-1 flex items-center justify-between text-[10px]",
           isOutbound ? "text-primary-foreground/70" : "text-muted-foreground"

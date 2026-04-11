@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Inbox,
   FileEdit,
@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   MessageSquareReply,
-  MessageSquareX,
   ThumbsUp,
   ThumbsDown,
   List,
@@ -28,6 +27,8 @@ import {
   Facebook,
   Zap,
   Layers,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useConversations, ConversationChannel } from "@/hooks/useConversations";
+import { differenceInHours } from "date-fns";
 
 export type InboxCategory =
   | "all"
@@ -75,6 +77,8 @@ interface ViewItem {
   id: string;
   label: string;
   icon: React.ElementType;
+  priority: number;
+  badge?: { label: string; variant: "destructive" | "secondary" | "default" };
 }
 
 export function InboxSidebar({
@@ -88,11 +92,31 @@ export function InboxSidebar({
   const [viewsOpen, setViewsOpen] = useState(true);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
+  const [activeView, setActiveView] = useState<string | null>(null);
 
   const { data: allConversations } = useConversations({});
 
   const unreadCount = allConversations?.filter(c => c.unread_count > 0 && c.status === "open").length || 0;
-  const openCount = allConversations?.filter(c => c.status === "open").length || 0;
+
+  // Count urgent conversations (inbound, no response >48h)
+  const urgentCount = useMemo(() => {
+    if (!allConversations) return 0;
+    return allConversations.filter(c => {
+      if (c.status !== "open" || !c.last_message_at) return false;
+      const isInbound = (c as any).last_message_direction === "inbound";
+      return isInbound && differenceInHours(new Date(), new Date(c.last_message_at)) > 48;
+    }).length;
+  }, [allConversations]);
+
+  // Count awaiting response (inbound, open)
+  const awaitingResponseCount = useMemo(() => {
+    if (!allConversations) return 0;
+    return allConversations.filter(c => {
+      if (c.status !== "open") return false;
+      const isInbound = (c as any).last_message_direction === "inbound";
+      return isInbound;
+    }).length;
+  }, [allConversations]);
 
   const folders: FolderItem[] = [
     { id: "my", label: "Meu", icon: Users, category: "assigned", count: allConversations?.filter(c => c.assigned_to && c.status === "open").length || 0 },
@@ -106,14 +130,14 @@ export function InboxSidebar({
     { id: "clients", label: "Clientes", icon: Users, category: "closed", count: allConversations?.filter(c => c.status === "closed").length || 0 },
   ];
 
+  // Views ordered by priority
   const views: ViewItem[] = [
-    { id: "unread", label: "Marcar como não lido", icon: EyeOff },
-    { id: "to-open", label: "Por abrir", icon: Eye },
-    { id: "no-response", label: "Sem resposta", icon: MessageSquareX },
-    { id: "not-replied", label: "Não respondido", icon: MessageSquareReply },
-    { id: "positive", label: "Positivo", icon: ThumbsUp },
-    { id: "negative", label: "Negativo", icon: ThumbsDown },
-    { id: "all-messages", label: "Todas as mensagens", icon: List },
+    { id: "urgent", label: "Urgente", icon: AlertTriangle, priority: 1, badge: urgentCount > 0 ? { label: String(urgentCount), variant: "destructive" } : undefined },
+    { id: "to-open", label: "Por abrir", icon: Eye, priority: 2 },
+    { id: "awaiting", label: "Aguarda resposta", icon: Clock, priority: 3, badge: awaitingResponseCount > 0 ? { label: String(awaitingResponseCount), variant: "secondary" } : undefined },
+    { id: "positive", label: "Positivo", icon: ThumbsUp, priority: 4 },
+    { id: "negative", label: "Negativo", icon: ThumbsDown, priority: 5 },
+    { id: "all-messages", label: "Todas as mensagens", icon: List, priority: 6 },
   ];
 
   return (
@@ -227,6 +251,7 @@ export function InboxSidebar({
             </CollapsibleContent>
           </Collapsible>
 
+          {/* VISTAS — ordered by priority */}
           <Collapsible open={viewsOpen} onOpenChange={setViewsOpen}>
             <CollapsibleTrigger asChild>
               <button className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors mt-2">
@@ -237,13 +262,37 @@ export function InboxSidebar({
             <CollapsibleContent className="space-y-0.5">
               {views.map((view) => {
                 const Icon = view.icon;
+                const isActive = activeView === view.id;
                 return (
                   <button
                     key={view.id}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
+                    className={cn(
+                      "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50",
+                      view.id === "urgent" && urgentCount > 0 && !isActive && "text-destructive"
+                    )}
+                    onClick={() => setActiveView(isActive ? null : view.id)}
                   >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{view.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Icon className={cn(
+                        "w-3.5 h-3.5",
+                        view.id === "urgent" && urgentCount > 0 && "text-destructive"
+                      )} />
+                      <span>{view.label}</span>
+                    </div>
+                    {view.badge && (
+                      <Badge
+                        variant={view.badge.variant}
+                        className={cn(
+                          "h-4 px-1.5 text-[10px] font-medium border-0",
+                          view.badge.variant === "destructive" && "animate-pulse"
+                        )}
+                      >
+                        {view.badge.label}
+                      </Badge>
+                    )}
                   </button>
                 );
               })}
