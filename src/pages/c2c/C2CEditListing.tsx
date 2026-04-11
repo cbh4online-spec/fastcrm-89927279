@@ -72,6 +72,9 @@ export default function C2CEditListing() {
       setCondition(listing.condition);
       setCategoryId(listing.category_id || "");
       setLocation(listing.location || "");
+      setDeliveryMode((listing as any).delivery_mode || "both");
+      setShippingCost(String((listing as any).shipping_cost || ""));
+      setMeetupLocation((listing as any).meetup_location || "");
       setPhotos(listing.photos || []);
       setPhotos360((listing as any).photos_360 || []);
       setVideos((listing as any).videos || []);
