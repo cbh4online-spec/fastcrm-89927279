@@ -101,6 +101,7 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
           avgRating,
           totalReviews,
           activeListings: activeListings || 0,
+          activeListingsValue,
           soldListings: soldListings || 0,
           activeBoosts: activeBoosts || 0,
           monthlySales,
@@ -134,6 +135,14 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
         .eq("seller_id", user.id)
         .eq("workspace_id", workspaceId)
         .eq("status", "active");
+
+      const { data: activeListingsData } = await supabase
+        .from("c2c_listings")
+        .select("price")
+        .eq("seller_id", user.id)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active");
+      const activeListingsValue = (activeListingsData || []).reduce((s, l) => s + Number(l.price || 0), 0);
 
       const { count: soldListings } = await supabase
         .from("c2c_listings")
