@@ -10268,6 +10268,52 @@ export type Database = {
           },
         ]
       }
+      c2c_seller_followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          seller_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          seller_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          seller_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_followers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_seller_followers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_seller_followers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_seller_invites: {
         Row: {
           accepted_at: string | null
@@ -63131,6 +63177,10 @@ export type Database = {
       }
       get_public_table_count: { Args: never; Returns: number }
       get_rls_policy_count: { Args: never; Returns: number }
+      get_seller_follower_count: {
+        Args: { p_seller_id: string }
+        Returns: number
+      }
       get_seller_stats: { Args: { p_seller_id: string }; Returns: Json }
       get_sj_permission: {
         Args: { p_user_id: string; p_workspace_id: string }
