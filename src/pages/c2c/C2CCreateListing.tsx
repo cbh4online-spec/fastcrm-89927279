@@ -88,8 +88,8 @@ function SkuLookup({
       </div>
       {result && (
         <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
-          {(result.images?.[0] || result.image_url) && (
-            <img src={result.images?.[0] || result.image_url!} alt="" className="w-12 h-12 rounded object-cover" />
+          {result.images?.[0] && (
+            <img src={result.images[0]} alt="" className="w-12 h-12 rounded object-cover" />
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{result.name}</p>
@@ -429,7 +429,7 @@ export default function C2CCreateListing() {
           workspaceId={workspaceId}
           onProductFound={(product) => {
             if (product.name) setTitle(product.name);
-            if (product.description) setDescription(product.description);
+            if (product.short_description) setDescription(product.short_description);
             if (product.base_price) setPrice(String(product.base_price));
             if (product.images?.length) setPhotos(product.images);
             toast.success("Produto encontrado e campos preenchidos!");
