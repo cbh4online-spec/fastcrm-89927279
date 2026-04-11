@@ -15,6 +15,7 @@ import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const { data: config, isLoading } = useMarketplaceAdmin(workspaceId);
