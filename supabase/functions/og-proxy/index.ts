@@ -106,19 +106,16 @@ function parsePathToTypeSlug(path: string): { type: string; slug: string } | nul
 
 /**
  * Convert Supabase Storage object URLs to the render/image endpoint
- * so we can force JPEG output (Facebook doesn't support AVIF/WebP).
+ * so crawlers get JPEG (Facebook doesn't support AVIF/WebP).
  */
 function toFacebookSafeImage(imageUrl: string): string {
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-  // Only transform Supabase Storage URLs
   if (!imageUrl.includes("/storage/v1/object/public/")) return imageUrl;
-  // /storage/v1/object/public/bucket/path → /storage/v1/render/image/public/bucket/path?format=origin
-  // Use format=origin to keep original if already JPEG/PNG, but we also need width for OG
+  // /storage/v1/object/public/... → /storage/v1/render/image/public/...
+  // The render endpoint auto-converts to JPEG
   const transformed = imageUrl
     .replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
-  // Append format=jpeg to force compatible output + reasonable OG dimensions
   const separator = transformed.includes("?") ? "&" : "?";
-  return `${transformed}${separator}width=1200&format=jpeg`;
+  return `${transformed}${separator}width=1200`;
 }
 
 function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
