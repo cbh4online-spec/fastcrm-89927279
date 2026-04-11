@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMarketplaceAdmin, useSaveMarketplaceConfig } from "@/hooks/useMarketplace";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3 } from "lucide-react";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const { data: config, isLoading } = useMarketplaceAdmin(workspaceId);
@@ -109,27 +112,42 @@ export default function MarketplaceConfigPage() {
 
   if (isLoading) return <div className="p-8 text-muted-foreground">A carregar...</div>;
 
+  const breadcrumbs = [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Marketplace", href: "/dashboard/c2c" },
+    { label: "Configuração" },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Configuração do Marketplace</h1>
-          <p className="text-muted-foreground text-sm">Personaliza a aparência e configurações do teu marketplace público</p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/c2c")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">Configuração do Marketplace</h1>
+            <p className="text-muted-foreground text-sm">Personaliza a aparência e configurações do teu marketplace público</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={copyUrl}>
+              <Copy className="h-4 w-4 mr-1" /> Copiar Link
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-1" /> Abrir
+              </a>
+            </Button>
+            <Button onClick={handleSave} disabled={saveConfig.isPending}>
+              {saveConfig.isPending ? "A guardar..." : "Guardar"}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={copyUrl}>
-            <Copy className="h-4 w-4 mr-1" /> Copiar Link
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-1" /> Abrir
-            </a>
-          </Button>
-          <Button onClick={handleSave} disabled={saveConfig.isPending}>
-            {saveConfig.isPending ? "A guardar..." : "Guardar"}
-          </Button>
-        </div>
-      </div>
+
+        <PageBreadcrumbs items={breadcrumbs} />
+
+      <div className="space-y-4">
 
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
@@ -301,6 +319,8 @@ export default function MarketplaceConfigPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
+      </div>
     </div>
   );
 }
