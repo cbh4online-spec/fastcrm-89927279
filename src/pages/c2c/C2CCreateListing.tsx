@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
 import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360, useSearchWebImages } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe, Search, Package } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe, Search, Package, Truck, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -206,6 +206,9 @@ export default function C2CCreateListing() {
   const [condition, setCondition] = useState("used");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState("both");
+  const [shippingCost, setShippingCost] = useState("");
+  const [meetupLocation, setMeetupLocation] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [photos360, setPhotos360] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
@@ -453,6 +456,9 @@ export default function C2CCreateListing() {
       photos_360: photos360,
       videos,
       location: location || null,
+      delivery_mode: deliveryMode,
+      shipping_cost: deliveryMode !== "in_person" ? Number(shippingCost || 0) : 0,
+      meetup_location: deliveryMode !== "shipping" ? (meetupLocation || location || null) : null,
       status: "active",
     };
     if (cpcEnabled) {
@@ -822,6 +828,67 @@ export default function C2CCreateListing() {
               <Label htmlFor="location" className="mb-1 block">Localização</Label>
               <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex: Lisboa" />
             </div>
+          </div>
+
+          {/* Delivery / Shipping Section */}
+          <div className="rounded-lg border p-4 space-y-4 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-sm">Método de Entrega</p>
+                <p className="text-xs text-muted-foreground">Define como o comprador recebe o produto</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {[
+                { value: "shipping", label: "Envio", icon: <Package className="h-3.5 w-3.5" /> },
+                { value: "in_person", label: "Em mão", icon: <MapPin className="h-3.5 w-3.5" /> },
+                { value: "both", label: "Ambos", icon: <Truck className="h-3.5 w-3.5" /> },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setDeliveryMode(opt.value)}
+                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-colors flex items-center justify-center gap-1.5 ${
+                    deliveryMode === opt.value
+                      ? "bg-primary/10 border-primary text-primary font-medium"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+            {deliveryMode !== "in_person" && (
+              <div>
+                <Label htmlFor="shipping-cost" className="text-xs">Portes de envio (€)</Label>
+                <Input
+                  id="shipping-cost"
+                  type="number"
+                  min="0"
+                  step="0.50"
+                  value={shippingCost}
+                  onChange={(e) => setShippingCost(e.target.value)}
+                  placeholder="0.00 (grátis)"
+                  className="mt-1"
+                />
+                {(!shippingCost || Number(shippingCost) === 0) && (
+                  <p className="text-xs text-green-600 mt-1">✓ Envio gratuito</p>
+                )}
+              </div>
+            )}
+            {deliveryMode !== "shipping" && (
+              <div>
+                <Label htmlFor="meetup-location" className="text-xs">Local de entrega em mão</Label>
+                <Input
+                  id="meetup-location"
+                  value={meetupLocation}
+                  onChange={(e) => setMeetupLocation(e.target.value)}
+                  placeholder="Ex: Centro Comercial Colombo, Lisboa"
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
 
           {/* CPC Boost Section */}

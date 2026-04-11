@@ -9096,6 +9096,7 @@ export type Database = {
           cpc_total_spent: number | null
           created_at: string
           currency: string | null
+          delivery_mode: string
           description: string
           favorites_count: number | null
           featured_until: string | null
@@ -9103,6 +9104,7 @@ export type Database = {
           is_boosted: boolean | null
           is_featured: boolean | null
           location: string | null
+          meetup_location: string | null
           messages_count: number | null
           moderation_notes: string | null
           moderation_status: string | null
@@ -9112,6 +9114,7 @@ export type Database = {
           price_negotiable: boolean | null
           seller_id: string
           shipping_available: boolean | null
+          shipping_cost: number | null
           slug: string | null
           status: string
           title: string
@@ -9131,6 +9134,7 @@ export type Database = {
           cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
+          delivery_mode?: string
           description: string
           favorites_count?: number | null
           featured_until?: string | null
@@ -9138,6 +9142,7 @@ export type Database = {
           is_boosted?: boolean | null
           is_featured?: boolean | null
           location?: string | null
+          meetup_location?: string | null
           messages_count?: number | null
           moderation_notes?: string | null
           moderation_status?: string | null
@@ -9147,6 +9152,7 @@ export type Database = {
           price_negotiable?: boolean | null
           seller_id: string
           shipping_available?: boolean | null
+          shipping_cost?: number | null
           slug?: string | null
           status?: string
           title: string
@@ -9166,6 +9172,7 @@ export type Database = {
           cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
+          delivery_mode?: string
           description?: string
           favorites_count?: number | null
           featured_until?: string | null
@@ -9173,6 +9180,7 @@ export type Database = {
           is_boosted?: boolean | null
           is_featured?: boolean | null
           location?: string | null
+          meetup_location?: string | null
           messages_count?: number | null
           moderation_notes?: string | null
           moderation_status?: string | null
@@ -9182,6 +9190,7 @@ export type Database = {
           price_negotiable?: boolean | null
           seller_id?: string
           shipping_available?: boolean | null
+          shipping_cost?: number | null
           slug?: string | null
           status?: string
           title?: string
