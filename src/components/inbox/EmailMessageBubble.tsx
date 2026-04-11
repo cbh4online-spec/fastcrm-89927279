@@ -108,7 +108,7 @@ function HtmlEmailFrame({ html, isOutbound }: { html: string; isOutbound: boolea
     // Auto-resize after content loads
     const resize = () => {
       if (doc.body) {
-        const h = Math.min(doc.body.scrollHeight + 16, 600);
+        const h = Math.min(doc.body.scrollHeight + 16, 1200);
         setHeight(Math.max(h, 80));
       }
     };
@@ -153,7 +153,7 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
   return (
     <div className={cn("flex", isOutbound ? "justify-end" : "justify-start")}>
       <div className={cn(
-        "max-w-[85%] rounded-lg overflow-hidden",
+        "max-w-full rounded-lg overflow-hidden",
         isOutbound ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
       )}>
         {/* Email Header */}
@@ -216,7 +216,7 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
             isLongContent ? (
               <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
                 {!isExpanded && (
-                  <div className="relative" style={{ maxHeight: "150px", overflow: "hidden" }}>
+                  <div className="relative" style={{ maxHeight: "250px", overflow: "hidden" }}>
                     <HtmlEmailFrame html={cleanedContent} isOutbound={isOutbound} />
                     <div className={cn(
                       "absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t pointer-events-none",
