@@ -17,11 +17,10 @@ import { toast } from "sonner";
 
 interface SkuProduct {
   name: string;
-  description: string | null;
+  short_description: string | null;
   base_price: number;
   images: string[] | null;
   sku: string | null;
-  image_url: string | null;
 }
 
 function SkuLookup({
@@ -42,20 +41,21 @@ function SkuLookup({
     setResult(null);
     setNotFound(false);
     try {
-      const { data, error } = await supabase
+      const trimmed = skuQuery.trim();
+      const { data, error } = await (supabase
         .from("products")
-        .select("name, description, base_price, images, sku, image_url")
+        .select("name, short_description, base_price, images, sku")
         .eq("workspace_id", workspaceId)
-        .or(`sku.ilike.%${skuQuery.trim()}%,name.ilike.%${skuQuery.trim()}%`)
-        .limit(1);
+        .or(`sku.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
+        .limit(1) as any);
       if (error) throw error;
       if (data && data.length > 0) {
-        const p = data[0] as unknown as SkuProduct;
-        setResult(p);
+        setResult(data[0] as SkuProduct);
       } else {
         setNotFound(true);
       }
-    } catch {
+    } catch (err) {
+      console.error("SKU search error:", err);
       toast.error("Erro ao pesquisar produto");
     } finally {
       setSearching(false);
