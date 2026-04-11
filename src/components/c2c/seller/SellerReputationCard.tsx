@@ -1,14 +1,17 @@
-import { Star, Package, ThumbsUp, Clock, TrendingUp, ShieldCheck, Award, Sparkles, Zap } from "lucide-react";
+import { Star, Package, ThumbsUp, Clock, TrendingUp, ShieldCheck, Award, Sparkles, Zap, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useSellerEndorsements } from "@/hooks/useC2CEndorsements";
 import { EndorseSellerButton } from "./EndorseSellerButton";
+import { FollowSellerButton } from "./FollowSellerButton";
+import { useSellerFollowerCount, getFollowerMilestones } from "@/hooks/useC2CFollowers";
 
 interface SellerReputationCardProps {
   sellerId: string;
   workspaceId: string;
+  sellerUserId?: string;
   avgRating: number;
   totalReviews: number;
   totalSales: number;
