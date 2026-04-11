@@ -6,7 +6,7 @@ import {
   ExternalLink, Play, ArrowRight, Settings, Eye, Edit, Trash, Plus,
   Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell,
   GraduationCap, Stethoscope, Wrench, Palette, Music,
-  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram, Cpu
+  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram, Cpu, PawPrint
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
