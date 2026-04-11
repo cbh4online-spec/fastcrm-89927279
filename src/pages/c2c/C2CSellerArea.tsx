@@ -145,7 +145,7 @@ export default function C2CSellerArea() {
 
       {/* KPIs */}
       {analytics && (
-        <KPIGrid columns={5}>
+        <KPIGrid columns={4}>
           <KPICard
             title="Anúncios Ativos"
             value={analytics.activeListings}
