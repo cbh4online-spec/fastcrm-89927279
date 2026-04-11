@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { SellerStories } from "@/components/c2c/marketplace/SellerStories";
 
 /* ── Public listings ─────────────────────────────────────────────── */
 function usePublicListings(workspaceId: string | undefined, filters?: C2CListingFilters) {
