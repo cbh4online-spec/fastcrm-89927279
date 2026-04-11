@@ -456,6 +456,9 @@ export default function C2CCreateListing() {
       photos_360: photos360,
       videos,
       location: location || null,
+      delivery_mode: deliveryMode,
+      shipping_cost: deliveryMode !== "in_person" ? Number(shippingCost || 0) : 0,
+      meetup_location: deliveryMode !== "shipping" ? (meetupLocation || location || null) : null,
       status: "active",
     };
     if (cpcEnabled) {
