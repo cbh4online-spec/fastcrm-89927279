@@ -68,7 +68,7 @@ export function ShareButtons({
 
   const iconButtonClass = cn(
     "h-8 w-8 rounded-full",
-    isDark && "border border-zinc-700 bg-zinc-800/70 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100"
+    isDark && "border border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
   );
 
   return (
@@ -76,7 +76,7 @@ export function ShareButtons({
       <span
         className={cn(
           "text-sm flex items-center gap-1.5",
-          isDark ? "text-zinc-400" : "text-muted-foreground",
+          isDark ? "text-gray-500" : "text-muted-foreground",
           hideLabelOnMobile && "hidden md:flex"
         )}
       >
@@ -98,4 +98,3 @@ export function ShareButtons({
     </div>
   );
 }
-
