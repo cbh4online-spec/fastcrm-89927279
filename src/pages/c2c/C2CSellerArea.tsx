@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Loader2, Package, ShoppingBag, TrendingUp, Star, Plus, BarChart3,
   Zap, MessageSquare, ExternalLink, Copy, UserCircle, CheckCircle2,
-  Clock, XCircle, AlertTriangle, Store
+  Clock, XCircle, AlertTriangle, Store, DollarSign
 } from "lucide-react";
 
 const statusConfig = {
