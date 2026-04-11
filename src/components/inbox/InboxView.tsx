@@ -331,7 +331,7 @@ export function InboxView() {
               {/* Classic list view - master-detail on mobile */}
               <div className={cn(
                 "flex-shrink-0 border-r border-border",
-                isMobile ? "w-full" : "w-[340px] xl:w-[380px]",
+                isMobile ? "w-full" : "w-[280px] md:w-[340px] xl:w-[380px]",
                 mobileShowDetail && "hidden"
               )}>
                 <ConversationList
