@@ -17,11 +17,10 @@ import { toast } from "sonner";
 
 interface SkuProduct {
   name: string;
-  description: string | null;
+  short_description: string | null;
   base_price: number;
   images: string[] | null;
   sku: string | null;
-  image_url: string | null;
 }
 
 function SkuLookup({
@@ -42,20 +41,21 @@ function SkuLookup({
     setResult(null);
     setNotFound(false);
     try {
-      const { data, error } = await supabase
+      const trimmed = skuQuery.trim();
+      const { data, error } = await (supabase
         .from("products")
-        .select("name, description, base_price, images, sku, image_url")
+        .select("name, short_description, base_price, images, sku")
         .eq("workspace_id", workspaceId)
-        .or(`sku.ilike.%${skuQuery.trim()}%,name.ilike.%${skuQuery.trim()}%`)
-        .limit(1);
+        .or(`sku.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
+        .limit(1) as any);
       if (error) throw error;
       if (data && data.length > 0) {
-        const p = data[0] as unknown as SkuProduct;
-        setResult(p);
+        setResult(data[0] as SkuProduct);
       } else {
         setNotFound(true);
       }
-    } catch {
+    } catch (err) {
+      console.error("SKU search error:", err);
       toast.error("Erro ao pesquisar produto");
     } finally {
       setSearching(false);
@@ -88,8 +88,8 @@ function SkuLookup({
       </div>
       {result && (
         <div className="flex items-center gap-3 p-3 rounded-lg border bg-background">
-          {(result.images?.[0] || result.image_url) && (
-            <img src={result.images?.[0] || result.image_url!} alt="" className="w-12 h-12 rounded object-cover" />
+          {result.images?.[0] && (
+            <img src={result.images[0]} alt="" className="w-12 h-12 rounded object-cover" />
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{result.name}</p>
@@ -429,7 +429,7 @@ export default function C2CCreateListing() {
           workspaceId={workspaceId}
           onProductFound={(product) => {
             if (product.name) setTitle(product.name);
-            if (product.description) setDescription(product.description);
+            if (product.short_description) setDescription(product.short_description);
             if (product.base_price) setPrice(String(product.base_price));
             if (product.images?.length) setPhotos(product.images);
             toast.success("Produto encontrado e campos preenchidos!");
