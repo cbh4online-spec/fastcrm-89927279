@@ -189,7 +189,7 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
   }
 
   return (
-    <div className="h-full flex flex-col bg-card">
+    <div className="h-full min-h-0 min-w-0 flex flex-col bg-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2">

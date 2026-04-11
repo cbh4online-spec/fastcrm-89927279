@@ -277,7 +277,7 @@ export function InboxView() {
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* LEFT — Sidebar (hidden on mobile) */}
           {showSidebar && (
-            <div className="w-56 min-h-0 flex-shrink-0 border-r border-border hidden lg:block">
+            <div className="w-56 min-h-0 flex-shrink-0 border-r border-border hidden lg:block overflow-hidden">
               <InboxSidebar
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
@@ -353,7 +353,7 @@ export function InboxView() {
 
           {/* RIGHT — Context Panel (hidden on mobile) */}
           {showContextPanel && (
-            <div className="w-80 min-h-0 flex-shrink-0 border-l border-border hidden xl:block">
+            <div className="w-80 min-h-0 flex-shrink-0 border-l border-border hidden xl:block overflow-hidden">
               <InboxContextPanel
                 conversationId={selectedConversationId}
                 onClose={() => setShowContextPanel(false)}
