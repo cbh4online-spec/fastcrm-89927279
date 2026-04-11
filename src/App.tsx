@@ -172,6 +172,7 @@ const App = () => (
             </Suspense>
           </GTMProvider>
         </BrowserRouter>
+        </NuqsAdapter>
       </TooltipProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
