@@ -171,6 +171,32 @@ Deno.serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id });
 
+    // Auto-create buyer profile if authenticated and not yet existing
+    if (buyerUserId) {
+      const { data: existingBuyer } = await supabaseClient
+        .from("c2c_buyers")
+        .select("id")
+        .eq("user_id", buyerUserId)
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+
+      if (!existingBuyer) {
+        const { error: buyerError } = await supabaseClient
+          .from("c2c_buyers")
+          .insert({
+            user_id: buyerUserId,
+            workspace_id: workspaceId,
+            display_name: buyerName || email?.split("@")[0] || null,
+            phone: null,
+          });
+        if (buyerError) {
+          logStep("Buyer profile creation error (non-blocking)", { message: buyerError.message });
+        } else {
+          logStep("Buyer profile auto-created");
+        }
+      }
+    }
+
     // Mark listing as reserved (pending sale)
     await supabaseClient
       .from("c2c_listings")
