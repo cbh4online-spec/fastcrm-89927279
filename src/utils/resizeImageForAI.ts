@@ -37,6 +37,11 @@ export async function resizeImageForAI(
 
 /* ── helpers ─────────────────────────────────────────────── */
 
+function stripDataUrlPrefix(dataUrl: string): string {
+  const idx = dataUrl.indexOf(",");
+  return idx >= 0 ? dataUrl.substring(idx + 1) : dataUrl;
+}
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
