@@ -19,7 +19,7 @@ const BOOST_PRICES = {
 };
 
 const PREMIUM_PRICE = {
-  amount: 999, // €9.99/month
+  amount: 2999, // €29.99/month
   label: "Vendedor Premium",
 };
 
