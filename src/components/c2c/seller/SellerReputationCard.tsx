@@ -83,6 +83,7 @@ function computeRepBadges(opts: {
 export function SellerReputationCard({
   sellerId,
   workspaceId,
+  sellerUserId,
   avgRating,
   totalReviews,
   totalSales,
@@ -91,6 +92,7 @@ export function SellerReputationCard({
   className,
 }: SellerReputationCardProps) {
   const { data: endorsements = [] } = useSellerEndorsements(sellerId);
+  const { data: followerCount = 0 } = useSellerFollowerCount(sellerId);
   const totalEndorsements = endorsements.length;
 
   const badges = computeRepBadges({
@@ -100,6 +102,17 @@ export function SellerReputationCard({
     isVerified,
     totalEndorsements,
   });
+
+  // Add follower milestone badges
+  const followerMilestones = getFollowerMilestones(followerCount);
+  const followerBadges: BadgeInfo[] = followerMilestones.map((m) => ({
+    key: `followers-${m.key}`,
+    label: `${m.emoji} ${m.label}`,
+    icon: <Users className="h-3.5 w-3.5" />,
+    color: m.color,
+    tooltip: m.tooltip,
+  }));
+  const allBadges = [...badges, ...followerBadges];
 
   const ratingLevel =
     avgRating >= 4.5
