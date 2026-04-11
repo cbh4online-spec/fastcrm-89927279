@@ -94,8 +94,9 @@ export default function C2CSellerProfile() {
         {/* Reputation Card */}
         {sellerId && workspaceId && (
           <SellerReputationCard
-            sellerId={sellerId}
+            sellerId={seller?.id || sellerId}
             workspaceId={workspaceId}
+            sellerUserId={sellerId}
             avgRating={reviewData?.average || 0}
             totalReviews={reviewData?.count || 0}
             totalSales={listings.length}
