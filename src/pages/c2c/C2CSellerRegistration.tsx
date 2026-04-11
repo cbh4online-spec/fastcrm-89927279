@@ -100,6 +100,7 @@ export default function C2CSellerRegistration() {
     );
   }
 
+  usePublicMarketplaceTheme();
 
 
 
