@@ -10233,6 +10233,41 @@ export type Database = {
           },
         ]
       }
+      c2c_seller_endorsements: {
+        Row: {
+          created_at: string
+          endorser_id: string
+          id: string
+          message: string | null
+          seller_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          endorser_id: string
+          id?: string
+          message?: string | null
+          seller_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          endorser_id?: string
+          id?: string
+          message?: string | null
+          seller_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_endorsements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_seller_invites: {
         Row: {
           accepted_at: string | null
@@ -10318,6 +10353,53 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "c2c_sellers_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_seller_reviews: {
+        Row: {
+          buyer_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_reported: boolean
+          order_id: string | null
+          rating: number
+          seller_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buyer_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_reported?: boolean
+          order_id?: string | null
+          rating: number
+          seller_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buyer_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_reported?: boolean
+          order_id?: string | null
+          rating?: number
+          seller_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_reviews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -63046,6 +63128,7 @@ export type Database = {
       }
       get_public_table_count: { Args: never; Returns: number }
       get_rls_policy_count: { Args: never; Returns: number }
+      get_seller_stats: { Args: { p_seller_id: string }; Returns: Json }
       get_sj_permission: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: string
