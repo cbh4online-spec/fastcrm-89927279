@@ -99,12 +99,8 @@ export default function C2CSellerRegistration() {
     );
   }
 
-  // Already registered — approved sellers go straight to create listing
-  useEffect(() => {
-    if (sellerProfile?.status === "approved") {
-      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
-    }
-  }, [sellerProfile, workspaceSlug, navigate]);
+
+
 
   if (sellerProfile) {
     // If approved, the useEffect above will redirect — show nothing briefly
