@@ -16,7 +16,7 @@ const iconMap: Record<string, LucideIcon> = {
   ExternalLink, Play, ArrowRight, Settings, Eye, Edit, Trash, Plus,
   Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell,
   GraduationCap, Stethoscope, Wrench, Palette, Music,
-  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram
+  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram, Cpu
 };
 
 // Industry icon categories for the editor picker
