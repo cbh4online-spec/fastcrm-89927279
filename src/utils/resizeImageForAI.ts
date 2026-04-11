@@ -1,10 +1,22 @@
 /**
- * Resize an image (base64 string or File) so that neither dimension exceeds
- * `maxDimension` pixels. Returns a base64 data-URL (JPEG).
+ * Resize an image (base64 string, File or Blob) so that neither dimension
+ * exceeds `maxDimension` pixels.  Returns **raw base64** (no data-URL prefix).
  *
  * Works entirely in the browser via Canvas.
  */
 export async function resizeImageForAI(
+  base64OrFile: string | File | Blob,
+  maxDimension = 1568,
+): Promise<string> {
+  const dataUrl = await resizeImageForAIAsDataUrl(base64OrFile, maxDimension);
+  return stripDataUrlPrefix(dataUrl);
+}
+
+/**
+ * Same as `resizeImageForAI` but returns a full `data:image/jpeg;base64,…`
+ * data-URL — handy when the consumer expects the prefix.
+ */
+export async function resizeImageForAIAsDataUrl(
   base64OrFile: string | File | Blob,
   maxDimension = 1568,
 ): Promise<string> {
@@ -16,7 +28,7 @@ export async function resizeImageForAI(
 
   const { width, height } = img;
   if (width <= maxDimension && height <= maxDimension) {
-    return stripDataUrlPrefix(src);
+    return src;
   }
 
   const scale = Math.min(maxDimension / width, maxDimension / height);
@@ -32,7 +44,7 @@ export async function resizeImageForAI(
 
   ctx.drawImage(img, 0, 0, newW, newH);
 
-  return stripDataUrlPrefix(canvas.toDataURL("image/jpeg", 0.85));
+  return canvas.toDataURL("image/jpeg", 0.85);
 }
 
 /* ── helpers ─────────────────────────────────────────────── */

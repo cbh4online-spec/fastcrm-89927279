@@ -225,16 +225,8 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
     setImagePreviewUrl(objectUrl);
 
     try {
-      // Convert to base64
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const { resizeImageForAI } = await import("@/utils/resizeImageForAI");
+      const base64 = await resizeImageForAI(file);
 
       const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
         body: { mode: "image-to-product", imageBase64: base64 },
