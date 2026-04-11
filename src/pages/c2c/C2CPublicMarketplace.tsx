@@ -353,64 +353,180 @@ function FeatureDetailDialog({ feature, open, onOpenChange }: {
   );
 }
 
-/* ── Hero Section ────────────────────────────────────────────────── */
+/* ── Hero Banner Carousel (Vinted-style) ─────────────────────────── */
+import heroBanner1 from "@/assets/marketplace/hero-banner-1.jpg";
+import heroBanner2 from "@/assets/marketplace/hero-banner-2.jpg";
+import heroBanner3 from "@/assets/marketplace/hero-banner-3.jpg";
+
+const HERO_BANNERS = [
+  {
+    image: heroBanner1,
+    tag: "Novo",
+    headline: "Compra e vende\nentre utilizadores reais",
+    subtitle: "O teu marketplace de confiança. Sem taxas para compradores.",
+    ctaLabel: "Explorar",
+    ctaSecondary: "Vender agora",
+    gradient: "from-[#09B1BA]/90 via-[#09B1BA]/60 to-transparent",
+  },
+  {
+    image: heroBanner2,
+    tag: "Tendências",
+    headline: "Milhares de artigos\nà tua espera",
+    subtitle: "Moda, eletrónica, livros, desporto e muito mais.",
+    ctaLabel: "Descobrir",
+    ctaSecondary: "Publicar anúncio",
+    gradient: "from-gray-900/80 via-gray-900/50 to-transparent",
+  },
+  {
+    image: heroBanner3,
+    tag: "Sustentável",
+    headline: "Dá nova vida\naos teus objetos",
+    subtitle: "Publica em 2 minutos. Comissão de apenas 5%.",
+    ctaLabel: "Começar",
+    ctaSecondary: "Como funciona",
+    gradient: "from-[#09B1BA]/85 via-[#09B1BA]/50 to-transparent",
+  },
+];
+
 function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () => void }) {
-  const [selectedFeature, setSelectedFeature] = useState<typeof featureDetails[number] | null>(null);
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  // Auto-advance
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDirection(1);
+      setCurrent((p) => (p + 1) % HERO_BANNERS.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const goTo = (idx: number) => {
+    setDirection(idx > current ? 1 : -1);
+    setCurrent(idx);
+  };
+
+  const banner = HERO_BANNERS[current];
+
+  const slideVariants = {
+    enter: (d: number) => ({ x: d > 0 ? "100%" : "-100%", opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d: number) => ({ x: d > 0 ? "-100%" : "100%", opacity: 0 }),
+  };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-[#09B1BA]/5">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(9,177,186,0.08),transparent_50%)]" />
-      <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
-        <div className="grid md:grid-cols-2 gap-10 items-center">
-           <div className="space-y-6">
-            <Badge className="bg-[#09B1BA]/10 text-[#09B1BA] hover:bg-[#09B1BA]/20 border-[#09B1BA]/20 text-xs">
-              <Sparkles className="h-3 w-3 mr-1" /> Marketplace C2C
-            </Badge>
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight text-gray-900">
-              Compra e vende entre<br />
-              <span className="text-[#09B1BA]">utilizadores reais</span>
-            </h1>
-            <p className="text-lg text-gray-500 max-w-md">
-              O teu marketplace de confiança. Publica os teus produtos, 
-              encontra oportunidades e negoceia diretamente.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="w-full sm:w-auto gap-2 rounded-full font-semibold bg-[#09B1BA] hover:bg-[#078E96] text-white border-0" onClick={onExplore}>
-                <Search className="h-4 w-4" />
-                Explorar Produtos
-              </Button>
-              <Button size="lg" variant="ghost" className="w-full sm:w-auto gap-2 rounded-full font-semibold border border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900" onClick={onSell}>
-                <Plus className="h-4 w-4" />
-                Começar a Vender
-              </Button>
+    <section className="relative overflow-hidden bg-gray-900" style={{ height: "clamp(320px, 50vw, 480px)" }}>
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <motion.div
+          key={current}
+          custom={direction}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+          className="absolute inset-0"
+        >
+          {/* Background image */}
+          <img
+            src={banner.image}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            width={1920}
+            height={640}
+          />
+          {/* Gradient overlay */}
+          <div className={cn("absolute inset-0 bg-gradient-to-r", banner.gradient)} />
+
+          {/* Content */}
+          <div className="relative h-full container mx-auto px-4 flex items-center">
+            <div className="max-w-lg space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+              >
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs font-semibold">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {banner.tag}
+                </Badge>
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="text-3xl md:text-5xl font-extrabold leading-tight text-white whitespace-pre-line drop-shadow-lg"
+              >
+                {banner.headline}
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-base md:text-lg text-white/90 max-w-md drop-shadow"
+              >
+                {banner.subtitle}
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="flex flex-wrap gap-3 pt-2"
+              >
+                <Button
+                  size="lg"
+                  className="rounded-full font-semibold bg-white text-[#09B1BA] hover:bg-gray-100 border-0 shadow-lg gap-2"
+                  onClick={onExplore}
+                >
+                  <Search className="h-4 w-4" />
+                  {banner.ctaLabel}
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="rounded-full font-semibold text-white border border-white/40 hover:bg-white/20 hover:text-white gap-2"
+                  onClick={onSell}
+                >
+                  <Plus className="h-4 w-4" />
+                  {banner.ctaSecondary}
+                </Button>
+              </motion.div>
             </div>
           </div>
+        </motion.div>
+      </AnimatePresence>
 
-          <div className="hidden md:grid grid-cols-2 gap-4">
-            {featureDetails.map((feat) => {
-              const Icon = feat.icon;
-              return (
-                <button
-                  key={feat.label}
-                  onClick={() => setSelectedFeature(feat)}
-                  className="bg-white backdrop-blur-sm rounded-xl p-4 border border-gray-200 hover:border-[#09B1BA]/30 hover:shadow-md transition-all text-left cursor-pointer group"
-                >
-                  <Icon className="h-6 w-6 mb-2 text-[#09B1BA] group-hover:scale-110 transition-transform" />
-                  <h3 className="font-semibold text-sm text-gray-900">{feat.label}</h3>
-                  <p className="text-xs text-gray-500">{feat.desc}</p>
-                  <span className="text-[10px] text-[#09B1BA]/60 mt-1 block group-hover:text-[#09B1BA] transition-colors">Saber mais →</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Dots navigation */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
+        {HERO_BANNERS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={cn(
+              "h-2 rounded-full transition-all duration-500",
+              i === current ? "w-8 bg-white" : "w-2 bg-white/50 hover:bg-white/70"
+            )}
+            aria-label={`Banner ${i + 1}`}
+          />
+        ))}
       </div>
 
-      <FeatureDetailDialog
-        feature={selectedFeature}
-        open={!!selectedFeature}
-        onOpenChange={(open) => !open && setSelectedFeature(null)}
-      />
+      {/* Side arrows */}
+      <button
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/40 transition-colors hidden md:flex"
+        onClick={() => { setDirection(-1); setCurrent((p) => (p - 1 + HERO_BANNERS.length) % HERO_BANNERS.length); }}
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-black/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/40 transition-colors hidden md:flex"
+        onClick={() => { setDirection(1); setCurrent((p) => (p + 1) % HERO_BANNERS.length); }}
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
     </section>
   );
 }
