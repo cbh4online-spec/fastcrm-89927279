@@ -384,6 +384,25 @@ Deno.serve(async (req) => {
             if (photos && photos.length > 0) pageImage = photos[0];
           }
           pageUrl = `${BASE_URL}/marketplace/${wsSlug}/${listingId}`;
+
+          // Early return for crawlers with product-specific OG
+          if (isCrawler(userAgent)) {
+            const esc2 = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            let extraTags = `<meta property="og:image:width" content="800"/>\n<meta property="og:image:height" content="800"/>`;
+            if (listing?.price) {
+              extraTags += `\n<meta property="product:price:amount" content="${esc2(Number(listing.price).toFixed(2))}"/>`;
+              extraTags += `\n<meta property="product:price:currency" content="EUR"/>`;
+            }
+            const html = buildOgHtml(pageTitle, pageDescription, pageImage, pageUrl, extraTags, "product");
+            return new Response(html, {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" },
+            });
+          }
+          return new Response(null, {
+            status: 302,
+            headers: { ...corsHeaders, Location: pageUrl },
+          });
         }
       }
     }
