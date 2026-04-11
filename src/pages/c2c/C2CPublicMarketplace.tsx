@@ -522,7 +522,7 @@ export default function C2CPublicMarketplace() {
               <div className="p-1.5 rounded-lg bg-[#09B1BA]/10">
                 <Store className="w-5 h-5 text-[#09B1BA]" />
               </div>
-              <h1 className="text-base sm:text-lg font-bold leading-tight text-gray-900">{workspace.name}</h1>
+              <h1 className="text-base sm:text-lg font-bold leading-tight text-gray-900">{marketplaceName}</h1>
             </div>
 
             <div className="order-3 w-full md:order-none md:flex-1 md:max-w-xl md:mx-auto">
@@ -690,7 +690,7 @@ export default function C2CPublicMarketplace() {
         </div>
       </main>
 
-      <MarketplaceFooter workspaceName={workspace.name} workspaceSlug={workspace.slug} />
+      <MarketplaceFooter workspaceName={marketplaceName} workspaceSlug={workspace.slug} />
 
       <MarketplaceSearchOverlay
         open={searchOpen}
