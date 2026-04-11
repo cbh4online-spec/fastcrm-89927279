@@ -265,7 +265,7 @@ export default function C2CBuyerArea() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 {profile.is_verified ? (
-                  <Badge className="bg-green-100 text-green-800">Verificado</Badge>
+                  <Badge variant="secondary" className="text-green-800 dark:text-green-300">Verificado</Badge>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <AlertTriangle className="h-4 w-4" />
