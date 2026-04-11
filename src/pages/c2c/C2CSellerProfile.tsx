@@ -9,6 +9,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ArrowLeft, Star, ShieldCheck, Calendar, Package } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { SellerReputationCard } from "@/components/c2c/seller/SellerReputationCard";
 
 function useSellerProfile(sellerId: string | undefined) {
   return useQuery({
