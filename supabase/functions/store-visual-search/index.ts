@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { image } = await req.json();
+    const { image, workspace_id } = await req.json();
 
     // AI Gate — enforce credit consumption
     if (workspace_id) {
