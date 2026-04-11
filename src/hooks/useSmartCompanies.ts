@@ -63,6 +63,7 @@ export interface SmartCompaniesFilters {
   industry?: string | "all";
   smartFilter?: SmartFilterType;
   companyType?: CompanyType | "all";
+  sortBy?: string;
   page?: number;
   pageSize?: number;
 }

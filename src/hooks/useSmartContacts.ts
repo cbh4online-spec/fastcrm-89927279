@@ -47,6 +47,7 @@ export interface SmartContactsFilters {
   smartFilter?: SmartFilterType;
   company?: string;
   contactType?: ContactType | "all";
+  sortBy?: string;
   page?: number;
   pageSize?: number;
 }
