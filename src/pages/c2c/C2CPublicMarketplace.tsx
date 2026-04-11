@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -75,43 +76,144 @@ function usePublicCategories(workspaceId: string | undefined) {
   });
 }
 
-/* ── Category carousel (reusable) ────────────────────────────────── */
+/* ── Category carousel 3D ────────────────────────────────── */
 function CategoryCarousel({ categories, onSelect, selected }: {
   categories: C2CCategory[];
   onSelect: (id: string | undefined) => void;
   selected?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   const scroll = (dir: "left" | "right") => {
     scrollRef.current?.scrollBy({ left: dir === "left" ? -300 : 300, behavior: "smooth" });
   };
+
   if (categories.length === 0) return null;
+
   return (
-    <div className="relative">
-      <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hidden md:flex" onClick={() => scroll("left")}>
-        <ChevronLeft className="h-4 w-4" />
+    <div className="relative py-4">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/60 text-gray-600 hidden md:flex hover:bg-white hover:shadow-xl transition-all"
+        onClick={() => scroll("left")}
+      >
+        <ChevronLeft className="h-5 w-5" />
       </Button>
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-2 px-1">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => onSelect(selected === cat.id ? undefined : cat.id)}
-            className={cn(
-              "flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition-all shrink-0 snap-start min-w-[100px] hover:shadow-md",
-              selected === cat.id ? "bg-[#09B1BA]/10 border-[#09B1BA] shadow-sm text-[#09B1BA]" : "bg-white border-gray-200 hover:border-[#09B1BA]/30 text-gray-600"
-            )}
-          >
-            {cat.image_url ? (
-              <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain rounded-lg" />
-            ) : (
-              <span className="text-2xl">{cat.icon || "📦"}</span>
-            )}
-            <span className="text-xs font-medium text-center leading-tight">{cat.name}</span>
-          </button>
-        ))}
+
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x py-3 px-2"
+        style={{ perspective: "1000px" }}
+      >
+        {categories.map((cat, index) => {
+          const isSelected = selected === cat.id;
+          const isHovered = hoveredId === cat.id;
+
+          return (
+            <motion.button
+              key={cat.id}
+              initial={{ opacity: 0, rotateY: -30, scale: 0.8 }}
+              animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+              transition={{ delay: index * 0.06, type: "spring", stiffness: 200, damping: 20 }}
+              whileHover={{
+                rotateY: 8,
+                rotateX: -5,
+                scale: 1.08,
+                z: 50,
+                transition: { type: "spring", stiffness: 300, damping: 15 },
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onSelect(isSelected ? undefined : cat.id)}
+              onMouseEnter={() => setHoveredId(cat.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className={cn(
+                "flex flex-col items-center gap-3 px-5 py-4 rounded-2xl border-2 shrink-0 snap-start min-w-[120px] relative overflow-hidden",
+                "transition-colors duration-300",
+                isSelected
+                  ? "bg-gradient-to-br from-[#09B1BA]/15 to-[#09B1BA]/5 border-[#09B1BA] shadow-lg shadow-[#09B1BA]/20"
+                  : "bg-white border-gray-200/80 hover:border-[#09B1BA]/40"
+              )}
+              style={{
+                transformStyle: "preserve-3d",
+                boxShadow: isHovered
+                  ? "0 20px 40px -15px rgba(9, 177, 186, 0.25), 0 10px 20px -10px rgba(0,0,0,0.1)"
+                  : isSelected
+                  ? "0 10px 30px -10px rgba(9, 177, 186, 0.3)"
+                  : "0 4px 12px -4px rgba(0,0,0,0.08)",
+              }}
+            >
+              {/* Glow effect */}
+              <motion.div
+                className="absolute inset-0 rounded-2xl opacity-0 bg-gradient-to-br from-[#09B1BA]/10 to-transparent"
+                animate={{ opacity: isHovered || isSelected ? 1 : 0 }}
+                transition={{ duration: 0.3 }}
+              />
+
+              {/* 3D Icon container */}
+              <motion.div
+                className={cn(
+                  "relative w-14 h-14 rounded-xl flex items-center justify-center",
+                  "bg-gradient-to-br",
+                  isSelected
+                    ? "from-[#09B1BA] to-[#078E96] text-white"
+                    : "from-gray-100 to-gray-50 text-gray-500"
+                )}
+                style={{ transformStyle: "preserve-3d", transform: "translateZ(20px)" }}
+                animate={{
+                  rotateZ: isHovered ? [0, -5, 5, 0] : 0,
+                }}
+                transition={{ duration: 0.5 }}
+              >
+                {cat.image_url ? (
+                  <img src={cat.image_url} alt={cat.name} className="w-9 h-9 object-contain rounded-lg" />
+                ) : (
+                  <span className="text-2xl">{cat.icon || "📦"}</span>
+                )}
+
+                {/* Shine effect */}
+                <motion.div
+                  className="absolute inset-0 rounded-xl bg-gradient-to-tr from-transparent via-white/30 to-transparent"
+                  animate={{
+                    x: isHovered ? ["-100%", "200%"] : "-100%",
+                  }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  style={{ clipPath: "inset(0)" }}
+                />
+              </motion.div>
+
+              {/* Label */}
+              <motion.span
+                className={cn(
+                  "text-xs font-semibold text-center leading-tight relative z-10",
+                  isSelected ? "text-[#09B1BA]" : "text-gray-600"
+                )}
+                style={{ transform: "translateZ(10px)" }}
+              >
+                {cat.name}
+              </motion.span>
+
+              {/* Selection indicator */}
+              {isSelected && (
+                <motion.div
+                  layoutId="category-indicator"
+                  className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-[#09B1BA]"
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                />
+              )}
+            </motion.button>
+          );
+        })}
       </div>
-      <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hidden md:flex" onClick={() => scroll("right")}>
-        <ChevronRight className="h-4 w-4" />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/60 text-gray-600 hidden md:flex hover:bg-white hover:shadow-xl transition-all"
+        onClick={() => scroll("right")}
+      >
+        <ChevronRight className="h-5 w-5" />
       </Button>
     </div>
   );
