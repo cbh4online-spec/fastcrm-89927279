@@ -71,6 +71,21 @@ function parsePathToTypeSlug(path: string): { type: string; slug: string } | nul
   if (c2cListingMatch) {
     return { type: "c2c-listing", slug: `${c2cListingMatch[1]}/${c2cListingMatch[2]}` };
   }
+  // /marketplace/{wsSlug}/listing/{id}
+  const marketplaceListingMatch = path.match(/^\/marketplace\/([^/]+)\/listing\/([^/]+)/);
+  if (marketplaceListingMatch) {
+    return { type: "c2c-listing", slug: `${marketplaceListingMatch[1]}/${marketplaceListingMatch[2]}` };
+  }
+  // /marketplace/{wsSlug}/seller/{id}
+  const marketplaceSellerMatch = path.match(/^\/marketplace\/([^/]+)\/seller\/([^/]+)/);
+  if (marketplaceSellerMatch) {
+    return { type: "c2c-seller", slug: `${marketplaceSellerMatch[1]}/${marketplaceSellerMatch[2]}` };
+  }
+  // /marketplace/{wsSlug}
+  const marketplaceMatch = path.match(/^\/marketplace\/([^/]+)\/?$/);
+  if (marketplaceMatch) {
+    return { type: "c2c", slug: marketplaceMatch[1] };
+  }
   // /c2c/{wsSlug}/seller/{id}
   const c2cSellerMatch = path.match(/^\/c2c\/([^/]+)\/seller\/([^/]+)/);
   if (c2cSellerMatch) {
@@ -335,15 +350,15 @@ Deno.serve(async (req) => {
           const [wsSlug, listingId] = parts;
           const { data: listing } = await supabase
             .from("c2c_listings")
-            .select("title, description, price, images")
+            .select("title, description, price, photos")
             .eq("id", listingId)
             .maybeSingle();
           if (listing) {
             const priceStr = listing.price ? ` — ${Number(listing.price).toFixed(2)}€` : "";
             pageTitle = `${listing.title || "Anúncio"}${priceStr}`;
             pageDescription = listing.description || `Vê este anúncio no marketplace C2C.`;
-            const images = listing.images as string[] | null;
-            if (images && images.length > 0) pageImage = images[0];
+            const photos = listing.photos as string[] | null;
+            if (photos && photos.length > 0) pageImage = photos[0];
           }
           pageUrl = `${BASE_URL}/c2c/${wsSlug}/listing/${listingId}`;
         }

@@ -18,7 +18,7 @@ const OG_PROXY_BASE = "https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/og-
 
 const CRAWLER_UA_REGEX = /facebookexternalhit|Facebot|facebook\.com|WhatsApp|Twitterbot|Slackbot|LinkedInBot|Discordbot|TelegramBot|Applebot|Pinterestbot|redditbot|vkShare|Viber|SkypeUriPreview|ia_archiver|Googlebot|bingbot|Baiduspider|YandexBot/i;
 
-const INTERCEPTED_PREFIXES = ["/store/", "/bio/", "/p/", "/c2c/"];
+const INTERCEPTED_PREFIXES = ["/store/", "/bio/", "/p/", "/c2c/", "/marketplace/"];
 
 export default {
   async fetch(request) {
