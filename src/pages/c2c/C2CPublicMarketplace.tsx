@@ -438,14 +438,16 @@ export default function C2CPublicMarketplace() {
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
+  const { data: marketplaceConfig } = useMarketplaceConfig(workspaceSlug);
   const { data: storeSettings } = usePublicStoreSettings(workspaceId || "");
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
 
-  const ogTitle = storeSettings?.store_name ? `${storeSettings.store_name} — Marketplace C2C` : `${workspace?.name || "Marketplace"} — C2C`;
-  const ogDescription = storeSettings?.store_description || `Explora o marketplace de ${workspace?.name || ""}. Compra e vende entre utilizadores reais.`;
-  const ogImage = storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
+  const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
+  const ogTitle = `${marketplaceName} — Marketplace C2C`;
+  const ogDescription = marketplaceConfig?.description || storeSettings?.store_description || `Explora o marketplace de ${marketplaceName}. Compra e vende entre utilizadores reais.`;
+  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
   const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
   const shareUrl = getShareUrl("store", workspaceSlug || "");
 
