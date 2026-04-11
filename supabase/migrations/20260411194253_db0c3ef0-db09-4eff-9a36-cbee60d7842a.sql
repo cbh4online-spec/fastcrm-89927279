@@ -1,0 +1,1 @@
+DELETE FROM c2c_categories WHERE name = 'Outros';
