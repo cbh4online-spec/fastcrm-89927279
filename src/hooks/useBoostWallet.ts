@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 export function useBoostWallet() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const wsId = currentWorkspace?.id;
   const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Get seller id
   const { data: seller } = useQuery({
@@ -75,6 +78,45 @@ export function useBoostWallet() {
     enabled: !!wsId,
   });
 
+  // Verify purchase mutation
+  const verifyPurchase = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { data, error } = await supabase.functions.invoke("verify-boost-credit-purchase", {
+        body: { sessionId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { success: boolean; credits?: number; already_processed?: boolean };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["boost-wallet"] });
+      qc.invalidateQueries({ queryKey: ["boost-transactions"] });
+      if (data.success && !data.already_processed) {
+        toast.success(`${data.credits} créditos adicionados à sua carteira!`);
+      } else if (data.already_processed) {
+        toast.info("Esta compra já foi processada.");
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao verificar compra");
+    },
+  });
+
+  // Auto-verify on return from Stripe
+  useEffect(() => {
+    const purchase = searchParams.get("purchase");
+    const sessionId = searchParams.get("session_id");
+    if (purchase === "success" && sessionId) {
+      verifyPurchase.mutate(sessionId);
+      // Clean URL params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("purchase");
+      newParams.delete("session_id");
+      newParams.delete("credits");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams]);
+
   // Buy credits
   const buyCredits = useMutation({
     mutationFn: async (credits: number) => {
@@ -88,11 +130,6 @@ export function useBoostWallet() {
     },
     onSuccess: (data) => {
       if (data.url) window.open(data.url, "_blank");
-      // Refresh wallet after a delay
-      setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["boost-wallet"] });
-        qc.invalidateQueries({ queryKey: ["boost-transactions"] });
-      }, 2000);
     },
     onError: (err: Error) => {
       toast.error(err.message || "Erro ao comprar créditos");
