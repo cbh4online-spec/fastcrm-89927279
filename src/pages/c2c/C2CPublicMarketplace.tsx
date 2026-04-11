@@ -563,6 +563,9 @@ export default function C2CPublicMarketplace() {
 
       {/* Listings content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
+        {/* Seller Stories */}
+        <SellerStories workspaceId={workspaceId} />
+
         <div>
           <CategoryCarousel
             categories={categories}
