@@ -1,14 +1,17 @@
-import { Star, Package, ThumbsUp, Clock, TrendingUp, ShieldCheck, Award, Sparkles, Zap } from "lucide-react";
+import { Star, Package, ThumbsUp, Clock, TrendingUp, ShieldCheck, Award, Sparkles, Zap, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useSellerEndorsements } from "@/hooks/useC2CEndorsements";
 import { EndorseSellerButton } from "./EndorseSellerButton";
+import { FollowSellerButton } from "./FollowSellerButton";
+import { useSellerFollowerCount, getFollowerMilestones } from "@/hooks/useC2CFollowers";
 
 interface SellerReputationCardProps {
   sellerId: string;
   workspaceId: string;
+  sellerUserId?: string;
   avgRating: number;
   totalReviews: number;
   totalSales: number;
@@ -80,6 +83,7 @@ function computeRepBadges(opts: {
 export function SellerReputationCard({
   sellerId,
   workspaceId,
+  sellerUserId,
   avgRating,
   totalReviews,
   totalSales,
@@ -88,6 +92,7 @@ export function SellerReputationCard({
   className,
 }: SellerReputationCardProps) {
   const { data: endorsements = [] } = useSellerEndorsements(sellerId);
+  const { data: followerCount = 0 } = useSellerFollowerCount(sellerId);
   const totalEndorsements = endorsements.length;
 
   const badges = computeRepBadges({
@@ -97,6 +102,17 @@ export function SellerReputationCard({
     isVerified,
     totalEndorsements,
   });
+
+  // Add follower milestone badges
+  const followerMilestones = getFollowerMilestones(followerCount);
+  const followerBadges: BadgeInfo[] = followerMilestones.map((m) => ({
+    key: `followers-${m.key}`,
+    label: `${m.emoji} ${m.label}`,
+    icon: <Users className="h-3.5 w-3.5" />,
+    color: m.color,
+    tooltip: m.tooltip,
+  }));
+  const allBadges = [...badges, ...followerBadges];
 
   const ratingLevel =
     avgRating >= 4.5
@@ -148,23 +164,23 @@ export function SellerReputationCard({
               label="Vendas"
             />
             <MetricItem
+              icon={<Users className="h-4 w-4 text-teal-500" />}
+              value={followerCount.toString()}
+              label="Seguidores"
+            />
+            <MetricItem
               icon={<ThumbsUp className="h-4 w-4 text-purple-500" />}
               value={totalEndorsements.toString()}
               label="Recomendações"
-            />
-            <MetricItem
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-              value={formatMemberSince(memberSince)}
-              label="Na plataforma"
             />
           </div>
         </div>
 
         {/* Badges */}
-        {badges.length > 0 && (
+        {allBadges.length > 0 && (
           <TooltipProvider>
             <div className="flex flex-wrap gap-1.5">
-              {badges.map((badge) => (
+              {allBadges.map((badge) => (
                 <Tooltip key={badge.key}>
                   <TooltipTrigger asChild>
                     <Badge
@@ -187,12 +203,24 @@ export function SellerReputationCard({
           </TooltipProvider>
         )}
 
-        {/* Endorse button */}
-        <EndorseSellerButton
-          sellerId={sellerId}
-          workspaceId={workspaceId}
-          endorsements={endorsements}
-        />
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <FollowSellerButton
+              sellerId={sellerId}
+              workspaceId={workspaceId}
+              sellerUserId={sellerUserId}
+              className="w-full"
+            />
+          </div>
+          <div className="flex-1">
+            <EndorseSellerButton
+              sellerId={sellerId}
+              workspaceId={workspaceId}
+              endorsements={endorsements}
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
