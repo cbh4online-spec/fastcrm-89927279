@@ -54,59 +54,59 @@ export function C2CPublicOfferDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" className="w-full gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 h-12 text-base font-semibold">
+          <Button variant="outline" className="w-full gap-2 border-[#09B1BA]/30 text-[#09B1BA] hover:bg-[#09B1BA]/10 hover:text-[#078E96] h-12 text-base font-semibold">
             <HandCoins className="h-5 w-5" />
             {t('makeOffer')}
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-700 text-zinc-100">
+      <DialogContent className="sm:max-w-md bg-white border-gray-200 text-gray-900">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-zinc-100">
-            <HandCoins className="h-5 w-5 text-amber-400" />
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
+            <HandCoins className="h-5 w-5 text-[#09B1BA]" />
             {t('makeOffer')}
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
-            {t('yourProposal')} — <strong className="text-zinc-200">{listingTitle}</strong>
+          <DialogDescription className="text-gray-500">
+            {t('yourProposal')} — <strong className="text-gray-800">{listingTitle}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          <div className="flex items-baseline gap-2 text-sm text-zinc-400">
+          <div className="flex items-baseline gap-2 text-sm text-gray-500">
             <span>{t('currentPrice')}:</span>
-            <span className="font-semibold text-amber-400 text-lg">{originalPrice.toFixed(0)}€</span>
+            <span className="font-semibold text-[#09B1BA] text-lg">{originalPrice.toFixed(0)}€</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-zinc-300">{t('personalInfo').split(' ')[0]} *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('sellerNamePlaceholder')} className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500" />
+              <Label className="text-gray-600">{t('personalInfo').split(' ')[0]} *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('sellerNamePlaceholder')} className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-zinc-300">Email *</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500" />
+              <Label className="text-gray-600">Email *</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400" />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-zinc-300">{t('phone')} ({t('offerMessage').replace(t('offerMessage'), 'opcional')})</Label>
-            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+351 912 345 678" className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500" />
+            <Label className="text-gray-600">{t('phone')} ({t('offerMessage').replace(t('offerMessage'), 'opcional')})</Label>
+            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+351 912 345 678" className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400" />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-zinc-300">{t('yourOffer')} (€) *</Label>
-            <Input type="number" step="0.01" min={minPrice} max={originalPrice} value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Mínimo ${minPrice.toFixed(0)}€`} className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500" />
+            <Label className="text-gray-600">{t('yourOffer')} (€) *</Label>
+            <Input type="number" step="0.01" min={minPrice} max={originalPrice} value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Mínimo ${minPrice.toFixed(0)}€`} className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400" />
             {price && offeredPrice < minPrice && (
-              <p className="text-xs text-red-400">Oferta mínima: {minPrice.toFixed(0)}€ (50%)</p>
+              <p className="text-xs text-red-500">Oferta mínima: {minPrice.toFixed(0)}€ (50%)</p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-zinc-300">{t('offerMessage')}</Label>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t('offerMessagePlaceholder')} rows={2} className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500" />
+            <Label className="text-gray-600">{t('offerMessage')}</Label>
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t('offerMessagePlaceholder')} rows={2} className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400" />
           </div>
 
-          <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-11" onClick={handleSubmit} disabled={!isValid || createOffer.isPending}>
+          <Button className="w-full bg-[#09B1BA] hover:bg-[#078E96] text-white font-semibold h-11" onClick={handleSubmit} disabled={!isValid || createOffer.isPending}>
             {createOffer.isPending ? t('submitting') : `${t('sendOffer')} — ${offeredPrice ? offeredPrice.toFixed(0) : "0"}€`}
           </Button>
         </div>

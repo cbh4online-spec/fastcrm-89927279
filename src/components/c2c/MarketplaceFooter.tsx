@@ -53,12 +53,12 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
   ];
 
   return (
-    <footer className="border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-sm">
+    <footer className="border-t border-gray-200 bg-white">
       {/* Main columns */}
       <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {columns.map((col) => (
           <div key={col.title}>
-            <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4">
               {col.title}
             </h3>
             <ul className="space-y-2.5">
@@ -66,7 +66,7 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-sm text-zinc-400 hover:text-amber-400 transition-colors"
+                    className="text-sm text-gray-500 hover:text-[#09B1BA] transition-colors"
                   >
                     {link.label}
                   </a>
@@ -78,7 +78,7 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
       </div>
 
       {/* Divider */}
-      <div className="border-t border-zinc-800" />
+      <div className="border-t border-gray-200" />
 
       {/* Bottom bar */}
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -91,7 +91,7 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
                 key={s.label}
                 href={s.href}
                 aria-label={s.label}
-                className="p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-lg text-gray-400 hover:text-[#09B1BA] hover:bg-gray-100 transition-colors"
               >
                 <Icon className="h-4 w-4" />
               </a>
@@ -105,7 +105,7 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
             <a
               key={l.label}
               href={l.href}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               {l.label}
             </a>
@@ -114,10 +114,10 @@ export function MarketplaceFooter({ workspaceName, workspaceSlug }: MarketplaceF
 
         {/* Right — copyright */}
         <div className="text-center md:text-right">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-gray-400">
             © {year} {workspaceName}
           </p>
-          <p className="text-[10px] text-zinc-600 flex items-center justify-center md:justify-end gap-1 mt-0.5">
+          <p className="text-[10px] text-gray-300 flex items-center justify-center md:justify-end gap-1 mt-0.5">
             <ShieldCheck className="h-3 w-3" /> Pagamentos protegidos · 5% comissão
           </p>
         </div>

@@ -52,27 +52,27 @@ export default function C2CPublicCategoryPage() {
       <Helmet>
         <title>{categoryData?.name || category} — Marketplace</title>
       </Helmet>
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
+      <div className="min-h-screen bg-white text-gray-900">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200">
           <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
               onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-semibold text-zinc-100">{categoryData?.name || category}</h1>
-            <span className="text-xs text-zinc-500">{listings.length} anúncios</span>
+            <h1 className="text-lg font-semibold text-gray-900">{categoryData?.name || category}</h1>
+            <span className="text-xs text-gray-400">{listings.length} anúncios</span>
           </div>
         </header>
 
         <main className="max-w-6xl mx-auto px-4 py-6">
           {pageLoading ? (
-            <p className="text-zinc-500">A carregar...</p>
+            <p className="text-gray-400">A carregar...</p>
           ) : listings.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500">
+            <div className="text-center py-16 text-gray-400">
               <p>Sem anúncios nesta categoria</p>
             </div>
           ) : (

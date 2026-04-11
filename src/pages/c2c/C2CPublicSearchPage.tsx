@@ -55,28 +55,28 @@ export default function C2CPublicSearchPage() {
       <Helmet>
         <title>{q ? `"${q}" — Pesquisa` : "Pesquisa"} — Marketplace</title>
       </Helmet>
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
+      <div className="min-h-screen bg-white text-gray-900">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200">
           <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
               onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <form onSubmit={handleSearch} className="flex-1 flex gap-2 min-w-[240px]">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Pesquisar anúncios..."
-                  className="pl-9 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                  className="pl-9 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
-              <Button type="submit" size="sm" className="bg-amber-500 text-zinc-950 hover:bg-amber-600 border-0">
+              <Button type="submit" size="sm" className="bg-[#09B1BA] text-white hover:bg-[#078E96] border-0">
                 Pesquisar
               </Button>
             </form>
@@ -85,19 +85,19 @@ export default function C2CPublicSearchPage() {
 
         <main className="max-w-6xl mx-auto px-4 py-6">
           {!q ? (
-            <div className="text-center py-16 text-zinc-500">
+            <div className="text-center py-16 text-gray-400">
               <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
               <p>Pesquisa por artigos no marketplace</p>
             </div>
           ) : pageLoading ? (
-            <p className="text-zinc-500">A pesquisar "{q}"...</p>
+            <p className="text-gray-400">A pesquisar "{q}"...</p>
           ) : listings.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500">
+            <div className="text-center py-16 text-gray-400">
               <p>Sem resultados para "{q}"</p>
             </div>
           ) : (
             <>
-              <p className="text-sm text-zinc-500 mb-4">{listings.length} resultado(s) para "{q}"</p>
+              <p className="text-sm text-gray-400 mb-4">{listings.length} resultado(s) para "{q}"</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {listings.map((listing) => (
                   <ListingCard

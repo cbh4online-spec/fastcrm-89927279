@@ -29,7 +29,6 @@ interface C2CQuickCheckoutDialogProps {
     delivery_mode?: string;
   };
   workspaceId: string;
-  /** If user is authenticated, pre-fill email */
   userEmail?: string;
   userName?: string;
   isAuthenticated?: boolean;
@@ -54,7 +53,6 @@ export function C2CQuickCheckoutDialog({
   const showShipping = deliveryMode !== "in_person";
   const showMeetup = deliveryMode !== "shipping";
 
-  // Load shipping options
   useEffect(() => {
     if (open && showShipping) {
       setLoadingShipping(true);
@@ -67,7 +65,6 @@ export function C2CQuickCheckoutDialog({
     }
   }, [open, showShipping]);
 
-  // Reset on close
   useEffect(() => {
     if (!open) {
       setStep(isAuthenticated ? "shipping" : "info");
@@ -116,53 +113,53 @@ export function C2CQuickCheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto border-zinc-700 bg-zinc-900 text-zinc-100 rounded-xl">
+      <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto border-gray-200 bg-white text-gray-900 rounded-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-zinc-100">
-            <ShoppingBag className="h-5 w-5 text-amber-400" />
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
+            <ShoppingBag className="h-5 w-5 text-[#09B1BA]" />
             Comprar Agora
           </DialogTitle>
-          <DialogDescription className="truncate text-zinc-400">
+          <DialogDescription className="truncate text-gray-500">
             {listing.title}
           </DialogDescription>
         </DialogHeader>
 
         {/* Order summary */}
-        <div className="rounded-lg border border-zinc-700 bg-zinc-800/60 p-3 space-y-1.5">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
           <div className="flex items-center gap-3">
             {listing.photos?.[0] && (
               <img src={listing.photos[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-zinc-100">{listing.title}</p>
-              <p className="text-lg font-bold text-amber-400">{listing.price.toFixed(2)}€</p>
+              <p className="text-sm font-medium truncate text-gray-900">{listing.title}</p>
+              <p className="text-lg font-bold text-[#09B1BA]">{listing.price.toFixed(2)}€</p>
             </div>
           </div>
         </div>
 
-        {/* Step 1: Buyer info (public only) */}
+        {/* Step 1: Buyer info */}
         {step === "info" && (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-zinc-300">Nome *</Label>
+              <Label className="text-gray-600">Nome *</Label>
               <Input
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="O teu nome"
-                className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-zinc-300">Email *</Label>
+              <Label className="text-gray-600">Email *</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="email@exemplo.com"
-                className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
               />
             </div>
-            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-zinc-950" onClick={() => setStep("shipping")} disabled={!infoValid}>
+            <Button className="w-full bg-[#09B1BA] hover:bg-[#078E96] text-white" onClick={() => setStep("shipping")} disabled={!infoValid}>
               Continuar
             </Button>
           </div>
@@ -171,18 +168,17 @@ export function C2CQuickCheckoutDialog({
         {/* Step 2: Shipping */}
         {step === "shipping" && (
           <div className="space-y-3">
-            {/* Shipping/Meetup tabs */}
             {showShipping && showMeetup && (
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShippingTab("shipping"); setSelectedShipping(null); }}
-                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "shipping" ? "bg-amber-500/10 border-amber-500 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}
+                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "shipping" ? "bg-[#09B1BA]/10 border-[#09B1BA] text-[#09B1BA]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
                 >
                   <Package className="h-4 w-4 inline mr-1.5" /> Envio
                 </button>
                 <button
                   onClick={() => { setShippingTab("in_person"); setSelectedShipping(null); }}
-                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "in_person" ? "bg-amber-500/10 border-amber-500 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}
+                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "in_person" ? "bg-[#09B1BA]/10 border-[#09B1BA] text-[#09B1BA]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
                 >
                   <MapPin className="h-4 w-4 inline mr-1.5" /> Entrega em mão
                 </button>
@@ -191,7 +187,7 @@ export function C2CQuickCheckoutDialog({
 
             {shippingTab === "shipping" && showShipping && (
               loadingShipping ? (
-                <div className="flex items-center justify-center py-6 text-sm text-zinc-500">
+                <div className="flex items-center justify-center py-6 text-sm text-gray-400">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" /> A carregar opções...
                 </div>
               ) : (
@@ -199,16 +195,16 @@ export function C2CQuickCheckoutDialog({
                   {shippingOptions.map(opt => (
                     <div
                       key={opt.id}
-                      className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-all ${selectedShipping === opt.id ? "border-amber-500 bg-amber-500/5 shadow-sm" : "border-zinc-700 hover:border-zinc-500"}`}
+                      className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-all ${selectedShipping === opt.id ? "border-[#09B1BA] bg-[#09B1BA]/5 shadow-sm" : "border-gray-200 hover:border-gray-300"}`}
                     >
                       <RadioGroupItem value={opt.id} id={`co-${opt.id}`} />
                       <Label htmlFor={`co-${opt.id}`} className="flex-1 cursor-pointer">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-sm font-medium text-zinc-200">{opt.name}</p>
-                            <p className="text-xs text-zinc-500">{opt.estimate}</p>
+                            <p className="text-sm font-medium text-gray-800">{opt.name}</p>
+                            <p className="text-xs text-gray-400">{opt.estimate}</p>
                           </div>
-                          <span className="text-sm font-bold text-zinc-200">{opt.price.toFixed(2)}€</span>
+                          <span className="text-sm font-bold text-gray-800">{opt.price.toFixed(2)}€</span>
                         </div>
                       </Label>
                     </div>
@@ -219,58 +215,58 @@ export function C2CQuickCheckoutDialog({
 
             {shippingTab === "in_person" && showMeetup && (
               <div className="space-y-2">
-                <p className="text-xs text-zinc-500">Combina o local de entrega com o vendedor.</p>
+                <p className="text-xs text-gray-400">Combina o local de entrega com o vendedor.</p>
                 <Input
                   placeholder="Local sugerido (ex: Lisboa, estação X...)"
                   value={meetupLocation}
                   onChange={e => setMeetupLocation(e.target.value)}
-                  className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                  className="bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"
                 />
-                <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+                <div className="flex items-center gap-1.5 text-xs text-[#09B1BA] font-medium">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Entrega gratuita
                 </div>
               </div>
             )}
 
             {/* Total */}
-            <div className="rounded-lg border border-zinc-700 p-3 space-y-1">
+            <div className="rounded-lg border border-gray-200 p-3 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Artigo</span>
-                <span className="text-zinc-200">{listing.price.toFixed(2)}€</span>
+                <span className="text-gray-400">Artigo</span>
+                <span className="text-gray-800">{listing.price.toFixed(2)}€</span>
               </div>
               {shippingCost > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Envio</span>
-                  <span className="text-zinc-200">{shippingCost.toFixed(2)}€</span>
+                  <span className="text-gray-400">Envio</span>
+                  <span className="text-gray-800">{shippingCost.toFixed(2)}€</span>
                 </div>
               )}
               {shippingTab === "in_person" && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Envio</span>
-                  <span className="text-amber-400 font-medium">Grátis</span>
+                  <span className="text-gray-400">Envio</span>
+                  <span className="text-[#09B1BA] font-medium">Grátis</span>
                 </div>
               )}
-              <div className="border-t border-zinc-700 pt-1 flex justify-between font-bold">
-                <span className="text-zinc-200">Total</span>
-                <span className="text-amber-400">{total.toFixed(2)}€</span>
+              <div className="border-t border-gray-200 pt-1 flex justify-between font-bold">
+                <span className="text-gray-800">Total</span>
+                <span className="text-[#09B1BA]">{total.toFixed(2)}€</span>
               </div>
             </div>
 
             {/* Trust signals */}
-            <div className="flex items-center gap-4 text-[11px] text-zinc-500">
-              <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-amber-400" /> Pagamento seguro</span>
-              <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5 text-amber-400" /> Stripe</span>
+            <div className="flex items-center gap-4 text-[11px] text-gray-400">
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-[#09B1BA]" /> Pagamento seguro</span>
+              <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5 text-[#09B1BA]" /> Stripe</span>
             </div>
 
             {/* Back + Buy */}
             <div className="flex gap-2">
               {!isAuthenticated && (
-                <Button variant="outline" onClick={() => setStep("info")} className="flex-shrink-0 border-zinc-700 text-zinc-200 hover:bg-zinc-800">
+                <Button variant="outline" onClick={() => setStep("info")} className="flex-shrink-0 border-gray-200 text-gray-800 hover:bg-gray-100">
                   Voltar
                 </Button>
               )}
               <Button
-                className="flex-1 h-12 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-950"
+                className="flex-1 h-12 text-base font-semibold bg-[#09B1BA] hover:bg-[#078E96] text-white"
                 onClick={handleCheckout}
                 disabled={submitting || !shippingValid}
               >
