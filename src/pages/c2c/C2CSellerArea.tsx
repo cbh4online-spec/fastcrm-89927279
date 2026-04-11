@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Loader2, Package, ShoppingBag, TrendingUp, Star, Plus, BarChart3,
   Zap, MessageSquare, ExternalLink, Copy, UserCircle, CheckCircle2,
-  Clock, XCircle, AlertTriangle, Store
+  Clock, XCircle, AlertTriangle, Store, DollarSign
 } from "lucide-react";
 
 const statusConfig = {
@@ -151,6 +151,13 @@ export default function C2CSellerArea() {
             value={analytics.activeListings}
             icon={<Package className="h-4 w-4" />}
             variant="primary"
+          />
+          <KPICard
+            title="Valor em Venda"
+            value={`${analytics.activeListingsValue.toFixed(2)}€`}
+            icon={<DollarSign className="h-4 w-4" />}
+            variant="primary"
+            description={`${analytics.activeListings} anúncios`}
           />
           <KPICard
             title="Total Vendas"

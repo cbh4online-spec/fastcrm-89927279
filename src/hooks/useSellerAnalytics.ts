@@ -11,6 +11,7 @@ export interface SellerAnalytics {
   avgRating: number;
   totalReviews: number;
   activeListings: number;
+  activeListingsValue: number;
   soldListings: number;
   activeBoosts: number;
   monthlySales: { month: string; sales: number; revenue: number }[];
@@ -56,6 +57,13 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
           .eq("workspace_id", workspaceId)
           .eq("status", "active");
 
+        const { data: activeListingsData } = await supabase
+          .from("c2c_listings")
+          .select("price")
+          .eq("workspace_id", workspaceId)
+          .eq("status", "active");
+        const activeListingsValue = (activeListingsData || []).reduce((s, l) => s + Number(l.price || 0), 0);
+
         const { count: soldListings } = await supabase
           .from("c2c_listings")
           .select("id", { count: "exact", head: true })
@@ -93,6 +101,7 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
           avgRating,
           totalReviews,
           activeListings: activeListings || 0,
+          activeListingsValue,
           soldListings: soldListings || 0,
           activeBoosts: activeBoosts || 0,
           monthlySales,
@@ -126,6 +135,14 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
         .eq("seller_id", user.id)
         .eq("workspace_id", workspaceId)
         .eq("status", "active");
+
+      const { data: activeListingsData } = await supabase
+        .from("c2c_listings")
+        .select("price")
+        .eq("seller_id", user.id)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active");
+      const activeListingsValue = (activeListingsData || []).reduce((s, l) => s + Number(l.price || 0), 0);
 
       const { count: soldListings } = await supabase
         .from("c2c_listings")
@@ -166,6 +183,7 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
         avgRating: Number(seller.avg_rating || 0),
         totalReviews: seller.total_reviews || 0,
         activeListings: activeListings || 0,
+        activeListingsValue,
         soldListings: soldListings || 0,
         activeBoosts: activeBoosts || 0,
         monthlySales,
