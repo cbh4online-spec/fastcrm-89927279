@@ -81,6 +81,11 @@ function parsePathToTypeSlug(path: string): { type: string; slug: string } | nul
   if (marketplaceSellerMatch) {
     return { type: "c2c-seller", slug: `${marketplaceSellerMatch[1]}/${marketplaceSellerMatch[2]}` };
   }
+  // /marketplace/{wsSlug}/{listingId} (direct ID without /listing/ prefix)
+  const marketplaceDirectListingMatch = path.match(/^\/marketplace\/([^/]+)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i);
+  if (marketplaceDirectListingMatch) {
+    return { type: "c2c-listing", slug: `${marketplaceDirectListingMatch[1]}/${marketplaceDirectListingMatch[2]}` };
+  }
   // /marketplace/{wsSlug}
   const marketplaceMatch = path.match(/^\/marketplace\/([^/]+)\/?$/);
   if (marketplaceMatch) {
