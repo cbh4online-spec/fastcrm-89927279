@@ -104,15 +104,32 @@ function parsePathToTypeSlug(path: string): { type: string; slug: string } | nul
   return null;
 }
 
+/**
+ * Convert Supabase Storage object URLs to the render/image endpoint
+ * so crawlers get JPEG (Facebook doesn't support AVIF/WebP).
+ */
+function toFacebookSafeImage(imageUrl: string): string {
+  if (!imageUrl.includes("/storage/v1/object/public/")) return imageUrl;
+  // /storage/v1/object/public/... → /storage/v1/render/image/public/...
+  // The render endpoint auto-converts to JPEG
+  const transformed = imageUrl
+    .replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+  const separator = transformed.includes("?") ? "&" : "?";
+  return `${transformed}${separator}width=1200`;
+}
+
 function buildOgHtml(title: string, description: string, image: string, url: string, extra = "", ogType = "website"): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeImage = toFacebookSafeImage(image);
   return `<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8"/>
 <meta property="og:title" content="${esc(title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
-<meta property="og:image" content="${esc(image)}"/>
+<meta property="og:image" content="${esc(safeImage)}"/>
+<meta property="og:image:type" content="image/jpeg"/>
+<meta property="og:image:width" content="1200"/>
 <meta property="og:url" content="${esc(url)}"/>
 <meta property="og:type" content="${esc(ogType)}"/>
 <meta property="og:site_name" content="FastCRM"/>
@@ -120,7 +137,7 @@ ${extra}
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${esc(title)}"/>
 <meta name="twitter:description" content="${esc(description)}"/>
-<meta name="twitter:image" content="${esc(image)}"/>
+<meta name="twitter:image" content="${esc(safeImage)}"/>
 <meta http-equiv="refresh" content="0;url=${esc(url)}"/>
 <title>${esc(title)}</title>
 </head>
