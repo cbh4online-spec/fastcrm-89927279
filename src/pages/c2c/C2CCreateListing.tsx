@@ -206,6 +206,7 @@ export default function C2CCreateListing() {
   const [condition, setCondition] = useState("used");
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("1");
   const [deliveryMode, setDeliveryMode] = useState("both");
   const [shippingCost, setShippingCost] = useState("");
   const [meetupLocation, setMeetupLocation] = useState("");
@@ -451,6 +452,7 @@ export default function C2CCreateListing() {
       price: Number(price),
       currency: "EUR",
       condition: condition as any,
+      stock_quantity: Math.max(1, parseInt(stockQuantity) || 1),
       category_id: categoryId || null,
       photos,
       photos_360: photos360,
