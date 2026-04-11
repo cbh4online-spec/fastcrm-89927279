@@ -57,6 +57,13 @@ export function useSellerAnalytics(workspaceId: string | undefined) {
           .eq("workspace_id", workspaceId)
           .eq("status", "active");
 
+        const { data: activeListingsData } = await supabase
+          .from("c2c_listings")
+          .select("price")
+          .eq("workspace_id", workspaceId)
+          .eq("status", "active");
+        const activeListingsValue = (activeListingsData || []).reduce((s, l) => s + Number(l.price || 0), 0);
+
         const { count: soldListings } = await supabase
           .from("c2c_listings")
           .select("id", { count: "exact", head: true })
