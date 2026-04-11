@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
+import { useMarketplaceConfig } from "@/hooks/useMarketplace";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 
@@ -437,14 +438,16 @@ export default function C2CPublicMarketplace() {
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
+  const { data: marketplaceConfig } = useMarketplaceConfig(workspaceSlug);
   const { data: storeSettings } = usePublicStoreSettings(workspaceId || "");
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
 
-  const ogTitle = storeSettings?.store_name ? `${storeSettings.store_name} — Marketplace C2C` : `${workspace?.name || "Marketplace"} — C2C`;
-  const ogDescription = storeSettings?.store_description || `Explora o marketplace de ${workspace?.name || ""}. Compra e vende entre utilizadores reais.`;
-  const ogImage = storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
+  const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
+  const ogTitle = `${marketplaceName} — Marketplace C2C`;
+  const ogDescription = marketplaceConfig?.description || storeSettings?.store_description || `Explora o marketplace de ${marketplaceName}. Compra e vende entre utilizadores reais.`;
+  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
   const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
   const shareUrl = getShareUrl("store", workspaceSlug || "");
 
@@ -519,7 +522,7 @@ export default function C2CPublicMarketplace() {
               <div className="p-1.5 rounded-lg bg-[#09B1BA]/10">
                 <Store className="w-5 h-5 text-[#09B1BA]" />
               </div>
-              <h1 className="text-base sm:text-lg font-bold leading-tight text-gray-900">{workspace.name}</h1>
+              <h1 className="text-base sm:text-lg font-bold leading-tight text-gray-900">{marketplaceName}</h1>
             </div>
 
             <div className="order-3 w-full md:order-none md:flex-1 md:max-w-xl md:mx-auto">
@@ -687,7 +690,7 @@ export default function C2CPublicMarketplace() {
         </div>
       </main>
 
-      <MarketplaceFooter workspaceName={workspace.name} workspaceSlug={workspace.slug} />
+      <MarketplaceFooter workspaceName={marketplaceName} workspaceSlug={workspace.slug} />
 
       <MarketplaceSearchOverlay
         open={searchOpen}

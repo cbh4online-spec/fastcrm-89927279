@@ -50,18 +50,35 @@ export interface MarketplaceConfig {
   };
 }
 
-/** Fetch marketplace config by slug (public) */
+/** Fetch marketplace config by slug (public) — tries edge function, falls back to direct query */
 export function useMarketplaceConfig(slug: string | undefined) {
   return useQuery({
     queryKey: ["marketplace-config", slug],
     queryFn: async () => {
       if (!slug) throw new Error("Slug is required");
-      const { data, error } = await supabase.functions.invoke("get-marketplace-config", {
-        body: { slug },
-      });
-      if (error) throw error;
-      if (!data?.marketplace) throw new Error("Marketplace not found");
-      return data.marketplace as MarketplaceConfig;
+      // Try direct query first (faster, no edge function needed)
+      const { data: directData, error: directError } = await sb
+        .from("c2c_marketplace_config")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (directData) return directData as MarketplaceConfig;
+      // Fallback to edge function
+      try {
+        const { data, error } = await supabase.functions.invoke("get-marketplace-config", {
+          body: { slug },
+        });
+        if (!error && data?.marketplace) return data.marketplace as MarketplaceConfig;
+      } catch {}
+      // Also try matching by workspace slug
+      const { data: wsData } = await sb
+        .from("c2c_marketplace_config")
+        .select("*")
+        .eq("workspace_id", (
+          await supabase.from("workspaces").select("id").eq("slug", slug).maybeSingle()
+        ).data?.id)
+        .maybeSingle();
+      return (wsData as MarketplaceConfig) || null;
     },
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
