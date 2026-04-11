@@ -9117,6 +9117,7 @@ export type Database = {
           shipping_cost: number | null
           slug: string | null
           status: string
+          stock_quantity: number
           title: string
           updated_at: string
           videos: string[] | null
@@ -9155,6 +9156,7 @@ export type Database = {
           shipping_cost?: number | null
           slug?: string | null
           status?: string
+          stock_quantity?: number
           title: string
           updated_at?: string
           videos?: string[] | null
@@ -9193,6 +9195,7 @@ export type Database = {
           shipping_cost?: number | null
           slug?: string | null
           status?: string
+          stock_quantity?: number
           title?: string
           updated_at?: string
           videos?: string[] | null
