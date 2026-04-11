@@ -124,7 +124,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard/c2c/boost?purchase=success&credits=${credits}`,
+      success_url: `${req.headers.get("origin")}/dashboard/c2c/boost?purchase=success&session_id=${"{CHECKOUT_SESSION_ID}"}&credits=${credits}`,
       cancel_url: `${req.headers.get("origin")}/dashboard/c2c/boost`,
       metadata: {
         type: "boost_credits",
@@ -135,26 +135,10 @@ serve(async (req) => {
       },
     });
 
-    // For now, credit immediately (in production, use webhook)
-    // We credit on success_url redirect check or via webhook
-    // Simple approach: credit now and rely on Stripe session completion
-    await adminClient
-      .from("c2c_boost_wallets")
-      .update({ balance: (await adminClient.from("c2c_boost_wallets").select("balance").eq("id", wallet!.id).single()).data!.balance + credits })
-      .eq("id", wallet!.id);
+    // DO NOT credit here — credits are only added after payment verification
+    // via the verify-boost-credit-purchase edge function
 
-    await adminClient
-      .from("c2c_boost_transactions")
-      .insert({
-        wallet_id: wallet!.id,
-        workspace_id: workspaceId,
-        type: "purchase",
-        amount: credits,
-        description: `Compra de ${credits} créditos`,
-        stripe_session_id: session.id,
-      });
-
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
