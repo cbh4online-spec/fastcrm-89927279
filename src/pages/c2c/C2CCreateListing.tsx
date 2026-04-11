@@ -799,6 +799,22 @@ export default function C2CCreateListing() {
             </div>
           </div>
 
+          {/* Stock Quantity */}
+          <div>
+            <Label htmlFor="stockQuantity">Quantidade em stock</Label>
+            <Input
+              id="stockQuantity"
+              type="number"
+              min="1"
+              step="1"
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value)}
+              placeholder="1"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Número de unidades disponíveis para venda</p>
+          </div>
+
           {/* Category + Location */}
           <div className="grid grid-cols-2 gap-4">
             <div>
