@@ -54,6 +54,13 @@ export default function C2CSellerRegistration() {
     nif: "",
   });
 
+  // Already registered — approved sellers go straight to create listing
+  useEffect(() => {
+    if (sellerProfile?.status === "approved") {
+      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
+    }
+  }, [sellerProfile, workspaceSlug, navigate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.display_name.trim()) return;
