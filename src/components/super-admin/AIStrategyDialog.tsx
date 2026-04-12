@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check, Copy, TrendingUp, Package, Gift, Sparkles, Target, AlertTriangle } from "lucide-react";
+import { Check, Copy, TrendingUp, Package, Gift, Sparkles, Target, AlertTriangle, Plus, ClipboardList } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -42,7 +44,7 @@ export function AIStrategyDialog({ open, onOpenChange, action, result, onApplyFe
           <DialogDescription>{meta.description}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[65vh] pr-4">
-          {action === "market_research" && <MarketResearchView data={result} />}
+          {action === "market_research" && <MarketResearchView data={result} onApplyFeatures={onApplyFeatures} />}
           {action === "suggest_features_by_tier" && <FeaturesByTierView data={result} onApply={onApplyFeatures} />}
           {action === "suggest_modules" && <SuggestedModulesView data={result} />}
           {action === "suggest_bundles" && <BundlesView data={result} />}
@@ -53,11 +55,85 @@ export function AIStrategyDialog({ open, onOpenChange, action, result, onApplyFe
 }
 
 // ─── Market Research View ───
-function MarketResearchView({ data }: { data: any }) {
+function MarketResearchView({ data, onApplyFeatures }: { data: any; onApplyFeatures?: (planKey: string, features: string[]) => void }) {
   const competitors = data?.competitors || [];
   const gaps = data?.pricing_gaps || [];
   const mustHave = data?.must_have_features || [];
   const diffOps = data?.differentiation_opportunities || [];
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleItem = (item: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(item)) next.delete(item);
+      else next.add(item);
+      return next;
+    });
+  };
+
+  const toggleAll = (items: string[]) => {
+    setSelected((prev) => {
+      const allSelected = items.every((i) => prev.has(i));
+      const next = new Set(prev);
+      if (allSelected) items.forEach((i) => next.delete(i));
+      else items.forEach((i) => next.add(i));
+      return next;
+    });
+  };
+
+  const selectedItems = Array.from(selected);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(selectedItems.join("\n"));
+    toast.success(`${selectedItems.length} itens copiados!`);
+  };
+
+  const handleApplyToPlan = (planKey: string) => {
+    if (!onApplyFeatures) return;
+    onApplyFeatures(planKey, selectedItems);
+    toast.success(`${selectedItems.length} itens adicionados ao plano ${planKey.toUpperCase()}`);
+    setSelected(new Set());
+  };
+
+  const allSelectables = [...gaps, ...mustHave, ...diffOps];
+
+  const renderSelectableList = (items: string[], icon: React.ReactNode, label: string) => {
+    if (items.length === 0) return null;
+    const allChecked = items.every((i) => selected.has(i));
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">{label}</CardTitle>
+            <button
+              onClick={() => toggleAll(items)}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {allChecked ? "Desmarcar" : "Selecionar"} todos
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-1.5">
+            {items.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 group">
+                <Checkbox
+                  checked={selected.has(item)}
+                  onCheckedChange={() => toggleItem(item)}
+                  className="mt-0.5"
+                />
+                <span className="text-xs flex items-start gap-1 flex-1">
+                  {icon}
+                  {item}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -125,58 +201,44 @@ function MarketResearchView({ data }: { data: any }) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {gaps.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Gaps de Pricing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {gaps.map((g: string, i: number) => (
-                  <li key={i} className="text-xs flex items-start gap-1">
-                    <TrendingUp className="h-3 w-3 mt-0.5 text-primary shrink-0" />
-                    {g}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-        {mustHave.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Features Essenciais</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {mustHave.map((f: string, i: number) => (
-                  <li key={i} className="text-xs flex items-start gap-1">
-                    <Check className="h-3 w-3 mt-0.5 text-green-600 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-        {diffOps.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Oportunidades</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {diffOps.map((d: string, i: number) => (
-                  <li key={i} className="text-xs flex items-start gap-1">
-                    <Sparkles className="h-3 w-3 mt-0.5 text-primary shrink-0" />
-                    {d}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+        {renderSelectableList(gaps, <TrendingUp className="h-3 w-3 mt-0.5 text-primary shrink-0" />, "Gaps de Pricing")}
+        {renderSelectableList(mustHave, <Check className="h-3 w-3 mt-0.5 text-green-600 shrink-0" />, "Features Essenciais")}
+        {renderSelectableList(diffOps, <Sparkles className="h-3 w-3 mt-0.5 text-primary shrink-0" />, "Oportunidades")}
       </div>
+
+      {/* Action bar when items are selected */}
+      {selectedItems.length > 0 && (
+        <div className="sticky bottom-0 bg-background border rounded-lg p-3 shadow-lg flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">
+            {selectedItems.length} {selectedItems.length === 1 ? "item selecionado" : "itens selecionados"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar
+            </Button>
+            {onApplyFeatures && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar ao Plano
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleApplyToPlan("start")}>
+                    FASTCRM START
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleApplyToPlan("grow")}>
+                    FASTCRM GROW
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleApplyToPlan("pro")}>
+                    FASTCRM PRO
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
