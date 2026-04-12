@@ -15,7 +15,7 @@ const DEFAULTS: CompanyLegalData = {
   address_street: "",
   address_postal_code: "",
   address_city: "Portugal",
-  email_general: "geral@fastcrm.pt",
+  email_general: "online@metodopare.ai",
   email_dpo: "dpo@fastcrm.pt",
   phone: "",
 };
