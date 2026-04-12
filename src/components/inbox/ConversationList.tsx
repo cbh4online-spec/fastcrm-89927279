@@ -154,6 +154,7 @@ interface ConversationListProps {
   defaultChannel?: ConversationChannel | null;
   categoryFilter?: InboxCategory;
   channelFilter?: ConversationChannel;
+  activeView?: string | null;
 }
 
 export function ConversationList({
@@ -162,6 +163,7 @@ export function ConversationList({
   defaultChannel,
   categoryFilter,
   channelFilter: externalChannelFilter,
+  activeView,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
