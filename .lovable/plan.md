@@ -1,57 +1,43 @@
 
 
-# Plano: IA Pricing Avançada — Pesquisa de Mercado, Features, Módulos e Bundles
+# Plano: Ações aplicáveis na Pesquisa de Mercado
 
-## Situação Atual
-O botão "IA: Sugerir Preços" chama a action `suggest_prices` na edge function `pricing-ai-assistant`, que apenas sugere preços baseados em benchmarks genéricos. Já existem actions parciais (`generate_features`, `create_promotion`) mas não estão acessíveis de forma centralizada.
+## Problema
+A vista de Pesquisa de Mercado no `AIStrategyDialog` mostra dados (gaps, features essenciais, oportunidades de diferenciação) mas é apenas informativa — não permite aplicar nenhuma sugestão aos planos existentes.
 
 ## O que vamos construir
-Substituir o botão simples por um **dropdown/dialog de IA multi-ação** com 5 capacidades:
-
-1. **Pesquisa de Mercado** — Análise de concorrentes (HubSpot, Pipedrive, Monday, Zoho) com comparativo de preços, features e posicionamento
-2. **Sugerir Preços** — Manter a funcionalidade atual mas enriquecida com dados da pesquisa
-3. **Propor Features por Nível** — Gerar features diferenciadas para cada plano (START, GROW, PRO) com progressão lógica
-4. **Sugerir Módulos** — Recomendar novos módulos para o marketplace com pricing e segmentação
-5. **Construir Bundles & Promoções** — Gerar bundles temáticos e promoções com desconto, duração e segmento-alvo
+Adicionar checkboxes/seleção nas 3 secções acionáveis da Pesquisa de Mercado (Gaps de Pricing, Features Essenciais, Oportunidades) com um painel de ações que permite:
+1. **Adicionar features selecionadas** a um plano específico (START/GROW/PRO)
+2. **Copiar seleção** para clipboard como lista
+3. **Criar nota/tarefa** a partir das oportunidades selecionadas
 
 ## Alterações
 
-### 1. Edge Function `pricing-ai-assistant` — Novas actions
+### `src/components/super-admin/AIStrategyDialog.tsx`
 
-Adicionar 3 novas actions ao switch:
+**MarketResearchView** — transformar de read-only para interativo:
 
-- **`market_research`**: Prompt especializado que analisa concorrentes do mercado CRM europeu, retorna JSON com `{competitors: [{name, plans: [{tier, price, features}], positioning, strengths, weaknesses}], market_summary, pricing_gaps}`
-- **`suggest_features_by_tier`**: Analisa os 3 planos e gera features progressivas e diferenciadas por nível, retorna `{tiers: [{plan_key, features: string[], differentiators: string[]}], cross_tier_analysis}`
-- **`suggest_modules`**: Propõe novos módulos para o marketplace com base nos planos existentes, retorna `{modules: [{name, category, description, suggested_price, target_plan, reasoning}]}`
+- Adicionar `useState` para itens selecionados (gaps, must-haves, oportunidades) via checkboxes
+- Adicionar barra de ação fixa no fundo quando há itens selecionados: 
+  - **Dropdown "Adicionar ao Plano"** → START / GROW / PRO — chama `onApplyFeatures(planKey, selectedItems)`
+  - **Botão "Copiar Seleção"** → clipboard
+- Aceitar a prop `onApplyFeatures` (já existente no dialog mas não passada ao `MarketResearchView`)
 
-### 2. UI — Dropdown com ações IA no `PricingManagementSection.tsx`
+### `AIStrategyDialogProps` e passagem de props
+- Passar `onApplyFeatures` para o `MarketResearchView`
 
-Substituir o botão único por um **DropdownMenu** com as 5 opções:
-- 🔍 Pesquisa de Mercado
-- 💰 Sugerir Preços (existente)
-- ✨ Propor Features por Nível
-- 📦 Sugerir Módulos
-- 🎁 Criar Bundle/Promoção (existente)
+### Fluxo do utilizador
+1. Executa "Pesquisa de Mercado" via dropdown
+2. Dialog abre com resultados
+3. Seleciona features essenciais e oportunidades via checkboxes
+4. Clica "Adicionar ao Plano → GROW"
+5. Features são adicionadas ao plano GROW via `onApplyFeatures`
+6. Toast de confirmação
 
-### 3. Dialog de Resultados — `AIStrategyDialog.tsx`
-
-Novo componente dialog que apresenta os resultados de cada action de forma estruturada:
-- **Pesquisa de Mercado**: Tabela comparativa de concorrentes com preços e features
-- **Features por Nível**: Cards por plano com lista de features + botão "Aplicar" que atualiza o plano
-- **Módulos sugeridos**: Lista com botão para criar módulo no marketplace
-- **Bundles**: Detalhes da promoção com botão para criar bundle
-
-### Ficheiros a criar/editar
-
-| Ficheiro | Ação |
+### Ficheiros a editar
+| Ficheiro | Alteração |
 |---|---|
-| `supabase/functions/pricing-ai-assistant/index.ts` | Adicionar 3 actions novas |
-| `src/components/super-admin/PricingManagementSection.tsx` | Substituir botão por dropdown + integrar dialog |
-| `src/components/super-admin/AIStrategyDialog.tsx` | **Novo** — Dialog de resultados IA |
+| `src/components/super-admin/AIStrategyDialog.tsx` | Adicionar checkboxes, barra de ação, e lógica de seleção ao `MarketResearchView` |
 
-### Detalhes Técnicos
-- Todas as actions usam tool calling (structured output) para garantir JSON válido
-- Cada action consome créditos via `useAIGate` (tier medium)
-- Dialog permite aplicar sugestões diretamente (ex: atualizar features de um plano, criar módulo)
-- Pesquisa de mercado usa o modelo `google/gemini-2.5-pro` para melhor qualidade de análise; restantes usam `google/gemini-3-flash-preview`
+Nenhuma alteração backend necessária — reutiliza o `onApplyFeatures` já existente.
 
