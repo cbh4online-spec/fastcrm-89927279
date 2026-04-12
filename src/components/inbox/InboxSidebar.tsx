@@ -88,13 +88,14 @@ export function InboxSidebar({
   onCategoryChange,
   selectedChannel,
   onChannelChange,
+  activeView,
+  onViewChange,
 }: InboxSidebarProps) {
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [channelsOpen, setChannelsOpen] = useState(false);
   const [viewsOpen, setViewsOpen] = useState(true);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
-  const [activeView, setActiveView] = useState<string | null>(null);
 
   const { data: allConversations } = useConversations({});
 
