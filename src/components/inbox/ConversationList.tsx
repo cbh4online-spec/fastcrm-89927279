@@ -337,8 +337,13 @@ export function ConversationList({
       );
     }
 
+    // Filter by active view
+    if (activeView === "unread") {
+      filtered = filtered.filter(conv => conv.unread_count > 0);
+    }
+
     return filtered;
-  }, [conversations, search, activeTab]);
+  }, [conversations, search, activeTab, activeView]);
 
   // Sort conversations
   const processedConversations = useMemo(() => {
@@ -661,7 +666,7 @@ export function ConversationList({
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           {/* Line 1: Name + badges + Time */}
                           <div className="flex items-center gap-1.5">
                             <span className={cn(
