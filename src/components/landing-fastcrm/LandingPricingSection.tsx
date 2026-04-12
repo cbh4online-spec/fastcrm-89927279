@@ -343,6 +343,66 @@ export function LandingPricingSection() {
           ))}
         </div>
       </div>
+
+      {/* FAQ de Preços */}
+      <div className="max-w-3xl mx-auto px-6 mt-20">
+        <h3 className="text-2xl font-bold text-[hsl(210,40%,98%)] text-center mb-8">
+          Perguntas Frequentes sobre Preços
+        </h3>
+        <div className="space-y-3">
+          {[
+            {
+              q: "Preciso de cartão de crédito para começar?",
+              a: "Não. O plano Starter é 100% gratuito e não requer cartão de crédito. Pode experimentar o FastCRM sem qualquer compromisso financeiro.",
+            },
+            {
+              q: "Posso mudar de plano a qualquer momento?",
+              a: "Sim. Pode fazer upgrade ou downgrade do seu plano a qualquer momento. No upgrade, a diferença é cobrada proporcionalmente. No downgrade, o crédito restante é aplicado no próximo ciclo.",
+            },
+            {
+              q: "Como funciona a faturação anual?",
+              a: "Ao escolher o plano anual, poupa 20% face ao pagamento mensal. O valor total do ano é faturado de uma só vez e emitimos fatura com NIF para empresas portuguesas.",
+            },
+            {
+              q: "Existe um período de teste nos planos pagos?",
+              a: "Sim. Todos os planos pagos incluem 14 dias de teste grátis com acesso completo a todas as funcionalidades. Pode cancelar antes do fim do período sem qualquer custo.",
+            },
+            {
+              q: "Que métodos de pagamento aceitam?",
+              a: "Aceitamos Visa, Mastercard, American Express e débito direto SEPA. Todos os pagamentos são processados de forma segura via Stripe. Emitimos fatura portuguesa com IVA incluído.",
+            },
+          ].map((faq, i) => (
+            <PricingFaqItem key={i} question={faq.q} answer={faq.a} />
+          ))}
+        </div>
+      </div>
     </section>
+  );
+}
+
+function PricingFaqItem({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-[hsl(210,40%,98%)/0.08] rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-[hsl(210,40%,98%)/0.03] transition-colors"
+      >
+        <span className="text-sm font-medium text-[hsl(210,40%,98%)]">{question}</span>
+        <ChevronDown className={`h-4 w-4 text-[hsl(210,40%,98%)/0.5] shrink-0 ml-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <p className="px-4 pb-4 text-sm text-[hsl(210,40%,98%)/0.6] leading-relaxed">{answer}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
