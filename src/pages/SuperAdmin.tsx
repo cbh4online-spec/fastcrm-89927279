@@ -13,7 +13,7 @@ import {
   AlertsSection,
   LogsSection,
   AIUsageSection,
-  PlansSection,
+  
   UsersSection,
   MenuPermissionsSection,
   FunctionalAuditSection,
