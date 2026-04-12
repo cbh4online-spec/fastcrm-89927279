@@ -633,7 +633,7 @@ export function ConversationList({
                       )}
                       onClick={() => !selectionMode && onSelect(conv.id)}
                     >
-                      <div className="flex items-center gap-2 px-3">
+                      <div className="flex items-center gap-2 px-3 max-w-full">
                         {/* Unread indicator — left bar */}
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full transition-all",
