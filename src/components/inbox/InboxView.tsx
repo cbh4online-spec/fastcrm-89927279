@@ -37,6 +37,7 @@ export function InboxView() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
+  const [activeView, setActiveView] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem("inbox-view-mode") as ViewMode) || "list";
@@ -226,7 +227,7 @@ export function InboxView() {
               </div>
             </div>
           ) : (
-            <InboxMetricsBar />
+            <InboxMetricsBar onFilterUnread={() => setActiveView(activeView === "unread" ? null : "unread")} isUnreadActive={activeView === "unread"} />
           )}
 
           <div className="flex items-center gap-1">
@@ -298,6 +299,8 @@ export function InboxView() {
                     });
                   }
                 }}
+                activeView={activeView}
+                onViewChange={setActiveView}
               />
             </div>
           )}
@@ -340,6 +343,7 @@ export function InboxView() {
                   defaultChannel={channelParam || undefined}
                   categoryFilter={selectedCategory}
                   channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
+                  activeView={activeView}
                 />
               </div>
               <div className={cn(

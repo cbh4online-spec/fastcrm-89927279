@@ -13,7 +13,12 @@ import { AutopilotToggle } from "./AutopilotToggle";
 import { SmartAlertsPopover } from "./SmartAlertsPopover";
 import { cn } from "@/lib/utils";
 
-export function InboxMetricsBar() {
+interface InboxMetricsBarProps {
+  onFilterUnread?: () => void;
+  isUnreadActive?: boolean;
+}
+
+export function InboxMetricsBar({ onFilterUnread, isUnreadActive }: InboxMetricsBarProps) {
   const { data: conversations } = useConversations();
   const { data: emailConnection } = useActiveEmailConnection();
   const syncEmail = useSyncEmail();
@@ -57,14 +62,20 @@ export function InboxMetricsBar() {
           
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className={cn(
-                unreadCount > 0 ? "text-primary font-medium" : "text-muted-foreground"
-              )}>
+              <button
+                onClick={onFilterUnread}
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 transition-colors",
+                  isUnreadActive
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : unreadCount > 0 ? "text-primary font-medium hover:bg-primary/5" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
                 {unreadCount} <span className="font-normal">não lidas</span>
-              </span>
+              </button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Total de mensagens não lidas</p>
+              <p>{isUnreadActive ? "Limpar filtro de não lidas" : "Filtrar apenas não lidas"}</p>
             </TooltipContent>
           </Tooltip>
         </div>

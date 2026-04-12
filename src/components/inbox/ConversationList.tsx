@@ -154,6 +154,7 @@ interface ConversationListProps {
   defaultChannel?: ConversationChannel | null;
   categoryFilter?: InboxCategory;
   channelFilter?: ConversationChannel;
+  activeView?: string | null;
 }
 
 export function ConversationList({
@@ -162,6 +163,7 @@ export function ConversationList({
   defaultChannel,
   categoryFilter,
   channelFilter: externalChannelFilter,
+  activeView,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
@@ -335,8 +337,13 @@ export function ConversationList({
       );
     }
 
+    // Filter by active view
+    if (activeView === "unread") {
+      filtered = filtered.filter(conv => conv.unread_count > 0);
+    }
+
     return filtered;
-  }, [conversations, search, activeTab]);
+  }, [conversations, search, activeTab, activeView]);
 
   // Sort conversations
   const processedConversations = useMemo(() => {
@@ -626,7 +633,7 @@ export function ConversationList({
                       )}
                       onClick={() => !selectionMode && onSelect(conv.id)}
                     >
-                      <div className="flex items-center gap-2 px-3">
+                      <div className="flex items-center gap-2 px-3 max-w-full">
                         {/* Unread indicator — left bar */}
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full transition-all",
@@ -659,7 +666,7 @@ export function ConversationList({
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           {/* Line 1: Name + badges + Time */}
                           <div className="flex items-center gap-1.5">
                             <span className={cn(

@@ -63,6 +63,8 @@ interface InboxSidebarProps {
   onCategoryChange: (category: InboxCategory) => void;
   selectedChannel: ChannelFilter;
   onChannelChange: (channel: ChannelFilter) => void;
+  activeView: string | null;
+  onViewChange: (view: string | null) => void;
 }
 
 interface FolderItem {
@@ -86,13 +88,14 @@ export function InboxSidebar({
   onCategoryChange,
   selectedChannel,
   onChannelChange,
+  activeView,
+  onViewChange,
 }: InboxSidebarProps) {
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [channelsOpen, setChannelsOpen] = useState(false);
   const [viewsOpen, setViewsOpen] = useState(true);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
-  const [activeView, setActiveView] = useState<string | null>(null);
 
   const { data: allConversations } = useConversations({});
 
@@ -133,11 +136,12 @@ export function InboxSidebar({
   // Views ordered by priority
   const views: ViewItem[] = [
     { id: "urgent", label: "Urgente", icon: AlertTriangle, priority: 1, badge: urgentCount > 0 ? { label: String(urgentCount), variant: "destructive" } : undefined },
-    { id: "to-open", label: "Por abrir", icon: Eye, priority: 2 },
-    { id: "awaiting", label: "Aguarda resposta", icon: Clock, priority: 3, badge: awaitingResponseCount > 0 ? { label: String(awaitingResponseCount), variant: "secondary" } : undefined },
-    { id: "positive", label: "Positivo", icon: ThumbsUp, priority: 4 },
-    { id: "negative", label: "Negativo", icon: ThumbsDown, priority: 5 },
-    { id: "all-messages", label: "Todas as mensagens", icon: List, priority: 6 },
+    { id: "unread", label: "Não lidas", icon: EyeOff, priority: 2, badge: unreadCount > 0 ? { label: String(unreadCount), variant: "secondary" } : undefined },
+    { id: "to-open", label: "Por abrir", icon: Eye, priority: 3 },
+    { id: "awaiting", label: "Aguarda resposta", icon: Clock, priority: 4, badge: awaitingResponseCount > 0 ? { label: String(awaitingResponseCount), variant: "secondary" } : undefined },
+    { id: "positive", label: "Positivo", icon: ThumbsUp, priority: 5 },
+    { id: "negative", label: "Negativo", icon: ThumbsDown, priority: 6 },
+    { id: "all-messages", label: "Todas as mensagens", icon: List, priority: 7 },
   ];
 
   return (
@@ -273,7 +277,7 @@ export function InboxSidebar({
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50",
                       view.id === "urgent" && urgentCount > 0 && !isActive && "text-destructive"
                     )}
-                    onClick={() => setActiveView(isActive ? null : view.id)}
+                    onClick={() => onViewChange(isActive ? null : view.id)}
                   >
                     <div className="flex items-center gap-2">
                       <Icon className={cn(
