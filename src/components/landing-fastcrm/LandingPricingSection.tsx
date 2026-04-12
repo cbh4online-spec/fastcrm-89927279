@@ -64,6 +64,12 @@ export function LandingPricingSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
+          <div className="inline-flex items-center gap-2 bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] rounded-full px-5 py-2 mb-6">
+            <span className="text-lg">🔥</span>
+            <span className="text-sm font-semibold text-[hsl(var(--primary))]">
+              Mais de 500 empresas portuguesas já usam o FastCRM — Junte-se a elas hoje
+            </span>
+          </div>
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">{t("pricing.badge")}</span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-4 text-[hsl(210,40%,98%)]">
             {t("pricing.title")}
