@@ -343,6 +343,7 @@ export function InboxView() {
                   defaultChannel={channelParam || undefined}
                   categoryFilter={selectedCategory}
                   channelFilter={selectedChannel !== "all" ? selectedChannel as ConversationChannel : undefined}
+                  activeView={activeView}
                 />
               </div>
               <div className={cn(
