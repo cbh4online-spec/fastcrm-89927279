@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain, RefreshCw, Star, Upload } from "lucide-react";
+import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain, RefreshCw, Star, Upload, Search, ChevronDown, TrendingUp, Boxes } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AIStrategyDialog } from "./AIStrategyDialog";
 import { toast } from "sonner";
 import {
   usePlatformPricingConfigs,
