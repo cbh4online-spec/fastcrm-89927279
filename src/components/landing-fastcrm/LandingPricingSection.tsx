@@ -376,6 +376,30 @@ export function LandingPricingSection() {
           ))}
         </div>
       </div>
+
+      {/* Banner CTA */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="max-w-3xl mx-auto px-6 mt-16"
+      >
+        <div className="rounded-2xl border border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--primary)/0.05)] p-8 text-center">
+          <h3 className="text-xl font-bold text-[hsl(210,40%,98%)] mb-2">
+            Ainda tem dúvidas? Fale connosco
+          </h3>
+          <p className="text-sm text-[hsl(210,40%,98%)/0.6] mb-6 max-w-md mx-auto">
+            A nossa equipa está disponível para o ajudar a escolher o plano ideal para o seu negócio.
+          </p>
+          <Link to="/auth">
+            <Button className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary)/0.9)] font-bold px-8 h-12">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Agendar Demo Gratuita
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
     </section>
   );
 }
