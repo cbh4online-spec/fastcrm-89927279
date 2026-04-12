@@ -548,6 +548,14 @@ export function PricingManagementSection() {
           )}
         </TabsContent>
       </Tabs>
+
+      <AIStrategyDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        action={aiDialogAction}
+        result={aiDialogResult}
+        onApplyFeatures={handleApplyFeatures}
+      />
     </div>
   );
 }
