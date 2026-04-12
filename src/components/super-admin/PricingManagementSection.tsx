@@ -313,6 +313,9 @@ export function PricingManagementSection() {
   const deleteConfig = useDeletePricingConfig();
   const { callAI, loading: aiLoading, canRun: aiCanRun, showUpgrade: aiShowUpgrade, isOverage: aiIsOverage, overageLabel: aiOverageLabel } = useAIAssistant();
   const { modules: marketplaceModules, isLoading: modulesLoading, updateModule, syncToLandingPage, parsePricing } = useMarketplaceModulesAdmin();
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiDialogAction, setAiDialogAction] = useState<"market_research" | "suggest_features_by_tier" | "suggest_modules" | "suggest_bundles" | null>(null);
+  const [aiDialogResult, setAiDialogResult] = useState<any>(null);
 
   const plans = allConfigs?.filter((c) => c.config_type === "plan") ?? [];
   const bundles = allConfigs?.filter((c) => c.config_type === "bundle") ?? [];
@@ -321,13 +324,31 @@ export function PricingManagementSection() {
     updateConfig.mutate({ id, ...updates });
   };
 
-  const handleSuggestPrices = async () => {
-    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules }, "Sugerir Preços IA");
-    if (result?.suggestions) {
+  const handleAIAction = async (action: string, label: string) => {
+    const context = { plans, modules: marketplaceModules, bundles };
+    const result = await callAI(action, context, label);
+    if (!result) return;
+
+    // Actions that open the dialog
+    if (["market_research", "suggest_features_by_tier", "suggest_modules", "suggest_bundles"].includes(action)) {
+      setAiDialogAction(action as any);
+      setAiDialogResult(result);
+      setAiDialogOpen(true);
+    } else if (action === "suggest_prices" && result?.suggestions) {
       toast.success("Sugestões de preços recebidas! Revise e aplique.");
       result.suggestions.forEach((s: any) => {
         toast.info(`${s.config_key}: €${s.price_monthly}/mês, €${s.price_yearly}/ano — ${s.reasoning}`, { duration: 10000 });
       });
+    } else if (action === "create_promotion" && result) {
+      toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
+      toast.info(result.description || JSON.stringify(result), { duration: 15000 });
+    }
+  };
+
+  const handleApplyFeatures = (planKey: string, features: string[]) => {
+    const plan = plans.find((p) => p.config_key?.toLowerCase().includes(planKey.toLowerCase()));
+    if (plan) {
+      updateConfig.mutate({ id: plan.id, features: features as any });
     }
   };
 
