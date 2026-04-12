@@ -239,6 +239,12 @@ export function LandingPricingSection() {
             );
           })}
         </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-[hsl(210,40%,98%)/0.6]">
+          <span>✅ 14 dias de teste grátis</span>
+          <span>✅ Sem cartão de crédito</span>
+          <span>✅ Cancele a qualquer momento</span>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6">
