@@ -24,7 +24,7 @@ const fallbackPlans = [
       "500 emails/mês",
       "Relatórios essenciais",
     ],
-    ctaText: "Começar Grátis – Plano Starter", ctaLink: "/auth",
+    ctaText: "Começar Grátis – FASTCRM START", ctaLink: "/auth",
   },
   {
     nameKey: "growth", priceMonthly: 149, priceNote: true, color: "hsl(221, 83%, 53%)", icon: Sparkles,
@@ -42,7 +42,7 @@ const fallbackPlans = [
       "Integrações (WhatsApp, Email, Calendário)",
       "Dashboards personalizáveis",
     ],
-    ctaText: "Começar Grátis – Plano Growth", ctaLink: "/auth",
+    ctaText: "Começar Grátis – FASTCRM GROW", ctaLink: "/auth",
   },
   {
     nameKey: "scale", priceMonthly: 299, priceNote: true, color: "hsl(250, 83%, 60%)", icon: Crown,
@@ -107,9 +107,9 @@ export function LandingPricingSection() {
           transition={{ duration: 0.6 }}
         >
           <div className="inline-flex items-center gap-2 bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] rounded-full px-5 py-2 mb-6">
-            <span className="text-lg">🔥</span>
+            <span className="text-lg">🇵🇹</span>
             <span className="text-sm font-semibold text-[hsl(var(--primary))]">
-              Mais de 500 empresas portuguesas já usam o FastCRM — Junte-se a elas hoje
+              Feito para empresas portuguesas — Suporte PT · RGPD nativo
             </span>
           </div>
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">{t("pricing.badge")}</span>
@@ -247,48 +247,7 @@ export function LandingPricingSection() {
           <span>✅ Cancele a qualquer momento</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-          {[
-            {
-              name: "Ana Ferreira",
-              role: "Directora Comercial, TechNova",
-              quote: "O FastCRM transformou a forma como gerimos o nosso pipeline. Em 3 meses, aumentámos as conversões em 40%.",
-              stars: 5,
-            },
-            {
-              name: "Ricardo Santos",
-              role: "CEO, DigitalPulse",
-              quote: "Finalmente um CRM que entende o mercado português. A IA sugere os próximos passos e poupa-nos horas por semana.",
-              stars: 5,
-            },
-            {
-              name: "Marta Oliveira",
-              role: "Head of Sales, GreenLogistics",
-              quote: "Migrámos do HubSpot e não olhámos para trás. Mais simples, mais rápido, e metade do preço.",
-              stars: 5,
-            },
-          ].map((review, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.4 }}
-              className="rounded-xl border border-[hsl(210,40%,98%)/0.08] bg-[hsl(210,40%,98%)/0.03] p-5"
-            >
-              <div className="flex gap-0.5 mb-3">
-                {Array.from({ length: review.stars }).map((_, si) => (
-                  <Star key={si} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="text-sm text-[hsl(210,40%,98%)/0.7] mb-4 italic">&ldquo;{review.quote}&rdquo;</p>
-              <div>
-                <p className="text-sm font-semibold text-[hsl(210,40%,98%)]">{review.name}</p>
-                <p className="text-xs text-[hsl(210,40%,98%)/0.5]">{review.role}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {/* Testemunhos removidos — ver secção dedicada LandingTestimonialsSection */}
       </div>
 
       <div className="max-w-5xl mx-auto px-6">

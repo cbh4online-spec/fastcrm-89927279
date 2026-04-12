@@ -154,8 +154,9 @@ const integrations: Integration[] = [
   },
 ];
 
-const row1 = integrations.slice(0, 8);
-const row2 = integrations.slice(8);
+// Active integrations (first row) vs coming soon (second row)
+const activeIntegrations = integrations.slice(0, 8); // Stripe, WhatsApp, Gmail, GCal, Zoho, GoHighLevel, HubSpot, Instagram
+const comingSoonIntegrations = integrations.slice(8); // Facebook, Sheets, Slack, Zapier, Shopify, Twilio, Mailchimp, Calendly
 
 function MarqueeRow({ items, reverse = false }: { items: Integration[]; reverse?: boolean }) {
   const doubled = [...items, ...items];
@@ -217,8 +218,10 @@ export function LandingIntegrationsSection() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <MarqueeRow items={row1} />
-          <MarqueeRow items={row2} reverse />
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400/70 mb-2 text-center">Integrações Ativas</p>
+          <MarqueeRow items={activeIntegrations} />
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-400/50 mt-4 mb-2 text-center">Em breve</p>
+          <MarqueeRow items={comingSoonIntegrations} reverse />
         </motion.div>
       </div>
 
