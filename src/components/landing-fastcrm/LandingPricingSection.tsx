@@ -235,6 +235,7 @@ export function LandingPricingSection() {
                     <ArrowRight className="h-4 w-4 ml-2 shrink-0" />
                   </Button>
                 </Link>
+                <p className="text-[11px] text-[hsl(210,40%,98%)/0.4] text-center mt-2">Sem compromisso · Setup em 2 minutos</p>
               </motion.div>
             );
           })}
