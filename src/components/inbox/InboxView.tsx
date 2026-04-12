@@ -227,7 +227,7 @@ export function InboxView() {
               </div>
             </div>
           ) : (
-            <InboxMetricsBar />
+            <InboxMetricsBar onFilterUnread={() => setActiveView(activeView === "unread" ? null : "unread")} isUnreadActive={activeView === "unread"} />
           )}
 
           <div className="flex items-center gap-1">
@@ -299,6 +299,8 @@ export function InboxView() {
                     });
                   }
                 }}
+                activeView={activeView}
+                onViewChange={setActiveView}
               />
             </div>
           )}
