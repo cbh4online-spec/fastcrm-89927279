@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Check, Zap, Sparkles, Crown, ArrowRight, Star } from "lucide-react";
+import { Check, Zap, Sparkles, Crown, ArrowRight, Star, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
