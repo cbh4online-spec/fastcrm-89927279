@@ -44,7 +44,7 @@ export function AIStrategyDialog({ open, onOpenChange, action, result, onApplyFe
           <DialogDescription>{meta.description}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[65vh] pr-4">
-          {action === "market_research" && <MarketResearchView data={result} />}
+          {action === "market_research" && <MarketResearchView data={result} onApplyFeatures={onApplyFeatures} />}
           {action === "suggest_features_by_tier" && <FeaturesByTierView data={result} onApply={onApplyFeatures} />}
           {action === "suggest_modules" && <SuggestedModulesView data={result} />}
           {action === "suggest_bundles" && <BundlesView data={result} />}
