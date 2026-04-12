@@ -407,11 +407,37 @@ export function PricingManagementSection() {
           <p className="text-muted-foreground">Gerir preços, planos e módulos da plataforma com assistência IA</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSuggestPrices} disabled={aiLoading || !aiCanRun} variant="outline" title={aiOverageLabel}>
-            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            IA: Sugerir Preços
-            {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={aiLoading || !aiCanRun}>
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                IA: Estratégia
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => handleAIAction("market_research", "Pesquisa de Mercado IA")}>
+                <Search className="h-4 w-4 mr-2" /> Pesquisa de Mercado
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_prices", "Sugerir Preços IA")}>
+                <DollarSign className="h-4 w-4 mr-2" /> Sugerir Preços
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_features_by_tier", "Propor Features IA")}>
+                <Sparkles className="h-4 w-4 mr-2" /> Propor Features por Nível
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_modules", "Sugerir Módulos IA")}>
+                <Package className="h-4 w-4 mr-2" /> Sugerir Módulos
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_bundles", "Bundles & Promoções IA")}>
+                <Gift className="h-4 w-4 mr-2" /> Bundles & Promoções
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("create_promotion", "Criar Promoção IA")}>
+                <TrendingUp className="h-4 w-4 mr-2" /> Criar Promoção
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
