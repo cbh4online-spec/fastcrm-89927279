@@ -91,7 +91,7 @@ export function LandingPricingSection() {
           badgeKey: meta.badge || null,
           directFeatures: dp.features as string[],
           featureKeys: [] as string[],
-          ctaKey: meta.cta_key || "startFree",
+          ctaText: meta.cta_text || t(`pricing.${meta.cta_key || "startFree"}`),
           ctaLink: "/auth",
         };
       })
@@ -231,7 +231,7 @@ export function LandingPricingSection() {
                         : "bg-[hsl(210,40%,98%)/0.1] text-[hsl(210,40%,98%)] hover:bg-[hsl(210,40%,98%)/0.15] border border-[hsl(210,40%,98%)/0.1]"
                     }`}
                   >
-                    <span className="truncate">{t(`pricing.${plan.ctaKey}`)}</span>
+                    <span className="truncate">{plan.ctaText}</span>
                     <ArrowRight className="h-4 w-4 ml-2 shrink-0" />
                   </Button>
                 </Link>
