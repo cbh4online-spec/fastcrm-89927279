@@ -666,9 +666,9 @@ export function ConversationList({
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex-1 min-w-0">
                           {/* Line 1: Name + badges + Time */}
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 overflow-hidden">
                             <span className={cn(
                               "text-sm truncate",
                               hasUnread ? "font-bold text-foreground" : "font-normal text-foreground"
