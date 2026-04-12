@@ -24,7 +24,7 @@ const fallbackPlans = [
       "500 emails/mês",
       "Relatórios essenciais",
     ],
-    ctaKey: "startFree", ctaLink: "/auth",
+    ctaText: "Começar Grátis – Plano Starter", ctaLink: "/auth",
   },
   {
     nameKey: "growth", priceMonthly: 149, priceNote: true, color: "hsl(221, 83%, 53%)", icon: Sparkles,
