@@ -13,7 +13,7 @@ import {
   AlertsSection,
   LogsSection,
   AIUsageSection,
-  PlansSection,
+  
   UsersSection,
   MenuPermissionsSection,
   FunctionalAuditSection,
@@ -88,9 +88,8 @@ export default function SuperAdmin() {
       case "users":
         return <UsersSection />;
       case "plans":
-        return <PlansSection />;
       case "limits":
-        return <PlansSection />;
+        return <PricingManagementSection />;
       case "pricing-management":
         return <PricingManagementSection />;
       case "ai-usage":
