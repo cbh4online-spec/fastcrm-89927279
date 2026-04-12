@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain, RefreshCw, Star, Upload } from "lucide-react";
+import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain, RefreshCw, Star, Upload, Search, ChevronDown, TrendingUp, Boxes } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AIStrategyDialog } from "./AIStrategyDialog";
 import { toast } from "sonner";
 import {
   usePlatformPricingConfigs,
@@ -311,6 +313,9 @@ export function PricingManagementSection() {
   const deleteConfig = useDeletePricingConfig();
   const { callAI, loading: aiLoading, canRun: aiCanRun, showUpgrade: aiShowUpgrade, isOverage: aiIsOverage, overageLabel: aiOverageLabel } = useAIAssistant();
   const { modules: marketplaceModules, isLoading: modulesLoading, updateModule, syncToLandingPage, parsePricing } = useMarketplaceModulesAdmin();
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiDialogAction, setAiDialogAction] = useState<"market_research" | "suggest_features_by_tier" | "suggest_modules" | "suggest_bundles" | null>(null);
+  const [aiDialogResult, setAiDialogResult] = useState<any>(null);
 
   const plans = allConfigs?.filter((c) => c.config_type === "plan") ?? [];
   const bundles = allConfigs?.filter((c) => c.config_type === "bundle") ?? [];
@@ -319,13 +324,31 @@ export function PricingManagementSection() {
     updateConfig.mutate({ id, ...updates });
   };
 
-  const handleSuggestPrices = async () => {
-    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules }, "Sugerir Preços IA");
-    if (result?.suggestions) {
+  const handleAIAction = async (action: string, label: string) => {
+    const context = { plans, modules: marketplaceModules, bundles };
+    const result = await callAI(action, context, label);
+    if (!result) return;
+
+    // Actions that open the dialog
+    if (["market_research", "suggest_features_by_tier", "suggest_modules", "suggest_bundles"].includes(action)) {
+      setAiDialogAction(action as any);
+      setAiDialogResult(result);
+      setAiDialogOpen(true);
+    } else if (action === "suggest_prices" && result?.suggestions) {
       toast.success("Sugestões de preços recebidas! Revise e aplique.");
       result.suggestions.forEach((s: any) => {
         toast.info(`${s.config_key}: €${s.price_monthly}/mês, €${s.price_yearly}/ano — ${s.reasoning}`, { duration: 10000 });
       });
+    } else if (action === "create_promotion" && result) {
+      toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
+      toast.info(result.description || JSON.stringify(result), { duration: 15000 });
+    }
+  };
+
+  const handleApplyFeatures = (planKey: string, features: string[]) => {
+    const plan = plans.find((p) => p.config_key?.toLowerCase().includes(planKey.toLowerCase()));
+    if (plan) {
+      updateConfig.mutate({ id: plan.id, features: features as any });
     }
   };
 
@@ -384,11 +407,37 @@ export function PricingManagementSection() {
           <p className="text-muted-foreground">Gerir preços, planos e módulos da plataforma com assistência IA</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSuggestPrices} disabled={aiLoading || !aiCanRun} variant="outline" title={aiOverageLabel}>
-            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            IA: Sugerir Preços
-            {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={aiLoading || !aiCanRun}>
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                IA: Estratégia
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => handleAIAction("market_research", "Pesquisa de Mercado IA")}>
+                <Search className="h-4 w-4 mr-2" /> Pesquisa de Mercado
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_prices", "Sugerir Preços IA")}>
+                <DollarSign className="h-4 w-4 mr-2" /> Sugerir Preços
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_features_by_tier", "Propor Features IA")}>
+                <Sparkles className="h-4 w-4 mr-2" /> Propor Features por Nível
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_modules", "Sugerir Módulos IA")}>
+                <Package className="h-4 w-4 mr-2" /> Sugerir Módulos
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleAIAction("suggest_bundles", "Bundles & Promoções IA")}>
+                <Gift className="h-4 w-4 mr-2" /> Bundles & Promoções
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleAIAction("create_promotion", "Criar Promoção IA")}>
+                <TrendingUp className="h-4 w-4 mr-2" /> Criar Promoção
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -454,17 +503,6 @@ export function PricingManagementSection() {
 
         <TabsContent value="bundles" className="mt-6">
           <div className="flex justify-end mb-4 gap-2">
-            <Button onClick={async () => {
-              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles }, "Criar Promoção IA");
-              if (result) {
-                toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
-                toast.info(result.description || JSON.stringify(result), { duration: 15000 });
-              }
-            }} variant="outline" size="sm" disabled={aiLoading || !aiCanRun} title={aiOverageLabel}>
-              {aiLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Brain className="h-3 w-3 mr-1" />}
-              IA: Criar Promoção
-              {aiIsOverage && aiOverageLabel && <span className="ml-1 text-xs opacity-70">({aiOverageLabel})</span>}
-            </Button>
             <Button onClick={handleImportExtensionPacks} variant="outline" size="sm">
               <Package className="h-3 w-3 mr-1" /> Importar Extension Packs
             </Button>
@@ -510,6 +548,14 @@ export function PricingManagementSection() {
           )}
         </TabsContent>
       </Tabs>
+
+      <AIStrategyDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        action={aiDialogAction}
+        result={aiDialogResult}
+        onApplyFeatures={handleApplyFeatures}
+      />
     </div>
   );
 }
