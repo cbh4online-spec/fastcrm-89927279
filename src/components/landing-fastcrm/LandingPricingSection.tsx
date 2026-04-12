@@ -60,7 +60,7 @@ const fallbackPlans = [
       "Relatórios e forecasting com IA",
       "SSO e segurança enterprise",
     ],
-    ctaKey: "startFreeUpgrade", ctaLink: "/auth",
+    ctaText: "Contactar Vendas", ctaLink: "/auth",
   },
 ];
 
