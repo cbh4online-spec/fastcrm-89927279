@@ -245,6 +245,49 @@ export function LandingPricingSection() {
           <span>✅ Sem cartão de crédito</span>
           <span>✅ Cancele a qualquer momento</span>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          {[
+            {
+              name: "Ana Ferreira",
+              role: "Directora Comercial, TechNova",
+              quote: "O FastCRM transformou a forma como gerimos o nosso pipeline. Em 3 meses, aumentámos as conversões em 40%.",
+              stars: 5,
+            },
+            {
+              name: "Ricardo Santos",
+              role: "CEO, DigitalPulse",
+              quote: "Finalmente um CRM que entende o mercado português. A IA sugere os próximos passos e poupa-nos horas por semana.",
+              stars: 5,
+            },
+            {
+              name: "Marta Oliveira",
+              role: "Head of Sales, GreenLogistics",
+              quote: "Migrámos do HubSpot e não olhámos para trás. Mais simples, mais rápido, e metade do preço.",
+              stars: 5,
+            },
+          ].map((review, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+              className="rounded-xl border border-[hsl(210,40%,98%)/0.08] bg-[hsl(210,40%,98%)/0.03] p-5"
+            >
+              <div className="flex gap-0.5 mb-3">
+                {Array.from({ length: review.stars }).map((_, si) => (
+                  <Star key={si} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-sm text-[hsl(210,40%,98%)/0.7] mb-4 italic">&ldquo;{review.quote}&rdquo;</p>
+              <div>
+                <p className="text-sm font-semibold text-[hsl(210,40%,98%)]">{review.name}</p>
+                <p className="text-xs text-[hsl(210,40%,98%)/0.5]">{review.role}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6">
