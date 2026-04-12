@@ -37,6 +37,7 @@ export function InboxView() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<InboxCategory>("all");
   const [selectedChannel, setSelectedChannel] = useState<ChannelFilter>("all");
+  const [activeView, setActiveView] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem("inbox-view-mode") as ViewMode) || "list";
