@@ -42,7 +42,7 @@ const fallbackPlans = [
       "Integrações (WhatsApp, Email, Calendário)",
       "Dashboards personalizáveis",
     ],
-    ctaKey: "startFreeUpgrade", ctaLink: "/auth",
+    ctaText: "Começar Grátis – Plano Growth", ctaLink: "/auth",
   },
   {
     nameKey: "scale", priceMonthly: 299, priceNote: true, color: "hsl(250, 83%, 60%)", icon: Crown,
