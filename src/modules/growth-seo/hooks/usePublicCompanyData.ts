@@ -10,7 +10,7 @@ export interface CompanySocialLinks {
 }
 
 const DEFAULTS: CompanyLegalData = {
-  company_name: "FastCRM, Lda.",
+  company_name: "Simples & Divertido, Lda",
   nif: "",
   address_street: "",
   address_postal_code: "",
