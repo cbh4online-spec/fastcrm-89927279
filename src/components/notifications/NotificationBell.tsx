@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
+import { useUserNotificationPreferences } from "@/hooks/useUserNotificationPreferences";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -30,14 +31,17 @@ const typeColors: Record<string, string> = {
 
 export function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useAdminNotifications();
+  const { preferences } = useUserNotificationPreferences();
   const [open, setOpen] = useState(false);
+
+  const inAppEnabled = (preferences as any).channel_in_app ?? true;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {inAppEnabled && unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
@@ -60,7 +64,11 @@ export function NotificationBell() {
           )}
         </div>
         <ScrollArea className="max-h-[400px]">
-          {isLoading ? (
+          {!inAppEnabled ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Notificações na app desativadas
+            </div>
+          ) : isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">A carregar...</div>
           ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">

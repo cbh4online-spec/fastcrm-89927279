@@ -58452,6 +58452,56 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          channel_email: boolean
+          channel_in_app: boolean
+          channel_push: boolean
+          created_at: string
+          id: string
+          type_deal_updates: boolean
+          type_mentions: boolean
+          type_new_leads: boolean
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_push?: boolean
+          created_at?: string
+          id?: string
+          type_deal_updates?: boolean
+          type_mentions?: boolean
+          type_new_leads?: boolean
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          channel_email?: boolean
+          channel_in_app?: boolean
+          channel_push?: boolean
+          created_at?: string
+          id?: string
+          type_deal_updates?: boolean
+          type_mentions?: boolean
+          type_new_leads?: boolean
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
