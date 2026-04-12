@@ -63,6 +63,8 @@ interface InboxSidebarProps {
   onCategoryChange: (category: InboxCategory) => void;
   selectedChannel: ChannelFilter;
   onChannelChange: (channel: ChannelFilter) => void;
+  activeView: string | null;
+  onViewChange: (view: string | null) => void;
 }
 
 interface FolderItem {
