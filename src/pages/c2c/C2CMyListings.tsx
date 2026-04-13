@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ export default function C2CMyListings() {
         {!isLoading && currentWorkspace && (
           <div className="mb-6">
             <MarketplaceShareCard
-              marketplaceUrl={`${getPublicBaseUrl()}/marketplace/${currentWorkspace.slug || currentWorkspace.id}`}
+              marketplaceUrl={`${getMarketplaceBaseUrl()}/marketplace/${currentWorkspace.slug || currentWorkspace.id}`}
               marketplaceName={currentWorkspace.name}
             />
           </div>
@@ -157,7 +157,7 @@ export default function C2CMyListings() {
                   const st = statusLabels[listing.status] || statusLabels.active;
                   const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale });
                   const condition = conditionLabels[listing.condition] || listing.condition;
-                  const listingUrl = `${getPublicBaseUrl()}/marketplace/${currentWorkspace?.slug || currentWorkspace?.id}/${listing.id}`;
+                  const listingUrl = `${getMarketplaceBaseUrl()}/marketplace/${currentWorkspace?.slug || currentWorkspace?.id}/${listing.id}`;
 
                   return (
                     <div

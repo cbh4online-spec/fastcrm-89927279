@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMySellerProfile } from "@/hooks/useC2CSellers";
 import { useMarketplaceAdmin } from "@/hooks/useMarketplace";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function C2CPublicLinksManager() {
   const links = useMemo<PublicLinkItem[]>(() => {
     if (!marketplaceSlug) return [];
 
-    const base = getPublicBaseUrl();
+    const base = getMarketplaceBaseUrl();
     const list: PublicLinkItem[] = [
       {
         id: "marketplace",
