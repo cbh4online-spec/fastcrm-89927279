@@ -20,3 +20,15 @@ export function getPublicBaseUrl(): string {
 export function getMarketplaceBaseUrl(): string {
   return "https://vendersimples.com";
 }
+
+/**
+ * Returns the marketplace base URL from config's custom_domain if set,
+ * otherwise falls back to the default vendersimples.com.
+ */
+export function getMarketplaceBaseUrlFromConfig(customDomain?: string | null): string {
+  if (customDomain) {
+    const domain = customDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    return `https://${domain}`;
+  }
+  return getMarketplaceBaseUrl();
+}
