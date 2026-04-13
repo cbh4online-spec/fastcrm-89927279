@@ -1,6 +1,7 @@
 import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { decode as base64Decode, encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,13 +61,50 @@ function getImageDimensions(base64Data: string, mimeType: string): { width: numb
 }
 
 /**
- * Count images in messages and check if any exceed the limit.
- * If so, add "detail: low" to force Anthropic to resize them.
+ * Resize a base64 image if it exceeds maxDim. Returns { data, media_type } with
+ * potentially resized base64 data. Uses imagescript for pure-JS server-side resize.
  */
-function preprocessMessages(messages: any[]): any[] {
+async function resizeBase64Image(
+  b64Data: string,
+  mimeType: string,
+  maxDim: number,
+): Promise<{ data: string; media_type: string }> {
+  const dims = getImageDimensions(b64Data, mimeType);
+
+  // If we can't read dims or it's within limits, return as-is
+  if (!dims || (dims.width <= maxDim && dims.height <= maxDim)) {
+    return { data: b64Data, media_type: `image/${mimeType}` };
+  }
+
+  try {
+    const bytes = base64Decode(b64Data);
+    const img = await Image.decode(bytes);
+
+    const scale = Math.min(maxDim / img.width, maxDim / img.height);
+    const newW = Math.round(img.width * scale);
+    const newH = Math.round(img.height * scale);
+
+    img.resize(newW, newH);
+
+    // Encode as JPEG (quality 85) for smaller payload
+    const resized = await img.encodeJPEG(85);
+    const resizedB64 = base64Encode(resized);
+
+    console.log(`Resized image from ${dims.width}x${dims.height} to ${newW}x${newH}`);
+    return { data: resizedB64, media_type: "image/jpeg" };
+  } catch (err) {
+    console.error("Image resize failed, using original:", err);
+    return { data: b64Data, media_type: `image/${mimeType}` };
+  }
+}
+
+/**
+ * Count images and resize any that exceed limits.
+ * Multi-image: max 1568px. Single image: max 2000px.
+ */
+async function preprocessMessages(messages: any[]): Promise<any[]> {
   let imageCount = 0;
 
-  // First pass: count images
   for (const msg of messages) {
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
@@ -77,13 +115,17 @@ function preprocessMessages(messages: any[]): any[] {
     }
   }
 
-  // If multiple images, enforce size limits
-  if (imageCount <= 1) return messages;
+  const maxDim = imageCount > 1 ? MAX_IMAGE_DIM : 2000;
 
-  return messages.map((msg: any) => {
-    if (!Array.isArray(msg.content)) return msg;
+  const result = [];
+  for (const msg of messages) {
+    if (!Array.isArray(msg.content)) {
+      result.push(msg);
+      continue;
+    }
 
-    const newContent = msg.content.map((part: any) => {
+    const newContent = [];
+    for (const part of msg.content) {
       if (part.type === "image_url" && part.image_url) {
         const url = part.image_url.url || "";
         const dataMatch = url.match(/^data:image\/([\w+]+);base64,(.+)$/s);
@@ -91,27 +133,27 @@ function preprocessMessages(messages: any[]): any[] {
         if (dataMatch) {
           const mimeType = dataMatch[1];
           const b64Data = dataMatch[2];
-          const dims = getImageDimensions(b64Data, mimeType);
-
-          if (dims && (dims.width > MAX_IMAGE_DIM || dims.height > MAX_IMAGE_DIM)) {
-            // Tell Anthropic to auto-resize by setting detail to "low"
-            return {
-              ...part,
-              image_url: {
-                ...part.image_url,
-                detail: "low",
-              },
-            };
-          }
+          const { data, media_type } = await resizeBase64Image(b64Data, mimeType, maxDim);
+          // Rebuild data URL with potentially resized data
+          newContent.push({
+            ...part,
+            image_url: {
+              ...part.image_url,
+              url: `data:${media_type};base64,${data}`,
+            },
+          });
+        } else {
+          newContent.push(part);
         }
-
-        return part;
+      } else {
+        newContent.push(part);
       }
-      return part;
-    });
+    }
 
-    return { ...msg, content: newContent };
-  });
+    result.push({ ...msg, content: newContent });
+  }
+
+  return result;
 }
 
 /**
@@ -202,7 +244,7 @@ serve(async (req) => {
     }
 
     // Preprocess messages: handle oversized images for multi-image requests
-    const processedMessages = preprocessMessages(messages);
+    const processedMessages = await preprocessMessages(messages);
     // Convert OpenAI-style image content blocks to Anthropic native format
     const anthropicMessages = convertToAnthropicFormat(processedMessages);
 
