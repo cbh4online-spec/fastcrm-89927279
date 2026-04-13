@@ -337,13 +337,17 @@ Deno.serve(async (req) => {
       channels.push({ channel_type: type, ghl_account_id: id, account_name: name });
     };
 
-    const collectChannelsFromPayload = (payload: unknown, fallbackType?: string) => {
+    const collectChannelsFromPayload = (payload: unknown, fallbackType?: string, strategyLabel?: string) => {
       const entries = extractCandidateArrays(payload);
+      const beforeCount = channels.length;
+      let matched = 0;
+      let skippedNoType = 0;
+      let skippedNoId = 0;
       for (const entry of entries) {
         const channelType = extractChannelType(entry, fallbackType);
-        if (!channelType) continue;
+        if (!channelType) { skippedNoType++; continue; }
         const accountId = extractAccountId(entry);
-        if (!accountId) continue;
+        if (!accountId) { skippedNoId++; continue; }
         const fallbackLabel =
           channelType === "facebook"
             ? "Facebook Page"
@@ -352,7 +356,10 @@ Deno.serve(async (req) => {
               : "WhatsApp";
         const accountName = extractAccountName(entry, fallbackLabel);
         addChannel(channelType, accountId, accountName);
+        matched++;
       }
+      const added = channels.length - beforeCount;
+      console.log(`[${strategyLabel || "collect"}] entries=${entries.length} matched=${matched} added=${added} skippedNoType=${skippedNoType} skippedNoId=${skippedNoId}`);
     };
 
     // ─── Strategy 1: Social-media-posting Facebook accounts ───
