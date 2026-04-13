@@ -10,8 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft } from "lucide-react";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
@@ -36,6 +36,7 @@ export default function MarketplaceConfigPage() {
     boost_price_day: 500,
     featured_price_week: 2000,
     status: "active",
+    custom_domain: "",
     theme: {
       primaryColor: "#6366f1",
       secondaryColor: "#f59e0b",
@@ -75,6 +76,7 @@ export default function MarketplaceConfigPage() {
         boost_price_day: config.boost_price_day || 500,
         featured_price_week: config.featured_price_week || 2000,
         status: config.status || "active",
+        custom_domain: config.custom_domain || "",
         theme: config.theme || form.theme,
         settings: { ...form.settings, ...(config.settings as any) },
       });
@@ -103,7 +105,7 @@ export default function MarketplaceConfigPage() {
     }
   };
 
-  const publicUrl = `${getMarketplaceBaseUrl()}/marketplace/${form.slug}`;
+  const publicUrl = `${getMarketplaceBaseUrlFromConfig(form.custom_domain)}/marketplace/${form.slug}`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(publicUrl);
