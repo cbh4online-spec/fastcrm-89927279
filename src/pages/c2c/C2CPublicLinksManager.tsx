@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMySellerProfile } from "@/hooks/useC2CSellers";
 import { useMarketplaceAdmin } from "@/hooks/useMarketplace";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function C2CPublicLinksManager() {
   const links = useMemo<PublicLinkItem[]>(() => {
     if (!marketplaceSlug) return [];
 
-    const base = getMarketplaceBaseUrl();
+    const base = getMarketplaceBaseUrlFromConfig(marketplaceConfig?.custom_domain);
     const list: PublicLinkItem[] = [
       {
         id: "marketplace",
@@ -60,7 +60,7 @@ export default function C2CPublicLinksManager() {
     }
 
     return list;
-  }, [marketplaceSlug, seller?.user_id]);
+  }, [marketplaceSlug, seller?.user_id, marketplaceConfig?.custom_domain]);
 
   const copyLink = async (url: string) => {
     await navigator.clipboard.writeText(url);

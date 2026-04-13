@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMySellerProfile } from "@/hooks/useC2CSellers";

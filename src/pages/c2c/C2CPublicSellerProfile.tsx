@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";

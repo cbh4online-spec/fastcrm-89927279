@@ -8,7 +8,7 @@ import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { useMarketplaceConfig } from "@/hooks/useMarketplace";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 
 import { Button } from "@/components/ui/button";
