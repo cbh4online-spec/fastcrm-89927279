@@ -244,7 +244,7 @@ serve(async (req) => {
     }
 
     // Preprocess messages: handle oversized images for multi-image requests
-    const processedMessages = preprocessMessages(messages);
+    const processedMessages = await preprocessMessages(messages);
     // Convert OpenAI-style image content blocks to Anthropic native format
     const anthropicMessages = convertToAnthropicFormat(processedMessages);
 
