@@ -274,6 +274,18 @@ export default function MarketplaceConfigPage() {
                         <AlertTriangle className="h-3 w-3 mr-1" /> Pendente verificação
                       </Badge>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleVerifyDns}
+                      disabled={verifyingDns}
+                    >
+                      {verifyingDns ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Verificando...</>
+                      ) : (
+                        <><RefreshCw className="h-3 w-3 mr-1" /> Verificar DNS</>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
