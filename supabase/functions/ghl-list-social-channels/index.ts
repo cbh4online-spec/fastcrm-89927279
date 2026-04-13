@@ -37,7 +37,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = user.id;
 
     const { workspace_id } = await req.json();
     if (!workspace_id || typeof workspace_id !== "string") {
@@ -52,7 +51,7 @@ Deno.serve(async (req) => {
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspace_id)
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .limit(1);
     if (!member?.length) {
       return new Response(
@@ -62,13 +61,13 @@ Deno.serve(async (req) => {
     }
 
     // Get GHL config
-    const { data: ghlConfig, error: configError } = await supabase
+    const { data: ghlConfig } = await supabase
       .from("workspace_ghl_config")
       .select("ghl_location_id, ghl_api_key_encrypted")
       .eq("workspace_id", workspace_id)
       .limit(1);
 
-    if (configError || !ghlConfig?.length) {
+    if (!ghlConfig?.length) {
       return new Response(
         JSON.stringify({ error: "Configuração GHL não encontrada" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -95,7 +94,6 @@ Deno.serve(async (req) => {
       account_name: string;
     }> = [];
 
-    // Track unique channels by composite key
     const foundKeys = new Set<string>();
 
     const addChannel = (type: string, id: string, name: string) => {
@@ -105,7 +103,117 @@ Deno.serve(async (req) => {
       channels.push({ channel_type: type, ghl_account_id: id, account_name: name });
     };
 
-    // --- Strategy 1: Get location info for WhatsApp / phone ---
+    // ─── Strategy 1: Social-media-posting Facebook accounts ───
+    // This is the primary source for Facebook pages (like the GHL integrations modal)
+    try {
+      const fbRes = await fetch(
+        `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
+        { headers: ghlHeaders }
+      );
+      const fbStatus = fbRes.status;
+      const fbBody = await fbRes.text();
+      console.log(`[Strategy1] Facebook accounts API: status=${fbStatus} body=${fbBody.substring(0, 500)}`);
+      
+      if (fbRes.ok) {
+        try {
+          const fbData = JSON.parse(fbBody);
+          // The response could be { accounts: [...] }, { data: [...] }, or just [...]
+          const accounts = fbData?.accounts || fbData?.data || (Array.isArray(fbData) ? fbData : []);
+          console.log(`[Strategy1] Found ${accounts.length} Facebook accounts`);
+          for (const acc of accounts) {
+            const pageId = acc.id || acc.pageId || acc.page_id || "";
+            const pageName = acc.name || acc.pageName || acc.page_name || "Facebook Page";
+            if (pageId) {
+              addChannel("facebook", String(pageId), pageName);
+            }
+          }
+        } catch (e) {
+          console.warn("[Strategy1] FB parse error:", e);
+        }
+      }
+    } catch (e) {
+      console.warn("[Strategy1] Facebook fetch error:", e);
+    }
+
+    // ─── Strategy 2: Social-media-posting Instagram accounts ───
+    try {
+      const igRes = await fetch(
+        `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/instagram/accounts`,
+        { headers: ghlHeaders }
+      );
+      const igStatus = igRes.status;
+      const igBody = await igRes.text();
+      console.log(`[Strategy2] Instagram accounts API: status=${igStatus} body=${igBody.substring(0, 500)}`);
+
+      if (igRes.ok) {
+        try {
+          const igData = JSON.parse(igBody);
+          const accounts = igData?.accounts || igData?.data || (Array.isArray(igData) ? igData : []);
+          console.log(`[Strategy2] Found ${accounts.length} Instagram accounts`);
+          for (const acc of accounts) {
+            const accId = acc.id || acc.accountId || acc.account_id || acc.instagram_business_account?.id || "";
+            const accName = acc.name || acc.username || acc.ig_username || "Instagram Account";
+            if (accId) {
+              addChannel("instagram", String(accId), accName);
+            }
+          }
+        } catch (e) {
+          console.warn("[Strategy2] IG parse error:", e);
+        }
+      }
+    } catch (e) {
+      console.warn("[Strategy2] Instagram fetch error:", e);
+    }
+
+    // ─── Strategy 3: Try /social-media-posting/{locationId}/accounts (generic) ───
+    try {
+      const genRes = await fetch(
+        `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/accounts`,
+        { headers: ghlHeaders }
+      );
+      const genStatus = genRes.status;
+      const genBody = await genRes.text();
+      console.log(`[Strategy3] Generic accounts API: status=${genStatus} body=${genBody.substring(0, 500)}`);
+
+      if (genRes.ok) {
+        try {
+          const genData = JSON.parse(genBody);
+          const accounts = genData?.accounts || genData?.data || (Array.isArray(genData) ? genData : []);
+          for (const acc of accounts) {
+            const platform = (acc.type || acc.platform || acc.provider || "").toLowerCase();
+            let channelType = "";
+            if (platform.includes("facebook") || platform.includes("fb")) channelType = "facebook";
+            else if (platform.includes("instagram") || platform.includes("ig")) channelType = "instagram";
+            else if (platform.includes("whatsapp") || platform.includes("wa")) channelType = "whatsapp";
+            
+            if (channelType) {
+              const accId = acc.id || acc.pageId || acc.accountId || "";
+              const accName = acc.name || acc.pageName || acc.username || `${platform} Account`;
+              if (accId) addChannel(channelType, String(accId), accName);
+            }
+          }
+        } catch (e) {
+          console.warn("[Strategy3] parse error:", e);
+        }
+      }
+    } catch (e) {
+      console.warn("[Strategy3] fetch error:", e);
+    }
+
+    // ─── Strategy 4: Custom Values / Integrations endpoint ───
+    try {
+      const intRes = await fetch(
+        `https://services.leadconnectorhq.com/locations/${ghl_location_id}/integrations`,
+        { headers: ghlHeaders }
+      );
+      const intStatus = intRes.status;
+      const intBody = await intRes.text();
+      console.log(`[Strategy4] Integrations API: status=${intStatus} body=${intBody.substring(0, 500)}`);
+    } catch (e) {
+      console.warn("[Strategy4] error:", e);
+    }
+
+    // ─── Strategy 5: Location info for WhatsApp / phone ───
     try {
       const locRes = await fetch(
         `https://services.leadconnectorhq.com/locations/${ghl_location_id}`,
@@ -118,15 +226,13 @@ Deno.serve(async (req) => {
           addChannel("whatsapp", loc.id || ghl_location_id, loc.phone || loc.twilio?.phone || "WhatsApp");
         }
       } else {
-        console.warn(`Location fetch failed: ${locRes.status}`);
         await locRes.text();
       }
     } catch (e) {
-      console.warn("Location fetch error:", e);
+      console.warn("[Strategy5] Location error:", e);
     }
 
-    // --- Strategy 2: Discover ALL unique pages/profiles from conversations ---
-    // Scan multiple pages of conversations to find all unique channel pages
+    // ─── Strategy 6: Discover from conversations (secondary) ───
     const channelTypeMap: Record<string, { channel_type: string; label: string }> = {
       TYPE_FB: { channel_type: "facebook", label: "Facebook Messenger" },
       TYPE_INSTAGRAM: { channel_type: "instagram", label: "Instagram DM" },
@@ -134,16 +240,14 @@ Deno.serve(async (req) => {
     };
 
     try {
-      // Scan up to 3 pages of conversations for better coverage
       let allConversations: any[] = [];
       let nextPageUrl: string | null = `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100`;
       let pageCount = 0;
-      const maxPages = 3;
+      const maxPages = 5; // Increased to 5 pages for better coverage
 
       while (nextPageUrl && pageCount < maxPages) {
         const searchRes = await fetch(nextPageUrl, { headers: ghlHeaders });
         if (!searchRes.ok) {
-          console.warn(`Conversations search page ${pageCount} failed: ${searchRes.status}`);
           await searchRes.text();
           break;
         }
@@ -152,7 +256,6 @@ Deno.serve(async (req) => {
         allConversations = allConversations.concat(convs);
         pageCount++;
 
-        // Check for next page
         if (searchData?.meta?.nextPageUrl) {
           nextPageUrl = searchData.meta.nextPageUrl;
         } else if (searchData?.meta?.nextPage) {
@@ -162,113 +265,41 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`Scanned ${allConversations.length} conversations across ${pageCount} pages`);
+      console.log(`[Strategy6] Scanned ${allConversations.length} conversations across ${pageCount} pages`);
 
-      // Log a sample conversation for debugging (redact sensitive info)
-      if (allConversations.length > 0) {
-        const sample = allConversations[0];
-        console.log(`Sample conversation keys: ${Object.keys(sample).join(", ")}`);
-        console.log(`Sample type=${sample.type}, companyName=${sample.companyName}, inbox=${sample.inbox}, assignedTo=${sample.assignedTo}`);
-      }
+      // Log unique conversation types found
+      const uniqueTypes = new Set(allConversations.map((c: any) => c.type));
+      console.log(`[Strategy6] Unique conversation types: ${[...uniqueTypes].join(", ")}`);
 
-      // Collect ALL unique pages/profiles per channel type
-      // Use multiple fields to identify unique pages: inbox, companyName, assignedTo, etc.
       for (const conv of allConversations) {
         const convType = conv.type as string;
         const mapping = channelTypeMap[convType];
         if (!mapping) continue;
 
-        // Build a unique page identifier from conversation metadata
-        // GHL conversations may have different fields depending on the channel:
-        // - inbox: the inbox/page that received the message
-        // - companyName: sometimes the page name
-        // - assignedTo: assigned user (not relevant for page identification)
-        // - contactName / fullName: the contact (not the page)
-        
-        // For social channels, the key differentiator is typically the inbox or page account
         const inboxId = conv.inbox || conv.inboxId || "";
         const companyName = conv.companyName || "";
-        
-        // Create a unique page key - prefer inbox, fall back to companyName, then location
+
         let pageId = "";
         let pageName = "";
 
         if (convType === "TYPE_INSTAGRAM") {
-          // For Instagram, try to extract the IG username/page from conversation
           pageId = inboxId || `instagram-${companyName || ghl_location_id}`;
           pageName = companyName || inboxId || "Instagram DM";
-          // If the name doesn't look like an IG handle, prefix it
-          if (pageName && !pageName.startsWith("Instagram")) {
-            pageName = `Instagram · ${pageName}`;
-          }
+          if (pageName && !pageName.startsWith("Instagram")) pageName = `Instagram · ${pageName}`;
         } else if (convType === "TYPE_FB") {
           pageId = inboxId || `facebook-${companyName || ghl_location_id}`;
           pageName = companyName || inboxId || "Facebook Messenger";
-          if (pageName && !pageName.startsWith("Facebook")) {
-            pageName = `Facebook · ${pageName}`;
-          }
+          if (pageName && !pageName.startsWith("Facebook")) pageName = `Facebook · ${pageName}`;
         } else if (convType === "TYPE_WHATSAPP") {
-          // WhatsApp may have multiple numbers
           const phone = conv.phone || conv.contactPhone || "";
           pageId = inboxId || phone || `whatsapp-${ghl_location_id}`;
           pageName = phone || companyName || "WhatsApp";
         }
 
-        if (pageId) {
-          addChannel(mapping.channel_type, pageId, pageName);
-        }
+        if (pageId) addChannel(mapping.channel_type, pageId, pageName);
       }
     } catch (e) {
-      console.warn("Conversations search error:", e);
-    }
-
-    // --- Strategy 3: Try social-media-posting endpoints as fallback ---
-    if (!foundKeys.has("facebook")) {
-      try {
-        const fbRes = await fetch(
-          `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
-          { headers: ghlHeaders }
-        );
-        if (fbRes.ok) {
-          const fbData = await fbRes.json();
-          const accounts = fbData?.accounts || fbData?.data || [];
-          for (const acc of accounts) {
-            addChannel(
-              "facebook",
-              acc.id || acc.pageId || String(acc),
-              acc.name || acc.pageName || "Facebook Page"
-            );
-          }
-        } else {
-          await fbRes.text();
-        }
-      } catch (e) {
-        console.warn("Facebook fallback error:", e);
-      }
-    }
-
-    if (!channels.some(c => c.channel_type === "instagram")) {
-      try {
-        const igRes = await fetch(
-          `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/instagram/accounts`,
-          { headers: ghlHeaders }
-        );
-        if (igRes.ok) {
-          const igData = await igRes.json();
-          const accounts = igData?.accounts || igData?.data || [];
-          for (const acc of accounts) {
-            addChannel(
-              "instagram",
-              acc.id || acc.accountId || String(acc),
-              acc.name || acc.username || "Instagram Account"
-            );
-          }
-        } else {
-          await igRes.text();
-        }
-      } catch (e) {
-        console.warn("Instagram fallback error:", e);
-      }
+      console.warn("[Strategy6] Conversations error:", e);
     }
 
     console.log(`Returning ${channels.length} channels: ${JSON.stringify(channels.map(c => `${c.channel_type}:${c.account_name}`))}`);
