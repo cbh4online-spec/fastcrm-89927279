@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate user via getUser
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -44,10 +43,7 @@ Deno.serve(async (req) => {
     if (!workspace_id || typeof workspace_id !== "string") {
       return new Response(
         JSON.stringify({ error: "workspace_id obrigatório" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -61,10 +57,7 @@ Deno.serve(async (req) => {
     if (!member?.length) {
       return new Response(
         JSON.stringify({ error: "Sem acesso a este workspace" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -78,23 +71,15 @@ Deno.serve(async (req) => {
     if (configError || !ghlConfig?.length) {
       return new Response(
         JSON.stringify({ error: "Configuração GHL não encontrada" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const { ghl_location_id, ghl_api_key_encrypted } = ghlConfig[0];
     if (!ghl_location_id || !ghl_api_key_encrypted) {
       return new Response(
-        JSON.stringify({
-          error: "Location ID ou API Key não configurados",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Location ID ou API Key não configurados" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -110,55 +95,7 @@ Deno.serve(async (req) => {
       account_name: string;
     }> = [];
 
-    // Fetch Facebook pages
-    try {
-      const fbRes = await fetch(
-        `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
-        { headers: ghlHeaders }
-      );
-      if (fbRes.ok) {
-        const fbData = await fbRes.json();
-        const accounts = fbData?.accounts || fbData?.data || [];
-        for (const acc of accounts) {
-          channels.push({
-            channel_type: "facebook",
-            ghl_account_id: acc.id || acc.pageId || String(acc),
-            account_name: acc.name || acc.pageName || "Facebook Page",
-          });
-        }
-      } else {
-        console.warn(`Facebook fetch failed: ${fbRes.status}`);
-        await fbRes.text();
-      }
-    } catch (e) {
-      console.warn("Facebook fetch error:", e);
-    }
-
-    // Fetch Instagram accounts
-    try {
-      const igRes = await fetch(
-        `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/instagram/accounts`,
-        { headers: ghlHeaders }
-      );
-      if (igRes.ok) {
-        const igData = await igRes.json();
-        const accounts = igData?.accounts || igData?.data || [];
-        for (const acc of accounts) {
-          channels.push({
-            channel_type: "instagram",
-            ghl_account_id: acc.id || acc.accountId || String(acc),
-            account_name: acc.name || acc.username || "Instagram Account",
-          });
-        }
-      } else {
-        console.warn(`Instagram fetch failed: ${igRes.status}`);
-        await igRes.text();
-      }
-    } catch (e) {
-      console.warn("Instagram fetch error:", e);
-    }
-
-    // Fetch location info for WhatsApp
+    // --- Strategy 1: Get location info for WhatsApp / phone ---
     try {
       const locRes = await fetch(
         `https://services.leadconnectorhq.com/locations/${ghl_location_id}`,
@@ -182,6 +119,128 @@ Deno.serve(async (req) => {
       console.warn("Location fetch error:", e);
     }
 
+    // --- Strategy 2: Discover channels from recent conversations ---
+    // GHL conversation types: TYPE_PHONE, TYPE_EMAIL, TYPE_SMS, TYPE_FB, TYPE_INSTAGRAM, TYPE_WHATSAPP, etc.
+    const channelTypeMap: Record<string, { channel_type: string; label: string }> = {
+      TYPE_FB: { channel_type: "facebook", label: "Facebook Messenger" },
+      TYPE_INSTAGRAM: { channel_type: "instagram", label: "Instagram DM" },
+      TYPE_WHATSAPP: { channel_type: "whatsapp", label: "WhatsApp" },
+    };
+
+    // Track which channel types we already found
+    const foundTypes = new Set(channels.map((c) => c.channel_type));
+
+    try {
+      const searchRes = await fetch(
+        `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100`,
+        { headers: ghlHeaders }
+      );
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const conversations = searchData?.conversations || [];
+        console.log(`Found ${conversations.length} conversations to scan for channel types`);
+
+        // Collect unique channel types and their identifiers
+        const discoveredChannels = new Map<string, { accountId: string; accountName: string }>();
+
+        for (const conv of conversations) {
+          const convType = conv.type as string;
+          const mapping = channelTypeMap[convType];
+          if (!mapping) continue;
+          if (foundTypes.has(mapping.channel_type)) continue;
+          if (discoveredChannels.has(mapping.channel_type)) continue;
+
+          // Extract account/page identifier from conversation
+          const accountId = conv.companyName || conv.locationId || ghl_location_id;
+          let accountName = mapping.label;
+
+          // Try to get a better name from the conversation metadata
+          if (convType === "TYPE_FB") {
+            accountName = conv.companyName || conv.fullName
+              ? `Facebook · ${conv.companyName || "Page"}`
+              : "Facebook Messenger";
+          } else if (convType === "TYPE_INSTAGRAM") {
+            accountName = conv.companyName
+              ? `Instagram · ${conv.companyName}`
+              : "Instagram DM";
+          }
+
+          discoveredChannels.set(mapping.channel_type, {
+            accountId: `${mapping.channel_type}-${ghl_location_id}`,
+            accountName,
+          });
+        }
+
+        for (const [channelType, info] of discoveredChannels) {
+          channels.push({
+            channel_type: channelType,
+            ghl_account_id: info.accountId,
+            account_name: info.accountName,
+          });
+          foundTypes.add(channelType);
+        }
+      } else {
+        console.warn(`Conversations search failed: ${searchRes.status}`);
+        const body = await searchRes.text();
+        console.warn(`Conversations search body: ${body.substring(0, 500)}`);
+      }
+    } catch (e) {
+      console.warn("Conversations search error:", e);
+    }
+
+    // --- Strategy 3: Try social-media-posting endpoints as fallback ---
+    if (!foundTypes.has("facebook")) {
+      try {
+        const fbRes = await fetch(
+          `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
+          { headers: ghlHeaders }
+        );
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          const accounts = fbData?.accounts || fbData?.data || [];
+          for (const acc of accounts) {
+            channels.push({
+              channel_type: "facebook",
+              ghl_account_id: acc.id || acc.pageId || String(acc),
+              account_name: acc.name || acc.pageName || "Facebook Page",
+            });
+          }
+        } else {
+          console.warn(`Facebook social-media-posting fetch failed: ${fbRes.status}`);
+          await fbRes.text();
+        }
+      } catch (e) {
+        console.warn("Facebook fallback error:", e);
+      }
+    }
+
+    if (!foundTypes.has("instagram")) {
+      try {
+        const igRes = await fetch(
+          `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/instagram/accounts`,
+          { headers: ghlHeaders }
+        );
+        if (igRes.ok) {
+          const igData = await igRes.json();
+          const accounts = igData?.accounts || igData?.data || [];
+          for (const acc of accounts) {
+            channels.push({
+              channel_type: "instagram",
+              ghl_account_id: acc.id || acc.accountId || String(acc),
+              account_name: acc.name || acc.username || "Instagram Account",
+            });
+          }
+        } else {
+          console.warn(`Instagram social-media-posting fetch failed: ${igRes.status}`);
+          await igRes.text();
+        }
+      } catch (e) {
+        console.warn("Instagram fallback error:", e);
+      }
+    }
+
+    console.log(`Returning ${channels.length} channels: ${JSON.stringify(channels.map(c => c.channel_type))}`);
+
     return new Response(JSON.stringify({ channels }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -190,10 +249,7 @@ Deno.serve(async (req) => {
     console.error("ghl-list-social-channels error:", err);
     return new Response(
       JSON.stringify({ ok: false, error: "Erro interno ao buscar canais", fallback: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
