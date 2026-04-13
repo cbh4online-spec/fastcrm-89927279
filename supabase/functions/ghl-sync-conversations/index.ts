@@ -271,8 +271,7 @@ const GHL_TYPE_CODES: Record<number, string> = {
   20: "sms",
 };
 
-function resolveChannel(typeCode?: number | string, fallback?: string | number): string {
-  // Handle numeric type codes (direct or as string)
+function resolveChannelSingle(typeCode?: number | string): string | null {
   const numCode = typeof typeCode === "number" ? typeCode : 
                   typeof typeCode === "string" && !isNaN(Number(typeCode)) ? Number(typeCode) : null;
   
@@ -280,7 +279,6 @@ function resolveChannel(typeCode?: number | string, fallback?: string | number):
     return GHL_TYPE_CODES[numCode];
   }
 
-  // Handle GHL string type names like "TYPE_SMS", "TYPE_EMAIL", etc.
   if (typeof typeCode === "string") {
     const typeStringMap: Record<string, string> = {
       "TYPE_SMS": "sms",
@@ -288,42 +286,44 @@ function resolveChannel(typeCode?: number | string, fallback?: string | number):
       "TYPE_WHATSAPP": "whatsapp",
       "TYPE_FB_MESSENGER": "messenger",
       "TYPE_INSTAGRAM": "instagram",
+      "TYPE_INSTAGRAM_DM": "instagram",
       "TYPE_LIVE_CHAT": "live_chat",
       "TYPE_PHONE": "sms",
       "TYPE_CALL": "sms",
       "TYPE_CUSTOM_SMS": "sms",
       "TYPE_CUSTOM_EMAIL": "email",
+      "TYPE_FACEBOOK_MESSENGER": "messenger",
     };
     const mapped = typeStringMap[typeCode.toUpperCase()] || typeStringMap[typeCode];
     if (mapped) return mapped;
+
+    const channelMap: Record<string, string> = {
+      "sms": "sms", "email": "email", "whatsapp": "whatsapp",
+      "facebook": "messenger", "fb": "messenger", "messenger": "messenger",
+      "instagram": "instagram", "ig": "instagram",
+      "live_chat": "live_chat", "webchat": "web_widget",
+    };
+    if (channelMap[typeCode.toLowerCase()]) return channelMap[typeCode.toLowerCase()];
+  }
+  return null;
+}
+
+const SOCIAL_CHANNELS = new Set(["instagram", "whatsapp", "messenger", "facebook"]);
+
+function resolveChannel(typeCode?: number | string, lastMessageType?: string | number): string {
+  const primaryChannel = resolveChannelSingle(typeCode);
+  const lastMsgChannel = resolveChannelSingle(lastMessageType);
+
+  // If lastMessageType resolves to a social channel, ALWAYS prefer it over a generic primary
+  // This fixes TYPE_PHONE conversations that are actually Instagram/WhatsApp DMs
+  if (lastMsgChannel && SOCIAL_CHANNELS.has(lastMsgChannel)) {
+    if (!primaryChannel || !SOCIAL_CHANNELS.has(primaryChannel)) {
+      console.log(`[GHL Sync] Channel override: "${primaryChannel || 'unknown'}" → "${lastMsgChannel}" (from lastMessageType)`);
+      return lastMsgChannel;
+    }
   }
 
-  // Try fallback (can also be numeric)
-  if (fallback !== undefined && fallback !== null) {
-    const fallbackNum = typeof fallback === "number" ? fallback :
-                        typeof fallback === "string" && !isNaN(Number(fallback)) ? Number(fallback) : null;
-    if (fallbackNum !== null && GHL_TYPE_CODES[fallbackNum]) {
-      return GHL_TYPE_CODES[fallbackNum];
-    }
-
-    if (typeof fallback === "string") {
-      const channelMap: Record<string, string> = {
-        "sms": "sms",
-        "email": "email",
-        "whatsapp": "whatsapp",
-        "facebook": "messenger",
-        "fb": "messenger",
-        "messenger": "messenger",
-        "instagram": "instagram",
-        "ig": "instagram",
-        "live_chat": "live_chat",
-        "webchat": "web_widget",
-      };
-      return channelMap[fallback.toLowerCase()] || "other";
-    }
-  }
-  
-  return "other";
+  return primaryChannel || lastMsgChannel || "other";
 }
 
 /**
