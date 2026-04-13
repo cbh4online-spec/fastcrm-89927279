@@ -261,7 +261,7 @@ export default function MarketplaceConfigPage() {
                 <Input
                   value={form.custom_domain}
                   onChange={(e) => setForm({ ...form, custom_domain: e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "") })}
-                  placeholder="vendersimples.com"
+                  placeholder="vendesimples.com"
                 />
                 {form.custom_domain && (
                   <div className="flex items-center gap-2 mt-2">
