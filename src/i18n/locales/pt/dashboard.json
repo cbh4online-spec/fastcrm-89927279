@@ -252,7 +252,7 @@
   "criticalAction": "Requalificar pipeline: remover deals mortos e focar nos viáveis.",
   "healthScoreTooltip": "Score = 100 − (Estagnação×40) − (Dados em falta×30) + (Cobertura×30). Valores de 0 a 100.",
 
-  "warRoomSituation": "WAR ROOM — Situação Semanal",
+  "warRoomSituation": "Objetivo - Situação Semanal",
   "reachable": "Alcançável",
   "atRiskStatus": "Em Risco",
   "criticalStatus": "Crítico",
