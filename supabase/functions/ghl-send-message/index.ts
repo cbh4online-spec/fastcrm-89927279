@@ -294,12 +294,42 @@ Deno.serve(async (req) => {
     }
 
     // 4. Use API key directly (stored as plain text in this implementation)
-    // Note: For production, consider implementing proper encryption with Supabase Vault
     const ghlApiKey = config.ghl_api_key_encrypted;
 
     // 5. Determine message type based on channel
     const messageChannel = channel || conversation.channel || "sms";
     let ghlMessageType = mapChannelToGHLType(messageChannel);
+
+    // --- Channel governance: block send if social channel not active ---
+    const socialTypeMap: Record<string, string> = {
+      instagram: "instagram", ig: "instagram",
+      messenger: "facebook", facebook: "facebook",
+      whatsapp: "whatsapp",
+    };
+    const socialType = socialTypeMap[messageChannel.toLowerCase()];
+    if (socialType) {
+      const { data: socialChannels } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("channel_type, is_active")
+        .eq("workspace_id", conversation.workspace_id);
+
+      if (socialChannels?.length) {
+        const isActive = socialChannels.some(
+          (c: { channel_type: string; is_active: boolean }) =>
+            c.channel_type === socialType && c.is_active
+        );
+        if (!isActive) {
+          console.log("[GHL-SEND] Channel blocked by workspace config", { messageChannel, socialType });
+          return new Response(
+            JSON.stringify({
+              error: `O canal "${messageChannel}" não está activo para este workspace. Active-o nas configurações de canais sociais.`,
+              code: "CHANNEL_NOT_ACTIVE",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
 
     // Auto-detect real channel from recent sync logs if current is "sms"
     if (messageChannel.toLowerCase() === "sms" && channelMetadata?.source) {

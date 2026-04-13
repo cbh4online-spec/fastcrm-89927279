@@ -353,6 +353,19 @@ Deno.serve(async (req) => {
       attachments: formattedAttachments.length 
     });
 
+    // --- Channel governance: check if this social channel is allowed ---
+    const socialChannelType = mapToSocialChannelType(channel);
+    if (socialChannelType) {
+      const allowed = await isChannelAllowed(supabase, workspaceId, socialChannelType);
+      if (!allowed) {
+        console.log("[GHL-MESSAGE] Channel blocked by workspace config", { channel, socialChannelType, workspaceId });
+        return new Response(
+          JSON.stringify({ message: "Channel not active for this workspace", channel: socialChannelType }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // 5. Find or create conversation
     const externalThreadId = ghlConversationId ? `ghl_${ghlConversationId}` : `ghl_${ghlContactId}_${channel}`;
     
@@ -542,10 +555,43 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("[GHL-MESSAGE] Unexpected error", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ ok: false, error: "Internal server error", fallback: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
+});
+
+// --- Shared channel governance helpers ---
+
+function mapToSocialChannelType(channel: string): string | null {
+  const map: Record<string, string> = {
+    instagram: "instagram",
+    messenger: "facebook",
+    facebook: "facebook",
+    whatsapp: "whatsapp",
+  };
+  return map[channel.toLowerCase()] || null;
+}
+
+async function isChannelAllowed(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  channelType: string
+): Promise<boolean> {
+  const { data: configuredChannels } = await supabase
+    .from("workspace_ghl_social_channels")
+    .select("channel_type, is_active")
+    .eq("workspace_id", workspaceId);
+
+  // No channels configured → allow all (backward-compatible)
+  if (!configuredChannels?.length) return true;
+
+  // Channels configured → only allow if this type is active
+  return configuredChannels.some(
+    (c: { channel_type: string; is_active: boolean }) =>
+      c.channel_type === channelType && c.is_active
+  );
+}
 });
 
 // GHL message type numeric codes
