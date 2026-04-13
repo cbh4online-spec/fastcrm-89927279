@@ -137,6 +137,19 @@ Deno.serve(async (req) => {
         );
       }
 
+      // CRITICAL: Verify this workspace actually owns this channel before triggering autopilot
+      const socialType = mapToSocialChannelType(channel || "");
+      if (socialType) {
+        const allowed = await isChannelAllowed(supabase, workspace_id, socialType);
+        if (!allowed) {
+          console.log(`[GHL-MESSAGE] Autopilot BLOCKED: channel "${channel}" (social: "${socialType}") not allowed for workspace ${workspace_id}`);
+          return new Response(
+            JSON.stringify({ message: "Channel not allowed for this workspace" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // Get workspace name
       const { data: ws } = await supabase
         .from("workspaces")
