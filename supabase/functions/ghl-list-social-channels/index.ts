@@ -144,16 +144,17 @@ function extractCandidateArrays(payload: unknown, depth = 0): JsonRecord[] {
 }
 
 function extractChannelType(entry: JsonRecord, fallbackType?: string): string | null {
+  // Priority order: platform/provider are more specific than generic "type"
   const directType = uniqueStrings([
-    entry.type,
-    entry.channel_type,
-    entry.channelType,
     entry.platform,
     entry.provider,
+    entry.channel_type,
+    entry.channelType,
     entry.integration_type,
     entry.integrationType,
     entry.network,
     entry.source,
+    entry.type,
     fallbackType,
   ]);
 
