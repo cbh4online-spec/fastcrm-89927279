@@ -22,6 +22,28 @@ export default function MarketplaceConfigPage() {
   const workspaceId = currentWorkspace?.id;
   const { data: config, isLoading } = useMarketplaceAdmin(workspaceId);
   const saveConfig = useSaveMarketplaceConfig();
+  const [verifyingDns, setVerifyingDns] = useState(false);
+
+  const handleVerifyDns = async () => {
+    if (!form.custom_domain || !workspaceId) return;
+    setVerifyingDns(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-marketplace-domain", {
+        body: { domain: form.custom_domain, workspace_id: workspaceId },
+      });
+      if (error) throw error;
+      if (data?.verified) {
+        toast.success("DNS verificado com sucesso! O domínio está corretamente configurado.");
+      } else {
+        const ips = data?.found_ips?.length ? data.found_ips.join(", ") : "nenhum";
+        toast.error(`DNS ainda não aponta para o IP correto. IPs encontrados: ${ips}. Esperado: 185.158.133.1`);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao verificar DNS: " + (err.message || "tenta novamente"));
+    } finally {
+      setVerifyingDns(false);
+    }
+  };
 
   const [form, setForm] = useState({
     slug: "",
