@@ -60979,6 +60979,47 @@ export type Database = {
           },
         ]
       }
+      workspace_ghl_social_channels: {
+        Row: {
+          account_name: string | null
+          channel_type: string
+          created_at: string
+          ghl_account_id: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          channel_type: string
+          created_at?: string
+          ghl_account_id: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_name?: string | null
+          channel_type?: string
+          created_at?: string
+          ghl_account_id?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_ghl_social_channels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_health: {
         Row: {
           active_alerts: Json | null
