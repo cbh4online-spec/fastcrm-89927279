@@ -1,50 +1,36 @@
 
 
-# Plano: Domínio customizado configurável no backoffice do Marketplace
+# Plano: Verificador de DNS para domínio customizado do Marketplace
 
-## Contexto
-Atualmente o domínio `vendersimples.com` está hardcoded em `getMarketplaceBaseUrl()`. A tabela `c2c_marketplace_config` já tem colunas `custom_domain` e `custom_domain_verified` — só falta expô-las na UI e consumir dinamicamente.
+## Objetivo
+Adicionar um botão "Verificar DNS" na secção de domínio público que faz uma verificação em tempo real e atualiza o estado `custom_domain_verified` na base de dados.
 
-## Alterações
+## Abordagem
 
-### 1. Adicionar campo de domínio customizado ao MarketplaceConfigPage
+### 1. Edge Function `verify-marketplace-domain`
+**Ficheiro:** `supabase/functions/verify-marketplace-domain/index.ts`
+
+- Recebe `{ domain, workspace_id }` via POST
+- Faz DNS lookup do domínio usando a API pública `https://dns.google/resolve?name={domain}&type=A`
+- Verifica se o registo A aponta para `185.158.133.1`
+- Atualiza `c2c_marketplace_config.custom_domain_verified` para `true` ou `false`
+- Retorna o resultado com detalhes (IPs encontrados, estado)
+- Inclui CORS headers e validação de JWT
+
+### 2. Botão "Verificar DNS" no MarketplaceConfigPage
 **Ficheiro:** `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx`
-- Adicionar `custom_domain` ao estado do formulário
-- Na tab "Geral", adicionar secção "Domínio Público" com:
-  - Input para domínio (ex: `vendersimples.com`)
-  - Texto explicativo com instruções DNS (A record → 185.158.133.1)
-  - Indicador visual do estado de verificação (`custom_domain_verified`)
-- O `publicUrl` passa a usar o `custom_domain` se definido, senão fallback para `fastcrm.metodopare.ai`
 
-### 2. Atualizar `getMarketplaceBaseUrl` para aceitar domínio dinâmico
-**Ficheiro:** `src/utils/getPublicDomain.ts`
-- Manter o fallback `https://vendersimples.com` como default
-- Adicionar variante `getMarketplaceBaseUrlFromConfig(customDomain?: string | null)` que retorna `https://{customDomain}` se definido e verificado
+- Adicionar botão junto ao badge de estado (linha ~243-255)
+- Ao clicar, chama a edge function via `supabase.functions.invoke('verify-marketplace-domain')`
+- Mostra loading durante a verificação
+- Atualiza o badge com o resultado (verde ✓ ou vermelho ✗ com detalhes)
+- Toast com feedback: "DNS verificado com sucesso" ou "DNS ainda não está a apontar para o IP correcto"
 
-### 3. Atualizar interface MarketplaceConfig
-**Ficheiro:** `src/hooks/useMarketplace.ts`
-- Adicionar `custom_domain?: string | null` e `custom_domain_verified?: boolean | null` à interface
-
-### 4. Componentes que geram links públicos — consumir domínio da config
-**Ficheiros:** `C2CPublicLinksManager.tsx`, `C2CMyListings.tsx`, `C2CSellerArea.tsx`, `C2CPublicMarketplace.tsx`, `C2CPublicSellerProfile.tsx`
-- Onde já têm acesso à `marketplaceConfig`, usar `getMarketplaceBaseUrlFromConfig(config?.custom_domain)` em vez de `getMarketplaceBaseUrl()`
-
-### 5. Atualizar og-proxy para ler domínio da config
-**Ficheiro:** `supabase/functions/og-proxy/index.ts`
-- Na secção marketplace/c2c, após buscar a config, usar `custom_domain` da config para definir `pageUrl` em vez do hardcoded `MARKETPLACE_URL`
-
-### Ficheiros a editar
+### Ficheiros a editar/criar
 | Ficheiro | Alteração |
 |---|---|
-| `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx` | Adicionar secção "Domínio Público" com input + estado DNS |
-| `src/utils/getPublicDomain.ts` | Nova função `getMarketplaceBaseUrlFromConfig()` |
-| `src/hooks/useMarketplace.ts` | Adicionar `custom_domain` à interface |
-| `src/pages/c2c/C2CPublicLinksManager.tsx` | Usar domínio da config |
-| `src/pages/c2c/C2CMyListings.tsx` | Usar domínio da config |
-| `src/pages/c2c/C2CSellerArea.tsx` | Usar domínio da config |
-| `src/pages/c2c/C2CPublicMarketplace.tsx` | Usar domínio da config |
-| `src/pages/c2c/C2CPublicSellerProfile.tsx` | Usar domínio da config |
-| `supabase/functions/og-proxy/index.ts` | Ler `custom_domain` da config para URLs canónicos |
+| `supabase/functions/verify-marketplace-domain/index.ts` | **Novo** — edge function de verificação DNS |
+| `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx` | Adicionar botão "Verificar DNS" + lógica de invocação |
 
-Nenhuma migração necessária — as colunas `custom_domain` e `custom_domain_verified` já existem na tabela.
+Nenhuma migração necessária — a coluna `custom_domain_verified` já existe.
 
