@@ -220,17 +220,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Find workspace by location_id (get first match if multiple exist)
-    const { data: configs, error: configError } = await supabase
+    // 1. Find ALL active workspace configs for this location
+    const { data: allConfigs, error: configError } = await supabase
       .from("workspace_ghl_config")
       .select("workspace_id, sync_messages, is_primary")
       .eq("ghl_location_id", locationId)
-      .eq("is_active", true)
-      .order("is_primary", { ascending: false })
-      .limit(5);
-    
-    // DEDUPLICATION: prefer the primary config, fallback to first
-    const config = configs?.find(c => c.is_primary) || configs?.[0] || null;
+      .eq("is_active", true);
 
     if (configError) {
       console.error("[GHL-MESSAGE] Config lookup error", configError);
@@ -240,12 +235,53 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!config) {
+    if (!allConfigs?.length) {
       console.log("[GHL-MESSAGE] No active config for location", locationId);
       return new Response(
         JSON.stringify({ message: "Location not configured" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // 1b. PHASE 2 — Channel-based routing: determine channel early to route to the correct workspace
+    const earlyChannel = resolveGHLChannel(
+      body.message?.type,
+      body.channel || body.message_type || body.messageType || body.message?.channel || "sms",
+      (body.contact as any)?.attributionSource?.medium || (body.contact as any)?.lastAttributionSource?.medium
+    );
+    const earlySocialType = mapToSocialChannelType(earlyChannel);
+
+    let config: typeof allConfigs[0] | null = null;
+
+    if (allConfigs.length === 1) {
+      config = allConfigs[0];
+    } else if (earlySocialType) {
+      // Load social channel configs for all candidate workspaces
+      const wsIds = allConfigs.map(c => c.workspace_id);
+      const { data: socialConfigs } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("workspace_id, channel_type, is_active")
+        .in("workspace_id", wsIds)
+        .eq("channel_type", earlySocialType)
+        .eq("is_active", true);
+
+      if (socialConfigs?.length === 1) {
+        // Exact match: one workspace owns this channel
+        config = allConfigs.find(c => c.workspace_id === socialConfigs[0].workspace_id) || null;
+        console.log("[GHL-MESSAGE] Phase2 routing: exact channel match", { channel: earlySocialType, workspace: config?.workspace_id });
+      } else if (socialConfigs && socialConfigs.length > 1) {
+        // Multiple own this channel → prefer primary
+        const primaryWs = allConfigs.find(c => c.is_primary);
+        const primaryOwns = socialConfigs.find(s => s.workspace_id === primaryWs?.workspace_id);
+        config = primaryOwns ? primaryWs! : allConfigs.find(c => c.workspace_id === socialConfigs[0].workspace_id) || null;
+        console.log("[GHL-MESSAGE] Phase2 routing: multiple owners, resolved", { channel: earlySocialType, workspace: config?.workspace_id });
+      }
+    }
+
+    // Fallback to primary or first config
+    if (!config) {
+      config = allConfigs.find(c => c.is_primary) || allConfigs[0];
+      console.log("[GHL-MESSAGE] Phase2 routing: fallback to primary/first", { workspace: config.workspace_id });
     }
 
     if (!config.sync_messages) {

@@ -216,10 +216,11 @@ async function triggerAutopilot(
 }
 
 // Core sync logic — single pass over all active workspaces
+// PHASE 2: Route conversations to the workspace that owns the channel type
 async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalStart: number): Promise<Record<string, unknown>> {
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // DEDUPLICATION: Only process primary configs when multiple workspaces share the same ghl_location_id
+  // Load ALL active configs (no more deduplication by location — each workspace processes its own channels)
   const { data: allConfigs, error: configError } = await supabase
     .from("workspace_ghl_config")
     .select("workspace_id, ghl_api_key_encrypted, ghl_location_id, is_primary")
@@ -230,34 +231,71 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
     return {};
   }
 
-  // Deduplicate: for each ghl_location_id, only keep the primary config (or first if no primary set)
-  const locationMap = new Map<string, typeof allConfigs[0]>();
+  // Group configs by location_id for channel-based routing
+  const locationGroups = new Map<string, typeof allConfigs>();
   for (const cfg of allConfigs) {
     if (!cfg.ghl_location_id) continue;
-    const existing = locationMap.get(cfg.ghl_location_id);
-    if (!existing || (cfg.is_primary && !existing.is_primary)) {
-      locationMap.set(cfg.ghl_location_id, cfg);
+    const group = locationGroups.get(cfg.ghl_location_id) || [];
+    group.push(cfg);
+    locationGroups.set(cfg.ghl_location_id, group);
+  }
+
+  // For each location, load social channel ownership per workspace
+  const channelOwnership = new Map<string, Map<string, string>>(); // locationId -> Map<channelType, workspaceId>
+  const primaryByLocation = new Map<string, string>(); // locationId -> primary workspace_id
+
+  for (const [locId, cfgs] of locationGroups) {
+    const primary = cfgs.find(c => c.is_primary);
+    if (primary) primaryByLocation.set(locId, primary.workspace_id);
+
+    if (cfgs.length > 1) {
+      // Multiple workspaces share this location — load channel ownership
+      const wsIds = cfgs.map(c => c.workspace_id);
+      const { data: socialChannels } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("workspace_id, channel_type, is_active")
+        .in("workspace_id", wsIds)
+        .eq("is_active", true);
+
+      const ownership = new Map<string, string>();
+      for (const sc of socialChannels || []) {
+        // First workspace to claim a channel type wins (could be refined later)
+        if (!ownership.has(sc.channel_type)) {
+          ownership.set(sc.channel_type, sc.workspace_id);
+        }
+      }
+      channelOwnership.set(locId, ownership);
+      console.log(`[Cron Sync] Location ${locId}: ${cfgs.length} workspaces, channel ownership:`, Object.fromEntries(ownership));
     }
   }
-  const ghlConfigs = Array.from(locationMap.values());
 
-  console.log(`[Cron Sync] Processing ${ghlConfigs.length} workspace(s) (deduplicated from ${allConfigs.length} configs)`);
-
+  // Deduplicate API calls: fetch conversations once per location, then route
+  const processedLocations = new Set<string>();
   const results: Record<string, unknown> = {};
 
-  for (const config of ghlConfigs) {
-    const { workspace_id, ghl_api_key_encrypted: apiKey, ghl_location_id: locationId } = config;
+  // For single-workspace locations, process directly. For multi-workspace, route by channel.
+  for (const [locId, cfgs] of locationGroups) {
+    if (processedLocations.has(locId)) continue;
+    processedLocations.add(locId);
 
-    if (!apiKey || !locationId) continue;
+    // Use any config's API key (they share the same location)
+    const apiKeyCfg = cfgs.find(c => c.ghl_api_key_encrypted) || cfgs[0];
+    const apiKey = apiKeyCfg.ghl_api_key_encrypted;
+    if (!apiKey) continue;
 
     // Safety guard: stop if approaching 55s total (edge function limit is 60s)
     if (Date.now() - totalStart > 55000) {
-      console.log("[Cron Sync] Approaching 60s timeout, stopping remaining workspaces");
+      console.log("[Cron Sync] Approaching 60s timeout, stopping remaining locations");
       break;
     }
 
+    const isMultiWorkspace = cfgs.length > 1;
+    const ownership = channelOwnership.get(locId);
+    const primaryWsId = primaryByLocation.get(locId) || cfgs[0].workspace_id;
+    const locationId = locId;
+
     const wsStart = Date.now();
-    console.log(`[Cron Sync] Starting workspace ${workspace_id}`);
+    console.log(`[Cron Sync] Starting location ${locId} (${cfgs.length} workspace(s))`);
 
     try {
       const queryParams = new URLSearchParams({
@@ -268,7 +306,6 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
 
       const ghlUrl = `https://services.leadconnectorhq.com/conversations/search?${queryParams.toString()}`;
 
-      console.log(`[Cron Sync] Calling GHL conversations/search for workspace ${workspace_id}`);
       const ghlResponse = await fetchWithTimeout(ghlUrl, {
         method: "GET",
         headers: {
@@ -278,10 +315,8 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
         },
       }, 15000);
 
-      console.log(`[Cron Sync] GHL conversations/search responded ${ghlResponse.status} for workspace ${workspace_id} (${Date.now() - wsStart}ms)`);
-
       if (!ghlResponse.ok) {
-        results[workspace_id] = { error: `GHL API ${ghlResponse.status}` };
+        results[locId] = { error: `GHL API ${ghlResponse.status}` };
         continue;
       }
 
@@ -296,284 +331,294 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
         return new Date(lastDate) > windowAgo;
       });
 
-      console.log(`[Cron Sync] Workspace ${workspace_id}: ${conversations.length} total, ${recentConversations.length} recent conversations`);
+      console.log(`[Cron Sync] Location ${locId}: ${conversations.length} total, ${recentConversations.length} recent conversations`);
 
       if (recentConversations.length === 0) {
-        results[workspace_id] = { conversations: 0, messages: 0 };
+        for (const cfg of cfgs) {
+          await supabase
+            .from("workspace_ghl_config")
+            .update({ last_sync_at: new Date().toISOString() })
+            .eq("workspace_id", cfg.workspace_id);
+          results[cfg.workspace_id] = { conversations: 0, messages: 0 };
+        }
+        continue;
+      }
+
+      // PHASE 2: Route each conversation to the correct workspace
+      // Group conversations by target workspace
+      const convsByWorkspace = new Map<string, typeof recentConversations>();
+
+      for (const ghlConv of recentConversations) {
+        const channel = resolveChannel(ghlConv.type);
+        let targetWsId: string;
+
+        if (!isMultiWorkspace) {
+          targetWsId = cfgs[0].workspace_id;
+        } else {
+          // Map channel to social type for ownership lookup
+          const socialTypeMap: Record<string, string> = {
+            instagram: "instagram", messenger: "facebook", facebook: "facebook", whatsapp: "whatsapp",
+          };
+          const socialType = socialTypeMap[channel.toLowerCase()];
+
+          if (socialType && ownership?.has(socialType)) {
+            targetWsId = ownership.get(socialType)!;
+          } else {
+            targetWsId = primaryWsId;
+          }
+        }
+
+        if (!convsByWorkspace.has(targetWsId)) {
+          convsByWorkspace.set(targetWsId, []);
+        }
+        convsByWorkspace.get(targetWsId)!.push(ghlConv);
+      }
+
+      console.log(`[Cron Sync] Location ${locId}: routed to ${convsByWorkspace.size} workspace(s)`);
+
+      // Process each workspace's conversations
+      for (const [workspace_id, wsConversations] of convsByWorkspace) {
+        if (Date.now() - wsStart > 40000) {
+          console.log(`[Cron Sync] Location ${locId} time limit reached, stopping`);
+          break;
+        }
+
+        const { data: existingLeads } = await supabase
+          .from("leads")
+          .select("id, ghl_contact_id")
+          .eq("workspace_id", workspace_id)
+          .not("ghl_contact_id", "is", null);
+
+        const leadsByGhlId = new Map<string, string>();
+        for (const lead of existingLeads || []) {
+          if (lead.ghl_contact_id) leadsByGhlId.set(lead.ghl_contact_id, lead.id);
+        }
+
+        const { data: existingConvs } = await supabase
+          .from("conversations")
+          .select("id, external_thread_id, lead_id, channel")
+          .eq("workspace_id", workspace_id)
+          .not("external_thread_id", "is", null);
+
+        const convsByThreadId = new Map<string, string>();
+        const convsByLeadChannel = new Map<string, string>();
+        for (const conv of existingConvs || []) {
+          if (conv.external_thread_id) convsByThreadId.set(conv.external_thread_id, conv.id);
+          if (conv.lead_id && conv.channel) {
+            convsByLeadChannel.set(`${conv.lead_id}:${conv.channel}`, conv.id);
+          }
+        }
+
+        let messagesCreated = 0;
+        let conversationsCreated = 0;
+
+        for (const ghlConv of wsConversations) {
+          if (Date.now() - wsStart > 20000) {
+            console.log(`[Cron Sync] Workspace ${workspace_id} time limit (20s) reached, moving on`);
+            break;
+          }
+
+          let convMessagesCreated = 0;
+          const ghlConvId = ghlConv.id;
+          let channel = resolveChannel(ghlConv.type);
+          let leadId = leadsByGhlId.get(ghlConv.contactId);
+
+          if (!leadId) {
+            const contactData = await fetchGHLContactBasic(apiKey, ghlConv.contactId);
+            if (contactData) {
+              const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
+              if (newLead) {
+                leadId = newLead.id;
+                leadsByGhlId.set(ghlConv.contactId, leadId);
+              }
+            }
+            if (!leadId) continue;
+          }
+
+          const normalizedThreadId = `ghl_${ghlConvId}`;
+          let conversationId = convsByThreadId.get(normalizedThreadId)
+            || convsByThreadId.get(ghlConvId)
+            || convsByLeadChannel.get(`${leadId}:${channel}`);
+
+          if (!conversationId) {
+            const { data: newConv, error: convErr } = await supabase
+              .from("conversations")
+              .insert({
+                workspace_id,
+                lead_id: leadId,
+                channel,
+                external_thread_id: normalizedThreadId,
+                last_message_at: normalizeTimestamp(ghlConv.lastMessageDate) || new Date().toISOString(),
+                last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
+                status: "open",
+              })
+              .select("id")
+              .single();
+
+            if (convErr) {
+              if (convErr.code === "23505") {
+                const { data: existing } = await supabase
+                  .from("conversations")
+                  .select("id")
+                  .eq("external_thread_id", normalizedThreadId)
+                  .eq("workspace_id", workspace_id)
+                  .single();
+                conversationId = existing?.id;
+              } else {
+                continue;
+              }
+            } else {
+              conversationId = newConv?.id;
+              conversationsCreated++;
+              convsByThreadId.set(normalizedThreadId, conversationId!);
+              convsByLeadChannel.set(`${leadId}:${channel}`, conversationId!);
+            }
+          }
+
+          if (!conversationId) continue;
+
+          try {
+            const msgUrl = `https://services.leadconnectorhq.com/conversations/${ghlConvId}/messages`;
+            const msgResponse = await fetchWithTimeout(msgUrl, {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                Version: "2021-04-15",
+                Accept: "application/json",
+              },
+            }, 15000);
+
+            if (!msgResponse.ok) continue;
+
+            const msgData = await msgResponse.json();
+            let rawMessages = msgData.messages;
+            if (rawMessages && !Array.isArray(rawMessages) && typeof rawMessages === "object") {
+              rawMessages = rawMessages.messages || Object.values(rawMessages);
+            }
+            if (!rawMessages) rawMessages = msgData.data || [];
+            const messages: Array<{
+              id: string; body?: string; direction?: string; dateAdded?: string; type?: number;
+              attachments?: Array<{ url: string; type?: string; name?: string }>;
+            }> = Array.isArray(rawMessages) ? rawMessages : [];
+
+            const recentMessages = messages.filter((msg) => {
+              const msgDate = msg.dateAdded ? new Date(msg.dateAdded) : null;
+              return msgDate && msgDate > windowAgo;
+            });
+
+            for (const msg of recentMessages) {
+              if (!msg?.id) continue;
+              const direction = normalizeDirection(msg.direction);
+              const sentAt = normalizeTimestamp(msg.dateAdded) || new Date().toISOString();
+              const attachments = (msg.attachments || []).map((att) => ({
+                url: att.url, type: att.type || "file", name: att.name || "attachment",
+              }));
+
+              const { error: msgError } = await supabase.from("messages").insert({
+                conversation_id: conversationId,
+                workspace_id,
+                content: msg.body || "",
+                direction,
+                sent_at: sentAt,
+                ghl_message_id: msg.id,
+                external_message_id: msg.id,
+                attachments: attachments.length > 0 ? attachments : null,
+              });
+
+              if (!msgError) {
+                convMessagesCreated++;
+                messagesCreated++;
+              }
+            }
+
+            // Infer real channel from message types
+            if ((channel === "other" || channel === "sms") && recentMessages.length > 0) {
+              const msgTypeSet = new Set<number>();
+              for (const msg of recentMessages) {
+                if (msg.type !== undefined) {
+                  const numType = typeof msg.type === "number" ? msg.type : Number(msg.type);
+                  if (!isNaN(numType)) msgTypeSet.add(numType);
+                }
+              }
+              let inferredChannel: string | null = null;
+              if (msgTypeSet.has(17) || msgTypeSet.has(18)) inferredChannel = "instagram";
+              else if (msgTypeSet.has(15) || msgTypeSet.has(16)) inferredChannel = "whatsapp";
+              else if (msgTypeSet.has(5) || msgTypeSet.has(6) || msgTypeSet.has(19)) inferredChannel = "messenger";
+              if (inferredChannel && inferredChannel !== channel) {
+                console.log(`[Cron Sync] Reclassifying conv ${ghlConvId} from "${channel}" to "${inferredChannel}"`);
+                channel = inferredChannel;
+                await supabase.from("conversations").update({ channel: inferredChannel }).eq("id", conversationId);
+              }
+            }
+
+            if (recentMessages.length > 0 && convMessagesCreated > 0) {
+              const lastMsg = recentMessages[recentMessages.length - 1];
+              const lastDirection = normalizeDirection(lastMsg?.direction);
+              if (lastDirection === "inbound") {
+                const { data: lastTrigger } = await supabase
+                  .from("autopilot_events")
+                  .select("id, created_at")
+                  .eq("conversation_id", conversationId)
+                  .eq("event_type", "triggered")
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                let shouldTrigger = true;
+                if (lastTrigger) {
+                  const { data: newerInbound } = await supabase
+                    .from("messages")
+                    .select("id")
+                    .eq("conversation_id", conversationId)
+                    .eq("direction", "inbound")
+                    .gt("sent_at", lastTrigger.created_at)
+                    .limit(1)
+                    .maybeSingle();
+                  if (!newerInbound) {
+                    shouldTrigger = false;
+                  }
+                }
+
+                if (shouldTrigger) {
+                  triggerAutopilot(supabaseUrl, serviceKey, {
+                    workspaceId: workspace_id,
+                    conversationId: conversationId!,
+                    channel,
+                    leadId,
+                    ghlContactId: ghlConv.contactId,
+                    locationId,
+                  });
+                }
+              }
+            }
+
+            await supabase.from("conversations").update({
+              last_message_at: normalizeTimestamp(ghlConv.lastMessageDate) || new Date().toISOString(),
+              last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
+            }).eq("id", conversationId);
+          } catch (msgErr) {
+            console.error(`[Cron Sync] Error fetching messages for conv ${ghlConvId}:`, msgErr);
+          }
+        }
 
         await supabase
           .from("workspace_ghl_config")
           .update({ last_sync_at: new Date().toISOString() })
           .eq("workspace_id", workspace_id);
 
-        continue;
+        const wsDuration = Date.now() - wsStart;
+        console.log(`[Cron Sync] Workspace ${workspace_id} done in ${wsDuration}ms — convs_created: ${conversationsCreated}, messages_created: ${messagesCreated}`);
+
+        results[workspace_id] = {
+          conversations: wsConversations.length,
+          conversations_created: conversationsCreated,
+          messages_created: messagesCreated,
+          duration_ms: wsDuration,
+        };
       }
-
-      const { data: existingLeads } = await supabase
-        .from("leads")
-        .select("id, ghl_contact_id")
-        .eq("workspace_id", workspace_id)
-        .not("ghl_contact_id", "is", null);
-
-      const leadsByGhlId = new Map<string, string>();
-      for (const lead of existingLeads || []) {
-        if (lead.ghl_contact_id) leadsByGhlId.set(lead.ghl_contact_id, lead.id);
-      }
-
-      const { data: existingConvs } = await supabase
-        .from("conversations")
-        .select("id, external_thread_id, lead_id, channel")
-        .eq("workspace_id", workspace_id)
-        .not("external_thread_id", "is", null);
-
-      const convsByThreadId = new Map<string, string>();
-      const convsByLeadChannel = new Map<string, string>();
-      for (const conv of existingConvs || []) {
-        if (conv.external_thread_id) convsByThreadId.set(conv.external_thread_id, conv.id);
-        if (conv.lead_id && conv.channel) {
-          convsByLeadChannel.set(`${conv.lead_id}:${conv.channel}`, conv.id);
-        }
-      }
-
-      let messagesCreated = 0;
-      let conversationsCreated = 0;
-
-      for (const ghlConv of recentConversations) {
-        // Per-workspace safety: stop if we've been in this workspace too long (20s)
-        if (Date.now() - wsStart > 20000) {
-          console.log(`[Cron Sync] Workspace ${workspace_id} time limit (20s) reached, moving on`);
-          break;
-        }
-
-        let convMessagesCreated = 0;
-
-        const ghlConvId = ghlConv.id;
-        let channel = resolveChannel(ghlConv.type);
-        let leadId = leadsByGhlId.get(ghlConv.contactId);
-
-        // Auto-create lead if not found
-        if (!leadId) {
-          const contactData = await fetchGHLContactBasic(apiKey, ghlConv.contactId);
-          if (contactData) {
-            const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
-            if (newLead) {
-              leadId = newLead.id;
-              leadsByGhlId.set(ghlConv.contactId, leadId);
-            }
-          }
-          if (!leadId) continue;
-        }
-
-        // Deduplicate: check by thread_id (with/without ghl_ prefix) then by lead+channel
-        const normalizedThreadId = `ghl_${ghlConvId}`;
-        let conversationId = convsByThreadId.get(normalizedThreadId)
-          || convsByThreadId.get(ghlConvId)
-          || convsByLeadChannel.get(`${leadId}:${channel}`);
-
-        if (!conversationId) {
-          const { data: newConv, error: convErr } = await supabase
-            .from("conversations")
-            .insert({
-              workspace_id,
-              lead_id: leadId,
-              channel,
-              external_thread_id: normalizedThreadId,
-              last_message_at: normalizeTimestamp(ghlConv.lastMessageDate) || new Date().toISOString(),
-              last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
-              status: "open",
-            })
-            .select("id")
-            .single();
-
-          if (convErr) {
-            if (convErr.code === "23505") {
-              const { data: existing } = await supabase
-                .from("conversations")
-                .select("id")
-                .eq("external_thread_id", normalizedThreadId)
-                .eq("workspace_id", workspace_id)
-                .single();
-              conversationId = existing?.id;
-            } else {
-              continue;
-            }
-          } else {
-            conversationId = newConv?.id;
-            conversationsCreated++;
-            convsByThreadId.set(normalizedThreadId, conversationId!);
-            convsByLeadChannel.set(`${leadId}:${channel}`, conversationId!);
-          }
-        }
-
-        if (!conversationId) continue;
-
-        try {
-          const msgUrl = `https://services.leadconnectorhq.com/conversations/${ghlConvId}/messages`;
-          console.log(`[Cron Sync] Calling GHL messages for conv ${ghlConvId}`);
-
-          const msgResponse = await fetchWithTimeout(msgUrl, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              Version: "2021-04-15",
-              Accept: "application/json",
-            },
-          }, 15000);
-
-          console.log(`[Cron Sync] GHL messages responded ${msgResponse.status} for conv ${ghlConvId}`);
-
-          if (!msgResponse.ok) continue;
-
-          const msgData = await msgResponse.json();
-          let rawMessages = msgData.messages;
-          if (rawMessages && !Array.isArray(rawMessages) && typeof rawMessages === "object") {
-            rawMessages = rawMessages.messages || Object.values(rawMessages);
-          }
-          if (!rawMessages) rawMessages = msgData.data || [];
-          const messages: Array<{
-            id: string;
-            body?: string;
-            direction?: string;
-            dateAdded?: string;
-            type?: number;
-            attachments?: Array<{ url: string; type?: string; name?: string }>;
-          }> = Array.isArray(rawMessages) ? rawMessages : [];
-
-          const recentMessages = messages.filter((msg) => {
-            const msgDate = msg.dateAdded ? new Date(msg.dateAdded) : null;
-            return msgDate && msgDate > windowAgo;
-          });
-
-          console.log(`[Cron Sync] Conv ${ghlConvId}: ${messages.length} total messages, ${recentMessages.length} recent`);
-
-          for (const msg of recentMessages) {
-            if (!msg?.id) continue;
-
-            const direction = normalizeDirection(msg.direction);
-            const sentAt = normalizeTimestamp(msg.dateAdded) || new Date().toISOString();
-            const attachments = (msg.attachments || []).map((att) => ({
-              url: att.url,
-              type: att.type || "file",
-              name: att.name || "attachment",
-            }));
-
-            const { error: msgError } = await supabase.from("messages").insert({
-              conversation_id: conversationId,
-              workspace_id,
-              content: msg.body || "",
-              direction,
-              sent_at: sentAt,
-              ghl_message_id: msg.id,
-              external_message_id: msg.id,
-              attachments: attachments.length > 0 ? attachments : null,
-            });
-
-            if (!msgError) {
-              convMessagesCreated++;
-              messagesCreated++;
-            }
-          }
-
-          // After processing all messages, infer real channel from message types if current is "other" or "sms"
-          if ((channel === "other" || channel === "sms") && recentMessages.length > 0) {
-            const msgTypeSet = new Set<number>();
-            for (const msg of recentMessages) {
-              if (msg.type !== undefined) {
-                const numType = typeof msg.type === "number" ? msg.type : Number(msg.type);
-                if (!isNaN(numType)) msgTypeSet.add(numType);
-              }
-            }
-            let inferredChannel: string | null = null;
-            if (msgTypeSet.has(17) || msgTypeSet.has(18)) {
-              inferredChannel = "instagram";
-            } else if (msgTypeSet.has(15) || msgTypeSet.has(16)) {
-              inferredChannel = "whatsapp";
-            } else if (msgTypeSet.has(5) || msgTypeSet.has(6) || msgTypeSet.has(19)) {
-              inferredChannel = "messenger";
-            }
-            if (inferredChannel && inferredChannel !== channel) {
-              console.log(`[Cron Sync] Reclassifying conv ${ghlConvId} from "${channel}" to "${inferredChannel}" based on message types [${[...msgTypeSet].join(",")}]`);
-              channel = inferredChannel;
-              await supabase
-                .from("conversations")
-                .update({ channel: inferredChannel })
-                .eq("id", conversationId);
-            }
-          }
-
-          if (recentMessages.length > 0 && convMessagesCreated > 0) {
-            const lastMsg = recentMessages[recentMessages.length - 1];
-            const lastDirection = normalizeDirection(lastMsg?.direction);
-            if (lastDirection === "inbound") {
-              // SMART DEDUP: Check if there's a new inbound AFTER the last trigger
-              const { data: lastTrigger } = await supabase
-                .from("autopilot_events")
-                .select("id, created_at")
-                .eq("conversation_id", conversationId)
-                .eq("event_type", "triggered")
-                .order("created_at", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-              let shouldTrigger = true;
-              if (lastTrigger) {
-                const { data: newerInbound } = await supabase
-                  .from("messages")
-                  .select("id")
-                  .eq("conversation_id", conversationId)
-                  .eq("direction", "inbound")
-                  .gt("sent_at", lastTrigger.created_at)
-                  .limit(1)
-                  .maybeSingle();
-
-                if (!newerInbound) {
-                  shouldTrigger = false;
-                  console.log("[Cron Sync] Skipping autopilot — last trigger covers latest inbound", conversationId);
-                }
-              }
-
-              if (shouldTrigger) {
-                triggerAutopilot(supabaseUrl, serviceKey, {
-                  workspaceId: workspace_id,
-                  conversationId: conversationId!,
-                  channel,
-                  leadId,
-                  ghlContactId: ghlConv.contactId,
-                  locationId,
-                });
-              }
-            }
-          }
-
-          await supabase
-            .from("conversations")
-            .update({
-              last_message_at: normalizeTimestamp(ghlConv.lastMessageDate) || new Date().toISOString(),
-              last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
-            })
-            .eq("id", conversationId);
-        } catch (msgErr) {
-          console.error(`[Cron Sync] Error fetching messages for conv ${ghlConvId}:`, msgErr);
-        }
-      }
-
-      await supabase
-        .from("workspace_ghl_config")
-        .update({ last_sync_at: new Date().toISOString() })
-        .eq("workspace_id", workspace_id);
-
-      const wsDuration = Date.now() - wsStart;
-      console.log(`[Cron Sync] Workspace ${workspace_id} done in ${wsDuration}ms — convs_created: ${conversationsCreated}, messages_created: ${messagesCreated}`);
-
-      results[workspace_id] = {
-        conversations: recentConversations.length,
-        conversations_created: conversationsCreated,
-        messages_created: messagesCreated,
-        duration_ms: wsDuration,
-      };
     } catch (wsErr) {
-      console.error(`[Cron Sync] Error processing workspace ${workspace_id}:`, wsErr);
-      results[workspace_id] = { error: wsErr instanceof Error ? wsErr.message : "Unknown error" };
+      console.error(`[Cron Sync] Error processing location ${locId}:`, wsErr);
+      results[locId] = { error: wsErr instanceof Error ? wsErr.message : "Unknown error" };
     }
   }
 
