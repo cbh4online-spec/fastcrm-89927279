@@ -6,6 +6,204 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type DiscoveredChannel = {
+  channel_type: string;
+  ghl_account_id: string;
+  account_name: string;
+};
+
+type JsonRecord = Record<string, unknown>;
+
+const ACCOUNT_ARRAY_KEYS = [
+  "accounts",
+  "data",
+  "items",
+  "results",
+  "connections",
+  "channels",
+  "pages",
+  "businesses",
+  "integrations",
+  "socialAccounts",
+  "social_accounts",
+];
+
+const SOCIAL_TYPE_MAP: Record<string, string> = {
+  facebook: "facebook",
+  fb: "facebook",
+  messenger: "facebook",
+  facebook_messenger: "facebook",
+  fb_messenger: "facebook",
+  type_fb: "facebook",
+  type_fb_messenger: "facebook",
+  type_facebook_messenger: "facebook",
+  instagram: "instagram",
+  ig: "instagram",
+  instagram_dm: "instagram",
+  type_instagram: "instagram",
+  type_instagram_dm: "instagram",
+  whatsapp: "whatsapp",
+  whatsapp_api: "whatsapp",
+  twilio_whatsapp: "whatsapp",
+  type_whatsapp: "whatsapp",
+  type_whatsapp_api: "whatsapp",
+  type_twilio_whatsapp: "whatsapp",
+};
+
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : null;
+}
+
+function asString(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
+function uniqueStrings(values: unknown[]): string[] {
+  return [...new Set(values.map(asString).filter(Boolean))];
+}
+
+function normalizeSocialType(value: unknown): string | null {
+  const raw = asString(value).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (!raw) return null;
+
+  if (SOCIAL_TYPE_MAP[raw]) return SOCIAL_TYPE_MAP[raw];
+  if (raw.includes("instagram")) return "instagram";
+  if (raw.includes("facebook") || raw.includes("messenger") || raw === "fb") return "facebook";
+  if (raw.includes("whatsapp")) return "whatsapp";
+  return null;
+}
+
+function extractCandidateArrays(payload: unknown): JsonRecord[] {
+  if (Array.isArray(payload)) {
+    return payload.map(asRecord).filter((value): value is JsonRecord => !!value);
+  }
+
+  const record = asRecord(payload);
+  if (!record) return [];
+
+  for (const key of ACCOUNT_ARRAY_KEYS) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value.map(asRecord).filter((item): item is JsonRecord => !!item);
+    }
+  }
+
+  const nestedArrays = Object.values(record)
+    .filter(Array.isArray)
+    .flat()
+    .map(asRecord)
+    .filter((item): item is JsonRecord => !!item);
+
+  return nestedArrays.length > 0 ? nestedArrays : [record];
+}
+
+function extractChannelType(entry: JsonRecord, fallbackType?: string): string | null {
+  const directType = uniqueStrings([
+    entry.type,
+    entry.channel_type,
+    entry.channelType,
+    entry.platform,
+    entry.provider,
+    entry.integration_type,
+    entry.integrationType,
+    entry.network,
+    entry.source,
+    fallbackType,
+  ]);
+
+  for (const candidate of directType) {
+    const normalized = normalizeSocialType(candidate);
+    if (normalized) return normalized;
+  }
+
+  const nestedCandidates = [
+    asRecord(entry.account),
+    asRecord(entry.page),
+    asRecord(entry.profile),
+    asRecord(entry.channel),
+    asRecord(entry.integration),
+    asRecord(entry.instagram_business_account),
+  ].filter((value): value is JsonRecord => !!value);
+
+  for (const nested of nestedCandidates) {
+    const nestedType = extractChannelType(nested, fallbackType);
+    if (nestedType) return nestedType;
+  }
+
+  return null;
+}
+
+function extractAccountId(entry: JsonRecord): string {
+  const nestedInstagram = asRecord(entry.instagram_business_account);
+  const nestedPage = asRecord(entry.page);
+  const nestedAccount = asRecord(entry.account);
+  const nestedChannel = asRecord(entry.channel);
+
+  return uniqueStrings([
+    entry.id,
+    entry.pageId,
+    entry.page_id,
+    entry.accountId,
+    entry.account_id,
+    entry.channelId,
+    entry.channel_id,
+    entry.integrationId,
+    entry.integration_id,
+    entry.socialAccountId,
+    entry.social_account_id,
+    entry.businessAccountId,
+    entry.business_account_id,
+    nestedInstagram?.id,
+    nestedPage?.id,
+    nestedAccount?.id,
+    nestedChannel?.id,
+  ])[0] || "";
+}
+
+function extractAccountName(entry: JsonRecord, fallbackLabel: string): string {
+  const nestedInstagram = asRecord(entry.instagram_business_account);
+  const nestedPage = asRecord(entry.page);
+  const nestedAccount = asRecord(entry.account);
+  const nestedChannel = asRecord(entry.channel);
+
+  return uniqueStrings([
+    entry.name,
+    entry.pageName,
+    entry.page_name,
+    entry.accountName,
+    entry.account_name,
+    entry.username,
+    entry.userName,
+    entry.ig_username,
+    entry.handle,
+    entry.displayName,
+    entry.display_name,
+    entry.companyName,
+    entry.company_name,
+    nestedInstagram?.username,
+    nestedInstagram?.name,
+    nestedPage?.name,
+    nestedAccount?.name,
+    nestedChannel?.name,
+  ])[0] || fallbackLabel;
+}
+
+function inferConversationType(value: unknown): string | null {
+  const normalized = normalizeSocialType(value);
+  if (normalized) return normalized;
+
+  const raw = asString(value).toUpperCase();
+  if (!raw) return null;
+  if (raw.includes("INSTAGRAM")) return "instagram";
+  if (raw.includes("FACEBOOK") || raw.includes("FB") || raw.includes("MESSENGER")) return "facebook";
+  if (raw.includes("WHATSAPP")) return "whatsapp";
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -88,11 +286,7 @@ Deno.serve(async (req) => {
       Accept: "application/json",
     };
 
-    const channels: Array<{
-      channel_type: string;
-      ghl_account_id: string;
-      account_name: string;
-    }> = [];
+    const channels: DiscoveredChannel[] = [];
 
     const foundKeys = new Set<string>();
 
@@ -103,8 +297,25 @@ Deno.serve(async (req) => {
       channels.push({ channel_type: type, ghl_account_id: id, account_name: name });
     };
 
+    const collectChannelsFromPayload = (payload: unknown, fallbackType?: string) => {
+      const entries = extractCandidateArrays(payload);
+      for (const entry of entries) {
+        const channelType = extractChannelType(entry, fallbackType);
+        if (!channelType) continue;
+        const accountId = extractAccountId(entry);
+        if (!accountId) continue;
+        const fallbackLabel =
+          channelType === "facebook"
+            ? "Facebook Page"
+            : channelType === "instagram"
+              ? "Instagram Account"
+              : "WhatsApp";
+        const accountName = extractAccountName(entry, fallbackLabel);
+        addChannel(channelType, accountId, accountName);
+      }
+    };
+
     // ─── Strategy 1: Social-media-posting Facebook accounts ───
-    // This is the primary source for Facebook pages (like the GHL integrations modal)
     try {
       const fbRes = await fetch(
         `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
@@ -117,16 +328,7 @@ Deno.serve(async (req) => {
       if (fbRes.ok) {
         try {
           const fbData = JSON.parse(fbBody);
-          // The response could be { accounts: [...] }, { data: [...] }, or just [...]
-          const accounts = fbData?.accounts || fbData?.data || (Array.isArray(fbData) ? fbData : []);
-          console.log(`[Strategy1] Found ${accounts.length} Facebook accounts`);
-          for (const acc of accounts) {
-            const pageId = acc.id || acc.pageId || acc.page_id || "";
-            const pageName = acc.name || acc.pageName || acc.page_name || "Facebook Page";
-            if (pageId) {
-              addChannel("facebook", String(pageId), pageName);
-            }
-          }
+          collectChannelsFromPayload(fbData, "facebook");
         } catch (e) {
           console.warn("[Strategy1] FB parse error:", e);
         }
@@ -148,15 +350,7 @@ Deno.serve(async (req) => {
       if (igRes.ok) {
         try {
           const igData = JSON.parse(igBody);
-          const accounts = igData?.accounts || igData?.data || (Array.isArray(igData) ? igData : []);
-          console.log(`[Strategy2] Found ${accounts.length} Instagram accounts`);
-          for (const acc of accounts) {
-            const accId = acc.id || acc.accountId || acc.account_id || acc.instagram_business_account?.id || "";
-            const accName = acc.name || acc.username || acc.ig_username || "Instagram Account";
-            if (accId) {
-              addChannel("instagram", String(accId), accName);
-            }
-          }
+          collectChannelsFromPayload(igData, "instagram");
         } catch (e) {
           console.warn("[Strategy2] IG parse error:", e);
         }
@@ -178,20 +372,7 @@ Deno.serve(async (req) => {
       if (genRes.ok) {
         try {
           const genData = JSON.parse(genBody);
-          const accounts = genData?.accounts || genData?.data || (Array.isArray(genData) ? genData : []);
-          for (const acc of accounts) {
-            const platform = (acc.type || acc.platform || acc.provider || "").toLowerCase();
-            let channelType = "";
-            if (platform.includes("facebook") || platform.includes("fb")) channelType = "facebook";
-            else if (platform.includes("instagram") || platform.includes("ig")) channelType = "instagram";
-            else if (platform.includes("whatsapp") || platform.includes("wa")) channelType = "whatsapp";
-            
-            if (channelType) {
-              const accId = acc.id || acc.pageId || acc.accountId || "";
-              const accName = acc.name || acc.pageName || acc.username || `${platform} Account`;
-              if (accId) addChannel(channelType, String(accId), accName);
-            }
-          }
+          collectChannelsFromPayload(genData);
         } catch (e) {
           console.warn("[Strategy3] parse error:", e);
         }
@@ -209,6 +390,14 @@ Deno.serve(async (req) => {
       const intStatus = intRes.status;
       const intBody = await intRes.text();
       console.log(`[Strategy4] Integrations API: status=${intStatus} body=${intBody.substring(0, 500)}`);
+      if (intRes.ok) {
+        try {
+          const intData = JSON.parse(intBody);
+          collectChannelsFromPayload(intData);
+        } catch (e) {
+          console.warn("[Strategy4] parse error:", e);
+        }
+      }
     } catch (e) {
       console.warn("[Strategy4] error:", e);
     }
@@ -233,12 +422,6 @@ Deno.serve(async (req) => {
     }
 
     // ─── Strategy 6: Discover from conversations (secondary) ───
-    const channelTypeMap: Record<string, { channel_type: string; label: string }> = {
-      TYPE_FB: { channel_type: "facebook", label: "Facebook Messenger" },
-      TYPE_INSTAGRAM: { channel_type: "instagram", label: "Instagram DM" },
-      TYPE_WHATSAPP: { channel_type: "whatsapp", label: "WhatsApp" },
-    };
-
     try {
       let allConversations: any[] = [];
       let nextPageUrl: string | null = `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100`;
@@ -272,31 +455,52 @@ Deno.serve(async (req) => {
       console.log(`[Strategy6] Unique conversation types: ${[...uniqueTypes].join(", ")}`);
 
       for (const conv of allConversations) {
-        const convType = conv.type as string;
-        const mapping = channelTypeMap[convType];
-        if (!mapping) continue;
+        const channelType = inferConversationType(conv.type) || inferConversationType(conv.messageType);
+        if (!channelType) continue;
 
-        const inboxId = conv.inbox || conv.inboxId || "";
-        const companyName = conv.companyName || "";
+        const inboxId = asString(conv.inbox) || asString(conv.inboxId) || asString(conv.inboxName);
+        const companyName = asString(conv.companyName) || asString(conv.company_name);
+        const phone = asString(conv.phone) || asString(conv.contactPhone);
+        const pageName = uniqueStrings([
+          conv.pageName,
+          conv.page_name,
+          conv.accountName,
+          conv.account_name,
+          conv.username,
+          conv.userName,
+          conv.ig_username,
+          companyName,
+          inboxId,
+        ])[0];
+        const fallbackName =
+          channelType === "instagram"
+            ? "Instagram DM"
+            : channelType === "facebook"
+              ? "Facebook Messenger"
+              : "WhatsApp";
 
-        let pageId = "";
-        let pageName = "";
+        const pageId =
+          uniqueStrings([
+            conv.inboxId,
+            conv.inbox,
+            conv.pageId,
+            conv.page_id,
+            conv.accountId,
+            conv.account_id,
+            conv.channelId,
+            conv.channel_id,
+            phone,
+          ])[0] || `${channelType}-${pageName || ghl_location_id}`;
 
-        if (convType === "TYPE_INSTAGRAM") {
-          pageId = inboxId || `instagram-${companyName || ghl_location_id}`;
-          pageName = companyName || inboxId || "Instagram DM";
-          if (pageName && !pageName.startsWith("Instagram")) pageName = `Instagram · ${pageName}`;
-        } else if (convType === "TYPE_FB") {
-          pageId = inboxId || `facebook-${companyName || ghl_location_id}`;
-          pageName = companyName || inboxId || "Facebook Messenger";
-          if (pageName && !pageName.startsWith("Facebook")) pageName = `Facebook · ${pageName}`;
-        } else if (convType === "TYPE_WHATSAPP") {
-          const phone = conv.phone || conv.contactPhone || "";
-          pageId = inboxId || phone || `whatsapp-${ghl_location_id}`;
-          pageName = phone || companyName || "WhatsApp";
+        let normalizedName = pageName || fallbackName;
+        if (channelType === "instagram" && normalizedName && !normalizedName.startsWith("Instagram")) {
+          normalizedName = `Instagram · ${normalizedName}`;
+        }
+        if (channelType === "facebook" && normalizedName && !normalizedName.startsWith("Facebook")) {
+          normalizedName = `Facebook · ${normalizedName}`;
         }
 
-        if (pageId) addChannel(mapping.channel_type, pageId, pageName);
+        if (pageId) addChannel(channelType, pageId, normalizedName);
       }
     } catch (e) {
       console.warn("[Strategy6] Conversations error:", e);
