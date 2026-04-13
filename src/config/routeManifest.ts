@@ -259,6 +259,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   e("c2c-affiliates",  "Afiliados",        "/dashboard/c2c/affiliates",       Link2,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-orders",      "Encomendas",       "/dashboard/c2c/orders",           ShoppingBasket,"marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-moderation",  "Moderação",        "/dashboard/c2c/moderation",       Eye,           "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-config",      "Configuração",     "/dashboard/c2c/config",           Settings,      "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
 
   // ══════════════════════════════════════════════════════════════
   // PORTAL B2B
