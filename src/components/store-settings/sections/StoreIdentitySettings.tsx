@@ -1,3 +1,4 @@
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +96,7 @@ export function StoreIdentitySettings({ form, setForm, slugError }: StoreIdentit
           </Label>
           <div className="flex items-center gap-0">
             <span className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0 border-input h-10 flex items-center whitespace-nowrap">
-              {form.custom_domain.trim() ? `https://${form.custom_domain.trim()}` : "https://fastcrm.metodopare.ai"}/store/
+              {form.custom_domain.trim() ? `https://${form.custom_domain.trim()}` : getPublicBaseUrl()}/store/
             </span>
             <Input
               value={form.store_slug}

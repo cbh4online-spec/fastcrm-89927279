@@ -14,11 +14,11 @@ export function getPublicBaseUrl(): string {
 }
 
 /**
- * Returns the public base URL for C2C Marketplace pages.
- * The marketplace lives on vendesimples.com.
+ * Returns the default public base URL for C2C Marketplace pages.
+ * Falls back to the main project domain instead of a hardcoded marketplace domain.
  */
 export function getMarketplaceBaseUrl(): string {
-  return "https://vendesimples.com";
+  return getPublicBaseUrl();
 }
 
 /**

@@ -257,12 +257,15 @@ export default function MarketplaceConfigPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Domínio customizado</Label>
+                <Label>Domínio customizado (opcional)</Label>
                 <Input
                   value={form.custom_domain}
                   onChange={(e) => setForm({ ...form, custom_domain: e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "") })}
-                  placeholder="vendesimples.com"
+                  placeholder="meumercado.pt"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Deixe vazio para usar o domínio principal do projecto. Se configurar um domínio próprio, o marketplace ficará acessível nesse endereço.
+                </p>
                 {form.custom_domain && (
                   <div className="flex items-center gap-2 mt-2">
                     {config?.custom_domain_verified ? (
@@ -299,7 +302,10 @@ export default function MarketplaceConfigPage() {
                     <p><strong>Tipo:</strong> TXT &nbsp;|&nbsp; <strong>Nome:</strong> _lovable &nbsp;|&nbsp; <strong>Valor:</strong> <span className="text-primary">lovable_verify=3e82dfd9-5dc3-4dce-a5e9-5df3fbacfa91</span></p>
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    ⚠️ O registo TXT <code className="bg-muted px-1 rounded">_lovable</code> é obrigatório para a verificação de propriedade e emissão do certificado SSL. Sem ele, o domínio não funcionará.
+                    ⚠️ O registo TXT <code className="bg-muted px-1 rounded">_lovable</code> é obrigatório para a verificação de propriedade e emissão do certificado SSL.
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    ⚠️ <strong>Passo adicional obrigatório:</strong> Após configurar os registos DNS, o super admin deve adicionar o domínio em <strong>Project Settings → Domains → Connect Domain</strong> no Lovable para que o certificado SSL seja emitido.
                   </p>
                   <p className="text-muted-foreground text-xs">A propagação DNS pode demorar até 72 horas.</p>
                 </div>
