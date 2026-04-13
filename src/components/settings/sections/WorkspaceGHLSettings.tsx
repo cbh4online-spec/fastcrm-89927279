@@ -85,7 +85,112 @@ export function WorkspaceGHLSettings() {
 
 function SocialChannelsViaGHL() {
   const { currentWorkspace } = useWorkspace();
-  const { data: channelCounts = {}, isLoading } = useSocialChannelCounts(currentWorkspace?.id);
+  const workspaceId = currentWorkspace?.id;
+  const { data: channelCounts = {}, isLoading: isLoadingCounts } = useSocialChannelCounts(workspaceId);
+  const [isFetchingChannels, setIsFetchingChannels] = useState(false);
+  const [fetchedChannels, setFetchedChannels] = useState<Array<{ channel_type: string; ghl_account_id: string; account_name: string }>>([]);
+  const [hasFetched, setHasFetched] = useState(false);
+
+  // Load saved channels from DB
+  const { data: savedChannels = [], isLoading: isLoadingSaved, refetch: refetchSaved } = useQuery({
+    queryKey: ["workspace-ghl-social-channels", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("*")
+        .eq("workspace_id", workspaceId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!workspaceId,
+  });
+
+  const handleFetchChannels = async () => {
+    if (!workspaceId) return;
+    setIsFetchingChannels(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ghl-list-social-channels", {
+        body: { workspace_id: workspaceId },
+      });
+      if (error) throw error;
+      setFetchedChannels(data?.channels || []);
+      setHasFetched(true);
+      if (!data?.channels?.length) {
+        toast.info("Nenhum canal social encontrado nesta location do GHL");
+      } else {
+        toast.success(`${data.channels.length} canal(is) encontrado(s)`);
+      }
+    } catch (err) {
+      console.error("Fetch channels error:", err);
+      toast.error("Erro ao carregar canais do GHL");
+    } finally {
+      setIsFetchingChannels(false);
+    }
+  };
+
+  const handleToggleChannel = async (channel: { channel_type: string; ghl_account_id: string; account_name: string }, activate: boolean) => {
+    if (!workspaceId) return;
+    try {
+      if (activate) {
+        const { error } = await supabase
+          .from("workspace_ghl_social_channels")
+          .upsert({
+            workspace_id: workspaceId,
+            channel_type: channel.channel_type,
+            ghl_account_id: channel.ghl_account_id,
+            account_name: channel.account_name,
+            is_active: true,
+          }, { onConflict: "workspace_id,channel_type,ghl_account_id" });
+        if (error) throw error;
+        toast.success(`${channel.account_name} ativado`);
+      } else {
+        const { error } = await supabase
+          .from("workspace_ghl_social_channels")
+          .update({ is_active: false })
+          .eq("workspace_id", workspaceId)
+          .eq("channel_type", channel.channel_type)
+          .eq("ghl_account_id", channel.ghl_account_id);
+        if (error) throw error;
+        toast.success(`${channel.account_name} desativado`);
+      }
+      refetchSaved();
+    } catch (err) {
+      console.error("Toggle channel error:", err);
+      toast.error("Erro ao atualizar canal");
+    }
+  };
+
+  const getChannelIcon = (type: string) => {
+    switch (type) {
+      case "facebook": return Facebook;
+      case "instagram": return Instagram;
+      case "whatsapp": return Phone;
+      default: return Share2;
+    }
+  };
+
+  const getChannelColor = (type: string) => {
+    switch (type) {
+      case "facebook": return "text-blue-600";
+      case "instagram": return "text-pink-500";
+      case "whatsapp": return "text-green-500";
+      default: return "text-muted-foreground";
+    }
+  };
+
+  const isChannelActive = (channelType: string, ghlAccountId: string) => {
+    return savedChannels.some(
+      (s: any) => s.channel_type === channelType && s.ghl_account_id === ghlAccountId && s.is_active
+    );
+  };
+
+  // Merge fetched + saved for display
+  const displayChannels = hasFetched ? fetchedChannels : savedChannels.map((s: any) => ({
+    channel_type: s.channel_type,
+    ghl_account_id: s.ghl_account_id,
+    account_name: s.account_name,
+  }));
 
   return (
     <Card className="border-purple-200 dark:border-purple-900/30 bg-purple-50/50 dark:bg-purple-950/20">
@@ -95,64 +200,67 @@ function SocialChannelsViaGHL() {
           Canais Sociais via GHL
         </CardTitle>
         <CardDescription>
-          Instagram, Facebook Messenger e WhatsApp conectados via GoHighLevel
+          Selecione quais páginas e perfis do GHL usar neste workspace
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {isLoading ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={handleFetchChannels}
+          disabled={isFetchingChannels}
+        >
+          {isFetchingChannels ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A carregar canais...</>
+          ) : (
+            <><RefreshCw className="mr-2 h-4 w-4" />Carregar canais do GHL</>
+          )}
+        </Button>
+
+        {(isLoadingSaved || isLoadingCounts) && !hasFetched ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
-        ) : (
+        ) : displayChannels.length > 0 ? (
           <div className="grid gap-3">
-            {SOCIAL_CHANNELS.map((ch) => {
-              const Icon = ch.icon;
-              const count = channelCounts[ch.id] || 0;
+            {displayChannels.map((ch) => {
+              const Icon = getChannelIcon(ch.channel_type);
+              const color = getChannelColor(ch.channel_type);
+              const active = isChannelActive(ch.channel_type, ch.ghl_account_id);
+              const count = channelCounts[ch.channel_type] || 0;
               return (
-                <div key={ch.id} className="border border-border rounded-lg p-3">
+                <div key={`${ch.channel_type}-${ch.ghl_account_id}`} className="border border-border rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-lg bg-muted">
-                        <Icon className={`h-4 w-4 ${ch.color}`} />
+                        <Icon className={`h-4 w-4 ${color}`} />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{ch.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {count > 0 ? `${count} conversa${count !== 1 ? "s" : ""}` : "Sem conversas ainda"}
+                        <p className="text-sm font-medium">{ch.account_name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {ch.channel_type} {count > 0 ? `· ${count} conversa${count !== 1 ? "s" : ""}` : ""}
                         </p>
                       </div>
                     </div>
-                    <Badge className="bg-emerald-500 text-white text-[10px]">
-                      {count > 0 ? `Ativo · ${count}` : "Ativo"}
-                    </Badge>
+                    <Switch
+                      checked={active}
+                      onCheckedChange={(checked) => handleToggleChannel(ch, checked)}
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
-
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="setup-guide" className="border-0">
-            <AccordionTrigger className="text-xs text-muted-foreground py-2 hover:no-underline">
-              Como ativar canais sociais no GHL?
-            </AccordionTrigger>
-            <AccordionContent className="space-y-3 text-xs text-muted-foreground">
-              {SOCIAL_CHANNELS.map((ch) => {
-                const Icon = ch.icon;
-                return (
-                  <div key={ch.id} className="flex gap-2">
-                    <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${ch.color}`} />
-                    <div>
-                      <p className="font-medium text-foreground">{ch.label}</p>
-                      <p>{ch.setupGuide}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+        ) : hasFetched ? (
+          <p className="text-xs text-muted-foreground text-center py-3">
+            Nenhum canal encontrado. Verifique se a location GHL tem redes sociais configuradas.
+          </p>
+        ) : savedChannels.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-3">
+            Clique em "Carregar canais do GHL" para ver os perfis disponíveis.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
