@@ -1,6 +1,7 @@
 import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { decode as base64Decode, encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
