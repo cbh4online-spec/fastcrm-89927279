@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.marketing-mcp]
 verify_jwt = false
+
+[functions.ghl-list-social-channels]
+verify_jwt = false
