@@ -296,7 +296,11 @@ export default function MarketplaceConfigPage() {
                   <div className="font-mono text-xs space-y-1 bg-background rounded p-3 border">
                     <p><strong>Tipo:</strong> A &nbsp;|&nbsp; <strong>Nome:</strong> @ &nbsp;|&nbsp; <strong>Valor:</strong> 185.158.133.1</p>
                     <p><strong>Tipo:</strong> A &nbsp;|&nbsp; <strong>Nome:</strong> www &nbsp;|&nbsp; <strong>Valor:</strong> 185.158.133.1</p>
+                    <p><strong>Tipo:</strong> TXT &nbsp;|&nbsp; <strong>Nome:</strong> _lovable &nbsp;|&nbsp; <strong>Valor:</strong> <span className="text-primary">lovable_verify=...</span></p>
                   </div>
+                  <p className="text-muted-foreground text-xs">
+                    ⚠️ O valor exacto do registo TXT <code className="bg-muted px-1 rounded">_lovable</code> deve ser obtido em <strong>Project Settings → Domains → Connect Domain</strong>. Este registo é obrigatório para a verificação de propriedade e emissão do certificado SSL.
+                  </p>
                   <p className="text-muted-foreground text-xs">A propagação DNS pode demorar até 72 horas.</p>
                 </div>
               )}
