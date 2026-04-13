@@ -252,7 +252,7 @@
   "criticalAction": "Requalifier le pipeline : supprimer les affaires mortes et se concentrer sur les viables.",
   "healthScoreTooltip": "Score = 100 − (Stagnation×40) − (Données manquantes×30) + (Couverture×30). Valeurs de 0 à 100.",
 
-  "warRoomSituation": "WAR ROOM — Situation Hebdomadaire",
+  "warRoomSituation": "Objectif - Situation Hebdomadaire",
   "reachable": "Atteignable",
   "atRiskStatus": "À Risque",
   "criticalStatus": "Critique",
