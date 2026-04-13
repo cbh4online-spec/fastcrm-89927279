@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare, Instagram, Facebook, Phone, Share2, Webhook, CheckCircle2, AlertCircle, PlayCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare, Instagram, Facebook, Phone, Share2, Webhook, CheckCircle2, AlertCircle, PlayCircle, Search, Save } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
 import { useGHLContactSync } from "@/hooks/useGHLContactSync";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
@@ -90,8 +91,12 @@ function SocialChannelsViaGHL() {
   const [isFetchingChannels, setIsFetchingChannels] = useState(false);
   const [fetchedChannels, setFetchedChannels] = useState<Array<{ channel_type: string; ghl_account_id: string; account_name: string }>>([]);
   const [hasFetched, setHasFetched] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pendingSelection, setPendingSelection] = useState<Record<string, boolean>>({});
+  const [pendingActive, setPendingActive] = useState<Record<string, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsaved, setHasUnsaved] = useState(false);
 
-  // Load saved channels from DB
   const { data: savedChannels = [], isLoading: isLoadingSaved, refetch: refetchSaved } = useQuery({
     queryKey: ["workspace-ghl-social-channels", workspaceId],
     queryFn: async () => {
@@ -106,6 +111,21 @@ function SocialChannelsViaGHL() {
     enabled: !!workspaceId,
   });
 
+  // Initialize pending state from saved channels when data loads
+  useEffect(() => {
+    if (savedChannels.length > 0 && !hasUnsaved) {
+      const sel: Record<string, boolean> = {};
+      const act: Record<string, boolean> = {};
+      for (const s of savedChannels as any[]) {
+        const key = `${s.channel_type}::${s.ghl_account_id}`;
+        sel[key] = true;
+        act[key] = s.is_active ?? true;
+      }
+      setPendingSelection(sel);
+      setPendingActive(act);
+    }
+  }, [savedChannels, hasUnsaved]);
+
   const handleFetchChannels = async () => {
     if (!workspaceId) return;
     setIsFetchingChannels(true);
@@ -114,50 +134,28 @@ function SocialChannelsViaGHL() {
         body: { workspace_id: workspaceId },
       });
       if (error) throw error;
-      setFetchedChannels(data?.channels || []);
+      const channels = data?.channels || [];
+      setFetchedChannels(channels);
       setHasFetched(true);
-      if (!data?.channels?.length) {
-        toast.info("Nenhum canal social encontrado nesta location do GHL");
+      // Preserve existing selections, add new channels as unselected
+      if (channels.length > 0) {
+        setPendingSelection(prev => {
+          const next = { ...prev };
+          for (const ch of channels) {
+            const key = `${ch.channel_type}::${ch.ghl_account_id}`;
+            if (!(key in next)) next[key] = false;
+          }
+          return next;
+        });
+        toast.success(`${channels.length} canal(is) encontrado(s)`);
       } else {
-        toast.success(`${data.channels.length} canal(is) encontrado(s)`);
+        toast.info("Nenhum canal social encontrado nesta location do GHL");
       }
     } catch (err) {
       console.error("Fetch channels error:", err);
       toast.error("Erro ao carregar canais do GHL");
     } finally {
       setIsFetchingChannels(false);
-    }
-  };
-
-  const handleToggleChannel = async (channel: { channel_type: string; ghl_account_id: string; account_name: string }, activate: boolean) => {
-    if (!workspaceId) return;
-    try {
-      if (activate) {
-        const { error } = await supabase
-          .from("workspace_ghl_social_channels")
-          .upsert({
-            workspace_id: workspaceId,
-            channel_type: channel.channel_type,
-            ghl_account_id: channel.ghl_account_id,
-            account_name: channel.account_name,
-            is_active: true,
-          }, { onConflict: "workspace_id,channel_type,ghl_account_id" });
-        if (error) throw error;
-        toast.success(`${channel.account_name} ativado`);
-      } else {
-        const { error } = await supabase
-          .from("workspace_ghl_social_channels")
-          .update({ is_active: false })
-          .eq("workspace_id", workspaceId)
-          .eq("channel_type", channel.channel_type)
-          .eq("ghl_account_id", channel.ghl_account_id);
-        if (error) throw error;
-        toast.success(`${channel.account_name} desativado`);
-      }
-      refetchSaved();
-    } catch (err) {
-      console.error("Toggle channel error:", err);
-      toast.error("Erro ao atualizar canal");
     }
   };
 
@@ -179,29 +177,120 @@ function SocialChannelsViaGHL() {
     }
   };
 
-  const isChannelActive = (channelType: string, ghlAccountId: string) => {
-    return savedChannels.some(
-      (s: any) => s.channel_type === channelType && s.ghl_account_id === ghlAccountId && s.is_active
-    );
+  const getChannelLabel = (type: string) => {
+    switch (type) {
+      case "facebook": return "Facebook Messenger";
+      case "instagram": return "Instagram DM";
+      case "whatsapp": return "WhatsApp";
+      default: return type;
+    }
   };
 
   // Merge fetched + saved for display
-  const displayChannels = hasFetched ? fetchedChannels : savedChannels.map((s: any) => ({
-    channel_type: s.channel_type,
-    ghl_account_id: s.ghl_account_id,
-    account_name: s.account_name,
-  }));
+  const allChannels = useMemo(() => {
+    const map = new Map<string, { channel_type: string; ghl_account_id: string; account_name: string }>();
+    for (const s of savedChannels as any[]) {
+      map.set(`${s.channel_type}::${s.ghl_account_id}`, {
+        channel_type: s.channel_type,
+        ghl_account_id: s.ghl_account_id,
+        account_name: s.account_name,
+      });
+    }
+    for (const ch of fetchedChannels) {
+      const key = `${ch.channel_type}::${ch.ghl_account_id}`;
+      if (!map.has(key)) map.set(key, ch);
+    }
+    return Array.from(map.values());
+  }, [savedChannels, fetchedChannels]);
+
+  const filteredChannels = useMemo(() => {
+    if (!searchQuery.trim()) return allChannels;
+    const q = searchQuery.toLowerCase();
+    return allChannels.filter(ch =>
+      ch.account_name.toLowerCase().includes(q) ||
+      ch.channel_type.toLowerCase().includes(q) ||
+      ch.ghl_account_id.toLowerCase().includes(q)
+    );
+  }, [allChannels, searchQuery]);
+
+  const toggleSelection = (key: string) => {
+    setPendingSelection(prev => ({ ...prev, [key]: !prev[key] }));
+    setHasUnsaved(true);
+  };
+
+  const toggleActive = (key: string, value: boolean) => {
+    setPendingActive(prev => ({ ...prev, [key]: value }));
+    setHasUnsaved(true);
+  };
+
+  const handleSaveSelection = async () => {
+    if (!workspaceId) return;
+    setIsSaving(true);
+    try {
+      // Delete all existing channels for this workspace, then upsert selected ones
+      await supabase
+        .from("workspace_ghl_social_channels")
+        .delete()
+        .eq("workspace_id", workspaceId);
+
+      const toInsert = allChannels
+        .filter(ch => pendingSelection[`${ch.channel_type}::${ch.ghl_account_id}`])
+        .map(ch => ({
+          workspace_id: workspaceId,
+          channel_type: ch.channel_type,
+          ghl_account_id: ch.ghl_account_id,
+          account_name: ch.account_name,
+          is_active: pendingActive[`${ch.channel_type}::${ch.ghl_account_id}`] ?? true,
+        }));
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase
+          .from("workspace_ghl_social_channels")
+          .insert(toInsert);
+        if (error) throw error;
+      }
+
+      await refetchSaved();
+      setHasUnsaved(false);
+      toast.success(`${toInsert.length} canal(is) guardado(s) com sucesso`);
+    } catch (err) {
+      console.error("Save selection error:", err);
+      toast.error("Erro ao guardar seleção de canais");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const selectedCount = Object.values(pendingSelection).filter(Boolean).length;
+  const activeCount = allChannels.filter(ch => {
+    const key = `${ch.channel_type}::${ch.ghl_account_id}`;
+    return pendingSelection[key] && pendingActive[key];
+  }).length;
 
   return (
     <Card className="border-purple-200 dark:border-purple-900/30 bg-purple-50/50 dark:bg-purple-950/20">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Share2 className="h-4 w-4 text-purple-500" />
-          Canais Sociais via GHL
-        </CardTitle>
-        <CardDescription>
-          Selecione quais páginas e perfis do GHL usar neste workspace
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-purple-500" />
+              Canais Sociais via GHL
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Selecione quais páginas e perfis do GHL usar neste workspace
+            </CardDescription>
+          </div>
+          {allChannels.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {selectedCount} selecionado{selectedCount !== 1 ? "s" : ""}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {activeCount} ativo{activeCount !== 1 ? "s" : ""}
+              </Badge>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <Button
@@ -214,7 +303,7 @@ function SocialChannelsViaGHL() {
           {isFetchingChannels ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A carregar canais...</>
           ) : (
-            <><RefreshCw className="mr-2 h-4 w-4" />Carregar canais do GHL</>
+            <><RefreshCw className="mr-2 h-4 w-4" />{hasFetched ? "Atualizar canais do GHL" : "Carregar canais do GHL"}</>
           )}
         </Button>
 
@@ -222,53 +311,129 @@ function SocialChannelsViaGHL() {
           <div className="flex justify-center py-4">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
-        ) : displayChannels.length > 0 ? (
-          <div className="grid gap-3">
-            {displayChannels.map((ch) => {
-              const Icon = getChannelIcon(ch.channel_type);
-              const color = getChannelColor(ch.channel_type);
-              const active = isChannelActive(ch.channel_type, ch.ghl_account_id);
-              const count = channelCounts[ch.channel_type] || 0;
-              return (
-                <div
-                  key={`${ch.channel_type}-${ch.ghl_account_id}`}
-                  className={`border border-border rounded-lg p-3 transition-opacity ${active ? "opacity-100" : "opacity-50"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1.5 rounded-lg bg-muted">
-                        <Icon className={`h-4 w-4 ${color}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{ch.account_name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {ch.channel_type} {count > 0 ? `· ${count} conversa${count !== 1 ? "s" : ""}` : ""}
-                        </p>
-                      </div>
+        ) : allChannels.length > 0 ? (
+          <div className="space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar canais..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+
+            {/* Channel list header */}
+            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
+              <span className="w-5" />
+              <span>Canal / Página</span>
+              <span>Conexão</span>
+              <span>Estado</span>
+            </div>
+
+            {/* Channel list */}
+            <div className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-background">
+              {filteredChannels.map((ch) => {
+                const key = `${ch.channel_type}::${ch.ghl_account_id}`;
+                const Icon = getChannelIcon(ch.channel_type);
+                const color = getChannelColor(ch.channel_type);
+                const selected = !!pendingSelection[key];
+                const active = pendingActive[key] ?? true;
+                const count = channelCounts[ch.channel_type] || 0;
+
+                return (
+                  <div
+                    key={key}
+                    className={`grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center px-3 py-2.5 transition-all ${
+                      !selected ? "opacity-50 bg-muted/30" : active ? "bg-background" : "bg-muted/20"
+                    }`}
+                  >
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={selected}
+                      onCheckedChange={() => toggleSelection(key)}
+                      className="h-4 w-4"
+                    />
+
+                    {/* Name & ID */}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{ch.account_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {ch.ghl_account_id}
+                        {count > 0 && <span className="ml-1.5">· {count} conversa{count !== 1 ? "s" : ""}</span>}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                        {active ? "Ativo" : "Inativo"}
+
+                    {/* Connection icon */}
+                    <div className="flex items-center gap-1.5">
+                      <div className="p-1 rounded bg-muted">
+                        <Icon className={`h-3.5 w-3.5 ${color}`} />
+                      </div>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        {getChannelLabel(ch.channel_type)}
+                      </span>
+                    </div>
+
+                    {/* Active toggle */}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-xs font-medium ${selected && active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                        {selected && active ? "Ativo" : "Inativo"}
                       </span>
                       <Switch
-                        checked={active}
-                        onCheckedChange={(checked) => handleToggleChannel(ch, checked)}
+                        checked={selected && active}
+                        onCheckedChange={(checked) => {
+                          if (!selected) {
+                            toggleSelection(key);
+                            toggleActive(key, true);
+                          } else {
+                            toggleActive(key, checked);
+                          }
+                        }}
+                        disabled={!selected}
+                        className="scale-90"
                       />
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {filteredChannels.length === 0 && searchQuery && (
+              <p className="text-xs text-muted-foreground text-center py-3">
+                Nenhum canal corresponde a "{searchQuery}"
+              </p>
+            )}
+
+            {/* Save button */}
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={handleSaveSelection}
+              disabled={isSaving || !hasUnsaved}
+            >
+              {isSaving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A guardar...</>
+              ) : (
+                <><Save className="mr-2 h-4 w-4" />Guardar Seleção</>
+              )}
+            </Button>
+
+            {hasUnsaved && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                Tem alterações por guardar
+              </p>
+            )}
           </div>
         ) : hasFetched ? (
           <p className="text-xs text-muted-foreground text-center py-3">
             Nenhum canal encontrado. Verifique se a location GHL tem redes sociais configuradas.
           </p>
-        ) : savedChannels.length === 0 ? (
+        ) : (
           <p className="text-xs text-muted-foreground text-center py-3">
             Clique em "Carregar canais do GHL" para ver os perfis disponíveis.
           </p>
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );
