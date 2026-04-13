@@ -417,6 +417,31 @@ Deno.serve(async (req) => {
 
     console.log(`[GHL Sync Conversations] Starting sync for workspace ${workspace_id}`);
 
+    // --- Load allowed social channels for this workspace ---
+    const { data: socialChannelConfig } = await supabase
+      .from("workspace_ghl_social_channels")
+      .select("channel_type, is_active")
+      .eq("workspace_id", workspace_id);
+    
+    const hasSocialChannelConfig = (socialChannelConfig?.length || 0) > 0;
+    
+    function isSyncChannelAllowed(channel: string): boolean {
+      if (!hasSocialChannelConfig) return true; // No config → allow all
+      const socialMap: Record<string, string> = {
+        instagram: "instagram",
+        messenger: "facebook",
+        facebook: "facebook",
+        whatsapp: "whatsapp",
+      };
+      const socialType = socialMap[channel.toLowerCase()];
+      if (!socialType) return true; // Non-social channels always allowed
+      return socialChannelConfig!.some(
+        (c: { channel_type: string; is_active: boolean }) =>
+          c.channel_type === socialType && c.is_active
+      );
+    }
+    console.log(`[GHL Sync] Social channel config loaded: ${socialChannelConfig?.length || 0} entries`);
+
     // Load existing leads mapped by GHL contact ID
     const { data: existingLeads } = await supabase
       .from("leads")
@@ -610,6 +635,14 @@ Deno.serve(async (req) => {
 
                 console.log(`[GHL Sync] Conv ${ghlConv.id} type=${ghlConv.type}, lastMessageType=${ghlConv.lastMessageType}`);
                 let channel = resolveChannel(ghlConv.type, ghlConv.lastMessageType);
+
+                // --- Channel governance: skip if channel not allowed ---
+                if (!isSyncChannelAllowed(channel)) {
+                  console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - channel "${channel}" not active for workspace`);
+                  result.messages_skipped++;
+                  continue;
+                }
+
                 const externalThreadId = `ghl_${ghlConv.id}`;
 
                 // Check if conversation exists
