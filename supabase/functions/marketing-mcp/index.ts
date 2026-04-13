@@ -1207,7 +1207,12 @@ Deno.serve(async (req) => {
 
     return json({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
-    console.error("marketing-mcp error:", err);
-    return json({ error: "Internal server error" }, 500);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errStack = err instanceof Error ? err.stack : undefined;
+    console.error("marketing-mcp unhandled error:", errMsg, errStack);
+    return new Response(
+      JSON.stringify({ ok: false, error: errMsg, error_type: "internal_error" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
