@@ -230,7 +230,10 @@ function SocialChannelsViaGHL() {
               const active = isChannelActive(ch.channel_type, ch.ghl_account_id);
               const count = channelCounts[ch.channel_type] || 0;
               return (
-                <div key={`${ch.channel_type}-${ch.ghl_account_id}`} className="border border-border rounded-lg p-3">
+                <div
+                  key={`${ch.channel_type}-${ch.ghl_account_id}`}
+                  className={`border border-border rounded-lg p-3 transition-opacity ${active ? "opacity-100" : "opacity-50"}`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-lg bg-muted">
@@ -243,10 +246,15 @@ function SocialChannelsViaGHL() {
                         </p>
                       </div>
                     </div>
-                    <Switch
-                      checked={active}
-                      onCheckedChange={(checked) => handleToggleChannel(ch, checked)}
-                    />
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-medium ${active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                        {active ? "Ativo" : "Inativo"}
+                      </span>
+                      <Switch
+                        checked={active}
+                        onCheckedChange={(checked) => handleToggleChannel(ch, checked)}
+                      />
+                    </div>
                   </div>
                 </div>
               );
