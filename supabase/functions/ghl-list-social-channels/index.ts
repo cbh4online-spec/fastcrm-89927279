@@ -189,9 +189,9 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("ghl-list-social-channels error:", err);
     return new Response(
-      JSON.stringify({ error: "Erro interno ao buscar canais" }),
+      JSON.stringify({ ok: false, error: "Erro interno ao buscar canais", fallback: true }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
