@@ -386,7 +386,7 @@ Deno.serve(async (req) => {
     }
 
     if (workspace_id) {
-      const hasAccess = await verifyWorkspaceMember(supabase, user.id, workspace_id, isSuperAdmin);
+      const hasAccess = await verifyWorkspaceMember(supabase, userId, workspace_id, isSuperAdmin);
       if (!hasAccess) return json({ error: "Forbidden" }, 403);
     }
 
