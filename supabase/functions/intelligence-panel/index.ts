@@ -100,7 +100,16 @@ Deno.serve(async (req) => {
 
     if (!batchRes.ok) {
       const errText = await batchRes.text();
-      throw new Error(`deal-intelligence batch failed: ${errText}`);
+      console.error("deal-intelligence batch failed:", batchRes.status, errText);
+      // Return 200 with error payload to avoid blank screen
+      return new Response(JSON.stringify({
+        error: `deal-intelligence batch failed (${batchRes.status})`,
+        error_type: batchRes.status === 402 ? "quota_exceeded" : "service_error",
+        fallback: true,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const batchData = await batchRes.json();
@@ -239,8 +248,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
+    console.error("intelligence-panel error:", (err as Error).message);
+    return new Response(JSON.stringify({
+      error: (err as Error).message,
+      error_type: "service_error",
+      fallback: true,
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
