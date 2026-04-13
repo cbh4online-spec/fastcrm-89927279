@@ -8,7 +8,7 @@ import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { useMarketplaceConfig } from "@/hooks/useMarketplace";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 
 import { Button } from "@/components/ui/button";
@@ -666,8 +666,8 @@ export default function C2CPublicMarketplace() {
   const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
   const ogTitle = `${marketplaceName} — Marketplace C2C`;
   const ogDescription = marketplaceConfig?.description || storeSettings?.store_description || `Explora o marketplace de ${marketplaceName}. Compra e vende entre utilizadores reais.`;
-  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
-  const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
+  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${getMarketplaceBaseUrl()}/og-image.png`;
+  const ogUrl = `${getMarketplaceBaseUrl()}/marketplace/${workspaceSlug}`;
   const shareUrl = getShareUrl("store", workspaceSlug || "");
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);

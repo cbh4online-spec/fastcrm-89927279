@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft } from "lucide-react";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
@@ -103,7 +103,7 @@ export default function MarketplaceConfigPage() {
     }
   };
 
-  const publicUrl = `${getPublicBaseUrl()}/marketplace/${form.slug}`;
+  const publicUrl = `${getMarketplaceBaseUrl()}/marketplace/${form.slug}`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(publicUrl);
