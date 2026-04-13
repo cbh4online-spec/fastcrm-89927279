@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
       if (fbRes.ok) {
         try {
           const fbData = JSON.parse(fbBody);
-          collectChannelsFromPayload(fbData, "facebook");
+          collectChannelsFromPayload(fbData, "facebook", "Strategy1");
         } catch (e) {
           console.warn("[Strategy1] FB parse error:", e);
         }
@@ -397,7 +397,7 @@ Deno.serve(async (req) => {
       if (igRes.ok) {
         try {
           const igData = JSON.parse(igBody);
-          collectChannelsFromPayload(igData, "instagram");
+          collectChannelsFromPayload(igData, "instagram", "Strategy2");
         } catch (e) {
           console.warn("[Strategy2] IG parse error:", e);
         }
@@ -419,7 +419,20 @@ Deno.serve(async (req) => {
       if (genRes.ok) {
         try {
           const genData = JSON.parse(genBody);
-          collectChannelsFromPayload(genData);
+          // Log top-level structure for debugging
+          const topKeys = Object.keys(genData);
+          console.log(`[Strategy3] Top-level keys: ${topKeys.join(", ")}`);
+          for (const k of topKeys) {
+            const v = genData[k];
+            if (Array.isArray(v)) {
+              console.log(`[Strategy3]   "${k}" is array with ${v.length} items`);
+            } else if (v && typeof v === "object") {
+              console.log(`[Strategy3]   "${k}" is object with keys: ${Object.keys(v).join(", ")}`);
+            } else {
+              console.log(`[Strategy3]   "${k}" = ${JSON.stringify(v)?.substring(0, 100)}`);
+            }
+          }
+          collectChannelsFromPayload(genData, undefined, "Strategy3");
         } catch (e) {
           console.warn("[Strategy3] parse error:", e);
         }
