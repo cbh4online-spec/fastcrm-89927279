@@ -360,18 +360,22 @@ Deno.serve(async (req) => {
 
     // Auth
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
     const token = authHeader.replace("Bearer ", "");
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+      global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) return json({ error: "Unauthorized" }, 401);
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) return json({ error: "Unauthorized" }, 401);
 
+    const userId = claimsData.claims.sub as string;
+
+    // Also get full user for metadata checks
+    const { data: { user } } = await userClient.auth.getUser();
     const isSuperAdmin =
-      user.app_metadata?.is_super_admin === true ||
-      user.user_metadata?.is_super_admin === true;
+      user?.app_metadata?.is_super_admin === true ||
+      user?.user_metadata?.is_super_admin === true;
 
     const body = await req.json();
     const { action, workspace_id } = body;
