@@ -348,7 +348,7 @@ Deno.serve(async (req) => {
           pageDescription = store?.store_description || `Explora o marketplace de ${storeName}. Compra e vende entre utilizadores reais com segurança.`;
           if (store?.logo_url) pageImage = store.logo_url;
         }
-        pageUrl = `${BASE_URL}/c2c/${slug}`;
+        pageUrl = `${MARKETPLACE_URL}/marketplace/${slug}`;
       } else if (type === "c2c-seller") {
         // C2C Seller Profile — slug format: "workspaceSlug/sellerId"
         const parts = slug.split("/");
@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
               : `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"}.${listingNote}`;
             if (seller.avatar_url) pageImage = seller.avatar_url;
           }
-          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
+          pageUrl = `${MARKETPLACE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
         }
       } else if (type === "c2c-listing") {
         // C2C Listing — slug format: "workspaceSlug/listingId"
@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
             const photos = listing.photos as string[] | null;
             if (photos && photos.length > 0) pageImage = photos[0];
           }
-          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/${listingId}`;
+          pageUrl = `${MARKETPLACE_URL}/marketplace/${wsSlug}/${listingId}`;
 
           // Early return for crawlers with product-specific OG
           if (isCrawler(userAgent)) {
