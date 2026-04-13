@@ -1,65 +1,70 @@
 
 
-# Plano: Correção e Alinhamento do Conteúdo da Landing Page
+# Plano: Corrigir OG metadata para perfil de vendedor no Marketplace
 
-## Problemas Identificados
+## Problema
+Quando se partilha o link de um vendedor (ex: `/marketplace/metodopare/seller/jorge-cardoso-fbdc`) no WhatsApp/Facebook, aparece a imagem genérica do FastCRM em vez de informação específica do vendedor. Isto acontece por dois motivos:
 
-1. **Nomenclatura de planos inconsistente** — Landing usa Starter/Growth/Scale, produto usa START/GROW/PRO
-2. **Posicionamento contraditório** — Diz "SaaS" mas mostra verticais não-SaaS (Imobiliário, Clínicas, etc.)
-3. **Features exageradas** — Tabela comparativa marca 24/24 como verde, incluindo features não confirmadas
-4. **Preços desalinhados** — Hero diz "2 utilizadores grátis", Pricing diz "3 utilizadores"; Schema.org diz €79 Starter mas landing diz €0
-5. **Testemunhos fictícios duplicados** — Dois sets diferentes de testemunhos falsos
-6. **Diferenciadores reais subexplorados** — Método PARE, verticais dedicadas, marketplace modular
+1. **Lookup errado**: O og-proxy procura o vendedor por `user_id` (UUID), mas o URL usa um **slug** textual (ex: `jorge-cardoso-fbdc`). A query nunca encontra resultados, caindo no fallback genérico.
+2. **Sem imagem do vendedor**: Mesmo que encontrasse, o og-proxy não busca o `avatar_url` do vendedor — usa sempre o fallback genérico.
 
-## Alterações Propostas
+## Alterações
 
-### 1. Alinhar nomenclatura de planos
-**Ficheiro:** `src/i18n/locales/pt/landing.json` + `LandingPricingSection.tsx`
-- Renomear: Starter → FASTCRM START, Growth → FASTCRM GROW, Scale → FASTCRM PRO
-- Alinhar preços com a realidade do produto (verificar se START é €0 ou €79)
+### `supabase/functions/og-proxy/index.ts` — secção `c2c-seller` (linhas 351-367)
 
-### 2. Corrigir posicionamento — de "SaaS" para "PMEs e Equipas Comerciais"
-**Ficheiro:** `src/i18n/locales/pt/landing.json`
-- Substituir todas as referências "SaaS" por linguagem de verticais: "empresas", "equipas comerciais", "PMEs"
-- Architecture section: "Fundador SaaS" → "Fundador / Empreendedor", "SaaS em Crescimento" → "Empresa em Escala"
-- Positioning: alinhar com as 8 verticais do Hero
+Corrigir a lógica de lookup para:
+1. Detectar se o `sellerId` é UUID ou slug (mesmo padrão usado no frontend)
+2. Fazer query por `slug` quando não é UUID, por `user_id` quando é UUID
+3. Buscar também `avatar_url` e contar listings ativos para enriquecer a descrição
+4. Usar `avatar_url` como `pageImage` quando disponível
+5. Definir `pageUrl` com `/marketplace/` em vez de `/c2c/`
 
-### 3. Corrigir inconsistências de números
-**Ficheiros:** `src/i18n/locales/pt/landing.json` + `index.html`
-- Uniformizar "até 3 utilizadores" em Hero e FAQ
-- Corrigir Schema.org no index.html para refletir plano gratuito (€0) ou atualizar para preço real
+**De:**
+```typescript
+const { data: seller } = await supabase
+  .from("c2c_sellers")
+  .select("display_name, bio")
+  .eq("user_id", sellerId)
+  .eq("status", "approved")
+  .maybeSingle();
+```
 
-### 4. Ajustar tabela comparativa para refletir realidade
-**Ficheiro:** `LandingDetailedComparison.tsx`
-- Marcar como "partial" features que existem mas não estão 100% maduras (ex: Lead scoring, win/loss automático se não estiverem implementados)
-- Mover "Landing pages integradas" e "Funis de conversão nativos" para "partial" se forem extensões pagas
+**Para:**
+```typescript
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
+let query = supabase
+  .from("c2c_sellers")
+  .select("display_name, bio, avatar_url, id")
+  .eq("status", "approved");
+if (isUuid) {
+  query = query.eq("user_id", sellerId);
+} else {
+  query = query.eq("slug", sellerId);
+}
+const { data: seller } = await query.maybeSingle();
 
-### 5. Consolidar testemunhos
-**Ficheiros:** `LandingPricingSection.tsx` + `src/i18n/locales/pt/landing.json`
-- Remover testemunhos duplicados da secção de Pricing (já existem na secção Testimonials)
-- Ou unificar num único set coerente
-- Clarificar "500+ empresas" — remover se não for real, ou substituir por "Feito para empresas portuguesas"
-
-### 6. Destacar diferenciadores reais — nova secção ou reescrita
-**Ficheiro:** `src/i18n/locales/pt/landing.json`
-- Reescrever solution section para enfatizar: Verticais dedicadas, Método PARE integrado, Marketplace modular, IA nativa, Suporte PT + RGPD
-- Adicionar menção ao Método PARE na secção de solução (não apenas no FastClub)
-
-### 7. Atualizar integrações para refletir realidade
-**Ficheiro:** `LandingIntegrationsSection.tsx`
-- Separar integrações ativas vs "em breve"
-- Ou reduzir lista às integrações realmente funcionais
+// Enrich with listing count
+if (seller) {
+  const { count } = await supabase
+    .from("c2c_listings")
+    .select("id", { count: "exact", head: true })
+    .eq("seller_id", seller.id)
+    .eq("status", "active");
+  
+  pageTitle = `${seller.display_name || "Vendedor"} — Marketplace`;
+  const listingNote = count ? ` ${count} anúncios disponíveis.` : "";
+  pageDescription = seller.bio 
+    ? `${seller.bio}${listingNote}` 
+    : `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"}.${listingNote}`;
+  if (seller.avatar_url) pageImage = seller.avatar_url;
+}
+pageUrl = `${BASE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
+```
 
 ### Ficheiros a editar
-
 | Ficheiro | Alteração |
 |---|---|
-| `src/i18n/locales/pt/landing.json` | Corrigir posicionamento, nomenclatura, números |
-| `src/components/landing-fastcrm/LandingPricingSection.tsx` | Remover testemunhos duplicados, alinhar nomes de planos |
-| `src/components/landing-fastcrm/LandingDetailedComparison.tsx` | Ajustar status de features à realidade |
-| `src/components/landing-fastcrm/LandingIntegrationsSection.tsx` | Clarificar integrações reais vs futuras |
-| `index.html` | Corrigir Schema.org pricing (€79 → €0 para Starter) |
-| `src/components/landing-fastcrm/LandingHeroSection.tsx` | Corrigir nota de utilizadores gratuitos |
+| `supabase/functions/og-proxy/index.ts` | Corrigir lookup slug/UUID, adicionar avatar_url e contagem de listings |
 
-Nenhuma alteração backend necessária.
+Nenhuma alteração de base de dados necessária — a coluna `slug` e `avatar_url` já existem na tabela `c2c_sellers`.
 
