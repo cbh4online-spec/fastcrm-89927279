@@ -223,12 +223,14 @@ Deno.serve(async (req) => {
     // 1. Find workspace by location_id (get first match if multiple exist)
     const { data: configs, error: configError } = await supabase
       .from("workspace_ghl_config")
-      .select("workspace_id, sync_messages")
+      .select("workspace_id, sync_messages, is_primary")
       .eq("ghl_location_id", locationId)
       .eq("is_active", true)
-      .limit(1);
+      .order("is_primary", { ascending: false })
+      .limit(5);
     
-    const config = configs?.[0] || null;
+    // DEDUPLICATION: prefer the primary config, fallback to first
+    const config = configs?.find(c => c.is_primary) || configs?.[0] || null;
 
     if (configError) {
       console.error("[GHL-MESSAGE] Config lookup error", configError);

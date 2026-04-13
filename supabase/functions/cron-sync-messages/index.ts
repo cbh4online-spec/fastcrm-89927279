@@ -219,17 +219,29 @@ async function triggerAutopilot(
 async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalStart: number): Promise<Record<string, unknown>> {
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  const { data: ghlConfigs, error: configError } = await supabase
+  // DEDUPLICATION: Only process primary configs when multiple workspaces share the same ghl_location_id
+  const { data: allConfigs, error: configError } = await supabase
     .from("workspace_ghl_config")
-    .select("workspace_id, ghl_api_key_encrypted, ghl_location_id")
+    .select("workspace_id, ghl_api_key_encrypted, ghl_location_id, is_primary")
     .eq("is_active", true);
 
-  if (configError || !ghlConfigs?.length) {
+  if (configError || !allConfigs?.length) {
     console.log("[Cron Sync] No active GHL configs found");
     return {};
   }
 
-  console.log(`[Cron Sync] Processing ${ghlConfigs.length} workspace(s)`);
+  // Deduplicate: for each ghl_location_id, only keep the primary config (or first if no primary set)
+  const locationMap = new Map<string, typeof allConfigs[0]>();
+  for (const cfg of allConfigs) {
+    if (!cfg.ghl_location_id) continue;
+    const existing = locationMap.get(cfg.ghl_location_id);
+    if (!existing || (cfg.is_primary && !existing.is_primary)) {
+      locationMap.set(cfg.ghl_location_id, cfg);
+    }
+  }
+  const ghlConfigs = Array.from(locationMap.values());
+
+  console.log(`[Cron Sync] Processing ${ghlConfigs.length} workspace(s) (deduplicated from ${allConfigs.length} configs)`);
 
   const results: Record<string, unknown> = {};
 

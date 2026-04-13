@@ -60937,6 +60937,7 @@ export type Database = {
           ghl_webhook_secret: string | null
           id: string
           is_active: boolean | null
+          is_primary: boolean
           last_sync_at: string | null
           sync_contacts: boolean | null
           sync_messages: boolean | null
@@ -60950,6 +60951,7 @@ export type Database = {
           ghl_webhook_secret?: string | null
           id?: string
           is_active?: boolean | null
+          is_primary?: boolean
           last_sync_at?: string | null
           sync_contacts?: boolean | null
           sync_messages?: boolean | null
@@ -60963,6 +60965,7 @@ export type Database = {
           ghl_webhook_secret?: string | null
           id?: string
           is_active?: boolean | null
+          is_primary?: boolean
           last_sync_at?: string | null
           sync_contacts?: boolean | null
           sync_messages?: boolean | null
