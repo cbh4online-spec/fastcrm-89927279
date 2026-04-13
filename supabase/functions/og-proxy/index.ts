@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const BASE_URL = "https://fastcrm.metodopare.ai";
-const MARKETPLACE_URL = "https://vendersimples.com";
+const MARKETPLACE_URL = "https://vendesimples.com";
 const FALLBACK_IMAGE = `${BASE_URL}/og-image.png`;
 
 // Static vertical SEO data
