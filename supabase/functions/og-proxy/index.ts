@@ -337,7 +337,15 @@ Deno.serve(async (req) => {
       } else if (type === "c2c") {
         // C2C Marketplace — slug is workspace slug (e.g. "metodopare")
         const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
+        let mktBaseUrl = MARKETPLACE_URL;
         if (ws) {
+          const { data: mktCfg } = await supabase
+            .from("c2c_marketplace_config")
+            .select("custom_domain")
+            .eq("workspace_id", ws.id)
+            .maybeSingle();
+          if (mktCfg?.custom_domain) mktBaseUrl = `https://${mktCfg.custom_domain}`;
+
           const { data: store } = await supabase
             .from("store_settings")
             .select("store_name, store_description, logo_url")
@@ -348,12 +356,23 @@ Deno.serve(async (req) => {
           pageDescription = store?.store_description || `Explora o marketplace de ${storeName}. Compra e vende entre utilizadores reais com segurança.`;
           if (store?.logo_url) pageImage = store.logo_url;
         }
-        pageUrl = `${MARKETPLACE_URL}/marketplace/${slug}`;
+        pageUrl = `${mktBaseUrl}/marketplace/${slug}`;
       } else if (type === "c2c-seller") {
         // C2C Seller Profile — slug format: "workspaceSlug/sellerId"
         const parts = slug.split("/");
         if (parts.length === 2) {
           const [wsSlug, sellerId] = parts;
+          // Resolve custom domain
+          let mktBaseUrl = MARKETPLACE_URL;
+          const { data: wsForDomain } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).maybeSingle();
+          if (wsForDomain) {
+            const { data: mktCfg } = await supabase
+              .from("c2c_marketplace_config")
+              .select("custom_domain")
+              .eq("workspace_id", wsForDomain.id)
+              .maybeSingle();
+            if (mktCfg?.custom_domain) mktBaseUrl = `https://${mktCfg.custom_domain}`;
+          }
           // Detect if sellerId is UUID or slug
           const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
           let sellerQuery = supabase
@@ -380,13 +399,24 @@ Deno.serve(async (req) => {
               : `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"}.${listingNote}`;
             if (seller.avatar_url) pageImage = seller.avatar_url;
           }
-          pageUrl = `${MARKETPLACE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
+          pageUrl = `${mktBaseUrl}/marketplace/${wsSlug}/seller/${sellerId}`;
         }
       } else if (type === "c2c-listing") {
         // C2C Listing — slug format: "workspaceSlug/listingId"
         const parts = slug.split("/");
         if (parts.length === 2) {
           const [wsSlug, listingId] = parts;
+          // Resolve custom domain
+          let mktBaseUrl = MARKETPLACE_URL;
+          const { data: wsForDomain } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).maybeSingle();
+          if (wsForDomain) {
+            const { data: mktCfg } = await supabase
+              .from("c2c_marketplace_config")
+              .select("custom_domain")
+              .eq("workspace_id", wsForDomain.id)
+              .maybeSingle();
+            if (mktCfg?.custom_domain) mktBaseUrl = `https://${mktCfg.custom_domain}`;
+          }
           const { data: listing } = await supabase
             .from("c2c_listings")
             .select("title, description, price, photos")
@@ -400,7 +430,7 @@ Deno.serve(async (req) => {
             const photos = listing.photos as string[] | null;
             if (photos && photos.length > 0) pageImage = photos[0];
           }
-          pageUrl = `${MARKETPLACE_URL}/marketplace/${wsSlug}/${listingId}`;
+          pageUrl = `${mktBaseUrl}/marketplace/${wsSlug}/${listingId}`;
 
           // Early return for crawlers with product-specific OG
           if (isCrawler(userAgent)) {

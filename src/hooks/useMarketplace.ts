@@ -43,6 +43,8 @@ export interface MarketplaceConfig {
   support_email?: string;
   support_phone?: string;
   social_links?: Record<string, string>;
+  custom_domain?: string | null;
+  custom_domain_verified?: boolean | null;
   status?: string;
   stats?: {
     totalListings: number;

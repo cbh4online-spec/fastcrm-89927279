@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft } from "lucide-react";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
 export default function MarketplaceConfigPage() {
@@ -36,6 +37,7 @@ export default function MarketplaceConfigPage() {
     boost_price_day: 500,
     featured_price_week: 2000,
     status: "active",
+    custom_domain: "",
     theme: {
       primaryColor: "#6366f1",
       secondaryColor: "#f59e0b",
@@ -75,6 +77,7 @@ export default function MarketplaceConfigPage() {
         boost_price_day: config.boost_price_day || 500,
         featured_price_week: config.featured_price_week || 2000,
         status: config.status || "active",
+        custom_domain: config.custom_domain || "",
         theme: config.theme || form.theme,
         settings: { ...form.settings, ...(config.settings as any) },
       });
@@ -103,7 +106,7 @@ export default function MarketplaceConfigPage() {
     }
   };
 
-  const publicUrl = `${getMarketplaceBaseUrl()}/marketplace/${form.slug}`;
+  const publicUrl = `${getMarketplaceBaseUrlFromConfig(form.custom_domain)}/marketplace/${form.slug}`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -218,6 +221,53 @@ export default function MarketplaceConfigPage() {
                 <Label>Imagem OG</Label>
                 <Input value={form.og_image_url} onChange={(e) => setForm({ ...form, og_image_url: e.target.value })} placeholder="https://..." />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Domínio Público
+              </CardTitle>
+              <CardDescription>Define o domínio customizado para o teu marketplace</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Domínio customizado</Label>
+                <Input
+                  value={form.custom_domain}
+                  onChange={(e) => setForm({ ...form, custom_domain: e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "") })}
+                  placeholder="vendersimples.com"
+                />
+                {form.custom_domain && (
+                  <div className="flex items-center gap-2 mt-2">
+                    {config?.custom_domain_verified ? (
+                      <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Verificado
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                        <AlertTriangle className="h-3 w-3 mr-1" /> Pendente verificação
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+              {form.custom_domain && (
+                <div className="rounded-md border border-border bg-muted/50 p-4 text-sm space-y-2">
+                  <p className="font-medium">Instruções DNS</p>
+                  <p className="text-muted-foreground">Para ativar o domínio, adiciona os seguintes registos DNS no teu registar de domínio:</p>
+                  <div className="font-mono text-xs space-y-1 bg-background rounded p-3 border">
+                    <p><strong>Tipo:</strong> A &nbsp;|&nbsp; <strong>Nome:</strong> @ &nbsp;|&nbsp; <strong>Valor:</strong> 185.158.133.1</p>
+                    <p><strong>Tipo:</strong> A &nbsp;|&nbsp; <strong>Nome:</strong> www &nbsp;|&nbsp; <strong>Valor:</strong> 185.158.133.1</p>
+                  </div>
+                  <p className="text-muted-foreground text-xs">A propagação DNS pode demorar até 72 horas.</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                URL público: <strong>{`${getMarketplaceBaseUrlFromConfig(form.custom_domain)}/marketplace/${form.slug}`}</strong>
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

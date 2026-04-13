@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { getMarketplaceBaseUrl } from "@/utils/getPublicDomain";
+import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
@@ -125,7 +125,7 @@ export default function C2CPublicSellerProfile() {
 
   const ogTitle = `${seller?.display_name || "Vendedor"} — Marketplace C2C`;
   const ogDescription = seller?.bio || `Vê o perfil e os anúncios de ${seller?.display_name || "este vendedor"} no marketplace.`;
-  const ogUrl = `${getMarketplaceBaseUrl()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
+  const ogUrl = `${getMarketplaceBaseUrlFromConfig()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
