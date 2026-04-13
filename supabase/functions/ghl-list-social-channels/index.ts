@@ -37,6 +37,8 @@ const SOCIAL_TYPE_MAP: Record<string, string> = {
   type_fb: "facebook",
   type_fb_messenger: "facebook",
   type_facebook_messenger: "facebook",
+  page: "facebook", // GHL uses type:"page" for Facebook pages
+  facebook_page: "facebook",
   instagram: "instagram",
   ig: "instagram",
   instagram_dm: "instagram",
