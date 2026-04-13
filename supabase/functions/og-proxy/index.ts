@@ -6,7 +6,6 @@ const corsHeaders = {
 };
 
 const BASE_URL = "https://fastcrm.metodopare.ai";
-const MARKETPLACE_URL = "https://vendesimples.com";
 const FALLBACK_IMAGE = `${BASE_URL}/og-image.png`;
 
 // Static vertical SEO data
@@ -337,7 +336,7 @@ Deno.serve(async (req) => {
       } else if (type === "c2c") {
         // C2C Marketplace — slug is workspace slug (e.g. "metodopare")
         const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
-        let mktBaseUrl = MARKETPLACE_URL;
+        let mktBaseUrl = BASE_URL;
         if (ws) {
           const { data: mktCfg } = await supabase
             .from("c2c_marketplace_config")
@@ -363,7 +362,7 @@ Deno.serve(async (req) => {
         if (parts.length === 2) {
           const [wsSlug, sellerId] = parts;
           // Resolve custom domain
-          let mktBaseUrl = MARKETPLACE_URL;
+          let mktBaseUrl = BASE_URL;
           const { data: wsForDomain } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).maybeSingle();
           if (wsForDomain) {
             const { data: mktCfg } = await supabase
