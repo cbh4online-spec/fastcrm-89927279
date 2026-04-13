@@ -131,7 +131,7 @@ async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLCo
   }
 }
 
-// Helper: Create a lead from GHL contact data
+// Helper: Create a lead from GHL contact data (upsert by ghl_contact_id)
 async function createLeadFromGHLContact(
   supabase: ReturnType<typeof createClient>,
   workspace_id: string,
@@ -146,7 +146,6 @@ async function createLeadFromGHLContact(
       ghl_contact_id: contactData.ghl_contact_id,
       source: "ghl_auto_sync",
     };
-    // Add extra fields if available
     if (contactData.website) insertData.website = contactData.website;
     if (contactData.company_name) insertData.company_name = contactData.company_name;
     if (contactData.address) insertData.address = contactData.address;
@@ -157,6 +156,20 @@ async function createLeadFromGHLContact(
     if (contactData.facebook_url) insertData.facebook_url = contactData.facebook_url;
     if (contactData.twitter_url) insertData.twitter_url = contactData.twitter_url;
 
+    // First try to find existing lead by ghl_contact_id (handles pagination miss)
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("workspace_id", workspace_id)
+      .eq("ghl_contact_id", contactData.ghl_contact_id)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingLead) {
+      console.log(`[GHL Sync] Found existing lead ${existingLead.id} for GHL contact ${contactData.ghl_contact_id} (duplicate avoided)`);
+      return existingLead;
+    }
+
     const { data: newLead, error } = await supabase
       .from("leads")
       .insert(insertData)
@@ -164,7 +177,19 @@ async function createLeadFromGHLContact(
       .single();
 
     if (error) {
-      console.error(`[GHL Sync] Error creating lead for contact ${contactData.ghl_contact_id}:`, error);
+      // Handle unique constraint violation gracefully
+      if (error.code === '23505') {
+        console.log(`[GHL Sync] Lead already exists for contact ${contactData.ghl_contact_id} (race condition), fetching...`);
+        const { data: raceLead } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("workspace_id", workspace_id)
+          .eq("ghl_contact_id", contactData.ghl_contact_id)
+          .limit(1)
+          .maybeSingle();
+        return raceLead || null;
+      }
+      console.error(`[GHL Sync] Error creating lead for contact ${contactData.ghl_contact_id}:`, error.message, error.code);
       return null;
     }
 
