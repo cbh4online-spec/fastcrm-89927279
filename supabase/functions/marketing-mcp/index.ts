@@ -24,13 +24,62 @@ async function verifyWorkspaceMember(
   isSuperAdmin: boolean
 ): Promise<boolean> {
   if (isSuperAdmin) return true;
-  const { data } = await supabase
+
+  const { data: directMembership, error: directMembershipError } = await supabase
     .from("workspace_members")
     .select("id")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .maybeSingle();
-  return !!data;
+
+  if (directMembershipError) {
+    log("direct_workspace_membership_check_failed", {
+      userId,
+      workspaceId,
+      error: directMembershipError.message,
+    });
+    return false;
+  }
+
+  if (directMembership) return true;
+
+  const { data: workspace, error: workspaceError } = await supabase
+    .from("workspaces")
+    .select("managed_by_workspace_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  if (workspaceError) {
+    log("managed_workspace_lookup_failed", {
+      userId,
+      workspaceId,
+      error: workspaceError.message,
+    });
+    return false;
+  }
+
+  const managerWorkspaceId = workspace?.managed_by_workspace_id;
+  if (!managerWorkspaceId) return false;
+
+  const { data: agencyMembership, error: agencyMembershipError } = await supabase
+    .from("workspace_members")
+    .select("id")
+    .eq("workspace_id", managerWorkspaceId)
+    .eq("user_id", userId)
+    .in("role", ["owner", "admin", "agency"])
+    .maybeSingle();
+
+  if (agencyMembershipError) {
+    log("managed_workspace_membership_check_failed", {
+      userId,
+      workspaceId,
+      managerWorkspaceId,
+      error: agencyMembershipError.message,
+    });
+    return false;
+  }
+
+  return !!agencyMembership;
 }
 
 function redactProvider(p: Record<string, unknown>) {
@@ -369,9 +418,16 @@ Deno.serve(async (req) => {
     if (userError || !user) return json({ error: "Unauthorized" }, 401);
 
     const userId = user.id;
-    const isSuperAdmin =
+    const metadataSuperAdmin =
       user.app_metadata?.is_super_admin === true ||
       user.user_metadata?.is_super_admin === true;
+    const { data: superAdminCheck, error: superAdminCheckError } = await supabase.rpc("is_super_admin", {
+      _user_id: userId,
+    });
+    if (superAdminCheckError) {
+      log("super_admin_check_failed", { userId, error: superAdminCheckError.message });
+    }
+    const isSuperAdmin = metadataSuperAdmin || superAdminCheck === true;
 
     const body = await req.json();
     const { action, workspace_id } = body;
@@ -383,7 +439,10 @@ Deno.serve(async (req) => {
 
     if (workspace_id) {
       const hasAccess = await verifyWorkspaceMember(supabase, userId, workspace_id, isSuperAdmin);
-      if (!hasAccess) return json({ error: "Forbidden" }, 403);
+      if (!hasAccess) {
+        log("workspace_access_denied", { action, userId, workspace_id });
+        return json({ error: "Forbidden" }, 403);
+      }
     }
 
     // ========================
