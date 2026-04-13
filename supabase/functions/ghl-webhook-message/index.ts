@@ -592,7 +592,6 @@ async function isChannelAllowed(
       c.channel_type === channelType && c.is_active
   );
 }
-});
 
 // GHL message type numeric codes
 // Reference: https://highlevel.stoplight.io/docs/integrations/reference/conversations.v1.yaml
