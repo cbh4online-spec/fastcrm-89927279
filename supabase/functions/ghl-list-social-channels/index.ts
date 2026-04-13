@@ -1,8 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -24,28 +25,32 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate user
+    // Validate user via getClaims
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } =
+      await userClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = claimsData.claims.sub as string;
 
     const { workspace_id } = await req.json();
     if (!workspace_id || typeof workspace_id !== "string") {
-      return new Response(JSON.stringify({ error: "workspace_id obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "workspace_id obrigatório" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Verify workspace membership
@@ -56,10 +61,13 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .limit(1);
     if (!member?.length) {
-      return new Response(JSON.stringify({ error: "Sem acesso a este workspace" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Sem acesso a este workspace" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Get GHL config
@@ -70,18 +78,26 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (configError || !ghlConfig?.length) {
-      return new Response(JSON.stringify({ error: "Configuração GHL não encontrada" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Configuração GHL não encontrada" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const { ghl_location_id, ghl_api_key_encrypted } = ghlConfig[0];
     if (!ghl_location_id || !ghl_api_key_encrypted) {
-      return new Response(JSON.stringify({ error: "Location ID ou API Key não configurados" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Location ID ou API Key não configurados",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const ghlHeaders = {
@@ -176,7 +192,10 @@ Deno.serve(async (req) => {
     console.error("ghl-list-social-channels error:", err);
     return new Response(
       JSON.stringify({ error: "Erro interno ao buscar canais" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
