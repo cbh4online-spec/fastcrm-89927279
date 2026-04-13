@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMarketplaceAdmin, useSaveMarketplaceConfig } from "@/hooks/useMarketplace";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
