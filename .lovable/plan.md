@@ -1,38 +1,61 @@
 
 
-## Plano: Corrigir crash na Edge Function `ghl-list-social-channels`
+## Plano: Filtrar Mensagens GHL pelos Canais Sociais Activos
 
 ### Diagnóstico
-A função arranca (boot ~24ms) mas encerra imediatamente sem processar pedidos. A causa é o uso de `userClient.auth.getClaims(token)` (linha 36) — este método **não existe** no SDK `@supabase/supabase-js@2`. A chamada lança uma excepção não tratada que mata o runtime antes de devolver resposta, provocando blank screen no frontend.
+A tabela `workspace_ghl_social_channels` e o UI de selecção de canais existem e funcionam. Contudo, as edge functions que processam mensagens (`ghl-webhook-message` e `ghl-sync-conversations`) **não consultam esta tabela** — aceitam mensagens de todos os canais indiscriminadamente. A selecção de páginas/perfis é puramente cosmética.
 
-### Alteração
+### Alterações Necessárias
 
-**Ficheiro:** `supabase/functions/ghl-list-social-channels/index.ts`
+**1. `supabase/functions/ghl-webhook-message/index.ts`**
+Após resolver o `channel` e identificar o `workspace_id` (via location_id → workspace_ghl_config), adicionar uma verificação:
+- Consultar `workspace_ghl_social_channels` para o workspace
+- Se existirem canais configurados (registos na tabela), verificar se o `channel_type` da mensagem recebida tem pelo menos um registo `is_active = true`
+- Se não estiver activo → ignorar a mensagem silenciosamente (log + return 200)
+- Se não existirem canais configurados (tabela vazia para o workspace) → aceitar tudo (comportamento retrocompatível)
 
-1. **Substituir `getClaims()` por `getUser()`** — método padrão do SDK v2 para validar o token e obter o `user_id`.
+**2. `supabase/functions/ghl-sync-conversations/index.ts`**
+Antes de processar cada conversa do GHL durante a sincronização:
+- Carregar os canais activos do workspace uma vez no início
+- Para cada conversa, verificar se o canal está permitido
+- Ignorar conversas de canais não activos
 
-2. **Aplicar padrão de erro resiliente** — o `catch` global deve devolver HTTP 200 com payload estruturado (`ok: false, error, fallback: true`) para evitar blank screens no frontend, seguindo o padrão da plataforma.
+**3. `supabase/functions/ghl-send-message/index.ts`**
+Antes de enviar uma mensagem via GHL:
+- Verificar se o canal de destino está activo para o workspace
+- Bloquear envio se o canal não estiver autorizado (retornar erro claro)
 
-### Código relevante (antes → depois)
+### Lógica de Filtragem (partilhada)
 
 ```typescript
-// ANTES (linha 35-43) — CRASH
-const { data: claimsData, error: claimsError } =
-  await userClient.auth.getClaims(token);
-if (claimsError || !claimsData?.claims) { ... }
-const userId = claimsData.claims.sub as string;
-
-// DEPOIS — funcional
-const { data: { user }, error: userError } =
-  await userClient.auth.getUser();
-if (userError || !user) { ... }
-const userId = user.id;
+// Verificar se canal está permitido
+async function isChannelAllowed(supabase, workspaceId: string, channelType: string): Promise<boolean> {
+  const { data: configuredChannels } = await supabase
+    .from("workspace_ghl_social_channels")
+    .select("channel_type, is_active")
+    .eq("workspace_id", workspaceId);
+  
+  // Se não há canais configurados, aceitar tudo (retrocompatível)
+  if (!configuredChannels?.length) return true;
+  
+  // Se há canais configurados, verificar se este está activo
+  return configuredChannels.some(c => c.channel_type === channelType && c.is_active);
+}
 ```
 
-### Ficheiros afectados
-- `supabase/functions/ghl-list-social-channels/index.ts` (1 ficheiro, redeploy automático)
+### Mapeamento de canais GHL → channel_type
+- `instagram` → `instagram`
+- `messenger`, `facebook` → `facebook`  
+- `whatsapp` → `whatsapp`
+- `sms`, `phone`, `email` → sempre permitidos (não são redes sociais)
+
+### Ficheiros Afectados
+1. `supabase/functions/ghl-webhook-message/index.ts` — filtrar mensagens inbound
+2. `supabase/functions/ghl-sync-conversations/index.ts` — filtrar conversas na sincronização
+3. `supabase/functions/ghl-send-message/index.ts` — bloquear envio por canais não autorizados
 
 ### Impacto
-- Corrige o crash e blank screen
-- Sem alteração de lógica de negócio — apenas a autenticação passa a usar o método correto do SDK
+- Retrocompatível: workspaces sem canais configurados continuam a receber tudo
+- Workspaces com canais seleccionados passam a receber/enviar apenas dos canais activos
+- Sem alterações de schema (tabela já existe)
 
