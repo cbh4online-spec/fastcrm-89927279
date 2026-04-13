@@ -77,28 +77,68 @@ function normalizeSocialType(value: unknown): string | null {
   return null;
 }
 
-function extractCandidateArrays(payload: unknown): JsonRecord[] {
+function extractCandidateArrays(payload: unknown, depth = 0): JsonRecord[] {
+  const MAX_DEPTH = 4;
+  if (depth > MAX_DEPTH) return [];
+
   if (Array.isArray(payload)) {
-    return payload.map(asRecord).filter((value): value is JsonRecord => !!value);
+    const records = payload.map(asRecord).filter((v): v is JsonRecord => !!v);
+    if (records.length > 0) return records;
+    // Arrays of arrays — recurse
+    const nested: JsonRecord[] = [];
+    for (const item of payload) {
+      nested.push(...extractCandidateArrays(item, depth + 1));
+    }
+    return nested;
   }
 
   const record = asRecord(payload);
   if (!record) return [];
 
+  // Check known keys at this level — if found as array, use it directly
   for (const key of ACCOUNT_ARRAY_KEYS) {
     const value = record[key];
     if (Array.isArray(value)) {
-      return value.map(asRecord).filter((item): item is JsonRecord => !!item);
+      const items = value.map(asRecord).filter((i): i is JsonRecord => !!i);
+      if (items.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${items.length} items at key "${key}" (depth=${depth})`);
+        return items;
+      }
     }
   }
 
-  const nestedArrays = Object.values(record)
-    .filter(Array.isArray)
-    .flat()
-    .map(asRecord)
-    .filter((item): item is JsonRecord => !!item);
+  // Recurse into nested objects that contain known keys (e.g. results.accounts)
+  for (const key of ACCOUNT_ARRAY_KEYS) {
+    const value = record[key];
+    const nested = asRecord(value);
+    if (nested) {
+      const deepResult = extractCandidateArrays(nested, depth + 1);
+      if (deepResult.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${deepResult.length} items inside "${key}" object (depth=${depth})`);
+        return deepResult;
+      }
+    }
+  }
 
-  return nestedArrays.length > 0 ? nestedArrays : [record];
+  // Try ANY nested object or array values
+  for (const [key, value] of Object.entries(record)) {
+    if (ACCOUNT_ARRAY_KEYS.includes(key)) continue; // already tried
+    if (Array.isArray(value)) {
+      const items = value.map(asRecord).filter((i): i is JsonRecord => !!i);
+      if (items.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${items.length} items at non-standard key "${key}" (depth=${depth})`);
+        return items;
+      }
+    }
+    const nested = asRecord(value);
+    if (nested) {
+      const deepResult = extractCandidateArrays(nested, depth + 1);
+      if (deepResult.length > 0) return deepResult;
+    }
+  }
+
+  // Last resort: treat the record itself as a single entry
+  return [record];
 }
 
 function extractChannelType(entry: JsonRecord, fallbackType?: string): string | null {
