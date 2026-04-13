@@ -1,61 +1,45 @@
 
 
-## Plano: Filtrar Mensagens GHL pelos Canais Sociais Activos
+## Plano: Corrigir redimensionamento de imagens para Claude API
 
-### Diagnóstico
-A tabela `workspace_ghl_social_channels` e o UI de selecção de canais existem e funcionam. Contudo, as edge functions que processam mensagens (`ghl-webhook-message` e `ghl-sync-conversations`) **não consultam esta tabela** — aceitam mensagens de todos os canais indiscriminadamente. A selecção de páginas/perfis é puramente cosmética.
+### Problema
+A edge function `claude-chat` recebe imagens com dimensões superiores a 2000px em pedidos multi-imagem. O `preprocessMessages` actual apenas adiciona `detail: "low"` — que é um conceito OpenAI, ignorado pela API Anthropic. Resultado: erro 400 `At least one of the image dimensions exceed max allowed size for many-image requests: 2000 pixels`.
 
-### Alterações Necessárias
+### Solução (2 camadas)
 
-**1. `supabase/functions/ghl-webhook-message/index.ts`**
-Após resolver o `channel` e identificar o `workspace_id` (via location_id → workspace_ghl_config), adicionar uma verificação:
-- Consultar `workspace_ghl_social_channels` para o workspace
-- Se existirem canais configurados (registos na tabela), verificar se o `channel_type` da mensagem recebida tem pelo menos um registo `is_active = true`
-- Se não estiver activo → ignorar a mensagem silenciosamente (log + return 200)
-- Se não existirem canais configurados (tabela vazia para o workspace) → aceitar tudo (comportamento retrocompatível)
+**1. Cliente — `src/utils/resizeImageForAI.ts`** (sem alteração necessária)
+- O default já é 1568px, abaixo do limite de 2000px da Anthropic
+- Já é usado nos componentes `StoreVisualSearch`, `MarketplaceSearchOverlay`, `StoreQuickProductDialog`
 
-**2. `supabase/functions/ghl-sync-conversations/index.ts`**
-Antes de processar cada conversa do GHL durante a sincronização:
-- Carregar os canais activos do workspace uma vez no início
-- Para cada conversa, verificar se o canal está permitido
-- Ignorar conversas de canais não activos
+**2. Servidor — `supabase/functions/claude-chat/index.ts`**
+O problema é que `preprocessMessages` não redimensiona — apenas marca com `detail: "low"`. A correção:
 
-**3. `supabase/functions/ghl-send-message/index.ts`**
-Antes de enviar uma mensagem via GHL:
-- Verificar se o canal de destino está activo para o workspace
-- Bloquear envio se o canal não estiver autorizado (retornar erro claro)
-
-### Lógica de Filtragem (partilhada)
-
-```typescript
-// Verificar se canal está permitido
-async function isChannelAllowed(supabase, workspaceId: string, channelType: string): Promise<boolean> {
-  const { data: configuredChannels } = await supabase
-    .from("workspace_ghl_social_channels")
-    .select("channel_type, is_active")
-    .eq("workspace_id", workspaceId);
+- Reescrever `preprocessMessages` para **realmente redimensionar** imagens base64 oversized no servidor usando uma abordagem Deno-compatível:
+  - Descodificar base64 → ler dimensões dos headers JPEG/PNG (funções já existem)
+  - Se oversized: recalcular dimensões mantendo aspect ratio (max 1568px para multi-image, 2000px para single-image)
+  - Re-codificar a imagem usando a API `CanvasRenderingContext2D` do Deno (disponível via `deno_canvas` ou ImageBitmap)
+  - Alternativa mais simples e robusta: usar `fetch` para chamar um micro-endpoint de resize, ou usar a biblioteca `imagescript` para Deno
   
-  // Se não há canais configurados, aceitar tudo (retrocompatível)
-  if (!configuredChannels?.length) return true;
-  
-  // Se há canais configurados, verificar se este está activo
-  return configuredChannels.some(c => c.channel_type === channelType && c.is_active);
-}
-```
+- **Abordagem escolhida**: usar a biblioteca [`imagescript`](https://deno.land/x/imagescript) disponível em Deno para resize server-side. Esta é a abordagem mais fiável sem dependências externas pesadas.
 
-### Mapeamento de canais GHL → channel_type
-- `instagram` → `instagram`
-- `messenger`, `facebook` → `facebook`  
-- `whatsapp` → `whatsapp`
-- `sms`, `phone`, `email` → sempre permitidos (não são redes sociais)
+- Se `imagescript` não estiver disponível, **fallback**: truncar o número de imagens e/ou rejeitar com erro claro em vez de crash silencioso.
 
-### Ficheiros Afectados
-1. `supabase/functions/ghl-webhook-message/index.ts` — filtrar mensagens inbound
-2. `supabase/functions/ghl-sync-conversations/index.ts` — filtrar conversas na sincronização
-3. `supabase/functions/ghl-send-message/index.ts` — bloquear envio por canais não autorizados
+### Alterações concretas
+
+**Ficheiro: `supabase/functions/claude-chat/index.ts`**
+
+1. Importar `imagescript` para resize server-side
+2. Substituir a lógica `detail: "low"` por resize real:
+   - Para multi-image (>1 imagem): max 1568px
+   - Para single-image: max 2000px  
+3. A função `preprocessMessages` passa a ser `async` e a devolver imagens redimensionadas
+4. Manter `convertToAnthropicFormat` inalterada
+
+### Ficheiros afectados
+1. `supabase/functions/claude-chat/index.ts` — resize real server-side (redeploy automático)
 
 ### Impacto
-- Retrocompatível: workspaces sem canais configurados continuam a receber tudo
-- Workspaces com canais seleccionados passam a receber/enviar apenas dos canais activos
-- Sem alterações de schema (tabela já existe)
+- Corrige o erro 400 da Anthropic em pedidos multi-imagem
+- Mantém qualidade razoável (JPEG 85%)
+- Sem alteração no frontend — o resize é transparente no servidor
 
