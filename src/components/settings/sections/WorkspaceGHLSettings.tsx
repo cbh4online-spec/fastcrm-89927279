@@ -810,9 +810,16 @@ function WorkspaceGHLSettingsInner() {
                 )}
                 
                 {lastResult.errors.length > 0 && (
-                  <p className="text-xs text-destructive mt-2">
-                    {lastResult.errors.length} erro(s) durante a sincronização
-                  </p>
+                  <div className="mt-2 rounded-md border border-destructive/20 bg-destructive/5 p-2 space-y-1">
+                    <p className="text-xs font-medium text-destructive">
+                      {lastResult.errors.length} erro(s) durante a sincronização
+                    </p>
+                    {lastResult.errors.slice(0, 3).map((error, index) => (
+                      <p key={`${index}-${error}`} className="text-xs text-destructive/90">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

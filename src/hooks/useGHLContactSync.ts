@@ -139,7 +139,7 @@ export function useGHLContactSync() {
         // Show appropriate toast based on result
         if (result.errors.length > 0) {
           toast.warning(
-            `Sincronização parcial: ${result.created} criados, ${result.updated} actualizados, ${result.errors.length} erros`
+            `Sincronização parcial: ${result.errors[0]}`
           );
         } else if (result.created === 0 && result.updated === 0) {
           toast.info("Nenhum contacto novo para sincronizar");
