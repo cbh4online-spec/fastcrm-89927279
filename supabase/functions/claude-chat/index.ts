@@ -69,16 +69,22 @@ async function resizeBase64Image(
   mimeType: string,
   maxDim: number,
 ): Promise<{ data: string; media_type: string }> {
-  const dims = getImageDimensions(b64Data, mimeType);
-
-  // If we can't read dims or it's within limits, return as-is
-  if (!dims || (dims.width <= maxDim && dims.height <= maxDim)) {
-    return { data: b64Data, media_type: `image/${mimeType}` };
-  }
-
   try {
     const bytes = base64Decode(b64Data);
+
+    // First try fast header-based dimension check (JPEG/PNG only)
+    const headerDims = getImageDimensions(b64Data, mimeType);
+    if (headerDims && headerDims.width <= maxDim && headerDims.height <= maxDim) {
+      return { data: b64Data, media_type: `image/${mimeType}` };
+    }
+
+    // Decode with imagescript (supports JPEG, PNG, WebP, GIF, TIFF)
     const img = await Image.decode(bytes);
+
+    // Check actual decoded dimensions
+    if (img.width <= maxDim && img.height <= maxDim) {
+      return { data: b64Data, media_type: `image/${mimeType}` };
+    }
 
     const scale = Math.min(maxDim / img.width, maxDim / img.height);
     const newW = Math.round(img.width * scale);
@@ -90,10 +96,11 @@ async function resizeBase64Image(
     const resized = await img.encodeJPEG(85);
     const resizedB64 = base64Encode(resized);
 
-    console.log(`Resized image from ${dims.width}x${dims.height} to ${newW}x${newH}`);
+    console.log(`Resized image from ${img.width}x${img.height} to ${newW}x${newH}`);
     return { data: resizedB64, media_type: "image/jpeg" };
   } catch (err) {
-    console.error("Image resize failed, using original:", err);
+    // If resize fails entirely, log and return original — caller should handle gracefully
+    console.error("Image resize failed, returning original (may cause API error):", err);
     return { data: b64Data, media_type: `image/${mimeType}` };
   }
 }
