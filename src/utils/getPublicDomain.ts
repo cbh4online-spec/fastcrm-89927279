@@ -12,3 +12,11 @@ export function getPublicBaseUrl(): string {
 
   return window.location.origin;
 }
+
+/**
+ * Returns the public base URL for C2C Marketplace pages.
+ * The marketplace lives on vendersimples.com.
+ */
+export function getMarketplaceBaseUrl(): string {
+  return "https://vendersimples.com";
+}
