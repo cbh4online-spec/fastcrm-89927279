@@ -287,17 +287,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify workspace membership
+    // Verify workspace membership (with super admin bypass)
     const { data: member } = await supabase
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspace_id)
       .eq("user_id", user.id)
       .limit(1);
-    if (!member?.length) {
+    
+    let hasAccess = (member?.length ?? 0) > 0;
+    
+    if (!hasAccess) {
+      // Check super admin bypass
+      const { data: superAdmin } = await supabase.rpc("is_super_admin", { _user_id: user.id });
+      hasAccess = superAdmin === true;
+      if (hasAccess) {
+        console.log(`[Auth] Super admin bypass for user ${user.id}`);
+      }
+    }
+    
+    if (!hasAccess) {
+      console.warn(`[Auth] User ${user.id} has no access to workspace ${workspace_id}`);
       return new Response(
-        JSON.stringify({ error: "Sem acesso a este workspace" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ ok: false, error: "Sem acesso a este workspace" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
