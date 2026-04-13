@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useMarketplaceAdmin, useSaveMarketplaceConfig } from "@/hooks/useMarketplace";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Copy, ExternalLink, Globe, Palette, Settings, BarChart3, ArrowLeft, CheckCircle2, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 
@@ -21,6 +22,28 @@ export default function MarketplaceConfigPage() {
   const workspaceId = currentWorkspace?.id;
   const { data: config, isLoading } = useMarketplaceAdmin(workspaceId);
   const saveConfig = useSaveMarketplaceConfig();
+  const [verifyingDns, setVerifyingDns] = useState(false);
+
+  const handleVerifyDns = async () => {
+    if (!form.custom_domain || !workspaceId) return;
+    setVerifyingDns(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-marketplace-domain", {
+        body: { domain: form.custom_domain, workspace_id: workspaceId },
+      });
+      if (error) throw error;
+      if (data?.verified) {
+        toast.success("DNS verificado com sucesso! O domínio está corretamente configurado.");
+      } else {
+        const ips = data?.found_ips?.length ? data.found_ips.join(", ") : "nenhum";
+        toast.error(`DNS ainda não aponta para o IP correto. IPs encontrados: ${ips}. Esperado: 185.158.133.1`);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao verificar DNS: " + (err.message || "tenta novamente"));
+    } finally {
+      setVerifyingDns(false);
+    }
+  };
 
   const [form, setForm] = useState({
     slug: "",
@@ -251,6 +274,18 @@ export default function MarketplaceConfigPage() {
                         <AlertTriangle className="h-3 w-3 mr-1" /> Pendente verificação
                       </Badge>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleVerifyDns}
+                      disabled={verifyingDns}
+                    >
+                      {verifyingDns ? (
+                        <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Verificando...</>
+                      ) : (
+                        <><RefreshCw className="h-3 w-3 mr-1" /> Verificar DNS</>
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
