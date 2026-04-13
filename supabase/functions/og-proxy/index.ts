@@ -353,17 +353,33 @@ Deno.serve(async (req) => {
         const parts = slug.split("/");
         if (parts.length === 2) {
           const [wsSlug, sellerId] = parts;
-          const { data: seller } = await supabase
+          // Detect if sellerId is UUID or slug
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
+          let sellerQuery = supabase
             .from("c2c_sellers")
-            .select("display_name, bio")
-            .eq("user_id", sellerId)
-            .eq("status", "approved")
-            .maybeSingle();
-          if (seller) {
-            pageTitle = `${seller.display_name || "Vendedor"} — Marketplace C2C`;
-            pageDescription = seller.bio || `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"} no marketplace.`;
+            .select("display_name, bio, avatar_url, id")
+            .eq("status", "approved");
+          if (isUuid) {
+            sellerQuery = sellerQuery.eq("user_id", sellerId);
+          } else {
+            sellerQuery = sellerQuery.eq("slug", sellerId);
           }
-          pageUrl = `${BASE_URL}/c2c/${wsSlug}/seller/${sellerId}`;
+          const { data: seller } = await sellerQuery.maybeSingle();
+          if (seller) {
+            // Enrich with listing count
+            const { count } = await supabase
+              .from("c2c_listings")
+              .select("id", { count: "exact", head: true })
+              .eq("seller_id", seller.id)
+              .eq("status", "active");
+            pageTitle = `${seller.display_name || "Vendedor"} — Marketplace`;
+            const listingNote = count ? ` ${count} anúncios disponíveis.` : "";
+            pageDescription = seller.bio
+              ? `${seller.bio}${listingNote}`
+              : `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"}.${listingNote}`;
+            if (seller.avatar_url) pageImage = seller.avatar_url;
+          }
+          pageUrl = `${BASE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
         }
       } else if (type === "c2c-listing") {
         // C2C Listing — slug format: "workspaceSlug/listingId"
