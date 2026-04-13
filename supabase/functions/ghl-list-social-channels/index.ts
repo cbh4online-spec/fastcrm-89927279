@@ -95,6 +95,16 @@ Deno.serve(async (req) => {
       account_name: string;
     }> = [];
 
+    // Track unique channels by composite key
+    const foundKeys = new Set<string>();
+
+    const addChannel = (type: string, id: string, name: string) => {
+      const key = `${type}::${id}`;
+      if (foundKeys.has(key)) return;
+      foundKeys.add(key);
+      channels.push({ channel_type: type, ghl_account_id: id, account_name: name });
+    };
+
     // --- Strategy 1: Get location info for WhatsApp / phone ---
     try {
       const locRes = await fetch(
@@ -105,11 +115,7 @@ Deno.serve(async (req) => {
         const locData = await locRes.json();
         const loc = locData?.location || locData;
         if (loc?.phone || loc?.twilio?.phone) {
-          channels.push({
-            channel_type: "whatsapp",
-            ghl_account_id: loc.id || ghl_location_id,
-            account_name: loc.phone || loc.twilio?.phone || "WhatsApp",
-          });
+          addChannel("whatsapp", loc.id || ghl_location_id, loc.phone || loc.twilio?.phone || "WhatsApp");
         }
       } else {
         console.warn(`Location fetch failed: ${locRes.status}`);
@@ -119,77 +125,105 @@ Deno.serve(async (req) => {
       console.warn("Location fetch error:", e);
     }
 
-    // --- Strategy 2: Discover channels from recent conversations ---
-    // GHL conversation types: TYPE_PHONE, TYPE_EMAIL, TYPE_SMS, TYPE_FB, TYPE_INSTAGRAM, TYPE_WHATSAPP, etc.
+    // --- Strategy 2: Discover ALL unique pages/profiles from conversations ---
+    // Scan multiple pages of conversations to find all unique channel pages
     const channelTypeMap: Record<string, { channel_type: string; label: string }> = {
       TYPE_FB: { channel_type: "facebook", label: "Facebook Messenger" },
       TYPE_INSTAGRAM: { channel_type: "instagram", label: "Instagram DM" },
       TYPE_WHATSAPP: { channel_type: "whatsapp", label: "WhatsApp" },
     };
 
-    // Track which channel types we already found
-    const foundTypes = new Set(channels.map((c) => c.channel_type));
-
     try {
-      const searchRes = await fetch(
-        `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100`,
-        { headers: ghlHeaders }
-      );
-      if (searchRes.ok) {
+      // Scan up to 3 pages of conversations for better coverage
+      let allConversations: any[] = [];
+      let nextPageUrl: string | null = `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100`;
+      let pageCount = 0;
+      const maxPages = 3;
+
+      while (nextPageUrl && pageCount < maxPages) {
+        const searchRes = await fetch(nextPageUrl, { headers: ghlHeaders });
+        if (!searchRes.ok) {
+          console.warn(`Conversations search page ${pageCount} failed: ${searchRes.status}`);
+          await searchRes.text();
+          break;
+        }
         const searchData = await searchRes.json();
-        const conversations = searchData?.conversations || [];
-        console.log(`Found ${conversations.length} conversations to scan for channel types`);
+        const convs = searchData?.conversations || [];
+        allConversations = allConversations.concat(convs);
+        pageCount++;
 
-        // Collect unique channel types and their identifiers
-        const discoveredChannels = new Map<string, { accountId: string; accountName: string }>();
+        // Check for next page
+        if (searchData?.meta?.nextPageUrl) {
+          nextPageUrl = searchData.meta.nextPageUrl;
+        } else if (searchData?.meta?.nextPage) {
+          nextPageUrl = `https://services.leadconnectorhq.com/conversations/search?locationId=${ghl_location_id}&limit=100&page=${searchData.meta.nextPage}`;
+        } else {
+          nextPageUrl = null;
+        }
+      }
 
-        for (const conv of conversations) {
-          const convType = conv.type as string;
-          const mapping = channelTypeMap[convType];
-          if (!mapping) continue;
-          if (foundTypes.has(mapping.channel_type)) continue;
-          if (discoveredChannels.has(mapping.channel_type)) continue;
+      console.log(`Scanned ${allConversations.length} conversations across ${pageCount} pages`);
 
-          // Extract account/page identifier from conversation
-          const accountId = conv.companyName || conv.locationId || ghl_location_id;
-          let accountName = mapping.label;
+      // Log a sample conversation for debugging (redact sensitive info)
+      if (allConversations.length > 0) {
+        const sample = allConversations[0];
+        console.log(`Sample conversation keys: ${Object.keys(sample).join(", ")}`);
+        console.log(`Sample type=${sample.type}, companyName=${sample.companyName}, inbox=${sample.inbox}, assignedTo=${sample.assignedTo}`);
+      }
 
-          // Try to get a better name from the conversation metadata
-          if (convType === "TYPE_FB") {
-            accountName = conv.companyName || conv.fullName
-              ? `Facebook · ${conv.companyName || "Page"}`
-              : "Facebook Messenger";
-          } else if (convType === "TYPE_INSTAGRAM") {
-            accountName = conv.companyName
-              ? `Instagram · ${conv.companyName}`
-              : "Instagram DM";
+      // Collect ALL unique pages/profiles per channel type
+      // Use multiple fields to identify unique pages: inbox, companyName, assignedTo, etc.
+      for (const conv of allConversations) {
+        const convType = conv.type as string;
+        const mapping = channelTypeMap[convType];
+        if (!mapping) continue;
+
+        // Build a unique page identifier from conversation metadata
+        // GHL conversations may have different fields depending on the channel:
+        // - inbox: the inbox/page that received the message
+        // - companyName: sometimes the page name
+        // - assignedTo: assigned user (not relevant for page identification)
+        // - contactName / fullName: the contact (not the page)
+        
+        // For social channels, the key differentiator is typically the inbox or page account
+        const inboxId = conv.inbox || conv.inboxId || "";
+        const companyName = conv.companyName || "";
+        
+        // Create a unique page key - prefer inbox, fall back to companyName, then location
+        let pageId = "";
+        let pageName = "";
+
+        if (convType === "TYPE_INSTAGRAM") {
+          // For Instagram, try to extract the IG username/page from conversation
+          pageId = inboxId || `instagram-${companyName || ghl_location_id}`;
+          pageName = companyName || inboxId || "Instagram DM";
+          // If the name doesn't look like an IG handle, prefix it
+          if (pageName && !pageName.startsWith("Instagram")) {
+            pageName = `Instagram · ${pageName}`;
           }
-
-          discoveredChannels.set(mapping.channel_type, {
-            accountId: `${mapping.channel_type}-${ghl_location_id}`,
-            accountName,
-          });
+        } else if (convType === "TYPE_FB") {
+          pageId = inboxId || `facebook-${companyName || ghl_location_id}`;
+          pageName = companyName || inboxId || "Facebook Messenger";
+          if (pageName && !pageName.startsWith("Facebook")) {
+            pageName = `Facebook · ${pageName}`;
+          }
+        } else if (convType === "TYPE_WHATSAPP") {
+          // WhatsApp may have multiple numbers
+          const phone = conv.phone || conv.contactPhone || "";
+          pageId = inboxId || phone || `whatsapp-${ghl_location_id}`;
+          pageName = phone || companyName || "WhatsApp";
         }
 
-        for (const [channelType, info] of discoveredChannels) {
-          channels.push({
-            channel_type: channelType,
-            ghl_account_id: info.accountId,
-            account_name: info.accountName,
-          });
-          foundTypes.add(channelType);
+        if (pageId) {
+          addChannel(mapping.channel_type, pageId, pageName);
         }
-      } else {
-        console.warn(`Conversations search failed: ${searchRes.status}`);
-        const body = await searchRes.text();
-        console.warn(`Conversations search body: ${body.substring(0, 500)}`);
       }
     } catch (e) {
       console.warn("Conversations search error:", e);
     }
 
     // --- Strategy 3: Try social-media-posting endpoints as fallback ---
-    if (!foundTypes.has("facebook")) {
+    if (!foundKeys.has("facebook")) {
       try {
         const fbRes = await fetch(
           `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/facebook/accounts`,
@@ -199,14 +233,13 @@ Deno.serve(async (req) => {
           const fbData = await fbRes.json();
           const accounts = fbData?.accounts || fbData?.data || [];
           for (const acc of accounts) {
-            channels.push({
-              channel_type: "facebook",
-              ghl_account_id: acc.id || acc.pageId || String(acc),
-              account_name: acc.name || acc.pageName || "Facebook Page",
-            });
+            addChannel(
+              "facebook",
+              acc.id || acc.pageId || String(acc),
+              acc.name || acc.pageName || "Facebook Page"
+            );
           }
         } else {
-          console.warn(`Facebook social-media-posting fetch failed: ${fbRes.status}`);
           await fbRes.text();
         }
       } catch (e) {
@@ -214,7 +247,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!foundTypes.has("instagram")) {
+    if (!channels.some(c => c.channel_type === "instagram")) {
       try {
         const igRes = await fetch(
           `https://services.leadconnectorhq.com/social-media-posting/${ghl_location_id}/oauth/instagram/accounts`,
@@ -224,14 +257,13 @@ Deno.serve(async (req) => {
           const igData = await igRes.json();
           const accounts = igData?.accounts || igData?.data || [];
           for (const acc of accounts) {
-            channels.push({
-              channel_type: "instagram",
-              ghl_account_id: acc.id || acc.accountId || String(acc),
-              account_name: acc.name || acc.username || "Instagram Account",
-            });
+            addChannel(
+              "instagram",
+              acc.id || acc.accountId || String(acc),
+              acc.name || acc.username || "Instagram Account"
+            );
           }
         } else {
-          console.warn(`Instagram social-media-posting fetch failed: ${igRes.status}`);
           await igRes.text();
         }
       } catch (e) {
@@ -239,7 +271,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Returning ${channels.length} channels: ${JSON.stringify(channels.map(c => c.channel_type))}`);
+    console.log(`Returning ${channels.length} channels: ${JSON.stringify(channels.map(c => `${c.channel_type}:${c.account_name}`))}`);
 
     return new Response(JSON.stringify({ channels }), {
       status: 200,
