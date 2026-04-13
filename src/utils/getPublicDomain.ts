@@ -15,15 +15,15 @@ export function getPublicBaseUrl(): string {
 
 /**
  * Returns the public base URL for C2C Marketplace pages.
- * The marketplace lives on vendersimples.com.
+ * The marketplace lives on vendesimples.com.
  */
 export function getMarketplaceBaseUrl(): string {
-  return "https://vendersimples.com";
+  return "https://vendesimples.com";
 }
 
 /**
  * Returns the marketplace base URL from config's custom_domain if set,
- * otherwise falls back to the default vendersimples.com.
+ * otherwise falls back to the default vendesimples.com.
  */
 export function getMarketplaceBaseUrlFromConfig(customDomain?: string | null): string {
   if (customDomain) {
