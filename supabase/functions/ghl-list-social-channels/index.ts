@@ -37,6 +37,8 @@ const SOCIAL_TYPE_MAP: Record<string, string> = {
   type_fb: "facebook",
   type_fb_messenger: "facebook",
   type_facebook_messenger: "facebook",
+  page: "facebook", // GHL uses type:"page" for Facebook pages
+  facebook_page: "facebook",
   instagram: "instagram",
   ig: "instagram",
   instagram_dm: "instagram",
@@ -77,41 +79,82 @@ function normalizeSocialType(value: unknown): string | null {
   return null;
 }
 
-function extractCandidateArrays(payload: unknown): JsonRecord[] {
+function extractCandidateArrays(payload: unknown, depth = 0): JsonRecord[] {
+  const MAX_DEPTH = 4;
+  if (depth > MAX_DEPTH) return [];
+
   if (Array.isArray(payload)) {
-    return payload.map(asRecord).filter((value): value is JsonRecord => !!value);
+    const records = payload.map(asRecord).filter((v): v is JsonRecord => !!v);
+    if (records.length > 0) return records;
+    // Arrays of arrays — recurse
+    const nested: JsonRecord[] = [];
+    for (const item of payload) {
+      nested.push(...extractCandidateArrays(item, depth + 1));
+    }
+    return nested;
   }
 
   const record = asRecord(payload);
   if (!record) return [];
 
+  // Check known keys at this level — if found as array, use it directly
   for (const key of ACCOUNT_ARRAY_KEYS) {
     const value = record[key];
     if (Array.isArray(value)) {
-      return value.map(asRecord).filter((item): item is JsonRecord => !!item);
+      const items = value.map(asRecord).filter((i): i is JsonRecord => !!i);
+      if (items.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${items.length} items at key "${key}" (depth=${depth})`);
+        return items;
+      }
     }
   }
 
-  const nestedArrays = Object.values(record)
-    .filter(Array.isArray)
-    .flat()
-    .map(asRecord)
-    .filter((item): item is JsonRecord => !!item);
+  // Recurse into nested objects that contain known keys (e.g. results.accounts)
+  for (const key of ACCOUNT_ARRAY_KEYS) {
+    const value = record[key];
+    const nested = asRecord(value);
+    if (nested) {
+      const deepResult = extractCandidateArrays(nested, depth + 1);
+      if (deepResult.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${deepResult.length} items inside "${key}" object (depth=${depth})`);
+        return deepResult;
+      }
+    }
+  }
 
-  return nestedArrays.length > 0 ? nestedArrays : [record];
+  // Try ANY nested object or array values
+  for (const [key, value] of Object.entries(record)) {
+    if (ACCOUNT_ARRAY_KEYS.includes(key)) continue; // already tried
+    if (Array.isArray(value)) {
+      const items = value.map(asRecord).filter((i): i is JsonRecord => !!i);
+      if (items.length > 0) {
+        console.log(`[extractCandidateArrays] Found ${items.length} items at non-standard key "${key}" (depth=${depth})`);
+        return items;
+      }
+    }
+    const nested = asRecord(value);
+    if (nested) {
+      const deepResult = extractCandidateArrays(nested, depth + 1);
+      if (deepResult.length > 0) return deepResult;
+    }
+  }
+
+  // Last resort: treat the record itself as a single entry
+  return [record];
 }
 
 function extractChannelType(entry: JsonRecord, fallbackType?: string): string | null {
+  // Priority order: platform/provider are more specific than generic "type"
   const directType = uniqueStrings([
-    entry.type,
-    entry.channel_type,
-    entry.channelType,
     entry.platform,
     entry.provider,
+    entry.channel_type,
+    entry.channelType,
     entry.integration_type,
     entry.integrationType,
     entry.network,
     entry.source,
+    entry.type,
     fallbackType,
   ]);
 
@@ -297,13 +340,17 @@ Deno.serve(async (req) => {
       channels.push({ channel_type: type, ghl_account_id: id, account_name: name });
     };
 
-    const collectChannelsFromPayload = (payload: unknown, fallbackType?: string) => {
+    const collectChannelsFromPayload = (payload: unknown, fallbackType?: string, strategyLabel?: string) => {
       const entries = extractCandidateArrays(payload);
+      const beforeCount = channels.length;
+      let matched = 0;
+      let skippedNoType = 0;
+      let skippedNoId = 0;
       for (const entry of entries) {
         const channelType = extractChannelType(entry, fallbackType);
-        if (!channelType) continue;
+        if (!channelType) { skippedNoType++; continue; }
         const accountId = extractAccountId(entry);
-        if (!accountId) continue;
+        if (!accountId) { skippedNoId++; continue; }
         const fallbackLabel =
           channelType === "facebook"
             ? "Facebook Page"
@@ -312,7 +359,10 @@ Deno.serve(async (req) => {
               : "WhatsApp";
         const accountName = extractAccountName(entry, fallbackLabel);
         addChannel(channelType, accountId, accountName);
+        matched++;
       }
+      const added = channels.length - beforeCount;
+      console.log(`[${strategyLabel || "collect"}] entries=${entries.length} matched=${matched} added=${added} skippedNoType=${skippedNoType} skippedNoId=${skippedNoId}`);
     };
 
     // ─── Strategy 1: Social-media-posting Facebook accounts ───
@@ -328,7 +378,7 @@ Deno.serve(async (req) => {
       if (fbRes.ok) {
         try {
           const fbData = JSON.parse(fbBody);
-          collectChannelsFromPayload(fbData, "facebook");
+          collectChannelsFromPayload(fbData, "facebook", "Strategy1");
         } catch (e) {
           console.warn("[Strategy1] FB parse error:", e);
         }
@@ -350,7 +400,7 @@ Deno.serve(async (req) => {
       if (igRes.ok) {
         try {
           const igData = JSON.parse(igBody);
-          collectChannelsFromPayload(igData, "instagram");
+          collectChannelsFromPayload(igData, "instagram", "Strategy2");
         } catch (e) {
           console.warn("[Strategy2] IG parse error:", e);
         }
@@ -372,7 +422,20 @@ Deno.serve(async (req) => {
       if (genRes.ok) {
         try {
           const genData = JSON.parse(genBody);
-          collectChannelsFromPayload(genData);
+          // Log top-level structure for debugging
+          const topKeys = Object.keys(genData);
+          console.log(`[Strategy3] Top-level keys: ${topKeys.join(", ")}`);
+          for (const k of topKeys) {
+            const v = genData[k];
+            if (Array.isArray(v)) {
+              console.log(`[Strategy3]   "${k}" is array with ${v.length} items`);
+            } else if (v && typeof v === "object") {
+              console.log(`[Strategy3]   "${k}" is object with keys: ${Object.keys(v).join(", ")}`);
+            } else {
+              console.log(`[Strategy3]   "${k}" = ${JSON.stringify(v)?.substring(0, 100)}`);
+            }
+          }
+          collectChannelsFromPayload(genData, undefined, "Strategy3");
         } catch (e) {
           console.warn("[Strategy3] parse error:", e);
         }
