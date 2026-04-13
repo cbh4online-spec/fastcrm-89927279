@@ -216,10 +216,11 @@ async function triggerAutopilot(
 }
 
 // Core sync logic — single pass over all active workspaces
+// PHASE 2: Route conversations to the workspace that owns the channel type
 async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalStart: number): Promise<Record<string, unknown>> {
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // DEDUPLICATION: Only process primary configs when multiple workspaces share the same ghl_location_id
+  // Load ALL active configs (no more deduplication by location — each workspace processes its own channels)
   const { data: allConfigs, error: configError } = await supabase
     .from("workspace_ghl_config")
     .select("workspace_id, ghl_api_key_encrypted, ghl_location_id, is_primary")
@@ -230,18 +231,57 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
     return {};
   }
 
-  // Deduplicate: for each ghl_location_id, only keep the primary config (or first if no primary set)
-  const locationMap = new Map<string, typeof allConfigs[0]>();
+  // Group configs by location_id for channel-based routing
+  const locationGroups = new Map<string, typeof allConfigs>();
   for (const cfg of allConfigs) {
     if (!cfg.ghl_location_id) continue;
-    const existing = locationMap.get(cfg.ghl_location_id);
-    if (!existing || (cfg.is_primary && !existing.is_primary)) {
-      locationMap.set(cfg.ghl_location_id, cfg);
+    const group = locationGroups.get(cfg.ghl_location_id) || [];
+    group.push(cfg);
+    locationGroups.set(cfg.ghl_location_id, group);
+  }
+
+  // For each location, load social channel ownership per workspace
+  const channelOwnership = new Map<string, Map<string, string>>(); // locationId -> Map<channelType, workspaceId>
+  const primaryByLocation = new Map<string, string>(); // locationId -> primary workspace_id
+
+  for (const [locId, cfgs] of locationGroups) {
+    const primary = cfgs.find(c => c.is_primary);
+    if (primary) primaryByLocation.set(locId, primary.workspace_id);
+
+    if (cfgs.length > 1) {
+      // Multiple workspaces share this location — load channel ownership
+      const wsIds = cfgs.map(c => c.workspace_id);
+      const { data: socialChannels } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("workspace_id, channel_type, is_active")
+        .in("workspace_id", wsIds)
+        .eq("is_active", true);
+
+      const ownership = new Map<string, string>();
+      for (const sc of socialChannels || []) {
+        // First workspace to claim a channel type wins (could be refined later)
+        if (!ownership.has(sc.channel_type)) {
+          ownership.set(sc.channel_type, sc.workspace_id);
+        }
+      }
+      channelOwnership.set(locId, ownership);
+      console.log(`[Cron Sync] Location ${locId}: ${cfgs.length} workspaces, channel ownership:`, Object.fromEntries(ownership));
     }
   }
-  const ghlConfigs = Array.from(locationMap.values());
 
-  console.log(`[Cron Sync] Processing ${ghlConfigs.length} workspace(s) (deduplicated from ${allConfigs.length} configs)`);
+  // Deduplicate API calls: fetch conversations once per location, then route
+  const processedLocations = new Set<string>();
+  const results: Record<string, unknown> = {};
+
+  // For single-workspace locations, process directly. For multi-workspace, route by channel.
+  for (const [locId, cfgs] of locationGroups) {
+    if (processedLocations.has(locId)) continue;
+    processedLocations.add(locId);
+
+    // Use any config's API key (they share the same location)
+    const apiKeyCfg = cfgs.find(c => c.ghl_api_key_encrypted) || cfgs[0];
+    const apiKey = apiKeyCfg.ghl_api_key_encrypted;
+    if (!apiKey) continue;
 
   const results: Record<string, unknown> = {};
 
