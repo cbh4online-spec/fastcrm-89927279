@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
         if (parts.length === 2) {
           const [wsSlug, listingId] = parts;
           // Resolve custom domain
-          let mktBaseUrl = MARKETPLACE_URL;
+          let mktBaseUrl = BASE_URL;
           const { data: wsForDomain } = await supabase.from("workspaces").select("id").eq("slug", wsSlug).maybeSingle();
           if (wsForDomain) {
             const { data: mktCfg } = await supabase
