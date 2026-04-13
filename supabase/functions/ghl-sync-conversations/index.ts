@@ -846,6 +846,17 @@ Deno.serve(async (req) => {
                         if (inferredChannel && inferredChannel !== channel) {
                           console.log(`[GHL Sync] Inferred channel "${inferredChannel}" from message types [${[...msgTypeSet].join(",")}] for conv ${ghlConv.id} (was "${channel}")`);
                           channel = inferredChannel;
+
+                          // CRITICAL: Re-check channel governance after inference
+                          // If the real channel is not allowed for this workspace, DELETE the conversation and messages we just created
+                          if (!isSyncChannelAllowed(channel)) {
+                            console.log(`[GHL Sync] ROLLBACK: channel "${channel}" not allowed for workspace ${workspace_id} after inference. Deleting conv ${conversationId}`);
+                            await supabase.from("messages").delete().eq("conversation_id", conversationId);
+                            await supabase.from("conversations").delete().eq("id", conversationId);
+                            result.conversations_created = Math.max(0, result.conversations_created - 1);
+                            continue;
+                          }
+
                           await supabase
                             .from("conversations")
                             .update({ channel: inferredChannel })
