@@ -25,22 +25,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate user via getClaims
+    // Validate user via getUser
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ ok: false, error: "Não autorizado" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const { workspace_id } = await req.json();
     if (!workspace_id || typeof workspace_id !== "string") {
@@ -191,9 +189,9 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("ghl-list-social-channels error:", err);
     return new Response(
-      JSON.stringify({ error: "Erro interno ao buscar canais" }),
+      JSON.stringify({ ok: false, error: "Erro interno ao buscar canais", fallback: true }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
