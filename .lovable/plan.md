@@ -1,70 +1,50 @@
 
 
-# Plano: Corrigir OG metadata para perfil de vendedor no Marketplace
+# Plano: Domínio customizado configurável no backoffice do Marketplace
 
-## Problema
-Quando se partilha o link de um vendedor (ex: `/marketplace/metodopare/seller/jorge-cardoso-fbdc`) no WhatsApp/Facebook, aparece a imagem genérica do FastCRM em vez de informação específica do vendedor. Isto acontece por dois motivos:
-
-1. **Lookup errado**: O og-proxy procura o vendedor por `user_id` (UUID), mas o URL usa um **slug** textual (ex: `jorge-cardoso-fbdc`). A query nunca encontra resultados, caindo no fallback genérico.
-2. **Sem imagem do vendedor**: Mesmo que encontrasse, o og-proxy não busca o `avatar_url` do vendedor — usa sempre o fallback genérico.
+## Contexto
+Atualmente o domínio `vendersimples.com` está hardcoded em `getMarketplaceBaseUrl()`. A tabela `c2c_marketplace_config` já tem colunas `custom_domain` e `custom_domain_verified` — só falta expô-las na UI e consumir dinamicamente.
 
 ## Alterações
 
-### `supabase/functions/og-proxy/index.ts` — secção `c2c-seller` (linhas 351-367)
+### 1. Adicionar campo de domínio customizado ao MarketplaceConfigPage
+**Ficheiro:** `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx`
+- Adicionar `custom_domain` ao estado do formulário
+- Na tab "Geral", adicionar secção "Domínio Público" com:
+  - Input para domínio (ex: `vendersimples.com`)
+  - Texto explicativo com instruções DNS (A record → 185.158.133.1)
+  - Indicador visual do estado de verificação (`custom_domain_verified`)
+- O `publicUrl` passa a usar o `custom_domain` se definido, senão fallback para `fastcrm.metodopare.ai`
 
-Corrigir a lógica de lookup para:
-1. Detectar se o `sellerId` é UUID ou slug (mesmo padrão usado no frontend)
-2. Fazer query por `slug` quando não é UUID, por `user_id` quando é UUID
-3. Buscar também `avatar_url` e contar listings ativos para enriquecer a descrição
-4. Usar `avatar_url` como `pageImage` quando disponível
-5. Definir `pageUrl` com `/marketplace/` em vez de `/c2c/`
+### 2. Atualizar `getMarketplaceBaseUrl` para aceitar domínio dinâmico
+**Ficheiro:** `src/utils/getPublicDomain.ts`
+- Manter o fallback `https://vendersimples.com` como default
+- Adicionar variante `getMarketplaceBaseUrlFromConfig(customDomain?: string | null)` que retorna `https://{customDomain}` se definido e verificado
 
-**De:**
-```typescript
-const { data: seller } = await supabase
-  .from("c2c_sellers")
-  .select("display_name, bio")
-  .eq("user_id", sellerId)
-  .eq("status", "approved")
-  .maybeSingle();
-```
+### 3. Atualizar interface MarketplaceConfig
+**Ficheiro:** `src/hooks/useMarketplace.ts`
+- Adicionar `custom_domain?: string | null` e `custom_domain_verified?: boolean | null` à interface
 
-**Para:**
-```typescript
-const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
-let query = supabase
-  .from("c2c_sellers")
-  .select("display_name, bio, avatar_url, id")
-  .eq("status", "approved");
-if (isUuid) {
-  query = query.eq("user_id", sellerId);
-} else {
-  query = query.eq("slug", sellerId);
-}
-const { data: seller } = await query.maybeSingle();
+### 4. Componentes que geram links públicos — consumir domínio da config
+**Ficheiros:** `C2CPublicLinksManager.tsx`, `C2CMyListings.tsx`, `C2CSellerArea.tsx`, `C2CPublicMarketplace.tsx`, `C2CPublicSellerProfile.tsx`
+- Onde já têm acesso à `marketplaceConfig`, usar `getMarketplaceBaseUrlFromConfig(config?.custom_domain)` em vez de `getMarketplaceBaseUrl()`
 
-// Enrich with listing count
-if (seller) {
-  const { count } = await supabase
-    .from("c2c_listings")
-    .select("id", { count: "exact", head: true })
-    .eq("seller_id", seller.id)
-    .eq("status", "active");
-  
-  pageTitle = `${seller.display_name || "Vendedor"} — Marketplace`;
-  const listingNote = count ? ` ${count} anúncios disponíveis.` : "";
-  pageDescription = seller.bio 
-    ? `${seller.bio}${listingNote}` 
-    : `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"}.${listingNote}`;
-  if (seller.avatar_url) pageImage = seller.avatar_url;
-}
-pageUrl = `${BASE_URL}/marketplace/${wsSlug}/seller/${sellerId}`;
-```
+### 5. Atualizar og-proxy para ler domínio da config
+**Ficheiro:** `supabase/functions/og-proxy/index.ts`
+- Na secção marketplace/c2c, após buscar a config, usar `custom_domain` da config para definir `pageUrl` em vez do hardcoded `MARKETPLACE_URL`
 
 ### Ficheiros a editar
 | Ficheiro | Alteração |
 |---|---|
-| `supabase/functions/og-proxy/index.ts` | Corrigir lookup slug/UUID, adicionar avatar_url e contagem de listings |
+| `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx` | Adicionar secção "Domínio Público" com input + estado DNS |
+| `src/utils/getPublicDomain.ts` | Nova função `getMarketplaceBaseUrlFromConfig()` |
+| `src/hooks/useMarketplace.ts` | Adicionar `custom_domain` à interface |
+| `src/pages/c2c/C2CPublicLinksManager.tsx` | Usar domínio da config |
+| `src/pages/c2c/C2CMyListings.tsx` | Usar domínio da config |
+| `src/pages/c2c/C2CSellerArea.tsx` | Usar domínio da config |
+| `src/pages/c2c/C2CPublicMarketplace.tsx` | Usar domínio da config |
+| `src/pages/c2c/C2CPublicSellerProfile.tsx` | Usar domínio da config |
+| `supabase/functions/og-proxy/index.ts` | Ler `custom_domain` da config para URLs canónicos |
 
-Nenhuma alteração de base de dados necessária — a coluna `slug` e `avatar_url` já existem na tabela `c2c_sellers`.
+Nenhuma migração necessária — as colunas `custom_domain` e `custom_domain_verified` já existem na tabela.
 
