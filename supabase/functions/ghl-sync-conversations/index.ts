@@ -467,19 +467,27 @@ Deno.serve(async (req) => {
     }
     console.log(`[GHL Sync] Social channel config loaded: ${socialChannelConfig?.length || 0} entries`);
 
-    // Load existing leads mapped by GHL contact ID
-    const { data: existingLeads } = await supabase
-      .from("leads")
-      .select("id, ghl_contact_id")
-      .eq("workspace_id", workspace_id)
-      .not("ghl_contact_id", "is", null);
-
+    // Load existing leads mapped by GHL contact ID (with pagination)
     const leadsByGhlId = new Map<string, string>();
-    for (const lead of existingLeads || []) {
-      if (lead.ghl_contact_id) {
-        leadsByGhlId.set(lead.ghl_contact_id, lead.id);
+    let leadsOffset = 0;
+    const LEADS_PAGE_SIZE = 1000;
+    while (true) {
+      const { data: leadsBatch } = await supabase
+        .from("leads")
+        .select("id, ghl_contact_id")
+        .eq("workspace_id", workspace_id)
+        .not("ghl_contact_id", "is", null)
+        .range(leadsOffset, leadsOffset + LEADS_PAGE_SIZE - 1);
+      if (!leadsBatch || leadsBatch.length === 0) break;
+      for (const lead of leadsBatch) {
+        if (lead.ghl_contact_id) {
+          leadsByGhlId.set(lead.ghl_contact_id, lead.id);
+        }
       }
+      if (leadsBatch.length < LEADS_PAGE_SIZE) break;
+      leadsOffset += LEADS_PAGE_SIZE;
     }
+    console.log(`[GHL Sync] Loaded ${leadsByGhlId.size} existing lead mappings (paginated)`);
 
     // Load existing conversations (check both ghl_ prefixed and raw IDs)
     const { data: existingConversations } = await supabase
