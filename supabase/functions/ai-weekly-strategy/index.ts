@@ -35,8 +35,8 @@ serve(async (req) => {
     if (workspace_id) {
       const gate = await aiGate(workspace_id, 'heavy', 'ai-weekly-strategy');
       if (!gate.allowed) {
-        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: 'Credits esgotados. Adicione créditos para continuar.', error_type: 'quota_exceeded', upgrade_required: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
