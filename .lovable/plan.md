@@ -1,54 +1,38 @@
 
 
-## Plano: Domínio Personalizado por Workspace para Marketplace e Loja
+## Plano: Corrigir crash na Edge Function `ghl-list-social-channels`
 
-### Problema Atual
-O sistema está preso a domínios hardcoded (`vendesimples.com` para marketplace, `fastcrm.metodopare.ai` para loja). Cada workspace que queira o seu próprio domínio fica dependente destes defaults, mesmo já tendo o campo `custom_domain` na configuração.
+### Diagnóstico
+A função arranca (boot ~24ms) mas encerra imediatamente sem processar pedidos. A causa é o uso de `userClient.auth.getClaims(token)` (linha 36) — este método **não existe** no SDK `@supabase/supabase-js@2`. A chamada lança uma excepção não tratada que mata o runtime antes de devolver resposta, provocando blank screen no frontend.
 
-### Arquitectura Proposta
+### Alteração
 
-Cada workspace configura o seu `custom_domain` no backoffice. O sistema usa esse domínio para gerar URLs públicos. Se não tiver domínio próprio, usa o domínio principal do projecto (`fastcrm.metodopare.ai`).
+**Ficheiro:** `supabase/functions/ghl-list-social-channels/index.ts`
 
-```text
-Workspace A (custom_domain: "meumercado.pt")
-  → marketplace: https://meumercado.pt/marketplace/slug-a
-  → loja:        https://meumercado.pt/store/slug-a
+1. **Substituir `getClaims()` por `getUser()`** — método padrão do SDK v2 para validar o token e obter o `user_id`.
 
-Workspace B (sem custom_domain)
-  → marketplace: https://fastcrm.metodopare.ai/marketplace/slug-b
-  → loja:        https://fastcrm.metodopare.ai/store/slug-b
+2. **Aplicar padrão de erro resiliente** — o `catch` global deve devolver HTTP 200 com payload estruturado (`ok: false, error, fallback: true`) para evitar blank screens no frontend, seguindo o padrão da plataforma.
+
+### Código relevante (antes → depois)
+
+```typescript
+// ANTES (linha 35-43) — CRASH
+const { data: claimsData, error: claimsError } =
+  await userClient.auth.getClaims(token);
+if (claimsError || !claimsData?.claims) { ... }
+const userId = claimsData.claims.sub as string;
+
+// DEPOIS — funcional
+const { data: { user }, error: userError } =
+  await userClient.auth.getUser();
+if (userError || !user) { ... }
+const userId = user.id;
 ```
 
-### Alterações Necessárias
+### Ficheiros afectados
+- `supabase/functions/ghl-list-social-channels/index.ts` (1 ficheiro, redeploy automático)
 
-**1. `src/utils/getPublicDomain.ts`**
-- `getMarketplaceBaseUrl()` passa a devolver `getPublicBaseUrl()` (domínio principal) em vez de `vendesimples.com` hardcoded
-- `getMarketplaceBaseUrlFromConfig()` mantém a lógica: se há `custom_domain`, usa-o; senão, fallback para o domínio principal
-
-**2. `supabase/functions/og-proxy/index.ts`**
-- Remover constante `MARKETPLACE_URL` hardcoded
-- Para rotas `/marketplace/`, fazer lookup na tabela `marketplace_configs` para obter o `custom_domain` do workspace e gerar o `og:url` correto dinamicamente
-
-**3. `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx`**
-- Atualizar as instruções DNS para explicar claramente que:
-  - O domínio customizado é **opcional** — sem ele, usa o domínio principal
-  - Para funcionar, o domínio tem de ser adicionado em **Project Settings → Domains** no Lovable (pelo super admin)
-  - Os registos DNS (A + TXT) são necessários apenas para domínios próprios
-
-**4. `src/components/store-settings/sections/StoreIdentitySettings.tsx`**
-- Atualizar o fallback do prefixo da URL: quando não há `custom_domain`, mostrar `getPublicBaseUrl()` em vez de `fastcrm.metodopare.ai` hardcoded
-
-**5. `src/pages/c2c/C2CPublicLinksManager.tsx`**
-- Já usa `getMarketplaceBaseUrlFromConfig()` — funcionará automaticamente após a alteração no ponto 1
-
-### Passo Operacional (Manual)
-Para cada domínio customizado de workspace funcionar com SSL:
-- O **super admin** precisa adicionar o domínio em **Project Settings → Domains → Connect Domain** no Lovable
-- Isto não pode ser automatizado via código — é uma acção na plataforma Lovable
-
-### Ficheiros Afectados
-1. `src/utils/getPublicDomain.ts` — remover hardcode `vendesimples.com`
-2. `supabase/functions/og-proxy/index.ts` — lookup dinâmico de domínio
-3. `src/pages/dashboard/marketplace/MarketplaceConfigPage.tsx` — instruções actualizadas
-4. `src/components/store-settings/sections/StoreIdentitySettings.tsx` — fallback dinâmico
+### Impacto
+- Corrige o crash e blank screen
+- Sem alteração de lógica de negócio — apenas a autenticação passa a usar o método correto do SDK
 
