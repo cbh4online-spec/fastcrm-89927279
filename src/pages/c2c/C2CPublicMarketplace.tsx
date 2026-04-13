@@ -666,8 +666,9 @@ export default function C2CPublicMarketplace() {
   const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
   const ogTitle = `${marketplaceName} — Marketplace C2C`;
   const ogDescription = marketplaceConfig?.description || storeSettings?.store_description || `Explora o marketplace de ${marketplaceName}. Compra e vende entre utilizadores reais.`;
-  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${getMarketplaceBaseUrl()}/og-image.png`;
-  const ogUrl = `${getMarketplaceBaseUrl()}/marketplace/${workspaceSlug}`;
+  const mktBase = getMarketplaceBaseUrlFromConfig(marketplaceConfig?.custom_domain);
+  const ogImage = marketplaceConfig?.logo_url || storeSettings?.logo_url || `${mktBase}/og-image.png`;
+  const ogUrl = `${mktBase}/marketplace/${workspaceSlug}`;
   const shareUrl = getShareUrl("store", workspaceSlug || "");
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);
