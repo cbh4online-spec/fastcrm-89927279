@@ -164,23 +164,8 @@ export default function C2CLivestreamViewer() {
             {/* Featured product */}
             <LiveProductShowcase productIds={live.product_ids} isLive={isLive} />
 
-            {/* Floating reactions */}
-            {isLive && (
-              <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full ${liked ? "text-red-400 bg-red-400/20" : "text-white/60 hover:text-white bg-white/10"}`}
-                  onClick={handleLike}
-                >
-                  <Heart className={`h-5 w-5 ${liked ? "fill-red-400" : ""}`} />
-                  {likeCount > 0 && <span className="ml-1 text-xs">{likeCount}</span>}
-                </Button>
-                <Button variant="ghost" size="sm" className="rounded-full text-white/60 hover:text-white bg-white/10">
-                  <Share2 className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
+            {/* Emoji reactions */}
+            <LiveReactions isLive={isLive} />
 
             {/* Viewer count overlay */}
             {isLive && (
