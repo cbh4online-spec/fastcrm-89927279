@@ -172,6 +172,7 @@ export default function C2CLivestreamViewer() {
                 title={live.title}
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
+                stream={isOwner ? ownerStream : undefined}
               />
             </div>
 
