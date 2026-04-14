@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useInvoice, useInvoiceItems, useMarkInvoicePaid, useSendInvoice } from "@/hooks/useInvoices";
+import { useInvoice, useInvoiceItems, useMarkInvoicePaid, useSendInvoice, useForceInvoiceStatus, type InvoiceStatus } from "@/hooks/useInvoices";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ArrowLeft, 
   FileText, 
@@ -18,7 +20,8 @@ import {
   Euro,
   Clock,
   Mail,
-  CreditCard
+  CreditCard,
+  ShieldAlert
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
