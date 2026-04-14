@@ -43,7 +43,7 @@ export default function C2CPublicLivestreamViewer() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: live, isLoading } = usePublicLivestreamById(id);
-  const endLivestream = useEndLivestream();
+  const endLive = useEndLive();
 
   const isLive = live?.status === "live";
   const isBroadcaster = !!user && !!live && user.id === live.seller_id;
