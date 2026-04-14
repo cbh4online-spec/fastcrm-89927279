@@ -10,11 +10,13 @@ import { LivestreamCard } from "@/components/c2c/livestream/LivestreamCard";
 import { GoLiveModal } from "@/components/c2c/livestream/GoLiveModal";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEMO_LIVESTREAMS } from "@/data/c2c/demoLivestreams";
 
 export default function C2CLivestreams() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
-  const { data: lives = [], isLoading } = useLivestreams(currentWorkspace?.id);
+  const { data: dbLives = [], isLoading } = useLivestreams(currentWorkspace?.id);
+  const lives = dbLives.length > 0 ? dbLives : DEMO_LIVESTREAMS;
   const [showGoLive, setShowGoLive] = useState(false);
 
   const livesNow = lives.filter((l) => l.status === "live");
