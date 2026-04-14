@@ -147,11 +147,6 @@ export default function C2CGoLiveSetup() {
     l.title.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  const handleCopy = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
 
   // Step 1: Create livestream + Mux stream + start WHIP publishing
   const handleGoLive = async () => {
