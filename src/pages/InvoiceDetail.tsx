@@ -41,10 +41,12 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 export default function InvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isSuperAdmin } = useWorkspace();
   const { data: invoice, isLoading } = useInvoice(id);
   const { data: items, isLoading: itemsLoading } = useInvoiceItems(id);
   const markAsPaid = useMarkInvoicePaid();
   const sendInvoice = useSendInvoice();
+  const forceStatus = useForceInvoiceStatus();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
