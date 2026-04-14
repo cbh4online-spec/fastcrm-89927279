@@ -5,8 +5,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   Eye,
-  Heart,
-  Share2,
   Radio,
   ShoppingBag,
   Users,
@@ -16,6 +14,7 @@ import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
+import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,8 +29,6 @@ export default function C2CLivestreamViewer() {
   const { data: live, isLoading } = useLivestreamById(id);
   const endLive = useEndLive();
   const [userId, setUserId] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -48,11 +45,6 @@ export default function C2CLivestreamViewer() {
     } catch {
       toast.error("Erro ao terminar a live");
     }
-  };
-
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? c - 1 : c + 1));
   };
 
   if (isLoading) {
@@ -163,23 +155,8 @@ export default function C2CLivestreamViewer() {
             {/* Featured product */}
             <LiveProductShowcase productIds={live.product_ids} isLive={isLive} />
 
-            {/* Floating reactions */}
-            {isLive && (
-              <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full ${liked ? "text-red-400 bg-red-400/20" : "text-white/60 hover:text-white bg-white/10"}`}
-                  onClick={handleLike}
-                >
-                  <Heart className={`h-5 w-5 ${liked ? "fill-red-400" : ""}`} />
-                  {likeCount > 0 && <span className="ml-1 text-xs">{likeCount}</span>}
-                </Button>
-                <Button variant="ghost" size="sm" className="rounded-full text-white/60 hover:text-white bg-white/10">
-                  <Share2 className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
+            {/* Emoji reactions */}
+            <LiveReactions isLive={isLive} />
 
             {/* Viewer count overlay */}
             {isLive && (
