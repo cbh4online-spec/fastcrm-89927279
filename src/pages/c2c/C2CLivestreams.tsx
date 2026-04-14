@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function C2CLivestreams() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { data: lives = [], isLoading } = useLivestreams(currentWorkspace?.id);
   const [showGoLive, setShowGoLive] = useState(false);
