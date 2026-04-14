@@ -147,7 +147,14 @@ export default function C2CGoLiveSetup() {
     l.title.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  const handleGoLive = async () => {
+  const handleCopy = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Step 1: Create livestream + Mux stream
+  const handleCreateStream = async () => {
     if (!title.trim() || !currentWorkspace?.id) return;
     try {
       const live = await createLive.mutateAsync({
@@ -156,11 +163,23 @@ export default function C2CGoLiveSetup() {
         description: description.trim() || undefined,
         category: category || undefined,
       });
-      await goLive.mutateAsync(live.id);
-      // Don't call stopCamera() — let the cleanup useEffect handle it on unmount.
-      // The viewer page will re-acquire the camera via useCameraStream.
+      setLivestreamId(live.id);
+
+      const mux = await createMuxStream.mutateAsync(live.id);
+      setMuxInfo(mux);
+      toast.success("Stream Mux criado! Configura o OBS com os dados abaixo e clica 'Ir ao Vivo'.");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar o stream");
+    }
+  };
+
+  // Step 2: Go live (after OBS is connected)
+  const handleGoLive = async () => {
+    if (!livestreamId) return;
+    try {
+      await goLive.mutateAsync(livestreamId);
       toast.success("Estás ao vivo! 🔴");
-      navigate(`/dashboard/marketplace/lives/${live.id}`);
+      navigate(`/dashboard/marketplace/lives/${livestreamId}`);
     } catch {
       toast.error("Erro ao iniciar a live");
     }
