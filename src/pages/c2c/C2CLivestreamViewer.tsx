@@ -9,7 +9,16 @@ import {
   ShoppingBag,
   Users,
   Clock,
+  Share2,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
@@ -44,6 +53,33 @@ export default function C2CLivestreamViewer() {
       toast.success("Live terminada");
     } catch {
       toast.error("Erro ao terminar a live");
+    }
+  };
+
+  const liveUrl = typeof window !== "undefined" ? `${window.location.origin}/dashboard/marketplace/lives/${id}` : "";
+
+  const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
+    if (!live) return;
+    const text = `🔴 ${live.seller_name || "Vendedor"} está em direto: ${live.title}`;
+    switch (method) {
+      case "copy":
+        await navigator.clipboard.writeText(liveUrl);
+        toast.success("Link copiado!");
+        break;
+      case "native":
+        if (navigator.share) {
+          await navigator.share({ title: live.title, text, url: liveUrl }).catch(() => {});
+        }
+        break;
+      case "whatsapp":
+        window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + liveUrl)}`, "_blank");
+        break;
+      case "facebook":
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(liveUrl)}`, "_blank");
+        break;
+      case "twitter":
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(liveUrl)}`, "_blank");
+        break;
     }
   };
 
@@ -192,6 +228,44 @@ export default function C2CLivestreamViewer() {
                   )}
                 </div>
               </div>
+
+              {/* Share button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-white/60 hover:text-white hover:bg-white/10 gap-1.5"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">Partilhar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleShare("copy")} className="gap-2 cursor-pointer">
+                    <Copy className="h-4 w-4" />
+                    Copiar link
+                  </DropdownMenuItem>
+                  {"share" in navigator && (
+                    <DropdownMenuItem onClick={() => handleShare("native")} className="gap-2 cursor-pointer">
+                      <ExternalLink className="h-4 w-4" />
+                      Partilhar via…
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleShare("whatsapp")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">💬</span>
+                    WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("facebook")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">📘</span>
+                    Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("twitter")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">🐦</span>
+                    X / Twitter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
