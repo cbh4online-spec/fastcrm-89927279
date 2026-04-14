@@ -70,18 +70,17 @@ export function useLivestreams(workspaceId?: string) {
     queryKey: ["c2c-livestreams", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      // Fetch livestreams
       const { data: lives, error } = await sb
         .from("c2c_livestreams")
         .select("*")
         .eq("workspace_id", workspaceId)
-        .in("status", ["scheduled", "live"])
+        .in("status", ["scheduled", "live", "ended"])
         .order("status", { ascending: false })
-        .order("scheduled_at", { ascending: true });
+        .order("scheduled_at", { ascending: true })
+        .limit(200);
       if (error) throw error;
       if (!lives?.length) return [] as Livestream[];
 
-      // Fetch seller profiles for each unique seller
       const sellerIds = [...new Set(lives.map((l: any) => l.seller_id))];
       const { data: profiles } = await sb
         .from("profiles")
