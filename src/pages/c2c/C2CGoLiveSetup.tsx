@@ -58,7 +58,7 @@ export default function C2CGoLiveSetup() {
   const [replayEnabled, setReplayEnabled] = useState(true);
 
   // Camera state
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // videoRef no longer needed — callback ref used directly in JSX
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -109,7 +109,6 @@ export default function C2CGoLiveSetup() {
     stream?.getTracks().forEach((t) => t.stop());
     setStream(null);
     setCameraOn(false);
-    if (videoRef.current) videoRef.current.srcObject = null;
   }, [stream]);
 
   const toggleMic = () => {
