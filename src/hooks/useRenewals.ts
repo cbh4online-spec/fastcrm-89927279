@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { RenewalContract, RenewalItem, CreateRenewalContractInput, CreateRenewalItemInput } from "@/types/renewal";
 
@@ -224,5 +225,42 @@ export function useDeleteRenewalItem() {
       toast.success("Item removido");
     },
     onError: () => toast.error("Erro ao remover item"),
+  });
+}
+
+// ---- Confirm Renewal (manual) ----
+
+export function useConfirmRenewal() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (contractId: string) => {
+      if (!currentWorkspace) throw new Error("Workspace not available");
+
+      const { data, error } = await supabase.functions.invoke("generate-renewal-invoice", {
+        body: { contract_id: contractId, workspace_id: currentWorkspace.id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { success: boolean; invoice_id: string; invoice_number: string; total: number; next_renewal_date: string };
+    },
+    onSuccess: (data, contractId) => {
+      queryClient.invalidateQueries({ queryKey: ["renewal-contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-contract", contractId] });
+      queryClient.invalidateQueries({ queryKey: ["renewal-events", contractId] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success(`Renovação confirmada — Fatura ${data.invoice_number} criada`, {
+        action: {
+          label: "Ver Faturas",
+          onClick: () => window.location.assign("/dashboard/invoices"),
+        },
+      });
+    },
+    onError: (e) => {
+      console.error("[useConfirmRenewal]", e);
+      toast.error("Erro ao confirmar renovação");
+    },
   });
 }
