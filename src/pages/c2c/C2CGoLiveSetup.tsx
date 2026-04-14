@@ -471,35 +471,12 @@ export default function C2CGoLiveSetup() {
               </div>
             </Card>
 
-            {/* Mux Stream Info (shown after Preparar Stream) */}
-            {muxInfo && (
+            {/* Streaming info */}
+            {whip.status === "connecting" && (
               <Card className="p-4 border-primary/30 bg-primary/5">
-                <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
-                  <Radio className="h-4 w-4 text-primary" />
-                  Dados do Stream (OBS / Software)
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">RTMP URL</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input value={muxInfo.rtmp_url} readOnly className="text-xs font-mono" />
-                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => handleCopy(muxInfo.rtmp_url, "rtmp")}>
-                        {copiedField === "rtmp" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Stream Key</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input value={muxInfo.stream_key} readOnly className="text-xs font-mono" type="password" />
-                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => handleCopy(muxInfo.stream_key, "key")}>
-                        {copiedField === "key" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Cola estes dados no OBS (Definições → Stream → Serviço: Custom). Quando o OBS estiver a emitir, clica "Ir ao Vivo".
-                  </p>
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  A conectar ao servidor de streaming...
                 </div>
               </Card>
             )}
