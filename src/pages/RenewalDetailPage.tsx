@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useRenewalContract, useRenewalItems, useUpdateRenewalContract } from "@/hooks/useRenewals";
+import { useRenewalContract, useRenewalItems, useUpdateRenewalContract, useConfirmRenewal } from "@/hooks/useRenewals";
 import { useRenewalEvents } from "@/hooks/useRenewalEvents";
 import { useRenewalUsage } from "@/hooks/useRenewalUsage";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, CreditCard, Activity, Mail } from "lucide-react";
+import { ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, CreditCard, Activity, Mail, CheckCircle2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useState } from "react";
@@ -38,6 +38,7 @@ export default function RenewalDetailPage() {
   const { data: events = [] } = useRenewalEvents(id);
   const { data: usage = [] } = useRenewalUsage(id);
   const updateContract = useUpdateRenewalContract();
+  const confirmRenewal = useConfirmRenewal();
   const [showLogUsage, setShowLogUsage] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -119,6 +120,17 @@ export default function RenewalDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
               <CreditCard className="mr-1 h-3.5 w-3.5" /> Link Pagamento
             </Button>
+            {contract.status === "active" && (
+              <Button
+                size="sm"
+                variant="default"
+                disabled={confirmRenewal.isPending}
+                onClick={() => confirmRenewal.mutate(contract.id)}
+              >
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                {confirmRenewal.isPending ? "A confirmar..." : "Confirmar Renovação"}
+              </Button>
+            )}
             {contactEmail && (
               <Button variant="outline" size="sm" onClick={() => { setPendingPaymentUrl(null); setShowEmailDialog(true); }}>
                 <Mail className="mr-1 h-3.5 w-3.5" /> Email

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { AlertTriangle, TrendingDown, Clock, Flame, UserX, FileWarning } from "lucide-react";
+import { AlertTriangle, TrendingDown, Clock, Flame, UserX, FileWarning, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface KernelSignal {
   id: string;
-  type: "stale_deal" | "overdue_task" | "cold_lead" | "churn_risk" | "pipeline_gap" | "quota_risk";
+  type: "stale_deal" | "overdue_task" | "cold_lead" | "churn_risk" | "pipeline_gap" | "quota_risk" | "renewal_overdue" | "renewal_upcoming";
   severity: "critical" | "warning" | "info";
   title: string;
   detail: string;
@@ -32,6 +32,8 @@ const typeIcons: Record<string, any> = {
   churn_risk: AlertTriangle,
   pipeline_gap: TrendingDown,
   quota_risk: Flame,
+  renewal_overdue: AlertTriangle,
+  renewal_upcoming: RefreshCw,
 };
 
 interface CommandProactiveFeedProps {
@@ -155,11 +157,67 @@ export function CommandProactiveFeed({ onSignalClick }: CommandProactiveFeedProp
         }
       }
 
+      // 5. Renewal signals (overdue + upcoming 7 days)
+      try {
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const todayStr = now.toISOString().split("T")[0];
+
+        const { data: renewalContracts } = await supabase
+          .from("renewal_contracts")
+          .select("id, next_renewal_date, company_id, total_mrr, status")
+          .eq("workspace_id", wid!)
+          .in("status", ["active", "paused"])
+          .not("next_renewal_date", "is", null)
+          .lte("next_renewal_date", sevenDaysFromNow)
+          .order("next_renewal_date", { ascending: true })
+          .limit(20);
+
+        for (const rc of (renewalContracts || [])) {
+          if (!rc.next_renewal_date) continue;
+          const renewalDate = new Date(rc.next_renewal_date);
+          const daysUntil = differenceInDays(renewalDate, now);
+          const isOverdue = isBefore(renewalDate, now);
+
+          // Fetch company name
+          let companyLabel = "Contrato";
+          if (rc.company_id) {
+            const { data: co } = await supabase.from("companies").select("name").eq("id", rc.company_id).maybeSingle();
+            if (co) companyLabel = co.name;
+          }
+
+          if (isOverdue) {
+            result.push({
+              id: `renewal-overdue-${rc.id}`,
+              type: "renewal_overdue",
+              severity: "critical",
+              title: `Renovação vencida há ${Math.abs(daysUntil)} dia${Math.abs(daysUntil) !== 1 ? "s" : ""}`,
+              detail: companyLabel,
+              command: `Mostra o contrato de renovação de "${companyLabel}" que está vencido`,
+              entityId: rc.id,
+              entityName: companyLabel,
+            });
+          } else {
+            result.push({
+              id: `renewal-upcoming-${rc.id}`,
+              type: "renewal_upcoming",
+              severity: daysUntil <= 2 ? "critical" : "warning",
+              title: `Renovação em ${daysUntil} dia${daysUntil !== 1 ? "s" : ""}`,
+              detail: companyLabel,
+              command: `Mostra o contrato de renovação de "${companyLabel}" que renova em ${daysUntil} dias`,
+              entityId: rc.id,
+              entityName: companyLabel,
+            });
+          }
+        }
+      } catch (renewalErr) {
+        console.warn("[ProactiveFeed] Renewal signals failed:", renewalErr);
+      }
+
       // Sort by severity
       const severityOrder = { critical: 0, warning: 1, info: 2 };
       result.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
-      return result.slice(0, 6);
+      return result.slice(0, 8);
     },
   });
 
