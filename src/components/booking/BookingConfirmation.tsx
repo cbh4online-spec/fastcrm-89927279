@@ -34,7 +34,7 @@ function generateOutlookUrl(title: string, date: Date, time: string, durationMin
 }
 
 export function BookingConfirmation({
-  title, guestName, guestEmail, selectedDate, selectedSlot, durationMinutes, brandColor,
+  title, guestName, guestEmail, selectedDate, selectedSlot, durationMinutes, brandColor, meetingUrl,
 }: Props) {
   const { t, i18n } = useTranslation('booking');
   const locale = getDateLocale(i18n.language);
@@ -98,6 +98,24 @@ export function BookingConfirmation({
           </div>
         </div>
       </motion.div>
+
+      {meetingUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <Button
+            className="w-full rounded-xl h-12 gap-2 text-base font-semibold"
+            style={{ backgroundColor: brandColor, color: '#fff' }}
+            onClick={() => window.open(meetingUrl, '_blank')}
+          >
+            <Video className="h-5 w-5" />
+            {t('joinMeeting', 'Entrar na reunião')}
+            <ExternalLink className="h-3 w-3 opacity-50" />
+          </Button>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
