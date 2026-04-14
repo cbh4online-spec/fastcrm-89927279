@@ -15,6 +15,7 @@ import {
 import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
+import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
