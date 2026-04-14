@@ -206,6 +206,55 @@ export const PRICING_MODEL_LABELS: Record<RenewalPricingModel, string> = {
   hybrid: 'Híbrido',
 };
 
+// Interval months mapping for MRR calculation
+export const RENEWAL_INTERVAL_MONTHS: Record<RenewalIntervalType, number> = {
+  monthly: 1,
+  quarterly: 3,
+  semi_annual: 6,
+  yearly: 12,
+  custom: 1, // fallback, use inferRenewalInterval for accuracy
+};
+
+/**
+ * Infer the real renewal interval from start_date and next_renewal_date.
+ * Returns the closest standard interval or 'custom'.
+ */
+export function inferRenewalInterval(startDate: string, nextRenewalDate: string | null): RenewalIntervalType {
+  if (!nextRenewalDate) return 'monthly';
+  const start = new Date(startDate);
+  const next = new Date(nextRenewalDate);
+  const diffMs = next.getTime() - start.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 45) return 'monthly';       // ~30 days
+  if (diffDays <= 120) return 'quarterly';     // ~90 days
+  if (diffDays <= 210) return 'semi_annual';   // ~180 days
+  if (diffDays <= 450) return 'yearly';        // ~365 days
+  return 'custom';
+}
+
+/**
+ * Calculate real MRR from total contract value and renewal interval.
+ * total_mrr in DB is actually the contract periodic value, not necessarily monthly.
+ */
+export function calculateRealMRR(contractValue: number, interval: RenewalIntervalType): number {
+  const months = RENEWAL_INTERVAL_MONTHS[interval];
+  return contractValue / months;
+}
+
+/**
+ * Get the interval label suffix for display (e.g., "/mês", "/ano").
+ */
+export function getIntervalSuffix(interval: RenewalIntervalType): string {
+  switch (interval) {
+    case 'monthly': return '/mês';
+    case 'quarterly': return '/trim.';
+    case 'semi_annual': return '/sem.';
+    case 'yearly': return '/ano';
+    case 'custom': return '';
+  }
+}
+
 // Health score color helper
 export function getHealthScoreColor(score: number): string {
   if (score >= 80) return 'text-green-600';
