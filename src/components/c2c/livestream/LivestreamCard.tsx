@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Eye, Calendar, Radio } from "lucide-react";
+import { Eye, Calendar, Radio, PlayCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -60,12 +60,30 @@ export function LivestreamCard({ livestream }: Props) {
             </div>
           )}
 
-          {/* Viewer count */}
+          {/* Ended/replay badge */}
+          {livestream.status === "ended" && (
+            <div className="absolute top-3 left-3">
+              <Badge variant="secondary" className="gap-1.5 px-2.5 py-1 text-xs font-medium">
+                <PlayCircle className="h-3 w-3" />
+                Gravação
+              </Badge>
+            </div>
+          )}
+
+          {/* Viewer count / total views */}
           {isLive && (
             <div className="absolute bottom-3 right-3">
               <Badge variant="secondary" className="bg-black/60 text-white border-0 gap-1 text-xs backdrop-blur-sm">
                 <Eye className="h-3 w-3" />
                 {livestream.viewer_count}
+              </Badge>
+            </div>
+          )}
+          {livestream.status === "ended" && livestream.total_views > 0 && (
+            <div className="absolute bottom-3 right-3">
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <Eye className="h-3 w-3" />
+                {livestream.total_views} visualizações
               </Badge>
             </div>
           )}
