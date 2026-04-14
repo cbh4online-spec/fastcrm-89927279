@@ -37,6 +37,7 @@ import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { useEndLive, useTrackViewer } from "@/hooks/c2c/useLivestreams";
+import { useEndMuxStream } from "@/hooks/c2c/useMuxLivestream";
 import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
@@ -45,7 +46,6 @@ export default function C2CPublicLivestreamViewer() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
 
-  // Get auth state without requiring AuthProvider
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -56,6 +56,7 @@ export default function C2CPublicLivestreamViewer() {
 
   const { data: live, isLoading } = usePublicLivestreamById(id);
   const endLive = useEndLive();
+  const endMuxStream = useEndMuxStream();
 
   const isLive = live?.status === "live";
   const isBroadcaster = !!user && !!live && user.id === live.seller_id;
@@ -65,6 +66,9 @@ export default function C2CPublicLivestreamViewer() {
 
   // Track viewer count
   useTrackViewer(live?.id, isLive);
+
+  // Get the Mux playback ID from the live data
+  const playbackId = (live as any)?.mux_playback_id || null;
 
   const liveUrl =
     typeof window !== "undefined"
@@ -100,6 +104,9 @@ export default function C2CPublicLivestreamViewer() {
     if (!id) return;
     try {
       camera.stopCamera();
+      // End on Mux side
+      await endMuxStream.mutateAsync(id).catch(() => {});
+      // End in DB
       await endLive.mutateAsync(id);
       toast.success("Live terminada");
       navigate(`/marketplace/${workspaceSlug}/lives`);
@@ -164,7 +171,6 @@ export default function C2CPublicLivestreamViewer() {
           )}
         </div>
 
-        {/* Broadcaster controls */}
         {isBroadcaster && isLive ? (
           <Button
             size="sm"
@@ -192,6 +198,7 @@ export default function C2CPublicLivestreamViewer() {
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
                 stream={isBroadcaster ? camera.stream : undefined}
+                playbackId={!isBroadcaster ? playbackId : undefined}
               />
             </div>
 

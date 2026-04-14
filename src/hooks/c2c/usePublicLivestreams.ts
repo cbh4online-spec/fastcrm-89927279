@@ -32,7 +32,7 @@ export function usePublicLivestreamById(id?: string) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("c2c_livestreams")
-        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at")
+        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id")
         .eq("id", id)
         .maybeSingle();
 
@@ -62,7 +62,7 @@ export function usePublicLivestreams(workspaceId?: string) {
     queryFn: async () => {
       const { data: lives, error } = await sb
         .from("c2c_livestreams")
-        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at")
+        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id")
         .eq("workspace_id", workspaceId)
         .in("status", ["scheduled", "live", "ended"])
         .order("status", { ascending: false })
