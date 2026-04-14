@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Unlink, Link2, Loader2, Cloud } from 'lucide-react';
+import { RefreshCw, Unlink, Link2, Loader2, Cloud, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +18,12 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
   const {
     syncConfig,
     isConnected,
+    needsOAuth,
     googleCalendars,
     isLoading,
     isSyncing,
     listGoogleCalendars,
+    startOAuth,
     connect,
     disconnect,
     syncNow,
@@ -29,6 +31,22 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
 
   const [selectedGoogleCalendarId, setSelectedGoogleCalendarId] = useState('');
   const [showSelector, setShowSelector] = useState(false);
+
+  // Handle OAuth callback - check URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('video_oauth') === 'success' && params.get('video_provider') === 'google_meet') {
+      // Clean URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('video_oauth');
+      url.searchParams.delete('video_provider');
+      window.history.replaceState({}, '', url.toString());
+      
+      // Auto-list calendars after OAuth success
+      setShowSelector(true);
+      listGoogleCalendars();
+    }
+  }, [listGoogleCalendars]);
 
   const handleConnect = async () => {
     if (!showSelector) {
@@ -45,6 +63,13 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
       }
     }
   };
+
+  // If OAuth is needed, show the OAuth button instead
+  useEffect(() => {
+    if (needsOAuth && showSelector) {
+      // OAuth needed - will show OAuth button
+    }
+  }, [needsOAuth, showSelector]);
 
   if (isConnected && syncConfig) {
     return (
@@ -106,7 +131,31 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
         <span className="text-xs font-medium text-foreground">Google Calendar</span>
       </div>
 
-      {showSelector && (
+      {/* Show OAuth button when tokens are missing */}
+      {needsOAuth && showSelector && (
+        <div className="space-y-2">
+          <p className="text-[10px] text-muted-foreground">
+            Precisa autorizar o acesso ao Google Calendar.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full text-xs h-8 rounded-xl"
+            onClick={startOAuth}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <ExternalLink className="h-3 w-3 mr-1" />
+            )}
+            Autorizar Google Calendar
+          </Button>
+        </div>
+      )}
+
+      {/* Show calendar selector when calendars are available */}
+      {showSelector && !needsOAuth && (
         <Select value={selectedGoogleCalendarId} onValueChange={setSelectedGoogleCalendarId}>
           <SelectTrigger className="h-8 text-xs rounded-xl">
             <SelectValue placeholder="Selecionar calendário Google..." />
@@ -119,27 +168,30 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
             ))}
             {googleCalendars.length === 0 && !isLoading && (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                Nenhum calendário encontrado. Verifique a ligação ao Google.
+                Nenhum calendário encontrado.
               </div>
             )}
           </SelectContent>
         </Select>
       )}
 
-      <Button
-        size="sm"
-        variant="outline"
-        className="w-full text-xs h-8 rounded-xl"
-        onClick={handleConnect}
-        disabled={isLoading || (showSelector && !selectedGoogleCalendarId)}
-      >
-        {isLoading ? (
-          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-        ) : (
-          <Link2 className="h-3 w-3 mr-1" />
-        )}
-        {showSelector ? 'Confirmar ligação' : 'Ligar ao Google Calendar'}
-      </Button>
+      {/* Main action button - only show when not in OAuth state */}
+      {!needsOAuth && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full text-xs h-8 rounded-xl"
+          onClick={handleConnect}
+          disabled={isLoading || (showSelector && !selectedGoogleCalendarId)}
+        >
+          {isLoading ? (
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <Link2 className="h-3 w-3 mr-1" />
+          )}
+          {showSelector ? 'Confirmar ligação' : 'Ligar ao Google Calendar'}
+        </Button>
+      )}
     </div>
   );
 }

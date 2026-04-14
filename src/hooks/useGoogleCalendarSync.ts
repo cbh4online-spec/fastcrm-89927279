@@ -27,6 +27,7 @@ export function useGoogleCalendarSync(calendarId?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [needsOAuth, setNeedsOAuth] = useState(false);
 
   // Fetch sync config for this calendar
   const fetchSyncConfig = useCallback(async () => {
@@ -48,10 +49,51 @@ export function useGoogleCalendarSync(calendarId?: string) {
     fetchSyncConfig();
   }, [fetchSyncConfig]);
 
+  // Start Google OAuth flow
+  const startOAuth = useCallback(async () => {
+    if (!currentWorkspace?.id) return;
+    setIsLoading(true);
+
+    try {
+      const redirectUrl = window.location.origin + window.location.pathname;
+      const { data, error } = await supabase.functions.invoke('video-auth-url', {
+        body: {
+          provider: 'google_meet',
+          workspace_id: currentWorkspace.id,
+          redirect_url: redirectUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.authUrl) {
+        // Open OAuth popup
+        const popup = window.open(data.authUrl, 'google-oauth', 'width=600,height=700,popup=yes');
+        
+        // Poll for popup close and check for success
+        const pollInterval = setInterval(async () => {
+          if (popup?.closed) {
+            clearInterval(pollInterval);
+            setNeedsOAuth(false);
+            // Try listing calendars after OAuth
+            await listGoogleCalendars();
+          }
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('Error starting OAuth:', err);
+      toast.error(err.message || 'Erro ao iniciar autenticação Google');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentWorkspace?.id]);
+
   // List available Google Calendars
   const listGoogleCalendars = useCallback(async () => {
     if (!currentWorkspace?.id) return;
     setIsLoading(true);
+    setNeedsOAuth(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
@@ -62,7 +104,14 @@ export function useGoogleCalendarSync(calendarId?: string) {
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      
+      // Check if OAuth is needed
+      if (data?.needs_oauth) {
+        setNeedsOAuth(true);
+        return;
+      }
+      
+      if (data?.error && data.error !== 'needs_oauth') throw new Error(data.error);
 
       setGoogleCalendars(data.calendars || []);
     } catch (err: any) {
@@ -195,10 +244,12 @@ export function useGoogleCalendarSync(calendarId?: string) {
   return {
     syncConfig,
     isConnected,
+    needsOAuth,
     googleCalendars,
     isLoading,
     isSyncing,
     listGoogleCalendars,
+    startOAuth,
     connect,
     disconnect,
     syncNow,

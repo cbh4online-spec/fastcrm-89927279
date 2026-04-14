@@ -42,15 +42,30 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: config, error: configError } = await adminClient
+    let { data: config, error: configError } = await adminClient
       .from("workspace_video_config")
       .select("*")
       .eq("workspace_id", workspace_id)
-      .single();
+      .maybeSingle();
 
-    if (configError || !config) {
-      console.error("Config not found:", configError);
-      return redirectWithError(redirect_url, "Configuração não encontrada");
+    if (configError) {
+      console.error("Config query error:", configError);
+      return redirectWithError(redirect_url, "Erro ao ler configuração");
+    }
+
+    // Auto-create config if it doesn't exist
+    if (!config) {
+      const { data: newConfig, error: createError } = await adminClient
+        .from("workspace_video_config")
+        .insert({ workspace_id })
+        .select()
+        .single();
+
+      if (createError || !newConfig) {
+        console.error("Failed to auto-create config:", createError);
+        return redirectWithError(redirect_url, "Falha ao criar configuração");
+      }
+      config = newConfig;
     }
 
     if (provider === "zoom") {
