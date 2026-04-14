@@ -446,7 +446,6 @@ export function ENIContactDetailWithSidebar() {
                   );
                 case 'fields':
                   return <EntityCustomFieldsSection entityType="contact" entityId={id!} />;
-                  );
                 case 'audit':
                   return <ContactAuditSection contactId={id!} />;
                 default: return null;

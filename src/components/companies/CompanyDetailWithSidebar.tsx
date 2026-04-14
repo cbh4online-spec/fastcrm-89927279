@@ -405,7 +405,6 @@ export function CompanyDetailWithSidebar() {
                   );
                 case 'fields':
                   return <EntityCustomFieldsSection entityType="company" entityId={id!} />;
-                  );
                 case 'audit':
                   return <CompanyAuditSection companyId={id!} />;
                 default: return null;
