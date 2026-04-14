@@ -1,93 +1,68 @@
 
 
-# Integração Automática de Videoconferência nas Marcações de Calendário
+# Corrigir Ligação ao Google Calendar no Calendário
 
 ## Diagnóstico
 
-A infraestrutura de videoconferência já existe e está robusta:
-- **Edge functions:** `create-video-meeting`, `video-auth-url`, `video-oauth-callback` -- todas operacionais
-- **Tabela:** `workspace_video_config` com suporte a Zoom e Google Meet (tokens OAuth, refresh, etc.)
-- **Settings UI:** `WorkspaceVideoSettings` na página de Integrações -- funcional
-- **MeetingCreateModal:** Já cria links automáticos quando o utilizador seleciona Zoom/Google Meet
+O erro é claro: quando clica "Ligar ao Google Calendar" na barra lateral do calendário, a edge function retorna:
+```
+"Google Calendar não está conectado. Configure o Google Meet primeiro."
+```
 
-**O que falta (gap identificado):**
+**Causa raiz:** O componente `GoogleCalendarConnect` na sidebar tenta listar calendários Google, mas depende dos tokens OAuth armazenados em `workspace_video_config` — que só são criados quando o utilizador conecta o **Google Meet** em **Definições > Integrações > Vídeo**. São dois conceitos misturados: a sincronização de calendário e a videoconferência partilham os mesmos tokens OAuth, mas a UI não guia o utilizador correctamente.
 
-1. **Booking público (`public-booking`):** Quando um visitante agenda via página pública, o evento é criado SEM link de videoconferência, mesmo que o `booking_page` tenha `meeting_provider` configurado e o workspace tenha Zoom/Meet conectado.
-
-2. **CalendarEventModal:** O modal de criação de evento no calendário não oferece opção para gerar link automático de Zoom/Meet (ao contrário do MeetingCreateModal que já o faz).
-
-3. **Sem default automático:** Quando o workspace tem um provider conectado, a criação de eventos/reuniões não o pré-seleciona automaticamente.
-
----
+**Problema actual:**
+- Sidebar mostra "Ligar ao Google Calendar" → clica → falha com erro críptico
+- O utilizador não sabe que precisa de ir a Definições > Vídeo > Google Meet primeiro
+- A UX é confusa: "configurar Google Meet" para poder sincronizar o Google Calendar
 
 ## Plano de Implementação
 
-### 1. Auto-criar link de vídeo no Booking Público
-**Ficheiro:** `supabase/functions/public-booking/index.ts`
+### 1. Iniciar OAuth directamente do sidebar (sem depender do Meet)
+**Ficheiro:** `src/components/calendars/GoogleCalendarConnect.tsx`
 
-Na função `handleConfirmBooking`, após criar o `calendar_event`:
-- Consultar `booking_pages.meeting_provider` (campo já existe no schema)
-- Se o provider estiver definido (zoom/google_meet), consultar `workspace_video_config`
-- Invocar internamente a lógica de criação de meeting (reutilizando as funções de token refresh + API call do `create-video-meeting`)
-- Actualizar o `calendar_event` com `meeting_url`
-- Retornar o `meeting_url` na resposta para mostrar na confirmação ao visitante
+Quando o utilizador clica "Ligar ao Google Calendar" e não existem tokens Google no workspace:
+- Invocar `video-auth-url` com `provider: google_meet` directamente (reutiliza a mesma infra OAuth)
+- Abrir popup/redirect OAuth do Google
+- Após callback com sucesso, listar os calendários automaticamente
+- Elimina a necessidade de o utilizador ir às definições de vídeo primeiro
 
-### 2. Adicionar selecção de provider no CalendarEventModal
-**Ficheiro:** `src/components/calendars/CalendarEventModal.tsx`
+### 2. Melhorar tratamento de erro no hook
+**Ficheiro:** `src/hooks/useGoogleCalendarSync.ts`
 
-- Adicionar campo `video_provider` ao schema (none/zoom/google_meet/manual)
-- Mostrar selector quando `meeting_url` está visível
-- No submit, se provider != manual/none, invocar `create-video-meeting` (mesma lógica do MeetingCreateModal)
-- Preencher `meeting_url` automaticamente
+- Detectar o erro específico "Google Calendar não está conectado"
+- Em vez de mostrar toast genérico, passar um estado `needsOAuth: true` ao componente
+- O componente reage mostrando botão de OAuth em vez do selector vazio
 
-### 3. Hook para detectar providers disponíveis
-**Ficheiro:** `src/hooks/useAvailableVideoProviders.ts` (novo)
+### 3. Criar auto-connect no workspace_video_config
+**Ficheiro:** `supabase/functions/google-calendar-sync/index.ts`
 
-- Hook leve que consulta `workspace_video_config` e retorna quais providers estão conectados
-- Usado no CalendarEventModal e no MeetingCreateModal para mostrar apenas providers disponíveis e pré-seleccionar o default
+- Se `workspace_video_config` não existir para o workspace, criar automaticamente o registo (sem tokens) para evitar erro no `video-oauth-callback` que faz `.single()` e falha se não encontrar
 
-### 4. Mostrar link de vídeo na confirmação de booking
-**Ficheiro:** `src/components/booking/BookingConfirmation.tsx`
-
-- Receber `meeting_url` do resultado do booking
-- Mostrar botão "Entrar na reunião" com o link de Zoom/Meet
-
-### 5. Deploy da edge function actualizada
-- A edge function `public-booking` precisa de ser re-deployed com a nova lógica de criação de vídeo
-
----
-
-## Detalhes Técnicos
-
-### public-booking -- lógica de auto-create
+### 4. Fluxo visual melhorado
 
 ```text
-handleConfirmBooking()
-  ├── Criar calendar_event (existente)
-  ├── Verificar page.meeting_provider
-  │   ├── Se "zoom" ou "google_meet":
-  │   │   ├── Buscar workspace_video_config
-  │   │   ├── Refresh token se expirado
-  │   │   ├── Criar meeting via API (Zoom/Google)
-  │   │   ├── UPDATE calendar_event SET meeting_url = link
-  │   │   └── Incluir meeting_url na resposta
-  │   └── Se null/none: comportamento actual
-  └── Retornar resposta
+Utilizador clica "Ligar ao Google Calendar"
+  ├── Tokens Google existem?
+  │   ├── SIM → Listar calendários (fluxo actual)
+  │   └── NÃO → Iniciar OAuth Google (popup)
+  │             ├── Sucesso → Guardar tokens → Listar calendários
+  │             └── Erro → Mostrar mensagem clara
+  └── Seleccionar calendário → Confirmar ligação
 ```
 
 ### Ficheiros alterados
 
 | Ficheiro | Acção |
 |----------|-------|
-| `supabase/functions/public-booking/index.ts` | Adicionar auto-create de vídeo |
-| `src/components/calendars/CalendarEventModal.tsx` | Adicionar selector de provider |
-| `src/hooks/useAvailableVideoProviders.ts` | Novo hook |
-| `src/components/booking/BookingConfirmation.tsx` | Mostrar link de meeting |
+| `src/components/calendars/GoogleCalendarConnect.tsx` | OAuth directo + UX melhorada |
+| `src/hooks/useGoogleCalendarSync.ts` | Estado `needsOAuth` + tratamento erro |
+| `supabase/functions/google-calendar-sync/index.ts` | Auto-create config se necessário |
 
 ### Critérios de Aceitação
-
-- Booking público com provider configurado gera link de Zoom/Meet automaticamente
-- CalendarEventModal permite criar eventos com link de vídeo automático
-- Confirmação de booking mostra link de acesso à reunião
-- Sem regressões na criação manual de reuniões (MeetingCreateModal)
+- Clicar "Ligar ao Google Calendar" na sidebar funciona sem configuração prévia
+- OAuth Google é iniciado directamente se não houver tokens
+- Após OAuth, calendários são listados automaticamente
+- Sem necessidade de ir a Definições > Vídeo primeiro
+- Sem regressão no fluxo de Google Meet/Zoom nas definições
 
