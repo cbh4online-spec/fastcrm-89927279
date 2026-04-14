@@ -293,6 +293,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
       children: [
         { nameKey: "c2cMarketplace", name: t("c2cMarketplace"), href: "/dashboard/c2c", icon: LayoutGrid, iconColor: "text-rose-500" },
         { nameKey: "c2cSellerArea", name: t("c2cSellerArea"), href: "/dashboard/c2c/seller-area", icon: Store, iconColor: "text-rose-500" },
+        { nameKey: "c2cLives", name: "Lives", href: "/dashboard/marketplace/lives", icon: Video, iconColor: "text-rose-500" },
         { nameKey: "c2cMyListings", name: t("c2cMyListings"), href: "/dashboard/c2c/my-listings", icon: Tag, iconColor: "text-rose-500" },
         { nameKey: "c2cMessages", name: t("c2cMessages"), href: "/dashboard/c2c/messages", icon: MessageSquare, iconColor: "text-rose-500" },
         { nameKey: "c2cAnalytics", name: t("c2cAnalytics"), href: "/dashboard/c2c/analytics", icon: BarChart3, iconColor: "text-rose-500" },
@@ -308,7 +309,6 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "c2cDisputes", name: "Disputas", href: "/dashboard/c2c/disputes", icon: AlertTriangle, iconColor: "text-rose-500" },
         { nameKey: "c2cTiers", name: "Tiers", href: "/dashboard/c2c/tiers", icon: Trophy, iconColor: "text-rose-500" },
         { nameKey: "c2cConfig", name: "Configuração", href: "/dashboard/c2c/config", icon: Cog, iconColor: "text-rose-500" },
-        { nameKey: "c2cLives", name: "Lives", href: "/dashboard/marketplace/lives", icon: Video, iconColor: "text-rose-500" },
       ],
     },
     {
