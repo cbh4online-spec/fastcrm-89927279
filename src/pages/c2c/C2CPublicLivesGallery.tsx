@@ -149,6 +149,14 @@ function C2CPublicLivesGalleryInner() {
   );
 }
 
+export default function C2CPublicLivesGallery() {
+  return (
+    <AuthProvider>
+      <C2CPublicLivesGalleryInner />
+    </AuthProvider>
+  );
+}
+
 function PublicLiveGrid({
   lives,
   isLoading,
