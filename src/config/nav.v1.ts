@@ -56,6 +56,7 @@ import {
   BookOpen,
   Briefcase,
   Bell,
+  Video,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -192,6 +193,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Afiliados", href: "/dashboard/c2c/affiliates", icon: TrendingUp, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
   { name: "Referências", href: "/dashboard/c2c/referrals", icon: Users, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
   { name: "Admin Afiliados", href: "/dashboard/c2c/affiliate-admin", icon: Settings, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
+  { name: "Lives", href: "/dashboard/marketplace/lives", icon: Video, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
 
   // ── FASTCLUB ──
   { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy, group: "FastClub", separator: true, moduleSlug: "fastclub" },
