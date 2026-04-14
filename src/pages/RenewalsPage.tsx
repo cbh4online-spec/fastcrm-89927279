@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRenewalContracts } from "@/hooks/useRenewals";
-import { RENEWAL_STATUS_CONFIG, RENEWAL_INTERVAL_LABELS, getHealthScoreColor, calculateRealMRR, inferRenewalInterval, getIntervalSuffix } from "@/types/renewal";
+import { RENEWAL_STATUS_CONFIG, RENEWAL_INTERVAL_LABELS, getHealthScoreColor, calculateRealMRR, getIntervalSuffix } from "@/types/renewal";
 import type { RenewalContract } from "@/types/renewal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,10 +87,7 @@ export default function RenewalsPage() {
     const active = contracts.filter((c) => c.status === "active");
     const cancelled = contracts.filter((c) => c.status === "cancelled");
     const totalMRR = active.reduce((sum, c) => {
-      const interval = c.renewal_interval === 'custom'
-        ? inferRenewalInterval(c.start_date, c.next_renewal_date)
-        : c.renewal_interval;
-      return sum + calculateRealMRR(Number(c.total_mrr || 0), interval);
+      return sum + calculateRealMRR(Number(c.total_mrr || 0), c.renewal_interval, c.start_date, c.next_renewal_date);
     }, 0);
     const avgMRR = active.length > 0 ? totalMRR / active.length : 0;
     const churnRate = contracts.length > 0 ? (cancelled.length / contracts.length) * 100 : 0;

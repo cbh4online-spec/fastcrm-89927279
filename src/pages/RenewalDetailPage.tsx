@@ -233,9 +233,9 @@ export default function RenewalDetailPage() {
                     <p className="text-xs text-muted-foreground font-medium">MRR</p>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(kpis?.mrr || 0, contract.currency)}</p>
-                  {kpis?.effectiveInterval && kpis.effectiveInterval !== 'monthly' && (
+                  {contract.renewal_interval !== 'monthly' && (
                     <p className="text-[10px] text-muted-foreground">
-                      Valor {RENEWAL_INTERVAL_LABELS[kpis.effectiveInterval]}: {formatCurrency(kpis.contractValue, contract.currency)}
+                      Valor {RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}: {formatCurrency(kpis?.contractValue || 0, contract.currency)}
                     </p>
                   )}
                 </CardContent>
