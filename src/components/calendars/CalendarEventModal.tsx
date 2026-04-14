@@ -85,6 +85,8 @@ export function CalendarEventModal({
   defaultLeadId,
 }: CalendarEventModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const videoProviders = useAvailableVideoProviders();
   const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
     contactId: defaultContactId || null,
     companyId: defaultCompanyId || null,
