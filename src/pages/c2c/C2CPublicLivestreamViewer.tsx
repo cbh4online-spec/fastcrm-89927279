@@ -12,10 +12,6 @@ import {
   Share2,
   Copy,
   ExternalLink,
-  Camera,
-  CameraOff,
-  Mic,
-  MicOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,70 +19,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
+import { useLivestreamById } from "@/hooks/c2c/useLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
-import { useCameraStream } from "@/hooks/c2c/useCameraStream";
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-export default function C2CLivestreamViewer() {
-  const { id } = useParams();
+
+export default function C2CPublicLivestreamViewer() {
+  const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
   const { data: live, isLoading } = useLivestreamById(id);
-  const endLive = useEndLive();
-  const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch workspace slug for public share URL
-  const { data: workspaceSlug } = useQuery({
-    queryKey: ["workspace-slug-for-live", live?.workspace_id],
-    enabled: !!live?.workspace_id,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("workspaces")
-        .select("slug")
-        .eq("id", live!.workspace_id)
-        .maybeSingle();
-      return data?.slug as string | null;
-    },
-    staleTime: Infinity,
-  });
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
-
-  const isOwner = !!(userId && live?.seller_id === userId);
   const isLive = live?.status === "live";
 
-  // Owner gets local camera when live
-  const { stream: ownerStream, cameraOn, micOn, startCamera, stopCamera, toggleMic, cameraError } = useCameraStream({
-    enabled: isOwner && isLive,
-    audio: true,
-  });
-
-  const handleEndLive = async () => {
-    if (!live?.id) return;
-    try {
-      await endLive.mutateAsync(live.id);
-      toast.success("Live terminada");
-    } catch {
-      toast.error("Erro ao terminar a live");
-    }
-  };
-
-  const liveUrl = typeof window !== "undefined" && workspaceSlug
-    ? `${window.location.origin}/marketplace/${workspaceSlug}/live/${id}`
-    : typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/marketplace/lives/${id}`
+  const liveUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/marketplace/${workspaceSlug}/live/${id}`
       : "";
 
   const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
@@ -128,8 +80,12 @@ export default function C2CLivestreamViewer() {
         <div className="text-center">
           <Radio className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
           <p className="text-muted-foreground">Live não encontrada</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
-            Voltar
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
+          >
+            Voltar ao Marketplace
           </Button>
         </div>
       </div>
@@ -143,11 +99,11 @@ export default function C2CLivestreamViewer() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/dashboard/marketplace/lives")}
+          onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
           className="text-white/70 hover:text-white hover:bg-white/10 gap-1.5"
         >
           <ArrowLeft className="h-4 w-4" />
-          Voltar
+          Marketplace
         </Button>
 
         <div className="flex items-center gap-2">
@@ -157,9 +113,7 @@ export default function C2CLivestreamViewer() {
               AO VIVO
             </Badge>
           )}
-          {live.status === "ended" && (
-            <Badge variant="secondary">Terminada</Badge>
-          )}
+          {live.status === "ended" && <Badge variant="secondary">Terminada</Badge>}
           {live.status === "scheduled" && (
             <Badge variant="secondary" className="gap-1">
               <Clock className="h-3 w-3" />
@@ -168,31 +122,19 @@ export default function C2CLivestreamViewer() {
           )}
         </div>
 
-        {isOwner && isLive && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleEndLive}
-            disabled={endLive.isPending}
-          >
-            Terminar Live
-          </Button>
-        )}
+        <div className="w-[80px]" /> {/* Spacer for centering */}
       </div>
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-49px)]">
         {/* Video area */}
         <div className="flex-1 flex flex-col">
-          {/* Video placeholder */}
           <div className="flex-1 relative bg-black">
-            {/* Simulated video feed */}
             <div className="absolute inset-0">
               <SimulatedVideoFeed
                 isLive={isLive}
                 title={live.title}
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
-                stream={isOwner ? ownerStream : undefined}
               />
             </div>
 
@@ -204,7 +146,11 @@ export default function C2CLivestreamViewer() {
                   <p className="text-white/60">Esta live ainda não começou</p>
                   {live.scheduled_at && (
                     <p className="text-white/40 text-sm mt-2">
-                      Agendada para {formatDistanceToNow(new Date(live.scheduled_at), { addSuffix: true, locale: pt })}
+                      Agendada para{" "}
+                      {formatDistanceToNow(new Date(live.scheduled_at), {
+                        addSuffix: true,
+                        locale: pt,
+                      })}
                     </p>
                   )}
                 </div>
@@ -237,34 +183,6 @@ export default function C2CLivestreamViewer() {
               </div>
             )}
           </div>
-
-          {/* Owner camera controls */}
-          {isOwner && isLive && (
-            <div className="bg-gray-900 border-t border-white/10 px-4 py-2 flex items-center justify-center gap-2">
-              <Button
-                variant={cameraOn ? "default" : "outline"}
-                size="sm"
-                onClick={cameraOn ? stopCamera : startCamera}
-                className={cn("gap-2 text-xs", cameraOn && "bg-primary")}
-              >
-                {cameraOn ? <Camera className="h-3.5 w-3.5" /> : <CameraOff className="h-3.5 w-3.5" />}
-                {cameraOn ? "Câmara" : "Câmara off"}
-              </Button>
-              <Button
-                variant={micOn ? "default" : "outline"}
-                size="sm"
-                onClick={toggleMic}
-                disabled={!cameraOn}
-                className={cn("gap-2 text-xs", micOn && cameraOn && "bg-primary")}
-              >
-                {micOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
-                {micOn ? "Mic" : "Mic off"}
-              </Button>
-              {cameraError && (
-                <span className="text-xs text-red-400 ml-2 truncate max-w-[200px]">{cameraError}</span>
-              )}
-            </div>
-          )}
 
           {/* Info bar */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
