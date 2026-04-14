@@ -103,6 +103,7 @@ export interface Company {
   county: string | null;
   parish: string | null;
   company_status: string | null;
+  avatar_url: string | null;
 }
 
 export interface CreateCompanyData {

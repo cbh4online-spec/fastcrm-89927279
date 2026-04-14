@@ -93,6 +93,16 @@ Deno.serve(async (req) => {
         if (enrichedData.phone)          updates.phone = enrichedData.phone
         if (enrichedData.linkedin_url)   updates.linkedin_url = enrichedData.linkedin_url
         if (enrichedData.services)       updates.tags = enrichedData.services
+
+        // Auto-fetch company logo from domain favicon
+        const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
+        try {
+          const logoCheck = await fetch(logoUrl, { method: 'HEAD' })
+          if (logoCheck.ok) {
+            updates.avatar_url = logoUrl
+          }
+        } catch { /* ignore favicon fetch errors */ }
+
         if (Object.keys(updates).length > 0) {
           updates.website = url
           updates.enriched_at = new Date().toISOString()
