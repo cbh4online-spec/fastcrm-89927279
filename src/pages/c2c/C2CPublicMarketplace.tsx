@@ -886,9 +886,9 @@ export default function C2CPublicMarketplace() {
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
               {isSeller && (
-                <Button size="sm" className="gap-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white border-0" onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}>
+                <Button size="sm" className="gap-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white border-0 animate-pulse" onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}>
                   <Radio className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Ir ao Vivo</span>
+                  Ao Vivo
                 </Button>
               )}
               <Button size="sm" className="gap-1 rounded-full bg-[#09B1BA] hover:bg-[#078E96] text-white border-0" onClick={handleSell}>
