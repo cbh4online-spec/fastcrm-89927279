@@ -523,8 +523,8 @@ export function EnrichCompanyDialog({
       }
 
       // Auto-fetch company logo from domain if no avatar exists
-      if (!company.avatar_url) {
-        const domain = company.website || company.domain || (company.email ? company.email.split('@')[1] : null);
+      if (!(company as any).avatar_url) {
+        const domain = company.website || (company as any).domain || (company.email ? company.email.split('@')[1] : null);
         if (domain) {
           try {
             const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
