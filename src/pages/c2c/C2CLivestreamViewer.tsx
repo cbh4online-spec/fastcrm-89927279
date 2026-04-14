@@ -45,20 +45,8 @@ export default function C2CLivestreamViewer() {
   const endLive = useEndLive();
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch workspace slug for public share URL
-  const { data: workspaceSlug } = useQuery({
-    queryKey: ["workspace-slug-for-live", live?.workspace_id],
-    enabled: !!live?.workspace_id,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("workspaces")
-        .select("slug")
-        .eq("id", live!.workspace_id)
-        .maybeSingle();
-      return data?.slug as string | null;
-    },
-    staleTime: Infinity,
-  });
+  // workspace_slug is now denormalized on the livestream row
+  const workspaceSlug = (live as any)?.workspace_slug as string | undefined;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
