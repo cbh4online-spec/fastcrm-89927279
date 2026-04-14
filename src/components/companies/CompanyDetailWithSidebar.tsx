@@ -427,7 +427,7 @@ export function CompanyDetailWithSidebar() {
                   case 'payments':
                     return (
                       <div className="grid gap-4 lg:grid-cols-2">
-                        <AcquiredProductsSection entityType="company" entityId={id!} />
+                        <AcquiredProductsSection companyId={id!} />
                         <InvoiceHistorySection companyId={id!} />
                       </div>
                     );
@@ -436,7 +436,7 @@ export function CompanyDetailWithSidebar() {
                   case 'history':
                     return (
                       <div className="space-y-4">
-                        <CommercialHistorySection companyId={id!} />
+                        <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />
                         <CompanyContactsHistory companyId={id!} />
                       </div>
                     );
