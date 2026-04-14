@@ -5,6 +5,178 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Video meeting helpers (reused from create-video-meeting) ──
+
+async function refreshZoomToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+  const credentials = btoa(`${clientId}:${clientSecret}`);
+  const res = await fetch("https://zoom.us/oauth/token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
+  });
+  if (!res.ok) throw new Error(`Zoom token refresh failed: ${await res.text()}`);
+  return res.json();
+}
+
+async function refreshGoogleToken(
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ access_token: string; expires_in: number }> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }).toString(),
+  });
+  if (!res.ok) throw new Error(`Google token refresh failed: ${await res.text()}`);
+  return res.json();
+}
+
+async function getValidZoomToken(config: any, adminClient: any): Promise<string> {
+  const now = new Date();
+  const expiresAt = config.zoom_token_expires_at ? new Date(config.zoom_token_expires_at) : null;
+  if (config.zoom_access_token && expiresAt && expiresAt.getTime() - 300000 > now.getTime()) {
+    return config.zoom_access_token;
+  }
+  if (!config.zoom_refresh_token) throw new Error("Zoom não está conectado.");
+  const tokenData = await refreshZoomToken(config.zoom_refresh_token, config.zoom_client_id, config.zoom_client_secret_encrypted);
+  const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+  await adminClient.from("workspace_video_config").update({
+    zoom_access_token: tokenData.access_token,
+    zoom_refresh_token: tokenData.refresh_token || config.zoom_refresh_token,
+    zoom_token_expires_at: newExpiresAt,
+    updated_at: new Date().toISOString(),
+  }).eq("id", config.id);
+  return tokenData.access_token;
+}
+
+async function getValidGoogleToken(config: any, adminClient: any): Promise<string> {
+  const now = new Date();
+  const expiresAt = config.google_token_expires_at ? new Date(config.google_token_expires_at) : null;
+  if (config.google_access_token && expiresAt && expiresAt.getTime() - 300000 > now.getTime()) {
+    return config.google_access_token;
+  }
+  if (!config.google_refresh_token) throw new Error("Google Meet não está conectado.");
+  const platformClientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
+  const platformClientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
+  if (!platformClientId || !platformClientSecret) throw new Error("Credenciais OAuth do Google não configuradas");
+  const tokenData = await refreshGoogleToken(config.google_refresh_token, platformClientId, platformClientSecret);
+  const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+  await adminClient.from("workspace_video_config").update({
+    google_access_token: tokenData.access_token,
+    google_token_expires_at: newExpiresAt,
+    updated_at: new Date().toISOString(),
+  }).eq("id", config.id);
+  return tokenData.access_token;
+}
+
+async function createZoomMeeting(accessToken: string, topic: string, startTime: string, duration: number) {
+  const res = await fetch("https://api.zoom.us/v2/users/me/meetings", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic, type: 2, start_time: startTime, duration, timezone: "UTC",
+      settings: { join_before_host: true, waiting_room: false, auto_recording: "none" },
+    }),
+  });
+  if (!res.ok) throw new Error(`Zoom create meeting failed: ${await res.text()}`);
+  return res.json();
+}
+
+async function createGoogleMeetEvent(accessToken: string, calendarEmail: string, summary: string, startTime: string, endTime: string) {
+  const calendarId = calendarEmail || "primary";
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        summary,
+        start: { dateTime: startTime, timeZone: "UTC" },
+        end: { dateTime: endTime, timeZone: "UTC" },
+        conferenceData: {
+          createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } },
+        },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Google Calendar create event failed: ${await res.text()}`);
+  const event = await res.json();
+  const meetLink = event.hangoutLink || event.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === "video")?.uri;
+  return { meetLink: meetLink || null, eventId: event.id };
+}
+
+async function autoCreateVideoMeeting(
+  supabase: any,
+  page: any,
+  eventId: string,
+  startTime: string,
+  endTime: string,
+  title: string
+): Promise<string | null> {
+  const provider = page.meeting_provider;
+  if (!provider || provider === "none" || provider === "manual") return null;
+
+  try {
+    const { data: videoConfig } = await supabase
+      .from("workspace_video_config")
+      .select("*")
+      .eq("workspace_id", page.workspace_id)
+      .maybeSingle();
+
+    if (!videoConfig) {
+      console.log("[BOOKING] No video config found for workspace");
+      return null;
+    }
+
+    let meetingUrl: string | null = null;
+
+    if (provider === "zoom" && videoConfig.zoom_enabled) {
+      const accessToken = await getValidZoomToken(videoConfig, supabase);
+      const durationMin = Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000);
+      const meeting = await createZoomMeeting(accessToken, title, startTime, durationMin);
+      meetingUrl = meeting.join_url;
+    } else if (provider === "google_meet" && videoConfig.google_meet_enabled) {
+      const accessToken = await getValidGoogleToken(videoConfig, supabase);
+      const result = await createGoogleMeetEvent(
+        accessToken,
+        videoConfig.google_calendar_email || "primary",
+        title,
+        startTime,
+        endTime
+      );
+      meetingUrl = result.meetLink;
+    }
+
+    if (meetingUrl) {
+      await supabase
+        .from("calendar_events")
+        .update({ meeting_url: meetingUrl })
+        .eq("id", eventId);
+      console.log(`[BOOKING] Video meeting created: ${provider} -> ${meetingUrl}`);
+    }
+
+    return meetingUrl;
+  } catch (err) {
+    console.error("[BOOKING] Video meeting creation failed (non-blocking):", err);
+    return null;
+  }
+}
+
+// ── Main handler ──
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,15 +191,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Rate limiting by IP
-    const clientIP = req.headers.get("x-forwarded-for") || "unknown";
-
     if (action === "save_lead") {
       return await handleSaveLead(supabase, body, corsHeaders);
     } else if (action === "confirm_booking") {
       return await handleConfirmBooking(supabase, body, corsHeaders);
     } else {
-      // Legacy: support old format without action field
       return await handleConfirmBooking(supabase, body, corsHeaders);
     }
   } catch (err) {
@@ -44,27 +212,22 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
 
   if (!booking_page_id || !guest_name || !guest_email) {
     return new Response(JSON.stringify({ error: "Nome e email são obrigatórios" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Validate
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(guest_email)) {
     return new Response(JSON.stringify({ error: "Email inválido" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
   if (guest_name.length > 100 || guest_email.length > 255) {
     return new Response(JSON.stringify({ error: "Dados demasiado longos" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Get booking page to find workspace_id
   const { data: page, error: pageErr } = await supabase
     .from("booking_pages")
     .select("id, workspace_id, is_active")
@@ -74,12 +237,10 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
 
   if (pageErr || !page) {
     return new Response(JSON.stringify({ error: "Link de agendamento não encontrado" }), {
-      status: 404,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 404, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Create booking lead
   const { data: lead, error: leadErr } = await supabase
     .from("booking_leads")
     .insert({
@@ -98,16 +259,13 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
   if (leadErr) {
     console.error("Lead creation failed:", leadErr);
     return new Response(JSON.stringify({ error: "Erro ao guardar dados" }), {
-      status: 500,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 500, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Check if email already exists in leads or contacts tables
   const trimmedEmail = guest_email.trim().toLowerCase();
   let existingMatch: { type: string; name: string; id: string } | null = null;
 
-  // Check leads table first
   const { data: existingLead } = await supabase
     .from("leads")
     .select("id, name")
@@ -119,7 +277,6 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
   if (existingLead) {
     existingMatch = { type: "lead", name: existingLead.name, id: existingLead.id };
   } else {
-    // Check contacts table
     const { data: existingContact } = await supabase
       .from("contacts")
       .select("id, name")
@@ -134,9 +291,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
     }
   }
 
-  // If no existing match, create a new lead in the CRM
   if (!existingMatch) {
-    // Get a workspace member to use as created_by
     const { data: member } = await supabase
       .from("workspace_members")
       .select("user_id")
@@ -161,7 +316,6 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
       .single();
 
     if (newLeadErr) {
-      // Handle duplicate email — fetch existing lead instead
       if (newLeadErr.code === "23505" || newLeadErr.message?.includes("unique")) {
         const { data: dupLead } = await supabase
           .from("leads")
@@ -172,7 +326,6 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
           .maybeSingle();
         if (dupLead) {
           existingMatch = { type: "lead", name: dupLead.name, id: dupLead.id };
-          console.log(`[BOOKING] Linked to existing CRM lead (dup): ${dupLead.id}`);
         }
       } else {
         console.error("CRM lead creation failed (non-blocking):", newLeadErr);
@@ -183,7 +336,6 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
     }
   }
 
-  // Store CRM reference in booking_lead metadata
   if (existingMatch) {
     await supabase
       .from("booking_leads")
@@ -198,11 +350,7 @@ async function handleSaveLead(supabase: any, body: any, headers: Record<string, 
   }
 
   return new Response(
-    JSON.stringify({
-      success: true,
-      lead_id: lead.id,
-      existing_match: existingMatch,
-    }),
+    JSON.stringify({ success: true, lead_id: lead.id, existing_match: existingMatch }),
     { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
   );
 }
@@ -212,27 +360,22 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
 
   if (!booking_page_id || !date || !start_time || !guest_name || !guest_email) {
     return new Response(JSON.stringify({ error: "Campos obrigatórios em falta" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(guest_email)) {
     return new Response(JSON.stringify({ error: "Email inválido" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
-
   if (guest_name.length > 100 || guest_email.length > 255) {
     return new Response(JSON.stringify({ error: "Dados demasiado longos" }), {
-      status: 400,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 400, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Get booking page
   const { data: page, error: pageErr } = await supabase
     .from("booking_pages")
     .select("*")
@@ -242,16 +385,13 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
 
   if (pageErr || !page) {
     return new Response(JSON.stringify({ error: "Link de agendamento inativo ou não encontrado" }), {
-      status: 404,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 404, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Build start and end times
   const startDate = new Date(`${date}T${start_time}:00`);
   const endDate = new Date(startDate.getTime() + page.duration_minutes * 60 * 1000);
 
-  // Verify no conflicts
   const { data: conflicts } = await supabase
     .from("calendar_events")
     .select("id")
@@ -261,12 +401,10 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
 
   if (conflicts && conflicts.length > 0) {
     return new Response(JSON.stringify({ error: "Este horário já não está disponível" }), {
-      status: 409,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 409, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Get a workspace member to use as created_by
   const { data: member } = await supabase
     .from("workspace_members")
     .select("user_id")
@@ -274,14 +412,15 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
     .limit(1)
     .single();
 
-  // Create calendar event
+  const eventTitle = `${page.title} — ${guest_name}`;
+
   const { data: event, error: eventErr } = await supabase
     .from("calendar_events")
     .insert({
       calendar_id: page.calendar_id,
       workspace_id: page.workspace_id,
       created_by: member?.user_id || "00000000-0000-0000-0000-000000000000",
-      title: `${page.title} — ${guest_name}`,
+      title: eventTitle,
       description: `Agendamento público\nNome: ${guest_name}\nEmail: ${guest_email}`,
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
@@ -299,12 +438,20 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
   if (eventErr) {
     console.error("Event creation failed:", eventErr);
     return new Response(JSON.stringify({ error: "Erro ao criar agendamento" }), {
-      status: 500,
-      headers: { ...headers, "Content-Type": "application/json" },
+      status: 500, headers: { ...headers, "Content-Type": "application/json" },
     });
   }
 
-  // Update lead status if lead_id provided
+  // Auto-create video meeting if provider configured
+  const meetingUrl = await autoCreateVideoMeeting(
+    supabase,
+    page,
+    event.id,
+    startDate.toISOString(),
+    endDate.toISOString(),
+    eventTitle
+  );
+
   if (lead_id) {
     await supabase
       .from("booking_leads")
@@ -319,6 +466,7 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
       date,
       start_time,
       duration_minutes: page.duration_minutes,
+      meeting_url: meetingUrl || null,
     }),
     { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
   );

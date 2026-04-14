@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
@@ -34,6 +35,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, MapPin, Video, Trash2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EntityPicker } from '@/components/common/EntityPicker';
+import { useAvailableVideoProviders } from '@/hooks/useAvailableVideoProviders';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
 import type { Calendar as CalendarType, CalendarEvent, CreateEventData } from '@/hooks/useCalendars';
 
 const eventSchema = z.object({
@@ -47,6 +51,7 @@ const eventSchema = z.object({
   all_day: z.boolean().default(false),
   location: z.string().optional(),
   meeting_url: z.string().optional(),
+  video_provider: z.enum(['none', 'zoom', 'google_meet', 'manual']).default('none'),
   status: z.enum(['tentative', 'confirmed', 'cancelled']).default('confirmed'),
   contact_id: z.string().optional().nullable(),
   company_id: z.string().optional().nullable(),
@@ -80,6 +85,8 @@ export function CalendarEventModal({
   defaultLeadId,
 }: CalendarEventModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const videoProviders = useAvailableVideoProviders();
   const [entityValue, setEntityValue] = useState<{ contactId?: string | null; companyId?: string | null; leadId?: string | null }>({
     contactId: defaultContactId || null,
     companyId: defaultCompanyId || null,
@@ -100,6 +107,7 @@ export function CalendarEventModal({
           all_day: event.all_day,
           location: event.location || '',
           meeting_url: event.meeting_url || '',
+          video_provider: event.meeting_url ? 'manual' : 'none',
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
@@ -115,6 +123,7 @@ export function CalendarEventModal({
           all_day: false,
           location: '',
           meeting_url: '',
+          video_provider: videoProviders.defaultProvider || 'none',
           status: 'confirmed',
           contact_id: null,
           company_id: null,
@@ -136,6 +145,7 @@ export function CalendarEventModal({
           all_day: event.all_day,
           location: event.location || '',
           meeting_url: event.meeting_url || '',
+          video_provider: event.meeting_url ? 'manual' : 'none',
           status: event.status,
           contact_id: event.contact_id || null,
           company_id: event.company_id || null,
@@ -156,6 +166,7 @@ export function CalendarEventModal({
           all_day: false,
           location: '',
           meeting_url: '',
+          video_provider: videoProviders.defaultProvider || 'none',
           status: 'confirmed',
           contact_id: defaultContactId || null,
           company_id: defaultCompanyId || null,
@@ -181,6 +192,34 @@ export function CalendarEventModal({
       const endTime = new Date(data.end_date);
       endTime.setHours(endHour, endMin, 0, 0);
 
+      let meetingUrl = data.meeting_url;
+
+      // Auto-create video meeting if provider selected
+      if (data.video_provider === 'zoom' || data.video_provider === 'google_meet') {
+        try {
+          const { data: result, error: fnError } = await supabase.functions.invoke('create-video-meeting', {
+            body: {
+              workspace_id: currentWorkspace?.id,
+              provider: data.video_provider,
+              meeting: {
+                title: data.title,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                duration: Math.round((endTime.getTime() - startTime.getTime()) / 60000),
+              },
+            },
+          });
+          if (fnError) throw fnError;
+          if (result?.meeting_url) {
+            meetingUrl = result.meeting_url;
+            toast.success(`Link de ${data.video_provider === 'zoom' ? 'Zoom' : 'Google Meet'} criado`);
+          }
+        } catch (err) {
+          console.error('Video meeting creation failed:', err);
+          toast.error('Não foi possível criar o link de videoconferência');
+        }
+      }
+
       await onSubmit({
         calendar_id: data.calendar_id,
         title: data.title,
@@ -189,7 +228,7 @@ export function CalendarEventModal({
         end_time: endTime.toISOString(),
         all_day: data.all_day,
         location: data.location,
-        meeting_url: data.meeting_url,
+        meeting_url: meetingUrl,
         status: data.status,
         contact_id: entityValue.contactId || undefined,
         company_id: entityValue.companyId || undefined,
@@ -411,7 +450,7 @@ export function CalendarEventModal({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <FormField
                 control={form.control}
                 name="location"
@@ -431,20 +470,52 @@ export function CalendarEventModal({
 
               <FormField
                 control={form.control}
-                name="meeting_url"
+                name="video_provider"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <Video className="h-3 w-3" />
-                      Link de reunião
+                      Videoconferência
                     </FormLabel>
-                    <FormControl>
-                      <Input placeholder="URL da videochamada" {...field} />
-                    </FormControl>
+                    <Select onValueChange={(val) => {
+                      field.onChange(val);
+                      if (val !== 'manual') form.setValue('meeting_url', '');
+                    }} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sem videoconferência" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Sem videoconferência</SelectItem>
+                        {videoProviders.zoom && (
+                          <SelectItem value="zoom">🎥 Zoom (automático)</SelectItem>
+                        )}
+                        {videoProviders.google_meet && (
+                          <SelectItem value="google_meet">📹 Google Meet (automático)</SelectItem>
+                        )}
+                        <SelectItem value="manual">🔗 Link manual</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {form.watch('video_provider') === 'manual' && (
+                <FormField
+                  control={form.control}
+                  name="meeting_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input placeholder="URL da videochamada" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <FormField

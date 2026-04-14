@@ -86,6 +86,7 @@ export default function PublicBookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
   const [existingEvents, setExistingEvents] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -249,6 +250,7 @@ export default function PublicBookingPage() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao agendar');
+      if (result.meeting_url) setMeetingUrl(result.meeting_url);
       setStep('confirmed');
       emitEvent('booking_completed');
     } catch (err) {
@@ -493,6 +495,7 @@ export default function PublicBookingPage() {
                         selectedSlot={selectedSlot}
                         durationMinutes={page.duration_minutes}
                         brandColor={page.brand_color}
+                        meetingUrl={meetingUrl}
                       />
                     </motion.div>
                   )}
