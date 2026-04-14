@@ -63181,6 +63181,7 @@ export type Database = {
       cleanup_expired_agent_memory: { Args: never; Returns: number }
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_expired_sso_tokens: { Args: never; Returns: undefined }
+      cleanup_ghost_livestreams: { Args: never; Returns: number }
       cleanup_old_activity_logs: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: { p_max_age_ms?: number }; Returns: number }
       complete_objective: {
@@ -63308,6 +63309,10 @@ export type Database = {
       create_workspace_with_owner: {
         Args: { p_name: string; p_slug: string }
         Returns: Json
+      }
+      decrement_viewer_count: {
+        Args: { p_livestream_id: string }
+        Returns: undefined
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -63688,6 +63693,10 @@ export type Database = {
       }
       increment_product_views: {
         Args: { product_id: string }
+        Returns: undefined
+      }
+      increment_viewer_count: {
+        Args: { p_livestream_id: string }
         Returns: undefined
       }
       init_conversation_journey: {

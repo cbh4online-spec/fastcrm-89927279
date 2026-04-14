@@ -35,7 +35,7 @@ import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
-import { useEndLive } from "@/hooks/c2c/useLivestreams";
+import { useEndLive, useTrackViewer } from "@/hooks/c2c/useLivestreams";
 import { cn } from "@/lib/utils";
 
 export default function C2CPublicLivestreamViewer() {
@@ -50,6 +50,9 @@ export default function C2CPublicLivestreamViewer() {
 
   // Camera for broadcaster only
   const camera = useCameraStream({ enabled: isBroadcaster && isLive, audio: true });
+
+  // Track viewer count
+  useTrackViewer(live?.id, isLive);
 
   const liveUrl =
     typeof window !== "undefined"
