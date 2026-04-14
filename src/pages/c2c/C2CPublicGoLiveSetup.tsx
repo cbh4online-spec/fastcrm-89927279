@@ -13,8 +13,11 @@ import {
   Mic,
   MicOff,
   Loader2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
+import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { useIsApprovedSeller } from "@/hooks/c2c/useIsApprovedSeller";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,9 +37,20 @@ export default function C2CPublicGoLiveSetup() {
   const { isSeller, isLoading: sellerLoading } = useIsApprovedSeller(workspace?.id);
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
+  const createMuxStream = useCreateMuxStream();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+
+  // Mux stream info after creation
+  const [muxInfo, setMuxInfo] = useState<{
+    stream_key: string;
+    rtmp_url: string;
+    srt_url: string;
+    playback_id: string;
+  } | null>(null);
+  const [livestreamId, setLivestreamId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Camera state
   const [cameraOn, setCameraOn] = useState(false);
@@ -44,7 +58,7 @@ export default function C2CPublicGoLiveSetup() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const isLoading = createLive.isPending || goLive.isPending;
+  const isLoading = createLive.isPending || goLive.isPending || createMuxStream.isPending;
 
   const isInIframe = (() => {
     try { return window.self !== window.top; } catch { return true; }
@@ -104,7 +118,14 @@ export default function C2CPublicGoLiveSetup() {
     }
   }, [authLoading, user, navigate, workspaceSlug]);
 
-  const handleGoLive = async () => {
+  const handleCopy = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  // Step 1: Create livestream + Mux stream
+  const handleCreateStream = async () => {
     if (!title.trim() || !workspace?.id || !workspaceSlug) return;
     try {
       const live = await createLive.mutateAsync({
@@ -113,9 +134,23 @@ export default function C2CPublicGoLiveSetup() {
         title: title.trim(),
         category: category || undefined,
       });
-      await goLive.mutateAsync(live.id);
+      setLivestreamId(live.id);
+
+      const mux = await createMuxStream.mutateAsync(live.id);
+      setMuxInfo(mux);
+      toast.success("Stream criado! Configura o OBS e clica 'Ir ao Vivo'.");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao criar o stream");
+    }
+  };
+
+  // Step 2: Go live (after OBS is connected)
+  const handleGoLive = async () => {
+    if (!livestreamId) return;
+    try {
+      await goLive.mutateAsync(livestreamId);
       toast.success("Estás ao vivo! 🔴");
-      navigate(`/marketplace/${workspaceSlug}/live/${live.id}`);
+      navigate(`/marketplace/${workspaceSlug}/live/${livestreamId}`);
     } catch {
       toast.error("Erro ao iniciar a live");
     }
@@ -154,18 +189,33 @@ export default function C2CPublicGoLiveSetup() {
             <h1 className="text-lg font-bold">Ir ao Vivo</h1>
           </div>
         </div>
-        <Button
-          onClick={handleGoLive}
-          disabled={!title.trim() || isLoading}
-          className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-          )}
-          Ir ao Vivo
-        </Button>
+        {muxInfo ? (
+          <Button
+            onClick={handleGoLive}
+            disabled={goLive.isPending}
+            className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
+          >
+            {goLive.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+            )}
+            Ir ao Vivo
+          </Button>
+        ) : (
+          <Button
+            onClick={handleCreateStream}
+            disabled={!title.trim() || isLoading}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold px-6"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Radio className="h-4 w-4" />
+            )}
+            Preparar Stream
+          </Button>
+        )}
       </div>
 
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
@@ -248,46 +298,130 @@ export default function C2CPublicGoLiveSetup() {
             </div>
           </Card>
 
-          {/* Simple form */}
+          {/* Form + Mux stream info */}
           <Card className="p-5 space-y-5">
-            <div>
-              <Label htmlFor="go-live-title" className="text-sm font-semibold">Título da Live *</Label>
-              <Input
-                id="go-live-title"
-                placeholder="Ex: Novidades de Primavera 🌸"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={100}
-                className="mt-1.5"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">{title.length}/100</p>
-            </div>
+            {!muxInfo ? (
+              <>
+                <div>
+                  <Label htmlFor="go-live-title" className="text-sm font-semibold">Título da Live *</Label>
+                  <Input
+                    id="go-live-title"
+                    placeholder="Ex: Novidades de Primavera 🌸"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={100}
+                    className="mt-1.5"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1 text-right">{title.length}/100</p>
+                </div>
 
-            <div>
-              <Label className="text-sm font-semibold">Categoria</Label>
-              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                {CATEGORIES.map((cat) => (
-                  <Badge
-                    key={cat}
-                    variant={category === cat ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer transition-colors text-xs",
-                      category === cat && "bg-primary"
-                    )}
-                    onClick={() => setCategory(category === cat ? "" : cat)}
-                  >
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+                <div>
+                  <Label className="text-sm font-semibold">Categoria</Label>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {CATEGORIES.map((cat) => (
+                      <Badge
+                        key={cat}
+                        variant={category === cat ? "default" : "outline"}
+                        className={cn(
+                          "cursor-pointer transition-colors text-xs",
+                          category === cat && "bg-primary"
+                        )}
+                        onClick={() => setCategory(category === cat ? "" : cat)}
+                      >
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground">
-                Ao clicar "Ir ao Vivo", a tua transmissão será visível para todos no marketplace.
-                Podes terminar a live a qualquer momento.
-              </p>
-            </div>
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Ao clicar "Preparar Stream", será criado um canal de transmissão via Mux.
+                    Depois, configura o OBS com as credenciais fornecidas.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    Stream criado com sucesso!
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Configura o OBS (ou outro software) com os dados abaixo e depois clica "Ir ao Vivo".
+                  </p>
+                </div>
+
+                {/* RTMP URL */}
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Servidor RTMP</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      readOnly
+                      value={muxInfo.rtmp_url}
+                      className="font-mono text-xs bg-muted"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => handleCopy(muxInfo.rtmp_url, "rtmp")}
+                    >
+                      {copiedField === "rtmp" ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Stream Key */}
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Chave de Stream</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      readOnly
+                      value={muxInfo.stream_key}
+                      type="password"
+                      className="font-mono text-xs bg-muted"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => handleCopy(muxInfo.stream_key, "key")}
+                    >
+                      {copiedField === "key" ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* SRT URL */}
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">URL SRT (alternativo)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      readOnly
+                      value={muxInfo.srt_url}
+                      className="font-mono text-xs bg-muted"
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => handleCopy(muxInfo.srt_url, "srt")}
+                    >
+                      {copiedField === "srt" ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>No OBS:</strong> Vai a Definições → Transmissão → Serviço: Personalizado → Cola o servidor e a chave acima.
+                    Quando estiveres a transmitir no OBS, clica "Ir ao Vivo" para publicar.
+                  </p>
+                </div>
+              </>
+            )}
           </Card>
         </div>
       </div>
