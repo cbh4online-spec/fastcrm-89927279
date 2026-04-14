@@ -27,6 +27,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
+import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyC2CListings } from "@/hooks/useC2CListings";
