@@ -56,7 +56,7 @@ export default function C2CLivestreams() {
           >
             <Button
               onClick={() => setShowGoLive(true)}
-              className="bg-white text-red-600 hover:bg-white/90 gap-2 font-bold"
+              className="bg-red-600 text-white hover:bg-red-700 gap-2 font-bold"
             >
               <Plus className="h-4 w-4" />
               Iniciar Live
