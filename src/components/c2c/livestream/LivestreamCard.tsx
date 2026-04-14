@@ -74,6 +74,7 @@ export function LivestreamCard({ livestream }: Props) {
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <Avatar className="h-9 w-9 flex-shrink-0">
+              {livestream.seller_avatar && <AvatarImage src={livestream.seller_avatar} />}
               <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
                 {(livestream.seller_name || "V")[0].toUpperCase()}
               </AvatarFallback>
