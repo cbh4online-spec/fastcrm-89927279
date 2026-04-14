@@ -90,9 +90,6 @@ export default function C2CGoLiveSetup() {
       });
       setStream(mediaStream);
       setCameraOn(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (err: unknown) {
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError") {
@@ -190,13 +187,18 @@ export default function C2CGoLiveSetup() {
             {/* Camera feed */}
             <Card className="overflow-hidden">
               <div className="aspect-video bg-black relative rounded-t-lg">
-                {cameraOn ? (
+              {cameraOn && stream ? (
                   <video
-                    ref={videoRef}
+                    ref={(el) => {
+                      if (el && el.srcObject !== stream) {
+                        el.srcObject = stream;
+                        el.play().catch(() => {});
+                      }
+                    }}
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover mirror"
+                    className="absolute inset-0 w-full h-full object-cover"
                     style={{ transform: "scaleX(-1)" }}
                   />
                 ) : (
