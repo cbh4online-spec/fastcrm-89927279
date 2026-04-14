@@ -72,7 +72,14 @@ async function listGoogleCalendars(accessToken: string) {
   const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(`List calendars failed [${res.status}]: ${await res.text()}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    // If insufficient scopes, signal re-auth needed
+    if (res.status === 403 && errorText.includes("SCOPE_INSUFFICIENT")) {
+      throw new Error("NEEDS_REAUTH");
+    }
+    throw new Error(`List calendars failed [${res.status}]: ${errorText}`);
+  }
   const data = await res.json();
   return data.items || [];
 }
