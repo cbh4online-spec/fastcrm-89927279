@@ -47,6 +47,7 @@ import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
+import { EntityCustomFieldsSection } from "@/components/shared/EntityCustomFieldsSection";
 import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
