@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Radio, Plus, Calendar, Eye, Video, PlayCircle } from "lucide-react";
+import { Radio, Plus, Calendar, Eye, Video, PlayCircle, Settings2 } from "lucide-react";
 import { useLivestreams } from "@/hooks/c2c/useLivestreams";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { LivestreamCard } from "@/components/c2c/livestream/LivestreamCard";
