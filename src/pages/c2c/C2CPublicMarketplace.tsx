@@ -645,6 +645,7 @@ export default function C2CPublicMarketplace() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [showListings, setShowListings] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(20);
 
   usePublicMarketplaceTheme();
@@ -652,6 +653,7 @@ export default function C2CPublicMarketplace() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session?.user);
+      setAuthUserId(session?.user?.id ?? null);
     });
   }, []);
 
