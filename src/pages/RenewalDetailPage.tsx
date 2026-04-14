@@ -261,10 +261,14 @@ export default function RenewalDetailPage() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-2 mb-1">
                     <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground font-medium">LTV Estimado</p>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      {kpis?.isProjected ? "LTV Projetado" : "LTV Estimado"}
+                    </p>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(kpis?.ltv || 0, contract.currency)}</p>
-                  <p className="text-[10px] text-muted-foreground">{kpis?.lifetimeMonths || 0} meses de contrato</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {kpis?.isProjected ? "projeção 1 ciclo" : `${kpis?.lifetimeMonths || 0} meses de contrato`}
+                  </p>
                 </CardContent>
               </Card>
               <Card>
