@@ -2,76 +2,70 @@
 
 ## Diagnóstico
 
-O link partilhado é `/dashboard/marketplace/lives/90146ef5-...` — este é o URL do **dashboard**, que requer autenticação. Quando alguém sem sessão abre este link (ex: no telemóvel), recebe 404 porque o router não encontra a rota sem o wrapper de autenticação.
+Atualmente, a funcionalidade de lives está **completamente isolada no backoffice** (`/dashboard/marketplace/lives`). Um vendedor precisa de navegar pelo dashboard para criar e iniciar uma live. A página pública (`/marketplace/:slug/lives`) é read-only — mostra lives existentes mas não permite ao vendedor autenticado iniciar uma live a partir daí.
 
-O botão "Partilhar" no viewer **deveria** gerar o URL público `/marketplace/:workspaceSlug/live/:id`, mas há duas falhas:
+O pedido é claro: tornar a experiência de live streaming **tão simples como no Facebook** — o vendedor deve poder iniciar uma live directamente a partir do marketplace público, sem precisar de entrar no backoffice.
 
-1. **Fallback perigoso**: Se a query do `workspaceSlug` falhar ou ainda não tiver carregado, o código cai no fallback que gera o URL do dashboard (linha 89 do `C2CLivestreamViewer.tsx`)
-2. **RLS na tabela `workspaces`**: A query usa `supabase.from("workspaces").select("slug")` com o tipo `any`, e a tabela `workspaces` tem RLS restrito a membros autenticados — pode falhar silenciosamente
-3. **URL da barra do browser**: O utilizador pode estar a copiar o URL do browser (`/dashboard/...`) em vez de usar o botão Partilhar
+## Plano de implementação
 
-## Plano de correção
+### 1. Botão "Ir ao Vivo" na galeria pública de lives
+**Ficheiro:** `src/pages/c2c/C2CPublicLivesGallery.tsx`
+- Detectar se o utilizador autenticado é um vendedor aprovado naquele workspace (query a `c2c_sellers` com `user_id` e `status = 'approved'`)
+- Se sim, mostrar botão flutuante **"🔴 Ir ao Vivo"** no hero da página (estilo Facebook)
+- Ao clicar, abrir o modal `GoLiveModal` adaptado (ou redirecionar para uma versão pública do setup)
 
-### 1. Eliminar o fallback para URL do dashboard
-Em `C2CLivestreamViewer.tsx`, quando `workspaceSlug` não está disponível, o `liveUrl` deve ficar vazio e o botão Partilhar deve ficar desativado — nunca partilhar o URL do dashboard.
+### 2. Botão "Ir ao Vivo" no perfil público do vendedor
+**Ficheiro:** `src/pages/c2c/C2CPublicSellerProfile.tsx`
+- Se o utilizador autenticado é o dono daquele perfil de vendedor, mostrar botão "Ir ao Vivo" no cabeçalho do perfil
+- Mesma lógica: abrir modal simplificado de criação de live
 
-### 2. Obter o slug de forma fiável
-Usar a tabela `c2c_livestreams` que já tem `workspace_id`, e juntar com `store_settings.store_slug` ou `workspaces.slug` via uma query server-side (edge function) ou via uma coluna desnormalizada. Alternativa mais simples: guardar o `workspace_slug` diretamente na tabela `c2c_livestreams` (migration).
+### 3. Criar hook `useIsApprovedSeller`
+**Ficheiro novo:** `src/hooks/c2c/useIsApprovedSeller.ts`
+- Recebe `workspaceId`
+- Verifica se o user autenticado tem registo em `c2c_sellers` com `status = 'approved'` naquele workspace
+- Retorna `{ isSeller, sellerId, isLoading }`
 
-### 3. Adicionar redirect do dashboard para o público
-Criar um redirect automático: quando um utilizador **não autenticado** acede a `/dashboard/marketplace/lives/:id`, redirecionar para `/marketplace/:workspaceSlug/live/:id`. Isto cobre links antigos já partilhados.
+### 4. Adaptar o `GoLiveModal` para contexto público
+**Ficheiro:** `src/components/c2c/livestream/GoLiveModal.tsx`
+- Actualmente depende de `useWorkspace()` (contexto do dashboard) — precisa de aceitar `workspaceId` como prop alternativa
+- Após criar a live com sucesso no modo "agora", redirecionar para a rota pública `/marketplace/:slug/live/:id` em vez da rota do dashboard
+- Receber `workspaceSlug` como prop para construir o URL correcto
 
-### 4. Mostrar aviso visual ao owner
-No viewer do dashboard, mostrar o URL público real que está a ser partilhado, para que o owner saiba que é diferente do URL na barra do browser.
+### 5. Simplificar o fluxo (estilo Facebook)
+- No modal público, manter apenas: **título**, **categoria** (opcional), e botão **"Ir ao Vivo"**
+- Remover a opção de "agendar" na versão pública (manter apenas no backoffice)
+- Após clicar "Ir ao Vivo", redirecionar para uma página de setup simplificada que também vive no contexto público
 
-## Implementação
+### 6. Criar rota pública de setup de live
+**Ficheiro novo:** `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
+- Versão simplificada do `C2CGoLiveSetup.tsx` que funciona fora do dashboard
+- Usa o `workspaceSlug` do URL para resolver o workspace
+- Requer autenticação (redirect para login se não autenticado)
+- Após ir ao vivo, navega para `/marketplace/:slug/live/:id`
 
-### Ficheiro 1 — Migration: adicionar `workspace_slug` à tabela `c2c_livestreams`
-```sql
-ALTER TABLE public.c2c_livestreams 
-ADD COLUMN IF NOT EXISTS workspace_slug text;
+**Rota em App.tsx:** `/marketplace/:workspaceSlug/go-live`
 
--- Preencher retroactivamente
-UPDATE public.c2c_livestreams l
-SET workspace_slug = w.slug
-FROM public.workspaces w
-WHERE l.workspace_id = w.id AND l.workspace_slug IS NULL;
+### 7. Link de partilha da live
+- O botão de partilha gera sempre o URL público `/marketplace/:slug/live/:id`
+- Na galeria pública, cada card de live já navega correctamente para o viewer público
 
--- Trigger para manter sincronizado em novos inserts
-CREATE OR REPLACE FUNCTION public.set_livestream_workspace_slug()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  SELECT slug INTO NEW.workspace_slug FROM public.workspaces WHERE id = NEW.workspace_id;
-  RETURN NEW;
-END;
-$$;
+### Ficheiros impactados
+- **Novo:** `src/hooks/c2c/useIsApprovedSeller.ts`
+- **Novo:** `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
+- **Editar:** `src/pages/c2c/C2CPublicLivesGallery.tsx` — adicionar botão "Ir ao Vivo" para vendedores
+- **Editar:** `src/pages/c2c/C2CPublicSellerProfile.tsx` — botão "Ir ao Vivo" no perfil
+- **Editar:** `src/components/c2c/livestream/GoLiveModal.tsx` — aceitar `workspaceId`/`workspaceSlug` como props
+- **Editar:** `src/App.tsx` — nova rota `/marketplace/:workspaceSlug/go-live`
 
-CREATE TRIGGER trg_set_livestream_workspace_slug
-BEFORE INSERT ON public.c2c_livestreams
-FOR EACH ROW EXECUTE FUNCTION public.set_livestream_workspace_slug();
-```
+### Segurança
+- Apenas vendedores aprovados (`c2c_sellers.status = 'approved'`) veem o botão
+- A criação da live continua protegida por RLS (requer `auth.uid()` = `seller_id`)
+- Visitantes não autenticados veem apenas a galeria read-only
 
-### Ficheiro 2 — `C2CLivestreamViewer.tsx`
-- Remover a query separada de `workspaceSlug` e usar `live?.workspace_slug` directamente
-- Remover o fallback para URL do dashboard — se slug não existir, desabilitar partilha
-- Adicionar tooltip no botão Partilhar com o URL público real
-
-### Ficheiro 3 — `C2CPublicLivestreamViewer.tsx`
-- Sem alterações necessárias (já funciona com `workspaceSlug` do URL)
-
-### Ficheiro 4 — Redirect para links antigos
-Em `App.tsx` ou num componente wrapper, adicionar:
-- Rota `/dashboard/marketplace/lives/:id` acessível sem auth que faz redirect para a versão pública
-- OU componente no `C2CLivestreamViewer.tsx` que, se o user não está autenticado, redireciona para `/marketplace/:slug/live/:id`
-
-## Critérios de aceitação
-- Botão Partilhar gera sempre URL público (`/marketplace/.../live/...`)
-- Nunca é partilhado o URL do dashboard
-- Links antigos do dashboard fazem redirect para o URL público
-- Espectadores sem auth veem a live sem erro 404
-- Owner vê indicação do URL público que está a ser partilhado
-
-## Riscos
-- Lives existentes sem `workspace_slug` preenchido — mitigado pelo UPDATE retroactivo na migration
-- Cache de types do Supabase precisa regenerar para incluir o novo campo
+### Critérios de aceitação
+- Vendedor autenticado vê botão "Ir ao Vivo" na galeria pública e no seu perfil
+- Visitante não autenticado NÃO vê o botão
+- Fluxo completo: clicar → preencher título → setup câmara → ir ao vivo → viewer público
+- Link de partilha funciona para qualquer pessoa (sem auth)
+- Não é necessário aceder ao backoffice para fazer uma live
 
