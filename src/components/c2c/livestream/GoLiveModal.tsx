@@ -44,8 +44,13 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
       });
 
       if (mode === "now") {
-        await goLive.mutateAsync(live.id);
-        toast.success("Estás ao vivo! 🔴");
+        // Redirect to setup page instead of going live without media
+        onOpenChange(false);
+        resetForm();
+        toast.info("Prepara a tua câmara antes de entrar em direto");
+        // Navigate is not available here, so we use window.location
+        window.location.href = `/dashboard/marketplace/lives/setup`;
+        return;
       } else {
         toast.success("Live agendada com sucesso!");
       }

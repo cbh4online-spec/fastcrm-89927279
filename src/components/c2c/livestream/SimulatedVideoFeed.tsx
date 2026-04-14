@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { Radio, VideoOff, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -7,82 +6,28 @@ interface Props {
   title: string;
   sellerName?: string;
   thumbnailUrl?: string;
+  /** If provided, the component will render this stream instead of requesting getUserMedia */
+  stream?: MediaStream | null;
 }
 
-const isInIframe = (() => {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true;
-  }
-})();
-
 /**
- * Simulated live video feed.
- * Tries the real webcam first (getUserMedia); if denied or unavailable
- * falls back to thumbnail_url or an animated gradient placeholder.
+ * Visual feed for livestreams.
+ * - For the SELLER setup page: receives a `stream` prop with the local camera.
+ * - For the VIEWER page: shows thumbnail/placeholder. Never requests getUserMedia.
+ * - Fallback: animated gradient + particles when no stream/thumbnail available.
  */
-export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCamera, setHasCamera] = useState(false);
-  const [tried, setTried] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isLive) return;
-    let stream: MediaStream | null = null;
-
-    (async () => {
-      // Detect iframe — camera will be blocked
-      if (isInIframe) {
-        setErrorMsg("Câmara bloqueada no preview. Publica a app para testar a câmara em direto.");
-        setTried(true);
-        return;
-      }
-
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setErrorMsg("O teu browser não suporta acesso à câmara.");
-        setTried(true);
-        return;
-      }
-
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: 1280, height: 720 },
-          audio: false,
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setHasCamera(true);
-        }
-      } catch (err: unknown) {
-        const name = err instanceof DOMException ? err.name : "";
-        if (name === "NotAllowedError") {
-          setErrorMsg("Permissão da câmara negada. Verifica as definições do browser.");
-        } else if (name === "NotFoundError") {
-          setErrorMsg("Nenhuma câmara encontrada no dispositivo.");
-        } else if (name === "NotReadableError") {
-          setErrorMsg("Câmara em uso por outra aplicação.");
-        } else {
-          setErrorMsg("Não foi possível aceder à câmara.");
-        }
-        setHasCamera(false);
-      } finally {
-        setTried(true);
-      }
-    })();
-
-    return () => {
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, [isLive]);
-
-  // Live with camera
-  if (isLive && hasCamera) {
+export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl, stream }: Props) {
+  // Live with a provided stream (seller preview or future remote playback)
+  if (isLive && stream) {
     return (
       <div className="w-full h-full relative">
         <video
-          ref={videoRef}
+          ref={(el) => {
+            if (el && el.srcObject !== stream) {
+              el.srcObject = stream;
+              el.play().catch(() => {});
+            }
+          }}
           autoPlay
           muted
           playsInline
@@ -99,11 +44,10 @@ export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl }: 
     );
   }
 
-  // Live without camera — thumbnail fallback or animated placeholder
+  // Live without stream — thumbnail fallback or animated placeholder
   if (isLive) {
     return (
       <div className="w-full h-full relative overflow-hidden">
-        {/* Background: thumbnail or animated gradient */}
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -176,7 +120,7 @@ export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl }: 
           ))}
         </div>
 
-        {/* Center info with error message */}
+        {/* Center info */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -198,12 +142,12 @@ export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl }: 
             {sellerName && (
               <p className="text-white/50 text-sm mt-1">{sellerName}</p>
             )}
-            {errorMsg && tried && (
-              <div className="mt-4 mx-auto max-w-xs bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
-                <p className="text-white/70 text-xs text-left">{errorMsg}</p>
-              </div>
-            )}
+            <div className="mt-4 mx-auto max-w-xs bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+              <p className="text-white/70 text-xs text-left">
+                Streaming em direto será disponibilizado em breve. Por agora, a transmissão usa um placeholder visual.
+              </p>
+            </div>
           </motion.div>
         </div>
 

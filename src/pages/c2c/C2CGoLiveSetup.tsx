@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ export default function C2CGoLiveSetup() {
   const [replayEnabled, setReplayEnabled] = useState(true);
 
   // Camera state
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Camera state
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -90,9 +90,6 @@ export default function C2CGoLiveSetup() {
       });
       setStream(mediaStream);
       setCameraOn(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (err: unknown) {
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError") {
@@ -112,7 +109,6 @@ export default function C2CGoLiveSetup() {
     stream?.getTracks().forEach((t) => t.stop());
     setStream(null);
     setCameraOn(false);
-    if (videoRef.current) videoRef.current.srcObject = null;
   }, [stream]);
 
   const toggleMic = () => {
@@ -190,13 +186,18 @@ export default function C2CGoLiveSetup() {
             {/* Camera feed */}
             <Card className="overflow-hidden">
               <div className="aspect-video bg-black relative rounded-t-lg">
-                {cameraOn ? (
+              {cameraOn && stream ? (
                   <video
-                    ref={videoRef}
+                    ref={(el) => {
+                      if (el && el.srcObject !== stream) {
+                        el.srcObject = stream;
+                        el.play().catch(() => {});
+                      }
+                    }}
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover mirror"
+                    className="absolute inset-0 w-full h-full object-cover"
                     style={{ transform: "scaleX(-1)" }}
                   />
                 ) : (
