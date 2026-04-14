@@ -594,6 +594,7 @@ export function CompanyDetailWithSidebar() {
                           if (error) throw error;
                           if (data?.data) {
                             toast.success("Empresa enriquecida com dados do website!");
+                            queryClient.invalidateQueries({ queryKey: ["companies"] });
                           } else {
                             toast.info("Dados extraídos parcialmente");
                           }
