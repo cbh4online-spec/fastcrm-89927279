@@ -201,6 +201,44 @@ export default function C2CLivestreamViewer() {
                   )}
                 </div>
               </div>
+
+              {/* Share button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-white/60 hover:text-white hover:bg-white/10 gap-1.5"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="hidden sm:inline text-xs">Partilhar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleShare("copy")} className="gap-2 cursor-pointer">
+                    <Copy className="h-4 w-4" />
+                    Copiar link
+                  </DropdownMenuItem>
+                  {"share" in navigator && (
+                    <DropdownMenuItem onClick={() => handleShare("native")} className="gap-2 cursor-pointer">
+                      <ExternalLink className="h-4 w-4" />
+                      Partilhar via…
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleShare("whatsapp")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">💬</span>
+                    WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("facebook")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">📘</span>
+                    Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleShare("twitter")} className="gap-2 cursor-pointer">
+                    <span className="text-base leading-none">🐦</span>
+                    X / Twitter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
