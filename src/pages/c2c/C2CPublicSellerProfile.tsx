@@ -6,12 +6,13 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
-import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store } from "lucide-react";
+import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store, Radio } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -81,6 +82,7 @@ function usePublicSellerReviews(sellerId: string | undefined) {
 export default function C2CPublicSellerProfile() {
   const { workspaceSlug, sellerId } = useParams<{ workspaceSlug: string; sellerId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
@@ -88,6 +90,7 @@ export default function C2CPublicSellerProfile() {
 
   const { data: seller, isLoading: sellerLoading } = usePublicSellerProfile(sellerId, workspaceId);
   const sellerUserId = seller?.user_id;
+  const isOwnProfile = !!user && !!sellerUserId && user.id === sellerUserId;
   const { data: listings = [] } = usePublicSellerListings(sellerUserId, workspaceId);
   const { data: reviewData } = usePublicSellerReviews(sellerId);
 
