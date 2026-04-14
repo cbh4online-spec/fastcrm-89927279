@@ -314,6 +314,42 @@ export default function InvoiceDetail() {
               amountPaid={invoice.amount_paid || 0}
               currency={invoice.currency}
             />
+
+            {/* Super Admin: Force Status */}
+            {isSuperAdmin && (
+              <Card className="border-destructive/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-destructive" />
+                    Alterar Estado (Admin)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Alteração manual do estado — apenas super admins.
+                  </p>
+                  <Select
+                    value={invoice.status}
+                    onValueChange={(value) => {
+                      forceStatus.mutate({ id: invoice.id, status: value as InvoiceStatus });
+                    }}
+                    disabled={forceStatus.isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Rascunho</SelectItem>
+                      <SelectItem value="sent">Enviada</SelectItem>
+                      <SelectItem value="paid">Paga</SelectItem>
+                      <SelectItem value="partially_paid">Parcialmente Paga</SelectItem>
+                      <SelectItem value="overdue">Vencida</SelectItem>
+                      <SelectItem value="cancelled">Cancelada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
