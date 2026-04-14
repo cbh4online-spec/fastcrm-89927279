@@ -56,6 +56,33 @@ export default function C2CLivestreamViewer() {
     }
   };
 
+  const liveUrl = typeof window !== "undefined" ? `${window.location.origin}/dashboard/marketplace/lives/${id}` : "";
+
+  const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
+    if (!live) return;
+    const text = `🔴 ${live.seller_name || "Vendedor"} está em direto: ${live.title}`;
+    switch (method) {
+      case "copy":
+        await navigator.clipboard.writeText(liveUrl);
+        toast.success("Link copiado!");
+        break;
+      case "native":
+        if (navigator.share) {
+          await navigator.share({ title: live.title, text, url: liveUrl }).catch(() => {});
+        }
+        break;
+      case "whatsapp":
+        window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + liveUrl)}`, "_blank");
+        break;
+      case "facebook":
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(liveUrl)}`, "_blank");
+        break;
+      case "twitter":
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(liveUrl)}`, "_blank");
+        break;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
