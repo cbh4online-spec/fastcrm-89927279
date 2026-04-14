@@ -202,33 +202,18 @@ export default function C2CGoLiveSetup() {
             <h1 className="text-lg font-bold">Configurar Live</h1>
           </div>
         </div>
-        {muxInfo ? (
-          <Button
-            onClick={handleGoLive}
-            disabled={goLive.isPending}
-            className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
-          >
-            {goLive.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-            )}
-            Ir ao Vivo
-          </Button>
-        ) : (
-          <Button
-            onClick={handleCreateStream}
-            disabled={!title.trim() || isLoading}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold px-6"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Radio className="h-4 w-4" />
-            )}
-            Preparar Stream
-          </Button>
-        )}
+        <Button
+          onClick={handleGoLive}
+          disabled={!title.trim() || !cameraOn || isLoading || whip.status === "connecting"}
+          className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
+        >
+          {(isLoading || whip.status === "connecting") ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+          )}
+          Ir ao Vivo
+        </Button>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
@@ -541,41 +526,29 @@ export default function C2CGoLiveSetup() {
                   <span className="font-medium">{selectedProductIds.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Stream Mux</span>
-                  <Badge variant={muxInfo ? "default" : "secondary"} className="text-[10px]">
-                    {muxInfo ? "Pronto" : "Não criado"}
+                  <span className="text-muted-foreground">Câmara</span>
+                  <Badge variant={cameraOn ? "default" : "secondary"} className="text-[10px]">
+                    {cameraOn ? "Ligada" : "Desligada"}
                   </Badge>
                 </div>
               </div>
 
-              {muxInfo ? (
-                <Button
-                  onClick={handleGoLive}
-                  disabled={goLive.isPending}
-                  className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white gap-2 font-bold"
-                  size="lg"
-                >
-                  {goLive.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-                  )}
-                  Ir ao Vivo Agora
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleCreateStream}
-                  disabled={!title.trim() || isLoading}
-                  className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Radio className="h-4 w-4" />
-                  )}
-                  Preparar Stream
-                </Button>
+              <Button
+                onClick={handleGoLive}
+                disabled={!title.trim() || !cameraOn || isLoading || whip.status === "connecting"}
+                className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white gap-2 font-bold"
+                size="lg"
+              >
+                {(isLoading || whip.status === "connecting") ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                )}
+                Ir ao Vivo Agora
+              </Button>
+
+              {whip.error && (
+                <p className="text-xs text-destructive mt-2 text-center">{whip.error}</p>
               )}
             </Card>
           </div>
