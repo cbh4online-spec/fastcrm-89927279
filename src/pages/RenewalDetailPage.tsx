@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useRenewalContract, useRenewalItems, useUpdateRenewalContract, useConfirmRenewal } from "@/hooks/useRenewals";
+import { useRenewalDiscounts } from "@/hooks/useRenewalDiscounts";
 import { useRenewalEvents } from "@/hooks/useRenewalEvents";
 import { useRenewalUsage } from "@/hooks/useRenewalUsage";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -34,6 +35,7 @@ import { RenewalAlertSettings } from "@/components/renewals/RenewalAlertSettings
 import { RenewalBillingTab } from "@/components/renewals/RenewalBillingTab";
 import { EditRenewalContractDialog } from "@/components/renewals/EditRenewalContractDialog";
 import { ComposeEmailDialog } from "@/components/email";
+import { RenewalDiscountsSection } from "@/components/renewals/RenewalDiscountsSection";
 
 export default function RenewalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +44,7 @@ export default function RenewalDetailPage() {
   const { data: contract, isLoading } = useRenewalContract(id);
   const { data: items = [] } = useRenewalItems(id);
   const { data: events = [] } = useRenewalEvents(id);
+  const { data: discounts = [] } = useRenewalDiscounts(id);
   const { data: usage = [] } = useRenewalUsage(id);
   const updateContract = useUpdateRenewalContract();
   const confirmRenewal = useConfirmRenewal();
@@ -59,13 +62,35 @@ export default function RenewalDetailPage() {
   const kpis = useMemo(() => {
     if (!contract) return null;
 
-    // Fallback: se total_mrr for 0, calcular a partir dos itens ativos
+    // Valor base dos itens ativos
+    const itemsBaseValue = items
+      .filter(i => i.status === 'active' || i.status === 'pending_renewal')
+      .reduce((s, i) => s + Number(i.unit_price) * Number(i.qty), 0);
+
+    // Fallback: se total_mrr for 0, usar itens
     const storedValue = Number(contract.total_mrr || 0);
-    const contractValue = storedValue > 0
-      ? storedValue
-      : items
-          .filter(i => i.status === 'active' || i.status === 'pending_renewal')
-          .reduce((s, i) => s + Number(i.unit_price) * Number(i.qty), 0);
+    const contractValue = storedValue > 0 ? storedValue : itemsBaseValue;
+
+    // Calcular descontos ativos para mostrar valor base vs efetivo
+    const today = new Date().toISOString().split("T")[0];
+    const activeDiscounts = discounts.filter(d => {
+      if (!d.is_active) return false;
+      if (d.start_date > today) return false;
+      if (d.end_date && d.end_date < today) return false;
+      if (d.max_cycles && d.cycles_used >= d.max_cycles) return false;
+      return true;
+    });
+
+    const totalPctDiscount = activeDiscounts
+      .filter(d => d.discount_type === 'percentage')
+      .reduce((s, d) => s + Number(d.discount_value), 0);
+    const totalFixedDiscount = activeDiscounts
+      .filter(d => d.discount_type === 'fixed_amount')
+      .reduce((s, d) => s + Number(d.discount_value), 0);
+
+    const hasActiveDiscounts = activeDiscounts.length > 0;
+    const baseValue = itemsBaseValue;
+    // contractValue from DB already includes discounts via trigger
 
     const mrr = calculateRealMRR(contractValue, contract.renewal_interval, contract.start_date, contract.next_renewal_date);
     const arr = mrr * 12;
@@ -104,10 +129,11 @@ export default function RenewalDetailPage() {
 
     return {
       mrr, arr, lifetimeMonths, ltv, daysUntilRenewal, isProjected,
-      contractValue, renewalCount, totalItemsValue, activeItems, overdueItems,
+      contractValue, baseValue, hasActiveDiscounts,
+      renewalCount, totalItemsValue, activeItems, overdueItems,
       totalUsage, paymentEvents: paymentEvents.length, invoiceEvents: invoiceEvents.length,
     };
-  }, [contract, events, items, usage]);
+  }, [contract, events, items, usage, discounts]);
 
   if (isLoading) {
     return (
