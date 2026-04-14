@@ -50,7 +50,7 @@ serve(async (req) => {
 
     // Load contract
     const { data: contract, error: contractErr } = await db.from("renewal_contracts")
-      .select("id, workspace_id, company_id, contact_id, total_mrr, currency, owner_user_id, renewal_interval, next_renewal_date")
+      .select("id, workspace_id, company_id, contact_id, total_mrr, currency, owner_user_id, renewal_interval, next_renewal_date, payment_terms_days")
       .eq("id", contract_id)
       .eq("workspace_id", workspace_id)
       .maybeSingle();
@@ -73,6 +73,9 @@ serve(async (req) => {
 
     // Generate invoice number
     const now = new Date().toISOString();
+    const issueDate = now.split("T")[0];
+    const dueDate = new Date(`${issueDate}T00:00:00.000Z`);
+    dueDate.setUTCDate(dueDate.getUTCDate() + Math.max(0, Number(contract.payment_terms_days || 0)));
     const dateStr = now.split("T")[0].replace(/-/g, "");
     const { count } = await db.from("invoices")
       .select("id", { count: "exact", head: true })
@@ -106,16 +109,19 @@ serve(async (req) => {
       contact_id: contract.contact_id,
       renewal_contract_id: contract_id,
       created_by: userId,
-      status: "paid",
-      paid_at: now,
-      issue_date: now.split("T")[0],
-      due_date: now.split("T")[0],
+      status: "sent",
+      sent_at: now,
+      paid_at: null,
+      issue_date: issueDate,
+      due_date: dueDate.toISOString().split("T")[0],
       subtotal: invoiceTotal,
+      tax_rate: 23,
       tax_amount: 0,
+      discount_amount: 0,
       total: invoiceTotal,
-      amount_paid: invoiceTotal,
+      amount_paid: 0,
       currency: contract.currency || "EUR",
-      notes: `Renovação confirmada manualmente por utilizador.`,
+      notes: "Renovação confirmada manualmente por utilizador. A aguardar pagamento.",
     }).select("id").maybeSingle();
 
     if (invoiceErr) {
@@ -132,6 +138,8 @@ serve(async (req) => {
         description: item.name,
         quantity: item.qty || 1,
         unit_price: Number(item.unit_price) || 0,
+        discount_percent: 0,
+        tax_rate: 23,
         total: (item.qty || 1) * (Number(item.unit_price) || 0),
         product_id: item.product_id,
         position: idx + 1,
