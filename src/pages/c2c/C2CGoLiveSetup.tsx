@@ -48,6 +48,7 @@ export default function C2CGoLiveSetup() {
   const { user } = useAuth();
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
+  const createMuxStream = useCreateMuxStream();
   const { data: myListings = [] } = useMyC2CListings(currentWorkspace?.id);
   const activeListings = myListings.filter((l) => l.status === "active");
 
