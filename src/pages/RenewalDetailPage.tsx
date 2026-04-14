@@ -17,16 +17,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, CreditCard, Activity, Mail, CheckCircle2 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import {
+  ArrowLeft, Pause, XCircle, RefreshCw, Plus, Clock, CreditCard, Activity,
+  Mail, CheckCircle2, Pencil, TrendingUp, CalendarClock, BarChart3, DollarSign,
+  ShieldCheck, AlertTriangle,
+} from "lucide-react";
+import { format, formatDistanceToNow, differenceInDays, differenceInMonths } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { LogUsageDialog } from "@/components/renewals/LogUsageDialog";
 import { CreateRenewalItemDialog } from "@/components/renewals/CreateRenewalItemDialog";
 import { RenewalAISuggestions } from "@/components/renewals/RenewalAISuggestions";
 import { RenewalPaymentDialog } from "@/components/renewals/RenewalPaymentDialog";
 import { RenewalAlertSettings } from "@/components/renewals/RenewalAlertSettings";
 import { RenewalBillingTab } from "@/components/renewals/RenewalBillingTab";
+import { EditRenewalContractDialog } from "@/components/renewals/EditRenewalContractDialog";
 import { ComposeEmailDialog } from "@/components/email";
 
 export default function RenewalDetailPage() {
@@ -43,10 +48,55 @@ export default function RenewalDetailPage() {
   const [showAddItem, setShowAddItem] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(val);
+  const formatCurrency = (val: number, cur?: string) =>
+    new Intl.NumberFormat("pt-PT", { style: "currency", currency: cur || "EUR" }).format(val);
+
+  // --- Advanced KPIs ---
+  const kpis = useMemo(() => {
+    if (!contract) return null;
+
+    const mrr = Number(contract.total_mrr || 0);
+    const arr = mrr * 12;
+
+    // Contract lifetime in months
+    const lifetimeMonths = differenceInMonths(new Date(), new Date(contract.start_date));
+
+    // Estimated LTV (MRR × lifetime so far)
+    const ltv = mrr * Math.max(lifetimeMonths, 1);
+
+    // Days until next renewal
+    const daysUntilRenewal = contract.next_renewal_date
+      ? differenceInDays(new Date(contract.next_renewal_date), new Date())
+      : null;
+
+    // Renewal events count
+    const renewalCount = events.filter((e) => e.event_type === "renewed" || e.event_type === "payment_received").length;
+
+    // Payment events for average payment time
+    const paymentEvents = events.filter((e) => e.event_type === "payment_received");
+    const invoiceEvents = events.filter((e) => e.event_type === "invoice_sent");
+
+    // Total items value
+    const totalItemsValue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.qty), 0);
+
+    // Active items ratio
+    const activeItems = items.filter((i) => i.status === "active").length;
+
+    // Overdue items
+    const overdueItems = items.filter((i) => i.status === "overdue").length;
+
+    // Usage total
+    const totalUsage = usage.reduce((s, u) => s + Number(u.amount), 0);
+
+    return {
+      mrr, arr, lifetimeMonths, ltv, daysUntilRenewal,
+      renewalCount, totalItemsValue, activeItems, overdueItems,
+      totalUsage, paymentEvents: paymentEvents.length, invoiceEvents: invoiceEvents.length,
+    };
+  }, [contract, events, items, usage]);
 
   if (isLoading) {
     return (
@@ -110,6 +160,9 @@ export default function RenewalDetailPage() {
                 <Badge variant="outline" className="text-xs">
                   {RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}
                 </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {RENEWAL_BILLING_LABELS[contract.billing_type]}
+                </Badge>
                 {contract.auto_renew && (
                   <Badge variant="outline" className="text-xs"><RefreshCw className="h-3 w-3 mr-1" /> Auto-renew</Badge>
                 )}
@@ -117,6 +170,9 @@ export default function RenewalDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
+              <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowPaymentDialog(true)}>
               <CreditCard className="mr-1 h-3.5 w-3.5" /> Link Pagamento
             </Button>
@@ -163,34 +219,112 @@ export default function RenewalDetailPage() {
             <TabsTrigger value="timeline">Timeline ({events.length})</TabsTrigger>
           </TabsList>
 
-          {/* Overview */}
+          {/* Overview with enhanced KPIs */}
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4">
+            {/* Row 1: Core financial KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Health Score</CardTitle></CardHeader>
-                <CardContent>
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground font-medium">MRR</p>
+                  </div>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.mrr || 0, contract.currency)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground font-medium">ARR</p>
+                  </div>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.arr || 0, contract.currency)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground font-medium">LTV Estimado</p>
+                  </div>
+                  <p className="text-2xl font-bold">{formatCurrency(kpis?.ltv || 0, contract.currency)}</p>
+                  <p className="text-[10px] text-muted-foreground">{kpis?.lifetimeMonths || 0} meses de contrato</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground font-medium">Health Score</p>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <div className={`text-3xl font-bold ${getHealthScoreColor(contract.health_score)}`}>
+                    <span className={`text-2xl font-bold ${getHealthScoreColor(contract.health_score)}`}>
                       {contract.health_score}
-                    </div>
-                    <Progress value={contract.health_score} className="flex-1 h-3" />
+                    </span>
+                    <Progress value={contract.health_score} className="flex-1 h-2.5" />
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Row 2: Operational KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">MRR</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{formatCurrency(Number(contract.total_mrr || 0))}</p>
+                <CardContent className="py-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Próxima Renovação</p>
+                  {kpis?.daysUntilRenewal !== null && kpis?.daysUntilRenewal !== undefined ? (
+                    <>
+                      <p className="text-lg font-bold mt-0.5">
+                        {contract.next_renewal_date
+                          ? format(new Date(contract.next_renewal_date), "dd MMM yyyy", { locale: pt })
+                          : "—"}
+                      </p>
+                      <p className={`text-xs font-medium ${kpis.daysUntilRenewal <= 7 ? "text-red-600" : kpis.daysUntilRenewal <= 30 ? "text-amber-600" : "text-muted-foreground"}`}>
+                        {kpis.daysUntilRenewal < 0
+                          ? `${Math.abs(kpis.daysUntilRenewal)} dias em atraso`
+                          : kpis.daysUntilRenewal === 0
+                            ? "Hoje"
+                            : `Em ${kpis.daysUntilRenewal} dias`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-lg font-bold mt-0.5">—</p>
+                  )}
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Próxima Renovação</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-lg font-medium">
-                    {contract.next_renewal_date
-                      ? format(new Date(contract.next_renewal_date), "dd MMM yyyy", { locale: pt })
-                      : "—"}
+                <CardContent className="py-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Renovações</p>
+                  <p className="text-lg font-bold mt-0.5">{kpis?.renewalCount || 0}</p>
+                  <p className="text-xs text-muted-foreground">confirmadas</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Itens Ativos</p>
+                  <p className="text-lg font-bold mt-0.5">
+                    {kpis?.activeItems || 0}
+                    <span className="text-muted-foreground font-normal text-sm">/{items.length}</span>
                   </p>
+                  {(kpis?.overdueItems || 0) > 0 && (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {kpis?.overdueItems} em atraso
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Valor dos Itens</p>
+                  <p className="text-lg font-bold mt-0.5">{formatCurrency(kpis?.totalItemsValue || 0, contract.currency)}</p>
+                  <p className="text-xs text-muted-foreground">recorrente</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-3">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Consumo Total</p>
+                  <p className="text-lg font-bold mt-0.5">{kpis?.totalUsage || 0}</p>
+                  <p className="text-xs text-muted-foreground">{usage.length} registos</p>
                 </CardContent>
               </Card>
             </div>
@@ -198,15 +332,27 @@ export default function RenewalDetailPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <Card>
-                  <CardHeader className="pb-2"><CardTitle className="text-sm">Detalhes</CardTitle></CardHeader>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">Detalhes do Contrato</CardTitle>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowEditDialog(true)}>
+                        <Pencil className="h-3 w-3 mr-1" /> Editar
+                      </Button>
+                    </div>
+                  </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{companyName || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contactName || "—"}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Billing</span><span>{RENEWAL_BILLING_LABELS[contract.billing_type]}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Periodicidade</span><span>{RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span>{format(new Date(contract.start_date), "dd/MM/yyyy")}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Moeda</span><span>{contract.currency}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Auto-renew</span><span>{contract.auto_renew ? "Sim" : "Não"}</span></div>
                     {contract.payment_terms_days && (
                       <div className="flex justify-between"><span className="text-muted-foreground">Prazo Pagamento</span><span>{contract.payment_terms_days} dias</span></div>
+                    )}
+                    {contract.dunning_attempts > 0 && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">Dunning</span><span className="text-red-600 font-medium">{contract.dunning_attempts} tentativas</span></div>
                     )}
                   </CardContent>
                 </Card>
@@ -283,7 +429,7 @@ export default function RenewalDetailPage() {
                             <TableCell><Badge variant="outline" className="text-xs">{RENEWAL_ITEM_TYPE_LABELS[item.item_type]}</Badge></TableCell>
                             <TableCell className="text-xs">{PRICING_MODEL_LABELS[item.pricing_model]}</TableCell>
                             <TableCell className="text-right">{Number(item.qty)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(Number(item.unit_price), contract.currency)}</TableCell>
                             <TableCell>
                               {item.next_renewal_date
                                 ? format(new Date(item.next_renewal_date), "dd/MM/yyyy")
@@ -405,6 +551,13 @@ export default function RenewalDetailPage() {
             contract={contract}
             items={items}
             onPaymentCreated={(url) => openEmailWithPaymentLink(url)}
+          />
+        )}
+        {showEditDialog && (
+          <EditRenewalContractDialog
+            open={showEditDialog}
+            onOpenChange={setShowEditDialog}
+            contract={contract}
           />
         )}
         {showEmailDialog && contactEmail && (
