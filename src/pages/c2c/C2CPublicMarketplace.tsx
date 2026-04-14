@@ -24,7 +24,7 @@ import { getTrendingScore } from "@/hooks/useMarketplaceAnalytics";
 import {
   Store, Search, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft,
   ShieldCheck, Truck, Award, MessageCircle, Plus, Users, ArrowRight,
-  DollarSign, Eye, Zap, Star,
+  DollarSign, Eye, Zap, Star, Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
@@ -645,6 +645,7 @@ export default function C2CPublicMarketplace() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [showListings, setShowListings] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(20);
 
   usePublicMarketplaceTheme();
@@ -652,6 +653,7 @@ export default function C2CPublicMarketplace() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session?.user);
+      setAuthUserId(session?.user?.id ?? null);
     });
   }, []);
 
@@ -662,6 +664,23 @@ export default function C2CPublicMarketplace() {
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
+
+  // Check if authenticated user is an approved seller in this workspace
+  const { data: approvedSeller } = useQuery({
+    queryKey: ["c2c-is-approved-seller-public", workspaceId, authUserId],
+    enabled: !!workspaceId && !!authUserId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("c2c_sellers")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", authUserId!)
+        .eq("status", "approved")
+        .maybeSingle();
+      return data as { id: string } | null;
+    },
+  });
+  const isSeller = !!approvedSeller;
 
   const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
   const ogTitle = `${marketplaceName} — Marketplace C2C`;
@@ -763,6 +782,12 @@ export default function C2CPublicMarketplace() {
               <Button variant="outline" size="sm" className="rounded-full hidden lg:flex border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
+              {isSeller && (
+                <Button size="sm" className="gap-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white border-0" onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}>
+                  <Radio className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Ir ao Vivo</span>
+                </Button>
+              )}
               <Button size="sm" className="gap-1 rounded-full bg-[#09B1BA] hover:bg-[#078E96] text-white border-0" onClick={handleSell}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Vender</span>
