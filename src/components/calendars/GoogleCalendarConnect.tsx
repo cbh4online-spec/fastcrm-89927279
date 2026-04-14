@@ -131,8 +131,8 @@ export function GoogleCalendarConnect({ calendarId, className }: GoogleCalendarC
         <span className="text-xs font-medium text-foreground">Google Calendar</span>
       </div>
 
-      {/* Show OAuth button when tokens are missing */}
-      {needsOAuth && showSelector && (
+      {/* Show OAuth button when tokens are missing or scopes insufficient */}
+      {needsOAuth && (
         <div className="space-y-2">
           <p className="text-[10px] text-muted-foreground">
             Precisa autorizar o acesso ao Google Calendar.
