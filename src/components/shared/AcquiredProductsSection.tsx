@@ -455,14 +455,16 @@ function ProductRow({
 // Component to display products from invoices
 function InvoiceProductRow({ product }: { product: InvoiceProduct }) {
   const statusLabels: Record<string, string> = {
-    sent: 'Enviado',
+    sent: 'Emitida',
     paid: 'Pago',
+    partially_paid: 'Parcialmente pago',
     overdue: 'Vencido',
   };
   
   const statusColors: Record<string, string> = {
     sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
     paid: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    partially_paid: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
     overdue: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   };
 
@@ -481,14 +483,17 @@ function InvoiceProductRow({ product }: { product: InvoiceProduct }) {
           </Badge>
         </div>
 
-        {/* Quantity info */}
         <div className="text-sm text-muted-foreground">
           {product.quantity > 1 && <span>{product.quantity}x </span>}
           {product.unit_price > 0 && <span>{product.unit_price.toFixed(2)}€/un</span>}
+          {product.contact_name && (
+            <p className="mt-1 text-xs">
+              Contacto adjudicante: <span className="font-medium text-foreground">{product.contact_name}</span>
+            </p>
+          )}
         </div>
 
-        {/* Metadata */}
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-muted-foreground">
           {product.invoice_date && (
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
@@ -501,7 +506,7 @@ function InvoiceProductRow({ product }: { product: InvoiceProduct }) {
           </span>
           <span className="flex items-center gap-1">
             <FileText className="h-3 w-3" />
-            Fatura
+            {product.invoice_number || 'Fatura'}
           </span>
           {product.product?.category && (
             <Badge variant="outline" className="text-xs">
