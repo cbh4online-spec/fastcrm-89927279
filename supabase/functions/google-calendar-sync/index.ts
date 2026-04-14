@@ -263,18 +263,30 @@ Deno.serve(async (req: Request) => {
 
     // ── LIST CALENDARS ──
     if (action === "list_calendars") {
-      const calendars = await listGoogleCalendars(accessToken);
-      return new Response(
-        JSON.stringify({
-          calendars: calendars.map((c: any) => ({
-            id: c.id,
-            summary: c.summary,
-            primary: c.primary || false,
-            backgroundColor: c.backgroundColor,
-          })),
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      try {
+        const calendars = await listGoogleCalendars(accessToken);
+        return new Response(
+          JSON.stringify({
+            calendars: calendars.map((c: any) => ({
+              id: c.id,
+              summary: c.summary,
+              primary: c.primary || false,
+              backgroundColor: c.backgroundColor,
+            })),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err) {
+        if (err.message === "NEEDS_REAUTH") {
+          // Tokens exist but scopes are insufficient — need re-authorization
+          console.log("Tokens have insufficient scopes, requesting re-auth");
+          return new Response(
+            JSON.stringify({ error: "needs_oauth", needs_oauth: true }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw err;
+      }
     }
 
     // ── CONNECT calendar ──
