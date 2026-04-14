@@ -59,16 +59,24 @@ export default function RenewalDetailPage() {
   const kpis = useMemo(() => {
     if (!contract) return null;
 
-    // total_mrr stores the periodic value — convert to real monthly MRR
-    const contractValue = Number(contract.total_mrr || 0);
+    // Fallback: se total_mrr for 0, calcular a partir dos itens ativos
+    const storedValue = Number(contract.total_mrr || 0);
+    const contractValue = storedValue > 0
+      ? storedValue
+      : items
+          .filter(i => i.status === 'active' || i.status === 'pending_renewal')
+          .reduce((s, i) => s + Number(i.unit_price) * Number(i.qty), 0);
+
     const mrr = calculateRealMRR(contractValue, contract.renewal_interval, contract.start_date, contract.next_renewal_date);
     const arr = mrr * 12;
 
     // Contract lifetime in months
     const lifetimeMonths = differenceInMonths(new Date(), new Date(contract.start_date));
 
-    // Estimated LTV (MRR × lifetime so far)
-    const ltv = mrr * Math.max(lifetimeMonths, 1);
+    // LTV: projeção mínima de 1 ciclo contratual quando contrato ainda não iniciou
+    const effectiveMonths = getEffectiveIntervalMonths(contract.renewal_interval, contract.start_date, contract.next_renewal_date);
+    const isProjected = lifetimeMonths < 1;
+    const ltv = isProjected ? contractValue : mrr * lifetimeMonths;
 
     // Days until next renewal
     const daysUntilRenewal = contract.next_renewal_date
