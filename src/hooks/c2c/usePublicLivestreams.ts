@@ -41,13 +41,13 @@ export function usePublicLivestreamById(id?: string) {
 
       const { data: profile } = await sb
         .from("profiles")
-        .select("id, display_name, avatar_url")
+        .select("id, full_name, avatar_url")
         .eq("id", data.seller_id)
         .maybeSingle();
 
       return {
         ...data,
-        seller_name: profile?.display_name || "Vendedor",
+        seller_name: profile?.full_name || "Vendedor",
         seller_avatar: profile?.avatar_url || null,
       } as PublicLivestream;
     },
@@ -76,7 +76,7 @@ export function usePublicLivestreams(workspaceId?: string) {
       const sellerIds = [...new Set(lives.map((l: any) => l.seller_id))];
       const { data: profiles } = await sb
         .from("profiles")
-        .select("id, display_name, avatar_url")
+        .select("id, full_name, avatar_url")
         .in("id", sellerIds);
 
       const profileMap = new Map<string, any>(
@@ -85,7 +85,7 @@ export function usePublicLivestreams(workspaceId?: string) {
 
       return lives.map((l: any) => ({
         ...l,
-        seller_name: profileMap.get(l.seller_id)?.display_name || "Vendedor",
+        seller_name: profileMap.get(l.seller_id)?.full_name || "Vendedor",
         seller_avatar: profileMap.get(l.seller_id)?.avatar_url || null,
       })) as PublicLivestream[];
     },
