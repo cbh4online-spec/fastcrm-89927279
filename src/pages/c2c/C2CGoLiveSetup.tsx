@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ export default function C2CGoLiveSetup() {
   const [replayEnabled, setReplayEnabled] = useState(true);
 
   // Camera state
-  // videoRef no longer needed — callback ref used directly in JSX
+  // Camera state
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
