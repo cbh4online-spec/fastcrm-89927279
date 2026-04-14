@@ -85,7 +85,7 @@ export default function C2CPublicLivestreamViewer() {
     if (!id) return;
     try {
       camera.stopCamera();
-      await endLivestream.mutateAsync(id);
+      await endLive.mutateAsync(id);
       toast.success("Live terminada");
       navigate(`/marketplace/${workspaceSlug}/lives`);
     } catch {
@@ -155,7 +155,7 @@ export default function C2CPublicLivestreamViewer() {
             size="sm"
             variant="destructive"
             onClick={handleEndLive}
-            disabled={endLivestream.isPending}
+            disabled={endLive.isPending}
             className="gap-1.5"
           >
             <PhoneOff className="h-4 w-4" />
