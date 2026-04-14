@@ -15,7 +15,8 @@ import { DEMO_LIVESTREAMS } from "@/data/c2c/demoLivestreams";
 export default function C2CLivestreams() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
-  const { data: lives = [], isLoading } = useLivestreams(currentWorkspace?.id);
+  const { data: dbLives = [], isLoading } = useLivestreams(currentWorkspace?.id);
+  const lives = dbLives.length > 0 ? dbLives : DEMO_LIVESTREAMS;
   const [showGoLive, setShowGoLive] = useState(false);
 
   const livesNow = lives.filter((l) => l.status === "live");
