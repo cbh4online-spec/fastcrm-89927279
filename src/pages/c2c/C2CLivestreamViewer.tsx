@@ -12,6 +12,10 @@ import {
   Share2,
   Copy,
   ExternalLink,
+  Camera,
+  CameraOff,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +28,7 @@ import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFe
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
+import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +36,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { cn } from "@/lib/utils";
 export default function C2CLivestreamViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -43,8 +48,14 @@ export default function C2CLivestreamViewer() {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  const isOwner = userId && live?.seller_id === userId;
+  const isOwner = !!(userId && live?.seller_id === userId);
   const isLive = live?.status === "live";
+
+  // Owner gets local camera when live
+  const { stream: ownerStream, cameraOn, micOn, startCamera, stopCamera, toggleMic, cameraError } = useCameraStream({
+    enabled: isOwner && isLive,
+    audio: true,
+  });
 
   const handleEndLive = async () => {
     if (!live?.id) return;
@@ -161,6 +172,7 @@ export default function C2CLivestreamViewer() {
                 title={live.title}
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
+                stream={isOwner ? ownerStream : undefined}
               />
             </div>
 
@@ -205,6 +217,34 @@ export default function C2CLivestreamViewer() {
               </div>
             )}
           </div>
+
+          {/* Owner camera controls */}
+          {isOwner && isLive && (
+            <div className="bg-gray-900 border-t border-white/10 px-4 py-2 flex items-center justify-center gap-2">
+              <Button
+                variant={cameraOn ? "default" : "outline"}
+                size="sm"
+                onClick={cameraOn ? stopCamera : startCamera}
+                className={cn("gap-2 text-xs", cameraOn && "bg-primary")}
+              >
+                {cameraOn ? <Camera className="h-3.5 w-3.5" /> : <CameraOff className="h-3.5 w-3.5" />}
+                {cameraOn ? "Câmara" : "Câmara off"}
+              </Button>
+              <Button
+                variant={micOn ? "default" : "outline"}
+                size="sm"
+                onClick={toggleMic}
+                disabled={!cameraOn}
+                className={cn("gap-2 text-xs", micOn && cameraOn && "bg-primary")}
+              >
+                {micOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                {micOn ? "Mic" : "Mic off"}
+              </Button>
+              {cameraError && (
+                <span className="text-xs text-red-400 ml-2 truncate max-w-[200px]">{cameraError}</span>
+              )}
+            </div>
+          )}
 
           {/* Info bar */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
