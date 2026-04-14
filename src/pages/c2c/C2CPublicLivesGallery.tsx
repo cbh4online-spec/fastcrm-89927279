@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Radio, Calendar, Eye, Video, PlayCircle } from "lucide-react";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicLivestreams, type PublicLivestream } from "@/hooks/c2c/usePublicLivestreams";
+import { useIsApprovedSeller } from "@/hooks/c2c/useIsApprovedSeller";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,11 +15,12 @@ import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
-export default function C2CPublicLivesGallery() {
+function C2CPublicLivesGalleryInner() {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const navigate = useNavigate();
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const { data: lives = [], isLoading } = usePublicLivestreams(workspace?.id);
+  const { isSeller, isLoading: sellerLoading } = useIsApprovedSeller(workspace?.id);
 
   const livesNow = lives.filter((l) => l.status === "live");
   const scheduled = lives.filter((l) => l.status === "scheduled");
@@ -69,6 +74,18 @@ export default function C2CPublicLivesGallery() {
             <p className="text-white/70 mt-2 max-w-xl text-base">
               Assiste a lives de vendedores, descobre produtos em tempo real e interage no chat.
             </p>
+
+            {/* Go Live button for approved sellers */}
+            {!sellerLoading && isSeller && (
+              <Button
+                onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}
+                className="mt-4 bg-white text-red-600 hover:bg-white/90 font-bold gap-2 shadow-lg"
+                size="lg"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                Ir ao Vivo
+              </Button>
+            )}
           </motion.div>
 
           {livesNow.length > 0 && (
@@ -129,6 +146,14 @@ export default function C2CPublicLivesGallery() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function C2CPublicLivesGallery() {
+  return (
+    <AuthProvider>
+      <C2CPublicLivesGalleryInner />
+    </AuthProvider>
   );
 }
 

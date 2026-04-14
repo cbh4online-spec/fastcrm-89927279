@@ -6,12 +6,13 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
-import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store } from "lucide-react";
+import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store, Radio } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -81,6 +82,7 @@ function usePublicSellerReviews(sellerId: string | undefined) {
 export default function C2CPublicSellerProfile() {
   const { workspaceSlug, sellerId } = useParams<{ workspaceSlug: string; sellerId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
@@ -88,6 +90,7 @@ export default function C2CPublicSellerProfile() {
 
   const { data: seller, isLoading: sellerLoading } = usePublicSellerProfile(sellerId, workspaceId);
   const sellerUserId = seller?.user_id;
+  const isOwnProfile = !!user && !!sellerUserId && user.id === sellerUserId;
   const { data: listings = [] } = usePublicSellerListings(sellerUserId, workspaceId);
   const { data: reviewData } = usePublicSellerReviews(sellerId);
 
@@ -163,6 +166,20 @@ export default function C2CPublicSellerProfile() {
                 <p className="text-sm text-gray-500 mb-2">{seller.bio}</p>
               )}
               <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} variant="dark" />
+
+              {/* Go Live button for own profile */}
+              {isOwnProfile && (
+                <Button
+                  onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 mt-2"
+                  size="sm"
+                >
+                  <Radio className="h-4 w-4" />
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  Ir ao Vivo
+                </Button>
+              )}
+
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
