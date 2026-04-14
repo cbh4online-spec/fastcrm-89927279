@@ -282,6 +282,7 @@ export default function C2CLivestreamViewer() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    disabled={!liveUrl}
                     className="rounded-full text-white/60 hover:text-white hover:bg-white/10 gap-1.5"
                   >
                     <Share2 className="h-4 w-4" />
