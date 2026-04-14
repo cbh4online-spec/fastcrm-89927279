@@ -24,7 +24,7 @@ export default function C2CLivestreams() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
-      <div className="bg-gradient-to-br from-red-600 via-red-500 to-orange-500 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-red-600 via-amber-600 to-orange-500 relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-10"
           style={{
@@ -38,7 +38,7 @@ export default function C2CLivestreams() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <Badge className="bg-white/15 text-white border-0 mb-3 gap-1.5">
+            <Badge className="bg-amber-500/25 text-amber-100 border border-amber-400/30 mb-3 gap-1.5 backdrop-blur-sm">
               <Radio className="h-3 w-3" />
               LiveStreaming
             </Badge>

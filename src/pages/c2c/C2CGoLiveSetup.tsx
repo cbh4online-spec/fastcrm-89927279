@@ -135,13 +135,13 @@ export default function C2CGoLiveSetup() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card px-6 py-4 flex items-center justify-between">
+      <div className="border-b bg-gradient-to-r from-card via-card to-amber-500/5 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Radio className="h-5 w-5 text-red-500" />
+            <Radio className="h-5 w-5 text-amber-500" />
             <h1 className="text-lg font-bold">Configurar Live</h1>
           </div>
         </div>

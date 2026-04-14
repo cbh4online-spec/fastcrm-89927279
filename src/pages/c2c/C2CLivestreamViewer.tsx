@@ -24,6 +24,7 @@ import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFe
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
+import { LiveBadge } from "@/components/c2c/livestream/LiveBadge";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,10 +122,7 @@ export default function C2CLivestreamViewer() {
 
         <div className="flex items-center gap-2">
           {isLive && (
-            <Badge className="bg-red-600 text-white border-0 gap-1.5 animate-pulse">
-              <span className="w-2 h-2 bg-white rounded-full" />
-              AO VIVO
-            </Badge>
+            <LiveBadge size="md" />
           )}
           {live.status === "ended" && (
             <Badge variant="secondary">Terminada</Badge>
@@ -196,9 +194,10 @@ export default function C2CLivestreamViewer() {
 
             {/* Viewer count overlay */}
             {isLive && (
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-black/60 text-white border-0 gap-1.5 backdrop-blur-sm">
-                  <Eye className="h-3 w-3" />
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <LiveBadge size="sm" />
+                <Badge className="bg-black/60 text-white border-0 gap-1.5 backdrop-blur-sm border-amber-500/20">
+                  <Eye className="h-3 w-3 text-amber-400" />
                   {live.viewer_count} a ver
                 </Badge>
               </div>
