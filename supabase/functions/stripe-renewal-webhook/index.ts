@@ -225,6 +225,54 @@ serve(async (req) => {
           console.error("[RENEWAL-WEBHOOK] Failed to create invoice:", invoiceErr);
         }
 
+        // --- Notification for owner ---
+        try {
+          const notifyUserId = contract.owner_user_id;
+          if (notifyUserId) {
+            let companyName = "—";
+            if (contract.company_id) {
+              const { data: co } = await db.from("companies").select("name").eq("id", contract.company_id).maybeSingle();
+              if (co) companyName = co.name;
+            }
+            const amtFmt = new Intl.NumberFormat("pt-PT", { style: "currency", currency: contract.currency || "EUR" }).format((invoice.amount_paid || 0) / 100);
+            await db.from("notifications").insert({
+              workspace_id: contract.workspace_id,
+              user_id: notifyUserId,
+              type: "renewal",
+              title: `Pagamento recebido: ${companyName}`,
+              message: `Fatura Stripe ${invoice.number || invoice.id} — ${amtFmt}`,
+              link: `/dashboard/renewals/${contract.id}`,
+            });
+          }
+        } catch (notifErr) {
+          console.warn("[RENEWAL-WEBHOOK] Notification insert failed:", notifErr);
+        }
+
+        // --- Kernel event ---
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+            body: JSON.stringify({
+              workspace_id: contract.workspace_id,
+              type: "B2B.RENEWAL_PAYMENT_RECEIVED",
+              entity_kind: "renewal_contract",
+              entity_id: contract.id,
+              actor_type: "system",
+              source_module: "stripe-renewal-webhook",
+              schema_version: 1,
+              occurred_at: new Date().toISOString(),
+              payload: {
+                stripe_invoice_id: invoice.id,
+                amount: (invoice.amount_paid || 0) / 100,
+                currency: invoice.currency?.toUpperCase() || "EUR",
+              },
+            }),
+          });
+        } catch (kernelErr) {
+          console.warn("[RENEWAL-WEBHOOK] Kernel event failed:", kernelErr);
+        }
+
         console.log(`[RENEWAL-WEBHOOK] Payment recorded for contract ${contract.id}`);
         break;
       }
