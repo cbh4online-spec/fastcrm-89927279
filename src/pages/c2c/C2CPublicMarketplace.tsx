@@ -766,6 +766,7 @@ export default function C2CPublicMarketplace() {
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
+  const { data: publicLives = [] } = usePublicLivestreams(workspaceId);
 
   // Check if authenticated user is an approved seller in this workspace
   const { data: approvedSeller } = useQuery({
