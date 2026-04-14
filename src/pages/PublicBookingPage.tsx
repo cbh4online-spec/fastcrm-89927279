@@ -86,6 +86,7 @@ export default function PublicBookingPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
   const [existingEvents, setExistingEvents] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
