@@ -160,6 +160,7 @@ export default function C2CLivestreamViewer() {
                 isLive={isLive}
                 title={live.title}
                 sellerName={live.seller_name}
+                thumbnailUrl={live.thumbnail_url ?? undefined}
               />
             </div>
 

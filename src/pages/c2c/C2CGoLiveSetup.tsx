@@ -66,9 +66,24 @@ export default function C2CGoLiveSetup() {
 
   const isLoading = createLive.isPending || goLive.isPending;
 
+  const isInIframe = (() => {
+    try { return window.self !== window.top; } catch { return true; }
+  })();
+
   const startCamera = useCallback(async () => {
     try {
       setCameraError(null);
+
+      if (isInIframe) {
+        setCameraError("O preview do Lovable bloqueia a câmara por segurança. Publica a app para testar com câmara real.");
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("O teu browser não suporta acesso à câmara.");
+        return;
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 1280, height: 720 },
         audio: micOn,
@@ -78,11 +93,20 @@ export default function C2CGoLiveSetup() {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-    } catch {
-      setCameraError("Sem acesso à câmara. Verifica as permissões do browser.");
+    } catch (err: unknown) {
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotAllowedError") {
+        setCameraError("Permissão da câmara negada. Verifica as definições do browser e tenta novamente.");
+      } else if (name === "NotFoundError") {
+        setCameraError("Nenhuma câmara encontrada no dispositivo.");
+      } else if (name === "NotReadableError") {
+        setCameraError("Câmara em uso por outra aplicação. Fecha-a e tenta novamente.");
+      } else {
+        setCameraError("Não foi possível aceder à câmara. Verifica as permissões.");
+      }
       setCameraOn(false);
     }
-  }, [micOn]);
+  }, [micOn, isInIframe]);
 
   const stopCamera = useCallback(() => {
     stream?.getTracks().forEach((t) => t.stop());
