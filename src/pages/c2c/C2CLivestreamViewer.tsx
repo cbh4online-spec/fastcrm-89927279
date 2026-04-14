@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
+import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -123,42 +124,38 @@ export default function C2CLivestreamViewer() {
         {/* Video area */}
         <div className="flex-1 flex flex-col">
           {/* Video placeholder */}
-          <div className="flex-1 relative flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-            {isLive ? (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-center"
-              >
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-red-600/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
-                    <div className="w-20 h-20 rounded-full bg-red-600/40 flex items-center justify-center">
-                      <Radio className="h-10 w-10 text-red-400" />
-                    </div>
-                  </div>
+          <div className="flex-1 relative bg-black">
+            {/* Simulated video feed */}
+            <div className="absolute inset-0">
+              <SimulatedVideoFeed
+                isLive={isLive}
+                title={live.title}
+                sellerName={live.seller_name}
+              />
+            </div>
+
+            {/* Scheduled overlay */}
+            {live.status === "scheduled" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+                <div className="text-center">
+                  <Clock className="h-16 w-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/60">Esta live ainda não começou</p>
+                  {live.scheduled_at && (
+                    <p className="text-white/40 text-sm mt-2">
+                      Agendada para {formatDistanceToNow(new Date(live.scheduled_at), { addSuffix: true, locale: pt })}
+                    </p>
+                  )}
                 </div>
-                <p className="text-white/60 text-sm">Transmissão ao vivo</p>
-                <p className="text-white font-bold text-lg mt-1">{live.title}</p>
-                {live.started_at && (
-                  <p className="text-white/40 text-xs mt-2">
-                    Começou {formatDistanceToNow(new Date(live.started_at), { addSuffix: true, locale: pt })}
-                  </p>
-                )}
-              </motion.div>
-            ) : live.status === "scheduled" ? (
-              <div className="text-center">
-                <Clock className="h-16 w-16 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">Esta live ainda não começou</p>
-                {live.scheduled_at && (
-                  <p className="text-white/40 text-sm mt-2">
-                    Agendada para {formatDistanceToNow(new Date(live.scheduled_at), { addSuffix: true, locale: pt })}
-                  </p>
-                )}
               </div>
-            ) : (
-              <div className="text-center">
-                <Radio className="h-16 w-16 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">Esta live já terminou</p>
+            )}
+
+            {/* Ended overlay */}
+            {live.status === "ended" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10">
+                <div className="text-center">
+                  <Radio className="h-16 w-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/60">Esta live já terminou</p>
+                </div>
               </div>
             )}
 
