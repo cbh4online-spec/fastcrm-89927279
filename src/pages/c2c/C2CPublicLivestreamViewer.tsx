@@ -32,7 +32,7 @@ import { pt } from "date-fns/locale";
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
-  const { data: live, isLoading } = useLivestreamById(id);
+  const { data: live, isLoading } = usePublicLivestreamById(id);
 
   const isLive = live?.status === "live";
 
