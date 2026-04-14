@@ -127,6 +127,41 @@ export interface CreateRenewalItemInput {
   meta_json?: Record<string, unknown>;
 }
 
+// --- Discount types ---
+
+export type RenewalDiscountType = 'percentage' | 'fixed_amount';
+
+export interface RenewalDiscount {
+  id: string;
+  workspace_id: string;
+  contract_id: string;
+  renewal_item_id: string | null;
+  name: string;
+  discount_type: RenewalDiscountType;
+  discount_value: number;
+  start_date: string;
+  end_date: string | null;
+  max_cycles: number | null;
+  cycles_used: number;
+  is_active: boolean;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRenewalDiscountInput {
+  contract_id: string;
+  renewal_item_id?: string | null;
+  name: string;
+  discount_type?: RenewalDiscountType;
+  discount_value: number;
+  start_date: string;
+  end_date?: string | null;
+  max_cycles?: number | null;
+  notes?: string | null;
+}
+
 export interface LogUsageInput {
   contract_id: string;
   renewal_item_id: string;
