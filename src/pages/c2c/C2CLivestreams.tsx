@@ -92,6 +92,15 @@ export default function C2CLivestreams() {
               <Calendar className="h-4 w-4" />
               Agendadas
             </TabsTrigger>
+            <TabsTrigger value="ended" className="gap-1.5">
+              <PlayCircle className="h-4 w-4" />
+              Anteriores
+              {ended.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 ml-1">
+                  {ended.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">
@@ -102,6 +111,9 @@ export default function C2CLivestreams() {
           </TabsContent>
           <TabsContent value="scheduled">
             <LiveGrid lives={scheduled} isLoading={isLoading} emptyText="Nenhuma live agendada." />
+          </TabsContent>
+          <TabsContent value="ended">
+            <LiveGrid lives={ended} isLoading={isLoading} emptyText="Nenhuma gravação disponível ainda." />
           </TabsContent>
         </Tabs>
       </div>
