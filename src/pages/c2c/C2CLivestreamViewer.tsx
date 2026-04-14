@@ -76,7 +76,7 @@ export default function C2CLivestreamViewer() {
     : "";
 
   const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
-    if (!live) return;
+    if (!live || !liveUrl) return;
     const text = `🔴 ${live.seller_name || "Vendedor"} está em direto: ${live.title}`;
     switch (method) {
       case "copy":
