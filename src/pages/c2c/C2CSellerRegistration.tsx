@@ -120,7 +120,7 @@ export default function C2CSellerRegistration() {
 
   useEffect(() => {
     if (sellerProfile?.status === "approved") {
-      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
+      navigate(`/marketplace/${workspaceSlug}`, { replace: true });
     }
   }, [sellerProfile, workspaceSlug, navigate]);
 
