@@ -404,10 +404,7 @@ export function CompanyDetailWithSidebar() {
                     </div>
                   );
                 case 'fields':
-                  return (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Campos personalizados em desenvolvimento.
-                    </div>
+                  return <EntityCustomFieldsSection entityType="company" entityId={id!} />;
                   );
                 case 'audit':
                   return <CompanyAuditSection companyId={id!} />;

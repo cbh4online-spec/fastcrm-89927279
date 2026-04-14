@@ -445,10 +445,7 @@ export function ENIContactDetailWithSidebar() {
                     </div>
                   );
                 case 'fields':
-                  return (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Campos personalizados em desenvolvimento.
-                    </div>
+                  return <EntityCustomFieldsSection entityType="contact" entityId={id!} />;
                   );
                 case 'audit':
                   return <ContactAuditSection contactId={id!} />;
