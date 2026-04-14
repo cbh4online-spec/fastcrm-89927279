@@ -24,7 +24,7 @@ import { getTrendingScore } from "@/hooks/useMarketplaceAnalytics";
 import {
   Store, Search, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft,
   ShieldCheck, Truck, Award, MessageCircle, Plus, Users, ArrowRight,
-  DollarSign, Eye, Zap, Star,
+  DollarSign, Eye, Zap, Star, Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
