@@ -29,7 +29,6 @@ export default function C2CLivestreamViewer() {
   const { data: live, isLoading } = useLivestreamById(id);
   const endLive = useEndLive();
   const [userId, setUserId] = useState<string | null>(null);
-  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -46,11 +45,6 @@ export default function C2CLivestreamViewer() {
     } catch {
       toast.error("Erro ao terminar a live");
     }
-  };
-
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount((c) => (liked ? c - 1 : c + 1));
   };
 
   if (isLoading) {
