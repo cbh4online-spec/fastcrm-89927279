@@ -194,9 +194,10 @@ export default function C2CLivestreamViewer() {
 
             {/* Viewer count overlay */}
             {isLive && (
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-black/60 text-white border-0 gap-1.5 backdrop-blur-sm">
-                  <Eye className="h-3 w-3" />
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <LiveBadge size="sm" />
+                <Badge className="bg-black/60 text-white border-0 gap-1.5 backdrop-blur-sm border-amber-500/20">
+                  <Eye className="h-3 w-3 text-amber-400" />
                   {live.viewer_count} a ver
                 </Badge>
               </div>
