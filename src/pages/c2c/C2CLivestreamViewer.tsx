@@ -32,7 +32,6 @@ import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -45,20 +44,8 @@ export default function C2CLivestreamViewer() {
   const endLive = useEndLive();
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Fetch workspace slug for public share URL
-  const { data: workspaceSlug } = useQuery({
-    queryKey: ["workspace-slug-for-live", live?.workspace_id],
-    enabled: !!live?.workspace_id,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("workspaces")
-        .select("slug")
-        .eq("id", live!.workspace_id)
-        .maybeSingle();
-      return data?.slug as string | null;
-    },
-    staleTime: Infinity,
-  });
+  // workspace_slug is now denormalized on the livestream row
+  const workspaceSlug = (live as any)?.workspace_slug as string | undefined;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -83,14 +70,13 @@ export default function C2CLivestreamViewer() {
     }
   };
 
+  // Never share the dashboard URL — only the public marketplace URL
   const liveUrl = typeof window !== "undefined" && workspaceSlug
     ? `${window.location.origin}/marketplace/${workspaceSlug}/live/${id}`
-    : typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/marketplace/lives/${id}`
-      : "";
+    : "";
 
   const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
-    if (!live) return;
+    if (!live || !liveUrl) return;
     const text = `🔴 ${live.seller_name || "Vendedor"} está em direto: ${live.title}`;
     switch (method) {
       case "copy":
@@ -296,6 +282,7 @@ export default function C2CLivestreamViewer() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    disabled={!liveUrl}
                     className="rounded-full text-white/60 hover:text-white hover:bg-white/10 gap-1.5"
                   >
                     <Share2 className="h-4 w-4" />
