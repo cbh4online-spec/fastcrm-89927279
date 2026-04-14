@@ -13,6 +13,7 @@ interface Props {
   selectedSlot: string;
   durationMinutes: number;
   brandColor: string;
+  meetingUrl?: string | null;
 }
 
 function generateGoogleCalendarUrl(title: string, date: Date, time: string, durationMin: number) {
