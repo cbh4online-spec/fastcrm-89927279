@@ -93,6 +93,7 @@ import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSecti
 import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
+import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -406,6 +407,44 @@ export function CompanyDetailWithSidebar() {
       case 'support':
         return (
           <EntityTicketsSection entityType="company" entityId={id!} entityName={company.name} />
+        );
+      case 'financial':
+        return (
+          <div className="space-y-4">
+            <FinancialKPIStrip entityType="company" entityId={id!} />
+            <EntitySubTabs
+              tabs={[
+                { id: 'profile', label: 'Perfil' },
+                { id: 'payments', label: 'Pagamentos' },
+                { id: 'orders', label: 'Encomendas' },
+                { id: 'history', label: 'Histórico' },
+              ]}
+            >
+              {(tab) => {
+                switch (tab) {
+                  case 'profile':
+                    return <FinancialSection company={company} onFieldChange={handleFieldChange} />;
+                  case 'payments':
+                    return (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <AcquiredProductsSection companyId={id!} />
+                        <InvoiceHistorySection companyId={id!} />
+                      </div>
+                    );
+                  case 'orders':
+                    return <CompanyOrderNotesSection companyId={id!} />;
+                  case 'history':
+                    return (
+                      <div className="space-y-4">
+                        <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />
+                        <CompanyContactsHistory companyId={id!} />
+                      </div>
+                    );
+                  default: return null;
+                }
+              }}
+            </EntitySubTabs>
+          </div>
         );
       default:
         return (
