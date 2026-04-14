@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { CheckCircle2, CalendarPlus, Clock, User, Mail, ExternalLink, RefreshCw, MessageCircle } from 'lucide-react';
+import { CheckCircle2, CalendarPlus, Clock, User, Mail, ExternalLink, RefreshCw, MessageCircle, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
