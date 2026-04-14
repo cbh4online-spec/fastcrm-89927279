@@ -198,18 +198,33 @@ export default function C2CGoLiveSetup() {
             <h1 className="text-lg font-bold">Configurar Live</h1>
           </div>
         </div>
-        <Button
-          onClick={handleGoLive}
-          disabled={!title.trim() || isLoading}
-          className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-          )}
-          Ir ao Vivo
-        </Button>
+        {muxInfo ? (
+          <Button
+            onClick={handleGoLive}
+            disabled={goLive.isPending}
+            className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
+          >
+            {goLive.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+            )}
+            Ir ao Vivo
+          </Button>
+        ) : (
+          <Button
+            onClick={handleCreateStream}
+            disabled={!title.trim() || isLoading}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold px-6"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Radio className="h-4 w-4" />
+            )}
+            Preparar Stream
+          </Button>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
