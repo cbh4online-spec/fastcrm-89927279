@@ -250,6 +250,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // ══════════════════════════════════════════════════════════════
   e("c2c",              "Marketplace C2C", "/dashboard/c2c",                  Store,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-seller-area", "Área Vendedor",   "/dashboard/c2c/seller-area",      UserCog,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
+  e("c2c-lives",       "Lives",            "/dashboard/marketplace/lives",    Video,         "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-my-listings", "Meus Anúncios",   "/dashboard/c2c/my-listings",      Package,       "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-messages",    "Mensagens",        "/dashboard/c2c/messages",         MessageSquare, "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
   e("c2c-analytics",   "Analíticas",       "/dashboard/c2c/analytics",        BarChart3,     "marketplace-c2c", { moduleSlug: "marketplace-c2c" }),
