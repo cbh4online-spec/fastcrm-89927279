@@ -1,65 +1,85 @@
 
 
-# Diagnóstico: KPIs de Renovação (MRR, ARR, LTV) mostram 0,00€
+# Descontos e Promoções em Contratos de Renovação
 
-## Problema Identificado
+## Diagnóstico
 
-A base de dados tem `total_mrr = 127.00` e o item confirma 127€ × 1 = 127€. No entanto, o campo `total_mrr` é **estático** — preenchido manualmente ou na criação — e não existe nenhum trigger que o recalcule quando itens são adicionados, editados ou removidos. Isto significa que:
+O sistema de renovações não tem suporte para descontos temporários. A tabela `renewal_items` tem apenas `unit_price` e `qty` — sem campos de desconto, data de início/fim da promoção, ou histórico. Não é possível registar cenários como "50% durante 3 meses" sem alterar manualmente o preço (perdendo o valor original).
 
-1. **Deriva de dados**: Se os itens mudam, `total_mrr` fica desatualizado
-2. **LTV = 0**: O cálculo usa `differenceInMonths(hoje, start_date)`. Como `start_date = 21/04/2026` (futuro), resultado = 0 meses → LTV = MRR × 0 = 0
-3. **Sem fallback**: Se `total_mrr` for 0 por qualquer razão, os KPIs ficam todos a zero sem aviso
+## Solução: Tabela de Descontos por Contrato
 
-## Plano de Correção
+Criar uma tabela `renewal_discounts` que gere promoções temporárias ou permanentes, aplicadas ao contrato ou a itens específicos.
 
-### 1. Trigger de sincronização `total_mrr` (Migration)
-Criar trigger na tabela `renewal_items` (INSERT/UPDATE/DELETE) que recalcula automaticamente `total_mrr` no contrato pai:
+### 1. Migration — `renewal_discounts`
 
 ```sql
-CREATE OR REPLACE FUNCTION sync_renewal_contract_mrr()
-RETURNS trigger AS $$
-BEGIN
-  UPDATE renewal_contracts
-  SET total_mrr = COALESCE((
-    SELECT SUM(unit_price * qty)
-    FROM renewal_items
-    WHERE contract_id = COALESCE(NEW.contract_id, OLD.contract_id)
-      AND status IN ('active', 'pending_renewal')
-  ), 0),
-  updated_at = now()
-  WHERE id = COALESCE(NEW.contract_id, OLD.contract_id);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+CREATE TABLE public.renewal_discounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  contract_id uuid NOT NULL REFERENCES renewal_contracts(id) ON DELETE CASCADE,
+  renewal_item_id uuid REFERENCES renewal_items(id) ON DELETE CASCADE, -- NULL = aplica ao contrato todo
+  name text NOT NULL,                    -- ex: "Desconto Onboarding 50%"
+  discount_type text NOT NULL DEFAULT 'percentage', -- 'percentage' | 'fixed_amount'
+  discount_value numeric(12,2) NOT NULL, -- 50 (%) ou 63.50 (€)
+  start_date date NOT NULL,
+  end_date date,                         -- NULL = permanente
+  max_cycles integer,                    -- ex: 3 (aplica-se a 3 ciclos de faturação)
+  cycles_used integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  notes text,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 ```
 
-### 2. Corrigir cálculo de LTV no frontend
-**Ficheiro**: `src/pages/RenewalDetailPage.tsx`
+- RLS com `is_workspace_member` + `is_super_admin`
+- Índices em `contract_id` e `is_active`
 
-- Quando `lifetimeMonths = 0` (contrato não iniciou ou acabou de iniciar), usar o intervalo contratual como projeção mínima em vez de multiplicar por 0
-- Mostrar label distinta: "LTV Projetado" quando contrato é recente
+### 2. Atualizar trigger `sync_renewal_contract_mrr`
 
-### 3. Fallback: calcular MRR a partir dos itens
-Se `total_mrr` do contrato for 0 mas existirem itens ativos, calcular o valor a partir dos itens carregados. Isto serve como rede de segurança até o trigger sincronizar.
+O trigger deve considerar descontos ativos ao calcular o `total_mrr`:
+- Somar descontos percentuais e fixos ativos (onde `is_active = true` AND `(end_date IS NULL OR end_date >= CURRENT_DATE)` AND `(max_cycles IS NULL OR cycles_used < max_cycles)`)
+- Aplicar ao valor base dos itens
 
-**Ficheiro**: `src/pages/RenewalDetailPage.tsx`
+### 3. UI — Separador/Secção "Descontos" no detalhe do contrato
 
-```typescript
-const contractValue = Number(contract.total_mrr || 0) || 
-  items.filter(i => i.status === 'active' || i.status === 'pending_renewal')
-       .reduce((s, i) => s + Number(i.unit_price) * Number(i.qty), 0);
-```
+Na `RenewalDetailPage.tsx`, adicionar:
+- Listagem de descontos ativos e expirados com badges visuais
+- Botão "Adicionar Desconto" que abre dialog com:
+  - Nome da promoção
+  - Tipo: Percentagem ou Valor Fixo
+  - Valor do desconto
+  - Item específico (opcional) ou contrato todo
+  - Data início / Data fim (opcional)
+  - Nº máximo de ciclos (opcional)
+  - Notas
+- Indicador visual no KPI de MRR mostrando valor original vs. valor com desconto
 
-### Ficheiros Afetados
+### 4. Impacto nos KPIs
+
+- **MRR**: mostrar valor base riscado + valor efetivo com desconto
+- **ARR**: recalculado com desconto
+- **LTV**: usar valor efetivo (com desconto) para o período promocional + valor base para restante
+
+### 5. Integração com Faturação
+
+Quando a edge function `generate-renewal-invoice` gerar faturas, incluir linha de desconto com referência à promoção.
+
+## Ficheiros Afetados
 
 | Ficheiro | Alteração |
 |---|---|
-| Migration SQL | Trigger `sync_renewal_contract_mrr` |
-| `src/pages/RenewalDetailPage.tsx` | Fallback de items + LTV projetado |
+| Migration SQL | Tabela `renewal_discounts` + trigger atualizado |
+| `src/types/renewal.ts` | Tipos `RenewalDiscount`, `CreateRenewalDiscountInput` |
+| `src/hooks/useRenewals.ts` | Hooks CRUD para descontos |
+| `src/pages/RenewalDetailPage.tsx` | Secção de descontos + KPIs atualizados |
+| `src/components/renewals/CreateRenewalDiscountDialog.tsx` | Novo dialog |
 
-### Critérios de Aceitação
-- MRR sempre reflete a soma dos itens ativos
-- ARR = MRR × 12, sempre com valor quando há itens
-- LTV nunca mostra 0 quando há contrato ativo com itens — mostra projeção mínima de 1 ciclo
-- Alterar/adicionar/remover itens atualiza automaticamente o `total_mrr` via trigger
+## Critérios de Aceitação
+
+- Criar desconto "50% durante 3 meses" para a Blecksen e ver refletido no MRR
+- Descontos expirados (por data ou ciclos) deixam de afetar cálculos automaticamente
+- Histórico de promoções visível no contrato
+- Fatura gerada reflete o desconto como linha separada
 
