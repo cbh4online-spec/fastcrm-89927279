@@ -103,7 +103,7 @@ export default function RenewalDetailPage() {
     const totalUsage = usage.reduce((s, u) => s + Number(u.amount), 0);
 
     return {
-      mrr, arr, lifetimeMonths, ltv, daysUntilRenewal,
+      mrr, arr, lifetimeMonths, ltv, daysUntilRenewal, isProjected,
       contractValue, renewalCount, totalItemsValue, activeItems, overdueItems,
       totalUsage, paymentEvents: paymentEvents.length, invoiceEvents: invoiceEvents.length,
     };
