@@ -26,10 +26,18 @@ export function InvoiceHistorySection({ contactId, companyId }: InvoiceHistorySe
     }).format(value);
   };
 
+  const getInvoicePaidAmount = (invoice: { amount_paid?: number | null; total: number; status: string }) => {
+    const recordedPaid = Number(invoice.amount_paid) || 0;
+    if (recordedPaid > 0) return recordedPaid;
+    return invoice.status === "paid" ? Number(invoice.total) || 0 : 0;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
         return <Badge className="bg-green-100 text-green-700 border-green-200">Paga</Badge>;
+      case "partially_paid":
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Parcialmente paga</Badge>;
       case "sent":
         return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Enviada</Badge>;
       case "overdue":
@@ -53,13 +61,20 @@ export function InvoiceHistorySection({ contactId, companyId }: InvoiceHistorySe
     );
   }
 
-  const totalPaid = invoices
-    .filter(inv => inv.status === "paid")
-    .reduce((sum, inv) => sum + Number(inv.total), 0);
+  const financialInvoices = invoices.filter(
+    (invoice) => invoice.status !== "draft" && invoice.status !== "cancelled"
+  );
 
-  const totalPending = invoices
-    .filter(inv => inv.status === "sent" || inv.status === "overdue")
-    .reduce((sum, inv) => sum + Number(inv.total), 0);
+  const totalPaid = financialInvoices.reduce(
+    (sum, invoice) => sum + getInvoicePaidAmount(invoice),
+    0
+  );
+
+  const totalPending = financialInvoices.reduce((sum, invoice) => {
+    const total = Number(invoice.total) || 0;
+    const paid = getInvoicePaidAmount(invoice);
+    return sum + Math.max(total - paid, 0);
+  }, 0);
 
   return (
     <Card className="border-amber-500/20 bg-gradient-to-br from-amber-50/50 to-card dark:from-amber-950/20">
