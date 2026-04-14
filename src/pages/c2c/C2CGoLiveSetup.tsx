@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
 import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
+import { useWhipPublisher } from "@/hooks/c2c/useWhipPublisher";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyC2CListings } from "@/hooks/useC2CListings";
@@ -49,6 +50,7 @@ export default function C2CGoLiveSetup() {
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
   const createMuxStream = useCreateMuxStream();
+  const whip = useWhipPublisher();
   const { data: myListings = [] } = useMyC2CListings(currentWorkspace?.id);
   const activeListings = myListings.filter((l) => l.status === "active");
 
@@ -66,6 +68,7 @@ export default function C2CGoLiveSetup() {
     stream_key: string;
     rtmp_url: string;
     srt_url: string;
+    whip_url: string;
     playback_id: string;
   } | null>(null);
   const [livestreamId, setLivestreamId] = useState<string | null>(null);
@@ -153,10 +156,15 @@ export default function C2CGoLiveSetup() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Step 1: Create livestream + Mux stream
-  const handleCreateStream = async () => {
+  // Step 1: Create livestream + Mux stream + start WHIP publishing
+  const handleGoLive = async () => {
     if (!title.trim() || !currentWorkspace?.id) return;
+    if (!stream) {
+      toast.error("Liga a câmara primeiro para iniciar a live.");
+      return;
+    }
     try {
+      // Create livestream record
       const live = await createLive.mutateAsync({
         workspace_id: currentWorkspace.id,
         title: title.trim(),
@@ -165,23 +173,19 @@ export default function C2CGoLiveSetup() {
       });
       setLivestreamId(live.id);
 
+      // Create Mux stream
       const mux = await createMuxStream.mutateAsync(live.id);
       setMuxInfo(mux);
-      toast.success("Stream Mux criado! Configura o OBS com os dados abaixo e clica 'Ir ao Vivo'.");
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao criar o stream");
-    }
-  };
 
-  // Step 2: Go live (after OBS is connected)
-  const handleGoLive = async () => {
-    if (!livestreamId) return;
-    try {
-      await goLive.mutateAsync(livestreamId);
+      // Start WHIP publishing from the browser camera
+      await whip.publish(stream, mux.stream_key);
+
+      // Mark as live
+      await goLive.mutateAsync(live.id);
       toast.success("Estás ao vivo! 🔴");
-      navigate(`/dashboard/marketplace/lives/${livestreamId}`);
-    } catch {
-      toast.error("Erro ao iniciar a live");
+      navigate(`/dashboard/marketplace/lives/${live.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao iniciar a live");
     }
   };
 
