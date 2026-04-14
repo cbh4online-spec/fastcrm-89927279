@@ -29,7 +29,6 @@ export default function C2CLivestreamViewer() {
   const { data: live, isLoading } = useLivestreamById(id);
   const endLive = useEndLive();
   const [userId, setUserId] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
