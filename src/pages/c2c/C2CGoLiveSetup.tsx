@@ -29,7 +29,7 @@ import {
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyListings } from "@/hooks/useC2CListings";
+import { useMyC2CListings } from "@/hooks/useC2CListings";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,7 @@ export default function C2CGoLiveSetup() {
   const { user } = useAuth();
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
-  const { data: myListings = [] } = useMyListings(currentWorkspace?.id);
+  const { data: myListings = [] } = useMyC2CListings(currentWorkspace?.id);
   const activeListings = myListings.filter((l) => l.status === "active");
 
   // Form state
