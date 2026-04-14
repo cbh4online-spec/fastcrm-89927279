@@ -27,6 +27,7 @@ const PublicBioPage = lazy(() => import("@/pages/PublicBioPage"));
 const PublicBioShortLink = lazy(() => import("@/pages/PublicBioShortLink"));
 const C2CPublicMarketplace = lazy(() => import("@/pages/c2c/C2CPublicMarketplace"));
 const C2CPublicLivestreamViewer = lazy(() => import("@/pages/c2c/C2CPublicLivestreamViewer"));
+const C2CPublicLivesGallery = lazy(() => import("@/pages/c2c/C2CPublicLivesGallery"));
 const C2CPublicListingDetail = lazy(() => import("@/pages/c2c/C2CPublicListingDetail"));
 const C2CPublicCategoryPage = lazy(() => import("@/pages/c2c/C2CPublicCategoryPage"));
 const C2CPublicSearchPage = lazy(() => import("@/pages/c2c/C2CPublicSearchPage"));
@@ -112,6 +113,7 @@ const App = () => (
                 <Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
                 <Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
                 <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+                <Route path="/marketplace/:workspaceSlug/lives" element={<C2CPublicLivesGallery />} />
                 <Route path="/marketplace/:workspaceSlug/live/:id" element={<C2CPublicLivestreamViewer />} />
                 <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
                 <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
