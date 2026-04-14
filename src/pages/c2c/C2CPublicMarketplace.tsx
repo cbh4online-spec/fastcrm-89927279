@@ -10,6 +10,7 @@ import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme
 import { useMarketplaceConfig } from "@/hooks/useMarketplace";
 import { getMarketplaceBaseUrlFromConfig } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
+import { usePublicLivestreams, type PublicLivestream } from "@/hooks/c2c/usePublicLivestreams";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -632,6 +633,107 @@ function SellCTA({ onSell }: { onSell: () => void }) {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Lives Section ───────────────────────────────────────────────── */
+function LivesSection({
+  lives,
+  workspaceSlug,
+  onNavigate,
+}: {
+  lives: PublicLivestream[];
+  workspaceSlug: string;
+  onNavigate: (id: string) => void;
+}) {
+  const livesNow = lives.filter((l) => l.status === "live");
+  const scheduled = lives.filter((l) => l.status === "scheduled");
+  const display = [...livesNow, ...scheduled].slice(0, 6);
+
+  if (display.length === 0) return null;
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold flex items-center gap-2 text-gray-900">
+          <Radio className="h-5 w-5 text-red-500" />
+          Lives
+          {livesNow.length > 0 && (
+            <Badge className="bg-red-500 text-white border-0 text-[10px] px-1.5 animate-pulse">
+              {livesNow.length} ao vivo
+            </Badge>
+          )}
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[#09B1BA] hover:text-[#078E96] gap-1 text-xs"
+          onClick={() => onNavigate("__gallery__")}
+        >
+          Ver todas
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {display.map((live) => {
+          const isLive = live.status === "live";
+          return (
+            <div
+              key={live.id}
+              onClick={() => onNavigate(live.id)}
+              className="cursor-pointer group rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all bg-white"
+            >
+              <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
+                {live.thumbnail_url ? (
+                  <img
+                    src={live.thumbnail_url}
+                    alt={live.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
+                    <Radio className="h-10 w-10 text-red-300" />
+                  </div>
+                )}
+                {isLive && (
+                  <div className="absolute top-2 left-2">
+                    <Badge className="bg-red-600 text-white border-0 gap-1 text-[10px] px-2 py-0.5 font-bold animate-pulse">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
+                      AO VIVO
+                    </Badge>
+                  </div>
+                )}
+                {live.status === "scheduled" && (
+                  <div className="absolute top-2 left-2">
+                    <Badge variant="secondary" className="gap-1 text-[10px] px-2 py-0.5">
+                      <Clock className="h-3 w-3" />
+                      Agendada
+                    </Badge>
+                  </div>
+                )}
+                {isLive && (
+                  <div className="absolute bottom-2 right-2">
+                    <Badge className="bg-black/60 text-white border-0 gap-1 text-[10px] backdrop-blur-sm">
+                      <Eye className="h-3 w-3" />
+                      {live.viewer_count}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <div className="p-3 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-xs font-bold text-red-600 shrink-0">
+                  {(live.seller_name || "V")[0].toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate text-gray-900">{live.title}</p>
+                  <p className="text-xs text-gray-500">{live.seller_name || "Vendedor"}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
