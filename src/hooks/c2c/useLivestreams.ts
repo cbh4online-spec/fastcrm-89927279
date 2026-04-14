@@ -42,19 +42,61 @@ export interface LivestreamMessage {
 const sb = supabase as any;
 
 export function useLivestreams(workspaceId?: string) {
+  const queryClient = useQueryClient();
+
+  // Realtime: auto-refresh when any livestream changes (status, viewer_count, etc.)
+  useEffect(() => {
+    if (!workspaceId) return;
+    const channel = supabase
+      .channel(`lives-${workspaceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "c2c_livestreams",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["c2c-livestreams", workspaceId] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [workspaceId, queryClient]);
+
   return useQuery({
     queryKey: ["c2c-livestreams", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
-      const { data, error } = await sb
+      // Fetch livestreams
+      const { data: lives, error } = await sb
         .from("c2c_livestreams")
         .select("*")
         .eq("workspace_id", workspaceId)
         .in("status", ["scheduled", "live"])
-        .order("status", { ascending: false }) // live first
+        .order("status", { ascending: false })
         .order("scheduled_at", { ascending: true });
       if (error) throw error;
-      return (data || []) as Livestream[];
+      if (!lives?.length) return [] as Livestream[];
+
+      // Fetch seller profiles for each unique seller
+      const sellerIds = [...new Set(lives.map((l: any) => l.seller_id))];
+      const { data: profiles } = await sb
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", sellerIds);
+
+      const profileMap = new Map(
+        (profiles || []).map((p: any) => [p.id, p])
+      );
+
+      return lives.map((l: any) => ({
+        ...l,
+        seller_name: profileMap.get(l.seller_id)?.display_name || "Vendedor",
+        seller_avatar: profileMap.get(l.seller_id)?.avatar_url || null,
+      })) as Livestream[];
     },
   });
 }
