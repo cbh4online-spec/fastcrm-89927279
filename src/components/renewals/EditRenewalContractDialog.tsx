@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useUpdateRenewalContract } from "@/hooks/useRenewals";
-import { inferRenewalInterval } from "@/types/renewal";
 import type { RenewalContract, RenewalBillingType, RenewalIntervalType, RenewalContractStatus } from "@/types/renewal";
 
 interface Props {
@@ -26,11 +25,7 @@ export function EditRenewalContractDialog({ open, onOpenChange, contract }: Prop
   const updateContract = useUpdateRenewalContract();
 
   const [billingType, setBillingType] = useState<RenewalBillingType>(contract.billing_type);
-  const [interval, setInterval] = useState<RenewalIntervalType>(
-    contract.renewal_interval === 'custom'
-      ? inferRenewalInterval(contract.start_date, contract.next_renewal_date)
-      : contract.renewal_interval
-  );
+  const [interval, setInterval] = useState<RenewalIntervalType>(contract.renewal_interval);
   const [status, setStatus] = useState<RenewalContractStatus>(contract.status);
   const [autoRenew, setAutoRenew] = useState(contract.auto_renew);
   const [currency, setCurrency] = useState(contract.currency);
@@ -44,11 +39,7 @@ export function EditRenewalContractDialog({ open, onOpenChange, contract }: Prop
 
   useEffect(() => {
     setBillingType(contract.billing_type);
-    setInterval(
-      contract.renewal_interval === 'custom'
-        ? inferRenewalInterval(contract.start_date, contract.next_renewal_date)
-        : contract.renewal_interval
-    );
+    setInterval(contract.renewal_interval);
     setStatus(contract.status);
     setAutoRenew(contract.auto_renew);
     setCurrency(contract.currency);
