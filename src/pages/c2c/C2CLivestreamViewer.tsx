@@ -31,9 +31,8 @@ import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,11 +70,10 @@ export default function C2CLivestreamViewer() {
     }
   };
 
+  // Never share the dashboard URL — only the public marketplace URL
   const liveUrl = typeof window !== "undefined" && workspaceSlug
     ? `${window.location.origin}/marketplace/${workspaceSlug}/live/${id}`
-    : typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/marketplace/lives/${id}`
-      : "";
+    : "";
 
   const handleShare = async (method: "copy" | "native" | "whatsapp" | "facebook" | "twitter") => {
     if (!live) return;
