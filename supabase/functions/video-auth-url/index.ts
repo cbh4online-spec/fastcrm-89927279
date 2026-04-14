@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const scopes = "https://www.googleapis.com/auth/calendar.events";
+      const scopes = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly";
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(callbackUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
       return new Response(
