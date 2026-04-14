@@ -408,6 +408,10 @@ export function CompanyDetailWithSidebar() {
         return (
           <EntityTicketsSection entityType="company" entityId={id!} entityName={company.name} />
         );
+      case 'files':
+        return (
+          <EntityDocumentsSection entityType="company" entityId={id!} />
+        );
       case 'financial':
         return (
           <div className="space-y-4">
