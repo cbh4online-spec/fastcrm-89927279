@@ -1,36 +1,30 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Radio } from "lucide-react";
 
 interface LiveBadgeProps {
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-/**
- * Reusable pulsating AO VIVO badge with brand red + glow effect.
- */
+const sizeConfig = {
+  sm: { badge: "px-1.5 py-0.5 text-[10px] gap-1", dot: "w-1.5 h-1.5", icon: "h-2.5 w-2.5" },
+  md: { badge: "px-2.5 py-1 text-xs gap-1.5", dot: "w-2 h-2", icon: "h-3 w-3" },
+  lg: { badge: "px-3 py-1.5 text-sm gap-2", dot: "w-2.5 h-2.5", icon: "h-4 w-4" },
+};
+
 export function LiveBadge({ size = "md", className }: LiveBadgeProps) {
-  const sizeClasses = {
-    sm: "text-[10px] px-2 py-0.5 gap-1",
-    md: "text-xs px-2.5 py-1 gap-1.5",
-    lg: "text-sm px-3 py-1.5 gap-2",
-  };
-  const dotClasses = {
-    sm: "w-1.5 h-1.5",
-    md: "w-2 h-2",
-    lg: "w-2.5 h-2.5",
-  };
+  const s = sizeConfig[size];
 
   return (
-    <Badge
+    <span
       className={cn(
-        "bg-red-600 text-white border-0 font-bold live-badge-pulse select-none",
-        sizeClasses[size],
-        className
+        "inline-flex items-center font-bold rounded-md bg-red-600 text-white animate-pulse",
+        s.badge,
+        className,
       )}
     >
-      <span className={cn("rounded-full bg-white live-dot-blink inline-block", dotClasses[size])} />
+      <span className={cn("rounded-full bg-white", s.dot)} />
       AO VIVO
-    </Badge>
+    </span>
   );
 }

@@ -66,9 +66,24 @@ export default function C2CGoLiveSetup() {
 
   const isLoading = createLive.isPending || goLive.isPending;
 
+  const isInIframe = (() => {
+    try { return window.self !== window.top; } catch { return true; }
+  })();
+
   const startCamera = useCallback(async () => {
     try {
       setCameraError(null);
+
+      if (isInIframe) {
+        setCameraError("O preview do Lovable bloqueia a câmara por segurança. Publica a app para testar com câmara real.");
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("O teu browser não suporta acesso à câmara.");
+        return;
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 1280, height: 720 },
         audio: micOn,
@@ -78,11 +93,20 @@ export default function C2CGoLiveSetup() {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-    } catch {
-      setCameraError("Sem acesso à câmara. Verifica as permissões do browser.");
+    } catch (err: unknown) {
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotAllowedError") {
+        setCameraError("Permissão da câmara negada. Verifica as definições do browser e tenta novamente.");
+      } else if (name === "NotFoundError") {
+        setCameraError("Nenhuma câmara encontrada no dispositivo.");
+      } else if (name === "NotReadableError") {
+        setCameraError("Câmara em uso por outra aplicação. Fecha-a e tenta novamente.");
+      } else {
+        setCameraError("Não foi possível aceder à câmara. Verifica as permissões.");
+      }
       setCameraOn(false);
     }
-  }, [micOn]);
+  }, [micOn, isInIframe]);
 
   const stopCamera = useCallback(() => {
     stream?.getTracks().forEach((t) => t.stop());
@@ -135,13 +159,13 @@ export default function C2CGoLiveSetup() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-card via-card to-amber-500/5 px-6 py-4 flex items-center justify-between">
+      <div className="border-b bg-card px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Radio className="h-5 w-5 text-amber-500" />
+            <Radio className="h-5 w-5 text-red-500" />
             <h1 className="text-lg font-bold">Configurar Live</h1>
           </div>
         </div>

@@ -1,28 +1,51 @@
 import { useEffect, useRef, useState } from "react";
-import { Radio, VideoOff } from "lucide-react";
+import { Radio, VideoOff, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
   isLive: boolean;
   title: string;
   sellerName?: string;
+  thumbnailUrl?: string;
 }
+
+const isInIframe = (() => {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+})();
 
 /**
  * Simulated live video feed.
  * Tries the real webcam first (getUserMedia); if denied or unavailable
- * falls back to an animated gradient placeholder with visual noise.
+ * falls back to thumbnail_url or an animated gradient placeholder.
  */
-export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
+export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCamera, setHasCamera] = useState(false);
   const [tried, setTried] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLive) return;
     let stream: MediaStream | null = null;
 
     (async () => {
+      // Detect iframe — camera will be blocked
+      if (isInIframe) {
+        setErrorMsg("Câmara bloqueada no preview. Publica a app para testar a câmara em direto.");
+        setTried(true);
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setErrorMsg("O teu browser não suporta acesso à câmara.");
+        setTried(true);
+        return;
+      }
+
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: 1280, height: 720 },
@@ -32,7 +55,17 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
           videoRef.current.srcObject = stream;
           setHasCamera(true);
         }
-      } catch {
+      } catch (err: unknown) {
+        const name = err instanceof DOMException ? err.name : "";
+        if (name === "NotAllowedError") {
+          setErrorMsg("Permissão da câmara negada. Verifica as definições do browser.");
+        } else if (name === "NotFoundError") {
+          setErrorMsg("Nenhuma câmara encontrada no dispositivo.");
+        } else if (name === "NotReadableError") {
+          setErrorMsg("Câmara em uso por outra aplicação.");
+        } else {
+          setErrorMsg("Não foi possível aceder à câmara.");
+        }
         setHasCamera(false);
       } finally {
         setTried(true);
@@ -56,7 +89,6 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
           className="w-full h-full object-cover"
           style={{ transform: "scaleX(-1)" }}
         />
-        {/* Subtle vignette overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -67,22 +99,30 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
     );
   }
 
-  // Live without camera — animated placeholder
+  // Live without camera — thumbnail fallback or animated placeholder
   if (isLive) {
     return (
       <div className="w-full h-full relative overflow-hidden">
-        {/* Animated gradient background */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{
-            background: [
-              "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-              "linear-gradient(135deg, #0f3460 0%, #1a1a2e 50%, #16213e 100%)",
-              "linear-gradient(135deg, #16213e 0%, #0f3460 50%, #1a1a2e 100%)",
-            ],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        />
+        {/* Background: thumbnail or animated gradient */}
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt={title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <motion.div
+            className="absolute inset-0"
+            animate={{
+              background: [
+                "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+                "linear-gradient(135deg, #0f3460 0%, #1a1a2e 50%, #16213e 100%)",
+                "linear-gradient(135deg, #16213e 0%, #0f3460 50%, #1a1a2e 100%)",
+              ],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          />
+        )}
 
         {/* Floating particles */}
         {Array.from({ length: 12 }).map((_, i) => (
@@ -117,7 +157,7 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
               key={i}
               className="flex-1 max-w-2 rounded-t-full"
               style={{
-                background: `linear-gradient(to top, rgba(239, 68, 68, 0.6), rgba(239, 68, 68, 0.1))`,
+                background: "linear-gradient(to top, rgba(239, 68, 68, 0.6), rgba(239, 68, 68, 0.1))",
               }}
               animate={{
                 height: [
@@ -136,7 +176,7 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
           ))}
         </div>
 
-        {/* Center info */}
+        {/* Center info with error message */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -158,6 +198,12 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
             {sellerName && (
               <p className="text-white/50 text-sm mt-1">{sellerName}</p>
             )}
+            {errorMsg && tried && (
+              <div className="mt-4 mx-auto max-w-xs bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                <p className="text-white/70 text-xs text-left">{errorMsg}</p>
+              </div>
+            )}
           </motion.div>
         </div>
 
@@ -174,11 +220,22 @@ export function SimulatedVideoFeed({ isLive, title, sellerName }: Props) {
 
   // Not live — static placeholder
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      <div className="text-center">
-        <VideoOff className="h-16 w-16 text-white/15 mx-auto mb-4" />
-        <p className="text-white/40 text-sm">Transmissão não disponível</p>
-      </div>
+    <div className="w-full h-full relative">
+      {thumbnailUrl ? (
+        <>
+          <img src={thumbnailUrl} alt={title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <VideoOff className="h-16 w-16 text-white/30" />
+          </div>
+        </>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+          <div className="text-center">
+            <VideoOff className="h-16 w-16 text-white/15 mx-auto mb-4" />
+            <p className="text-white/40 text-sm">Transmissão não disponível</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

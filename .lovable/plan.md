@@ -1,40 +1,68 @@
 
 
-## Diagnóstico — Câmara não funciona na Live
+# Corrigir Ligação ao Google Calendar no Calendário
 
-### Problema identificado
+## Diagnóstico
 
-Há **dois problemas distintos**:
+O erro é claro: quando clica "Ligar ao Google Calendar" na barra lateral do calendário, a edge function retorna:
+```
+"Google Calendar não está conectado. Configure o Google Meet primeiro."
+```
 
-1. **Limitação da plataforma Lovable**: O preview corre dentro de um iframe sandboxed que **não tem permissões `camera` e `microphone`**. A API `getUserMedia` falha silenciosamente ou com `NotAllowedError`. Isto afeta tanto a pré-visualização (GoLiveSetup) como o viewer (SimulatedVideoFeed). **Na app publicada** (fastcrm.lovable.app), a câmara deve funcionar se o utilizador conceder permissão no browser.
+**Causa raiz:** O componente `GoogleCalendarConnect` na sidebar tenta listar calendários Google, mas depende dos tokens OAuth armazenados em `workspace_video_config` — que só são criados quando o utilizador conecta o **Google Meet** em **Definições > Integrações > Vídeo**. São dois conceitos misturados: a sincronização de calendário e a videoconferência partilham os mesmos tokens OAuth, mas a UI não guia o utilizador correctamente.
 
-2. **Erro de build**: O ficheiro `LiveBadge.tsx` foi criado anteriormente mas parece ter sido removido/corrompido, causando falhas de HMR. Precisa de ser recriado.
+**Problema actual:**
+- Sidebar mostra "Ligar ao Google Calendar" → clica → falha com erro críptico
+- O utilizador não sabe que precisa de ir a Definições > Vídeo > Google Meet primeiro
+- A UX é confusa: "configurar Google Meet" para poder sincronizar o Google Calendar
 
-### Plano de implementação
+## Plano de Implementação
 
-**Passo 1 — Recriar `LiveBadge.tsx`**
-- Criar o componente em `src/components/c2c/livestream/LiveBadge.tsx` com badge pulsante "AO VIVO" em 3 tamanhos (sm, md, lg), usando as animações CSS já definidas no `index.css`.
+### 1. Iniciar OAuth directamente do sidebar (sem depender do Meet)
+**Ficheiro:** `src/components/calendars/GoogleCalendarConnect.tsx`
 
-**Passo 2 — Melhorar o tratamento de erros da câmara em `C2CGoLiveSetup.tsx`**
-- Detectar se está em iframe (`window.self !== window.top`) e mostrar mensagem explicativa.
-- Adicionar verificação de `navigator.mediaDevices` antes de chamar `getUserMedia`.
-- Mostrar mensagens de erro específicas por tipo (`NotAllowedError`, `NotFoundError`, `NotReadableError`).
-- Adicionar botão "Tentar novamente" com feedback visual.
+Quando o utilizador clica "Ligar ao Google Calendar" e não existem tokens Google no workspace:
+- Invocar `video-auth-url` com `provider: google_meet` directamente (reutiliza a mesma infra OAuth)
+- Abrir popup/redirect OAuth do Google
+- Após callback com sucesso, listar os calendários automaticamente
+- Elimina a necessidade de o utilizador ir às definições de vídeo primeiro
 
-**Passo 3 — Melhorar fallback em `SimulatedVideoFeed.tsx`**
-- Quando a câmara não está disponível, usar `thumbnail_url` (se existir) como fundo estático com overlay animado.
-- Adicionar prop `thumbnailUrl` ao componente.
-- Mostrar mensagem contextual em vez de placeholder genérico.
+### 2. Melhorar tratamento de erro no hook
+**Ficheiro:** `src/hooks/useGoogleCalendarSync.ts`
 
-**Passo 4 — Passar `thumbnail_url` no Viewer**
-- Em `C2CLivestreamViewer.tsx`, passar o `thumbnail_url` da live ao `SimulatedVideoFeed`.
+- Detectar o erro específico "Google Calendar não está conectado"
+- Em vez de mostrar toast genérico, passar um estado `needsOAuth: true` ao componente
+- O componente reage mostrando botão de OAuth em vez do selector vazio
 
-### Nota importante
-A câmara **só funcionará na app publicada** (não no preview do Lovable). O código será corrigido para lidar graciosamente com esta limitação e dar feedback claro ao utilizador.
+### 3. Criar auto-connect no workspace_video_config
+**Ficheiro:** `supabase/functions/google-calendar-sync/index.ts`
 
-### Critérios de aceitação
-- Build sem erros
-- Mensagem clara quando câmara não está disponível (preview vs publicada)
-- Fallback visual com thumbnail quando disponível
-- Câmara funcional na app publicada com permissões do browser
+- Se `workspace_video_config` não existir para o workspace, criar automaticamente o registo (sem tokens) para evitar erro no `video-oauth-callback` que faz `.single()` e falha se não encontrar
+
+### 4. Fluxo visual melhorado
+
+```text
+Utilizador clica "Ligar ao Google Calendar"
+  ├── Tokens Google existem?
+  │   ├── SIM → Listar calendários (fluxo actual)
+  │   └── NÃO → Iniciar OAuth Google (popup)
+  │             ├── Sucesso → Guardar tokens → Listar calendários
+  │             └── Erro → Mostrar mensagem clara
+  └── Seleccionar calendário → Confirmar ligação
+```
+
+### Ficheiros alterados
+
+| Ficheiro | Acção |
+|----------|-------|
+| `src/components/calendars/GoogleCalendarConnect.tsx` | OAuth directo + UX melhorada |
+| `src/hooks/useGoogleCalendarSync.ts` | Estado `needsOAuth` + tratamento erro |
+| `supabase/functions/google-calendar-sync/index.ts` | Auto-create config se necessário |
+
+### Critérios de Aceitação
+- Clicar "Ligar ao Google Calendar" na sidebar funciona sem configuração prévia
+- OAuth Google é iniciado directamente se não houver tokens
+- Após OAuth, calendários são listados automaticamente
+- Sem necessidade de ir a Definições > Vídeo primeiro
+- Sem regressão no fluxo de Google Meet/Zoom nas definições
 
