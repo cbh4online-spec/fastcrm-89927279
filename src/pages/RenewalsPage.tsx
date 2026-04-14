@@ -280,7 +280,12 @@ export default function RenewalsPage() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="text-xs">
-                                {RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}
+                                {(() => {
+                                  const effectiveInterval = contract.renewal_interval === 'custom'
+                                    ? inferRenewalInterval(contract.start_date, contract.next_renewal_date)
+                                    : contract.renewal_interval;
+                                  return RENEWAL_INTERVAL_LABELS[effectiveInterval];
+                                })()}
                               </Badge>
                             </TableCell>
                             <TableCell>
