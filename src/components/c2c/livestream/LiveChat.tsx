@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,26 +12,159 @@ interface Props {
   isLive: boolean;
 }
 
+// ---------- Simulated messages ----------
+
+const SIMULATED_NAMES = [
+  "Maria S.", "João P.", "Ana R.", "Carlos M.", "Sofia L.",
+  "Pedro T.", "Inês C.", "Miguel A.", "Beatriz F.", "Tiago N.",
+  "Rita G.", "André V.", "Catarina D.", "Hugo B.", "Marta E.",
+];
+
+const SIMULATED_MESSAGES = [
+  "😍 Adoro!",
+  "Quanto custa?",
+  "Que lindo!!",
+  "Tem em azul?",
+  "Quero comprar! 🛒",
+  "Olá! Acabei de entrar",
+  "Está disponível?",
+  "Boa noite a todos! 👋",
+  "Já comprei a semana passada, recomendo!",
+  "❤️❤️❤️",
+  "Envia para o Porto?",
+  "Qual o tamanho?",
+  "Fantástico 🔥",
+  "Mostra mais perto por favor",
+  "Já fiz a encomenda!",
+  "Parabéns pela live 👏",
+  "Excelente qualidade!",
+  "Onde posso ver mais?",
+  "Voltei! O que perdi?",
+  "Preço amigo? 😄",
+  "🎉🎉🎉",
+  "Top!",
+  "Consigo pagar com MB Way?",
+  "Adoro este produto!",
+  "Boa! Vou partilhar",
+];
+
+const SIMULATED_SYSTEM_MESSAGES = [
+  "entrou na live",
+  "entrou na live",
+  "entrou na live",
+  "começou a seguir o vendedor",
+  "adicionou ao carrinho 🛒",
+];
+
+interface SimulatedMsg {
+  id: string;
+  user_name: string;
+  message: string;
+  message_type: "chat" | "system" | "product_highlight";
+  created_at: string;
+  is_pinned: boolean;
+}
+
+function useSimulatedMessages(isLive: boolean) {
+  const [simulated, setSimulated] = useState<SimulatedMsg[]>([]);
+  const counterRef = useRef(0);
+
+  const addMessage = useCallback(() => {
+    counterRef.current += 1;
+    const isSystem = Math.random() < 0.2;
+    const name = SIMULATED_NAMES[Math.floor(Math.random() * SIMULATED_NAMES.length)];
+
+    const msg: SimulatedMsg = {
+      id: `sim-${counterRef.current}`,
+      user_name: name,
+      message: isSystem
+        ? `${name} ${SIMULATED_SYSTEM_MESSAGES[Math.floor(Math.random() * SIMULATED_SYSTEM_MESSAGES.length)]}`
+        : SIMULATED_MESSAGES[Math.floor(Math.random() * SIMULATED_MESSAGES.length)],
+      message_type: isSystem ? "system" : "chat",
+      created_at: new Date().toISOString(),
+      is_pinned: false,
+    };
+
+    setSimulated((prev) => [...prev.slice(-80), msg]);
+  }, []);
+
+  useEffect(() => {
+    if (!isLive) return;
+
+    // Initial burst of 3-5 messages
+    const burst = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < burst; i++) {
+      setTimeout(() => addMessage(), i * 400);
+    }
+
+    // Continuous messages every 2-5 seconds
+    const interval = setInterval(() => {
+      addMessage();
+    }, 2000 + Math.random() * 3000);
+
+    return () => clearInterval(interval);
+  }, [isLive, addMessage]);
+
+  return simulated;
+}
+
+// ---------- Component ----------
+
 export function LiveChat({ livestreamId, isLive }: Props) {
   const [msg, setMsg] = useState("");
-  const { data: messages = [] } = useLivestreamMessages(livestreamId);
+  const [localMessages, setLocalMessages] = useState<SimulatedMsg[]>([]);
+  const { data: dbMessages = [] } = useLivestreamMessages(livestreamId);
   const send = useSendLiveMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const simulated = useSimulatedMessages(isLive);
+
+  // Merge DB messages + simulated + local user messages, sorted by time
+  const allMessages: LivestreamMessage[] = [
+    ...dbMessages,
+    ...simulated.map((s) => ({
+      ...s,
+      livestream_id: livestreamId,
+      user_id: "simulated",
+    })),
+    ...localMessages.map((s) => ({
+      ...s,
+      livestream_id: livestreamId,
+      user_id: "local",
+    })),
+  ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const el = scrollRef.current;
+      // Auto-scroll only if near bottom
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      if (isNearBottom) {
+        el.scrollTop = el.scrollHeight;
+      }
     }
-  }, [messages.length]);
+  }, [allMessages.length]);
 
   const handleSend = () => {
     const trimmed = msg.trim();
     if (!trimmed || !isLive) return;
+
+    // Add locally for instant feedback
+    const localMsg: SimulatedMsg = {
+      id: `local-${Date.now()}`,
+      user_name: "Tu",
+      message: trimmed,
+      message_type: "chat",
+      created_at: new Date().toISOString(),
+      is_pinned: false,
+    };
+    setLocalMessages((prev) => [...prev, localMsg]);
+
+    // Also persist to DB
     send.mutate({ livestream_id: livestreamId, message: trimmed });
     setMsg("");
   };
 
-  const pinnedMessage = messages.find((m) => m.is_pinned);
+  const pinnedMessage = allMessages.find((m) => m.is_pinned);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -44,20 +177,20 @@ export function LiveChat({ livestreamId, isLive }: Props) {
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-3 py-2" ref={scrollRef as any}>
+      <div className="flex-1 overflow-y-auto px-3 py-2" ref={scrollRef}>
         <div className="space-y-1.5">
           <AnimatePresence mode="popLayout">
-            {messages.map((m) => (
-              <ChatMessage key={m.id} message={m} />
+            {allMessages.map((m) => (
+              <ChatMessage key={m.id} message={m} isLocal={m.user_id === "local"} />
             ))}
           </AnimatePresence>
-          {messages.length === 0 && (
+          {allMessages.length === 0 && (
             <p className="text-center text-muted-foreground text-xs py-8">
               {isLive ? "Sê o primeiro a comentar! 💬" : "O chat estará disponível quando a live começar."}
             </p>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       {isLive && (
@@ -86,7 +219,7 @@ export function LiveChat({ livestreamId, isLive }: Props) {
   );
 }
 
-function ChatMessage({ message }: { message: LivestreamMessage }) {
+function ChatMessage({ message, isLocal }: { message: LivestreamMessage; isLocal?: boolean }) {
   if (message.message_type === "system") {
     return (
       <motion.div
@@ -119,12 +252,12 @@ function ChatMessage({ message }: { message: LivestreamMessage }) {
       className="flex items-start gap-2 group"
     >
       <Avatar className="h-6 w-6 flex-shrink-0">
-        <AvatarFallback className="text-[10px] bg-muted">
+        <AvatarFallback className={`text-[10px] ${isLocal ? "bg-primary/20 text-primary" : "bg-muted"}`}>
           {(message.user_name || "U")[0].toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0">
-        <span className="text-xs font-semibold text-primary mr-1.5">
+        <span className={`text-xs font-semibold mr-1.5 ${isLocal ? "text-primary" : "text-primary/70"}`}>
           {message.user_name || "Utilizador"}
         </span>
         <span className="text-xs text-foreground break-words">{message.message}</span>
