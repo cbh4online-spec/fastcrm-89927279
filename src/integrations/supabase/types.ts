@@ -9426,6 +9426,150 @@ export type Database = {
           },
         ]
       }
+      c2c_livestream_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_pinned: boolean
+          livestream_id: string
+          message: string
+          message_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          livestream_id: string
+          message: string
+          message_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          livestream_id?: string
+          message?: string
+          message_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_livestream_messages_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_livestream_viewers: {
+        Row: {
+          id: string
+          joined_at: string
+          left_at: string | null
+          livestream_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          livestream_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          livestream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_livestream_viewers_livestream_id_fkey"
+            columns: ["livestream_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_livestreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_livestreams: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          peak_viewers: number
+          product_ids: string[] | null
+          replay_available: boolean
+          scheduled_at: string | null
+          seller_id: string
+          started_at: string | null
+          status: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string
+          total_views: number
+          updated_at: string
+          viewer_count: number
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          peak_viewers?: number
+          product_ids?: string[] | null
+          replay_available?: boolean
+          scheduled_at?: string | null
+          seller_id: string
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title: string
+          total_views?: number
+          updated_at?: string
+          viewer_count?: number
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          peak_viewers?: number
+          product_ids?: string[] | null
+          replay_available?: boolean
+          scheduled_at?: string | null
+          seller_id?: string
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string
+          total_views?: number
+          updated_at?: string
+          viewer_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_livestreams_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_marketplace_config: {
         Row: {
           boost_price_day: number | null

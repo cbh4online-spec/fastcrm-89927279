@@ -32,6 +32,8 @@ const C2CBuyerArea = lazy(() => import("@/pages/c2c/C2CBuyerArea"));
 const MarketplaceConfigPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceConfigPage"));
 const MarketplaceOrdersPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceOrdersPage"));
 const MarketplacePayoutsPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplacePayoutsPage"));
+const C2CLivestreams = lazy(() => import("@/pages/c2c/C2CLivestreams"));
+const C2CLivestreamViewer = lazy(() => import("@/pages/c2c/C2CLivestreamViewer"));
 
 export function C2CDashboardRoutes() {
   return (
@@ -67,6 +69,8 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/marketplace/analytics" element={<C2CMarketplaceAnalytics />} />
       <Route path="/dashboard/marketplace/moderation" element={<C2CModerationPage />} />
       <Route path="/dashboard/marketplace/config" element={<MarketplaceConfigPage />} />
+      <Route path="/dashboard/marketplace/lives" element={<C2CLivestreams />} />
+      <Route path="/dashboard/marketplace/lives/:id" element={<C2CLivestreamViewer />} />
       <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
       <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
       <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
