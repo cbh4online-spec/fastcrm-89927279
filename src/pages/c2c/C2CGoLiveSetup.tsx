@@ -25,8 +25,6 @@ import {
   Image as ImageIcon,
   Settings2,
   Eye,
-  Copy,
-  Check,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
 import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
@@ -72,7 +70,6 @@ export default function C2CGoLiveSetup() {
     playback_id: string;
   } | null>(null);
   const [livestreamId, setLivestreamId] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Camera state
   const [cameraOn, setCameraOn] = useState(false);
