@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 export interface Livestream {
   id: string;
   workspace_id: string;
+  workspace_slug: string | null;
   seller_id: string;
   title: string;
   description: string | null;
@@ -164,6 +165,7 @@ export function useCreateLivestream() {
   return useMutation({
     mutationFn: async (input: {
       workspace_id: string;
+      workspace_slug?: string;
       title: string;
       description?: string;
       scheduled_at?: string;
@@ -175,7 +177,11 @@ export function useCreateLivestream() {
       if (!user) throw new Error("Não autenticado");
       const { data, error } = await sb
         .from("c2c_livestreams")
-        .insert({ ...input, seller_id: user.id })
+        .insert({
+          ...input,
+          seller_id: user.id,
+          workspace_slug: input.workspace_slug || null,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -191,10 +197,25 @@ export function useGoLive() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (livestreamId: string) => {
+      // Verify ownership before updating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const { data: live } = await sb
+        .from("c2c_livestreams")
+        .select("seller_id")
+        .eq("id", livestreamId)
+        .maybeSingle();
+
+      if (!live || live.seller_id !== user.id) {
+        throw new Error("Apenas o dono da live pode iniciá-la");
+      }
+
       const { error } = await sb
         .from("c2c_livestreams")
         .update({ status: "live", started_at: new Date().toISOString() })
-        .eq("id", livestreamId);
+        .eq("id", livestreamId)
+        .eq("seller_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -208,15 +229,32 @@ export function useEndLive() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (livestreamId: string) => {
+      // Verify ownership before updating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const { data: live } = await sb
+        .from("c2c_livestreams")
+        .select("seller_id")
+        .eq("id", livestreamId)
+        .maybeSingle();
+
+      if (!live || live.seller_id !== user.id) {
+        throw new Error("Apenas o dono da live pode terminá-la");
+      }
+
       const { error } = await sb
         .from("c2c_livestreams")
         .update({ status: "ended", ended_at: new Date().toISOString() })
-        .eq("id", livestreamId);
+        .eq("id", livestreamId)
+        .eq("seller_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["c2c-livestreams"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-livestream"] });
+      queryClient.invalidateQueries({ queryKey: ["c2c-public-livestream"] });
+      queryClient.invalidateQueries({ queryKey: ["c2c-public-livestreams"] });
     },
   });
 }
@@ -225,7 +263,7 @@ export function useSendLiveMessage() {
   return useMutation({
     mutationFn: async (input: { livestream_id: string; message: string; message_type?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!user) throw new Error("Faz login para enviar mensagens");
       const { error } = await sb
         .from("c2c_livestream_messages")
         .insert({
@@ -237,4 +275,26 @@ export function useSendLiveMessage() {
       if (error) throw error;
     },
   });
+}
+
+/**
+ * Increment viewer count when entering a live.
+ * Decrement on unmount (best-effort).
+ */
+export function useTrackViewer(livestreamId?: string, isLive?: boolean) {
+  const tracked = useRef(false);
+
+  useEffect(() => {
+    if (!livestreamId || !isLive || tracked.current) return;
+    tracked.current = true;
+
+    // Increment viewer_count
+    sb.rpc("increment_viewer_count", { p_livestream_id: livestreamId }).catch(() => {});
+
+    return () => {
+      // Best-effort decrement on unmount
+      sb.rpc("decrement_viewer_count", { p_livestream_id: livestreamId }).catch(() => {});
+      tracked.current = false;
+    };
+  }, [livestreamId, isLive]);
 }

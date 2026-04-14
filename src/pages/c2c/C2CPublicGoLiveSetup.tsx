@@ -105,10 +105,11 @@ export default function C2CPublicGoLiveSetup() {
   }, [authLoading, user, navigate, workspaceSlug]);
 
   const handleGoLive = async () => {
-    if (!title.trim() || !workspace?.id) return;
+    if (!title.trim() || !workspace?.id || !workspaceSlug) return;
     try {
       const live = await createLive.mutateAsync({
         workspace_id: workspace.id,
+        workspace_slug: workspaceSlug,
         title: title.trim(),
         category: category || undefined,
       });
