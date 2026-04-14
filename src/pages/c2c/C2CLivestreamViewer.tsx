@@ -12,6 +12,10 @@ import {
   Share2,
   Copy,
   ExternalLink,
+  Camera,
+  CameraOff,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +28,7 @@ import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFe
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
+import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +36,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { cn } from "@/lib/utils";
 export default function C2CLivestreamViewer() {
   const { id } = useParams();
   const navigate = useNavigate();

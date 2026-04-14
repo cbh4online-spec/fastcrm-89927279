@@ -144,7 +144,8 @@ export default function C2CGoLiveSetup() {
         category: category || undefined,
       });
       await goLive.mutateAsync(live.id);
-      stopCamera();
+      // Don't call stopCamera() — let the cleanup useEffect handle it on unmount.
+      // The viewer page will re-acquire the camera via useCameraStream.
       toast.success("Estás ao vivo! 🔴");
       navigate(`/dashboard/marketplace/lives/${live.id}`);
     } catch {
