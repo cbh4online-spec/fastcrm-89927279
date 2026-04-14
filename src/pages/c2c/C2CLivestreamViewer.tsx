@@ -16,6 +16,8 @@ import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
+import { FollowSellerButton } from "@/components/c2c/seller/FollowSellerButton";
+import { SellerBadges } from "@/components/c2c/SellerBadges";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,17 +194,28 @@ export default function C2CLivestreamViewer() {
             )}
           </div>
 
-          {/* Info bar */}
+          {/* Info bar with seller info */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary/20 text-primary font-bold">
+              <Avatar className="h-11 w-11 ring-2 ring-[#09B1BA]/40">
+                <AvatarFallback className="bg-[#09B1BA]/20 text-[#09B1BA] font-bold text-lg">
                   {(live.seller_name || "V")[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <h2 className="text-white font-semibold text-sm truncate">{live.title}</h2>
-                <div className="flex items-center gap-3 text-white/50 text-xs">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-white font-semibold text-sm truncate">{live.seller_name || "Vendedor"}</h2>
+                  <SellerBadges
+                    avgRating={4.5}
+                    totalReviews={12}
+                    totalSales={25}
+                    isVerified={true}
+                    memberSince={live.created_at || new Date().toISOString()}
+                    compact
+                  />
+                </div>
+                <p className="text-white/70 text-xs truncate mt-0.5">{live.title}</p>
+                <div className="flex items-center gap-3 text-white/50 text-xs mt-0.5">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
                     {live.viewer_count} espectadores
@@ -215,6 +228,14 @@ export default function C2CLivestreamViewer() {
                   )}
                 </div>
               </div>
+              {!isOwner && live.seller_id && live.workspace_id && (
+                <FollowSellerButton
+                  sellerId={live.seller_id}
+                  workspaceId={live.workspace_id}
+                  sellerUserId={live.seller_id}
+                  compact={false}
+                />
+              )}
             </div>
           </div>
         </div>
