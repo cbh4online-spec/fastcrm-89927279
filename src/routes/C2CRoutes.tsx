@@ -32,6 +32,8 @@ const C2CBuyerArea = lazy(() => import("@/pages/c2c/C2CBuyerArea"));
 const MarketplaceConfigPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceConfigPage"));
 const MarketplaceOrdersPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplaceOrdersPage"));
 const MarketplacePayoutsPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplacePayoutsPage"));
+const C2CLivestreams = lazy(() => import("@/pages/c2c/C2CLivestreams"));
+const C2CLivestreamViewer = lazy(() => import("@/pages/c2c/C2CLivestreamViewer"));
 
 export function C2CDashboardRoutes() {
   return (
