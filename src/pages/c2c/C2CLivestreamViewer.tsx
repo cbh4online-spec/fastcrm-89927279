@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useLivestreamById, useEndLive } from "@/hooks/c2c/useLivestreams";
+import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
