@@ -10,6 +10,7 @@ import { LivestreamCard } from "@/components/c2c/livestream/LivestreamCard";
 import { GoLiveModal } from "@/components/c2c/livestream/GoLiveModal";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEMO_LIVESTREAMS } from "@/data/c2c/demoLivestreams";
 
 export default function C2CLivestreams() {
   const navigate = useNavigate();
