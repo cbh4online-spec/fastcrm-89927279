@@ -244,10 +244,10 @@ export function SmartCompaniesTable() {
   const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartCompaniesFilters]);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full min-h-0">
+    <div className="flex flex-col lg:flex-row">
       <FilterSidebar filterGroups={filterGroups} activeFilterId={activeFilterId} onFilterSelect={handleFilterSelect} onClearFilter={() => setActiveFilterId(undefined)} isOpen={showFilterSidebar} onClose={() => setShowFilterSidebar(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-auto">
+      <div className="flex-1 flex flex-col min-w-0">
         <PageHeader title={t("companies")} count={totalCompanies} tabs={pageTabs} activeTab={activeTab} onTabChange={setActiveTab}
           actions={[
             { label: t("import"), icon: <Download className="h-4 w-4" />, onClick: () => toast.info(t("importCompanies")), variant: "outline" },
