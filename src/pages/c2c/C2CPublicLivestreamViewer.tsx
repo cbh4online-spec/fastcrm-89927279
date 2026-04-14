@@ -35,7 +35,7 @@ import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
-import { useEndLivestream } from "@/hooks/c2c/useLivestreams";
+import { useEndLive } from "@/hooks/c2c/useLivestreams";
 import { cn } from "@/lib/utils";
 
 export default function C2CPublicLivestreamViewer() {
