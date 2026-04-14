@@ -8,7 +8,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   RENEWAL_STATUS_CONFIG, RENEWAL_INTERVAL_LABELS, RENEWAL_BILLING_LABELS,
   RENEWAL_ITEM_TYPE_LABELS, RENEWAL_ITEM_STATUS_CONFIG, PRICING_MODEL_LABELS,
-  getHealthScoreColor, RENEWAL_EVENT_LABELS,
+  getHealthScoreColor, RENEWAL_EVENT_LABELS, calculateRealMRR, inferRenewalInterval,
+  getIntervalSuffix, RENEWAL_INTERVAL_MONTHS,
 } from "@/types/renewal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,14 @@ export default function RenewalDetailPage() {
   const kpis = useMemo(() => {
     if (!contract) return null;
 
-    const mrr = Number(contract.total_mrr || 0);
+    // Detect real interval from dates if stored as custom
+    const effectiveInterval = contract.renewal_interval === 'custom'
+      ? inferRenewalInterval(contract.start_date, contract.next_renewal_date)
+      : contract.renewal_interval;
+
+    // total_mrr stores the periodic value — convert to real monthly MRR
+    const contractValue = Number(contract.total_mrr || 0);
+    const mrr = calculateRealMRR(contractValue, effectiveInterval);
     const arr = mrr * 12;
 
     // Contract lifetime in months
@@ -92,8 +100,8 @@ export default function RenewalDetailPage() {
     const totalUsage = usage.reduce((s, u) => s + Number(u.amount), 0);
 
     return {
-      mrr, arr, lifetimeMonths, ltv, daysUntilRenewal,
-      renewalCount, totalItemsValue, activeItems, overdueItems,
+      mrr, arr, lifetimeMonths, ltv, daysUntilRenewal, effectiveInterval,
+      contractValue, renewalCount, totalItemsValue, activeItems, overdueItems,
       totalUsage, paymentEvents: paymentEvents.length, invoiceEvents: invoiceEvents.length,
     };
   }, [contract, events, items, usage]);
@@ -230,6 +238,11 @@ export default function RenewalDetailPage() {
                     <p className="text-xs text-muted-foreground font-medium">MRR</p>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(kpis?.mrr || 0, contract.currency)}</p>
+                  {kpis?.effectiveInterval && kpis.effectiveInterval !== 'monthly' && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Valor {RENEWAL_INTERVAL_LABELS[kpis.effectiveInterval]}: {formatCurrency(kpis.contractValue, contract.currency)}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
               <Card>

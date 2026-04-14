@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { RENEWAL_STATUS_CONFIG, getHealthScoreColor } from "@/types/renewal";
+import { RENEWAL_STATUS_CONFIG, getHealthScoreColor, calculateRealMRR, inferRenewalInterval, getIntervalSuffix, RENEWAL_INTERVAL_LABELS } from "@/types/renewal";
 import type { RenewalContract, RenewalContractStatus } from "@/types/renewal";
 
 const COLUMNS: { status: RenewalContractStatus; label: string }[] = [
@@ -28,7 +28,12 @@ export function RenewalsKanbanView({ contracts, formatCurrency }: RenewalsKanban
       {COLUMNS.map((col) => {
         const items = contracts.filter((c) => c.status === col.status);
         const config = RENEWAL_STATUS_CONFIG[col.status];
-        const totalMRR = items.reduce((s, c) => s + Number(c.total_mrr || 0), 0);
+        const totalMRR = items.reduce((s, c) => {
+          const interval = c.renewal_interval === 'custom'
+            ? inferRenewalInterval(c.start_date, c.next_renewal_date)
+            : c.renewal_interval;
+          return s + calculateRealMRR(Number(c.total_mrr || 0), interval);
+        }, 0);
 
         return (
           <div key={col.status} className="space-y-2">
@@ -56,7 +61,14 @@ export function RenewalsKanbanView({ contracts, formatCurrency }: RenewalsKanban
                       <p className="text-xs text-muted-foreground">{contract.contact.name}</p>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold">{formatCurrency(Number(contract.total_mrr || 0))}/mês</span>
+                      <span className="text-xs font-semibold">
+                        {(() => {
+                          const interval = contract.renewal_interval === 'custom'
+                            ? inferRenewalInterval(contract.start_date, contract.next_renewal_date)
+                            : contract.renewal_interval;
+                          return `${formatCurrency(Number(contract.total_mrr || 0))}${getIntervalSuffix(interval)}`;
+                        })()}
+                      </span>
                       <div className="flex items-center gap-1">
                         <Progress value={contract.health_score} className="w-8 h-1.5" />
                         <span className={`text-[10px] font-medium ${getHealthScoreColor(contract.health_score)}`}>
