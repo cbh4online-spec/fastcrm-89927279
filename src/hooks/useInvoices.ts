@@ -496,6 +496,65 @@ export function useDeleteInvoice() {
   });
 }
 
+// Force invoice status change (super admin only)
+export function useForceInvoiceStatus() {
+  const queryClient = useQueryClient();
+  const { workspaceClient } = useWorkspaceInstance();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: InvoiceStatus }) => {
+      const updates: Record<string, any> = { status };
+
+      // Reset paid fields when moving away from paid
+      if (status !== "paid") {
+        updates.paid_at = null;
+      }
+      // Set paid_at when forcing to paid
+      if (status === "paid") {
+        updates.paid_at = new Date().toISOString();
+      }
+      // Set sent_at when forcing to sent
+      if (status === "sent") {
+        updates.sent_at = new Date().toISOString();
+      }
+
+      const { data, error } = await workspaceClient
+        .from("invoices")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Invoice;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
+      toast.success(`Estado da fatura alterado para "${data.status}"`);
+
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.STATUS_FORCED",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: {
+          invoice_number: data.invoice_number,
+          new_status: data.status,
+          forced: true,
+        },
+      });
+    },
+    onError: (error) => {
+      console.error("Error forcing invoice status:", error);
+      toast.error("Erro ao alterar estado da fatura");
+    },
+  });
+}
+
 // Invoice statistics hook
 export function useInvoiceStats() {
   const { currentWorkspace } = useWorkspace();
