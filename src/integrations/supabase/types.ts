@@ -9503,6 +9503,9 @@ export type Database = {
           description: string | null
           ended_at: string | null
           id: string
+          mux_playback_id: string | null
+          mux_stream_id: string | null
+          mux_stream_key: string | null
           peak_viewers: number
           product_ids: string[] | null
           replay_available: boolean
@@ -9525,6 +9528,9 @@ export type Database = {
           description?: string | null
           ended_at?: string | null
           id?: string
+          mux_playback_id?: string | null
+          mux_stream_id?: string | null
+          mux_stream_key?: string | null
           peak_viewers?: number
           product_ids?: string[] | null
           replay_available?: boolean
@@ -9547,6 +9553,9 @@ export type Database = {
           description?: string | null
           ended_at?: string | null
           id?: string
+          mux_playback_id?: string | null
+          mux_stream_id?: string | null
+          mux_stream_key?: string | null
           peak_viewers?: number
           product_ids?: string[] | null
           replay_available?: boolean
