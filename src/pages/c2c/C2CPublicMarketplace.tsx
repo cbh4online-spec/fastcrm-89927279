@@ -782,6 +782,12 @@ export default function C2CPublicMarketplace() {
               <Button variant="outline" size="sm" className="rounded-full hidden lg:flex border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
+              {isSeller && (
+                <Button size="sm" className="gap-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white border-0" onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}>
+                  <Radio className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Ir ao Vivo</span>
+                </Button>
+              )}
               <Button size="sm" className="gap-1 rounded-full bg-[#09B1BA] hover:bg-[#078E96] text-white border-0" onClick={handleSell}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Vender</span>
