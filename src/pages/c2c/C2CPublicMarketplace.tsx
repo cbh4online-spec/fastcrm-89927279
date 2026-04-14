@@ -913,6 +913,19 @@ export default function C2CPublicMarketplace() {
         {/* Seller Stories */}
         <SellerStories workspaceId={workspaceId} />
 
+        {/* Lives section - visible to ALL visitors */}
+        <LivesSection
+          lives={publicLives}
+          workspaceSlug={workspaceSlug || ""}
+          onNavigate={(id) => {
+            if (id === "__gallery__") {
+              navigate(`/marketplace/${workspaceSlug}/lives`);
+            } else {
+              navigate(`/marketplace/${workspaceSlug}/live/${id}`);
+            }
+          }}
+        />
+
         <div>
           <CategoryCarousel
             categories={categories}
