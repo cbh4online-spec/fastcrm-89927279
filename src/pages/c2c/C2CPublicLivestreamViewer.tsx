@@ -12,6 +12,11 @@ import {
   Share2,
   Copy,
   ExternalLink,
+  Camera,
+  CameraOff,
+  Mic,
+  MicOff,
+  PhoneOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,13 +33,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCameraStream } from "@/hooks/c2c/useCameraStream";
+import { useEndLive } from "@/hooks/c2c/useLivestreams";
+import { cn } from "@/lib/utils";
 
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: live, isLoading } = usePublicLivestreamById(id);
+  const endLive = useEndLive();
 
   const isLive = live?.status === "live";
+  const isBroadcaster = !!user && !!live && user.id === live.seller_id;
+
+  // Camera for broadcaster only
+  const camera = useCameraStream({ enabled: isBroadcaster && isLive, audio: true });
 
   const liveUrl =
     typeof window !== "undefined"
@@ -63,6 +78,18 @@ export default function C2CPublicLivestreamViewer() {
       case "twitter":
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(liveUrl)}`, "_blank");
         break;
+    }
+  };
+
+  const handleEndLive = async () => {
+    if (!id) return;
+    try {
+      camera.stopCamera();
+      await endLive.mutateAsync(id);
+      toast.success("Live terminada");
+      navigate(`/marketplace/${workspaceSlug}/lives`);
+    } catch {
+      toast.error("Erro ao terminar a live");
     }
   };
 
@@ -103,7 +130,7 @@ export default function C2CPublicLivestreamViewer() {
           className="text-white/70 hover:text-white hover:bg-white/10 gap-1.5"
         >
           <ArrowLeft className="h-4 w-4" />
-          Marketplace
+          <span className="hidden sm:inline">Marketplace</span>
         </Button>
 
         <div className="flex items-center gap-2">
@@ -122,7 +149,21 @@ export default function C2CPublicLivestreamViewer() {
           )}
         </div>
 
-        <div className="w-[80px]" /> {/* Spacer for centering */}
+        {/* Broadcaster controls */}
+        {isBroadcaster && isLive ? (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleEndLive}
+            disabled={endLive.isPending}
+            className="gap-1.5"
+          >
+            <PhoneOff className="h-4 w-4" />
+            Terminar
+          </Button>
+        ) : (
+          <div className="w-[80px]" />
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-49px)]">
@@ -135,8 +176,22 @@ export default function C2CPublicLivestreamViewer() {
                 title={live.title}
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
+                stream={isBroadcaster ? camera.stream : undefined}
               />
             </div>
+
+            {/* Broadcaster camera error */}
+            {isBroadcaster && isLive && camera.cameraError && (
+              <div className="absolute top-4 left-4 right-4 z-20">
+                <div className="bg-red-900/80 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
+                  <CameraOff className="h-4 w-4 text-red-300 flex-shrink-0" />
+                  <p className="text-white/90 text-xs">{camera.cameraError}</p>
+                  <Button size="sm" variant="outline" className="ml-auto text-xs h-7" onClick={camera.startCamera}>
+                    Tentar
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Scheduled overlay */}
             {live.status === "scheduled" && (
@@ -183,6 +238,37 @@ export default function C2CPublicLivestreamViewer() {
               </div>
             )}
           </div>
+
+          {/* Broadcaster camera/mic toolbar */}
+          {isBroadcaster && isLive && (
+            <div className="bg-gray-900 border-t border-white/10 px-4 py-2 flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={camera.cameraOn ? camera.stopCamera : camera.startCamera}
+                className={cn(
+                  "gap-1.5 text-white/70 hover:text-white hover:bg-white/10",
+                  camera.cameraOn && "text-green-400 hover:text-green-300"
+                )}
+              >
+                {camera.cameraOn ? <Camera className="h-4 w-4" /> : <CameraOff className="h-4 w-4" />}
+                {camera.cameraOn ? "Câmara" : "Sem câmara"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={camera.toggleMic}
+                disabled={!camera.cameraOn}
+                className={cn(
+                  "gap-1.5 text-white/70 hover:text-white hover:bg-white/10",
+                  camera.micOn && camera.cameraOn && "text-green-400 hover:text-green-300"
+                )}
+              >
+                {camera.micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                {camera.micOn ? "Micro" : "Mudo"}
+              </Button>
+            </div>
+          )}
 
           {/* Info bar */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
