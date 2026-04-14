@@ -450,7 +450,7 @@ export function CalendarEventModal({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <FormField
                 control={form.control}
                 name="location"
@@ -470,20 +470,52 @@ export function CalendarEventModal({
 
               <FormField
                 control={form.control}
-                name="meeting_url"
+                name="video_provider"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
                       <Video className="h-3 w-3" />
-                      Link de reunião
+                      Videoconferência
                     </FormLabel>
-                    <FormControl>
-                      <Input placeholder="URL da videochamada" {...field} />
-                    </FormControl>
+                    <Select onValueChange={(val) => {
+                      field.onChange(val);
+                      if (val !== 'manual') form.setValue('meeting_url', '');
+                    }} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sem videoconferência" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Sem videoconferência</SelectItem>
+                        {videoProviders.zoom && (
+                          <SelectItem value="zoom">🎥 Zoom (automático)</SelectItem>
+                        )}
+                        {videoProviders.google_meet && (
+                          <SelectItem value="google_meet">📹 Google Meet (automático)</SelectItem>
+                        )}
+                        <SelectItem value="manual">🔗 Link manual</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {form.watch('video_provider') === 'manual' && (
+                <FormField
+                  control={form.control}
+                  name="meeting_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input placeholder="URL da videochamada" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <FormField
