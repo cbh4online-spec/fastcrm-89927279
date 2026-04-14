@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,15 +34,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { useEndLive, useTrackViewer } from "@/hooks/c2c/useLivestreams";
 import { cn } from "@/lib/utils";
+import type { User } from "@supabase/supabase-js";
 
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+
+  // Get auth state without requiring AuthProvider
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   const { data: live, isLoading } = usePublicLivestreamById(id);
   const endLive = useEndLive();
 
