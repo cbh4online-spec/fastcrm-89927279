@@ -149,6 +149,7 @@
     "framer-motion": "^12.34.0",
     "fuse.js": "^7.1.0",
     "happy-dom": "^20.8.9",
+    "hls.js": "^1.6.16",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "i18next": "^25.8.13",
