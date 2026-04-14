@@ -34,6 +34,7 @@ const MarketplaceOrdersPage = lazy(() => import("@/pages/dashboard/marketplace/M
 const MarketplacePayoutsPage = lazy(() => import("@/pages/dashboard/marketplace/MarketplacePayoutsPage"));
 const C2CLivestreams = lazy(() => import("@/pages/c2c/C2CLivestreams"));
 const C2CLivestreamViewer = lazy(() => import("@/pages/c2c/C2CLivestreamViewer"));
+const C2CGoLiveSetup = lazy(() => import("@/pages/c2c/C2CGoLiveSetup"));
 
 export function C2CDashboardRoutes() {
   return (
@@ -70,6 +71,7 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/marketplace/moderation" element={<C2CModerationPage />} />
       <Route path="/dashboard/marketplace/config" element={<MarketplaceConfigPage />} />
       <Route path="/dashboard/marketplace/lives" element={<C2CLivestreams />} />
+      <Route path="/dashboard/marketplace/lives/setup" element={<C2CGoLiveSetup />} />
       <Route path="/dashboard/marketplace/lives/:id" element={<C2CLivestreamViewer />} />
       <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
       <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />

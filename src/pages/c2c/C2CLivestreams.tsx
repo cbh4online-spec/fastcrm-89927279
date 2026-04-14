@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Radio, Plus, Calendar, Eye, Video, PlayCircle } from "lucide-react";
+import { Radio, Plus, Calendar, Eye, Video, PlayCircle, Settings2 } from "lucide-react";
 import { useLivestreams } from "@/hooks/c2c/useLivestreams";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { LivestreamCard } from "@/components/c2c/livestream/LivestreamCard";
@@ -11,6 +12,7 @@ import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function C2CLivestreams() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { data: lives = [], isLoading } = useLivestreams(currentWorkspace?.id);
   const [showGoLive, setShowGoLive] = useState(false);
@@ -59,7 +61,15 @@ export default function C2CLivestreams() {
               className="bg-red-600 text-white hover:bg-red-700 gap-2 font-bold"
             >
               <Plus className="h-4 w-4" />
-              Iniciar Live
+              Live Rápida
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/marketplace/lives/setup")}
+              className="gap-2 border-white/30 text-white hover:bg-white/10"
+            >
+              <Settings2 className="h-4 w-4" />
+              Configurar Live
             </Button>
             {livesNow.length > 0 && (
               <Badge className="bg-white/20 text-white border-0 gap-1.5 text-sm py-1.5 px-3">
