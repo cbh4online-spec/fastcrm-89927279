@@ -288,12 +288,12 @@ export function useTrackViewer(livestreamId?: string, isLive?: boolean) {
     if (!livestreamId || !isLive || tracked.current) return;
     tracked.current = true;
 
-    // Increment viewer_count
-    sb.rpc("increment_viewer_count", { p_livestream_id: livestreamId }).catch(() => {});
+    // Increment viewer_count (best-effort, ignore errors)
+    sb.rpc("increment_viewer_count", { p_livestream_id: livestreamId }).then(() => {}).catch?.(() => {});
 
     return () => {
       // Best-effort decrement on unmount
-      sb.rpc("decrement_viewer_count", { p_livestream_id: livestreamId }).catch(() => {});
+      sb.rpc("decrement_viewer_count", { p_livestream_id: livestreamId }).then(() => {}).catch?.(() => {});
       tracked.current = false;
     };
   }, [livestreamId, isLive]);
