@@ -71,8 +71,8 @@ export function C2CDashboardRoutes() {
       <Route path="/dashboard/marketplace/moderation" element={<C2CModerationPage />} />
       <Route path="/dashboard/marketplace/config" element={<MarketplaceConfigPage />} />
       <Route path="/dashboard/marketplace/lives" element={<C2CLivestreams />} />
-      <Route path="/dashboard/marketplace/lives/:id" element={<C2CLivestreamViewer />} />
       <Route path="/dashboard/marketplace/lives/setup" element={<C2CGoLiveSetup />} />
+      <Route path="/dashboard/marketplace/lives/:id" element={<C2CLivestreamViewer />} />
       <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
       <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
       <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
