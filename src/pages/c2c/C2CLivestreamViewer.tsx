@@ -218,6 +218,34 @@ export default function C2CLivestreamViewer() {
             )}
           </div>
 
+          {/* Owner camera controls */}
+          {isOwner && isLive && (
+            <div className="bg-gray-900 border-t border-white/10 px-4 py-2 flex items-center justify-center gap-2">
+              <Button
+                variant={cameraOn ? "default" : "outline"}
+                size="sm"
+                onClick={cameraOn ? stopCamera : startCamera}
+                className={cn("gap-2 text-xs", cameraOn && "bg-primary")}
+              >
+                {cameraOn ? <Camera className="h-3.5 w-3.5" /> : <CameraOff className="h-3.5 w-3.5" />}
+                {cameraOn ? "Câmara" : "Câmara off"}
+              </Button>
+              <Button
+                variant={micOn ? "default" : "outline"}
+                size="sm"
+                onClick={toggleMic}
+                disabled={!cameraOn}
+                className={cn("gap-2 text-xs", micOn && cameraOn && "bg-primary")}
+              >
+                {micOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                {micOn ? "Mic" : "Mic off"}
+              </Button>
+              {cameraError && (
+                <span className="text-xs text-red-400 ml-2 truncate max-w-[200px]">{cameraError}</span>
+              )}
+            </div>
+          )}
+
           {/* Info bar */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
             <div className="flex items-center gap-3">
