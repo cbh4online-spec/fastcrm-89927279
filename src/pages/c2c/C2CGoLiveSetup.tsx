@@ -61,14 +61,23 @@ export default function C2CGoLiveSetup() {
   const [chatEnabled, setChatEnabled] = useState(true);
   const [replayEnabled, setReplayEnabled] = useState(true);
 
-  // Camera state
+  // Mux stream info after creation
+  const [muxInfo, setMuxInfo] = useState<{
+    stream_key: string;
+    rtmp_url: string;
+    srt_url: string;
+    playback_id: string;
+  } | null>(null);
+  const [livestreamId, setLivestreamId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
   // Camera state
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const isLoading = createLive.isPending || goLive.isPending;
+  const isLoading = createLive.isPending || goLive.isPending || createMuxStream.isPending;
 
   const isInIframe = (() => {
     try { return window.self !== window.top; } catch { return true; }
