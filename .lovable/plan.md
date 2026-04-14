@@ -1,78 +1,93 @@
 
 
-# Implementar Tab Financeiro Completo na Empresa
+# Integração Automática de Videoconferência nas Marcações de Calendário
 
 ## Diagnóstico
 
-A tab "Financeiro" na página de detalhe da empresa cai no `default` do switch (`Secção em desenvolvimento`) porque não existe `case 'financial'` no `CompanyDetailWithSidebar.tsx`. Todos os componentes necessários já existem — apenas falta a orquestração.
+A infraestrutura de videoconferência já existe e está robusta:
+- **Edge functions:** `create-video-meeting`, `video-auth-url`, `video-oauth-callback` -- todas operacionais
+- **Tabela:** `workspace_video_config` com suporte a Zoom e Google Meet (tokens OAuth, refresh, etc.)
+- **Settings UI:** `WorkspaceVideoSettings` na página de Integrações -- funcional
+- **MeetingCreateModal:** Já cria links automáticos quando o utilizador seleciona Zoom/Google Meet
 
-## Componentes Existentes a Reutilizar
+**O que falta (gap identificado):**
 
-| Componente | Função |
-|---|---|
-| `FinancialKPIStrip` | KPIs: Total Faturado, Pago, Pendente, Vencido |
-| `FinancialSection` | Condições pagamento, método preferido, crédito |
-| `CommercialHistorySection` | Vendas por ano, ABC, ticket médio, última compra |
-| `CompanyContactsHistory` | Revenue breakdown por contacto da empresa |
-| `CompanyOrderNotesSection` | Encomendas B2B da empresa |
-| `AcquiredProductsSection` | Produtos adquiridos (via faturas) |
-| `InvoiceHistorySection` | Lista de faturas com estado |
+1. **Booking público (`public-booking`):** Quando um visitante agenda via página pública, o evento é criado SEM link de videoconferência, mesmo que o `booking_page` tenha `meeting_provider` configurado e o workspace tenha Zoom/Meet conectado.
 
-## Plano
+2. **CalendarEventModal:** O modal de criação de evento no calendário não oferece opção para gerar link automático de Zoom/Meet (ao contrário do MeetingCreateModal que já o faz).
 
-### Ficheiro: `src/components/companies/CompanyDetailWithSidebar.tsx`
+3. **Sem default automático:** Quando o workspace tem um provider conectado, a criação de eventos/reuniões não o pré-seleciona automaticamente.
 
-Adicionar `case 'financial'` no switch com a estrutura:
+---
 
+## Plano de Implementação
+
+### 1. Auto-criar link de vídeo no Booking Público
+**Ficheiro:** `supabase/functions/public-booking/index.ts`
+
+Na função `handleConfirmBooking`, após criar o `calendar_event`:
+- Consultar `booking_pages.meeting_provider` (campo já existe no schema)
+- Se o provider estiver definido (zoom/google_meet), consultar `workspace_video_config`
+- Invocar internamente a lógica de criação de meeting (reutilizando as funções de token refresh + API call do `create-video-meeting`)
+- Actualizar o `calendar_event` com `meeting_url`
+- Retornar o `meeting_url` na resposta para mostrar na confirmação ao visitante
+
+### 2. Adicionar selecção de provider no CalendarEventModal
+**Ficheiro:** `src/components/calendars/CalendarEventModal.tsx`
+
+- Adicionar campo `video_provider` ao schema (none/zoom/google_meet/manual)
+- Mostrar selector quando `meeting_url` está visível
+- No submit, se provider != manual/none, invocar `create-video-meeting` (mesma lógica do MeetingCreateModal)
+- Preencher `meeting_url` automaticamente
+
+### 3. Hook para detectar providers disponíveis
+**Ficheiro:** `src/hooks/useAvailableVideoProviders.ts` (novo)
+
+- Hook leve que consulta `workspace_video_config` e retorna quais providers estão conectados
+- Usado no CalendarEventModal e no MeetingCreateModal para mostrar apenas providers disponíveis e pré-seleccionar o default
+
+### 4. Mostrar link de vídeo na confirmação de booking
+**Ficheiro:** `src/components/booking/BookingConfirmation.tsx`
+
+- Receber `meeting_url` do resultado do booking
+- Mostrar botão "Entrar na reunião" com o link de Zoom/Meet
+
+### 5. Deploy da edge function actualizada
+- A edge function `public-booking` precisa de ser re-deployed com a nova lógica de criação de vídeo
+
+---
+
+## Detalhes Técnicos
+
+### public-booking -- lógica de auto-create
+
+```text
+handleConfirmBooking()
+  ├── Criar calendar_event (existente)
+  ├── Verificar page.meeting_provider
+  │   ├── Se "zoom" ou "google_meet":
+  │   │   ├── Buscar workspace_video_config
+  │   │   ├── Refresh token se expirado
+  │   │   ├── Criar meeting via API (Zoom/Google)
+  │   │   ├── UPDATE calendar_event SET meeting_url = link
+  │   │   └── Incluir meeting_url na resposta
+  │   └── Se null/none: comportamento actual
+  └── Retornar resposta
 ```
-case 'financial':
-  return (
-    <div className="space-y-4">
-      <FinancialKPIStrip entityType="company" entityId={id!} />
-      <EntitySubTabs
-        tabs={[
-          { id: 'profile', label: 'Perfil' },
-          { id: 'payments', label: 'Pagamentos' },
-          { id: 'orders', label: 'Encomendas' },
-          { id: 'history', label: 'Histórico' },
-        ]}
-      >
-        {(tab) => {
-          switch (tab) {
-            case 'profile':
-              // FinancialSection (condições pagamento/crédito)
-            case 'payments':
-              // AcquiredProductsSection + InvoiceHistorySection
-            case 'orders':
-              // CompanyOrderNotesSection
-            case 'history':
-              // CommercialHistorySection + CompanyContactsHistory
-          }
-        }}
-      </EntitySubTabs>
-    </div>
-  );
-```
 
-**Sub-tabs:**
+### Ficheiros alterados
 
-1. **Perfil** — `FinancialSection` (condições de pagamento, crédito, método preferido)
-2. **Pagamentos** — `AcquiredProductsSection` (produtos) + `InvoiceHistorySection` (faturas) em grid 2 colunas
-3. **Encomendas** — `CompanyOrderNotesSection` (encomendas B2B)
-4. **Histórico** — `CommercialHistorySection` (vendas anuais, ABC) + `CompanyContactsHistory` (revenue por contacto)
-
-### Imports Adicionais Necessários
-
-- `AcquiredProductsSection` de `@/components/shared/AcquiredProductsSection`
-- `InvoiceHistorySection` de `@/components/contacts/eni/sections/InvoiceHistorySection`
-- `CommercialHistorySection` já importada? Verificar. Se não, importar de `./sections/CommercialHistorySection`
-- `CompanyContactsHistory` de `./sections/CompanyContactsHistory`
-- `CompanyOrderNotesSection` de `./sections/CompanyOrderNotesSection`
+| Ficheiro | Acção |
+|----------|-------|
+| `supabase/functions/public-booking/index.ts` | Adicionar auto-create de vídeo |
+| `src/components/calendars/CalendarEventModal.tsx` | Adicionar selector de provider |
+| `src/hooks/useAvailableVideoProviders.ts` | Novo hook |
+| `src/components/booking/BookingConfirmation.tsx` | Mostrar link de meeting |
 
 ### Critérios de Aceitação
 
-- Tab "Financeiro" mostra KPIs no topo (Total Faturado, Pago, Pendente, Vencido)
-- Sub-tabs funcionais com dados reais
-- Scroll funcional em toda a secção
-- Sem regressões nas outras tabs
+- Booking público com provider configurado gera link de Zoom/Meet automaticamente
+- CalendarEventModal permite criar eventos com link de vídeo automático
+- Confirmação de booking mostra link de acesso à reunião
+- Sem regressões na criação manual de reuniões (MeetingCreateModal)
 
