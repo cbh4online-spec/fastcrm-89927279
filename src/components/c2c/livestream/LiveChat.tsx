@@ -6,8 +6,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Pin, ShoppingBag, LogIn } from "lucide-react";
 import { useLivestreamMessages, useSendLiveMessage, type LivestreamMessage } from "@/hooks/c2c/useLivestreams";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 interface Props {
   livestreamId: string;
@@ -120,17 +121,17 @@ export function LiveChat({ livestreamId, isLive }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const simulated = useSimulatedMessages(isLive);
 
-  // Try to get auth - may be null for unauthenticated visitors
-  let user: any = null;
-  try {
-    const auth = useAuth();
-    user = auth?.user ?? null;
-  } catch {
-    // AuthProvider not available — visitor is not authenticated
-    user = null;
-  }
+  // Track auth state without requiring AuthProvider
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!currentUser;
 
   // Merge DB messages + simulated + local user messages, sorted by time
   const allMessages: LivestreamMessage[] = [
