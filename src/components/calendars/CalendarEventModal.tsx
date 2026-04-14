@@ -192,6 +192,34 @@ export function CalendarEventModal({
       const endTime = new Date(data.end_date);
       endTime.setHours(endHour, endMin, 0, 0);
 
+      let meetingUrl = data.meeting_url;
+
+      // Auto-create video meeting if provider selected
+      if (data.video_provider === 'zoom' || data.video_provider === 'google_meet') {
+        try {
+          const { data: result, error: fnError } = await supabase.functions.invoke('create-video-meeting', {
+            body: {
+              workspace_id: currentWorkspace?.id,
+              provider: data.video_provider,
+              meeting: {
+                title: data.title,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                duration: Math.round((endTime.getTime() - startTime.getTime()) / 60000),
+              },
+            },
+          });
+          if (fnError) throw fnError;
+          if (result?.meeting_url) {
+            meetingUrl = result.meeting_url;
+            toast.success(`Link de ${data.video_provider === 'zoom' ? 'Zoom' : 'Google Meet'} criado`);
+          }
+        } catch (err) {
+          console.error('Video meeting creation failed:', err);
+          toast.error('Não foi possível criar o link de videoconferência');
+        }
+      }
+
       await onSubmit({
         calendar_id: data.calendar_id,
         title: data.title,
@@ -200,7 +228,7 @@ export function CalendarEventModal({
         end_time: endTime.toISOString(),
         all_day: data.all_day,
         location: data.location,
-        meeting_url: data.meeting_url,
+        meeting_url: meetingUrl,
         status: data.status,
         contact_id: entityValue.contactId || undefined,
         company_id: entityValue.companyId || undefined,
