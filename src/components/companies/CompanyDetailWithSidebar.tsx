@@ -93,6 +93,7 @@ import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSecti
 import { InlineHeaderTags } from "@/components/entity/InlineHeaderTags";
 import { CommercialSummaryCard } from "@/components/crm/commercial/CommercialSummaryCard";
 import { CommercialRiskSignals } from "@/components/crm/commercial/CommercialRiskSignals";
+import { InvoiceHistorySection } from "@/components/contacts/eni/sections/InvoiceHistorySection";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
