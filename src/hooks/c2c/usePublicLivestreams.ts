@@ -24,6 +24,36 @@ export interface PublicLivestream {
   seller_avatar?: string;
 }
 
+export function usePublicLivestreamById(id?: string) {
+  return useQuery({
+    queryKey: ["c2c-public-livestream", id],
+    enabled: !!id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("c2c_livestreams")
+        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .eq("id", data.seller_id)
+        .maybeSingle();
+
+      return {
+        ...data,
+        seller_name: profile?.display_name || "Vendedor",
+        seller_avatar: profile?.avatar_url || null,
+      } as PublicLivestream;
+    },
+  });
+}
+
 export function usePublicLivestreams(workspaceId?: string) {
   return useQuery({
     queryKey: ["c2c-public-livestreams", workspaceId],
