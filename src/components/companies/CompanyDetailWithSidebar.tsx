@@ -355,6 +355,18 @@ export function CompanyDetailWithSidebar() {
             }}
           </EntitySubTabs>
         );
+      case 'team':
+        return (
+          <EntityTeamSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
+          />
+        );
+      case 'timeline':
+        return (
+          <EntityTimelineSection entityType="company" entityId={id!} entityName={company.name} />
+        );
       case 'relationships':
         return <RelationshipsPanel recordId={id!} entityType="company" />;
       case 'data':
