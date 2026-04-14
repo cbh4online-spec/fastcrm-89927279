@@ -48033,6 +48033,85 @@ export type Database = {
           },
         ]
       }
+      renewal_discounts: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          cycles_used: number
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          max_cycles: number | null
+          name: string
+          notes: string | null
+          renewal_item_id: string | null
+          start_date: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          cycles_used?: number
+          discount_type?: string
+          discount_value: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_cycles?: number | null
+          name: string
+          notes?: string | null
+          renewal_item_id?: string | null
+          start_date: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          cycles_used?: number
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_cycles?: number | null
+          name?: string
+          notes?: string | null
+          renewal_item_id?: string | null
+          start_date?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_discounts_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_discounts_renewal_item_id_fkey"
+            columns: ["renewal_item_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_discounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       renewal_events: {
         Row: {
           contract_id: string
