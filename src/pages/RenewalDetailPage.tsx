@@ -499,6 +499,15 @@ export default function RenewalDetailPage() {
             )}
           </TabsContent>
 
+          {/* Discounts */}
+          <TabsContent value="discounts" className="space-y-4">
+            <RenewalDiscountsSection
+              contractId={contract.id}
+              items={items}
+              currency={contract.currency}
+            />
+          </TabsContent>
+
           {/* Usage */}
           <TabsContent value="usage" className="space-y-4">
             <div className="flex justify-end">
