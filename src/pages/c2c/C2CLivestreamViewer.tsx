@@ -160,6 +160,9 @@ export default function C2CLivestreamViewer() {
               </div>
             )}
 
+            {/* Featured product */}
+            <LiveProductShowcase productIds={live.product_ids} isLive={isLive} />
+
             {/* Floating reactions */}
             {isLive && (
               <div className="absolute bottom-4 left-4 flex items-center gap-3">
