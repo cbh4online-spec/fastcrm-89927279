@@ -14,30 +14,50 @@ export function useFinancialKPIs(entityType: 'contact' | 'company', entityId: st
     queryFn: async (): Promise<FinancialKPIs> => {
       const column = entityType === 'contact' ? 'contact_id' : 'company_id';
       
-      const { data, error } = await supabase
+      // Fetch invoices (excluding drafts and cancelled)
+      const { data: invoices, error: invError } = await supabase
         .from('invoices')
-        .select('total, status')
+        .select('id, total, status')
         .eq(column, entityId)
-        .neq('status', 'draft');
+        .not('status', 'in', '("draft","cancelled")');
 
-      if (error) throw error;
+      if (invError) throw invError;
+
+      if (!invoices?.length) {
+        return { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
+      }
+
+      // Fetch actual payments for these invoices
+      const invoiceIds = invoices.map(i => i.id);
+      const { data: payments, error: payError } = await supabase
+        .from('invoice_payments')
+        .select('invoice_id, amount')
+        .in('invoice_id', invoiceIds);
+
+      if (payError) throw payError;
+
+      // Sum payments per invoice
+      const paidPerInvoice: Record<string, number> = {};
+      for (const p of payments ?? []) {
+        paidPerInvoice[p.invoice_id] = (paidPerInvoice[p.invoice_id] || 0) + Number(p.amount);
+      }
 
       const result: FinancialKPIs = { totalInvoiced: 0, paid: 0, pending: 0, overdue: 0 };
 
-      for (const inv of data ?? []) {
+      for (const inv of invoices) {
         const total = Number(inv.total) || 0;
+        const actualPaid = paidPerInvoice[inv.id] || 0;
+        
         result.totalInvoiced += total;
-        switch (inv.status) {
-          case 'paid':
-            result.paid += total;
-            break;
-          case 'overdue':
-            result.overdue += total;
-            break;
-          case 'unpaid':
-          case 'sent':
-            result.pending += total;
-            break;
+        result.paid += actualPaid;
+
+        const remaining = total - actualPaid;
+        if (remaining > 0) {
+          if (inv.status === 'overdue') {
+            result.overdue += remaining;
+          } else {
+            result.pending += remaining;
+          }
         }
       }
 
