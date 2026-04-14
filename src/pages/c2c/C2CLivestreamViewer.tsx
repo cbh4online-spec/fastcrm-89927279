@@ -59,7 +59,6 @@ export default function C2CLivestreamViewer() {
     },
     staleTime: Infinity,
   });
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
