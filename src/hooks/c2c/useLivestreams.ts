@@ -88,14 +88,14 @@ export function useLivestreams(workspaceId?: string) {
         .select("id, display_name, avatar_url")
         .in("id", sellerIds);
 
-      const profileMap = new Map(
+      const profileMap = new Map<string, any>(
         (profiles || []).map((p: any) => [p.id, p])
       );
 
       return lives.map((l: any) => ({
         ...l,
-        seller_name: profileMap.get(l.seller_id)?.display_name || "Vendedor",
-        seller_avatar: profileMap.get(l.seller_id)?.avatar_url || null,
+        seller_name: (profileMap.get(l.seller_id) as any)?.display_name || "Vendedor",
+        seller_avatar: (profileMap.get(l.seller_id) as any)?.avatar_url || null,
       })) as Livestream[];
     },
   });
