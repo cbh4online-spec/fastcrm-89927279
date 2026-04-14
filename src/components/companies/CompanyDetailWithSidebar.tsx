@@ -408,6 +408,44 @@ export function CompanyDetailWithSidebar() {
         return (
           <EntityTicketsSection entityType="company" entityId={id!} entityName={company.name} />
         );
+      case 'financial':
+        return (
+          <div className="space-y-4">
+            <FinancialKPIStrip entityType="company" entityId={id!} />
+            <EntitySubTabs
+              tabs={[
+                { id: 'profile', label: 'Perfil' },
+                { id: 'payments', label: 'Pagamentos' },
+                { id: 'orders', label: 'Encomendas' },
+                { id: 'history', label: 'Histórico' },
+              ]}
+            >
+              {(tab) => {
+                switch (tab) {
+                  case 'profile':
+                    return <FinancialSection company={company} onFieldChange={handleFieldChange} />;
+                  case 'payments':
+                    return (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <AcquiredProductsSection entityType="company" entityId={id!} />
+                        <InvoiceHistorySection companyId={id!} />
+                      </div>
+                    );
+                  case 'orders':
+                    return <CompanyOrderNotesSection companyId={id!} />;
+                  case 'history':
+                    return (
+                      <div className="space-y-4">
+                        <CommercialHistorySection companyId={id!} />
+                        <CompanyContactsHistory companyId={id!} />
+                      </div>
+                    );
+                  default: return null;
+                }
+              }}
+            </EntitySubTabs>
+          </div>
+        );
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
