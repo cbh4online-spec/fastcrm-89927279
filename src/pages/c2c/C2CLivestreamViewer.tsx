@@ -5,8 +5,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   Eye,
-  Heart,
-  Share2,
   Radio,
   ShoppingBag,
   Users,
