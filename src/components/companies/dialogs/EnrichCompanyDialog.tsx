@@ -522,6 +522,21 @@ export function EnrichCompanyDialog({
         };
       }
 
+      // Auto-fetch company logo from domain if no avatar exists
+      if (!company.avatar_url) {
+        const domain = company.website || company.domain || (company.email ? company.email.split('@')[1] : null);
+        if (domain) {
+          try {
+            const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+            const logoUrl = `https://www.google.com/s2/favicons?domain=${cleanDomain}&sz=128`;
+            const logoCheck = await fetch(logoUrl, { method: 'HEAD' });
+            if (logoCheck.ok) {
+              fieldsToApply.avatar_url = logoUrl;
+            }
+          } catch { /* ignore favicon fetch errors */ }
+        }
+      }
+
       const { error: updateError } = await supabase
         .from("companies")
         .update(fieldsToApply)
