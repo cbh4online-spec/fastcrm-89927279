@@ -250,6 +250,7 @@ export default function PublicBookingPage() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao agendar');
+      if (result.meeting_url) setMeetingUrl(result.meeting_url);
       setStep('confirmed');
       emitEvent('booking_completed');
     } catch (err) {
