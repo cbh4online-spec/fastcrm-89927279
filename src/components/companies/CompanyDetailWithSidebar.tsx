@@ -108,6 +108,7 @@ function getTimeAgo(date: Date): string {
 
 export function CompanyDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
   const { currentWorkspace } = useWorkspace();
