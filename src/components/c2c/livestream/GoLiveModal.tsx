@@ -15,14 +15,22 @@ import { Radio, Calendar, Loader2 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When used outside dashboard, pass workspaceId directly */
+  workspaceId?: string;
+  /** When used outside dashboard, pass workspaceSlug for public URL redirect */
+  workspaceSlug?: string;
+  /** If true, only shows "Go Live Now" without schedule option */
+  simplified?: boolean;
 }
 
-export function GoLiveModal({ open, onOpenChange }: Props) {
-  const { currentWorkspace } = useWorkspace();
+export function GoLiveModal({ open, onOpenChange, workspaceId, workspaceSlug, simplified }: Props) {
+  const workspaceCtx = useWorkspace();
+  const navigate = useNavigate();
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
   const [title, setTitle] = useState("");
@@ -31,12 +39,14 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
   const [mode, setMode] = useState<"now" | "schedule">("now");
   const [scheduledAt, setScheduledAt] = useState("");
 
+  const resolvedWorkspaceId = workspaceId || workspaceCtx?.currentWorkspace?.id;
+
   const handleSubmit = async () => {
-    if (!title.trim() || !currentWorkspace?.id) return;
+    if (!title.trim() || !resolvedWorkspaceId) return;
 
     try {
       const live = await createLive.mutateAsync({
-        workspace_id: currentWorkspace.id,
+        workspace_id: resolvedWorkspaceId,
         title: title.trim(),
         description: description.trim() || undefined,
         category: category.trim() || undefined,
@@ -44,12 +54,15 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
       });
 
       if (mode === "now") {
-        // Redirect to setup page instead of going live without media
         onOpenChange(false);
         resetForm();
-        toast.info("Prepara a tua câmara antes de entrar em direto");
-        // Navigate is not available here, so we use window.location
-        window.location.href = `/dashboard/marketplace/lives/setup`;
+        // If we have a public slug, redirect to public setup
+        if (workspaceSlug) {
+          navigate(`/marketplace/${workspaceSlug}/go-live`);
+        } else {
+          toast.info("Prepara a tua câmara antes de entrar em direto");
+          window.location.href = `/dashboard/marketplace/lives/setup`;
+        }
         return;
       } else {
         toast.success("Live agendada com sucesso!");
@@ -71,6 +84,7 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
   };
 
   const isLoading = createLive.isPending || goLive.isPending;
+  const showSchedule = !simplified;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,17 +108,19 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
             />
           </div>
 
-          <div>
-            <Label htmlFor="live-desc">Descrição</Label>
-            <Textarea
-              id="live-desc"
-              placeholder="Descreve o que vais mostrar..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={500}
-            />
-          </div>
+          {!simplified && (
+            <div>
+              <Label htmlFor="live-desc">Descrição</Label>
+              <Textarea
+                id="live-desc"
+                placeholder="Descreve o que vais mostrar..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+          )}
 
           <div>
             <Label htmlFor="live-category">Categoria</Label>
@@ -117,26 +133,28 @@ export function GoLiveModal({ open, onOpenChange }: Props) {
             />
           </div>
 
-          <RadioGroup value={mode} onValueChange={(v) => setMode(v as "now" | "schedule")}>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="now" id="mode-now" />
-                <Label htmlFor="mode-now" className="flex items-center gap-1.5 cursor-pointer">
-                  <Radio className="h-4 w-4 text-red-500" />
-                  Ir ao vivo agora
-                </Label>
+          {showSchedule && (
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as "now" | "schedule")}>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="now" id="mode-now" />
+                  <Label htmlFor="mode-now" className="flex items-center gap-1.5 cursor-pointer">
+                    <Radio className="h-4 w-4 text-red-500" />
+                    Ir ao vivo agora
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="schedule" id="mode-schedule" />
+                  <Label htmlFor="mode-schedule" className="flex items-center gap-1.5 cursor-pointer">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    Agendar
+                  </Label>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="schedule" id="mode-schedule" />
-                <Label htmlFor="mode-schedule" className="flex items-center gap-1.5 cursor-pointer">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  Agendar
-                </Label>
-              </div>
-            </div>
-          </RadioGroup>
+            </RadioGroup>
+          )}
 
-          {mode === "schedule" && (
+          {showSchedule && mode === "schedule" && (
             <div>
               <Label htmlFor="live-schedule">Data e hora</Label>
               <Input
