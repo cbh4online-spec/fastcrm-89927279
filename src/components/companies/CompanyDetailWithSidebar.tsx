@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -6,7 +7,7 @@ import { checkDuplicate } from "@/utils/duplicateCheck";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -107,6 +108,7 @@ function getTimeAgo(date: Date): string {
 
 export function CompanyDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
   const { currentWorkspace } = useWorkspace();
@@ -594,6 +596,7 @@ export function CompanyDetailWithSidebar() {
                           if (error) throw error;
                           if (data?.data) {
                             toast.success("Empresa enriquecida com dados do website!");
+                            queryClient.invalidateQueries({ queryKey: ["companies"] });
                           } else {
                             toast.info("Dados extraídos parcialmente");
                           }
