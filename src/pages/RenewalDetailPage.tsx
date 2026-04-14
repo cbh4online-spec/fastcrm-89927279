@@ -251,6 +251,7 @@ export default function RenewalDetailPage() {
           <TabsList>
             <TabsTrigger value="overview">Resumo</TabsTrigger>
             <TabsTrigger value="items">Itens ({items.length})</TabsTrigger>
+            <TabsTrigger value="discounts">Descontos ({discounts.length})</TabsTrigger>
             <TabsTrigger value="usage">Consumo ({usage.length})</TabsTrigger>
             <TabsTrigger value="billing">Faturação</TabsTrigger>
             <TabsTrigger value="timeline">Timeline ({events.length})</TabsTrigger>
@@ -267,7 +268,13 @@ export default function RenewalDetailPage() {
                     <p className="text-xs text-muted-foreground font-medium">MRR</p>
                   </div>
                   <p className="text-2xl font-bold">{formatCurrency(kpis?.mrr || 0, contract.currency)}</p>
-                  {contract.renewal_interval !== 'monthly' && (
+                  {kpis?.hasActiveDiscounts && kpis.baseValue > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      <span className="line-through">{formatCurrency(calculateRealMRR(kpis.baseValue, contract.renewal_interval, contract.start_date, contract.next_renewal_date), contract.currency)}</span>
+                      {" "}com desconto
+                    </p>
+                  )}
+                  {!kpis?.hasActiveDiscounts && contract.renewal_interval !== 'monthly' && (
                     <p className="text-[10px] text-muted-foreground">
                       Valor {RENEWAL_INTERVAL_LABELS[contract.renewal_interval]}: {formatCurrency(kpis?.contractValue || 0, contract.currency)}
                     </p>
