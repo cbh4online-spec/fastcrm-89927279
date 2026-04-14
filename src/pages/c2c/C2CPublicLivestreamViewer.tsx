@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLivestreamById } from "@/hooks/c2c/useLivestreams";
+import { usePublicLivestreamById } from "@/hooks/c2c/usePublicLivestreams";
 import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
 import { LiveChat } from "@/components/c2c/livestream/LiveChat";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
@@ -32,7 +32,7 @@ import { pt } from "date-fns/locale";
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
-  const { data: live, isLoading } = useLivestreamById(id);
+  const { data: live, isLoading } = usePublicLivestreamById(id);
 
   const isLive = live?.status === "live";
 
@@ -168,7 +168,7 @@ export default function C2CPublicLivestreamViewer() {
             )}
 
             {/* Featured product */}
-            <LiveProductShowcase productIds={live.product_ids} isLive={isLive} />
+            <LiveProductShowcase productIds={(live as any).product_ids || []} isLive={isLive} />
 
             {/* Emoji reactions */}
             <LiveReactions isLive={isLive} />
