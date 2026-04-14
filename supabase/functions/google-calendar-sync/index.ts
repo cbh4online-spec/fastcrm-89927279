@@ -72,7 +72,14 @@ async function listGoogleCalendars(accessToken: string) {
   const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(`List calendars failed [${res.status}]: ${await res.text()}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    // If insufficient scopes, signal re-auth needed
+    if (res.status === 403 && errorText.includes("SCOPE_INSUFFICIENT")) {
+      throw new Error("NEEDS_REAUTH");
+    }
+    throw new Error(`List calendars failed [${res.status}]: ${errorText}`);
+  }
   const data = await res.json();
   return data.items || [];
 }
@@ -256,18 +263,30 @@ Deno.serve(async (req: Request) => {
 
     // ── LIST CALENDARS ──
     if (action === "list_calendars") {
-      const calendars = await listGoogleCalendars(accessToken);
-      return new Response(
-        JSON.stringify({
-          calendars: calendars.map((c: any) => ({
-            id: c.id,
-            summary: c.summary,
-            primary: c.primary || false,
-            backgroundColor: c.backgroundColor,
-          })),
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      try {
+        const calendars = await listGoogleCalendars(accessToken);
+        return new Response(
+          JSON.stringify({
+            calendars: calendars.map((c: any) => ({
+              id: c.id,
+              summary: c.summary,
+              primary: c.primary || false,
+              backgroundColor: c.backgroundColor,
+            })),
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err) {
+        if (err.message === "NEEDS_REAUTH") {
+          // Tokens exist but scopes are insufficient — need re-authorization
+          console.log("Tokens have insufficient scopes, requesting re-auth");
+          return new Response(
+            JSON.stringify({ error: "needs_oauth", needs_oauth: true }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw err;
+      }
     }
 
     // ── CONNECT calendar ──
