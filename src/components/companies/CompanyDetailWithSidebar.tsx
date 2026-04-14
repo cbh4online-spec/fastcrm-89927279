@@ -69,6 +69,7 @@ import { LinkContactDialog } from "./LinkContactDialog";
 import { SuggestedContact } from "@/hooks/useCompleteSocialAnalysis";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { EntityTicketsSection } from "@/components/helpdesk/EntityTicketsSection";
+import { EntityCustomFieldsSection } from "@/components/shared/EntityCustomFieldsSection";
 import { ActivityProfileBadge, ProfileCustomFieldsSection } from "@/components/activity-profile";
 import { useActivityProfileContext } from "@/contexts/ActivityProfileContext";
 import { useEntityActivityProfile } from "@/hooks/useActivityProfiles";
@@ -404,11 +405,7 @@ export function CompanyDetailWithSidebar() {
                     </div>
                   );
                 case 'fields':
-                  return (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Campos personalizados em desenvolvimento.
-                    </div>
-                  );
+                  return <EntityCustomFieldsSection entityType="company" entityId={id!} />;
                 case 'audit':
                   return <CompanyAuditSection companyId={id!} />;
                 default: return null;
