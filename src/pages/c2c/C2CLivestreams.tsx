@@ -17,6 +17,7 @@ export default function C2CLivestreams() {
 
   const livesNow = lives.filter((l) => l.status === "live");
   const scheduled = lives.filter((l) => l.status === "scheduled");
+  const ended = lives.filter((l) => l.status === "ended");
 
   return (
     <div className="min-h-screen bg-background">
