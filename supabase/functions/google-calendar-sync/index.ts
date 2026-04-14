@@ -247,7 +247,7 @@ Deno.serve(async (req: Request) => {
 
     if (!videoConfig?.google_refresh_token) {
       return new Response(
-        JSON.stringify({ error: "Google Calendar não está conectado. Configure o Google Meet primeiro." }),
+        JSON.stringify({ error: "needs_oauth", needs_oauth: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
