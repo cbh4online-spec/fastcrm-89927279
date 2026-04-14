@@ -495,6 +495,7 @@ export default function PublicBookingPage() {
                         selectedSlot={selectedSlot}
                         durationMinutes={page.duration_minutes}
                         brandColor={page.brand_color}
+                        meetingUrl={meetingUrl}
                       />
                     </motion.div>
                   )}
