@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Pin, ShoppingBag } from "lucide-react";
+import { Send, Pin, ShoppingBag, LogIn } from "lucide-react";
 import { useLivestreamMessages, useSendLiveMessage, type LivestreamMessage } from "@/hooks/c2c/useLivestreams";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Props {
   livestreamId: string;
@@ -118,6 +120,18 @@ export function LiveChat({ livestreamId, isLive }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const simulated = useSimulatedMessages(isLive);
 
+  // Try to get auth - may be null for unauthenticated visitors
+  let user: any = null;
+  try {
+    const auth = useAuth();
+    user = auth?.user ?? null;
+  } catch {
+    // AuthProvider not available — visitor is not authenticated
+    user = null;
+  }
+
+  const isAuthenticated = !!user;
+
   // Merge DB messages + simulated + local user messages, sorted by time
   const allMessages: LivestreamMessage[] = [
     ...dbMessages,
@@ -147,6 +161,11 @@ export function LiveChat({ livestreamId, isLive }: Props) {
   const handleSend = () => {
     const trimmed = msg.trim();
     if (!trimmed || !isLive) return;
+
+    if (!isAuthenticated) {
+      toast.error("Faz login para enviar mensagens no chat");
+      return;
+    }
 
     // Add locally for instant feedback
     const localMsg: SimulatedMsg = {
@@ -195,24 +214,31 @@ export function LiveChat({ livestreamId, isLive }: Props) {
       {/* Input */}
       {isLive && (
         <div className="p-3 border-t">
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-          >
-            <Input
-              placeholder="Escreve uma mensagem..."
-              value={msg}
-              onChange={(e) => setMsg(e.target.value)}
-              className="flex-1 text-sm h-9"
-              maxLength={500}
-            />
-            <Button size="sm" type="submit" disabled={!msg.trim() || send.isPending} className="h-9 w-9 p-0">
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+          {isAuthenticated ? (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+            >
+              <Input
+                placeholder="Escreve uma mensagem..."
+                value={msg}
+                onChange={(e) => setMsg(e.target.value)}
+                className="flex-1 text-sm h-9"
+                maxLength={500}
+              />
+              <Button size="sm" type="submit" disabled={!msg.trim() || send.isPending} className="h-9 w-9 p-0">
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2.5">
+              <LogIn className="h-4 w-4 flex-shrink-0" />
+              <span>Faz login para participar no chat</span>
+            </div>
+          )}
         </div>
       )}
     </div>
