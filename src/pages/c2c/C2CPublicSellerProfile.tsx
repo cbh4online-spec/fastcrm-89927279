@@ -166,6 +166,20 @@ export default function C2CPublicSellerProfile() {
                 <p className="text-sm text-gray-500 mb-2">{seller.bio}</p>
               )}
               <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} variant="dark" />
+
+              {/* Go Live button for own profile */}
+              {isOwnProfile && (
+                <Button
+                  onClick={() => navigate(`/marketplace/${workspaceSlug}/go-live`)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 mt-2"
+                  size="sm"
+                >
+                  <Radio className="h-4 w-4" />
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  Ir ao Vivo
+                </Button>
+              )}
+
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
