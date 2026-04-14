@@ -51,6 +51,7 @@ const eventSchema = z.object({
   all_day: z.boolean().default(false),
   location: z.string().optional(),
   meeting_url: z.string().optional(),
+  video_provider: z.enum(['none', 'zoom', 'google_meet', 'manual']).default('none'),
   status: z.enum(['tentative', 'confirmed', 'cancelled']).default('confirmed'),
   contact_id: z.string().optional().nullable(),
   company_id: z.string().optional().nullable(),
