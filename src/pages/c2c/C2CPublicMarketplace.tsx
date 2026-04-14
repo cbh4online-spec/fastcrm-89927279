@@ -665,6 +665,23 @@ export default function C2CPublicMarketplace() {
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
 
+  // Check if authenticated user is an approved seller in this workspace
+  const { data: approvedSeller } = useQuery({
+    queryKey: ["c2c-is-approved-seller-public", workspaceId, authUserId],
+    enabled: !!workspaceId && !!authUserId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("c2c_sellers")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", authUserId!)
+        .eq("status", "approved")
+        .maybeSingle();
+      return data as { id: string } | null;
+    },
+  });
+  const isSeller = !!approvedSeller;
+
   const marketplaceName = marketplaceConfig?.name || storeSettings?.store_name || workspace?.name || "Marketplace";
   const ogTitle = `${marketplaceName} — Marketplace C2C`;
   const ogDescription = marketplaceConfig?.description || storeSettings?.store_description || `Explora o marketplace de ${marketplaceName}. Compra e vende entre utilizadores reais.`;
