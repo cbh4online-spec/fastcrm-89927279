@@ -212,46 +212,63 @@ export const RENEWAL_INTERVAL_MONTHS: Record<RenewalIntervalType, number> = {
   quarterly: 3,
   semi_annual: 6,
   yearly: 12,
-  custom: 1, // fallback, use inferRenewalInterval for accuracy
+  custom: 1, // fallback — use getEffectiveIntervalMonths for custom
 };
 
 /**
- * Infer the real renewal interval from start_date and next_renewal_date.
- * Returns the closest standard interval or 'custom'.
+ * Calculate the effective interval in months from actual dates.
+ * For standard intervals, returns the fixed value.
+ * For custom, calculates from start_date → next_renewal_date.
  */
-export function inferRenewalInterval(startDate: string, nextRenewalDate: string | null): RenewalIntervalType {
-  if (!nextRenewalDate) return 'monthly';
+export function getEffectiveIntervalMonths(
+  interval: RenewalIntervalType,
+  startDate: string,
+  nextRenewalDate: string | null
+): number {
+  if (interval !== 'custom') return RENEWAL_INTERVAL_MONTHS[interval];
+  if (!nextRenewalDate) return 1;
   const start = new Date(startDate);
   const next = new Date(nextRenewalDate);
-  const diffMs = next.getTime() - start.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays <= 45) return 'monthly';       // ~30 days
-  if (diffDays <= 120) return 'quarterly';     // ~90 days
-  if (diffDays <= 210) return 'semi_annual';   // ~180 days
-  if (diffDays <= 450) return 'yearly';        // ~365 days
-  return 'custom';
+  const diffDays = Math.max(1, Math.round((next.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+  return Math.max(1, diffDays / 30.44); // average days per month
 }
 
 /**
  * Calculate real MRR from total contract value and renewal interval.
- * total_mrr in DB is actually the contract periodic value, not necessarily monthly.
+ * total_mrr in DB is the contract periodic value, not necessarily monthly.
  */
-export function calculateRealMRR(contractValue: number, interval: RenewalIntervalType): number {
-  const months = RENEWAL_INTERVAL_MONTHS[interval];
+export function calculateRealMRR(
+  contractValue: number,
+  interval: RenewalIntervalType,
+  startDate?: string,
+  nextRenewalDate?: string | null
+): number {
+  const months = interval === 'custom' && startDate
+    ? getEffectiveIntervalMonths(interval, startDate, nextRenewalDate ?? null)
+    : RENEWAL_INTERVAL_MONTHS[interval];
   return contractValue / months;
 }
 
 /**
  * Get the interval label suffix for display (e.g., "/mês", "/ano").
+ * For custom, shows the period in months.
  */
-export function getIntervalSuffix(interval: RenewalIntervalType): string {
+export function getIntervalSuffix(
+  interval: RenewalIntervalType,
+  startDate?: string,
+  nextRenewalDate?: string | null
+): string {
   switch (interval) {
     case 'monthly': return '/mês';
     case 'quarterly': return '/trim.';
     case 'semi_annual': return '/sem.';
     case 'yearly': return '/ano';
-    case 'custom': return '';
+    case 'custom': {
+      if (!startDate || !nextRenewalDate) return '';
+      const months = getEffectiveIntervalMonths(interval, startDate, nextRenewalDate);
+      const rounded = Math.round(months);
+      return `/${rounded} ${rounded === 1 ? 'mês' : 'meses'}`;
+    }
   }
 }
 
