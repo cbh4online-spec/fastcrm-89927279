@@ -48,8 +48,14 @@ export default function C2CLivestreamViewer() {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  const isOwner = userId && live?.seller_id === userId;
+  const isOwner = !!(userId && live?.seller_id === userId);
   const isLive = live?.status === "live";
+
+  // Owner gets local camera when live
+  const { stream: ownerStream, cameraOn, micOn, startCamera, stopCamera, toggleMic, cameraError } = useCameraStream({
+    enabled: isOwner && isLive,
+    audio: true,
+  });
 
   const handleEndLive = async () => {
     if (!live?.id) return;
