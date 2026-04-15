@@ -90,19 +90,15 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
       return;
     }
 
-    if (cartContext) {
-      cartContext.addItem({
-        productId: product.id,
-        name: product.title,
-        price: product.price,
-        currency: product.currency,
-        image: product.image_url,
-      });
-      cartContext.setIsOpen(true);
-      toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
-    } else {
-      toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
-    }
+    addItem({
+      productId: product.id,
+      name: product.title,
+      price: product.price,
+      currency: product.currency,
+      image: product.image_url,
+    });
+    setIsOpen(true);
+    toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
   };
 
   return (
