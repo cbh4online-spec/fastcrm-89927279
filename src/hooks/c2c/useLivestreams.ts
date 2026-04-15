@@ -172,6 +172,8 @@ export function useCreateLivestream() {
       category?: string;
       tags?: string[];
       thumbnail_url?: string;
+      product_ids?: string[];
+      replay_available?: boolean;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
@@ -181,6 +183,8 @@ export function useCreateLivestream() {
           ...input,
           seller_id: user.id,
           workspace_slug: input.workspace_slug || null,
+          product_ids: input.product_ids || [],
+          replay_available: input.replay_available ?? true,
         })
         .select()
         .single();
