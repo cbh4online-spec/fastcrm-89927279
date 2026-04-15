@@ -434,39 +434,6 @@ export default function C2CGoLiveSetup() {
               </div>
             </Card>
 
-            {/* Mux Stream Info (shown after Preparar Stream) */}
-            {muxInfo && (
-              <Card className="p-4 border-primary/30 bg-primary/5">
-                <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
-                  <Radio className="h-4 w-4 text-primary" />
-                  Dados do Stream (OBS / Software)
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">RTMP URL</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input value={muxInfo.rtmp_url} readOnly className="text-xs font-mono" />
-                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => handleCopy(muxInfo.rtmp_url, "rtmp")}>
-                        {copiedField === "rtmp" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Stream Key</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input value={muxInfo.stream_key} readOnly className="text-xs font-mono" type="password" />
-                      <Button variant="outline" size="icon" className="shrink-0" onClick={() => handleCopy(muxInfo.stream_key, "key")}>
-                        {copiedField === "key" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Cola estes dados no OBS (Definições → Stream → Serviço: Custom). Quando o OBS estiver a emitir, clica "Ir ao Vivo".
-                  </p>
-                </div>
-              </Card>
-            )}
-
             {/* Summary card */}
             <Card className="p-4 bg-muted/30 border-dashed">
               <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
@@ -489,42 +456,26 @@ export default function C2CGoLiveSetup() {
                   <span className="font-medium">{selectedProductIds.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Stream Mux</span>
-                  <Badge variant={muxInfo ? "default" : "secondary"} className="text-[10px]">
-                    {muxInfo ? "Pronto" : "Não criado"}
+                  <span className="text-muted-foreground">Câmara</span>
+                  <Badge variant={cameraOn ? "default" : "secondary"} className="text-[10px]">
+                    {cameraOn ? "Ligada" : "Desligada"}
                   </Badge>
                 </div>
               </div>
 
-              {muxInfo ? (
-                <Button
-                  onClick={handleGoLive}
-                  disabled={goLive.isPending}
-                  className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white gap-2 font-bold"
-                  size="lg"
-                >
-                  {goLive.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-                  )}
-                  Ir ao Vivo Agora
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleCreateStream}
-                  disabled={!title.trim() || isLoading}
-                  className="w-full mt-4 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Radio className="h-4 w-4" />
-                  )}
-                  Preparar Stream
-                </Button>
-              )}
+              <Button
+                onClick={handleGoLive}
+                disabled={!title.trim() || isLoading}
+                className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white gap-2 font-bold"
+                size="lg"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                )}
+                Ir ao Vivo Agora
+              </Button>
             </Card>
           </div>
         </div>
