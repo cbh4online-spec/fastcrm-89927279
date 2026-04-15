@@ -21,6 +21,8 @@ export interface Livestream {
   category: string | null;
   tags: string[];
   replay_available: boolean;
+  livekit_room_name: string | null;
+  featured_product_id: string | null;
   created_at: string;
   updated_at: string;
   // joined from profiles
