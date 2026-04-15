@@ -1,62 +1,51 @@
 
 
-# Plano: Isolamento de Mensagens por Workspace (Routing GHL Multi-Workspace)
+# Diagnóstico: RLS INSERT Policy em `c2c_livestreams`
 
-## Diagnóstico
+## Problema
+A política RLS de INSERT verifica `seller_id = auth.uid()`, mas `seller_id` contém o `profiles.id` (não o auth UUID). O código correctamente resolve `profiles.id` a partir de `auth.uid()`, mas a política RLS rejeita porque compara valores de domínios diferentes.
 
-O problema é que Metodopare e Blecksen partilham o **mesmo GHL location_id** (sub-conta GoHighLevel). Quando cada workspace faz sync, o `ghl-sync-conversations` puxa **todas** as conversas dessa localização para o workspace que pediu o sync — não filtra por canal ou pertença.
+**Policy actual:**
+```sql
+WITH CHECK (seller_id = auth.uid())  -- auth.uid() ≠ profiles.id
+```
 
-Resultado: Tiago Guimarães e Rui Miguel Pinheiro, que entraram pela Blecksen (provavelmente via Instagram), aparecem também na Metodopare.
+**Código actual (correcto):**
+```typescript
+seller_id: profile.id  -- profiles.id (diferente de auth.uid())
+```
 
-### Onde está a falha
+## Solução
+Migração SQL para corrigir as políticas INSERT, UPDATE e DELETE, usando uma subquery que resolve `auth.uid()` → `profiles.id`:
 
-1. **`ghl-sync-conversations`** (linha 616-710): itera sobre TODAS as conversas GHL do `locationId` e cria-as no `workspace_id` que pediu o sync, sem verificar se o canal já pertence a outro workspace.
-2. **`ghl-webhook-contact`** (linha 108-113): usa `.limit(1)` para resolver o workspace — não determinístico quando múltiplos workspaces partilham o mesmo location.
-3. **`ghl-webhook-message`** (linha 259-298): já tem routing por canal (Phase 2), mas o fallback é "primary ou primeiro" — pode enviar para o workspace errado quando a configuração de canais sociais não está completa.
+```sql
+-- Drop existing broken policies
+DROP POLICY IF EXISTS "Sellers can create livestreams" ON public.c2c_livestreams;
+DROP POLICY IF EXISTS "Sellers can update own livestreams" ON public.c2c_livestreams;
+DROP POLICY IF EXISTS "Sellers can delete own livestreams" ON public.c2c_livestreams;
 
-### O que já funciona
-- `useConversations` filtra correctamente por `workspace_id` (linha 139).
-- O realtime subscription já filtra por `workspace_id` (linha 95).
-- O `normalizeIncomingMessage` cria conversas com o `workspace_id` correcto.
+-- Recreate with correct profile.id resolution
+CREATE POLICY "Sellers can create livestreams" ON public.c2c_livestreams
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    seller_id = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+  );
 
-## Plano de Implementação
+CREATE POLICY "Sellers can update own livestreams" ON public.c2c_livestreams
+  FOR UPDATE TO authenticated
+  USING (
+    seller_id = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+  );
 
-### 1. Filtrar conversas por canal no sync batch (`ghl-sync-conversations`)
-- Antes de criar uma conversa, verificar se o canal (instagram, facebook, whatsapp, etc.) está atribuído a este workspace via `workspace_ghl_social_channels`.
-- Se o canal pertence a outro workspace, **não criar** a conversa.
-- Se o canal é genérico (email, sms) e não há configuração de canais sociais, manter comportamento actual (sync para o workspace que pediu).
-- **Nota**: o rollback parcial (linhas 851-855) já existe para canais não permitidos APÓS inferência — mas precisa de ser movido para ANTES da criação.
+CREATE POLICY "Sellers can delete own livestreams" ON public.c2c_livestreams
+  FOR DELETE TO authenticated
+  USING (
+    seller_id = (SELECT id FROM public.profiles WHERE user_id = auth.uid() LIMIT 1)
+  );
+```
 
-### 2. Corrigir routing no webhook de contacto (`ghl-webhook-contact`)
-- Substituir `.limit(1)` por lógica multi-workspace igual à do `ghl-webhook-message`:
-  - Carregar todas as configs activas para o location.
-  - Usar `workspace_ghl_social_channels` para determinar o workspace correcto.
-  - Fallback para `is_primary`.
-
-### 3. Garantir que a configuração de canais está completa
-- Validar que Metodopare e Blecksen têm `workspace_ghl_social_channels` correctamente configurados (e.g., Instagram → Blecksen, Email → Metodopare).
-- Se ambos tiverem o mesmo canal activo, o sistema não consegue desambiguar — alertar o utilizador.
-
-### 4. Limpeza de conversas duplicadas (dados existentes)
-- Criar um script SQL de limpeza que:
-  - Identifica conversas na Metodopare que existem também na Blecksen (mesmo `external_thread_id`)
-  - Remove as duplicadas do workspace errado (baseado no canal e configuração de canais sociais)
-
-## Ficheiros a alterar
-
-| Ficheiro | Alteração |
-|---|---|
-| `supabase/functions/ghl-sync-conversations/index.ts` | Verificar `isSyncChannelAllowed` ANTES de criar conversa (mover check para cima) |
-| `supabase/functions/ghl-webhook-contact/index.ts` | Implementar routing multi-workspace por canal (igual ao message webhook) |
-| SQL migration (limpeza) | Remover conversas duplicadas do workspace errado |
-
-## Critérios de Aceitação
-- Conversas Instagram da Blecksen aparecem APENAS na Blecksen
-- Conversas da Metodopare aparecem APENAS na Metodopare
-- Um novo sync não recria conversas no workspace errado
-- Webhooks em tempo real encaminham para o workspace correcto
-
-## Riscos
-- Se `workspace_ghl_social_channels` não estiver configurado para ambos os workspaces, o sistema não consegue distinguir — será necessário configurar antes de deploy
-- A limpeza de dados existentes requer cuidado para não apagar mensagens legítimas
+## Impacto
+- Corrige o erro de RLS ao criar livestreams
+- Mantém segurança: cada vendedor só pode gerir as suas próprias lives
+- Sem alterações no código frontend (já está correcto)
 
