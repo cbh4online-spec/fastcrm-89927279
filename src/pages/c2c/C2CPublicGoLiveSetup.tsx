@@ -15,8 +15,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
-import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
-import { useWhipPublisher } from "@/hooks/c2c/useWhipPublisher";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { useIsApprovedSeller } from "@/hooks/c2c/useIsApprovedSeller";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,8 +34,6 @@ export default function C2CPublicGoLiveSetup() {
   const { isSeller, isLoading: sellerLoading } = useIsApprovedSeller(workspace?.id);
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
-  const createMuxStream = useCreateMuxStream();
-  const whip = useWhipPublisher();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
@@ -48,7 +44,7 @@ export default function C2CPublicGoLiveSetup() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const isLoading = createLive.isPending || goLive.isPending || createMuxStream.isPending;
+  const isLoading = createLive.isPending || goLive.isPending;
 
   const isInIframe = (() => {
     try { return window.self !== window.top; } catch { return true; }
@@ -108,13 +104,8 @@ export default function C2CPublicGoLiveSetup() {
     }
   }, [authLoading, user, navigate, workspaceSlug]);
 
-  // Single-step: Create livestream + Mux stream + WHIP publish + go live
   const handleGoLive = async () => {
     if (!title.trim() || !workspace?.id || !workspaceSlug) return;
-    if (!stream) {
-      toast.error("Liga a câmara primeiro para iniciar a live.");
-      return;
-    }
     try {
       const live = await createLive.mutateAsync({
         workspace_id: workspace.id,
@@ -122,11 +113,7 @@ export default function C2CPublicGoLiveSetup() {
         title: title.trim(),
         category: category || undefined,
       });
-
-      const mux = await createMuxStream.mutateAsync(live.id);
-      await whip.publish(stream, mux.stream_key);
       await goLive.mutateAsync(live.id);
-
       toast.success("Estás ao vivo! 🔴");
       navigate(`/marketplace/${workspaceSlug}/live/${live.id}`);
     } catch (e: any) {
@@ -169,10 +156,10 @@ export default function C2CPublicGoLiveSetup() {
         </div>
         <Button
           onClick={handleGoLive}
-          disabled={!title.trim() || !cameraOn || isLoading || whip.status === "connecting"}
+          disabled={!title.trim() || isLoading}
           className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
         >
-          {(isLoading || whip.status === "connecting") ? (
+          {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
@@ -295,35 +282,10 @@ export default function C2CPublicGoLiveSetup() {
               </div>
             </div>
 
-            <div className="pt-4 border-t space-y-3">
+            <div className="pt-4 border-t">
               <p className="text-xs text-muted-foreground">
-                Liga a câmara, dá um título e clica "Ir ao Vivo" — a transmissão começa diretamente do teu browser!
+                Ativa a câmara, dá um título à tua live e clica "Ir ao Vivo" para começar a transmitir diretamente do browser.
               </p>
-
-              {whip.status === "connecting" && (
-                <div className="flex items-center gap-2 text-sm text-primary">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  A conectar ao servidor de streaming...
-                </div>
-              )}
-
-              {whip.error && (
-                <p className="text-xs text-destructive">{whip.error}</p>
-              )}
-
-              <Button
-                onClick={handleGoLive}
-                disabled={!title.trim() || !cameraOn || isLoading || whip.status === "connecting"}
-                className="w-full bg-red-600 hover:bg-red-700 text-white gap-2 font-bold"
-                size="lg"
-              >
-                {(isLoading || whip.status === "connecting") ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-                )}
-                Ir ao Vivo Agora
-              </Button>
             </div>
           </Card>
         </div>

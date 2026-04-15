@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
           playback_id: muxStream.playback_ids?.[0]?.id,
           rtmp_url: "rtmps://global-live.mux.com:443/app",
           srt_url: `srt://global-live.mux.com:5000?streamid=${muxStream.stream_key}`,
-          whip_url: `https://global-live.mux.com/api/v1/whip?token=${muxStream.stream_key}`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

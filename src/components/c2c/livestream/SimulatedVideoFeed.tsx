@@ -16,22 +16,10 @@ interface Props {
 
 /**
  * Video feed for livestreams.
- * Priority: 1) HLS playback (Mux), 2) local camera stream, 3) placeholder
+ * Priority: 1) local camera stream (broadcaster), 2) HLS playback (Mux), 3) placeholder
  */
 export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl, stream, playbackId }: Props) {
-  // HLS playback via Mux
-  if (isLive && playbackId) {
-    return (
-      <MuxHlsPlayer
-        playbackId={playbackId}
-        title={title}
-        sellerName={sellerName}
-        thumbnailUrl={thumbnailUrl}
-      />
-    );
-  }
-
-  // Local camera stream (broadcaster preview)
+  // Local camera stream (broadcaster preview) — highest priority
   if (isLive && stream) {
     return (
       <div className="w-full h-full relative">
@@ -55,6 +43,18 @@ export function SimulatedVideoFeed({ isLive, title, sellerName, thumbnailUrl, st
           }}
         />
       </div>
+    );
+  }
+
+  // HLS playback via Mux (for viewers)
+  if (isLive && playbackId) {
+    return (
+      <MuxHlsPlayer
+        playbackId={playbackId}
+        title={title}
+        sellerName={sellerName}
+        thumbnailUrl={thumbnailUrl}
+      />
     );
   }
 

@@ -8,7 +8,6 @@ interface MuxStreamResult {
   playback_id: string;
   rtmp_url: string;
   srt_url: string;
-  whip_url: string;
 }
 
 interface MuxPlaybackResult {
