@@ -5,8 +5,9 @@ import {
   useRemoteParticipants,
   useLocalParticipant,
   useTracks,
+  isTrackReference,
 } from "@livekit/components-react";
-import "@livekit/components-styles";
+import type { TrackReference } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { Radio, VideoOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
