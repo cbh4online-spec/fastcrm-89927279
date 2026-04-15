@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,10 +13,6 @@ import {
   Share2,
   Copy,
   ExternalLink,
-  Camera,
-  CameraOff,
-  Mic,
-  MicOff,
   PhoneOff,
 } from "lucide-react";
 import {
@@ -25,9 +21,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { usePublicLivestreamById } from "@/hooks/c2c/usePublicLivestreams";
-import { SimulatedVideoFeed } from "@/components/c2c/livestream/SimulatedVideoFeed";
-import { LiveChat } from "@/components/c2c/livestream/LiveChat";
+import {
+  useLiveSessionById,
+  useEndLiveSession,
+  useGenerateLiveKitToken,
+} from "@/hooks/c2c/useLiveSessions";
+import { LiveKitVideoRoom } from "@/components/c2c/livestream/LiveKitVideoRoom";
+import { LiveChatReal } from "@/components/c2c/livestream/LiveChatReal";
 import { LiveProductShowcase } from "@/components/c2c/livestream/LiveProductShowcase";
 import { LiveReactions } from "@/components/c2c/livestream/LiveReactions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,15 +35,16 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useCameraStream } from "@/hooks/c2c/useCameraStream";
-import { useEndLive, useTrackViewer } from "@/hooks/c2c/useLivestreams";
-import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
+
+const LIVEKIT_SERVER_URL = import.meta.env.VITE_LIVEKIT_SERVER_URL || "wss://your-livekit-server.livekit.cloud";
 
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [livekitToken, setLivekitToken] = useState<string | null>(null);
+  const [viewerCount, setViewerCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
@@ -53,20 +54,34 @@ export default function C2CPublicLivestreamViewer() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const { data: live, isLoading } = usePublicLivestreamById(id);
-  const endLive = useEndLive();
+  const { data: live, isLoading } = useLiveSessionById(id);
+  const endLive = useEndLiveSession();
+  const generateToken = useGenerateLiveKitToken();
 
   const isLive = live?.status === "live";
   const isBroadcaster = !!user && !!live && user.id === live.seller_id;
 
-  // Camera for broadcaster only
-  const camera = useCameraStream({ enabled: isBroadcaster && isLive, audio: true });
+  // Generate LiveKit token when live and room name available
+  useEffect(() => {
+    if (!isLive || !live?.livekit_room_name || !user) return;
+    if (livekitToken) return; // Already have a token
 
-  // Track viewer count
-  useTrackViewer(live?.id, isLive);
-
-  // Get the Mux playback ID from the live data
-  const playbackId = (live as any)?.mux_playback_id || null;
+    generateToken.mutate(
+      {
+        room_name: live.livekit_room_name,
+        participant_identity: user.id,
+        participant_name: user.user_metadata?.full_name || user.email || "Anónimo",
+        is_publisher: isBroadcaster,
+      },
+      {
+        onSuccess: (data) => setLivekitToken(data.token),
+        onError: (err) => {
+          console.error("Failed to generate LiveKit token:", err);
+          toast.error("Erro ao conectar à sala de vídeo");
+        },
+      }
+    );
+  }, [isLive, live?.livekit_room_name, user, isBroadcaster]);
 
   const liveUrl =
     typeof window !== "undefined"
@@ -101,7 +116,6 @@ export default function C2CPublicLivestreamViewer() {
   const handleEndLive = async () => {
     if (!id) return;
     try {
-      camera.stopCamera();
       await endLive.mutateAsync(id);
       toast.success("Live terminada");
       navigate(`/marketplace/${workspaceSlug}/lives`);
@@ -109,6 +123,10 @@ export default function C2CPublicLivestreamViewer() {
       toast.error("Erro ao terminar a live");
     }
   };
+
+  const handleViewerCountChange = useCallback((count: number) => {
+    setViewerCount(count);
+  }, []);
 
   if (isLoading) {
     return (
@@ -124,11 +142,7 @@ export default function C2CPublicLivestreamViewer() {
         <div className="text-center">
           <Radio className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
           <p className="text-muted-foreground">Live não encontrada</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
-          >
+          <Button variant="outline" className="mt-4" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
             Voltar ao Marketplace
           </Button>
         </div>
@@ -187,28 +201,17 @@ export default function C2CPublicLivestreamViewer() {
         <div className="flex-1 flex flex-col">
           <div className="flex-1 relative bg-black">
             <div className="absolute inset-0">
-              <SimulatedVideoFeed
+              <LiveKitVideoRoom
+                token={livekitToken}
+                serverUrl={LIVEKIT_SERVER_URL}
+                isPublisher={isBroadcaster}
                 isLive={isLive}
                 title={live.title}
                 sellerName={live.seller_name}
                 thumbnailUrl={live.thumbnail_url ?? undefined}
-                stream={isBroadcaster ? camera.stream : undefined}
-                playbackId={!isBroadcaster ? playbackId : undefined}
+                onViewerCountChange={handleViewerCountChange}
               />
             </div>
-
-            {/* Broadcaster camera error */}
-            {isBroadcaster && isLive && camera.cameraError && (
-              <div className="absolute top-4 left-4 right-4 z-20">
-                <div className="bg-red-900/80 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
-                  <CameraOff className="h-4 w-4 text-red-300 flex-shrink-0" />
-                  <p className="text-white/90 text-xs">{camera.cameraError}</p>
-                  <Button size="sm" variant="outline" className="ml-auto text-xs h-7" onClick={camera.startCamera}>
-                    Tentar
-                  </Button>
-                </div>
-              </div>
-            )}
 
             {/* Scheduled overlay */}
             {live.status === "scheduled" && (
@@ -216,10 +219,10 @@ export default function C2CPublicLivestreamViewer() {
                 <div className="text-center">
                   <Clock className="h-16 w-16 text-white/20 mx-auto mb-4" />
                   <p className="text-white/60">Esta live ainda não começou</p>
-                  {live.scheduled_at && (
+                  {live.started_at && (
                     <p className="text-white/40 text-sm mt-2">
                       Agendada para{" "}
-                      {formatDistanceToNow(new Date(live.scheduled_at), {
+                      {formatDistanceToNow(new Date(live.started_at), {
                         addSuffix: true,
                         locale: pt,
                       })}
@@ -239,9 +242,6 @@ export default function C2CPublicLivestreamViewer() {
               </div>
             )}
 
-            {/* Featured product */}
-            <LiveProductShowcase productIds={live.product_ids || []} isLive={isLive} />
-
             {/* Emoji reactions */}
             <LiveReactions isLive={isLive} />
 
@@ -250,42 +250,11 @@ export default function C2CPublicLivestreamViewer() {
               <div className="absolute top-4 right-4">
                 <Badge className="bg-black/60 text-white border-0 gap-1.5 backdrop-blur-sm">
                   <Eye className="h-3 w-3" />
-                  {live.viewer_count} a ver
+                  {viewerCount || live.viewer_count} a ver
                 </Badge>
               </div>
             )}
           </div>
-
-          {/* Broadcaster camera/mic toolbar */}
-          {isBroadcaster && isLive && (
-            <div className="bg-gray-900 border-t border-white/10 px-4 py-2 flex items-center justify-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={camera.cameraOn ? camera.stopCamera : camera.startCamera}
-                className={cn(
-                  "gap-1.5 text-white/70 hover:text-white hover:bg-white/10",
-                  camera.cameraOn && "text-green-400 hover:text-green-300"
-                )}
-              >
-                {camera.cameraOn ? <Camera className="h-4 w-4" /> : <CameraOff className="h-4 w-4" />}
-                {camera.cameraOn ? "Câmara" : "Sem câmara"}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={camera.toggleMic}
-                disabled={!camera.cameraOn}
-                className={cn(
-                  "gap-1.5 text-white/70 hover:text-white hover:bg-white/10",
-                  camera.micOn && camera.cameraOn && "text-green-400 hover:text-green-300"
-                )}
-              >
-                {camera.micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                {camera.micOn ? "Micro" : "Mudo"}
-              </Button>
-            </div>
-          )}
 
           {/* Info bar */}
           <div className="bg-gray-900 border-t border-white/10 px-4 py-3">
@@ -300,18 +269,12 @@ export default function C2CPublicLivestreamViewer() {
                 <div className="flex items-center gap-3 text-white/50 text-xs">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {live.viewer_count} espectadores
+                    {viewerCount || live.viewer_count} espectadores
                   </span>
-                  {live.category && (
-                    <span className="flex items-center gap-1">
-                      <ShoppingBag className="h-3 w-3" />
-                      {live.category}
-                    </span>
-                  )}
                 </div>
               </div>
 
-              {/* Share button */}
+              {/* Share */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -325,26 +288,21 @@ export default function C2CPublicLivestreamViewer() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => handleShare("copy")} className="gap-2 cursor-pointer">
-                    <Copy className="h-4 w-4" />
-                    Copiar link
+                    <Copy className="h-4 w-4" /> Copiar link
                   </DropdownMenuItem>
                   {"share" in navigator && (
                     <DropdownMenuItem onClick={() => handleShare("native")} className="gap-2 cursor-pointer">
-                      <ExternalLink className="h-4 w-4" />
-                      Partilhar via…
+                      <ExternalLink className="h-4 w-4" /> Partilhar via…
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => handleShare("whatsapp")} className="gap-2 cursor-pointer">
-                    <span className="text-base leading-none">💬</span>
-                    WhatsApp
+                    <span className="text-base leading-none">💬</span> WhatsApp
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleShare("facebook")} className="gap-2 cursor-pointer">
-                    <span className="text-base leading-none">📘</span>
-                    Facebook
+                    <span className="text-base leading-none">📘</span> Facebook
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleShare("twitter")} className="gap-2 cursor-pointer">
-                    <span className="text-base leading-none">🐦</span>
-                    X / Twitter
+                    <span className="text-base leading-none">🐦</span> X / Twitter
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -358,12 +316,12 @@ export default function C2CPublicLivestreamViewer() {
             <span className="font-semibold text-sm">Chat ao vivo</span>
             {isLive && (
               <Badge variant="secondary" className="text-[10px]">
-                {live.viewer_count} online
+                {viewerCount || live.viewer_count} online
               </Badge>
             )}
           </div>
           <div className="flex-1 overflow-hidden">
-            <LiveChat livestreamId={live.id} isLive={isLive} startedAt={live.started_at} />
+            <LiveChatReal sessionId={live.id} isLive={isLive} />
           </div>
         </div>
       </div>

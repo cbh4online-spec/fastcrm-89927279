@@ -14,7 +14,7 @@ import {
   MicOff,
   Loader2,
 } from "lucide-react";
-import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
+import { useCreateLiveSession, useStartLiveSession } from "@/hooks/c2c/useLiveSessions";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { useIsApprovedSeller } from "@/hooks/c2c/useIsApprovedSeller";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,20 +32,20 @@ export default function C2CPublicGoLiveSetup() {
   const { user, loading: authLoading } = useAuth();
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const { isSeller, isLoading: sellerLoading } = useIsApprovedSeller(workspace?.id);
-  const createLive = useCreateLivestream();
-  const goLive = useGoLive();
+  const createSession = useCreateLiveSession();
+  const startSession = useStartLiveSession();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
 
-  // Camera state
+  // Camera preview state
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const isLoading = createLive.isPending || goLive.isPending;
+  const isLoading = createSession.isPending || startSession.isPending;
 
   const isInIframe = (() => {
     try { return window.self !== window.top; } catch { return true; }
@@ -98,7 +98,6 @@ export default function C2CPublicGoLiveSetup() {
     return () => { stream?.getTracks().forEach((t) => t.stop()); };
   }, [stream]);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       navigate(`/login?redirect=/marketplace/${workspaceSlug}/go-live`, { replace: true });
@@ -108,16 +107,18 @@ export default function C2CPublicGoLiveSetup() {
   const handleGoLive = async () => {
     if (!title.trim() || !workspace?.id || !workspaceSlug) return;
     try {
-      const live = await createLive.mutateAsync({
+      // Stop local preview camera — LiveKit will take over
+      stopCamera();
+
+      const session = await createSession.mutateAsync({
         workspace_id: workspace.id,
-        workspace_slug: workspaceSlug,
         title: title.trim(),
         description: description.trim() || undefined,
-        category: category || undefined,
       });
-      await goLive.mutateAsync(live.id);
+
+      await startSession.mutateAsync(session.id);
       toast.success("Estás ao vivo! 🔴");
-      navigate(`/marketplace/${workspaceSlug}/live/${live.id}`);
+      navigate(`/marketplace/${workspaceSlug}/live/${session.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Erro ao iniciar a live");
     }
@@ -145,7 +146,6 @@ export default function C2CPublicGoLiveSetup() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b bg-card px-4 sm:px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/marketplace/${workspaceSlug}/lives`)}>
@@ -286,7 +286,8 @@ export default function C2CPublicGoLiveSetup() {
 
             <div className="pt-4 border-t">
               <p className="text-xs text-muted-foreground">
-                Ativa a câmara, dá um título à tua live e clica "Ir ao Vivo" para começar a transmitir diretamente do browser.
+                Ativa a câmara para pré-visualizar, dá um título e clica "Ir ao Vivo". 
+                O vídeo será transmitido em tempo real via LiveKit para todos os espectadores.
               </p>
             </div>
           </Card>
