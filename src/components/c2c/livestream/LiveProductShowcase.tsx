@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useStoreCart } from "@/contexts/StoreCartContext";
+import { useStoreCartSafe } from "@/contexts/StoreCartContext";
 
 interface FeaturedProduct {
   id: string;
@@ -35,7 +35,9 @@ interface Props {
 export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
-  const { addItem, setIsOpen } = useStoreCart();
+  const cart = useStoreCartSafe();
+  const addItem = cart?.addItem;
+  const setIsOpen = cart?.setIsOpen;
 
   const hasRealIds = productIds && productIds.length > 0;
 
@@ -90,6 +92,10 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
       return;
     }
 
+    if (!addItem) {
+      toast.info("Carrinho indisponível neste contexto");
+      return;
+    }
     addItem({
       productId: product.id,
       name: product.title,
@@ -97,7 +103,7 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
       currency: product.currency,
       image: product.image_url,
     });
-    setIsOpen(true);
+    setIsOpen?.(true);
     toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
   };
 

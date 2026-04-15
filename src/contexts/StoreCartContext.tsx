@@ -52,3 +52,7 @@ export function useStoreCart() {
   if (!ctx) throw new Error("useStoreCart must be used within StoreCartProvider");
   return ctx;
 }
+
+export function useStoreCartSafe() {
+  return useContext(StoreCartContext);
+}
