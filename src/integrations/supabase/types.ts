@@ -34016,6 +34016,225 @@ export type Database = {
           },
         ]
       }
+      live_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          live_session_id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          live_session_id: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          live_session_id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          live_session_id: string
+          product_id: string
+          quantity: number
+          status: string
+          stripe_payment_intent_id: string | null
+          unit_price: number
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          live_session_id: string
+          product_id: string
+          quantity?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          unit_price: number
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          live_session_id?: string
+          product_id?: string
+          quantity?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_orders_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "live_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_products: {
+        Row: {
+          featured_at: string | null
+          id: string
+          is_featured: boolean
+          live_session_id: string
+          order_index: number
+          product_id: string
+        }
+        Insert: {
+          featured_at?: string | null
+          id?: string
+          is_featured?: boolean
+          live_session_id: string
+          order_index?: number
+          product_id: string
+        }
+        Update: {
+          featured_at?: string | null
+          id?: string
+          is_featured?: boolean
+          live_session_id?: string
+          order_index?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_products_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "live_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          livekit_room_name: string | null
+          livekit_room_sid: string | null
+          seller_id: string
+          started_at: string | null
+          status: string
+          thumbnail_url: string | null
+          title: string
+          type: string
+          viewer_count: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          livekit_room_name?: string | null
+          livekit_room_sid?: string | null
+          seller_id: string
+          started_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          viewer_count?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          livekit_room_name?: string | null
+          livekit_room_sid?: string | null
+          seller_id?: string
+          started_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          viewer_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_points: {
         Row: {
           balance: number
