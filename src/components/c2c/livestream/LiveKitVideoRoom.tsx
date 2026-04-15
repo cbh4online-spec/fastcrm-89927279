@@ -106,10 +106,13 @@ function VideoStage({
     );
   }
 
+  // At this point we know publication exists (checked above)
+  const safeTrackRef = videoTrack as import("@livekit/components-core").TrackReference;
+
   return (
     <div className="w-full h-full relative bg-black">
       <VideoTrack
-        trackRef={videoTrack}
+        trackRef={safeTrackRef}
         className="w-full h-full object-cover"
         style={isPublisher ? { transform: "scaleX(-1)" } : undefined}
       />
