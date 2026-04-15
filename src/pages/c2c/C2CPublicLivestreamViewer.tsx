@@ -240,7 +240,7 @@ export default function C2CPublicLivestreamViewer() {
             )}
 
             {/* Featured product */}
-            <LiveProductShowcase productIds={(live as any).product_ids || []} isLive={isLive} />
+            <LiveProductShowcase productIds={live.product_ids || []} isLive={isLive} />
 
             {/* Emoji reactions */}
             <LiveReactions isLive={isLive} />
