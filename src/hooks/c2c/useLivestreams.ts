@@ -211,9 +211,10 @@ export function useGoLive() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (livestreamId: string) => {
-      // Verify ownership before updating
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
+      if (!profile) throw new Error("Perfil não encontrado");
 
       const { data: live } = await sb
         .from("c2c_livestreams")
@@ -221,7 +222,7 @@ export function useGoLive() {
         .eq("id", livestreamId)
         .maybeSingle();
 
-      if (!live || live.seller_id !== user.id) {
+      if (!live || live.seller_id !== profile.id) {
         throw new Error("Apenas o dono da live pode iniciá-la");
       }
 
@@ -229,7 +230,7 @@ export function useGoLive() {
         .from("c2c_livestreams")
         .update({ status: "live", started_at: new Date().toISOString() })
         .eq("id", livestreamId)
-        .eq("seller_id", user.id);
+        .eq("seller_id", profile.id);
       if (error) throw error;
     },
     onSuccess: () => {
