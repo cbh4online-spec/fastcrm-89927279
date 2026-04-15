@@ -434,7 +434,8 @@ const htmlContentScopedCSS = `
     font-size: 1.3em; font-family: var(--ebook-heading-font, Georgia, serif);
     color: var(--ebook-primary, #0f172a); font-weight: 700;
     margin: 0.8em 0 0.5em; padding: 0.25em 0.5em; border-radius: 0.25em;
-    background: linear-gradient(to right, color-mix(in srgb, var(--ebook-accent, #b4884e) 12%, transparent), transparent);
+    background: linear-gradient(to right, color-mix(in srgb, var(--ebook-accent, #b4884e) 15%, transparent), transparent);
+    border-left: 3px solid var(--ebook-accent, #b4884e);
   }
   .ebook-html-content h3 {
     font-size: 1.15em; font-family: var(--ebook-heading-font, Georgia, serif);
