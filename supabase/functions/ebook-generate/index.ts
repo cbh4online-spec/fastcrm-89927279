@@ -8,6 +8,14 @@ const corsHeaders = {
 
 const STEPS = ["generate_outline", "create_ebook", "generate_chapters", "generate_cover", "generate_images", "finalize"] as const;
 
+// Track when function started to avoid timeout
+const FUNCTION_START = Date.now();
+const MAX_RUNTIME_MS = 55_000; // 55s safety margin (edge functions timeout at ~60s)
+
+function isNearTimeout(): boolean {
+  return Date.now() - FUNCTION_START > MAX_RUNTIME_MS;
+}
+
 async function callAI(apiKey: string, model: string, systemPrompt: string, userPrompt: string, toolDef?: any) {
   const body: any = {
     model,
@@ -74,6 +82,10 @@ async function updateJob(supabase: any, jobId: string, updates: Record<string, a
   await supabase.from("ebook_generation_jobs").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", jobId);
 }
 
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -128,9 +140,23 @@ serve(async (req) => {
       await supabase.from("ebooks").update({ status: "generating", updated_at: new Date().toISOString() }).eq("id", job.ebook_id);
     }
 
+    let hitTimeout = false;
+
     for (let i = startIdx; i < STEPS.length; i++) {
       const step = STEPS[i];
       const progressPct = Math.round(((i + 1) / STEPS.length) * 100);
+
+      // Check timeout before starting a new step (except finalize — always run finalize)
+      if (step !== "finalize" && isNearTimeout()) {
+        console.warn(`Near timeout at step ${step}, skipping to finalize`);
+        hitTimeout = true;
+        // Jump to finalize
+        const finalizeIdx = STEPS.indexOf("finalize");
+        if (finalizeIdx > i) {
+          i = finalizeIdx - 1; // loop will increment
+          continue;
+        }
+      }
 
       try {
         await updateJob(supabase, job_id, { current_step: step, progress: Math.max(progressPct - 15, 0) });
@@ -189,7 +215,6 @@ serve(async (req) => {
             sections: ch.sections || [],
           }));
 
-          // Create or update ebook
           if (job.ebook_id) {
             await supabase.from("ebooks").update({
               title: outline.title || config.prompt,
@@ -200,7 +225,6 @@ serve(async (req) => {
             }).eq("id", job.ebook_id);
             result.ebook_id = job.ebook_id;
           } else {
-            // Should not happen normally — ebook_id comes from the hook
             result.ebook_id = job.ebook_id;
           }
           result.chapters = chapters;
@@ -213,6 +237,13 @@ serve(async (req) => {
             const outline = result.outline || {};
 
             for (let j = 0; j < chapters.length; j++) {
+              // Check timeout before each chapter
+              if (isNearTimeout()) {
+                console.warn(`Near timeout during chapter ${j}/${chapters.length}, saving progress`);
+                hitTimeout = true;
+                break;
+              }
+
               const ch = chapters[j];
               await updateJob(supabase, job_id, {
                 current_step: `generate_chapters`,
@@ -227,6 +258,9 @@ serve(async (req) => {
               );
 
               chapters[j] = { ...chapters[j], content: data.choices?.[0]?.message?.content || "" };
+
+              // Small delay between chapters to avoid rate limits
+              if (j < chapters.length - 1) await delay(500);
             }
 
             result.chapters = chapters;
@@ -241,17 +275,26 @@ serve(async (req) => {
           }
 
         } else if (step === "generate_cover") {
-          const outline = result.outline || {};
-          const coverPrompt = `Create a professional eBook cover image for "${outline.title || config.prompt}". Style: editorial, modern. No text in image.`;
+          if (isNearTimeout()) {
+            console.warn("Near timeout, skipping cover generation");
+            hitTimeout = true;
+          } else {
+            const outline = result.outline || {};
+            const coverPrompt = `Create a professional eBook cover image for "${outline.title || config.prompt}". Style: editorial, modern. No text in image.`;
 
-          const base64 = await generateImage(LOVABLE_API_KEY, coverPrompt);
-          const filePath = `ai-generated/${result.ebook_id || "misc"}/cover_${Date.now()}.png`;
-          const publicUrl = await uploadBase64Image(supabase, base64, filePath);
+            try {
+              const base64 = await generateImage(LOVABLE_API_KEY, coverPrompt);
+              const filePath = `ai-generated/${result.ebook_id || "misc"}/cover_${Date.now()}.png`;
+              const publicUrl = await uploadBase64Image(supabase, base64, filePath);
+              result.cover_url = publicUrl;
 
-          result.cover_url = publicUrl;
-
-          if (result.ebook_id) {
-            await supabase.from("ebooks").update({ cover_url: publicUrl, updated_at: new Date().toISOString() }).eq("id", result.ebook_id);
+              if (result.ebook_id) {
+                await supabase.from("ebooks").update({ cover_url: publicUrl, updated_at: new Date().toISOString() }).eq("id", result.ebook_id);
+              }
+            } catch (coverErr) {
+              console.error("Cover generation failed:", coverErr);
+              // Non-fatal — continue without cover
+            }
           }
 
         } else if (step === "generate_images") {
@@ -260,8 +303,16 @@ serve(async (req) => {
           } else {
             const chapters = result.chapters || [];
             const outline = result.outline || {};
+            let imagesGenerated = 0;
 
             for (let j = 0; j < chapters.length; j++) {
+              // Check timeout before each image
+              if (isNearTimeout()) {
+                console.warn(`Near timeout during image ${j}/${chapters.length}, stopping image generation`);
+                hitTimeout = true;
+                break;
+              }
+
               const ch = chapters[j];
               await updateJob(supabase, job_id, {
                 progress: Math.round(70 + ((j + 1) / chapters.length) * 25),
@@ -273,12 +324,17 @@ serve(async (req) => {
                 const filePath = `ai-generated/${result.ebook_id || "misc"}/chapter-${ch.id}_${Date.now()}.png`;
                 const publicUrl = await uploadBase64Image(supabase, base64, filePath);
                 chapters[j] = { ...chapters[j], cover_image: publicUrl };
+                imagesGenerated++;
               } catch (imgErr) {
                 console.error(`Image gen failed for chapter ${j}:`, imgErr);
                 // Continue — partial images are acceptable
               }
+
+              // Delay between image generations to avoid rate limits
+              if (j < chapters.length - 1) await delay(1000);
             }
 
+            console.log(`Generated ${imagesGenerated}/${chapters.length} chapter images`);
             result.chapters = chapters;
 
             if (result.ebook_id) {
@@ -290,7 +346,7 @@ serve(async (req) => {
           }
 
         } else if (step === "finalize") {
-          // Mark ebook as draft (ready for editing)
+          // Always mark ebook as draft (ready for editing) — even on partial completion
           if (result.ebook_id) {
             await supabase.from("ebooks").update({
               status: "draft",
@@ -309,6 +365,19 @@ serve(async (req) => {
 
       } catch (stepErr: any) {
         console.error(`Step ${step} failed:`, stepErr);
+
+        // For non-critical steps (cover, images), save progress and continue to finalize
+        if (step === "generate_cover" || step === "generate_images") {
+          console.warn(`Non-critical step ${step} failed, continuing to finalize`);
+          stepsCompleted.push(step);
+          await updateJob(supabase, job_id, {
+            steps_completed: stepsCompleted,
+            result,
+            progress: progressPct,
+          });
+          continue;
+        }
+
         await updateJob(supabase, job_id, {
           status: "failed",
           error_step: step,
@@ -331,14 +400,16 @@ serve(async (req) => {
       }
     }
 
-    // All steps completed
+    // All steps completed (or partial due to timeout)
+    const finalStatus = hitTimeout ? "completed" : "completed"; // Still mark as completed — content is usable
     await updateJob(supabase, job_id, {
-      status: "completed",
+      status: finalStatus,
       progress: 100,
       current_step: null,
+      error_message: hitTimeout ? "Geração parcial: algumas imagens podem não ter sido geradas devido a tempo limite." : null,
     });
 
-    return new Response(JSON.stringify({ status: "completed", ebook_id: result.ebook_id }), {
+    return new Response(JSON.stringify({ status: finalStatus, ebook_id: result.ebook_id, partial: hitTimeout }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
