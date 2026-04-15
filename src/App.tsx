@@ -11,6 +11,7 @@ import { NuqsAdapter } from "nuqs/adapters/react";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { StoreCartProvider } from "@/contexts/StoreCartContext";
 
 import { GTMProvider, MetaPixelLoader } from "./modules/growth-seo";
 

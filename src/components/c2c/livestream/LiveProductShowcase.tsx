@@ -102,6 +102,7 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
         productId: product.id,
         name: product.title,
         price: product.price,
+        currency: product.currency,
         image: product.image_url,
       });
       cartContext.setIsOpen(true);
