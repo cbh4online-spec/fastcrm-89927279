@@ -6,7 +6,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useStoreCart } from "@/contexts/StoreCartContext";
+import { useContext } from "react";
+
+// Safe cart access — does not throw if provider is missing
+function useOptionalStoreCart() {
+  // Import the context directly to avoid the throwing hook
+  const { default: ctx } = require("@/contexts/StoreCartContext");
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const value = useContext(ctx);
+  return value;
+}
 
 interface FeaturedProduct {
   id: string;
