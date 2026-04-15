@@ -54,15 +54,17 @@ function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {
   return vars as React.CSSProperties;
 }
 
-const CHARS_PER_PAGE = 800;
+const CHARS_PER_PAGE = 900;
 const IMAGE_CHAR_EQUIVALENT = 600;
+/** Minimum chars a heading's companion block must contribute to justify keeping them together */
+const MIN_COMPANION_CHARS = 80;
 
 function isHtmlContent(content: string): boolean {
   return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
 }
 
 /** Extract individual top-level block elements from a concatenated HTML string */
-function extractLastBlocks(html: string): string[] {
+function extractBlocks(html: string): string[] {
   const blockTagNames = 'p|h[1-6]|div|ul|ol|blockquote|table|figure|section|article|aside|header|footer|nav|main|details|summary|pre';
   const selfClosingNames = 'hr|br|img';
   const pattern = new RegExp(
@@ -70,105 +72,109 @@ function extractLastBlocks(html: string): string[] {
     'gi'
   );
   const result: string[] = [];
+  let lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = pattern.exec(html)) !== null) {
+    if (m.index > lastIndex) {
+      const between = html.slice(lastIndex, m.index).trim();
+      if (between) result.push(`<p>${between}</p>`);
+    }
     result.push(m[0]);
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < html.length) {
+    const trailing = html.slice(lastIndex).trim();
+    if (trailing) result.push(`<p>${trailing}</p>`);
   }
   return result;
 }
 
+const isHeading = (block: string) => /^<h[1-6]\b/i.test(block.trim());
+const blockWeight = (block: string) => {
+  if (/<img\b/i.test(block)) return IMAGE_CHAR_EQUIVALENT;
+  return block.replace(/<[^>]+>/g, "").length;
+};
+
 function splitHtmlIntoPages(html: string): string[] {
-  // Use a DOMParser-safe approach: split by top-level block boundaries
-  // First, normalize: wrap bare text nodes in <p> tags
-  let normalized = html.trim();
-  
-  // Split into segments: block tags and text between them
-  const segments: string[] = [];
-  // Match block-level elements (including self-closing) or text between them
-  const blockTagNames = 'p|h[1-6]|div|ul|ol|blockquote|table|figure|section|article|aside|header|footer|nav|main|details|summary|pre';
-  const selfClosingNames = 'hr|br|img';
-  
-  // Split approach: find all top-level block elements and capture text between them
-  const blockPattern = new RegExp(
-    `(<(?:${blockTagNames})\\b[^>]*>[\\s\\S]*?<\\/(?:${blockTagNames})>|<(?:${selfClosingNames})\\b[^>]*\\/?>)`,
-    'gi'
-  );
-  
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  
-  while ((match = blockPattern.exec(normalized)) !== null) {
-    // Capture any text/inline content BEFORE this block
-    if (match.index > lastIndex) {
-      const between = normalized.slice(lastIndex, match.index).trim();
-      if (between) {
-        segments.push(`<p>${between}</p>`);
-      }
-    }
-    segments.push(match[0]);
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // Capture any trailing text after the last block
-  if (lastIndex < normalized.length) {
-    const trailing = normalized.slice(lastIndex).trim();
-    if (trailing) {
-      segments.push(`<p>${trailing}</p>`);
-    }
-  }
-  
-  // If no blocks found at all, treat entire content as a single segment
-  if (segments.length === 0) {
-    return [normalized || "<p><em>Conteúdo em preparação</em></p>"];
-  }
+  const segments = extractBlocks(html.trim());
+  if (segments.length === 0) return ["<p><em>Conteúdo em preparação</em></p>"];
 
-  // ── Editorial-grade pagination ──
-  // Rules:
-  // 1. Never leave a heading as the last element on a page (orphan heading)
-  // 2. Keep at least 2 lines of a paragraph on both sides of a page break (widow/orphan text)
-  // 3. A heading must always be followed by at least the next block on the same page
-
-  const isHeading = (block: string) => /^<h[1-6]\b/i.test(block.trim());
-  const blockWeight = (block: string) => {
-    if (/<img\b/i.test(block)) return IMAGE_CHAR_EQUIVALENT;
-    return block.replace(/<[^>]+>/g, "").length;
-  };
+  // ── Premium editorial pagination ──
+  // Rule 1: A heading must NEVER be the last element on a page
+  // Rule 2: A heading must always be followed by at least one content block on the same page
+  // Rule 3: Avoid very short "widow" pages (< 20% capacity)
 
   const pages: string[] = [];
-  let current = "";
-  let currentWeight = 0;
+  let pageBlocks: string[] = [];
+  let pageWeight = 0;
 
-  for (let idx = 0; idx < segments.length; idx++) {
-    const block = segments[idx];
+  const flushPage = () => {
+    if (pageBlocks.length === 0) return;
+    pages.push(pageBlocks.join(""));
+    pageBlocks = [];
+    pageWeight = 0;
+  };
+
+  for (let i = 0; i < segments.length; i++) {
+    const block = segments[i];
     const bw = blockWeight(block);
-    const combinedWeight = currentWeight + bw;
+    const wouldBe = pageWeight + bw;
 
-    if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
-      // Allow slight overflow (15%) to avoid near-empty pages
-      if (combinedWeight <= CHARS_PER_PAGE * 1.15) {
-        current += block;
-        currentWeight = combinedWeight;
-      } else {
-        // EDITORIAL RULE: Before pushing, check if last element(s) in `current` are orphan headings
-        // Pull them back to be placed on the next page with this block
-        const currentSegments = extractLastBlocks(current);
-        let pullBack = "";
-        while (currentSegments.length > 0 && isHeading(currentSegments[currentSegments.length - 1])) {
-          pullBack = currentSegments.pop()! + pullBack;
-        }
-        const cleanedCurrent = currentSegments.join("");
-        if (cleanedCurrent.trim()) {
-          pages.push(cleanedCurrent);
-        }
-        current = pullBack + block;
-        currentWeight = blockWeight(pullBack) + bw;
-      }
-    } else {
-      current += block;
-      currentWeight = combinedWeight;
+    // Case 1: Block fits on the current page
+    if (wouldBe <= CHARS_PER_PAGE || pageBlocks.length === 0) {
+      pageBlocks.push(block);
+      pageWeight = wouldBe;
+      continue;
+    }
+
+    // Case 2: Block overflows — allow 15% overflow to avoid near-empty next pages
+    if (wouldBe <= CHARS_PER_PAGE * 1.15) {
+      pageBlocks.push(block);
+      pageWeight = wouldBe;
+      continue;
+    }
+
+    // Case 3: Must break — but first, pull back any trailing headings from current page
+    // A heading at the end of a page is an "orphan heading" — move it to the next page
+    const pulledHeadings: string[] = [];
+    while (
+      pageBlocks.length > 1 &&
+      isHeading(pageBlocks[pageBlocks.length - 1])
+    ) {
+      pulledHeadings.unshift(pageBlocks.pop()!);
+    }
+
+    flushPage();
+
+    // Start new page with pulled headings + current block
+    for (const ph of pulledHeadings) {
+      pageBlocks.push(ph);
+      pageWeight += blockWeight(ph);
+    }
+    pageBlocks.push(block);
+    pageWeight += bw;
+  }
+
+  // Final pass: if the last page ends with only headings (no content after), merge back
+  if (pageBlocks.length > 0) {
+    const allHeadings = pageBlocks.every(b => isHeading(b));
+    if (allHeadings && pages.length > 0) {
+      // Append orphan headings to the previous page
+      pages[pages.length - 1] += pageBlocks.join("");
+      pageBlocks = [];
     }
   }
-  if (current.trim()) pages.push(current);
+  if (pageBlocks.length > 0) flushPage();
+
+  // Final widow check: if last page is < 15% capacity, merge with previous
+  if (pages.length >= 2) {
+    const lastPageWeight = blockWeight(pages[pages.length - 1]);
+    if (lastPageWeight < CHARS_PER_PAGE * 0.15) {
+      const merged = pages[pages.length - 2] + pages[pages.length - 1];
+      pages.splice(pages.length - 2, 2, merged);
+    }
+  }
+
   return pages.length ? pages : ["<p><em>Conteúdo em preparação</em></p>"];
 }
 
