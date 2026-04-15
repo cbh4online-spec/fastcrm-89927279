@@ -262,6 +262,7 @@ function MuxHlsPlayer({
       <video
         ref={videoRef}
         autoPlay
+        muted
         playsInline
         controls
         poster={posterUrl}
