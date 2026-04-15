@@ -68,45 +68,59 @@ interface SimulatedMsg {
   is_pinned: boolean;
 }
 
-function useSimulatedMessages(isLive: boolean) {
+// Seeded PRNG — deterministic across all devices for the same livestreamId
+function createSeededRng(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  return () => {
+    h = h ^ (h >>> 16);
+    h = Math.imul(h, 0x45d9f3b);
+    h = h ^ (h >>> 16);
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+function useSimulatedMessages(isLive: boolean, livestreamId: string) {
   const [simulated, setSimulated] = useState<SimulatedMsg[]>([]);
-  const counterRef = useRef(0);
-
-  const addMessage = useCallback(() => {
-    counterRef.current += 1;
-    const isSystem = Math.random() < 0.2;
-    const name = SIMULATED_NAMES[Math.floor(Math.random() * SIMULATED_NAMES.length)];
-
-    const msg: SimulatedMsg = {
-      id: `sim-${counterRef.current}`,
-      user_name: name,
-      message: isSystem
-        ? `${name} ${SIMULATED_SYSTEM_MESSAGES[Math.floor(Math.random() * SIMULATED_SYSTEM_MESSAGES.length)]}`
-        : SIMULATED_MESSAGES[Math.floor(Math.random() * SIMULATED_MESSAGES.length)],
-      message_type: isSystem ? "system" : "chat",
-      created_at: new Date().toISOString(),
-      is_pinned: false,
-    };
-
-    setSimulated((prev) => [...prev.slice(-80), msg]);
-  }, []);
 
   useEffect(() => {
     if (!isLive) return;
 
-    // Initial burst of 3-5 messages
-    const burst = 3 + Math.floor(Math.random() * 3);
-    for (let i = 0; i < burst; i++) {
-      setTimeout(() => addMessage(), i * 400);
-    }
+    const rng = createSeededRng(livestreamId);
+    let counter = 0;
 
-    // Continuous messages every 2-5 seconds
+    // Pre-generate deterministic schedule of messages
+    const generateMsg = (): SimulatedMsg => {
+      counter += 1;
+      const isSystem = rng() < 0.2;
+      const name = SIMULATED_NAMES[Math.floor(rng() * SIMULATED_NAMES.length)];
+      return {
+        id: `sim-${counter}`,
+        user_name: name,
+        message: isSystem
+          ? `${name} ${SIMULATED_SYSTEM_MESSAGES[Math.floor(rng() * SIMULATED_SYSTEM_MESSAGES.length)]}`
+          : SIMULATED_MESSAGES[Math.floor(rng() * SIMULATED_MESSAGES.length)],
+        message_type: isSystem ? "system" : "chat",
+        created_at: new Date().toISOString(),
+        is_pinned: false,
+      };
+    };
+
+    // Initial burst — deterministic count from seed
+    const burst = 3 + Math.floor(rng() * 3);
+    const initialMsgs: SimulatedMsg[] = [];
+    for (let i = 0; i < burst; i++) {
+      initialMsgs.push(generateMsg());
+    }
+    setSimulated(initialMsgs);
+
+    // Fixed 3-second interval (deterministic timing)
     const interval = setInterval(() => {
-      addMessage();
-    }, 2000 + Math.random() * 3000);
+      setSimulated((prev) => [...prev.slice(-80), generateMsg()]);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [isLive, addMessage]);
+  }, [isLive, livestreamId]);
 
   return simulated;
 }
@@ -119,7 +133,7 @@ export function LiveChat({ livestreamId, isLive }: Props) {
   const { data: dbMessages = [] } = useLivestreamMessages(livestreamId);
   const send = useSendLiveMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const simulated = useSimulatedMessages(isLive);
+  const simulated = useSimulatedMessages(isLive, livestreamId);
 
   // Track auth state without requiring AuthProvider
   const [currentUser, setCurrentUser] = useState<User | null>(null);

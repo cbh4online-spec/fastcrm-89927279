@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, ChevronLeft, ChevronRight, Star, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useStoreCart } from "@/contexts/StoreCartContext";
 
 interface FeaturedProduct {
   id: string;
@@ -15,49 +18,60 @@ interface FeaturedProduct {
   rating?: number;
 }
 
-// Simulated products for demo
+// Fallback demo products when no real product IDs are provided
 const DEMO_PRODUCTS: FeaturedProduct[] = [
-  {
-    id: "1",
-    title: "Camisola Premium Algodão",
-    price: 29.99,
-    currency: "EUR",
-    original_price: 49.99,
-    rating: 4.8,
-  },
-  {
-    id: "2",
-    title: "Bolsa de Couro Artesanal",
-    price: 59.90,
-    currency: "EUR",
-    rating: 4.9,
-  },
-  {
-    id: "3",
-    title: "Sneakers Edição Limitada",
-    price: 89.00,
-    currency: "EUR",
-    original_price: 120.00,
-    rating: 4.7,
-  },
-  {
-    id: "4",
-    title: "Óculos de Sol Vintage",
-    price: 34.50,
-    currency: "EUR",
-    rating: 4.5,
-  },
+  { id: "demo-1", title: "Camisola Premium Algodão", price: 29.99, currency: "EUR", original_price: 49.99, rating: 4.8 },
+  { id: "demo-2", title: "Bolsa de Couro Artesanal", price: 59.90, currency: "EUR", rating: 4.9 },
+  { id: "demo-3", title: "Sneakers Edição Limitada", price: 89.00, currency: "EUR", original_price: 120.00, rating: 4.7 },
+  { id: "demo-4", title: "Óculos de Sol Vintage", price: 34.50, currency: "EUR", rating: 4.5 },
 ];
 
 interface Props {
   productIds?: string[];
   isLive: boolean;
+  workspaceId?: string;
 }
 
-export function LiveProductShowcase({ productIds, isLive }: Props) {
+export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
-  const products = DEMO_PRODUCTS; // In production, fetch by productIds
+
+  // Try to use StoreCart — may not be available if provider is missing
+  let cartContext: ReturnType<typeof useStoreCart> | null = null;
+  try {
+    cartContext = useStoreCart();
+  } catch {
+    // StoreCartProvider not mounted — cart functionality will show toast only
+  }
+
+  const hasRealIds = productIds && productIds.length > 0;
+
+  // Fetch real products from c2c_listings
+  const { data: realProducts = [] } = useQuery({
+    queryKey: ["live-products", productIds],
+    queryFn: async () => {
+      if (!hasRealIds) return [];
+      const { data, error } = await (supabase as any)
+        .from("c2c_listings")
+        .select("id, title, price, currency, photos, condition")
+        .in("id", productIds)
+        .eq("status", "active");
+      if (error) throw error;
+      return (data ?? []).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        price: Number(l.price),
+        currency: l.currency || "EUR",
+        image_url: l.photos?.[0] || undefined,
+        rating: undefined,
+        original_price: undefined,
+      })) as FeaturedProduct[];
+    },
+    enabled: !!hasRealIds,
+  });
+
+  const products = hasRealIds && realProducts.length > 0 ? realProducts : DEMO_PRODUCTS;
+  const isDemo = !hasRealIds || realProducts.length === 0;
 
   // Auto-rotate featured product every 8 seconds
   useEffect(() => {
@@ -78,7 +92,23 @@ export function LiveProductShowcase({ productIds, isLive }: Props) {
     : null;
 
   const handleAddToCart = () => {
-    toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
+    if (isDemo) {
+      toast.info("Produto de demonstração — não pode ser adicionado ao carrinho");
+      return;
+    }
+
+    if (cartContext) {
+      cartContext.addItem({
+        productId: product.id,
+        name: product.title,
+        price: product.price,
+        image: product.image_url,
+      });
+      cartContext.setIsOpen(true);
+      toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
+    } else {
+      toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
+    }
   };
 
   return (
@@ -104,7 +134,7 @@ export function LiveProductShowcase({ productIds, isLive }: Props) {
           `}
         >
           <div className="flex items-stretch">
-            {/* Product image placeholder */}
+            {/* Product image */}
             <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center relative overflow-hidden">
               {product.image_url ? (
                 <img src={product.image_url} alt={product.title} className="w-full h-full object-cover" />
@@ -124,7 +154,7 @@ export function LiveProductShowcase({ productIds, isLive }: Props) {
                 <div className="flex items-center gap-1.5 mb-1">
                   <Sparkles className="h-3 w-3 text-amber-400 flex-shrink-0" />
                   <span className="text-amber-400 text-[10px] font-bold uppercase tracking-wider">
-                    Em destaque
+                    {isDemo ? "Demonstração" : "Em destaque"}
                   </span>
                 </div>
                 <h4 className="text-white font-semibold text-sm leading-tight truncate">
