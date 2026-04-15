@@ -8,4 +8,4 @@
  * Update this value with your LiveKit Cloud project URL.
  * Format: wss://<your-project>.livekit.cloud
  */
-export const LIVEKIT_SERVER_URL = "wss://fastcrm-live.livekit.cloud";
+export const LIVEKIT_SERVER_URL = "wss://fastcrm-nj06nih1.livekit.cloud";
