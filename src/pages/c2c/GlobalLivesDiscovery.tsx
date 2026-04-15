@@ -399,7 +399,7 @@ function LiveCard({
         <div className="flex items-start gap-3">
           <Avatar
             className="h-9 w-9 flex-shrink-0 ring-2"
-            style={{ ringColor: "rgba(0,200,150,0.3)" }}
+            className="h-9 w-9 flex-shrink-0 ring-2 ring-emerald-500/30"
           >
             {live.seller_avatar && <AvatarImage src={live.seller_avatar} />}
             <AvatarFallback
