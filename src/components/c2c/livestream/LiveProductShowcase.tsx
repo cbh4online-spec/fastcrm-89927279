@@ -6,16 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useContext } from "react";
-
-// Safe cart access — does not throw if provider is missing
-function useOptionalStoreCart() {
-  // Import the context directly to avoid the throwing hook
-  const { default: ctx } = require("@/contexts/StoreCartContext");
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const value = useContext(ctx);
-  return value;
-}
+import { useStoreCart } from "@/contexts/StoreCartContext";
 
 interface FeaturedProduct {
   id: string;
@@ -44,14 +35,7 @@ interface Props {
 export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
-
-  // Try to use StoreCart — may not be available if provider is missing
-  let cartContext: ReturnType<typeof useStoreCart> | null = null;
-  try {
-    cartContext = useStoreCart();
-  } catch {
-    // StoreCartProvider not mounted — cart functionality will show toast only
-  }
+  const { addItem, setIsOpen } = useStoreCart();
 
   const hasRealIds = productIds && productIds.length > 0;
 
