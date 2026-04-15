@@ -1,71 +1,54 @@
 
 
-## Diagnóstico
+# Plano: Corrigir Live — Chat, Produtos e Carrinho (sem Mux WHIP)
 
-Atualmente, a funcionalidade de lives está **completamente isolada no backoffice** (`/dashboard/marketplace/lives`). Um vendedor precisa de navegar pelo dashboard para criar e iniciar uma live. A página pública (`/marketplace/:slug/lives`) é read-only — mostra lives existentes mas não permite ao vendedor autenticado iniciar uma live a partir daí.
+## Contexto
+A transmissão de vídeo via câmara local do broadcaster já funciona no PC. O Mux WHIP **não será usado**. O foco é corrigir os 3 problemas restantes:
 
-O pedido é claro: tornar a experiência de live streaming **tão simples como no Facebook** — o vendedor deve poder iniciar uma live directamente a partir do marketplace público, sem precisar de entrar no backoffice.
+1. **Chat demo inconsistente** — cada dispositivo gera mensagens diferentes
+2. **Produtos falsos** — `LiveProductShowcase` usa `DEMO_PRODUCTS` hardcoded
+3. **Carrinho não funcional** — botão "Comprar" faz apenas `toast`, não adiciona ao carrinho real
 
-## Plano de implementação
+---
 
-### 1. Botão "Ir ao Vivo" na galeria pública de lives
-**Ficheiro:** `src/pages/c2c/C2CPublicLivesGallery.tsx`
-- Detectar se o utilizador autenticado é um vendedor aprovado naquele workspace (query a `c2c_sellers` com `user_id` e `status = 'approved'`)
-- Se sim, mostrar botão flutuante **"🔴 Ir ao Vivo"** no hero da página (estilo Facebook)
-- Ao clicar, abrir o modal `GoLiveModal` adaptado (ou redirecionar para uma versão pública do setup)
+## 1. Chat determinístico entre dispositivos
 
-### 2. Botão "Ir ao Vivo" no perfil público do vendedor
-**Ficheiro:** `src/pages/c2c/C2CPublicSellerProfile.tsx`
-- Se o utilizador autenticado é o dono daquele perfil de vendedor, mostrar botão "Ir ao Vivo" no cabeçalho do perfil
-- Mesma lógica: abrir modal simplificado de criação de live
+**Ficheiro:** `src/components/c2c/livestream/LiveChat.tsx`
 
-### 3. Criar hook `useIsApprovedSeller`
-**Ficheiro novo:** `src/hooks/c2c/useIsApprovedSeller.ts`
-- Recebe `workspaceId`
-- Verifica se o user autenticado tem registo em `c2c_sellers` com `status = 'approved'` naquele workspace
-- Retorna `{ isSeller, sellerId, isLoading }`
+- Substituir `Math.random()` por um PRNG seeded com o `livestreamId` (e.g. função simples de hash)
+- Usar timestamps arredondados (e.g. a cada 3 segundos desde o início da live) como trigger, em vez de `setInterval` com delays aleatórios
+- Resultado: todos os dispositivos geram exactamente as mesmas mensagens demo nos mesmos momentos
 
-### 4. Adaptar o `GoLiveModal` para contexto público
-**Ficheiro:** `src/components/c2c/livestream/GoLiveModal.tsx`
-- Actualmente depende de `useWorkspace()` (contexto do dashboard) — precisa de aceitar `workspaceId` como prop alternativa
-- Após criar a live com sucesso no modo "agora", redirecionar para a rota pública `/marketplace/:slug/live/:id` em vez da rota do dashboard
-- Receber `workspaceSlug` como prop para construir o URL correcto
+## 2. Produtos reais da BD
 
-### 5. Simplificar o fluxo (estilo Facebook)
-- No modal público, manter apenas: **título**, **categoria** (opcional), e botão **"Ir ao Vivo"**
-- Remover a opção de "agendar" na versão pública (manter apenas no backoffice)
-- Após clicar "Ir ao Vivo", redirecionar para uma página de setup simplificada que também vive no contexto público
+**Ficheiro:** `src/components/c2c/livestream/LiveProductShowcase.tsx`
 
-### 6. Criar rota pública de setup de live
-**Ficheiro novo:** `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
-- Versão simplificada do `C2CGoLiveSetup.tsx` que funciona fora do dashboard
-- Usa o `workspaceSlug` do URL para resolver o workspace
-- Requer autenticação (redirect para login se não autenticado)
-- Após ir ao vivo, navega para `/marketplace/:slug/live/:id`
+- Quando `productIds` é fornecido e não vazio, buscar os produtos reais de `c2c_listings` por ID
+- Mapear `c2c_listings` para a interface `FeaturedProduct` (title, price, photos[0], etc.)
+- Manter `DEMO_PRODUCTS` como fallback apenas quando não existem `productIds`
 
-**Rota em App.tsx:** `/marketplace/:workspaceSlug/go-live`
+## 3. Carrinho funcional + StoreCartProvider
 
-### 7. Link de partilha da live
-- O botão de partilha gera sempre o URL público `/marketplace/:slug/live/:id`
-- Na galeria pública, cada card de live já navega correctamente para o viewer público
+**Ficheiros:**
+- `src/App.tsx` — envolver a rota `/marketplace/:workspaceSlug/live/:id` no `StoreCartProvider`
+- `src/components/c2c/livestream/LiveProductShowcase.tsx` — importar `useStoreCart` e chamar `addItem()` no botão "Comprar" com os dados reais do produto
+- O carrinho lateral (drawer) abrirá automaticamente ao adicionar
 
-### Ficheiros impactados
-- **Novo:** `src/hooks/c2c/useIsApprovedSeller.ts`
-- **Novo:** `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
-- **Editar:** `src/pages/c2c/C2CPublicLivesGallery.tsx` — adicionar botão "Ir ao Vivo" para vendedores
-- **Editar:** `src/pages/c2c/C2CPublicSellerProfile.tsx` — botão "Ir ao Vivo" no perfil
-- **Editar:** `src/components/c2c/livestream/GoLiveModal.tsx` — aceitar `workspaceId`/`workspaceSlug` como props
-- **Editar:** `src/App.tsx` — nova rota `/marketplace/:workspaceSlug/go-live`
+## 4. Compatibilidade iOS (vídeo placeholder)
 
-### Segurança
-- Apenas vendedores aprovados (`c2c_sellers.status = 'approved'`) veem o botão
-- A criação da live continua protegida por RLS (requer `auth.uid()` = `seller_id`)
-- Visitantes não autenticados veem apenas a galeria read-only
+**Ficheiro:** `src/components/c2c/livestream/SimulatedVideoFeed.tsx`
 
-### Critérios de aceitação
-- Vendedor autenticado vê botão "Ir ao Vivo" na galeria pública e no seu perfil
-- Visitante não autenticado NÃO vê o botão
-- Fluxo completo: clicar → preencher título → setup câmara → ir ao vivo → viewer público
-- Link de partilha funciona para qualquer pessoa (sem auth)
-- Não é necessário aceder ao backoffice para fazer uma live
+- Adicionar `muted` e `playsInline` explícitos no elemento `<video>` do HLS player (já tem, mas confirmar que o Safari fallback também os tem)
+- Nota: sem Mux WHIP, viewers continuarão a ver o placeholder animado enquanto não houver transmissão real — isto é esperado
+
+---
+
+## Ficheiros alterados
+
+| Ficheiro | Alteração |
+|---|---|
+| `src/App.tsx` | Envolver rota live em `StoreCartProvider` |
+| `src/components/c2c/livestream/LiveChat.tsx` | PRNG seeded por `livestreamId` |
+| `src/components/c2c/livestream/LiveProductShowcase.tsx` | Fetch `c2c_listings` + `useStoreCart().addItem()` |
+| `src/components/c2c/livestream/SimulatedVideoFeed.tsx` | Confirmar atributos iOS no Safari fallback |
 
