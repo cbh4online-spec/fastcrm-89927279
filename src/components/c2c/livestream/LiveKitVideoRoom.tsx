@@ -108,7 +108,7 @@ function VideoStage({
   }
 
   // At this point we know publication exists (checked above)
-  const safeTrackRef = videoTrack as import("@livekit/components-core").TrackReference;
+  const safeTrackRef = videoTrack as TrackReference;
 
   return (
     <div className="w-full h-full relative bg-black">
