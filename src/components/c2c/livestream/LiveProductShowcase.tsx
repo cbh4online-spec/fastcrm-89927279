@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, ChevronLeft, ChevronRight, Star, Sparkles } from "lucide-react";
@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { StoreCartContext } from "@/contexts/StoreCartContext";
+import { useStoreCartSafe } from "@/contexts/StoreCartContext";
 
 interface FeaturedProduct {
   id: string;
@@ -35,7 +35,9 @@ interface Props {
 export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
-  const { addItem, setIsOpen } = useStoreCart();
+  const cart = useStoreCartSafe();
+  const addItem = cart?.addItem;
+  const setIsOpen = cart?.setIsOpen;
 
   const hasRealIds = productIds && productIds.length > 0;
 
