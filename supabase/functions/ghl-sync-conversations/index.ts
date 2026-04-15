@@ -442,30 +442,74 @@ Deno.serve(async (req) => {
 
     console.log(`[GHL Sync Conversations] Starting sync for workspace ${workspace_id}`);
 
-    // --- Load allowed social channels for this workspace ---
+    // --- Load allowed social channels for THIS workspace ---
     const { data: socialChannelConfig } = await supabase
       .from("workspace_ghl_social_channels")
       .select("channel_type, is_active")
       .eq("workspace_id", workspace_id);
     
     const hasSocialChannelConfig = (socialChannelConfig?.length || 0) > 0;
+
+    // --- Load social channels claimed by OTHER workspaces sharing the same locationId ---
+    // This prevents pulling conversations that belong to a sibling workspace
+    const { data: siblingConfigs } = await supabase
+      .from("workspace_ghl_config")
+      .select("workspace_id")
+      .eq("ghl_location_id", locationId)
+      .eq("is_active", true)
+      .neq("workspace_id", workspace_id);
+
+    const siblingWorkspaceIds = (siblingConfigs || []).map((c: { workspace_id: string }) => c.workspace_id);
     
+    // Channels exclusively claimed by sibling workspaces
+    const siblingClaimedChannels = new Set<string>();
+    if (siblingWorkspaceIds.length > 0) {
+      const { data: siblingChannels } = await supabase
+        .from("workspace_ghl_social_channels")
+        .select("workspace_id, channel_type, is_active")
+        .in("workspace_id", siblingWorkspaceIds);
+
+      for (const sc of siblingChannels || []) {
+        if (sc.is_active) {
+          siblingClaimedChannels.add(sc.channel_type);
+        }
+      }
+      console.log(`[GHL Sync] Sibling workspaces: ${siblingWorkspaceIds.length}, claimed channels: ${[...siblingClaimedChannels].join(", ")}`);
+    }
+
+    const socialMap: Record<string, string> = {
+      instagram: "instagram",
+      messenger: "facebook",
+      facebook: "facebook",
+      whatsapp: "whatsapp",
+    };
+
     function isSyncChannelAllowed(channel: string): boolean {
-      if (!hasSocialChannelConfig) return true; // No config → allow all
-      const socialMap: Record<string, string> = {
-        instagram: "instagram",
-        messenger: "facebook",
-        facebook: "facebook",
-        whatsapp: "whatsapp",
-      };
       const socialType = socialMap[channel.toLowerCase()];
-      if (!socialType) return true; // Non-social channels always allowed
-      return socialChannelConfig!.some(
+      if (!socialType) return true; // Non-social channels (email, sms) always allowed
+
+      // If THIS workspace has the channel active → allowed
+      const thisWsHasChannel = socialChannelConfig?.some(
         (c: { channel_type: string; is_active: boolean }) =>
           c.channel_type === socialType && c.is_active
       );
+      if (thisWsHasChannel) return true;
+
+      // If a SIBLING workspace claims this channel AND this workspace does NOT → block
+      if (siblingClaimedChannels.has(socialType)) {
+        console.log(`[GHL Sync] Channel "${channel}" (${socialType}) claimed by sibling workspace, blocking for ${workspace_id}`);
+        return false;
+      }
+
+      // No config at all → allow (backwards compat for single-workspace setups)
+      if (!hasSocialChannelConfig && siblingClaimedChannels.size === 0) return true;
+
+      // This workspace has social config but doesn't include this channel → block
+      if (hasSocialChannelConfig) return false;
+
+      return true;
     }
-    console.log(`[GHL Sync] Social channel config loaded: ${socialChannelConfig?.length || 0} entries`);
+    console.log(`[GHL Sync] Social channel config loaded: ${socialChannelConfig?.length || 0} entries, siblings: ${siblingWorkspaceIds.length}`);
 
     // Load existing leads mapped by GHL contact ID (with pagination)
     const leadsByGhlId = new Map<string, string>();

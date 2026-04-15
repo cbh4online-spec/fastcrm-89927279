@@ -104,15 +104,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Find workspace by location_id (get first match if multiple exist)
-    const { data: configs, error: configError } = await supabase
+    // 1. Find ALL active workspaces for this location (multi-workspace aware)
+    const { data: allConfigs, error: configError } = await supabase
       .from("workspace_ghl_config")
-      .select("workspace_id, sync_contacts")
+      .select("workspace_id, sync_contacts, is_primary")
       .eq("ghl_location_id", locationId)
-      .eq("is_active", true)
-      .limit(1);
-    
-    const config = configs?.[0] || null;
+      .eq("is_active", true);
 
     if (configError) {
       console.error("[GHL-CONTACT] Config lookup error", configError);
@@ -122,7 +119,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!config) {
+    if (!allConfigs || allConfigs.length === 0) {
       console.log("[GHL-CONTACT] No active config for location", locationId);
       return new Response(
         JSON.stringify({ message: "Location not configured" }),
@@ -130,12 +127,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!config.sync_contacts) {
-      console.log("[GHL-CONTACT] Contact sync disabled for workspace");
+    // Filter to configs with sync_contacts enabled
+    const syncableConfigs = allConfigs.filter((c: { sync_contacts: boolean }) => c.sync_contacts);
+    if (syncableConfigs.length === 0) {
+      console.log("[GHL-CONTACT] Contact sync disabled for all workspaces");
       return new Response(
         JSON.stringify({ message: "Contact sync disabled" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Determine target workspace: prefer primary, then first syncable
+    let config: { workspace_id: string; sync_contacts: boolean; is_primary?: boolean };
+    if (syncableConfigs.length === 1) {
+      config = syncableConfigs[0];
+    } else {
+      // Multiple workspaces share this location — route by checking existing sync log
+      // If we already synced this contact to a workspace, keep it there
+      const { data: existingSyncAll } = await supabase
+        .from("ghl_sync_log")
+        .select("workspace_id")
+        .eq("ghl_entity_type", "contact")
+        .eq("ghl_entity_id", ghlContactId)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSyncAll?.workspace_id) {
+        const matchedConfig = syncableConfigs.find(
+          (c: { workspace_id: string }) => c.workspace_id === existingSyncAll.workspace_id
+        );
+        if (matchedConfig) {
+          config = matchedConfig;
+          console.log(`[GHL-CONTACT] Routed to existing workspace ${config.workspace_id} (from sync log)`);
+        } else {
+          config = syncableConfigs.find((c: { is_primary?: boolean }) => c.is_primary) || syncableConfigs[0];
+        }
+      } else {
+        // New contact — route to primary workspace
+        config = syncableConfigs.find((c: { is_primary?: boolean }) => c.is_primary) || syncableConfigs[0];
+        console.log(`[GHL-CONTACT] New contact routed to ${config.is_primary ? "primary" : "first"} workspace ${config.workspace_id}`);
+      }
     }
 
     const workspaceId = config.workspace_id;
