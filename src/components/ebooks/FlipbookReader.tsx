@@ -62,38 +62,62 @@ function isHtmlContent(content: string): boolean {
 }
 
 function splitHtmlIntoPages(html: string): string[] {
-  // Split HTML by block-level tags, keeping tags intact
-  const blockRegex = /(<(?:p|h[1-6]|div|ul|ol|li|blockquote|table|figure|hr|br|img)[^>]*>[\s\S]*?<\/(?:p|h[1-6]|div|ul|ol|li|blockquote|table|figure)>|<(?:hr|br|img)[^>]*\/?>)/gi;
-  const blocks: string[] = [];
+  // Use a DOMParser-safe approach: split by top-level block boundaries
+  // First, normalize: wrap bare text nodes in <p> tags
+  let normalized = html.trim();
+  
+  // Split into segments: block tags and text between them
+  const segments: string[] = [];
+  // Match block-level elements (including self-closing) or text between them
+  const blockTagNames = 'p|h[1-6]|div|ul|ol|blockquote|table|figure|section|article|aside|header|footer|nav|main|details|summary|pre';
+  const selfClosingNames = 'hr|br|img';
+  
+  // Split approach: find all top-level block elements and capture text between them
+  const blockPattern = new RegExp(
+    `(<(?:${blockTagNames})\\b[^>]*>[\\s\\S]*?<\\/(?:${blockTagNames})>|<(?:${selfClosingNames})\\b[^>]*\\/?>)`,
+    'gi'
+  );
+  
+  let lastIndex = 0;
   let match: RegExpExecArray | null;
   
-  while ((match = blockRegex.exec(html)) !== null) {
-    blocks.push(match[0]);
+  while ((match = blockPattern.exec(normalized)) !== null) {
+    // Capture any text/inline content BEFORE this block
+    if (match.index > lastIndex) {
+      const between = normalized.slice(lastIndex, match.index).trim();
+      if (between) {
+        segments.push(`<p>${between}</p>`);
+      }
+    }
+    segments.push(match[0]);
+    lastIndex = match.index + match[0].length;
   }
   
-  // If regex didn't find blocks, the HTML might be simple text with tags
-  if (blocks.length === 0) {
-    // Try splitting by common separators
-    const fallbackBlocks = html.split(/<br\s*\/?>\s*<br\s*\/?>/gi).filter(b => b.trim());
-    if (fallbackBlocks.length > 0) {
-      blocks.push(...fallbackBlocks.map(b => `<p>${b}</p>`));
-    } else {
-      return [html];
+  // Capture any trailing text after the last block
+  if (lastIndex < normalized.length) {
+    const trailing = normalized.slice(lastIndex).trim();
+    if (trailing) {
+      segments.push(`<p>${trailing}</p>`);
     }
+  }
+  
+  // If no blocks found at all, treat entire content as a single segment
+  if (segments.length === 0) {
+    return [normalized || "<p><em>Conteúdo em preparação</em></p>"];
   }
 
   const pages: string[] = [];
   let current = "";
   let currentWeight = 0;
 
-  for (const block of blocks) {
+  for (const block of segments) {
     const isImage = /<img\b/i.test(block);
     const textContent = block.replace(/<[^>]+>/g, "");
     const blockWeight = isImage ? IMAGE_CHAR_EQUIVALENT : textContent.length;
     const combinedWeight = currentWeight + blockWeight;
 
     if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
-      if (combinedWeight <= CHARS_PER_PAGE * 1.1) {
+      if (combinedWeight <= CHARS_PER_PAGE * 1.15) {
         current += block;
         currentWeight = combinedWeight;
       } else {
