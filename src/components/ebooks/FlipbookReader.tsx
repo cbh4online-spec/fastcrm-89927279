@@ -61,6 +61,22 @@ function isHtmlContent(content: string): boolean {
   return /<(p|h[1-6]|div|ul|ol|blockquote|table|figure|img|br|hr)\b/i.test(content);
 }
 
+/** Extract individual top-level block elements from a concatenated HTML string */
+function extractLastBlocks(html: string): string[] {
+  const blockTagNames = 'p|h[1-6]|div|ul|ol|blockquote|table|figure|section|article|aside|header|footer|nav|main|details|summary|pre';
+  const selfClosingNames = 'hr|br|img';
+  const pattern = new RegExp(
+    `(<(?:${blockTagNames})\\b[^>]*>[\\s\\S]*?<\\/(?:${blockTagNames})>|<(?:${selfClosingNames})\\b[^>]*\\/?>)`,
+    'gi'
+  );
+  const result: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(html)) !== null) {
+    result.push(m[0]);
+  }
+  return result;
+}
+
 function splitHtmlIntoPages(html: string): string[] {
   // Use a DOMParser-safe approach: split by top-level block boundaries
   // First, normalize: wrap bare text nodes in <p> tags
