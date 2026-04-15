@@ -1,54 +1,76 @@
+<final-text>Diagnóstico
 
+- O problema não é a rota: `/marketplace/:workspaceSlug/live/:id` já está envolvida em `StoreCartProvider` em `src/App.tsx`.
+- O chat demo continua diferente porque `LiveChat.tsx` ainda depende do momento em que cada dispositivo monta o componente e usa `new Date()` local. Mesmo com seed, isso gera linhas temporais diferentes.
+- Os produtos continuam “demo” por 3 falhas reais no fluxo:
+  1. `usePublicLivestreamById` não devolve `product_ids`;
+  2. `C2CGoLiveSetup.tsx` deixa selecionar produtos, mas `useCreateLivestream` não os grava;
+  3. `C2CPublicGoLiveSetup.tsx` nem sequer tem seleção de produtos.
+- O carrinho não fecha o circuito: o estado até pode receber itens, mas a live não renderiza `StoreCartDrawer`, e o checkout actual `/store/:slug/checkout` pertence ao fluxo da loja (`store_orders`), não ao C2C (`c2c_orders`).
+- O vídeo entre dispositivos ficou igual porque o código actual só faz preview local do broadcaster. Sem transporte real de vídeo, viewers nunca verão a mesma imagem.
 
-# Plano: Corrigir Live — Chat, Produtos e Carrinho (sem Mux WHIP)
+Decisões de produto/UX
 
-## Contexto
-A transmissão de vídeo via câmara local do broadcaster já funciona no PC. O Mux WHIP **não será usado**. O foco é corrigir os 3 problemas restantes:
+- Na live C2C, a compra deve seguir fluxo C2C real, não um reaproveitamento parcial do checkout da loja.
+- Assumo como abordagem recomendada:
+  - produtos reais na live;
+  - CTA “Comprar” ligado a compra C2C real;
+  - drawer apenas como resumo visual, não como destino final errado.
+- Mantemos a restrição “sem MUX WHIP”; logo o vídeo cross-device fica tratado como tema separado.
 
-1. **Chat demo inconsistente** — cada dispositivo gera mensagens diferentes
-2. **Produtos falsos** — `LiveProductShowcase` usa `DEMO_PRODUCTS` hardcoded
-3. **Carrinho não funcional** — botão "Comprar" faz apenas `toast`, não adiciona ao carrinho real
+Estrutura técnica
 
----
+- `src/hooks/c2c/usePublicLivestreams.ts`
+  - incluir `product_ids` no select público.
+- `src/hooks/c2c/useLivestreams.ts`
+  - aceitar e persistir `product_ids`, `description` e `replay_available` na criação da live.
+- `src/pages/c2c/C2CGoLiveSetup.tsx`
+  - enviar `selectedProductIds` ao criar a live.
+- `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
+  - adicionar seleção de produtos e persistência igual ao dashboard.
+- `src/components/c2c/livestream/LiveChat.tsx`
+  - refazer a simulação com base em `livestreamId + started_at`, por blocos temporais fixos.
+- `src/pages/c2c/C2CPublicLivestreamViewer.tsx` e `src/pages/c2c/C2CLivestreamViewer.tsx`
+  - passar `started_at` e `product_ids` correctos aos componentes.
+- Fluxo de compra
+  - ligar a live ao checkout C2C real, não ao `create-store-checkout`.
 
-## 1. Chat determinístico entre dispositivos
+Plano de implementação
 
-**Ficheiro:** `src/components/c2c/livestream/LiveChat.tsx`
+1. Corrigir a origem dos dados da live
+- Gravar `product_ids` quando a live é criada.
+- Expor `product_ids` na query pública.
+- Uniformizar o setup público e o setup do dashboard para criarem a mesma live.
 
-- Substituir `Math.random()` por um PRNG seeded com o `livestreamId` (e.g. função simples de hash)
-- Usar timestamps arredondados (e.g. a cada 3 segundos desde o início da live) como trigger, em vez de `setInterval` com delays aleatórios
-- Resultado: todos os dispositivos geram exactamente as mesmas mensagens demo nos mesmos momentos
+2. Corrigir o chat demo
+- Substituir a lógica baseada em montagem local por uma linha temporal determinística.
+- Gerar mensagens por slots fixos, por exemplo de 3 em 3 segundos, usando timestamps calculados a partir de `started_at`.
+- Aproveitar para remover duplicação entre mensagem local e mensagem persistida.
 
-## 2. Produtos reais da BD
+3. Corrigir os produtos destacados
+- Mostrar listings reais quando existirem `product_ids`.
+- Usar demo apenas como fallback verdadeiro.
+- Garantir ordem estável, imagem válida e preço correcto no viewer público e no viewer interno.
 
-**Ficheiro:** `src/components/c2c/livestream/LiveProductShowcase.tsx`
+4. Fechar a compra real
+- Trocar o CTA “Comprar” da live para um fluxo C2C utilizável.
+- Se ainda quiser um carrinho visual na live, renderizar o drawer na página, mas com CTA final alinhado ao checkout C2C.
+- Não manter o estado “parece que adicionou” sem um caminho real até encomenda.
 
-- Quando `productIds` é fornecido e não vazio, buscar os produtos reais de `c2c_listings` por ID
-- Mapear `c2c_listings` para a interface `FeaturedProduct` (title, price, photos[0], etc.)
-- Manter `DEMO_PRODUCTS` como fallback apenas quando não existem `productIds`
+5. Isolar o tema do vídeo
+- Sem MUX WHIP, o problema de vídeo entre PC/iPhone/Android não fica resolvido só com UI.
+- Se quiser mesmo corrigir vídeo cross-device, teremos de aprovar outro transporte real de streaming browser→viewer.
 
-## 3. Carrinho funcional + StoreCartProvider
+Critérios de aceitação
 
-**Ficheiros:**
-- `src/App.tsx` — envolver a rota `/marketplace/:workspaceSlug/live/:id` no `StoreCartProvider`
-- `src/components/c2c/livestream/LiveProductShowcase.tsx` — importar `useStoreCart` e chamar `addItem()` no botão "Comprar" com os dados reais do produto
-- O carrinho lateral (drawer) abrirá automaticamente ao adicionar
+- A mesma live mostra exactamente as mesmas mensagens demo em todos os dispositivos.
+- Uma live criada com produtos mostra esses produtos reais no viewer público.
+- O botão “Comprar” deixa de ser apenas visual e entra num fluxo de compra utilizável.
+- O comportamento fica coerente entre setup público, viewer público e viewer interno.
+- Fica claro o que está resolvido sem streaming real e o que continua dependente de transporte de vídeo.
 
-## 4. Compatibilidade iOS (vídeo placeholder)
+Riscos e pontos por validar
 
-**Ficheiro:** `src/components/c2c/livestream/SimulatedVideoFeed.tsx`
-
-- Adicionar `muted` e `playsInline` explícitos no elemento `<video>` do HLS player (já tem, mas confirmar que o Safari fallback também os tem)
-- Nota: sem Mux WHIP, viewers continuarão a ver o placeholder animado enquanto não houver transmissão real — isto é esperado
-
----
-
-## Ficheiros alterados
-
-| Ficheiro | Alteração |
-|---|---|
-| `src/App.tsx` | Envolver rota live em `StoreCartProvider` |
-| `src/components/c2c/livestream/LiveChat.tsx` | PRNG seeded por `livestreamId` |
-| `src/components/c2c/livestream/LiveProductShowcase.tsx` | Fetch `c2c_listings` + `useStoreCart().addItem()` |
-| `src/components/c2c/livestream/SimulatedVideoFeed.tsx` | Confirmar atributos iOS no Safari fallback |
-
+- O principal bloqueio actual é arquitectural: live C2C está ligada a peças da loja, mas a compra real C2C vive noutro domínio.
+- Se o objectivo for um carrinho multi-item C2C numa única encomenda, isso já exige desenho próprio de checkout C2C agregado.
+- Se mantivermos “sem MUX WHIP” e sem alternativa equivalente, o vídeo continuará local e não partilhado.</final-text>
