@@ -25,8 +25,6 @@ import {
   Image as ImageIcon,
   Settings2,
   Eye,
-  Copy,
-  Check,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
 import { useWorkspace } from "@/contexts/WorkspaceContext";

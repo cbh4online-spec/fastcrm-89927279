@@ -37,7 +37,6 @@ import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useCameraStream } from "@/hooks/c2c/useCameraStream";
 import { useEndLive, useTrackViewer } from "@/hooks/c2c/useLivestreams";
-import { useEndMuxStream } from "@/hooks/c2c/useMuxLivestream";
 import { cn } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
@@ -56,7 +55,6 @@ export default function C2CPublicLivestreamViewer() {
 
   const { data: live, isLoading } = usePublicLivestreamById(id);
   const endLive = useEndLive();
-  const endMuxStream = useEndMuxStream();
 
   const isLive = live?.status === "live";
   const isBroadcaster = !!user && !!live && user.id === live.seller_id;
@@ -104,9 +102,6 @@ export default function C2CPublicLivestreamViewer() {
     if (!id) return;
     try {
       camera.stopCamera();
-      // End on Mux side
-      await endMuxStream.mutateAsync(id).catch(() => {});
-      // End in DB
       await endLive.mutateAsync(id);
       toast.success("Live terminada");
       navigate(`/marketplace/${workspaceSlug}/lives`);
