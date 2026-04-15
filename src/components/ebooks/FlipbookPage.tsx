@@ -295,7 +295,8 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
           fontSize: "1em",
           fontFamily: v.bodyFont,
           color: "#374151",
-          lineHeight: 1.75,
+          lineHeight: 1.8,
+          textAlign: "justify" as const,
         }}
       >
         {isHtmlContent(page.content) ? (
@@ -333,15 +334,15 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
           <ReactMarkdown
             components={{
               p: ({ children }) => (
-                <p style={{ fontSize: "1em", marginBottom: "0.7em", lineHeight: 1.75, color: "inherit" }}>{children}</p>
+              <p style={{ fontSize: "1em", marginBottom: "0.8em", lineHeight: 1.8, color: "inherit", textAlign: "justify" }}>{children}</p>
               ),
               h1: ({ children }) => (
-                <h1 style={{ fontSize: "1.5em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.5em", marginTop: "0.8em" }}>
+                <h1 style={{ fontSize: "1.6em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.6em", marginTop: "1em", letterSpacing: "-0.01em" }}>
                   {children}
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 style={{ fontSize: "1.3em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.5em", marginTop: "0.8em", paddingLeft: "0.5em", paddingTop: "0.25em", paddingBottom: "0.25em", borderRadius: "0.25em", background: `linear-gradient(to right, color-mix(in srgb, ${v.accent} 15%, transparent), transparent)`, borderLeft: `3px solid ${v.accent}` }}>
+                <h2 style={{ fontSize: "1.3em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.6em", marginTop: "1.2em", paddingBottom: "0.3em", borderBottom: `2px solid color-mix(in srgb, ${v.accent} 25%, transparent)` }}>
                   {children}
                 </h2>
               ),
