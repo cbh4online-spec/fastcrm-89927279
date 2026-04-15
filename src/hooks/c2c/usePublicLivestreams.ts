@@ -17,6 +17,7 @@ export interface PublicLivestream {
   ended_at: string | null;
   viewer_count: number;
   total_views: number;
+  product_ids: string[];
   category: string | null;
   tags: string[];
   created_at: string;
