@@ -29,7 +29,6 @@ import {
   Check,
 } from "lucide-react";
 import { useCreateLivestream, useGoLive } from "@/hooks/c2c/useLivestreams";
-import { useCreateMuxStream } from "@/hooks/c2c/useMuxLivestream";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyC2CListings } from "@/hooks/useC2CListings";
@@ -48,7 +47,6 @@ export default function C2CGoLiveSetup() {
   const { user } = useAuth();
   const createLive = useCreateLivestream();
   const goLive = useGoLive();
-  const createMuxStream = useCreateMuxStream();
   const { data: myListings = [] } = useMyC2CListings(currentWorkspace?.id);
   const activeListings = myListings.filter((l) => l.status === "active");
 
@@ -61,23 +59,13 @@ export default function C2CGoLiveSetup() {
   const [chatEnabled, setChatEnabled] = useState(true);
   const [replayEnabled, setReplayEnabled] = useState(true);
 
-  // Mux stream info after creation
-  const [muxInfo, setMuxInfo] = useState<{
-    stream_key: string;
-    rtmp_url: string;
-    srt_url: string;
-    playback_id: string;
-  } | null>(null);
-  const [livestreamId, setLivestreamId] = useState<string | null>(null);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
   // Camera state
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const isLoading = createLive.isPending || goLive.isPending || createMuxStream.isPending;
+  const isLoading = createLive.isPending || goLive.isPending;
 
   const isInIframe = (() => {
     try { return window.self !== window.top; } catch { return true; }
@@ -147,14 +135,7 @@ export default function C2CGoLiveSetup() {
     l.title.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  const handleCopy = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  // Step 1: Create livestream + Mux stream
-  const handleCreateStream = async () => {
+  const handleGoLive = async () => {
     if (!title.trim() || !currentWorkspace?.id) return;
     try {
       const live = await createLive.mutateAsync({
@@ -163,25 +144,11 @@ export default function C2CGoLiveSetup() {
         description: description.trim() || undefined,
         category: category || undefined,
       });
-      setLivestreamId(live.id);
-
-      const mux = await createMuxStream.mutateAsync(live.id);
-      setMuxInfo(mux);
-      toast.success("Stream Mux criado! Configura o OBS com os dados abaixo e clica 'Ir ao Vivo'.");
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao criar o stream");
-    }
-  };
-
-  // Step 2: Go live (after OBS is connected)
-  const handleGoLive = async () => {
-    if (!livestreamId) return;
-    try {
-      await goLive.mutateAsync(livestreamId);
+      await goLive.mutateAsync(live.id);
       toast.success("Estás ao vivo! 🔴");
-      navigate(`/dashboard/marketplace/lives/${livestreamId}`);
-    } catch {
-      toast.error("Erro ao iniciar a live");
+      navigate(`/dashboard/marketplace/lives/${live.id}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao iniciar a live");
     }
   };
 
@@ -198,33 +165,18 @@ export default function C2CGoLiveSetup() {
             <h1 className="text-lg font-bold">Configurar Live</h1>
           </div>
         </div>
-        {muxInfo ? (
-          <Button
-            onClick={handleGoLive}
-            disabled={goLive.isPending}
-            className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
-          >
-            {goLive.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-            )}
-            Ir ao Vivo
-          </Button>
-        ) : (
-          <Button
-            onClick={handleCreateStream}
-            disabled={!title.trim() || isLoading}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold px-6"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Radio className="h-4 w-4" />
-            )}
-            Preparar Stream
-          </Button>
-        )}
+        <Button
+          onClick={handleGoLive}
+          disabled={!title.trim() || isLoading}
+          className="bg-red-600 hover:bg-red-700 text-white gap-2 font-bold px-6"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+          )}
+          Ir ao Vivo
+        </Button>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
