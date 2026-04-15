@@ -181,43 +181,51 @@ function splitHtmlIntoPages(html: string): string[] {
 function splitMarkdownIntoPages(content: string): string[] {
   const paragraphs = content.split(/\n\n+/);
   const pages: string[] = [];
-  let current = "";
-  let currentWeight = 0;
-  const currentParas: string[] = [];
+  const pageParas: string[] = [];
+  let pageWeight = 0;
 
   const isMdHeading = (p: string) => /^#{1,6}\s/.test(p.trim());
+  const paraWeight = (p: string) => /!\[.*?\]\(.*?\)/.test(p) ? IMAGE_CHAR_EQUIVALENT : p.length;
+
+  const flushPage = () => {
+    if (pageParas.length === 0) return;
+    pages.push(pageParas.join("\n\n"));
+    pageParas.length = 0;
+    pageWeight = 0;
+  };
 
   for (const para of paragraphs) {
-    const isImage = /!\[.*?\]\(.*?\)/.test(para);
-    const paraWeight = isImage ? IMAGE_CHAR_EQUIVALENT : para.length;
-    const combinedWeight = currentWeight + (current ? 2 : 0) + paraWeight;
+    const pw = paraWeight(para);
+    const wouldBe = pageWeight + (pageParas.length ? 2 : 0) + pw;
 
-    if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
-      if (combinedWeight <= CHARS_PER_PAGE * 1.1) {
-        current += (current ? "\n\n" : "") + para;
-        currentWeight = combinedWeight;
-        currentParas.push(para);
-      } else {
-        // Pull orphan headings from end of current page
-        let pullBack: string[] = [];
-        while (currentParas.length > 0 && isMdHeading(currentParas[currentParas.length - 1])) {
-          pullBack.unshift(currentParas.pop()!);
-        }
-        const cleanedCurrent = currentParas.join("\n\n").trim();
-        if (cleanedCurrent) pages.push(cleanedCurrent);
-        currentParas.length = 0;
-        const startParas = [...pullBack, para];
-        current = startParas.join("\n\n");
-        currentWeight = startParas.reduce((s, p) => s + p.length, 0);
-        currentParas.push(...startParas);
-      }
-    } else {
-      current += (current ? "\n\n" : "") + para;
-      currentWeight = combinedWeight;
-      currentParas.push(para);
+    if (wouldBe <= CHARS_PER_PAGE || pageParas.length === 0) {
+      pageParas.push(para);
+      pageWeight = wouldBe;
+      continue;
     }
+
+    if (wouldBe <= CHARS_PER_PAGE * 1.15) {
+      pageParas.push(para);
+      pageWeight = wouldBe;
+      continue;
+    }
+
+    // Pull orphan headings
+    const pulled: string[] = [];
+    while (pageParas.length > 1 && isMdHeading(pageParas[pageParas.length - 1])) {
+      pulled.unshift(pageParas.pop()!);
+    }
+    flushPage();
+
+    for (const ph of pulled) {
+      pageParas.push(ph);
+      pageWeight += ph.length;
+    }
+    pageParas.push(para);
+    pageWeight += pw;
   }
-  if (current.trim()) pages.push(current.trim());
+
+  if (pageParas.length > 0) flushPage();
   return pages.length ? pages : ["*Conteúdo em preparação*"];
 }
 
