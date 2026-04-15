@@ -424,30 +424,43 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
 
 /* Scoped CSS for HTML content pages — mirrors the markdown components */
 const htmlContentScopedCSS = `
-  .ebook-html-content { line-height: 1.75; }
+  .ebook-html-content { line-height: 1.8; }
   .ebook-html-content h1 {
-    font-size: 1.5em; font-family: var(--ebook-heading-font, Georgia, serif);
+    font-size: 1.6em; font-family: var(--ebook-heading-font, Georgia, serif);
     color: var(--ebook-primary, #0f172a); font-weight: 700;
-    margin: 0.8em 0 0.5em;
+    margin: 1em 0 0.6em; letter-spacing: -0.01em;
   }
   .ebook-html-content h2 {
     font-size: 1.3em; font-family: var(--ebook-heading-font, Georgia, serif);
     color: var(--ebook-primary, #0f172a); font-weight: 700;
-    margin: 0.8em 0 0.5em; padding: 0.25em 0.5em; border-radius: 0.25em;
-    background: linear-gradient(to right, color-mix(in srgb, var(--ebook-accent, #b4884e) 15%, transparent), transparent);
-    border-left: 3px solid var(--ebook-accent, #b4884e);
+    margin: 1.2em 0 0.6em; padding-bottom: 0.3em;
+    border-bottom: 2px solid color-mix(in srgb, var(--ebook-accent, #b4884e) 25%, transparent);
   }
   .ebook-html-content h3 {
     font-size: 1.15em; font-family: var(--ebook-heading-font, Georgia, serif);
     color: var(--ebook-primary, #0f172a); font-weight: 600;
-    margin: 0.7em 0 0.4em;
-    border-top: 2px solid color-mix(in srgb, var(--ebook-accent, #b4884e) 30%, transparent);
-    padding-top: 0.3em;
+    margin: 1em 0 0.5em;
   }
-  .ebook-html-content p { font-size: 1em; margin-bottom: 0.7em; line-height: 1.75; }
+  .ebook-html-content h3::before {
+    content: ''; display: block; width: 2em; height: 2px; border-radius: 9999px;
+    margin-bottom: 0.35em; opacity: 0.3;
+    background-color: var(--ebook-accent, #b4884e);
+  }
+  .ebook-html-content h4 {
+    font-size: 1.05em; font-family: var(--ebook-heading-font, Georgia, serif);
+    color: var(--ebook-primary, #0f172a); font-weight: 600;
+    margin: 0.8em 0 0.4em; text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: 0.9em; opacity: 0.85;
+  }
+  .ebook-html-content p {
+    font-size: 1em; margin-bottom: 0.8em; line-height: 1.8;
+    text-align: justify; text-justify: inter-word;
+    hyphens: auto; -webkit-hyphens: auto;
+  }
   .ebook-html-content strong { color: var(--ebook-primary, #0f172a); font-weight: 700; }
+  .ebook-html-content em { font-style: italic; }
   .ebook-html-content blockquote {
-    position: relative; margin: 0.8em 0; padding: 0.8em 1.4em; border-radius: 0.5em;
+    position: relative; margin: 1em 0; padding: 0.8em 1.4em; border-radius: 0.5em;
     font-style: italic; font-size: 0.95em; color: #475569;
     background: linear-gradient(to bottom right, color-mix(in srgb, var(--ebook-accent, #b4884e) 10%, transparent), color-mix(in srgb, var(--ebook-accent, #b4884e) 5%, transparent));
     border-left: 3px solid var(--ebook-accent, #b4884e);
@@ -461,34 +474,30 @@ const htmlContentScopedCSS = `
     font-size: 0.85em; padding: 0.1em 0.3em; border-radius: 0.2em;
     background: color-mix(in srgb, var(--ebook-accent, #b4884e) 8%, transparent);
   }
-  .ebook-html-content ul, .ebook-html-content ol { padding-left: 1.5em; margin-bottom: 0.7em; }
-  .ebook-html-content li { margin-bottom: 0.3em; }
+  .ebook-html-content ul, .ebook-html-content ol { padding-left: 1.5em; margin-bottom: 0.8em; }
+  .ebook-html-content li { margin-bottom: 0.35em; line-height: 1.7; }
+  .ebook-html-content ul li::marker { color: var(--ebook-accent, #b4884e); }
+  .ebook-html-content ol li::marker { color: var(--ebook-accent, #b4884e); font-weight: 600; }
   .ebook-html-content img {
     max-width: 100%; border-radius: 0.5em; margin: 0.8em auto; display: block;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     max-height: 45%;
   }
-  .ebook-html-content figure {
-    margin: 0.8em 0; text-align: center;
-  }
-  .ebook-html-content figure img {
-    margin: 0 auto 0.4em;
-  }
+  .ebook-html-content figure { margin: 0.8em 0; text-align: center; }
+  .ebook-html-content figure img { margin: 0 auto 0.4em; }
   .ebook-html-content figcaption {
     font-size: 0.75em; font-style: italic; color: #94a3b8; text-align: center;
   }
   .ebook-html-content a {
     color: var(--ebook-accent, #b4884e); text-decoration: underline;
-    cursor: pointer; font-weight: 500;
-    transition: opacity 0.15s;
+    cursor: pointer; font-weight: 500; transition: opacity 0.15s;
   }
   .ebook-html-content a:hover { opacity: 0.7; }
   .ebook-html-content .ebook-cta-link {
     display: inline-block; padding: 0.5em 1.2em; border-radius: 0.4em;
     background: var(--ebook-accent, #b4884e); color: #fff !important;
     text-decoration: none; font-weight: 600; font-size: 0.9em;
-    text-align: center; margin: 0.8em 0;
-    transition: opacity 0.15s;
+    text-align: center; margin: 0.8em 0; transition: opacity 0.15s;
   }
   .ebook-html-content .ebook-cta-link:hover { opacity: 0.85; }
 `;
