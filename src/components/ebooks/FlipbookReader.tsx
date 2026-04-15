@@ -177,6 +177,9 @@ function splitMarkdownIntoPages(content: string): string[] {
   const pages: string[] = [];
   let current = "";
   let currentWeight = 0;
+  const currentParas: string[] = [];
+
+  const isMdHeading = (p: string) => /^#{1,6}\s/.test(p.trim());
 
   for (const para of paragraphs) {
     const isImage = /!\[.*?\]\(.*?\)/.test(para);
@@ -187,14 +190,25 @@ function splitMarkdownIntoPages(content: string): string[] {
       if (combinedWeight <= CHARS_PER_PAGE * 1.1) {
         current += (current ? "\n\n" : "") + para;
         currentWeight = combinedWeight;
+        currentParas.push(para);
       } else {
-        pages.push(current.trim());
-        current = para;
-        currentWeight = paraWeight;
+        // Pull orphan headings from end of current page
+        let pullBack: string[] = [];
+        while (currentParas.length > 0 && isMdHeading(currentParas[currentParas.length - 1])) {
+          pullBack.unshift(currentParas.pop()!);
+        }
+        const cleanedCurrent = currentParas.join("\n\n").trim();
+        if (cleanedCurrent) pages.push(cleanedCurrent);
+        currentParas.length = 0;
+        const startParas = [...pullBack, para];
+        current = startParas.join("\n\n");
+        currentWeight = startParas.reduce((s, p) => s + p.length, 0);
+        currentParas.push(...startParas);
       }
     } else {
       current += (current ? "\n\n" : "") + para;
       currentWeight = combinedWeight;
+      currentParas.push(para);
     }
   }
   if (current.trim()) pages.push(current.trim());
