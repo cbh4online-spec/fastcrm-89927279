@@ -154,8 +154,8 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
               <span className="font-bold w-[1.5em] text-right tabular-nums shrink-0 opacity-40" style={{ fontSize: "0.8em", color: v.accent }}>
                 {i + 1}
               </span>
-              <span className="flex-1 group-hover/toc-item:underline" style={{ fontSize: "1em", fontFamily: v.bodyFont, color: v.primary }}>
-                {ch.title}
+              <span className="flex-1 truncate group-hover/toc-item:underline" style={{ fontSize: "1em", fontFamily: v.bodyFont, color: v.primary, minWidth: 0 }}>
+                {ch.title || `Capítulo ${i + 1}`}
               </span>
               <span className="flex-shrink-0 tabular-nums font-mono opacity-40" style={{ fontSize: "0.8em", color: v.accent }}>
                 {ch.pageStart}
@@ -341,8 +341,7 @@ export function FlipbookPage({ page, pageWidth, pageHeight, onGoToPage, highligh
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 style={{ fontSize: "1.3em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.5em", marginTop: "0.8em", paddingLeft: "0.5em", paddingTop: "0.25em", paddingBottom: "0.25em", borderRadius: "0.25em", background: `linear-gradient(to right, color-mix(in srgb, ${v.accent} 12%, transparent), transparent)` }}>
-                  <span style={{ color: v.accent, opacity: 0.4, marginRight: "0.3em", fontSize: "0.8em" }}>❧</span>
+                <h2 style={{ fontSize: "1.3em", fontFamily: v.headingFont, color: v.primary, fontWeight: 700, marginBottom: "0.5em", marginTop: "0.8em", paddingLeft: "0.5em", paddingTop: "0.25em", paddingBottom: "0.25em", borderRadius: "0.25em", background: `linear-gradient(to right, color-mix(in srgb, ${v.accent} 15%, transparent), transparent)`, borderLeft: `3px solid ${v.accent}` }}>
                   {children}
                 </h2>
               ),
