@@ -37,7 +37,7 @@ import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-const LIVEKIT_SERVER_URL = import.meta.env.VITE_LIVEKIT_SERVER_URL || "wss://your-livekit-server.livekit.cloud";
+import { LIVEKIT_SERVER_URL } from "@/config/livekit";
 
 export default function C2CPublicLivestreamViewer() {
   const { id, workspaceSlug } = useParams();
