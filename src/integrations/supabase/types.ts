@@ -9502,7 +9502,9 @@ export type Database = {
           created_at: string
           description: string | null
           ended_at: string | null
+          featured_product_id: string | null
           id: string
+          livekit_room_name: string | null
           mux_playback_id: string | null
           mux_stream_id: string | null
           mux_stream_key: string | null
@@ -9527,7 +9529,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           ended_at?: string | null
+          featured_product_id?: string | null
           id?: string
+          livekit_room_name?: string | null
           mux_playback_id?: string | null
           mux_stream_id?: string | null
           mux_stream_key?: string | null
@@ -9552,7 +9556,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           ended_at?: string | null
+          featured_product_id?: string | null
           id?: string
+          livekit_room_name?: string | null
           mux_playback_id?: string | null
           mux_stream_id?: string | null
           mux_stream_key?: string | null
