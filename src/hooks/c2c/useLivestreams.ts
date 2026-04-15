@@ -179,19 +179,11 @@ export function useCreateLivestream() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      // Resolve profiles.id from auth user id
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profileError) throw profileError;
-      if (!profile) throw new Error("Perfil não encontrado");
       const { data, error } = await sb
         .from("c2c_livestreams")
         .insert({
           ...input,
-          seller_id: profile.id,
+          seller_id: user.id,
           workspace_slug: input.workspace_slug || null,
           product_ids: input.product_ids || [],
           replay_available: input.replay_available ?? true,
@@ -213,8 +205,6 @@ export function useGoLive() {
     mutationFn: async (livestreamId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
-      if (!profile) throw new Error("Perfil não encontrado");
 
       const { data: live } = await sb
         .from("c2c_livestreams")
@@ -222,7 +212,7 @@ export function useGoLive() {
         .eq("id", livestreamId)
         .maybeSingle();
 
-      if (!live || live.seller_id !== profile.id) {
+      if (!live || live.seller_id !== user.id) {
         throw new Error("Apenas o dono da live pode iniciá-la");
       }
 
@@ -230,7 +220,7 @@ export function useGoLive() {
         .from("c2c_livestreams")
         .update({ status: "live", started_at: new Date().toISOString() })
         .eq("id", livestreamId)
-        .eq("seller_id", profile.id);
+        .eq("seller_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -246,8 +236,6 @@ export function useEndLive() {
     mutationFn: async (livestreamId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
-      if (!profile) throw new Error("Perfil não encontrado");
 
       const { data: live } = await sb
         .from("c2c_livestreams")
@@ -255,7 +243,7 @@ export function useEndLive() {
         .eq("id", livestreamId)
         .maybeSingle();
 
-      if (!live || live.seller_id !== profile.id) {
+      if (!live || live.seller_id !== user.id) {
         throw new Error("Apenas o dono da live pode terminá-la");
       }
 
@@ -263,7 +251,7 @@ export function useEndLive() {
         .from("c2c_livestreams")
         .update({ status: "ended", ended_at: new Date().toISOString() })
         .eq("id", livestreamId)
-        .eq("seller_id", profile.id);
+        .eq("seller_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {
