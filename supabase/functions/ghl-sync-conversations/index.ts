@@ -745,7 +745,14 @@ Deno.serve(async (req) => {
 
                 const externalThreadId = `ghl_${ghlConv.id}`;
 
-                // Check if conversation exists
+                // CRITICAL: Skip if this conversation already exists in a sibling workspace
+                if (siblingThreadIds.has(externalThreadId)) {
+                  console.log(`[GHL Sync] Skipping conv ${ghlConv.id} - already exists in sibling workspace`);
+                  result.messages_skipped++;
+                  continue;
+                }
+
+                // Check if conversation exists in THIS workspace
                 let conversationId = conversationsByThreadId.get(externalThreadId);
 
                 if (!conversationId) {
