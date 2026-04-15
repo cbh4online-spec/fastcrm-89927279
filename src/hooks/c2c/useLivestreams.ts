@@ -179,19 +179,11 @@ export function useCreateLivestream() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      // Resolve profiles.id from auth user id
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profileError) throw profileError;
-      if (!profile) throw new Error("Perfil não encontrado");
       const { data, error } = await sb
         .from("c2c_livestreams")
         .insert({
           ...input,
-          seller_id: profile.id,
+          seller_id: user.id,
           workspace_slug: input.workspace_slug || null,
           product_ids: input.product_ids || [],
           replay_available: input.replay_available ?? true,
