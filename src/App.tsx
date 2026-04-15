@@ -38,6 +38,7 @@ const C2CSponsorPortal = lazy(() => import("@/pages/c2c/C2CSponsorPortal"));
 const C2CSellerInviteActivation = lazy(() => import("@/pages/c2c/C2CSellerInviteActivation"));
 const C2CPublicSellerProfile = lazy(() => import("@/pages/c2c/C2CPublicSellerProfile"));
 const GlobalLivesDiscovery = lazy(() => import("@/pages/c2c/GlobalLivesDiscovery"));
+const LiveStudio = lazy(() => import("@/pages/c2c/LiveStudio"));
 const CheckoutPage = lazy(() => import("@/pages/checkout/CheckoutPage"));
 const UpsellPage = lazy(() => import("@/pages/checkout/UpsellPage"));
 const DownsellPage = lazy(() => import("@/pages/checkout/DownsellPage"));
@@ -122,6 +123,7 @@ const App = () => (
                 <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
                 <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
                 <Route path="/marketplace/lives" element={<GlobalLivesDiscovery />} />
+                <Route path="/marketplace/lives/studio" element={<AuthProvider><LiveStudio /></AuthProvider>} />
                 <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
                 {/* Legacy /c2c/ routes → redirect to /marketplace/ */}
                 <Route path="/c2c/:workspaceSlug/*" element={<C2CRedirectToMarketplace />} />
