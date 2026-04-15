@@ -106,24 +106,46 @@ function splitHtmlIntoPages(html: string): string[] {
     return [normalized || "<p><em>Conteúdo em preparação</em></p>"];
   }
 
+  // ── Editorial-grade pagination ──
+  // Rules:
+  // 1. Never leave a heading as the last element on a page (orphan heading)
+  // 2. Keep at least 2 lines of a paragraph on both sides of a page break (widow/orphan text)
+  // 3. A heading must always be followed by at least the next block on the same page
+
+  const isHeading = (block: string) => /^<h[1-6]\b/i.test(block.trim());
+  const blockWeight = (block: string) => {
+    if (/<img\b/i.test(block)) return IMAGE_CHAR_EQUIVALENT;
+    return block.replace(/<[^>]+>/g, "").length;
+  };
+
   const pages: string[] = [];
   let current = "";
   let currentWeight = 0;
 
-  for (const block of segments) {
-    const isImage = /<img\b/i.test(block);
-    const textContent = block.replace(/<[^>]+>/g, "");
-    const blockWeight = isImage ? IMAGE_CHAR_EQUIVALENT : textContent.length;
-    const combinedWeight = currentWeight + blockWeight;
+  for (let idx = 0; idx < segments.length; idx++) {
+    const block = segments[idx];
+    const bw = blockWeight(block);
+    const combinedWeight = currentWeight + bw;
 
     if (combinedWeight > CHARS_PER_PAGE && current.length > 0) {
+      // Allow slight overflow (15%) to avoid near-empty pages
       if (combinedWeight <= CHARS_PER_PAGE * 1.15) {
         current += block;
         currentWeight = combinedWeight;
       } else {
-        pages.push(current);
-        current = block;
-        currentWeight = blockWeight;
+        // EDITORIAL RULE: Before pushing, check if last element(s) in `current` are orphan headings
+        // Pull them back to be placed on the next page with this block
+        const currentSegments = extractLastBlocks(current);
+        let pullBack = "";
+        while (currentSegments.length > 0 && isHeading(currentSegments[currentSegments.length - 1])) {
+          pullBack = currentSegments.pop()! + pullBack;
+        }
+        const cleanedCurrent = currentSegments.join("");
+        if (cleanedCurrent.trim()) {
+          pages.push(cleanedCurrent);
+        }
+        current = pullBack + block;
+        currentWeight = blockWeight(pullBack) + bw;
       }
     } else {
       current += block;
