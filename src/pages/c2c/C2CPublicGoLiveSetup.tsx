@@ -36,6 +36,7 @@ export default function C2CPublicGoLiveSetup() {
   const goLive = useGoLive();
 
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
 
   // Camera state
@@ -111,6 +112,7 @@ export default function C2CPublicGoLiveSetup() {
         workspace_id: workspace.id,
         workspace_slug: workspaceSlug,
         title: title.trim(),
+        description: description.trim() || undefined,
         category: category || undefined,
       });
       await goLive.mutateAsync(live.id);

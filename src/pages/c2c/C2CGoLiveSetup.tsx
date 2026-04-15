@@ -141,6 +141,8 @@ export default function C2CGoLiveSetup() {
         title: title.trim(),
         description: description.trim() || undefined,
         category: category || undefined,
+        product_ids: selectedProductIds.length > 0 ? selectedProductIds : undefined,
+        replay_available: replayEnabled,
       });
       await goLive.mutateAsync(live.id);
       toast.success("Estás ao vivo! 🔴");

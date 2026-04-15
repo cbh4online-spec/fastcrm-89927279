@@ -17,6 +17,7 @@ export interface PublicLivestream {
   ended_at: string | null;
   viewer_count: number;
   total_views: number;
+  product_ids: string[];
   category: string | null;
   tags: string[];
   created_at: string;
@@ -32,7 +33,7 @@ export function usePublicLivestreamById(id?: string) {
     queryFn: async () => {
       const { data, error } = await sb
         .from("c2c_livestreams")
-        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id")
+        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id, product_ids")
         .eq("id", id)
         .maybeSingle();
 
@@ -62,7 +63,7 @@ export function usePublicLivestreams(workspaceId?: string) {
     queryFn: async () => {
       const { data: lives, error } = await sb
         .from("c2c_livestreams")
-        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id")
+        .select("id, workspace_id, workspace_slug, seller_id, title, description, status, thumbnail_url, scheduled_at, started_at, ended_at, viewer_count, total_views, category, tags, created_at, mux_playback_id, product_ids")
         .eq("workspace_id", workspaceId)
         .in("status", ["scheduled", "live", "ended"])
         .order("status", { ascending: false })

@@ -240,7 +240,7 @@ export default function C2CPublicLivestreamViewer() {
             )}
 
             {/* Featured product */}
-            <LiveProductShowcase productIds={(live as any).product_ids || []} isLive={isLive} />
+            <LiveProductShowcase productIds={live.product_ids || []} isLive={isLive} />
 
             {/* Emoji reactions */}
             <LiveReactions isLive={isLive} />
@@ -363,7 +363,7 @@ export default function C2CPublicLivestreamViewer() {
             )}
           </div>
           <div className="flex-1 overflow-hidden">
-            <LiveChat livestreamId={live.id} isLive={isLive} />
+            <LiveChat livestreamId={live.id} isLive={isLive} startedAt={live.started_at} />
           </div>
         </div>
       </div>

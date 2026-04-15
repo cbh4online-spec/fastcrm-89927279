@@ -13,6 +13,7 @@ import { User } from "@supabase/supabase-js";
 interface Props {
   livestreamId: string;
   isLive: boolean;
+  startedAt?: string | null;
 }
 
 // ---------- Simulated messages ----------
@@ -80,60 +81,71 @@ function createSeededRng(seed: string) {
   };
 }
 
-function useSimulatedMessages(isLive: boolean, livestreamId: string) {
+function useSimulatedMessages(isLive: boolean, livestreamId: string, startedAt?: string | null) {
   const [simulated, setSimulated] = useState<SimulatedMsg[]>([]);
 
   useEffect(() => {
     if (!isLive) return;
 
-    const rng = createSeededRng(livestreamId);
-    let counter = 0;
+    // Use started_at as the absolute time anchor so all devices compute the same timeline
+    const origin = startedAt ? new Date(startedAt).getTime() : Date.now();
+    const SLOT_MS = 3000; // one message every 3 seconds
 
-    // Pre-generate deterministic schedule of messages
-    const generateMsg = (): SimulatedMsg => {
-      counter += 1;
+    const rng = createSeededRng(livestreamId);
+
+    // Pre-generate a deterministic sequence of 200 messages from seed
+    const sequence: Omit<SimulatedMsg, "id" | "created_at">[] = [];
+    for (let i = 0; i < 200; i++) {
       const isSystem = rng() < 0.2;
       const name = SIMULATED_NAMES[Math.floor(rng() * SIMULATED_NAMES.length)];
-      return {
-        id: `sim-${counter}`,
+      sequence.push({
         user_name: name,
         message: isSystem
           ? `${name} ${SIMULATED_SYSTEM_MESSAGES[Math.floor(rng() * SIMULATED_SYSTEM_MESSAGES.length)]}`
           : SIMULATED_MESSAGES[Math.floor(rng() * SIMULATED_MESSAGES.length)],
         message_type: isSystem ? "system" : "chat",
-        created_at: new Date().toISOString(),
         is_pinned: false,
-      };
+      });
+    }
+
+    // Compute which slot we're in right now and show all past messages
+    const computeMessages = (): SimulatedMsg[] => {
+      const elapsed = Date.now() - origin;
+      const currentSlot = Math.max(0, Math.floor(elapsed / SLOT_MS));
+      const count = Math.min(currentSlot + 1, sequence.length);
+      const msgs: SimulatedMsg[] = [];
+      for (let i = 0; i < count; i++) {
+        msgs.push({
+          ...sequence[i],
+          id: `sim-${i}`,
+          created_at: new Date(origin + i * SLOT_MS).toISOString(),
+        });
+      }
+      // Keep only the last 80
+      return msgs.slice(-80);
     };
 
-    // Initial burst — deterministic count from seed
-    const burst = 3 + Math.floor(rng() * 3);
-    const initialMsgs: SimulatedMsg[] = [];
-    for (let i = 0; i < burst; i++) {
-      initialMsgs.push(generateMsg());
-    }
-    setSimulated(initialMsgs);
+    setSimulated(computeMessages());
 
-    // Fixed 3-second interval (deterministic timing)
     const interval = setInterval(() => {
-      setSimulated((prev) => [...prev.slice(-80), generateMsg()]);
-    }, 3000);
+      setSimulated(computeMessages());
+    }, SLOT_MS);
 
     return () => clearInterval(interval);
-  }, [isLive, livestreamId]);
+  }, [isLive, livestreamId, startedAt]);
 
   return simulated;
 }
 
 // ---------- Component ----------
 
-export function LiveChat({ livestreamId, isLive }: Props) {
+export function LiveChat({ livestreamId, isLive, startedAt }: Props) {
   const [msg, setMsg] = useState("");
   const [localMessages, setLocalMessages] = useState<SimulatedMsg[]>([]);
   const { data: dbMessages = [] } = useLivestreamMessages(livestreamId);
   const send = useSendLiveMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const simulated = useSimulatedMessages(isLive, livestreamId);
+  const simulated = useSimulatedMessages(isLive, livestreamId, startedAt);
 
   // Track auth state without requiring AuthProvider
   const [currentUser, setCurrentUser] = useState<User | null>(null);
