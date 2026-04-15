@@ -236,8 +236,6 @@ export function useEndLive() {
     mutationFn: async (livestreamId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
-      if (!profile) throw new Error("Perfil não encontrado");
 
       const { data: live } = await sb
         .from("c2c_livestreams")
@@ -245,7 +243,7 @@ export function useEndLive() {
         .eq("id", livestreamId)
         .maybeSingle();
 
-      if (!live || live.seller_id !== profile.id) {
+      if (!live || live.seller_id !== user.id) {
         throw new Error("Apenas o dono da live pode terminá-la");
       }
 
@@ -253,7 +251,7 @@ export function useEndLive() {
         .from("c2c_livestreams")
         .update({ status: "ended", ended_at: new Date().toISOString() })
         .eq("id", livestreamId)
-        .eq("seller_id", profile.id);
+        .eq("seller_id", user.id);
       if (error) throw error;
     },
     onSuccess: () => {
