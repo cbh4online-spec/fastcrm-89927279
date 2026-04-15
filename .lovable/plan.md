@@ -1,76 +1,62 @@
-<final-text>Diagnóstico
 
-- O problema não é a rota: `/marketplace/:workspaceSlug/live/:id` já está envolvida em `StoreCartProvider` em `src/App.tsx`.
-- O chat demo continua diferente porque `LiveChat.tsx` ainda depende do momento em que cada dispositivo monta o componente e usa `new Date()` local. Mesmo com seed, isso gera linhas temporais diferentes.
-- Os produtos continuam “demo” por 3 falhas reais no fluxo:
-  1. `usePublicLivestreamById` não devolve `product_ids`;
-  2. `C2CGoLiveSetup.tsx` deixa selecionar produtos, mas `useCreateLivestream` não os grava;
-  3. `C2CPublicGoLiveSetup.tsx` nem sequer tem seleção de produtos.
-- O carrinho não fecha o circuito: o estado até pode receber itens, mas a live não renderiza `StoreCartDrawer`, e o checkout actual `/store/:slug/checkout` pertence ao fluxo da loja (`store_orders`), não ao C2C (`c2c_orders`).
-- O vídeo entre dispositivos ficou igual porque o código actual só faz preview local do broadcaster. Sem transporte real de vídeo, viewers nunca verão a mesma imagem.
 
-Decisões de produto/UX
+# Plano: Isolamento de Mensagens por Workspace (Routing GHL Multi-Workspace)
 
-- Na live C2C, a compra deve seguir fluxo C2C real, não um reaproveitamento parcial do checkout da loja.
-- Assumo como abordagem recomendada:
-  - produtos reais na live;
-  - CTA “Comprar” ligado a compra C2C real;
-  - drawer apenas como resumo visual, não como destino final errado.
-- Mantemos a restrição “sem MUX WHIP”; logo o vídeo cross-device fica tratado como tema separado.
+## Diagnóstico
 
-Estrutura técnica
+O problema é que Metodopare e Blecksen partilham o **mesmo GHL location_id** (sub-conta GoHighLevel). Quando cada workspace faz sync, o `ghl-sync-conversations` puxa **todas** as conversas dessa localização para o workspace que pediu o sync — não filtra por canal ou pertença.
 
-- `src/hooks/c2c/usePublicLivestreams.ts`
-  - incluir `product_ids` no select público.
-- `src/hooks/c2c/useLivestreams.ts`
-  - aceitar e persistir `product_ids`, `description` e `replay_available` na criação da live.
-- `src/pages/c2c/C2CGoLiveSetup.tsx`
-  - enviar `selectedProductIds` ao criar a live.
-- `src/pages/c2c/C2CPublicGoLiveSetup.tsx`
-  - adicionar seleção de produtos e persistência igual ao dashboard.
-- `src/components/c2c/livestream/LiveChat.tsx`
-  - refazer a simulação com base em `livestreamId + started_at`, por blocos temporais fixos.
-- `src/pages/c2c/C2CPublicLivestreamViewer.tsx` e `src/pages/c2c/C2CLivestreamViewer.tsx`
-  - passar `started_at` e `product_ids` correctos aos componentes.
-- Fluxo de compra
-  - ligar a live ao checkout C2C real, não ao `create-store-checkout`.
+Resultado: Tiago Guimarães e Rui Miguel Pinheiro, que entraram pela Blecksen (provavelmente via Instagram), aparecem também na Metodopare.
 
-Plano de implementação
+### Onde está a falha
 
-1. Corrigir a origem dos dados da live
-- Gravar `product_ids` quando a live é criada.
-- Expor `product_ids` na query pública.
-- Uniformizar o setup público e o setup do dashboard para criarem a mesma live.
+1. **`ghl-sync-conversations`** (linha 616-710): itera sobre TODAS as conversas GHL do `locationId` e cria-as no `workspace_id` que pediu o sync, sem verificar se o canal já pertence a outro workspace.
+2. **`ghl-webhook-contact`** (linha 108-113): usa `.limit(1)` para resolver o workspace — não determinístico quando múltiplos workspaces partilham o mesmo location.
+3. **`ghl-webhook-message`** (linha 259-298): já tem routing por canal (Phase 2), mas o fallback é "primary ou primeiro" — pode enviar para o workspace errado quando a configuração de canais sociais não está completa.
 
-2. Corrigir o chat demo
-- Substituir a lógica baseada em montagem local por uma linha temporal determinística.
-- Gerar mensagens por slots fixos, por exemplo de 3 em 3 segundos, usando timestamps calculados a partir de `started_at`.
-- Aproveitar para remover duplicação entre mensagem local e mensagem persistida.
+### O que já funciona
+- `useConversations` filtra correctamente por `workspace_id` (linha 139).
+- O realtime subscription já filtra por `workspace_id` (linha 95).
+- O `normalizeIncomingMessage` cria conversas com o `workspace_id` correcto.
 
-3. Corrigir os produtos destacados
-- Mostrar listings reais quando existirem `product_ids`.
-- Usar demo apenas como fallback verdadeiro.
-- Garantir ordem estável, imagem válida e preço correcto no viewer público e no viewer interno.
+## Plano de Implementação
 
-4. Fechar a compra real
-- Trocar o CTA “Comprar” da live para um fluxo C2C utilizável.
-- Se ainda quiser um carrinho visual na live, renderizar o drawer na página, mas com CTA final alinhado ao checkout C2C.
-- Não manter o estado “parece que adicionou” sem um caminho real até encomenda.
+### 1. Filtrar conversas por canal no sync batch (`ghl-sync-conversations`)
+- Antes de criar uma conversa, verificar se o canal (instagram, facebook, whatsapp, etc.) está atribuído a este workspace via `workspace_ghl_social_channels`.
+- Se o canal pertence a outro workspace, **não criar** a conversa.
+- Se o canal é genérico (email, sms) e não há configuração de canais sociais, manter comportamento actual (sync para o workspace que pediu).
+- **Nota**: o rollback parcial (linhas 851-855) já existe para canais não permitidos APÓS inferência — mas precisa de ser movido para ANTES da criação.
 
-5. Isolar o tema do vídeo
-- Sem MUX WHIP, o problema de vídeo entre PC/iPhone/Android não fica resolvido só com UI.
-- Se quiser mesmo corrigir vídeo cross-device, teremos de aprovar outro transporte real de streaming browser→viewer.
+### 2. Corrigir routing no webhook de contacto (`ghl-webhook-contact`)
+- Substituir `.limit(1)` por lógica multi-workspace igual à do `ghl-webhook-message`:
+  - Carregar todas as configs activas para o location.
+  - Usar `workspace_ghl_social_channels` para determinar o workspace correcto.
+  - Fallback para `is_primary`.
 
-Critérios de aceitação
+### 3. Garantir que a configuração de canais está completa
+- Validar que Metodopare e Blecksen têm `workspace_ghl_social_channels` correctamente configurados (e.g., Instagram → Blecksen, Email → Metodopare).
+- Se ambos tiverem o mesmo canal activo, o sistema não consegue desambiguar — alertar o utilizador.
 
-- A mesma live mostra exactamente as mesmas mensagens demo em todos os dispositivos.
-- Uma live criada com produtos mostra esses produtos reais no viewer público.
-- O botão “Comprar” deixa de ser apenas visual e entra num fluxo de compra utilizável.
-- O comportamento fica coerente entre setup público, viewer público e viewer interno.
-- Fica claro o que está resolvido sem streaming real e o que continua dependente de transporte de vídeo.
+### 4. Limpeza de conversas duplicadas (dados existentes)
+- Criar um script SQL de limpeza que:
+  - Identifica conversas na Metodopare que existem também na Blecksen (mesmo `external_thread_id`)
+  - Remove as duplicadas do workspace errado (baseado no canal e configuração de canais sociais)
 
-Riscos e pontos por validar
+## Ficheiros a alterar
 
-- O principal bloqueio actual é arquitectural: live C2C está ligada a peças da loja, mas a compra real C2C vive noutro domínio.
-- Se o objectivo for um carrinho multi-item C2C numa única encomenda, isso já exige desenho próprio de checkout C2C agregado.
-- Se mantivermos “sem MUX WHIP” e sem alternativa equivalente, o vídeo continuará local e não partilhado.</final-text>
+| Ficheiro | Alteração |
+|---|---|
+| `supabase/functions/ghl-sync-conversations/index.ts` | Verificar `isSyncChannelAllowed` ANTES de criar conversa (mover check para cima) |
+| `supabase/functions/ghl-webhook-contact/index.ts` | Implementar routing multi-workspace por canal (igual ao message webhook) |
+| SQL migration (limpeza) | Remover conversas duplicadas do workspace errado |
+
+## Critérios de Aceitação
+- Conversas Instagram da Blecksen aparecem APENAS na Blecksen
+- Conversas da Metodopare aparecem APENAS na Metodopare
+- Um novo sync não recria conversas no workspace errado
+- Webhooks em tempo real encaminham para o workspace correcto
+
+## Riscos
+- Se `workspace_ghl_social_channels` não estiver configurado para ambos os workspaces, o sistema não consegue distinguir — será necessário configurar antes de deploy
+- A limpeza de dados existentes requer cuidado para não apagar mensagens legítimas
+
