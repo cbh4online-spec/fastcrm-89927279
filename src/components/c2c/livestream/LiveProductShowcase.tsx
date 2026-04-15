@@ -92,6 +92,10 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
       return;
     }
 
+    if (!addItem) {
+      toast.info("Carrinho indisponível neste contexto");
+      return;
+    }
     addItem({
       productId: product.id,
       name: product.title,
@@ -99,7 +103,7 @@ export function LiveProductShowcase({ productIds, isLive, workspaceId }: Props) 
       currency: product.currency,
       image: product.image_url,
     });
-    setIsOpen(true);
+    setIsOpen?.(true);
     toast.success(`"${product.title}" adicionado ao carrinho! 🛒`);
   };
 
