@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
     }
     console.log(`[GHL Sync] Loaded ${leadsByGhlId.size} existing lead mappings (paginated)`);
 
-    // Load existing conversations (check both ghl_ prefixed and raw IDs)
+    // Load existing conversations for THIS workspace
     const { data: existingConversations } = await supabase
       .from("conversations")
       .select("id, external_thread_id")
@@ -544,11 +544,34 @@ Deno.serve(async (req) => {
     for (const conv of existingConversations || []) {
       if (conv.external_thread_id) {
         conversationsByThreadId.set(conv.external_thread_id, conv.id);
-        // Also map the raw ID (without ghl_ prefix) to the same conversation
         if (conv.external_thread_id.startsWith("ghl_")) {
           conversationsByThreadId.set(conv.external_thread_id.replace("ghl_", ""), conv.id);
         }
       }
+    }
+
+    // Load conversations from SIBLING workspaces to prevent cross-workspace duplication
+    // When multiple workspaces share a GHL location, a conversation synced to one must not be recreated in another
+    const siblingThreadIds = new Set<string>();
+    if (siblingWorkspaceIds.length > 0) {
+      for (const sibWsId of siblingWorkspaceIds) {
+        let sibOffset = 0;
+        while (true) {
+          const { data: sibConvs } = await supabase
+            .from("conversations")
+            .select("external_thread_id")
+            .eq("workspace_id", sibWsId)
+            .not("external_thread_id", "is", null)
+            .range(sibOffset, sibOffset + 999);
+          if (!sibConvs || sibConvs.length === 0) break;
+          for (const sc of sibConvs) {
+            if (sc.external_thread_id) siblingThreadIds.add(sc.external_thread_id);
+          }
+          if (sibConvs.length < 1000) break;
+          sibOffset += 1000;
+        }
+      }
+      console.log(`[GHL Sync] Loaded ${siblingThreadIds.size} conversation IDs from sibling workspaces (will skip these)`);
     }
 
     // Load existing message GHL IDs with pagination to avoid 1000-row limit
