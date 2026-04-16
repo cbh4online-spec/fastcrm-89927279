@@ -197,6 +197,28 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     return;
   }
 
+  // --- Exit condition: prospect já respondeu? ---
+  const replied = await hasProspectReplied(supabase, enrollment);
+  if (replied) {
+    await supabase
+      .from("sdr_enrollments")
+      .update({
+        status: "replied",
+        replied_at: new Date().toISOString(),
+        next_send_at: null,
+      })
+      .eq("id", enrollment.id);
+    await supabase.from("sdr_sequence_step_logs").insert({
+      sdr_enrollment_id: enrollment.id,
+      sequence_step_id: step.id,
+      channel: step.channel,
+      status: "exited",
+      workspace_id: enrollment.workspace_id,
+      metadata: { exit_reason: "reply" },
+    });
+    return;
+  }
+
   // --- Personalization: call sdr-message-generator ---
   let personalizedSubject = step.subject || "Follow-up";
   let personalizedBody = step.body_html || step.content || "";
@@ -267,37 +289,54 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     metadata: { ai_used: aiUsed },
   });
 
-  // Advance to next step
+  // Advance to next step (mesmo em failed, para não bloquear a sequência)
   const nextStepIndex = currentStepIndex + 1;
   const nextStep = steps[nextStepIndex];
 
+  const baseUpdate: Record<string, unknown> = {
+    current_step: nextStepIndex,
+    updated_at: new Date().toISOString(),
+  };
+  if (sendStatus === "failed" && errorMessage) {
+    baseUpdate.failure_reason = errorMessage;
+  }
+
   if (nextStep) {
     const delayMs = ((nextStep.delay_days || 0) * 86400 + (nextStep.delay_hours || 0) * 3600) * 1000;
-    const nextSendAt = new Date(Date.now() + delayMs).toISOString();
-
-    await supabase
-      .from("sdr_enrollments")
-      .update({ current_step: nextStepIndex, next_send_at: nextSendAt })
-      .eq("id", enrollment.id);
+    baseUpdate.next_send_at = new Date(Date.now() + delayMs).toISOString();
+    await supabase.from("sdr_enrollments").update(baseUpdate).eq("id", enrollment.id);
   } else {
-    await supabase
-      .from("sdr_enrollments")
-      .update({ status: "completed", next_send_at: null, current_step: nextStepIndex })
-      .eq("id", enrollment.id);
+    baseUpdate.status = "completed";
+    baseUpdate.next_send_at = null;
+    await supabase.from("sdr_enrollments").update(baseUpdate).eq("id", enrollment.id);
   }
 }
 
 // ─── COMPLIANCE FOOTER ───────────────────────────────────────
 function appendComplianceFooter(bodyHtml: string, enrollment: any): string {
+  // Idempotente: se já tem o marcador, não duplica
+  if (bodyHtml.includes("data-sdr-compliance-footer")) return bodyHtml;
+
   const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-email-unsubscribe?email=${encodeURIComponent(enrollment.prospect_email)}&source=sdr&enrollment_id=${encodeURIComponent(enrollment.id)}`;
 
   const footer = `
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5;">
+<div data-sdr-compliance-footer="1" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5;">
   <p>Se não deseja receber mais comunicações, pode <a href="${unsubscribeUrl}" style="color:#6b7280;text-decoration:underline;">cancelar a subscrição aqui</a>.</p>
   <p>Esta mensagem foi enviada em conformidade com o RGPD e regulamentos aplicáveis.</p>
 </div>`;
 
   return bodyHtml + footer;
+}
+
+// ─── REPLY DETECTION ─────────────────────────────────────────
+async function hasProspectReplied(supabase: any, enrollment: any): Promise<boolean> {
+  const { data } = await supabase
+    .from("sdr_sequence_step_logs")
+    .select("id")
+    .eq("sdr_enrollment_id", enrollment.id)
+    .not("replied_at", "is", null)
+    .limit(1);
+  return !!data?.length;
 }
 
 // ─── EMAIL STEP ──────────────────────────────────────────────
@@ -310,6 +349,15 @@ async function executeEmailStep(
 ) {
   if (!enrollment.prospect_email) throw new Error("No email for prospect");
 
+  // Carregar conexão de email ativa do workspace (para from_name/from_email)
+  const { data: connection } = await supabase
+    .from("email_connections")
+    .select("email_address, display_name")
+    .eq("workspace_id", enrollment.workspace_id)
+    .eq("sync_status", "synced")
+    .limit(1)
+    .maybeSingle();
+
   const response = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
     method: "POST",
     headers: {
@@ -321,6 +369,8 @@ async function executeEmailStep(
       subject,
       html: bodyHtml,
       workspace_id: enrollment.workspace_id,
+      from_name: connection?.display_name,
+      from_email: connection?.email_address,
       metadata: {
         sdr_enrollment_id: enrollment.id,
         sequence_step_id: step.id,
