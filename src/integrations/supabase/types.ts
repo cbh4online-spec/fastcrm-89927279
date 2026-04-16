@@ -22274,6 +22274,94 @@ export type Database = {
           },
         ]
       }
+      email_sequence_step_logs: {
+        Row: {
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          enrollment_id: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          opened_at: string | null
+          recipient_email: string | null
+          replied_at: string | null
+          resend_message_id: string | null
+          sent_at: string | null
+          status: string
+          step_id: string | null
+          step_order: number
+          subject: string | null
+          tracking_pixel_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          enrollment_id: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string | null
+          replied_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          step_id?: string | null
+          step_order?: number
+          subject?: string | null
+          tracking_pixel_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          enrollment_id?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          opened_at?: string | null
+          recipient_email?: string | null
+          replied_at?: string | null
+          resend_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          step_id?: string | null
+          step_order?: number
+          subject?: string | null
+          tracking_pixel_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_step_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_step_logs_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequence_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_step_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_sequence_steps: {
         Row: {
           body: string | null
@@ -22339,6 +22427,67 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequence_tracking_events: {
+        Row: {
+          enrollment_id: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          link_url: string | null
+          log_id: string
+          metadata: Json | null
+          occurred_at: string
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          enrollment_id: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          link_url?: string | null
+          log_id: string
+          metadata?: Json | null
+          occurred_at?: string
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          enrollment_id?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          link_url?: string | null
+          log_id?: string
+          metadata?: Json | null
+          occurred_at?: string
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_tracking_events_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_tracking_events_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequence_step_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_tracking_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
