@@ -30186,6 +30186,59 @@ export type Database = {
           },
         ]
       }
+      imo_sync_records: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          raw_payload: Json | null
+          source_id: string
+          source_table: string
+          sync_status: string
+          synced_at: string | null
+          target_id: string | null
+          target_table: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_payload?: Json | null
+          source_id: string
+          source_table: string
+          sync_status?: string
+          synced_at?: string | null
+          target_id?: string | null
+          target_table: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          raw_payload?: Json | null
+          source_id?: string
+          source_table?: string
+          sync_status?: string
+          synced_at?: string | null
+          target_id?: string | null
+          target_table?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imo_sync_records_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_map: {
         Row: {
           affected_id: string
