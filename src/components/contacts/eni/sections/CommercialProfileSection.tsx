@@ -4,8 +4,8 @@ import { ShoppingBag, Calendar, Target, Users, Tag, Percent } from "lucide-react
 import { ENIContact, CLIENT_STATUS_LABELS, ABCCategory } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "@/hooks/useTranslation";
-import { usePriceTiers } from "@/hooks/usePriceTiers";
+import { useTranslation } from "react-i18next";
+import { usePriceTiers } from "@/hooks/useClientPricing";
 import { LEAD_SOURCE_OPTIONS } from "@/lib/leadSourceLabels";
 
 interface CommercialProfileSectionProps {
