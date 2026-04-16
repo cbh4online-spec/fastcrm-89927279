@@ -322,6 +322,17 @@ function appendComplianceFooter(bodyHtml: string, enrollment: any): string {
   return bodyHtml + footer;
 }
 
+// ─── REPLY DETECTION ─────────────────────────────────────────
+async function hasProspectReplied(supabase: any, enrollment: any): Promise<boolean> {
+  const { data } = await supabase
+    .from("sdr_sequence_step_logs")
+    .select("id")
+    .eq("sdr_enrollment_id", enrollment.id)
+    .not("replied_at", "is", null)
+    .limit(1);
+  return !!data?.length;
+}
+
 // ─── EMAIL STEP ──────────────────────────────────────────────
 async function executeEmailStep(
   supabase: any,
@@ -331,6 +342,15 @@ async function executeEmailStep(
   bodyHtml: string
 ) {
   if (!enrollment.prospect_email) throw new Error("No email for prospect");
+
+  // Carregar conexão de email ativa do workspace (para from_name/from_email)
+  const { data: connection } = await supabase
+    .from("email_connections")
+    .select("email_address, display_name")
+    .eq("workspace_id", enrollment.workspace_id)
+    .eq("sync_status", "synced")
+    .limit(1)
+    .maybeSingle();
 
   const response = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
     method: "POST",
@@ -343,6 +363,8 @@ async function executeEmailStep(
       subject,
       html: bodyHtml,
       workspace_id: enrollment.workspace_id,
+      from_name: connection?.display_name,
+      from_email: connection?.email_address,
       metadata: {
         sdr_enrollment_id: enrollment.id,
         sequence_step_id: step.id,
