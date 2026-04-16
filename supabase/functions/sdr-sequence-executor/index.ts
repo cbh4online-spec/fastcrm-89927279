@@ -197,6 +197,28 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     return;
   }
 
+  // --- Exit condition: prospect já respondeu? ---
+  const replied = await hasProspectReplied(supabase, enrollment);
+  if (replied) {
+    await supabase
+      .from("sdr_enrollments")
+      .update({
+        status: "replied",
+        replied_at: new Date().toISOString(),
+        next_send_at: null,
+      })
+      .eq("id", enrollment.id);
+    await supabase.from("sdr_sequence_step_logs").insert({
+      sdr_enrollment_id: enrollment.id,
+      sequence_step_id: step.id,
+      channel: step.channel,
+      status: "exited",
+      workspace_id: enrollment.workspace_id,
+      metadata: { exit_reason: "reply" },
+    });
+    return;
+  }
+
   // --- Personalization: call sdr-message-generator ---
   let personalizedSubject = step.subject || "Follow-up";
   let personalizedBody = step.body_html || step.content || "";
