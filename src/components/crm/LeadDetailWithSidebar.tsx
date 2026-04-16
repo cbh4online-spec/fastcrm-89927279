@@ -381,7 +381,7 @@ export function LeadDetailWithSidebar() {
                 {lead.source && (
                   <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium shrink-0">
                     {SourceIcon}
-                    <span className="hidden sm:inline">{lead.source}</span>
+                    <span className="hidden sm:inline">{getSourceLabel(lead.source)}</span>
                   </Badge>
                 )}
                 <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>

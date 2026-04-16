@@ -190,7 +190,7 @@ export function LeadDetail() {
               {lead.source && (
                 <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium">
                   {SourceIcon}
-                  {lead.source}
+                  {getSourceLabel(lead.source)}
                 </Badge>
               )}
               
