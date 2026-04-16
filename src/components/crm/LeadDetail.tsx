@@ -63,6 +63,7 @@ const sourceIcons: Record<string, React.ReactNode> = {
   website: <Globe className="w-3 h-3" />,
   whatsapp: <MessageSquare className="w-3 h-3" />,
   referral: <UserCircle className="w-3 h-3" />,
+  public_booking: <Calendar className="w-3 h-3" />,
 };
 
 // Helper function for time ago

@@ -243,7 +243,7 @@ export function LeadsList() {
                   </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground">
-                      {lead.source || "—"}
+                      {getSourceLabel(lead.source)}
                     </span>
                   </TableCell>
                   <TableCell>

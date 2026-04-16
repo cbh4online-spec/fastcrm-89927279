@@ -3,7 +3,8 @@ import { InlineEditableField } from "@/components/custom-fields/InlineEditableFi
 import { Lead } from "@/hooks/useLeads";
 import { User, Mail, Phone, Briefcase, Tag, Cake } from "lucide-react";
 
-const LEAD_SOURCES = ["Instagram", "WhatsApp", "Website", "Referral", "Email", "Facebook", "LinkedIn", "Outro"];
+import { LEAD_SOURCE_OPTIONS, getSourceLabel } from "@/lib/leadSourceLabels";
+const LEAD_SOURCES = LEAD_SOURCE_OPTIONS.map(o => o.label);
 const LEAD_STATUSES = ["new", "in_progress", "completed"];
 
 interface IdentificationSectionProps {
