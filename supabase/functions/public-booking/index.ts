@@ -414,6 +414,53 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
 
   const eventTitle = `${page.title} — ${guest_name}`;
 
+  // Resolve CRM lead/contact from booking_lead metadata or by email
+  let crmLeadId: string | null = null;
+  let crmContactId: string | null = null;
+
+  if (lead_id) {
+    const { data: bookingLead } = await supabase
+      .from("booking_leads")
+      .select("metadata")
+      .eq("id", lead_id)
+      .single();
+
+    if (bookingLead?.metadata?.crm_record_type === "lead") {
+      crmLeadId = bookingLead.metadata.crm_record_id || null;
+    } else if (bookingLead?.metadata?.crm_record_type === "contact") {
+      crmContactId = bookingLead.metadata.crm_record_id || null;
+    }
+  }
+
+  // Fallback: search by email if not resolved from booking_lead
+  if (!crmLeadId && !crmContactId && guest_email) {
+    const trimmedEmail = guest_email.trim().toLowerCase();
+    const { data: existingLead } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("workspace_id", page.workspace_id)
+      .ilike("email", trimmedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingLead) {
+      crmLeadId = existingLead.id;
+    } else {
+      const { data: existingContact } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("workspace_id", page.workspace_id)
+        .is("deleted_at", null)
+        .ilike("email", trimmedEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingContact) {
+        crmContactId = existingContact.id;
+      }
+    }
+  }
+
   const { data: event, error: eventErr } = await supabase
     .from("calendar_events")
     .insert({
@@ -425,6 +472,8 @@ async function handleConfirmBooking(supabase: any, body: any, headers: Record<st
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
       status: "confirmed",
+      lead_id: crmLeadId,
+      contact_id: crmContactId,
       metadata: {
         booking_page_id: page.id,
         guest_name,
