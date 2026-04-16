@@ -3,7 +3,21 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingBag, Calendar, Target, Users, Tag, Percent } from "lucide-react";
 import { ENIContact, CLIENT_STATUS_LABELS, ABCCategory } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
+import { usePriceTiers } from "@/hooks/usePriceTiers";
 import { LEAD_SOURCE_OPTIONS } from "@/lib/leadSourceLabels";
+
+interface CommercialProfileSectionProps {
+  contact: ENIContact;
+  onFieldChange: (field: string, value: unknown) => Promise<void>;
+}
+
+const ABC_COLORS: Record<string, string> = {
+  A: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+  B: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+  C: "bg-red-500/20 text-red-600 border-red-500/30",
+};
 
 const LEAD_SOURCES = LEAD_SOURCE_OPTIONS.map(o => o.label);
 
