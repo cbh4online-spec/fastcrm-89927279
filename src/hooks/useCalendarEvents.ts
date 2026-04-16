@@ -39,7 +39,8 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
           *,
           calendar:calendars(id, name, color),
           contact:contacts(id, name),
-          company:companies(id, name)
+          company:companies(id, name),
+          lead:leads(id, name)
         `)
         .eq('workspace_id', currentWorkspace.id)
         .in('calendar_id', stableCalendarIds)
@@ -79,7 +80,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
           workspace_id: currentWorkspace.id,
           created_by: user.id,
         })
-        .select(`*, calendar:calendars(id, name, color), contact:contacts(id, name), company:companies(id, name)`)
+        .select(`*, calendar:calendars(id, name, color), contact:contacts(id, name), company:companies(id, name), lead:leads(id, name)`)
         .single();
 
       if (createError) throw createError;

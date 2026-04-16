@@ -7,6 +7,9 @@ import {
   Video, 
   SortAsc,
   SortDesc,
+  User,
+  UserPlus,
+  Building2,
 } from 'lucide-react';
 import { EmptyState } from '@/components/design-system';
 import { Button } from '@/components/ui/button';
@@ -253,11 +256,34 @@ export function CalendarListView({
                             </Badge>
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <CalendarIcon className="h-3 w-3" />
                               {getCalendarName(event.calendar_id)}
                             </span>
+
+                            {event.lead && (
+                              <span className="flex items-center gap-1">
+                                <UserPlus className="h-3 w-3 text-orange-500" />
+                                <span className="text-foreground font-medium">{event.lead.name}</span>
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">Lead</Badge>
+                              </span>
+                            )}
+
+                            {event.contact && !event.lead && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3 text-blue-500" />
+                                <span className="text-foreground font-medium">{event.contact.name}</span>
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">Contacto</Badge>
+                              </span>
+                            )}
+
+                            {event.company && (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3 text-purple-500" />
+                                <span className="text-foreground font-medium">{event.company.name}</span>
+                              </span>
+                            )}
 
                             {event.location && (
                               <span className="flex items-center gap-1 truncate">

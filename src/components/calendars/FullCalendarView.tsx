@@ -65,9 +65,11 @@ export function FullCalendarAgenda({
       .filter((e) => selectedCalendarIds.includes(e.calendar_id))
       .map((e) => {
         const color = (e.metadata as any)?._categoryColor || calendarColorMap.get(e.calendar_id) || "#3B82F6";
+        const entityName = e.lead?.name || e.contact?.name || e.company?.name;
+        const displayTitle = entityName ? `${e.title} • ${entityName}` : e.title;
         return {
           id: e.id,
-          title: e.title,
+          title: displayTitle,
           start: e.start_time,
           end: e.end_time,
           allDay: e.all_day,

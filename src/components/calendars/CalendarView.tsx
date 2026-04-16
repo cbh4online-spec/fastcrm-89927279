@@ -163,7 +163,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="right" align="start">
-                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} contact={event.contact} lead={event.lead} company={event.company} />
                       </TooltipContent>
                     </Tooltip>
                   );
@@ -273,7 +273,7 @@ function WeekView({ currentDate, events, getCalendarColor, onTimeClick, onEventC
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="right" align="start">
-                            <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                            <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} contact={event.contact} lead={event.lead} company={event.company} />
                           </TooltipContent>
                         </Tooltip>
                       );
@@ -351,7 +351,7 @@ function DayView({ currentDate, events, getCalendarColor, onTimeClick, onEventCl
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="right" align="start">
-                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} contact={event.contact} lead={event.lead} company={event.company} />
                       </TooltipContent>
                     </Tooltip>
                   );
