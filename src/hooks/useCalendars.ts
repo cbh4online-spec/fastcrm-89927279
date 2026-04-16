@@ -70,6 +70,9 @@ export interface CalendarEvent {
   created_at: string;
   updated_at: string;
   calendar?: Calendar;
+  contact?: { id: string; name: string } | null;
+  company?: { id: string; name: string } | null;
+  lead?: { id: string; name: string } | null;
 }
 
 export interface CreateCalendarData {
