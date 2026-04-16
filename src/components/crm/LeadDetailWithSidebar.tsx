@@ -36,7 +36,9 @@ import {
   Facebook,
   Twitter,
   Youtube,
+  Calendar,
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { toast } from "sonner";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { InsightsSidebar } from "@/components/insights";

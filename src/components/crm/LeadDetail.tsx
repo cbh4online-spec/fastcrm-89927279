@@ -30,8 +30,10 @@ import {
   Instagram,
   Globe,
   MessageSquare,
-  UserCircle
+  UserCircle,
+  Calendar
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { toast } from "sonner";
 import { 
   useGenerateFieldSuggestions,
