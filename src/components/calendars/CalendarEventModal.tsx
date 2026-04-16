@@ -153,6 +153,7 @@ export function CalendarEventModal({
         setEntityValue({
           contactId: event.contact_id || null,
           companyId: event.company_id || null,
+          leadId: (event as any).lead_id || null,
         });
       } else {
         form.reset({
