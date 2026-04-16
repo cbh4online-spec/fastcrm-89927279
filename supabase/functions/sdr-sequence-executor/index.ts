@@ -311,10 +311,13 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
 
 // ─── COMPLIANCE FOOTER ───────────────────────────────────────
 function appendComplianceFooter(bodyHtml: string, enrollment: any): string {
+  // Idempotente: se já tem o marcador, não duplica
+  if (bodyHtml.includes("data-sdr-compliance-footer")) return bodyHtml;
+
   const unsubscribeUrl = `${supabaseUrl}/functions/v1/handle-email-unsubscribe?email=${encodeURIComponent(enrollment.prospect_email)}&source=sdr&enrollment_id=${encodeURIComponent(enrollment.id)}`;
 
   const footer = `
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5;">
+<div data-sdr-compliance-footer="1" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5;">
   <p>Se não deseja receber mais comunicações, pode <a href="${unsubscribeUrl}" style="color:#6b7280;text-decoration:underline;">cancelar a subscrição aqui</a>.</p>
   <p>Esta mensagem foi enviada em conformidade com o RGPD e regulamentos aplicáveis.</p>
 </div>`;
