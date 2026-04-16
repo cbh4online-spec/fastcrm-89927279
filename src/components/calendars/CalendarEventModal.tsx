@@ -232,6 +232,7 @@ export function CalendarEventModal({
         status: data.status,
         contact_id: entityValue.contactId || undefined,
         company_id: entityValue.companyId || undefined,
+        lead_id: entityValue.leadId || undefined,
       });
       form.reset();
       setEntityValue({ contactId: null, companyId: null });
