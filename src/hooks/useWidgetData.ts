@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ReportWidget } from "./useReportWidgets";
 import { format, startOfWeek, startOfQuarter, subQuarters } from "date-fns";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 
 export interface WidgetDataPoint {
   label: string;
@@ -105,7 +106,7 @@ function getGroupKey(row: any, groupBy: string): string {
     case "week":
       return row.created_at ? format(startOfWeek(new Date(row.created_at), { weekStartsOn: 1 }), "dd/MM") : "N/A";
     case "source":
-      return row.source || row.lead_source || "Outros";
+      return getSourceLabel(row.source || row.lead_source) !== "—" ? getSourceLabel(row.source || row.lead_source) : "Outros";
     case "stage":
       return row.stage || row.pipeline_stage || "N/A";
     case "owner":

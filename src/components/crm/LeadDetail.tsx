@@ -30,8 +30,10 @@ import {
   Instagram,
   Globe,
   MessageSquare,
-  UserCircle
+  UserCircle,
+  Calendar
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { toast } from "sonner";
 import { 
   useGenerateFieldSuggestions,
@@ -63,6 +65,7 @@ const sourceIcons: Record<string, React.ReactNode> = {
   website: <Globe className="w-3 h-3" />,
   whatsapp: <MessageSquare className="w-3 h-3" />,
   referral: <UserCircle className="w-3 h-3" />,
+  public_booking: <Calendar className="w-3 h-3" />,
 };
 
 // Helper function for time ago
@@ -187,7 +190,7 @@ export function LeadDetail() {
               {lead.source && (
                 <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium">
                   {SourceIcon}
-                  {lead.source}
+                  {getSourceLabel(lead.source)}
                 </Badge>
               )}
               

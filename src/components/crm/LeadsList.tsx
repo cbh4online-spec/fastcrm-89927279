@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, Plus, User, Mail, Phone, ExternalLink, Trash2 } from "lucide-react";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { CreateLeadDialog } from "./CreateLeadDialog";
 import { toast } from "sonner";
 
@@ -243,7 +244,7 @@ export function LeadsList() {
                   </TableCell>
                   <TableCell>
                     <span className="text-muted-foreground">
-                      {lead.source || "—"}
+                      {getSourceLabel(lead.source)}
                     </span>
                   </TableCell>
                   <TableCell>

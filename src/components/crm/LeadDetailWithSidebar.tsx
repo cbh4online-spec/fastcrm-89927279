@@ -36,7 +36,9 @@ import {
   Facebook,
   Twitter,
   Youtube,
+  Calendar,
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/leadSourceLabels";
 import { toast } from "sonner";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { InsightsSidebar } from "@/components/insights";
@@ -94,6 +96,7 @@ const sourceIcons: Record<string, React.ReactNode> = {
   website: <Globe className="w-3 h-3" />,
   whatsapp: <MessageSquare className="w-3 h-3" />,
   referral: <UserCircle className="w-3 h-3" />,
+  public_booking: <Calendar className="w-3 h-3" />,
 };
 
 function getTimeAgo(date: Date): string {
@@ -378,7 +381,7 @@ export function LeadDetailWithSidebar() {
                 {lead.source && (
                   <Badge variant="secondary" className="gap-1 text-xs uppercase font-medium shrink-0">
                     {SourceIcon}
-                    <span className="hidden sm:inline">{lead.source}</span>
+                    <span className="hidden sm:inline">{getSourceLabel(lead.source)}</span>
                   </Badge>
                 )}
                 <Badge variant="outline" className={cn(statusColors[lead.status], "shrink-0")}>
