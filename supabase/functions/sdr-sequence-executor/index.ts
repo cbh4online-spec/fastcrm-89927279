@@ -289,23 +289,26 @@ async function processEnrollmentStep(supabase: any, enrollment: any) {
     metadata: { ai_used: aiUsed },
   });
 
-  // Advance to next step
+  // Advance to next step (mesmo em failed, para não bloquear a sequência)
   const nextStepIndex = currentStepIndex + 1;
   const nextStep = steps[nextStepIndex];
 
+  const baseUpdate: Record<string, unknown> = {
+    current_step: nextStepIndex,
+    updated_at: new Date().toISOString(),
+  };
+  if (sendStatus === "failed" && errorMessage) {
+    baseUpdate.failure_reason = errorMessage;
+  }
+
   if (nextStep) {
     const delayMs = ((nextStep.delay_days || 0) * 86400 + (nextStep.delay_hours || 0) * 3600) * 1000;
-    const nextSendAt = new Date(Date.now() + delayMs).toISOString();
-
-    await supabase
-      .from("sdr_enrollments")
-      .update({ current_step: nextStepIndex, next_send_at: nextSendAt })
-      .eq("id", enrollment.id);
+    baseUpdate.next_send_at = new Date(Date.now() + delayMs).toISOString();
+    await supabase.from("sdr_enrollments").update(baseUpdate).eq("id", enrollment.id);
   } else {
-    await supabase
-      .from("sdr_enrollments")
-      .update({ status: "completed", next_send_at: null, current_step: nextStepIndex })
-      .eq("id", enrollment.id);
+    baseUpdate.status = "completed";
+    baseUpdate.next_send_at = null;
+    await supabase.from("sdr_enrollments").update(baseUpdate).eq("id", enrollment.id);
   }
 }
 
