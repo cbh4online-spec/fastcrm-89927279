@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.ghl-list-social-channels]
 verify_jwt = false
+
+[functions.imoconnect-webhook]
+verify_jwt = false
