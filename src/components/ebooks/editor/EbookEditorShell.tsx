@@ -484,6 +484,22 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onContactPageChange={setLocalContactPage}
           onProtectionChange={(val) => queueSave({ protection_enabled: val })}
           onLeadGateChange={(val) => queueSave({ lead_gate_enabled: val })}
+          leadGateTrigger={(ebook as any).lead_gate_trigger || "always"}
+          leadGateAfterPages={(ebook as any).lead_gate_after_pages ?? 2}
+          leadGateRequireName={(ebook as any).lead_gate_require_name !== false}
+          leadGateRequireEmail={(ebook as any).lead_gate_require_email !== false}
+          leadGateRequirePhone={(ebook as any).lead_gate_require_phone === true}
+          leadGateTitle={(ebook as any).lead_gate_title || ""}
+          leadGateDescription={(ebook as any).lead_gate_description || ""}
+          leadGateCtaLabel={(ebook as any).lead_gate_cta_label || ""}
+          onLeadGateTriggerChange={(val) => queueSave({ lead_gate_trigger: val } as any)}
+          onLeadGateAfterPagesChange={(val) => queueSave({ lead_gate_after_pages: val } as any)}
+          onLeadGateRequireNameChange={(val) => queueSave({ lead_gate_require_name: val } as any)}
+          onLeadGateRequireEmailChange={(val) => queueSave({ lead_gate_require_email: val } as any)}
+          onLeadGateRequirePhoneChange={(val) => queueSave({ lead_gate_require_phone: val } as any)}
+          onLeadGateTitleChange={(val) => queueSave({ lead_gate_title: val } as any)}
+          onLeadGateDescriptionChange={(val) => queueSave({ lead_gate_description: val } as any)}
+          onLeadGateCtaLabelChange={(val) => queueSave({ lead_gate_cta_label: val } as any)}
           consentRequired={localConsentRequired}
           consentText={localConsentText}
           privacyPolicyUrl={localPrivacyPolicyUrl}
