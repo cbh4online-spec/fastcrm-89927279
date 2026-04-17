@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BookOpen, Mail, User, ExternalLink } from "lucide-react";
+import { Loader2, BookOpen, Mail, User, Phone, ExternalLink } from "lucide-react";
 import { FlipbookReader } from "@/components/ebooks/FlipbookReader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
