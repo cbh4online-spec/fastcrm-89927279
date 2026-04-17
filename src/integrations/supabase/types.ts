@@ -21823,11 +21823,14 @@ export type Database = {
           id: string
           ip_address: string | null
           last_activity_at: string
+          lead_captured_at: string | null
+          lead_id: string | null
           marketing_opt_in: boolean
           max_page_reached: number
           pages_viewed: number
           reader_email: string | null
           reader_name: string | null
+          reader_phone: string | null
           referrer: string | null
           session_id: string
           started_at: string
@@ -21851,11 +21854,14 @@ export type Database = {
           id?: string
           ip_address?: string | null
           last_activity_at?: string
+          lead_captured_at?: string | null
+          lead_id?: string | null
           marketing_opt_in?: boolean
           max_page_reached?: number
           pages_viewed?: number
           reader_email?: string | null
           reader_name?: string | null
+          reader_phone?: string | null
           referrer?: string | null
           session_id: string
           started_at?: string
@@ -21879,11 +21885,14 @@ export type Database = {
           id?: string
           ip_address?: string | null
           last_activity_at?: string
+          lead_captured_at?: string | null
+          lead_id?: string | null
           marketing_opt_in?: boolean
           max_page_reached?: number
           pages_viewed?: number
           reader_email?: string | null
           reader_name?: string | null
+          reader_phone?: string | null
           referrer?: string | null
           session_id?: string
           started_at?: string
@@ -21930,7 +21939,15 @@ export type Database = {
           id: string
           image_keywords: string[] | null
           image_style: string | null
+          lead_gate_after_pages: number
+          lead_gate_cta_label: string | null
+          lead_gate_description: string | null
           lead_gate_enabled: boolean
+          lead_gate_require_email: boolean
+          lead_gate_require_name: boolean
+          lead_gate_require_phone: boolean
+          lead_gate_title: string | null
+          lead_gate_trigger: string
           marketing_opt_in_enabled: boolean
           marketing_opt_in_label: string | null
           metadata: Json | null
@@ -21968,7 +21985,15 @@ export type Database = {
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
+          lead_gate_after_pages?: number
+          lead_gate_cta_label?: string | null
+          lead_gate_description?: string | null
           lead_gate_enabled?: boolean
+          lead_gate_require_email?: boolean
+          lead_gate_require_name?: boolean
+          lead_gate_require_phone?: boolean
+          lead_gate_title?: string | null
+          lead_gate_trigger?: string
           marketing_opt_in_enabled?: boolean
           marketing_opt_in_label?: string | null
           metadata?: Json | null
@@ -22006,7 +22031,15 @@ export type Database = {
           id?: string
           image_keywords?: string[] | null
           image_style?: string | null
+          lead_gate_after_pages?: number
+          lead_gate_cta_label?: string | null
+          lead_gate_description?: string | null
           lead_gate_enabled?: boolean
+          lead_gate_require_email?: boolean
+          lead_gate_require_name?: boolean
+          lead_gate_require_phone?: boolean
+          lead_gate_title?: string | null
+          lead_gate_trigger?: string
           marketing_opt_in_enabled?: boolean
           marketing_opt_in_label?: string | null
           metadata?: Json | null

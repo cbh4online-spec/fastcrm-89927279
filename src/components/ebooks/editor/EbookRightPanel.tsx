@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { EbookBlockToolbar } from "../EbookBlockToolbar";
 import { BlockPropertiesPanel } from "../BlockPropertiesPanel";
 import { EbookEditorNotesPanel } from "../EbookEditorNotesPanel";
-import { EbookBrandingPanel } from "./EbookBrandingPanel";
+import { EbookBrandingPanel, type LeadGateTrigger } from "./EbookBrandingPanel";
 import { EbookThemePanel } from "./EbookThemePanel";
 import { EbookCtaPanel } from "./EbookCtaPanel";
 import type { EbookChapter, ContentBlock, EbookContactPage, Ebook } from "@/hooks/useEbooks";
@@ -29,6 +29,23 @@ interface EbookRightPanelProps {
   onContactPageChange: (val: EbookContactPage) => void;
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
+  // Lead magnet (granular)
+  leadGateTrigger?: LeadGateTrigger;
+  leadGateAfterPages?: number;
+  leadGateRequireName?: boolean;
+  leadGateRequireEmail?: boolean;
+  leadGateRequirePhone?: boolean;
+  leadGateTitle?: string;
+  leadGateDescription?: string;
+  leadGateCtaLabel?: string;
+  onLeadGateTriggerChange?: (val: LeadGateTrigger) => void;
+  onLeadGateAfterPagesChange?: (val: number) => void;
+  onLeadGateRequireNameChange?: (val: boolean) => void;
+  onLeadGateRequireEmailChange?: (val: boolean) => void;
+  onLeadGateRequirePhoneChange?: (val: boolean) => void;
+  onLeadGateTitleChange?: (val: string) => void;
+  onLeadGateDescriptionChange?: (val: string) => void;
+  onLeadGateCtaLabelChange?: (val: string) => void;
   // Consent
   consentRequired: boolean;
   consentText: string;
@@ -73,6 +90,11 @@ export function EbookRightPanel({
   onSaveChapters, onInsertBlock, onUploadImage, onGenerateImageAI,
   localHeaderText, localFooterText, localContactPage, protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange, onProtectionChange, onLeadGateChange,
+  leadGateTrigger, leadGateAfterPages, leadGateRequireName, leadGateRequireEmail, leadGateRequirePhone,
+  leadGateTitle, leadGateDescription, leadGateCtaLabel,
+  onLeadGateTriggerChange, onLeadGateAfterPagesChange,
+  onLeadGateRequireNameChange, onLeadGateRequireEmailChange, onLeadGateRequirePhoneChange,
+  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateCtaLabelChange,
   consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
   onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
@@ -164,6 +186,22 @@ export function EbookRightPanel({
           onContactPageChange={onContactPageChange}
           onProtectionChange={onProtectionChange}
           onLeadGateChange={onLeadGateChange}
+          leadGateTrigger={leadGateTrigger}
+          leadGateAfterPages={leadGateAfterPages}
+          leadGateRequireName={leadGateRequireName}
+          leadGateRequireEmail={leadGateRequireEmail}
+          leadGateRequirePhone={leadGateRequirePhone}
+          leadGateTitle={leadGateTitle}
+          leadGateDescription={leadGateDescription}
+          leadGateCtaLabel={leadGateCtaLabel}
+          onLeadGateTriggerChange={onLeadGateTriggerChange}
+          onLeadGateAfterPagesChange={onLeadGateAfterPagesChange}
+          onLeadGateRequireNameChange={onLeadGateRequireNameChange}
+          onLeadGateRequireEmailChange={onLeadGateRequireEmailChange}
+          onLeadGateRequirePhoneChange={onLeadGateRequirePhoneChange}
+          onLeadGateTitleChange={onLeadGateTitleChange}
+          onLeadGateDescriptionChange={onLeadGateDescriptionChange}
+          onLeadGateCtaLabelChange={onLeadGateCtaLabelChange}
           consentRequired={consentRequired}
           consentText={consentText}
           privacyPolicyUrl={privacyPolicyUrl}

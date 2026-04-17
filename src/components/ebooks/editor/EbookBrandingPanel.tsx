@@ -1,8 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe } from "lucide-react";
+import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe, Magnet } from "lucide-react";
 import type { EbookContactPage } from "@/hooks/useEbooks";
+
+export type LeadGateTrigger = "never" | "always" | "after_pages";
 
 interface EbookBrandingPanelProps {
   localHeaderText: string;
@@ -15,6 +17,23 @@ interface EbookBrandingPanelProps {
   onContactPageChange: (val: EbookContactPage) => void;
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
+  // Lead magnet (granular)
+  leadGateTrigger?: LeadGateTrigger;
+  leadGateAfterPages?: number;
+  leadGateRequireName?: boolean;
+  leadGateRequireEmail?: boolean;
+  leadGateRequirePhone?: boolean;
+  leadGateTitle?: string;
+  leadGateDescription?: string;
+  leadGateCtaLabel?: string;
+  onLeadGateTriggerChange?: (val: LeadGateTrigger) => void;
+  onLeadGateAfterPagesChange?: (val: number) => void;
+  onLeadGateRequireNameChange?: (val: boolean) => void;
+  onLeadGateRequireEmailChange?: (val: boolean) => void;
+  onLeadGateRequirePhoneChange?: (val: boolean) => void;
+  onLeadGateTitleChange?: (val: string) => void;
+  onLeadGateDescriptionChange?: (val: string) => void;
+  onLeadGateCtaLabelChange?: (val: string) => void;
   // Consent fields
   consentRequired?: boolean;
   consentText?: string;
@@ -44,6 +63,12 @@ export function EbookBrandingPanel({
   protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange,
   onProtectionChange, onLeadGateChange,
+  leadGateTrigger = "always", leadGateAfterPages = 2,
+  leadGateRequireName = true, leadGateRequireEmail = true, leadGateRequirePhone = false,
+  leadGateTitle, leadGateDescription, leadGateCtaLabel,
+  onLeadGateTriggerChange, onLeadGateAfterPagesChange,
+  onLeadGateRequireNameChange, onLeadGateRequireEmailChange, onLeadGateRequirePhoneChange,
+  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateCtaLabelChange,
   consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
   onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
@@ -103,10 +128,84 @@ export function EbookBrandingPanel({
           </span>
           <label className="flex items-center gap-2 mt-2 cursor-pointer">
             <input type="checkbox" checked={leadGateEnabled} onChange={(e) => onLeadGateChange(e.target.checked)} className="rounded border-border" />
-            <span className="text-xs text-muted-foreground">Pedir nome e email antes de permitir leitura</span>
+            <span className="text-xs text-muted-foreground">Ativar formulário de captura no leitor público</span>
           </label>
           <p className="text-[10px] text-muted-foreground/60 mt-1 ml-5">Os leitores identificados aparecem nas estatísticas do eBook</p>
         </div>
+
+        {/* Lead Magnet — granular config */}
+        {leadGateEnabled && (
+          <div className="border-t border-border/30 pt-3">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Magnet className="h-3.5 w-3.5 text-muted-foreground" /> Configuração do Lead Magnet
+            </span>
+            <div className="mt-2 space-y-2">
+              <div>
+                <label className="text-[10px] text-muted-foreground/80 block mb-1">Quando mostrar o formulário</label>
+                <select
+                  value={leadGateTrigger}
+                  onChange={(e) => onLeadGateTriggerChange?.(e.target.value as LeadGateTrigger)}
+                  className="w-full h-8 text-xs rounded-md border border-border bg-background px-2"
+                >
+                  <option value="always">Antes de abrir (gate total)</option>
+                  <option value="after_pages">Após N páginas (teaser)</option>
+                  <option value="never">Nunca (apenas tracking anónimo)</option>
+                </select>
+              </div>
+              {leadGateTrigger === "after_pages" && (
+                <div>
+                  <label className="text-[10px] text-muted-foreground/80 block mb-1">Mostrar após quantas páginas</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={leadGateAfterPages}
+                    onChange={(e) => onLeadGateAfterPagesChange?.(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              )}
+
+              <div className="pt-1">
+                <p className="text-[10px] text-muted-foreground/80 mb-1">Campos obrigatórios</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={leadGateRequireName} onChange={(e) => onLeadGateRequireNameChange?.(e.target.checked)} className="rounded border-border" />
+                  <span className="text-xs text-muted-foreground">Nome</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={leadGateRequireEmail} onChange={(e) => onLeadGateRequireEmailChange?.(e.target.checked)} className="rounded border-border" />
+                  <span className="text-xs text-muted-foreground">Email</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={leadGateRequirePhone} onChange={(e) => onLeadGateRequirePhoneChange?.(e.target.checked)} className="rounded border-border" />
+                  <span className="text-xs text-muted-foreground">Telemóvel</span>
+                </label>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">É preciso pelo menos email ou telemóvel obrigatório.</p>
+              </div>
+
+              <div className="pt-1 space-y-2">
+                <Input
+                  placeholder="Título (ex: Aceda ao eBook)"
+                  value={leadGateTitle || ""}
+                  onChange={(e) => onLeadGateTitleChange?.(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Textarea
+                  placeholder="Descrição curta (ex: Insira os seus dados para ler)"
+                  value={leadGateDescription || ""}
+                  onChange={(e) => onLeadGateDescriptionChange?.(e.target.value)}
+                  className="text-xs min-h-[50px]"
+                />
+                <Input
+                  placeholder="Texto do botão (ex: Aceder ao eBook)"
+                  value={leadGateCtaLabel || ""}
+                  onChange={(e) => onLeadGateCtaLabelChange?.(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Consent / RGPD (only when lead gate is enabled) */}
         {leadGateEnabled && (
