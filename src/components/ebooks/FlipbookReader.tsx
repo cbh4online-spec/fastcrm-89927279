@@ -344,7 +344,7 @@ function CompactReader({ pages }: { pages: FlipbookPageData[] }) {
   );
 }
 
-export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText, trackingViewId, ctas = [], contactId }: FlipbookReaderProps) {
+export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, compact, headerText, footerText, contactPage, styleTokens, ebookId, workspaceId, protectionEnabled, watermarkText, trackingViewId, ctas = [], contactId, leadId, onPageChange }: FlipbookReaderProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
@@ -445,7 +445,8 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
   const handleFlip = useCallback((pageIndex: number) => {
     setCurrentPage(pageIndex);
     setDeletePopover(null);
-  }, []);
+    onPageChange?.(pageIndex);
+  }, [onPageChange]);
 
   const goToPage = useCallback((page: number) => {
     flipBookRef.current?.turnToPage(page);
@@ -720,6 +721,8 @@ export function FlipbookReader({ title, subtitle, author, coverUrl, chapters, co
             viewId={trackingViewId}
             currentPage={currentPage}
             totalPages={pages.length}
+            contactId={contactId}
+            leadId={leadId}
           />
         )}
       </div>
