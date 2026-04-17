@@ -40,6 +40,8 @@ interface FlipbookReaderProps {
   trackingViewId?: string;
   ctas?: EbookCta[];
   contactId?: string;
+  leadId?: string;
+  onPageChange?: (page: number) => void;
 }
 
 function buildStyleVars(tokens?: Record<string, unknown>): React.CSSProperties {

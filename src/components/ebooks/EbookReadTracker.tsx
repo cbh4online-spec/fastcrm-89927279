@@ -8,9 +8,11 @@ interface EbookReadTrackerProps {
   viewId: string;
   currentPage: number;
   totalPages: number;
+  contactId?: string;
+  leadId?: string;
 }
 
-export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, totalPages }: EbookReadTrackerProps) {
+export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, totalPages, contactId, leadId }: EbookReadTrackerProps) {
   const lastPageRef = useRef(currentPage);
   const pageTimerRef = useRef<number>(Date.now());
   const heartbeatRef = useRef<ReturnType<typeof setInterval>>();
