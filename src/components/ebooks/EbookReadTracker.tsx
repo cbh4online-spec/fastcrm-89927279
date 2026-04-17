@@ -64,17 +64,20 @@ export function EbookReadTracker({ ebookId, workspaceId, viewId, currentPage, to
       emitKernelEvent({
         workspace_id: workspaceId,
         type: "ebook.read_completed",
-        entity_kind: "ebook_view",
-        entity_id: viewId,
+        entity_kind: contactId ? "contact" : leadId ? "lead" : "ebook_view",
+        entity_id: contactId || leadId || viewId,
         source_module: "ebooks",
         payload: {
           ebook_id: ebookId,
+          ebook_view_id: viewId,
+          contact_id: contactId || null,
+          lead_id: leadId || null,
           pages_viewed: pagesViewedSet.current.size,
           time_on_book_seconds: elapsed,
         },
       });
     }
-  }, [viewId, totalPages, workspaceId, ebookId]);
+  }, [viewId, totalPages, workspaceId, ebookId, contactId, leadId]);
 
   useEffect(() => {
     heartbeatRef.current = setInterval(sendHeartbeat, 30000);
