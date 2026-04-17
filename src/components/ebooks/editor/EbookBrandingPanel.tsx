@@ -1,8 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe } from "lucide-react";
+import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe, Magnet } from "lucide-react";
 import type { EbookContactPage } from "@/hooks/useEbooks";
+
+export type LeadGateTrigger = "never" | "always" | "after_pages";
 
 interface EbookBrandingPanelProps {
   localHeaderText: string;
@@ -15,6 +17,23 @@ interface EbookBrandingPanelProps {
   onContactPageChange: (val: EbookContactPage) => void;
   onProtectionChange: (val: boolean) => void;
   onLeadGateChange: (val: boolean) => void;
+  // Lead magnet (granular)
+  leadGateTrigger?: LeadGateTrigger;
+  leadGateAfterPages?: number;
+  leadGateRequireName?: boolean;
+  leadGateRequireEmail?: boolean;
+  leadGateRequirePhone?: boolean;
+  leadGateTitle?: string;
+  leadGateDescription?: string;
+  leadGateCtaLabel?: string;
+  onLeadGateTriggerChange?: (val: LeadGateTrigger) => void;
+  onLeadGateAfterPagesChange?: (val: number) => void;
+  onLeadGateRequireNameChange?: (val: boolean) => void;
+  onLeadGateRequireEmailChange?: (val: boolean) => void;
+  onLeadGateRequirePhoneChange?: (val: boolean) => void;
+  onLeadGateTitleChange?: (val: string) => void;
+  onLeadGateDescriptionChange?: (val: string) => void;
+  onLeadGateCtaLabelChange?: (val: string) => void;
   // Consent fields
   consentRequired?: boolean;
   consentText?: string;
