@@ -26,7 +26,14 @@ interface EbookBrandingPanelProps {
   leadGateRequirePhone?: boolean;
   leadGateTitle?: string;
   leadGateDescription?: string;
+  leadGateSubtitle?: string;
+  leadGateBenefits?: string[];
   leadGateCtaLabel?: string;
+  welcomeEmailEnabled?: boolean;
+  welcomeEmailSubject?: string;
+  welcomeEmailBody?: string;
+  notifyManagerEnabled?: boolean;
+  notifyManagerThresholdPct?: number;
   onLeadGateTriggerChange?: (val: LeadGateTrigger) => void;
   onLeadGateAfterPagesChange?: (val: number) => void;
   onLeadGateRequireNameChange?: (val: boolean) => void;
@@ -34,7 +41,14 @@ interface EbookBrandingPanelProps {
   onLeadGateRequirePhoneChange?: (val: boolean) => void;
   onLeadGateTitleChange?: (val: string) => void;
   onLeadGateDescriptionChange?: (val: string) => void;
+  onLeadGateSubtitleChange?: (val: string) => void;
+  onLeadGateBenefitsChange?: (val: string[]) => void;
   onLeadGateCtaLabelChange?: (val: string) => void;
+  onWelcomeEmailEnabledChange?: (val: boolean) => void;
+  onWelcomeEmailSubjectChange?: (val: string) => void;
+  onWelcomeEmailBodyChange?: (val: string) => void;
+  onNotifyManagerEnabledChange?: (val: boolean) => void;
+  onNotifyManagerThresholdPctChange?: (val: number) => void;
   // Consent fields
   consentRequired?: boolean;
   consentText?: string;
