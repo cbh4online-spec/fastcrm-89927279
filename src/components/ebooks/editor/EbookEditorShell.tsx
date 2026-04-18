@@ -491,7 +491,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           leadGateRequirePhone={(ebook as any).lead_gate_require_phone === true}
           leadGateTitle={(ebook as any).lead_gate_title || ""}
           leadGateDescription={(ebook as any).lead_gate_description || ""}
+          leadGateSubtitle={(ebook as any).lead_gate_subtitle || ""}
+          leadGateBenefits={Array.isArray((ebook as any).lead_gate_benefits) ? (ebook as any).lead_gate_benefits : []}
           leadGateCtaLabel={(ebook as any).lead_gate_cta_label || ""}
+          welcomeEmailEnabled={(ebook as any).welcome_email_enabled === true}
+          welcomeEmailSubject={(ebook as any).welcome_email_subject || ""}
+          welcomeEmailBody={(ebook as any).welcome_email_body || ""}
+          notifyManagerEnabled={(ebook as any).notify_manager_enabled !== false}
+          notifyManagerThresholdPct={(ebook as any).notify_manager_threshold_pct ?? 70}
           onLeadGateTriggerChange={(val) => queueSave({ lead_gate_trigger: val } as any)}
           onLeadGateAfterPagesChange={(val) => queueSave({ lead_gate_after_pages: val } as any)}
           onLeadGateRequireNameChange={(val) => queueSave({ lead_gate_require_name: val } as any)}
@@ -499,7 +506,14 @@ export function EbookEditorShell({ ebookId, onBack }: EbookEditorShellProps) {
           onLeadGateRequirePhoneChange={(val) => queueSave({ lead_gate_require_phone: val } as any)}
           onLeadGateTitleChange={(val) => queueSave({ lead_gate_title: val } as any)}
           onLeadGateDescriptionChange={(val) => queueSave({ lead_gate_description: val } as any)}
+          onLeadGateSubtitleChange={(val) => queueSave({ lead_gate_subtitle: val } as any)}
+          onLeadGateBenefitsChange={(val) => queueSave({ lead_gate_benefits: val } as any)}
           onLeadGateCtaLabelChange={(val) => queueSave({ lead_gate_cta_label: val } as any)}
+          onWelcomeEmailEnabledChange={(val) => queueSave({ welcome_email_enabled: val } as any)}
+          onWelcomeEmailSubjectChange={(val) => queueSave({ welcome_email_subject: val } as any)}
+          onWelcomeEmailBodyChange={(val) => queueSave({ welcome_email_body: val } as any)}
+          onNotifyManagerEnabledChange={(val) => queueSave({ notify_manager_enabled: val } as any)}
+          onNotifyManagerThresholdPctChange={(val) => queueSave({ notify_manager_threshold_pct: val } as any)}
           consentRequired={localConsentRequired}
           consentText={localConsentText}
           privacyPolicyUrl={localPrivacyPolicyUrl}
