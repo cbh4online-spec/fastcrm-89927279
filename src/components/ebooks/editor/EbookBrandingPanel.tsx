@@ -217,12 +217,44 @@ export function EbookBrandingPanel({
                   onChange={(e) => onLeadGateTitleChange?.(e.target.value)}
                   className="h-8 text-xs"
                 />
+                <Input
+                  placeholder="Subtítulo (ex: Guia gratuito em PDF)"
+                  value={leadGateSubtitle || ""}
+                  onChange={(e) => onLeadGateSubtitleChange?.(e.target.value)}
+                  className="h-8 text-xs"
+                />
                 <Textarea
                   placeholder="Descrição curta (ex: Insira os seus dados para ler)"
                   value={leadGateDescription || ""}
                   onChange={(e) => onLeadGateDescriptionChange?.(e.target.value)}
                   className="text-xs min-h-[50px]"
                 />
+
+                {/* Benefits bullets */}
+                <div className="pt-1">
+                  <label className="text-[10px] text-muted-foreground/80 block mb-1">Benefícios (bullets persuasivos)</label>
+                  <div className="space-y-1.5">
+                    {benefits.map((b, i) => (
+                      <div key={i} className="flex gap-1">
+                        <Input
+                          placeholder={`Benefício ${i + 1}`}
+                          value={b}
+                          onChange={(e) => updateBenefit(i, e.target.value)}
+                          className="h-7 text-xs"
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeBenefit(i)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {benefits.length < 5 && (
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] w-full" onClick={addBenefit}>
+                        <Plus className="h-3 w-3 mr-1" /> Adicionar benefício
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 <Input
                   placeholder="Texto do botão (ex: Aceder ao eBook)"
                   value={leadGateCtaLabel || ""}
@@ -231,6 +263,63 @@ export function EbookBrandingPanel({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Welcome Email pós-captura */}
+        {leadGateEnabled && (
+          <div className="border-t border-border/30 pt-3">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" /> Email Automático de Boas-vindas
+            </span>
+            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+              <input type="checkbox" checked={welcomeEmailEnabled} onChange={(e) => onWelcomeEmailEnabledChange?.(e.target.checked)} className="rounded border-border" />
+              <span className="text-xs text-muted-foreground">Enviar email com link do eBook após captura</span>
+            </label>
+            {welcomeEmailEnabled && (
+              <div className="mt-2 space-y-2">
+                <Input
+                  placeholder="Assunto do email (ex: O seu eBook está pronto!)"
+                  value={welcomeEmailSubject || ""}
+                  onChange={(e) => onWelcomeEmailSubjectChange?.(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Textarea
+                  placeholder="Corpo do email (use {{name}} e {{ebook_url}} como variáveis)"
+                  value={welcomeEmailBody || ""}
+                  onChange={(e) => onWelcomeEmailBodyChange?.(e.target.value)}
+                  className="text-xs min-h-[80px]"
+                />
+                <p className="text-[10px] text-muted-foreground/60">Variáveis: <code>{`{{name}}`}</code>, <code>{`{{ebook_title}}`}</code>, <code>{`{{ebook_url}}`}</code></p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notify manager on hot lead */}
+        {leadGateEnabled && (
+          <div className="border-t border-border/30 pt-3">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <BellRing className="h-3.5 w-3.5 text-muted-foreground" /> Notificação de Lead Quente
+            </span>
+            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+              <input type="checkbox" checked={notifyManagerEnabled} onChange={(e) => onNotifyManagerEnabledChange?.(e.target.checked)} className="rounded border-border" />
+              <span className="text-xs text-muted-foreground">Notificar gestor ao atingir o threshold</span>
+            </label>
+            {notifyManagerEnabled && (
+              <div className="mt-2">
+                <label className="text-[10px] text-muted-foreground/80 block mb-1">% de leitura para lead quente</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={notifyManagerThresholdPct}
+                  onChange={(e) => onNotifyManagerThresholdPctChange?.(Math.max(1, Math.min(100, parseInt(e.target.value || "70", 10))))}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground/60 mt-1">Cria tarefa no CRM e regista evento <code>ebook.hot_lead</code>.</p>
+              </div>
+            )}
           </div>
         )}
 
