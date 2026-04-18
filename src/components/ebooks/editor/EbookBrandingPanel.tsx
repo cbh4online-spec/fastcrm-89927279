@@ -80,15 +80,27 @@ export function EbookBrandingPanel({
   onProtectionChange, onLeadGateChange,
   leadGateTrigger = "always", leadGateAfterPages = 2,
   leadGateRequireName = true, leadGateRequireEmail = true, leadGateRequirePhone = false,
-  leadGateTitle, leadGateDescription, leadGateCtaLabel,
+  leadGateTitle, leadGateDescription, leadGateSubtitle, leadGateBenefits = [], leadGateCtaLabel,
+  welcomeEmailEnabled = false, welcomeEmailSubject, welcomeEmailBody,
+  notifyManagerEnabled = true, notifyManagerThresholdPct = 70,
   onLeadGateTriggerChange, onLeadGateAfterPagesChange,
   onLeadGateRequireNameChange, onLeadGateRequireEmailChange, onLeadGateRequirePhoneChange,
-  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateCtaLabelChange,
+  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateSubtitleChange, onLeadGateBenefitsChange, onLeadGateCtaLabelChange,
+  onWelcomeEmailEnabledChange, onWelcomeEmailSubjectChange, onWelcomeEmailBodyChange,
+  onNotifyManagerEnabledChange, onNotifyManagerThresholdPctChange,
   consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
   onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
   onSeoTitleChange, onSeoDescriptionChange, onOgImageUrlChange, onCanonicalUrlChange, onNoindexChange,
 }: EbookBrandingPanelProps) {
+  const benefits = leadGateBenefits || [];
+  const updateBenefit = (idx: number, val: string) => {
+    const next = [...benefits];
+    next[idx] = val;
+    onLeadGateBenefitsChange?.(next);
+  };
+  const addBenefit = () => onLeadGateBenefitsChange?.([...benefits, ""]);
+  const removeBenefit = (idx: number) => onLeadGateBenefitsChange?.(benefits.filter((_, i) => i !== idx));
   return (
     <ScrollArea className="h-full">
       <div className="p-3 space-y-4">
