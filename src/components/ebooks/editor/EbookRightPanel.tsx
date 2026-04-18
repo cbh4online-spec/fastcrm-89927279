@@ -37,7 +37,14 @@ interface EbookRightPanelProps {
   leadGateRequirePhone?: boolean;
   leadGateTitle?: string;
   leadGateDescription?: string;
+  leadGateSubtitle?: string;
+  leadGateBenefits?: string[];
   leadGateCtaLabel?: string;
+  welcomeEmailEnabled?: boolean;
+  welcomeEmailSubject?: string;
+  welcomeEmailBody?: string;
+  notifyManagerEnabled?: boolean;
+  notifyManagerThresholdPct?: number;
   onLeadGateTriggerChange?: (val: LeadGateTrigger) => void;
   onLeadGateAfterPagesChange?: (val: number) => void;
   onLeadGateRequireNameChange?: (val: boolean) => void;
@@ -45,7 +52,14 @@ interface EbookRightPanelProps {
   onLeadGateRequirePhoneChange?: (val: boolean) => void;
   onLeadGateTitleChange?: (val: string) => void;
   onLeadGateDescriptionChange?: (val: string) => void;
+  onLeadGateSubtitleChange?: (val: string) => void;
+  onLeadGateBenefitsChange?: (val: string[]) => void;
   onLeadGateCtaLabelChange?: (val: string) => void;
+  onWelcomeEmailEnabledChange?: (val: boolean) => void;
+  onWelcomeEmailSubjectChange?: (val: string) => void;
+  onWelcomeEmailBodyChange?: (val: string) => void;
+  onNotifyManagerEnabledChange?: (val: boolean) => void;
+  onNotifyManagerThresholdPctChange?: (val: number) => void;
   // Consent
   consentRequired: boolean;
   consentText: string;
@@ -91,10 +105,14 @@ export function EbookRightPanel({
   localHeaderText, localFooterText, localContactPage, protectionEnabled, leadGateEnabled,
   onHeaderTextChange, onFooterTextChange, onContactPageChange, onProtectionChange, onLeadGateChange,
   leadGateTrigger, leadGateAfterPages, leadGateRequireName, leadGateRequireEmail, leadGateRequirePhone,
-  leadGateTitle, leadGateDescription, leadGateCtaLabel,
+  leadGateTitle, leadGateDescription, leadGateSubtitle, leadGateBenefits, leadGateCtaLabel,
+  welcomeEmailEnabled, welcomeEmailSubject, welcomeEmailBody,
+  notifyManagerEnabled, notifyManagerThresholdPct,
   onLeadGateTriggerChange, onLeadGateAfterPagesChange,
   onLeadGateRequireNameChange, onLeadGateRequireEmailChange, onLeadGateRequirePhoneChange,
-  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateCtaLabelChange,
+  onLeadGateTitleChange, onLeadGateDescriptionChange, onLeadGateSubtitleChange, onLeadGateBenefitsChange, onLeadGateCtaLabelChange,
+  onWelcomeEmailEnabledChange, onWelcomeEmailSubjectChange, onWelcomeEmailBodyChange,
+  onNotifyManagerEnabledChange, onNotifyManagerThresholdPctChange,
   consentRequired, consentText, privacyPolicyUrl, marketingOptInEnabled, marketingOptInLabel,
   onConsentRequiredChange, onConsentTextChange, onPrivacyPolicyUrlChange, onMarketingOptInEnabledChange, onMarketingOptInLabelChange,
   seoTitle, seoDescription, ogImageUrl, canonicalUrl, noindex,
@@ -193,7 +211,14 @@ export function EbookRightPanel({
           leadGateRequirePhone={leadGateRequirePhone}
           leadGateTitle={leadGateTitle}
           leadGateDescription={leadGateDescription}
+          leadGateSubtitle={leadGateSubtitle}
+          leadGateBenefits={leadGateBenefits}
           leadGateCtaLabel={leadGateCtaLabel}
+          welcomeEmailEnabled={welcomeEmailEnabled}
+          welcomeEmailSubject={welcomeEmailSubject}
+          welcomeEmailBody={welcomeEmailBody}
+          notifyManagerEnabled={notifyManagerEnabled}
+          notifyManagerThresholdPct={notifyManagerThresholdPct}
           onLeadGateTriggerChange={onLeadGateTriggerChange}
           onLeadGateAfterPagesChange={onLeadGateAfterPagesChange}
           onLeadGateRequireNameChange={onLeadGateRequireNameChange}
@@ -201,7 +226,14 @@ export function EbookRightPanel({
           onLeadGateRequirePhoneChange={onLeadGateRequirePhoneChange}
           onLeadGateTitleChange={onLeadGateTitleChange}
           onLeadGateDescriptionChange={onLeadGateDescriptionChange}
+          onLeadGateSubtitleChange={onLeadGateSubtitleChange}
+          onLeadGateBenefitsChange={onLeadGateBenefitsChange}
           onLeadGateCtaLabelChange={onLeadGateCtaLabelChange}
+          onWelcomeEmailEnabledChange={onWelcomeEmailEnabledChange}
+          onWelcomeEmailSubjectChange={onWelcomeEmailSubjectChange}
+          onWelcomeEmailBodyChange={onWelcomeEmailBodyChange}
+          onNotifyManagerEnabledChange={onNotifyManagerEnabledChange}
+          onNotifyManagerThresholdPctChange={onNotifyManagerThresholdPctChange}
           consentRequired={consentRequired}
           consentText={consentText}
           privacyPolicyUrl={privacyPolicyUrl}

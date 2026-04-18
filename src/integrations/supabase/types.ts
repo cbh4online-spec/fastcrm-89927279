@@ -21940,18 +21940,22 @@ export type Database = {
           image_keywords: string[] | null
           image_style: string | null
           lead_gate_after_pages: number
+          lead_gate_benefits: string[] | null
           lead_gate_cta_label: string | null
           lead_gate_description: string | null
           lead_gate_enabled: boolean
           lead_gate_require_email: boolean
           lead_gate_require_name: boolean
           lead_gate_require_phone: boolean
+          lead_gate_subtitle: string | null
           lead_gate_title: string | null
           lead_gate_trigger: string
           marketing_opt_in_enabled: boolean
           marketing_opt_in_label: string | null
           metadata: Json | null
           noindex: boolean
+          notify_manager_enabled: boolean
+          notify_manager_threshold_pct: number
           og_image_url: string | null
           pdf_storage_path: string | null
           privacy_policy_url: string | null
@@ -21966,6 +21970,9 @@ export type Database = {
           theme: string | null
           title: string
           updated_at: string
+          welcome_email_body: string | null
+          welcome_email_enabled: boolean
+          welcome_email_subject: string | null
           workspace_id: string
         }
         Insert: {
@@ -21986,18 +21993,22 @@ export type Database = {
           image_keywords?: string[] | null
           image_style?: string | null
           lead_gate_after_pages?: number
+          lead_gate_benefits?: string[] | null
           lead_gate_cta_label?: string | null
           lead_gate_description?: string | null
           lead_gate_enabled?: boolean
           lead_gate_require_email?: boolean
           lead_gate_require_name?: boolean
           lead_gate_require_phone?: boolean
+          lead_gate_subtitle?: string | null
           lead_gate_title?: string | null
           lead_gate_trigger?: string
           marketing_opt_in_enabled?: boolean
           marketing_opt_in_label?: string | null
           metadata?: Json | null
           noindex?: boolean
+          notify_manager_enabled?: boolean
+          notify_manager_threshold_pct?: number
           og_image_url?: string | null
           pdf_storage_path?: string | null
           privacy_policy_url?: string | null
@@ -22012,6 +22023,9 @@ export type Database = {
           theme?: string | null
           title: string
           updated_at?: string
+          welcome_email_body?: string | null
+          welcome_email_enabled?: boolean
+          welcome_email_subject?: string | null
           workspace_id: string
         }
         Update: {
@@ -22032,18 +22046,22 @@ export type Database = {
           image_keywords?: string[] | null
           image_style?: string | null
           lead_gate_after_pages?: number
+          lead_gate_benefits?: string[] | null
           lead_gate_cta_label?: string | null
           lead_gate_description?: string | null
           lead_gate_enabled?: boolean
           lead_gate_require_email?: boolean
           lead_gate_require_name?: boolean
           lead_gate_require_phone?: boolean
+          lead_gate_subtitle?: string | null
           lead_gate_title?: string | null
           lead_gate_trigger?: string
           marketing_opt_in_enabled?: boolean
           marketing_opt_in_label?: string | null
           metadata?: Json | null
           noindex?: boolean
+          notify_manager_enabled?: boolean
+          notify_manager_threshold_pct?: number
           og_image_url?: string | null
           pdf_storage_path?: string | null
           privacy_policy_url?: string | null
@@ -22058,6 +22076,9 @@ export type Database = {
           theme?: string | null
           title?: string
           updated_at?: string
+          welcome_email_body?: string | null
+          welcome_email_enabled?: boolean
+          welcome_email_subject?: string | null
           workspace_id?: string
         }
         Relationships: [

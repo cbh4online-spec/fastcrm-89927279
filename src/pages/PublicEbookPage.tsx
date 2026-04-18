@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BookOpen, Mail, User, Phone, ExternalLink } from "lucide-react";
+import { Loader2, BookOpen, Mail, User, Phone, ExternalLink, Check } from "lucide-react";
 import { FlipbookReader } from "@/components/ebooks/FlipbookReader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,8 @@ interface EbookData {
   lead_gate_require_phone?: boolean;
   lead_gate_title?: string;
   lead_gate_description?: string;
+  lead_gate_subtitle?: string;
+  lead_gate_benefits?: string[];
   lead_gate_cta_label?: string;
   consent_required?: boolean;
   workspace_id: string;
@@ -101,7 +103,9 @@ function resolveGateConfig(eb: EbookData) {
     requireEmail: eb.lead_gate_require_email ?? true,
     requirePhone: eb.lead_gate_require_phone ?? false,
     title: eb.lead_gate_title?.trim() || eb.title,
+    subtitle: eb.lead_gate_subtitle?.trim() || "",
     description: eb.lead_gate_description?.trim() || "Insira os seus dados para aceder ao eBook",
+    benefits: (eb.lead_gate_benefits || []).filter(b => b && b.trim().length > 0),
     ctaLabel: eb.lead_gate_cta_label?.trim() || "Aceder ao eBook",
   };
 }
@@ -132,7 +136,7 @@ export default function PublicEbookPage() {
       if (!slug) { setError("Slug não encontrado"); setLoading(false); return; }
       const { data, error: err } = await (supabase as any)
         .from("ebooks")
-        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, lead_gate_trigger, lead_gate_after_pages, lead_gate_require_name, lead_gate_require_email, lead_gate_require_phone, lead_gate_title, lead_gate_description, lead_gate_cta_label, consent_required, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
+        .select("id, title, subtitle, author_name, cover_url, chapters, header_text, footer_text, contact_page, global_styles, protection_enabled, lead_gate_enabled, lead_gate_trigger, lead_gate_after_pages, lead_gate_require_name, lead_gate_require_email, lead_gate_require_phone, lead_gate_title, lead_gate_description, lead_gate_subtitle, lead_gate_benefits, lead_gate_cta_label, consent_required, workspace_id, slug, consent_text, privacy_policy_url, marketing_opt_in_enabled, marketing_opt_in_label, seo_title, seo_description, og_image_url, canonical_url, noindex")
         .eq("slug", slug)
         .eq("status", "published")
         .maybeSingle();
@@ -303,13 +307,29 @@ export default function PublicEbookPage() {
 
   // Lead gate overlay (renderizado por cima do reader quando trigger=after_pages)
   const gateForm = gateOpen && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur p-4">
-      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-8">
-        <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-white/5 border border-white/10 mx-auto mb-6">
-          <BookOpen className="h-8 w-8 text-white/40" />
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur p-4 overflow-y-auto">
+      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-8 my-8">
+        {ebook.cover_url ? (
+          <img src={ebook.cover_url} alt={ebook.title} className="w-20 h-28 object-cover rounded-md mx-auto mb-5 border border-white/10 shadow-xl" />
+        ) : (
+          <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-white/5 border border-white/10 mx-auto mb-6">
+            <BookOpen className="h-8 w-8 text-white/40" />
+          </div>
+        )}
         <h2 className="text-xl font-bold text-white text-center mb-1">{cfg.title}</h2>
-        <p className="text-sm text-white/50 text-center mb-6">{cfg.description}</p>
+        {cfg.subtitle && <p className="text-xs text-white/40 text-center mb-2 uppercase tracking-wider">{cfg.subtitle}</p>}
+        <p className="text-sm text-white/50 text-center mb-4">{cfg.description}</p>
+
+        {cfg.benefits.length > 0 && (
+          <ul className="space-y-1.5 mb-5 bg-white/5 rounded-lg p-3 border border-white/5">
+            {cfg.benefits.map((b, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-white/70">
+                <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         <form onSubmit={handleGateSubmit} className="space-y-3">
           {cfg.requireName && (
             <div className="relative">
