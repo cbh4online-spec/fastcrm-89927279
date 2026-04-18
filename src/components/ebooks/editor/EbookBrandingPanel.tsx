@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe, Magnet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, Phone, Link, Type, MessageSquare, Shield, Users, Search, FileCheck, Globe, Magnet, Sparkles, BellRing, Plus, X } from "lucide-react";
 import type { EbookContactPage } from "@/hooks/useEbooks";
 
 export type LeadGateTrigger = "never" | "always" | "after_pages";
