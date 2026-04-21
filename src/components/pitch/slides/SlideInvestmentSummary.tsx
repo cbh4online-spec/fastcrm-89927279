@@ -6,23 +6,23 @@ import {
   TIERS,
   formatPrice,
   intervalLabel,
+  parsePriceBreakdown,
   type PitchCurrency,
   type PitchTier,
 } from '@/lib/pitch/pricing';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS } from './index';
 
-/** Extract a numeric € value from a price string (e.g. "€29 /mês" → 29). */
-function parseEur(price: string | undefined): number {
-  if (!price) return 0;
-  const m = price.match(/€\s*(\d+(?:[.,]\d+)?)/);
-  return m ? parseFloat(m[1].replace(',', '.')) : 0;
-}
-
 interface LineItem {
   id: string;
   title: string;
   category: 'module' | 'vertical' | 'pack';
+  /** Recurring monthly base in EUR (before tier × FX). */
   monthlyEurBase: number;
+  /** One-time setup base in EUR (before tier × FX). */
+  setupEurBase: number;
+  /** Annual-only base in EUR (before tier × FX). */
+  annualEurBase: number;
+  /** True if any € amount is defined. */
   hasPrice: boolean;
 }
 
@@ -57,26 +57,36 @@ export function Slide16InvestmentSummary({
     .map((s) => {
       const ov = overrides[s.id];
       const effective = ov?.price ?? DEFAULT_MODULE_PRICES[s.id]?.price;
-      const base = parseEur(effective);
+      const breakdown = parsePriceBreakdown(effective);
       return {
         id: s.id,
         title: s.title,
         category: s.category as LineItem['category'],
-        monthlyEurBase: base,
-        hasPrice: base > 0,
+        monthlyEurBase: breakdown.monthlyEur,
+        setupEurBase: breakdown.setupEur,
+        annualEurBase: breakdown.annualEur,
+        hasPrice: breakdown.hasAmount,
       };
     });
 
   const subtotalMonthlyEur = items.reduce((acc, it) => acc + it.monthlyEurBase, 0);
+  const subtotalSetupEur = items.reduce((acc, it) => acc + it.setupEurBase, 0);
+  const subtotalExplicitAnnualEur = items.reduce((acc, it) => acc + it.annualEurBase, 0);
+
   const monthlyConverted = subtotalMonthlyEur * tierMult * fxRate;
-  // Annual = 10x monthly (2 months free, consistent with pricing.ts)
-  const annualConverted = monthlyConverted * 10;
+  // Annual recurring = 10× monthly (2 months free) + segments already priced /ano
+  const annualRecurringConverted =
+    monthlyConverted * 10 + subtotalExplicitAnnualEur * tierMult * fxRate;
+  const setupConverted = subtotalSetupEur * tierMult * fxRate;
 
   const modulesWithoutPrice = items.filter((it) => !it.hasPrice);
+  const itemsWithSetup = items.filter((it) => it.setupEurBase > 0);
   const activeOptionalCount = items.length;
 
-  // Sort by descending price for visual hierarchy.
-  const sorted = [...items].sort((a, b) => b.monthlyEurBase - a.monthlyEurBase);
+  // Sort by descending recurring base price for visual hierarchy.
+  const sorted = [...items].sort(
+    (a, b) => b.monthlyEurBase + b.annualEurBase / 10 - (a.monthlyEurBase + a.annualEurBase / 10)
+  );
   const visible = sorted.slice(0, 12);
   const hiddenCount = sorted.length - visible.length;
 
