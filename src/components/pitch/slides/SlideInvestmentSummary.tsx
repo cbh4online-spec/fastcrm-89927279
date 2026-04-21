@@ -200,14 +200,20 @@ export function Slide16InvestmentSummary({
                   {formatPrice(annualRecurringConverted, currency)}
                 </div>
                 <div className="text-[#0E7490] mt-2 font-semibold" style={{ fontSize: 14 }}>
-                  Equivale a 10× o mensal · 2 meses grátis
+                  {hasMonthly && hasExplicitAnnual
+                    ? `${formatPrice(annualFromMonthly, currency)} (10× mensal) + ${formatPrice(explicitAnnualConverted, currency)} /ano`
+                    : hasExplicitAnnual && !hasMonthly
+                    ? 'Soma dos módulos tarifados /ano'
+                    : 'Equivale a 10× o mensal · 2 meses grátis'}
                 </div>
-                <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
-                  Poupança vs 12 meses: {formatPrice(monthlyConverted * 2, currency)}
-                </div>
-                {subtotalExplicitAnnualEur > 0 && (
+                {hasMonthly && (
+                  <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
+                    Poupança na parte mensal (vs 12×): {formatPrice(annualSavings, currency)}
+                  </div>
+                )}
+                {hasExplicitAnnual && hasMonthly && (
                   <div className="text-[#475569] mt-1" style={{ fontSize: 12 }}>
-                    Inclui {formatPrice(subtotalExplicitAnnualEur * tierMult * fxRate, currency)} já tarifados /ano
+                    Módulos /ano não recebem desconto (já tarifados anualmente).
                   </div>
                 )}
               </div>
