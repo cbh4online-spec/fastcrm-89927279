@@ -1,5 +1,5 @@
 import type { SlideContentMap } from './slideContent';
-import type { PitchCurrency, PitchBillingInterval } from './pricing';
+import type { PitchCurrency, PitchBillingInterval, PitchTier } from './pricing';
 
 export type PitchTone = 'tu' | 'voce';
 
