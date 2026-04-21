@@ -94,6 +94,36 @@ export function isBuiltInCurrency(code: string): boolean {
   return Boolean(BUILT_IN_CURRENCIES[(code || '').toUpperCase()]);
 }
 
+/**
+ * Override the FX rate of a currency at runtime (works for both built-in and
+ * custom). Used by the "Taxas de câmbio" screen so the user can tune the
+ * indicative EUR→X conversion without touching code. Other meta fields
+ * (symbol, locale, label, position) are preserved.
+ *
+ * Pass a non-finite or non-positive rate to no-op.
+ */
+export function setCurrencyRate(code: string, rate: number): void {
+  const c = (code || '').trim().toUpperCase();
+  if (!c || !CURRENCIES[c]) return;
+  if (!isFinite(rate) || rate <= 0) return;
+  // EUR is the base — its rate must remain 1 by definition.
+  if (c === 'EUR') return;
+  CURRENCIES[c] = { ...CURRENCIES[c], rate };
+}
+
+/** Reset a currency rate to its built-in default (no-op for custom). */
+export function resetCurrencyRate(code: string): void {
+  const c = (code || '').trim().toUpperCase();
+  if (!c || !BUILT_IN_CURRENCIES[c]) return;
+  CURRENCIES[c] = { ...CURRENCIES[c], rate: BUILT_IN_CURRENCIES[c].rate };
+}
+
+/** Default rate for a built-in currency (or current rate for custom ones). */
+export function getDefaultRate(code: string): number {
+  const c = (code || '').trim().toUpperCase();
+  return BUILT_IN_CURRENCIES[c]?.rate ?? CURRENCIES[c]?.rate ?? 1;
+}
+
 /** Safe lookup with fallback to EUR for unknown codes. */
 export function getCurrencyMeta(code: PitchCurrency | undefined): CurrencyMeta {
   if (!code) return CURRENCIES.EUR;
