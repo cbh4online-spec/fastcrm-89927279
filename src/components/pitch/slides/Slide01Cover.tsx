@@ -1,4 +1,5 @@
 import { PitchTokens, fillToken, formatMeetingDate } from '@/lib/pitch/tokens';
+import { resolveSlideContent, interpolate } from '@/lib/pitch/slideContent';
 import { SlideShell } from './SlideShell';
 import { Sparkles } from 'lucide-react';
 
@@ -7,10 +8,13 @@ export function Slide01Cover({ tokens }: { tokens: PitchTokens; pageNumber: numb
   const contact = fillToken(tokens.contactName, '');
   const presenter = fillToken(tokens.presenterName, 'Equipa FastCRM');
   const date = formatMeetingDate(tokens.meetingDate);
+  const c = resolveSlideContent('cover', tokens.slideOverrides);
+  const eyebrow = c.eyebrow || 'Proposta comercial';
+  const heroLead = interpolate(c.heroText, { company }) || 'Para';
+  const heroSub = interpolate(c.heroSubtitle, { company });
 
   return (
     <SlideShell variant="accent">
-      {/* Decorative blob */}
       <div className="absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, #22D3EE33 0%, transparent 70%)' }} />
       <div className="absolute bottom-0 left-0 w-full h-2" style={{ background: 'linear-gradient(90deg, #22D3EE 0%, #22D3EE 30%, transparent 100%)' }} />
 
@@ -32,13 +36,13 @@ export function Slide01Cover({ tokens }: { tokens: PitchTokens; pageNumber: numb
 
       <div className="absolute left-20 right-20" style={{ top: 360 }}>
         <div className="text-[#22D3EE] font-semibold uppercase tracking-[0.3em] mb-6" style={{ fontSize: 22 }}>
-          Proposta comercial
+          {eyebrow}
         </div>
         <h1 className="font-black leading-[1.05]" style={{ fontSize: 120 }}>
-          Para <span className="text-[#22D3EE]">{company}</span>
+          {heroLead} <span className="text-[#22D3EE]">{company}</span>
         </h1>
         <p className="mt-8 text-white/70 max-w-[1400px]" style={{ fontSize: 34 }}>
-          O CRM com IA que unifica vendas, marketing, faturação e atendimento — pensado para PME portuguesas que querem escalar com método.
+          {heroSub}
         </p>
       </div>
 
