@@ -489,7 +489,10 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const renderModuleSlide = (id: string, label: string) => {
     if (!active.has(id)) return;
     n++;
-    const c = resolveSlideContent(id, tokens.slideOverrides);
+    const c = resolveSlideContent(id, tokens.slideOverrides, {
+      currency: tokens.currency,
+      interval: tokens.billingInterval,
+    });
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, (c.eyebrow || '').toUpperCase(), c.title || label, c.subtitle);
