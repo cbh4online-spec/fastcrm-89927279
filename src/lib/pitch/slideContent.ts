@@ -958,7 +958,8 @@ export const DEFAULT_MODULE_PRICES: Record<string, { price: string; priceNote?: 
 /** Resolve effective content for a slide: override merged with defaults. */
 export function resolveSlideContent(
   id: string,
-  overrides: SlideContentMap | undefined
+  overrides: SlideContentMap | undefined,
+  pricing?: { currency?: import('./pricing').PitchCurrency; interval?: import('./pricing').PitchBillingInterval }
 ): SlideContent {
   const base = DEFAULT_SLIDE_CONTENT[id] || {};
   const ov = overrides?.[id] || {};
@@ -979,6 +980,19 @@ export function resolveSlideContent(
     if (!b) return a;
     return a.map((s, i) => (b[i] !== undefined && b[i] !== '' ? b[i] : s));
   };
+  let price = ov.price ?? base.price ?? priceDefaults?.price;
+  let priceNote = ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote;
+  // Apply currency / interval conversion only when the user kept the default
+  // (no override) — respect manual overrides.
+  if (pricing && (pricing.currency || pricing.interval)) {
+    // Lazy import to avoid circular type issues — resolved at runtime.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { convertPriceString } = require('./pricing') as typeof import('./pricing');
+    const currency = pricing.currency || 'EUR';
+    const interval = pricing.interval || 'monthly';
+    if (!ov.price) price = convertPriceString(price, currency, interval);
+    if (!ov.priceNote) priceNote = convertPriceString(priceNote, currency, interval);
+  }
   return {
     eyebrow: ov.eyebrow ?? base.eyebrow,
     title: ov.title ?? base.title,
@@ -990,8 +1004,8 @@ export function resolveSlideContent(
     stats: mergeStats(base.stats, ov.stats),
     bullets: mergeBullets(base.bullets, ov.bullets),
     extraText: ov.extraText ?? base.extraText,
-    price: ov.price ?? base.price ?? priceDefaults?.price,
-    priceNote: ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote,
+    price,
+    priceNote,
   };
 }
 
