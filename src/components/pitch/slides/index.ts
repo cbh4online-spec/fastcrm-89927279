@@ -27,10 +27,12 @@ export interface PitchSlideMeta {
   id: string;
   title: string;
   component: ComponentType<PitchSlideProps>;
+  /** Required slides cannot be disabled (Cover + Closing). */
+  required?: boolean;
 }
 
 export const PITCH_SLIDES: PitchSlideMeta[] = [
-  { id: 'cover', title: 'Capa', component: Slide01Cover },
+  { id: 'cover', title: 'Capa', component: Slide01Cover, required: true },
   { id: 'problem', title: 'O Problema', component: Slide02Problem },
   { id: 'opportunity', title: 'Oportunidade', component: Slide03Opportunity },
   { id: 'method-pare', title: 'Método PARE', component: SlideMethodPare },
@@ -45,5 +47,14 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
   { id: 'results', title: 'Resultados', component: Slide12Results },
   { id: 'pricing', title: 'Investimento', component: Slide13Pricing },
   { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding },
-  { id: 'next', title: 'Próximos passos', component: Slide15Next },
+  { id: 'next', title: 'Próximos passos', component: Slide15Next, required: true },
 ];
+
+export const ALL_SLIDE_IDS = PITCH_SLIDES.map((s) => s.id);
+
+/** Returns slides filtered by tokens.enabledSlides; required slides are always kept. */
+export function getActiveSlides(enabledSlides?: string[]): PitchSlideMeta[] {
+  if (!enabledSlides) return PITCH_SLIDES;
+  const set = new Set(enabledSlides);
+  return PITCH_SLIDES.filter((s) => s.required || set.has(s.id));
+}
