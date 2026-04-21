@@ -87,16 +87,16 @@ export function PitchEditor() {
               {panelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
             </Button>
             <div className="text-sm font-medium text-muted-foreground">
-              {PITCH_SLIDES[index].title}
+              {activeSlides[safeIndex].title}
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" disabled={index === 0} onClick={() => setIndex(index - 1)}>
+            <Button variant="outline" size="icon" disabled={safeIndex === 0} onClick={() => setIndex(safeIndex - 1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="px-3 text-sm font-mono tabular-nums">{index + 1} / {total}</div>
-            <Button variant="outline" size="icon" disabled={index === total - 1} onClick={() => setIndex(index + 1)}>
+            <div className="px-3 text-sm font-mono tabular-nums">{safeIndex + 1} / {total}</div>
+            <Button variant="outline" size="icon" disabled={safeIndex === total - 1} onClick={() => setIndex(safeIndex + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -115,20 +115,20 @@ export function PitchEditor() {
         <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
           <div className="w-full max-w-[1600px]" style={{ aspectRatio: '16 / 9' }}>
             <PitchSlideCanvas>
-              <Slide tokens={tokens} pageNumber={index + 1} total={total} />
+              <Slide tokens={tokens} pageNumber={safeIndex + 1} total={total} />
             </PitchSlideCanvas>
           </div>
         </div>
 
         <div className="border-t bg-card overflow-x-auto">
           <div className="flex gap-2 p-3">
-            {PITCH_SLIDES.map((s, i) => (
+            {activeSlides.map((s, i) => (
               <button
                 key={s.id}
                 onClick={() => setIndex(i)}
                 className={cn(
                   'flex-shrink-0 w-32 rounded-md border-2 overflow-hidden transition',
-                  i === index ? 'border-primary shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+                  i === safeIndex ? 'border-primary shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
                 )}
               >
                 <div className="bg-white" style={{ aspectRatio: '16 / 9' }}>
