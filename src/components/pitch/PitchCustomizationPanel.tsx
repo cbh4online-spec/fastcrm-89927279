@@ -588,11 +588,11 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                     className={cn(
                       'rounded border p-2',
                       setupConverted > 0
-                        ? 'border-amber-500/40 bg-amber-500/5'
+                        ? 'border-primary/40 bg-primary/5'
                         : 'border-dashed border-border/50 bg-muted/30'
                     )}
                   >
-                    <div className="text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                    <div className="text-[10px] uppercase tracking-wider text-primary">
                       Setup único
                     </div>
                     <div className="font-mono tabular-nums font-semibold text-sm text-foreground mt-0.5">
