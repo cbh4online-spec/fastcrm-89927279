@@ -190,48 +190,103 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Cliente</h3>
-            <Dialog open={crmOpen} onOpenChange={(o) => { setCrmOpen(o); if (o) loadCrm(crmTab, crmSearch); }}>
+            <Dialog open={crmOpen} onOpenChange={(o) => { setCrmOpen(o); if (!o) setCrmPreview(null); }}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs">
                   <Database className="h-3.5 w-3.5 mr-1" /> Carregar do CRM
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader><DialogTitle>Carregar dados do CRM</DialogTitle></DialogHeader>
-                <div className="flex gap-2 mb-3">
-                  {(['contacts', 'leads', 'companies'] as const).map((t) => (
-                    <Button
-                      key={t}
-                      size="sm"
-                      variant={crmTab === t ? 'default' : 'outline'}
-                      onClick={() => { setCrmTab(t); loadCrm(t, crmSearch); }}
-                    >
-                      {t === 'contacts' ? 'Contactos' : t === 'leads' ? 'Leads' : 'Empresas'}
-                    </Button>
-                  ))}
-                </div>
-                <Input
-                  placeholder="Pesquisar por nome..."
-                  value={crmSearch}
-                  onChange={(e) => setCrmSearch(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') loadCrm(crmTab, crmSearch); }}
-                />
-                <div className="max-h-[400px] overflow-y-auto mt-3 space-y-1">
-                  {crmLoading && <div className="text-sm text-muted-foreground p-3">A carregar…</div>}
-                  {!crmLoading && crmRows.length === 0 && <div className="text-sm text-muted-foreground p-3">Sem resultados.</div>}
-                  {crmRows.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => applyCrmRow(r)}
-                      className="w-full text-left p-3 rounded-md border hover:bg-muted/50 transition"
-                    >
-                      <div className="font-medium text-sm">{r.name || '—'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {[r.role, r.company, r.email, r.phone].filter(Boolean).join(' · ') || '—'}
+              <DialogContent className="max-w-3xl p-0 overflow-hidden">
+                <DialogHeader className="px-5 pt-5 pb-3 border-b">
+                  <DialogTitle>{crmPreview ? 'Pré-visualização' : 'Carregar dados do CRM'}</DialogTitle>
+                </DialogHeader>
+
+                {!crmPreview && (
+                  <div className="px-5 pb-5">
+                    <div className="flex gap-2 mb-3">
+                      {(['contacts', 'leads', 'companies'] as const).map((t) => (
+                        <Button key={t} size="sm" variant={crmTab === t ? 'default' : 'outline'} onClick={() => setCrmTab(t)}>
+                          {t === 'contacts' ? 'Contactos' : t === 'leads' ? 'Leads' : 'Empresas'}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        placeholder="Pesquisar por nome, email ou empresa…"
+                        value={crmSearch}
+                        onChange={(e) => setCrmSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="min-h-[360px] max-h-[440px] overflow-y-auto mt-3 border rounded-md">
+                      {crmLoading && <div className="text-sm text-muted-foreground p-4 text-center">A carregar…</div>}
+                      {!crmLoading && crmRows.length === 0 && (
+                        <div className="text-sm text-muted-foreground p-6 text-center">Sem resultados.</div>
+                      )}
+                      {!crmLoading && crmRows.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => setCrmPreview(r)}
+                          className="w-full text-left p-3 border-b last:border-b-0 hover:bg-muted/50 transition"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm truncate">{r.name || '—'}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {[r.role, r.company, r.email, r.phone].filter(Boolean).join(' · ') || '—'}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                      <div>
+                        {crmTotal > 0
+                          ? `A mostrar ${crmPage * PAGE_SIZE + 1}-${Math.min((crmPage + 1) * PAGE_SIZE, crmTotal)} de ${crmTotal}`
+                          : '—'}
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" disabled={crmPage === 0 || crmLoading} onClick={() => setCrmPage((p) => Math.max(0, p - 1))}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="font-mono tabular-nums">{crmPage + 1} / {Math.max(1, Math.ceil(crmTotal / PAGE_SIZE))}</div>
+                        <Button size="sm" variant="outline" disabled={(crmPage + 1) * PAGE_SIZE >= crmTotal || crmLoading} onClick={() => setCrmPage((p) => p + 1)}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {crmPreview && (
+                  <div className="px-5 pb-5">
+                    <button onClick={() => setCrmPreview(null)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3">
+                      <ArrowLeft className="h-3.5 w-3.5" /> Voltar à lista
                     </button>
-                  ))}
-                </div>
+                    <div className="border rounded-md p-4 bg-muted/30">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                        Vai aplicar os seguintes campos
+                      </div>
+                      <dl className="grid grid-cols-[120px_1fr] gap-y-2 gap-x-4 text-sm">
+                        {previewFields(crmPreview).map((f) => (
+                          <div key={f.label} className="contents">
+                            <dt className="text-muted-foreground">{f.label}</dt>
+                            <dd className="font-medium truncate">{f.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 mt-4">
+                      <Button variant="outline" size="sm" onClick={() => setCrmPreview(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={() => applyCrmRow(crmPreview)}>
+                        <Check className="h-4 w-4 mr-2" /> Aplicar ao pitch
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>
