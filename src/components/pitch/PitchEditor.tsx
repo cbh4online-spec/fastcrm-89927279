@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
+import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
 import { PITCH_SLIDES } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
