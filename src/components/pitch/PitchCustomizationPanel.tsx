@@ -10,6 +10,8 @@ import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { PITCH_SLIDES, ALL_SLIDE_IDS } from './slides';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -344,6 +346,62 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Módulos do pitch</h3>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => updateToken('enabledSlides', undefined)}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                Todos
+              </button>
+              <span className="text-[10px] text-muted-foreground">·</span>
+              <button
+                type="button"
+                onClick={() => updateToken('enabledSlides', PITCH_SLIDES.filter((s) => s.required).map((s) => s.id))}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                Mínimo
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Capa e Próximos passos são obrigatórios. Os restantes podem ser desativados.
+          </p>
+          <div className="space-y-1.5">
+            {PITCH_SLIDES.map((s) => {
+              const enabledList = tokens.enabledSlides ?? ALL_SLIDE_IDS;
+              const isOn = s.required || enabledList.includes(s.id);
+              return (
+                <label
+                  key={s.id}
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1.5 rounded-md text-sm cursor-pointer hover:bg-muted/50',
+                    s.required && 'opacity-60 cursor-not-allowed'
+                  )}
+                >
+                  <Checkbox
+                    checked={isOn}
+                    disabled={s.required}
+                    onCheckedChange={(checked) => {
+                      if (s.required) return;
+                      const base = tokens.enabledSlides ?? ALL_SLIDE_IDS;
+                      const next = checked
+                        ? Array.from(new Set([...base, s.id]))
+                        : base.filter((id) => id !== s.id);
+                      updateToken('enabledSlides', next);
+                    }}
+                  />
+                  <span className="flex-1 truncate">{s.title}</span>
+                  {s.required && <span className="text-[10px] uppercase text-muted-foreground">obrig.</span>}
+                </label>
+              );
+            })}
           </div>
         </div>
 

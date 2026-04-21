@@ -52,10 +52,15 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const presenter = fillToken(tokens.presenterName, 'Equipa FastCRM');
   const contact = tokens.contactName.trim();
   const date = formatMeetingDate(tokens.meetingDate);
-  const total = 16;
+  const enabled = tokens.enabledSlides;
+  const required = new Set(['cover', 'next']);
+  const active = new Set<string>(enabled ? [...enabled, ...required] : ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next']);
+  const total = active.size;
+  let n = 0;
 
   // 1. Cover
-  {
+  if (active.has('cover')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: NAVY };
     s.addShape('rect', { x: 0, y: 7.4, w: 13.333, h: 0.1, fill: { color: CYAN } });
@@ -86,7 +91,8 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   }
 
   // 2. Problem
-  {
+  if (active.has('problem')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'O PROBLEMA', 'O dia-a-dia das PME comerciais', 'Mais tempo em tarefas operacionais do que a fechar negócios.');
@@ -103,11 +109,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(it.t, { x: x + 0.3, y: y + 0.3, w: 5.6, h: 0.5, fontSize: 18, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(it.d, { x: x + 0.3, y: y + 0.85, w: 5.6, h: 0.9, fontSize: 13, color: SLATE, fontFace: 'Calibri' });
     });
-    footer(s, 2, total, 'O Problema');
+    footer(s, n, total, 'O Problema');
   }
 
   // 3. Opportunity
-  {
+  if (active.has('opportunity')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'A OPORTUNIDADE', 'Mercado a digitalizar — quem chega primeiro ganha quota', 'A maioria das PME ainda não tem CRM. Quem automatiza vende mais com a mesma equipa.');
@@ -125,11 +132,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(st.v, { x: x + 0.4, y: y + 0.15, w: 5.5, h: 1, fontSize: 48, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(st.l, { x: x + 0.4, y: y + 1.1, w: 5.5, h: 0.6, fontSize: 13, color: NAVY, bold: true, fontFace: 'Calibri' });
     });
-    footer(s, 3, total, 'Oportunidade');
+    footer(s, n, total, 'Oportunidade');
   }
 
   // 4. Método PARE
-  {
+  if (active.has('method-pare')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'A BASE DO SISTEMA', 'Método PARE', 'Quatro pilares que estruturam o FastCRM.');
@@ -147,11 +155,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(p.n, { x: x + 0.3, y: 4.2, w: 2.5, h: 0.5, fontSize: 20, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(p.d, { x: x + 0.3, y: 4.7, w: 2.5, h: 1.5, fontSize: 12, color: SLATE, fontFace: 'Calibri' });
     });
-    footer(s, 4, total, 'Método PARE');
+    footer(s, n, total, 'Método PARE');
   }
 
   // 5. Intro
-  {
+  if (active.has('intro')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: NAVY };
     s.addText('O QUE É O FASTCRM', { x: 0.5, y: 1.5, w: 12, h: 0.4, fontSize: 14, color: CYAN, bold: true, charSpacing: 6, align: 'center', fontFace: 'Calibri' });
@@ -166,7 +175,8 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   }
 
   // 6. How it works
-  {
+  if (active.has('how')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'COMO FUNCIONA', 'Em 4 passos, do lead à fatura paga');
@@ -182,11 +192,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(st.t, { x, y: 4, w: 3, h: 0.5, fontSize: 22, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(st.d, { x, y: 4.6, w: 3, h: 1.5, fontSize: 13, color: SLATE, fontFace: 'Calibri' });
     });
-    footer(s, 6, total, 'Como funciona');
+    footer(s, n, total, 'Como funciona');
   }
 
   // 7. CRM
-  {
+  if (active.has('crm')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'FUNCIONALIDADE #1', 'CRM unificado', 'Contactos, Leads, Empresas e Negócios numa só base — com PARE Score.');
@@ -209,11 +220,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.addText('✓ NIF · ✓ Email empresarial · ✓ ICP · ⚠ Sem telefone', {
       x: 7.3, y: 6.2, w: 5.2, h: 0.4, fontSize: 11, color: 'FFFFFFCC', fontFace: 'Calibri',
     });
-    footer(s, 7, total, 'CRM');
+    footer(s, n, total, 'CRM');
   }
 
   // 8. AI SDR
-  {
+  if (active.has('ai-sdr')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'FUNCIONALIDADE #2', 'AI SDR & Outbound', 'Sequências multi-canal personalizadas que prospetam 24/7.');
@@ -241,11 +253,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.addShape('roundRect', { x: 8.5, y: 5.6, w: 3.8, h: 1, fill: { color: CYAN }, line: { color: CYAN }, rectRadius: 0.08 });
     s.addText('+62%', { x: 8.5, y: 5.65, w: 3.8, h: 0.55, fontSize: 28, bold: true, color: NAVY, align: 'center', fontFace: 'Calibri' });
     s.addText('meetings vs manual', { x: 8.5, y: 6.15, w: 3.8, h: 0.4, fontSize: 11, color: NAVY, align: 'center', fontFace: 'Calibri' });
-    footer(s, 8, total, 'AI SDR');
+    footer(s, n, total, 'AI SDR');
   }
 
   // 9. Inbox
-  {
+  if (active.has('inbox')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'FUNCIONALIDADE #3', 'Inbox omnichannel', 'Todos os canais num só inbox — tudo registado no CRM.');
@@ -261,11 +274,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText('★', { x: x + 0.2, y: y + 0.3, w: 1.1, h: 1.1, fontSize: 28, color: CYAN, align: 'center', valign: 'middle', fontFace: 'Calibri' });
       s.addText(c, { x: x + 1.5, y: y + 0.55, w: 2.4, h: 0.6, fontSize: 16, bold: true, color: NAVY, fontFace: 'Calibri' });
     });
-    footer(s, 9, total, 'Inbox');
+    footer(s, n, total, 'Inbox');
   }
 
   // 10. Pipeline
-  {
+  if (active.has('pipeline')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'FUNCIONALIDADE #4', 'Pipeline, Propostas e Faturação', 'Do primeiro contacto à fatura paga — sem mudar de plataforma.');
@@ -294,11 +308,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(c.t, { x: x + 0.2, y: 5, w: 3.6, h: 0.5, fontSize: 16, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(c.d, { x: x + 0.2, y: 5.55, w: 3.6, h: 1, fontSize: 12, color: SLATE, fontFace: 'Calibri' });
     });
-    footer(s, 10, total, 'Pipeline');
+    footer(s, n, total, 'Pipeline');
   }
 
   // 11. Marketplace
-  {
+  if (active.has('marketplace')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'FUNCIONALIDADE #5', 'Loja, Marketplace e Lead Magnets');
@@ -319,11 +334,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.addText('💡 Cada venda, ebook ou anúncio vira automaticamente uma oportunidade no CRM — fluxo end-to-end.', {
       x: 0.9, y: 6.15, w: 11.7, h: 0.7, fontSize: 14, bold: true, color: NAVY, fontFace: 'Calibri',
     });
-    footer(s, 11, total, 'Loja & Marketplace');
+    footer(s, n, total, 'Loja & Marketplace');
   }
 
   // 12. Differentiators
-  {
+  if (active.has('diff')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'DIFERENCIADORES', 'Porque é que o FastCRM ganha');
@@ -346,11 +362,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText('✓', { x: 8, y, w: 2, h: 0.55, fontSize: 18, bold: true, color: SUCCESS, align: 'center', valign: 'middle', fontFace: 'Calibri' });
       s.addText('✗', { x: 10.3, y, w: 2.3, h: 0.55, fontSize: 18, bold: true, color: '94A3B8', align: 'center', valign: 'middle', fontFace: 'Calibri' });
     });
-    footer(s, 12, total, 'Diferenciadores');
+    footer(s, n, total, 'Diferenciadores');
   }
 
   // 13. Results
-  {
+  if (active.has('results')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: NAVY };
     header(s, 'RESULTADOS ESPERADOS', `O que ${company} pode esperar`, 'Indicadores médios em PME nos primeiros 90 dias.', true);
@@ -366,11 +383,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(k.v, { x: x + 0.2, y: 3.2, w: 2.6, h: 1.5, fontSize: 60, bold: true, color: CYAN, fontFace: 'Calibri' });
       s.addText(k.l, { x: x + 0.2, y: 4.7, w: 2.6, h: 1.3, fontSize: 14, color: WHITE, fontFace: 'Calibri' });
     });
-    footer(s, 13, total, 'Resultados', true);
+    footer(s, n, total, 'Resultados', true);
   }
 
   // 14. Pricing
-  {
+  if (active.has('pricing')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'INVESTIMENTO', 'Planos e investimento', `Proposta dimensionada para ${company}.`);
@@ -395,11 +413,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
         { x: x + 0.2, y: cy + 1.5, w: cardW - 0.4, h: 2.4, fontSize: 10, fontFace: 'Calibri', paraSpaceAfter: 4 }
       );
     });
-    footer(s, 14, total, 'Investimento');
+    footer(s, n, total, 'Investimento');
   }
 
   // 15. Onboarding
-  {
+  if (active.has('onboarding')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'ROADMAP', 'Onboarding em 4 semanas', `${presenter} acompanha do dia 1 ao dia 30.`);
@@ -417,11 +436,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       s.addText(w.t, { x, y: 4.35, w: 3, h: 0.5, fontSize: 18, bold: true, color: NAVY, fontFace: 'Calibri' });
       s.addText(w.d, { x, y: 4.95, w: 3, h: 1.5, fontSize: 12, color: SLATE, fontFace: 'Calibri' });
     });
-    footer(s, 15, total, 'Onboarding');
+    footer(s, n, total, 'Onboarding');
   }
 
   // 16. Next steps
-  {
+  if (active.has('next')) {
+    n++;
     const s = pptx.addSlide();
     s.background = { color: NAVY };
     s.addShape('rect', { x: 0, y: 7.4, w: 13.333, h: 0.1, fill: { color: CYAN } });

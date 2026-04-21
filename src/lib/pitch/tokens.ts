@@ -24,6 +24,8 @@ export interface PitchTokens {
   pricingPlans: PitchPricingPlan[];
   /** Per-slide content overrides keyed by slide id. */
   slideOverrides?: SlideContentMap;
+  /** Slides included in the deck. If empty/undefined, all slides are shown. */
+  enabledSlides?: string[];
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -86,6 +88,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   tone: 'voce',
   pricingPlans: DEFAULT_PRICING_PLANS,
   slideOverrides: {},
+  enabledSlides: undefined,
 };
 
 export function fillToken(value: string, fallback: string): string {
