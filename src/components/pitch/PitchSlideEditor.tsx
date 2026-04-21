@@ -77,11 +77,13 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
     reader.readAsDataURL(file);
   };
 
-  if (!schema) {
+  const isInvestmentSummary = slideMeta.id === 'investment-summary';
+
+  if (!schema && !isInvestmentSummary) {
     return <div className="p-5 text-sm text-muted-foreground">Este slide não é editável.</div>;
   }
 
-  const f = schema.fields;
+  const f = schema?.fields ?? {};
 
   return (
     <ScrollArea className="h-full">
