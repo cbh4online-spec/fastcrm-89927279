@@ -2,7 +2,7 @@ import { DEFAULT_PRICING_PLANS, PitchTokens, fillToken } from '@/lib/pitch/token
 import { resolveSlideContent, interpolate } from '@/lib/pitch/slideContent';
 import { SlideShell, SlideHeader, SlideFooter } from './SlideShell';
 import { Check } from 'lucide-react';
-import { convertPriceString, CURRENCIES, TIERS } from '@/lib/pitch/pricing';
+import { convertPriceString, getCurrencyMeta, TIERS } from '@/lib/pitch/pricing';
 
 export function Slide13Pricing({ tokens, pageNumber, total }: { tokens: PitchTokens; pageNumber: number; total: number }) {
   const company = fillToken(tokens.companyName, 'a sua empresa');
@@ -14,7 +14,7 @@ export function Slide13Pricing({ tokens, pageNumber, total }: { tokens: PitchTok
   const interval = tokens.billingInterval || 'monthly';
   const tier = tokens.tier || 'grow';
   const intervalShort = interval === 'annual' ? 'Anual' : 'Mensal';
-  const contextLabel = `${CURRENCIES[currency].code} · ${intervalShort} · ${TIERS[tier].label}`;
+  const contextLabel = `${getCurrencyMeta(currency).code} · ${intervalShort} · ${TIERS[tier].label}`;
   return (
     <SlideShell variant="light">
       <div className="absolute inset-0" style={{ padding: '100px 80px' }}>
