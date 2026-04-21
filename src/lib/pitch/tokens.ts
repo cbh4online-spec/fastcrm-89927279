@@ -105,6 +105,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   currency: 'EUR',
   billingInterval: 'monthly',
   tier: 'grow',
+  customCurrencies: [],
 };
 
 export function fillToken(value: string, fallback: string): string {
