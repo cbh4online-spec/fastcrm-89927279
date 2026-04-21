@@ -86,7 +86,7 @@ export default function PitchComparePage() {
   }, [search, category]);
 
   const computeMonthly = (m: ComparableModule): number => {
-    const meta = CURRENCIES[currency];
+    const meta = getCurrencyMeta(currency);
     const intervalMult = interval === 'annual' ? 10 : 1;
     return m.basePriceEur * meta.rate * TIERS[tier].multiplier * intervalMult;
   };
@@ -187,8 +187,8 @@ export default function PitchComparePage() {
             <Select value={currency} onValueChange={(v) => setCurrency(v as PitchCurrency)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(Object.keys(CURRENCIES) as PitchCurrency[]).map((c) => (
-                  <SelectItem key={c} value={c}>{CURRENCIES[c].label}</SelectItem>
+                {listCurrencyCodes().map((c) => (
+                  <SelectItem key={c} value={c}>{getCurrencyMeta(c).label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
