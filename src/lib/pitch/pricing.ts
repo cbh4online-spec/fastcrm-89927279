@@ -11,7 +11,13 @@
  * during a sales conversation, not transactional prices.
  */
 
-export type PitchCurrency = 'EUR' | 'USD' | 'GBP' | 'BRL';
+/**
+ * Currency code is an arbitrary uppercase ISO-like string (e.g. "EUR", "CAD",
+ * "JPY"). The set of supported codes is extensible at runtime — see
+ * `registerCurrency()` and the "Gerir moedas" UI in the pitch customization
+ * panel. Built-in defaults below; users may add more without code changes.
+ */
+export type PitchCurrency = string;
 export type PitchBillingInterval = 'monthly' | 'annual';
 export type PitchTier = 'grow' | 'pro' | 'enterprise';
 
@@ -39,7 +45,7 @@ export function tierLabel(tier: PitchTier | undefined): string {
   return TIERS[tier ?? 'grow'].label;
 }
 
-interface CurrencyMeta {
+export interface CurrencyMeta {
   code: PitchCurrency;
   symbol: string;
   /** Multiplier from EUR. */
@@ -51,12 +57,55 @@ interface CurrencyMeta {
   label: string;
 }
 
-export const CURRENCIES: Record<PitchCurrency, CurrencyMeta> = {
+/** Built-in currencies shipped with the app. */
+export const BUILT_IN_CURRENCIES: Record<string, CurrencyMeta> = {
   EUR: { code: 'EUR', symbol: '€',  rate: 1,    locale: 'pt-PT', symbolPosition: 'before', label: 'Euro (€)' },
   USD: { code: 'USD', symbol: '$',  rate: 1.08, locale: 'en-US', symbolPosition: 'before', label: 'US Dollar ($)' },
   GBP: { code: 'GBP', symbol: '£',  rate: 0.85, locale: 'en-GB', symbolPosition: 'before', label: 'British Pound (£)' },
   BRL: { code: 'BRL', symbol: 'R$', rate: 5.95, locale: 'pt-BR', symbolPosition: 'before', label: 'Real Brasileiro (R$)' },
 };
+
+/**
+ * Runtime currency registry. Starts as a shallow copy of the built-ins; the
+ * customization panel calls `registerCurrency()` at mount to inject any
+ * user-defined currencies stored in the pitch tokens. Code that needs a
+ * currency meta must use `getCurrencyMeta()` (with EUR fallback) instead of
+ * indexing this map directly.
+ */
+export const CURRENCIES: Record<string, CurrencyMeta> = { ...BUILT_IN_CURRENCIES };
+
+/** Register or replace a currency at runtime. Returns the normalized code. */
+export function registerCurrency(meta: CurrencyMeta): string {
+  const code = (meta.code || '').trim().toUpperCase();
+  if (!code) return '';
+  CURRENCIES[code] = { ...meta, code };
+  return code;
+}
+
+/** Remove a custom currency. Built-ins are protected. */
+export function unregisterCurrency(code: string): void {
+  const c = (code || '').trim().toUpperCase();
+  if (!c || BUILT_IN_CURRENCIES[c]) return;
+  delete CURRENCIES[c];
+}
+
+/** True if the code is one of the immutable defaults. */
+export function isBuiltInCurrency(code: string): boolean {
+  return Boolean(BUILT_IN_CURRENCIES[(code || '').toUpperCase()]);
+}
+
+/** Safe lookup with fallback to EUR for unknown codes. */
+export function getCurrencyMeta(code: PitchCurrency | undefined): CurrencyMeta {
+  if (!code) return CURRENCIES.EUR;
+  return CURRENCIES[code] || CURRENCIES.EUR;
+}
+
+/** All currently registered currency codes (built-ins first, then custom). */
+export function listCurrencyCodes(): string[] {
+  const builtIns = Object.keys(BUILT_IN_CURRENCIES);
+  const custom = Object.keys(CURRENCIES).filter((c) => !BUILT_IN_CURRENCIES[c]);
+  return [...builtIns, ...custom.sort()];
+}
 
 const INTERVAL_LABEL: Record<PitchBillingInterval, { short: string; long: string; multiplier: number }> = {
   monthly: { short: '/mês',  long: 'por mês', multiplier: 1 },
@@ -66,7 +115,7 @@ const INTERVAL_LABEL: Record<PitchBillingInterval, { short: string; long: string
 
 /** Format a numeric amount for a given currency. */
 export function formatPrice(amount: number, currency: PitchCurrency): string {
-  const meta = CURRENCIES[currency];
+  const meta = getCurrencyMeta(currency);
   const rounded = amount >= 100 ? Math.round(amount) : Math.round(amount * 10) / 10;
   const formatted = new Intl.NumberFormat(meta.locale, {
     minimumFractionDigits: rounded % 1 === 0 ? 0 : 1,
@@ -200,7 +249,7 @@ export function convertPriceString(
   tier?: PitchTier
 ): string | undefined {
   if (!input) return input;
-  const meta = CURRENCIES[currency];
+  const meta = getCurrencyMeta(currency);
   const tierMult = getTierMultiplier(tier);
   const annualMult = INTERVAL_LABEL.annual.multiplier;
 

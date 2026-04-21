@@ -1,5 +1,5 @@
 import type { SlideContentMap } from './slideContent';
-import type { PitchCurrency, PitchBillingInterval, PitchTier } from './pricing';
+import type { PitchCurrency, PitchBillingInterval, PitchTier, CurrencyMeta } from './pricing';
 
 export type PitchTone = 'tu' | 'voce';
 
@@ -33,6 +33,12 @@ export interface PitchTokens {
   billingInterval?: PitchBillingInterval;
   /** Pricing tier applied to module prices (Grow / Pro / Enterprise). */
   tier?: PitchTier;
+  /**
+   * User-defined currencies registered for this pitch (e.g. CAD, AUD, JPY).
+   * Merged into the runtime registry on panel mount; built-in currencies
+   * (EUR/USD/GBP/BRL) are immutable and cannot be overridden.
+   */
+  customCurrencies?: CurrencyMeta[];
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -99,6 +105,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   currency: 'EUR',
   billingInterval: 'monthly',
   tier: 'grow',
+  customCurrencies: [],
 };
 
 export function fillToken(value: string, fallback: string): string {

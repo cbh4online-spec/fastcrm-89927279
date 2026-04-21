@@ -13,12 +13,13 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
-import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
+import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, getCurrencyMeta, listCurrencyCodes, registerCurrency, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
 import { findMissingPrices } from '@/lib/pitch/validatePricing';
 import { AlertTriangle } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
+import { CurrencyManagerDialog } from './CurrencyManagerDialog';
 
 type PitchConfig = ReturnType<typeof usePitchConfig>;
 
@@ -48,6 +49,13 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const [crmTotal, setCrmTotal] = useState(0);
   const [crmPreview, setCrmPreview] = useState<CrmRow | null>(null);
   const debounceRef = useRef<number | null>(null);
+
+  // Re-hydrate the runtime currency registry from token-stored custom
+  // currencies whenever they change. Without this, slides rendered before
+  // the dialog is opened would fall back to EUR for unknown codes.
+  useEffect(() => {
+    (tokens.customCurrencies || []).forEach((c) => registerCurrency(c));
+  }, [tokens.customCurrencies]);
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -427,16 +435,25 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
+                  <CurrencyManagerDialog
+                    customCurrencies={tokens.customCurrencies || []}
+                    onChange={(next) => updateToken('customCurrencies', next)}
+                  />
+                </div>
                 <Select
                   value={tokens.currency || 'EUR'}
                   onValueChange={(v) => updateToken('currency', v as PitchCurrency)}
                 >
                   <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.values(CURRENCIES).map((c) => (
-                      <SelectItem key={c.code} value={c.code} className="text-xs">{c.label}</SelectItem>
-                    ))}
+                    {listCurrencyCodes().map((code) => {
+                      const meta = getCurrencyMeta(code);
+                      return (
+                        <SelectItem key={code} value={code} className="text-xs">{meta.label}</SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

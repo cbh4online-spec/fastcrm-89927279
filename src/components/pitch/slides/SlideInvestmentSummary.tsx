@@ -2,7 +2,7 @@ import { PitchTokens, fillToken } from '@/lib/pitch/tokens';
 import { resolveSlideContent, interpolate, DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
 import { SlideShell, SlideHeader, SlideFooter } from './SlideShell';
 import {
-  CURRENCIES,
+  getCurrencyMeta,
   TIERS,
   formatPrice,
   intervalLabel,
@@ -48,7 +48,7 @@ export function Slide16InvestmentSummary({
   const currency: PitchCurrency = tokens.currency || 'EUR';
   const tier: PitchTier = tokens.tier || 'grow';
   const tierMult = TIERS[tier].multiplier;
-  const fxRate = CURRENCIES[currency].rate;
+  const fxRate = getCurrencyMeta(currency).rate;
 
   const overrides = tokens.slideOverrides || {};
 
@@ -178,7 +178,7 @@ export function Slide16InvestmentSummary({
                   {formatPrice(monthlyConverted, currency)}
                 </div>
                 <div className="text-white/60 mt-2" style={{ fontSize: 14 }}>
-                  {activeOptionalCount} módulo{activeOptionalCount === 1 ? '' : 's'} · plano {TIERS[tier].label} · {CURRENCIES[currency].code}
+                  {activeOptionalCount} módulo{activeOptionalCount === 1 ? '' : 's'} · plano {TIERS[tier].label} · {getCurrencyMeta(currency).code}
                 </div>
               </div>
 
