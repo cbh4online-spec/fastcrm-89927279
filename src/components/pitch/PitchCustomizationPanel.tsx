@@ -524,6 +524,98 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             );
           })()}
 
+          {(() => {
+            const enabledList = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
+            const currency = (tokens.currency || 'EUR') as PitchCurrency;
+            const interval = (tokens.billingInterval || 'monthly') as PitchBillingInterval;
+            const tier = (tokens.tier || 'grow') as PitchTier;
+            const tierMult = TIERS[tier].multiplier;
+            const fxRate = getCurrencyMeta(currency).rate;
+            const overrides = tokens.slideOverrides || {};
+
+            let monthlyEur = 0;
+            let annualEur = 0;
+            let setupEur = 0;
+            let setupModules = 0;
+            let recurringModules = 0;
+            PITCH_SLIDES.forEach((s) => {
+              if (s.category === 'core' || !enabledList.includes(s.id)) return;
+              const ov = overrides[s.id];
+              const raw = ov?.price ?? DEFAULT_MODULE_PRICES[s.id]?.price;
+              const bd = parsePriceBreakdown(raw);
+              monthlyEur += bd.monthlyEur;
+              annualEur += bd.annualEur;
+              setupEur += bd.setupEur;
+              if (bd.setupEur > 0) setupModules += 1;
+              if (bd.monthlyEur > 0 || bd.annualEur > 0) recurringModules += 1;
+            });
+
+            if (monthlyEur === 0 && annualEur === 0 && setupEur === 0) return null;
+
+            const monthlyConverted = monthlyEur * tierMult * fxRate;
+            const annualFromMonthly = monthlyConverted * 10;
+            const explicitAnnualConverted = annualEur * tierMult * fxRate;
+            const annualRecurring = annualFromMonthly + explicitAnnualConverted;
+            const recurringDisplay = interval === 'annual' ? annualRecurring : monthlyConverted;
+            const setupConverted = setupEur * tierMult * fxRate;
+            const recurringLabel = interval === 'annual' ? 'Total anual recorrente' : 'Total mensal recorrente';
+            const ccy = getCurrencyMeta(currency).code;
+
+            return (
+              <div className="mb-3 rounded-md border border-border bg-card/50 p-2.5 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-foreground">Resumo do investimento</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {ccy} · {TIERS[tier].label}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded border border-border/60 bg-background p-2">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {recurringLabel}
+                    </div>
+                    <div className="font-mono tabular-nums font-semibold text-sm text-foreground mt-0.5">
+                      {formatPrice(recurringDisplay, currency)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {recurringModules} módulo{recurringModules === 1 ? '' : 's'}
+                      {interval === 'annual' && monthlyEur > 0 && ' · 10× mensal'}
+                    </div>
+                  </div>
+
+                  <div
+                    className={cn(
+                      'rounded border p-2',
+                      setupConverted > 0
+                        ? 'border-amber-500/40 bg-amber-500/5'
+                        : 'border-dashed border-border/50 bg-muted/30'
+                    )}
+                  >
+                    <div className="text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                      Setup único
+                    </div>
+                    <div className="font-mono tabular-nums font-semibold text-sm text-foreground mt-0.5">
+                      {setupConverted > 0 ? formatPrice(setupConverted, currency) : '—'}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {setupConverted > 0
+                        ? `${setupModules} módulo${setupModules === 1 ? '' : 's'} · cobrado uma vez`
+                        : 'Nenhum módulo com setup'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-muted-foreground leading-relaxed">
+                  Setup é apresentado em separado e nunca somado ao {interval === 'annual' ? 'anual' : 'mensal'}.
+                  {explicitAnnualConverted > 0 && monthlyEur > 0 && interval === 'annual' && (
+                    <> Inclui {formatPrice(explicitAnnualConverted, currency)} já tarifados /ano (sem desconto).</>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Slides core</div>
           <div className="space-y-1.5 mb-4">
             {PITCH_SLIDES.filter((s) => s.category === 'core').map((s) => {
