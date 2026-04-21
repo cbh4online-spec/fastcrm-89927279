@@ -138,6 +138,11 @@ export function PitchEditor() {
           </div>
 
           <div className="flex items-center gap-2">
+            {hasCustomOrder && (
+              <Button variant="ghost" size="sm" onClick={handleResetOrder} title="Repor ordem original">
+                <RotateCcw className="h-4 w-4 mr-2" /> Repor ordem
+              </Button>
+            )}
             <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport()}>
               {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               Exportar .pptx
@@ -157,27 +162,18 @@ export function PitchEditor() {
         </div>
 
         <div className="border-t bg-card overflow-x-auto">
-          <div className="flex gap-2 p-3">
-            {activeSlides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => setIndex(i)}
-                className={cn(
-                  'flex-shrink-0 w-32 rounded-md border-2 overflow-hidden transition',
-                  i === safeIndex ? 'border-primary shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
-                )}
-              >
-                <div className="bg-white" style={{ aspectRatio: '16 / 9' }}>
-                  <PitchSlideCanvas>
-                    <s.component tokens={tokens} pageNumber={i + 1} total={total} />
-                  </PitchSlideCanvas>
-                </div>
-                <div className="text-[10px] text-center py-1 bg-card text-muted-foreground truncate px-1">
-                  {i + 1}. {s.title}
-                </div>
-              </button>
-            ))}
+          <div className="flex items-center justify-between px-3 pt-2 text-[11px] text-muted-foreground">
+            <span>Arrasta as miniaturas para reordenar os slides.</span>
+            {hasCustomOrder && <span className="font-medium text-primary">Ordem personalizada ativa</span>}
           </div>
+          <PitchSlideThumbnails
+            slides={activeSlides}
+            currentIndex={safeIndex}
+            total={total}
+            tokens={tokens}
+            onSelect={setIndex}
+            onReorder={handleReorder}
+          />
         </div>
       </main>
     </div>
