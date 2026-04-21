@@ -232,28 +232,49 @@ function parseBaseEur(price: string | undefined): number {
   return parseFloat(match[1].replace(',', '.'));
 }
 
-/** Catálogo final, derivado de PITCH_SLIDES + DEFAULT_MODULE_PRICES + LIMITS_AND_NOTES. */
-export const COMPARABLE_MODULES: ComparableModule[] = PITCH_SLIDES
-  .filter((s) => s.category !== 'core')
-  .map((s) => {
-    const priceInfo = DEFAULT_MODULE_PRICES[s.id] ?? { price: '€0 /mês' };
-    const meta = LIMITS_AND_NOTES[s.id] ?? {
-      limits: { grow: '—', pro: '—', enterprise: '—' },
-      note: '',
-      tags: [],
-    };
-    return {
-      id: s.id,
-      title: s.title,
-      category: s.category as ModuleCategory,
-      basePriceEur: parseBaseEur(priceInfo.price),
-      priceLabel: priceInfo.price,
-      priceNote: priceInfo.priceNote,
-      limits: meta.limits,
-      note: meta.note,
-      tags: meta.tags,
-    };
-  });
+/** Catálogo final, derivado de PITCH_SLIDES + DEFAULT_MODULE_PRICES + LIMITS_AND_NOTES.
+ *  Lazy proxy para evitar ciclo de inicialização (slides/index.ts ↔ moduleCatalog.ts). */
+let _comparableModulesCache: ComparableModule[] | null = null;
+function buildComparableModules(): ComparableModule[] {
+  if (_comparableModulesCache) return _comparableModulesCache;
+  _comparableModulesCache = PITCH_SLIDES
+    .filter((s) => s.category !== 'core')
+    .map((s) => {
+      const priceInfo = DEFAULT_MODULE_PRICES[s.id] ?? { price: '€0 /mês' };
+      const meta = LIMITS_AND_NOTES[s.id] ?? {
+        limits: { grow: '—', pro: '—', enterprise: '—' },
+        note: '',
+        tags: [],
+      };
+      return {
+        id: s.id,
+        title: s.title,
+        category: s.category as ModuleCategory,
+        basePriceEur: parseBaseEur(priceInfo.price),
+        priceLabel: priceInfo.price,
+        priceNote: priceInfo.priceNote,
+        limits: meta.limits,
+        note: meta.note,
+        tags: meta.tags,
+      };
+    });
+  return _comparableModulesCache;
+}
+
+export const COMPARABLE_MODULES: ComparableModule[] = new Proxy([] as ComparableModule[], {
+  get(_t, prop, receiver) {
+    return Reflect.get(buildComparableModules(), prop, receiver);
+  },
+  has(_t, prop) {
+    return Reflect.has(buildComparableModules(), prop);
+  },
+  ownKeys() {
+    return Reflect.ownKeys(buildComparableModules());
+  },
+  getOwnPropertyDescriptor(_t, prop) {
+    return Reflect.getOwnPropertyDescriptor(buildComparableModules(), prop);
+  },
+});
 
 export const CATEGORY_LABELS: Record<ModuleCategory, string> = {
   module: 'Módulos',
