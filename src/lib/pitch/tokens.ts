@@ -39,6 +39,12 @@ export interface PitchTokens {
    * (EUR/USD/GBP/BRL) are immutable and cannot be overridden.
    */
   customCurrencies?: CurrencyMeta[];
+  /**
+   * Per-currency FX rate overrides (1 EUR = N units). Edited from the
+   * "Taxas de câmbio" screen and applied to the runtime registry on mount.
+   * Keys are uppercase ISO codes (e.g. "USD"). EUR is always 1.
+   */
+  customRates?: Record<string, number>;
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
