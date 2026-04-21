@@ -120,7 +120,7 @@ export function PitchEditor() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={exporting} onClick={handleExport}>
+            <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport()}>
               {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               Exportar .pptx
             </Button>
