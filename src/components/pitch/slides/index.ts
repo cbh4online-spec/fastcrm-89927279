@@ -18,6 +18,7 @@ import { Slide14Onboarding } from './Slide14Onboarding';
 import { Slide15Next } from './Slide15Next';
 import { makeModuleSlide } from './SlideModuleFeature';
 import { Slide16InvestmentSummary } from './SlideInvestmentSummary';
+import { SlideAiCredits } from './SlideAiCredits';
 
 export interface PitchSlideProps {
   tokens: PitchTokens;
@@ -87,6 +88,7 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
   { id: 'pipeline', title: 'Pipeline & Faturação', component: Slide09Pipeline, category: 'core' },
   { id: 'marketplace', title: 'Loja & Marketplace', component: Slide10Marketplace, category: 'core' },
   { id: 'results', title: 'Resultados', component: Slide12Results, category: 'core' },
+  { id: 'ai-credits', title: 'Créditos IA', component: SlideAiCredits, category: 'core' },
   { id: 'investment-summary', title: 'Resumo do investimento', component: Slide16InvestmentSummary, category: 'core' },
   { id: 'pricing', title: 'Investimento', component: Slide13Pricing, category: 'core' },
   { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding, category: 'core' },
