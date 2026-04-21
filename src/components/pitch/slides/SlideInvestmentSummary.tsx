@@ -11,7 +11,7 @@ import {
   type PitchTier,
 } from '@/lib/pitch/pricing';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS } from './index';
-import { buildPlanBreakdown, getSelectedPlan, DEFAULT_PLAN_SETUP_EUR } from '@/lib/pitch/planSummary';
+import { buildPlanBreakdown, getSelectedPlan, DEFAULT_PLAN_SETUP_EUR, parseAiCreditPacks, DEFAULT_AI_CREDIT_PACKS } from '@/lib/pitch/planSummary';
 
 interface LineItem {
   id: string;
