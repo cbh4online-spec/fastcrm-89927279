@@ -1,4 +1,5 @@
 import type { SlideContentMap } from './slideContent';
+import type { PitchCurrency, PitchBillingInterval } from './pricing';
 
 export type PitchTone = 'tu' | 'voce';
 
@@ -26,6 +27,10 @@ export interface PitchTokens {
   slideOverrides?: SlideContentMap;
   /** Slides included in the deck. If empty/undefined, all slides are shown. */
   enabledSlides?: string[];
+  /** Display currency for module prices. Defaults to EUR. */
+  currency?: PitchCurrency;
+  /** Billing interval used to compute module prices. Defaults to monthly. */
+  billingInterval?: PitchBillingInterval;
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -89,6 +94,8 @@ export const DEFAULT_TOKENS: PitchTokens = {
   pricingPlans: DEFAULT_PRICING_PLANS,
   slideOverrides: {},
   enabledSlides: undefined,
+  currency: 'EUR',
+  billingInterval: 'monthly',
 };
 
 export function fillToken(value: string, fallback: string): string {
