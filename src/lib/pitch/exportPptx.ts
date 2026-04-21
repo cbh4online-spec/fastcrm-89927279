@@ -2,6 +2,16 @@ import type PptxGenJSType from 'pptxgenjs';
 import { DEFAULT_PRICING_PLANS, PitchTokens, fillToken, formatMeetingDate } from './tokens';
 import { resolveSlideContent } from './slideContent';
 import { COMPARABLE_MODULES } from './moduleCatalog';
+import {
+  convertPriceString,
+  intervalLabel,
+  CURRENCIES,
+  TIERS,
+  parsePriceBreakdown,
+  formatPrice,
+  type PitchCurrency,
+  type PitchTier,
+} from './pricing';
 
 const NAVY = '0F172A';
 const CYAN = '22D3EE';
