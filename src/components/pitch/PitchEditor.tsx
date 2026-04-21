@@ -34,10 +34,28 @@ export function PitchEditor() {
     setPresenting(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = async (opts?: { force?: boolean }) => {
     if (!tokens.companyName.trim()) {
       toast.error('Indica o nome da empresa antes de exportar.');
       return;
+    }
+    if (!opts?.force) {
+      const { findMissingPrices, summarizeMissing } = await import('@/lib/pitch/validatePricing');
+      const missing = findMissingPrices(tokens);
+      if (missing.length > 0) {
+        toast.warning(
+          `${missing.length} módulo(s) sem preço: ${summarizeMissing(missing)}`,
+          {
+            description: 'Define o preço no painel do slide ou clica em "Exportar mesmo assim".',
+            duration: 8000,
+            action: {
+              label: 'Exportar mesmo assim',
+              onClick: () => handleExport({ force: true }),
+            },
+          }
+        );
+        return;
+      }
     }
     setExporting(true);
     try {
