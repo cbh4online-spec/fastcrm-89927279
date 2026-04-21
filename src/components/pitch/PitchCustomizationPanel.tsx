@@ -1,14 +1,15 @@
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, RotateCcw, Trash2, Upload, X, History, Database } from 'lucide-react';
+import { Save, RotateCcw, Trash2, Upload, X, History, Database, Search, ChevronLeft, ChevronRight, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -26,6 +27,8 @@ interface CrmRow {
   industry?: string | null;
 }
 
+const PAGE_SIZE = 10;
+
 export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const fallback = usePitchConfig();
   const { tokens, updateToken, resetTokens, history, saveToHistory, loadFromHistory, removeFromHistory } = config ?? fallback;
@@ -35,6 +38,10 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const [crmSearch, setCrmSearch] = useState('');
   const [crmRows, setCrmRows] = useState<CrmRow[]>([]);
   const [crmLoading, setCrmLoading] = useState(false);
+  const [crmPage, setCrmPage] = useState(0);
+  const [crmTotal, setCrmTotal] = useState(0);
+  const [crmPreview, setCrmPreview] = useState<CrmRow | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,22 +55,26 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
     reader.readAsDataURL(file);
   };
 
-  const loadCrm = async (tab: 'contacts' | 'leads' | 'companies', search: string) => {
+  const loadCrm = async (tab: 'contacts' | 'leads' | 'companies', search: string, page: number) => {
     if (!currentWorkspace?.id) return;
     setCrmLoading(true);
     try {
       const wsId = currentWorkspace.id;
       const s = search.trim().replace(/[,()]/g, ' ');
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       let rows: CrmRow[] = [];
+      let total = 0;
       if (tab === 'contacts') {
         let q = supabase.from('contacts')
-          .select('id, first_name, last_name, email, phone, job_title, company_id')
+          .select('id, first_name, last_name, email, phone, job_title, company_id', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         const ids = Array.from(new Set((data || []).map((r: any) => r.company_id).filter(Boolean)));
         const companyMap: Record<string, { name: string; industry?: string | null }> = {};
         if (ids.length) {
@@ -82,13 +93,14 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         }));
       } else if (tab === 'leads') {
         let q = supabase.from('leads')
-          .select('id, name, email, phone, company_name, position')
+          .select('id, name, email, phone, company_name, position', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%,company_name.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         rows = (data || []).map((r: any) => ({
           id: r.id,
           name: r.name || r.email || '—',
@@ -99,18 +111,20 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         }));
       } else {
         let q = supabase.from('companies')
-          .select('id, name, email, phone, industry')
+          .select('id, name, email, phone, industry', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         rows = (data || []).map((r: any) => ({
           id: r.id, name: r.name, email: r.email, phone: r.phone, industry: r.industry,
         }));
       }
       setCrmRows(rows);
+      setCrmTotal(total);
     } catch (e) {
       console.error('CRM load failed', e);
       toast.error('Erro ao carregar do CRM.');
@@ -118,6 +132,24 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
       setCrmLoading(false);
     }
   };
+
+  // Debounce search + reset to page 0 on tab/search change
+  useEffect(() => {
+    if (!crmOpen) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      setCrmPage(0);
+      loadCrm(crmTab, crmSearch, 0);
+    }, 250);
+    return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crmSearch, crmTab, crmOpen]);
+
+  useEffect(() => {
+    if (!crmOpen) return;
+    loadCrm(crmTab, crmSearch, crmPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crmPage]);
 
   const applyCrmRow = (row: CrmRow) => {
     if (crmTab === 'companies') {
@@ -129,10 +161,26 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
       if (row.company) updateToken('companyName', row.company);
       if (row.industry) updateToken('industry', row.industry);
     }
-    // Auto-fill presenter contact channels with the chosen entity's data only if empty?
-    // Keep tokens.presenter* as the user's own. We don't overwrite them with CRM contact data.
     setCrmOpen(false);
+    setCrmPreview(null);
     toast.success(`${row.name || 'Registo'} carregado do CRM.`);
+  };
+
+  const previewFields = (row: CrmRow): { label: string; value: string }[] => {
+    const isCompany = crmTab === 'companies';
+    const out: { label: string; value: string }[] = [];
+    if (isCompany) {
+      out.push({ label: 'Empresa', value: row.name || '—' });
+      if (row.industry) out.push({ label: 'Setor', value: row.industry });
+    } else {
+      out.push({ label: 'Contacto', value: row.name || '—' });
+      if (row.role) out.push({ label: 'Cargo', value: row.role });
+      if (row.company) out.push({ label: 'Empresa', value: row.company });
+      if (row.industry) out.push({ label: 'Setor', value: row.industry });
+    }
+    if (row.email) out.push({ label: 'Email', value: row.email });
+    if (row.phone) out.push({ label: 'Telefone', value: row.phone });
+    return out;
   };
 
   return (
@@ -141,48 +189,103 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Cliente</h3>
-            <Dialog open={crmOpen} onOpenChange={(o) => { setCrmOpen(o); if (o) loadCrm(crmTab, crmSearch); }}>
+            <Dialog open={crmOpen} onOpenChange={(o) => { setCrmOpen(o); if (!o) setCrmPreview(null); }}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs">
                   <Database className="h-3.5 w-3.5 mr-1" /> Carregar do CRM
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader><DialogTitle>Carregar dados do CRM</DialogTitle></DialogHeader>
-                <div className="flex gap-2 mb-3">
-                  {(['contacts', 'leads', 'companies'] as const).map((t) => (
-                    <Button
-                      key={t}
-                      size="sm"
-                      variant={crmTab === t ? 'default' : 'outline'}
-                      onClick={() => { setCrmTab(t); loadCrm(t, crmSearch); }}
-                    >
-                      {t === 'contacts' ? 'Contactos' : t === 'leads' ? 'Leads' : 'Empresas'}
-                    </Button>
-                  ))}
-                </div>
-                <Input
-                  placeholder="Pesquisar por nome..."
-                  value={crmSearch}
-                  onChange={(e) => setCrmSearch(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') loadCrm(crmTab, crmSearch); }}
-                />
-                <div className="max-h-[400px] overflow-y-auto mt-3 space-y-1">
-                  {crmLoading && <div className="text-sm text-muted-foreground p-3">A carregar…</div>}
-                  {!crmLoading && crmRows.length === 0 && <div className="text-sm text-muted-foreground p-3">Sem resultados.</div>}
-                  {crmRows.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => applyCrmRow(r)}
-                      className="w-full text-left p-3 rounded-md border hover:bg-muted/50 transition"
-                    >
-                      <div className="font-medium text-sm">{r.name || '—'}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {[r.role, r.company, r.email, r.phone].filter(Boolean).join(' · ') || '—'}
+              <DialogContent className="max-w-3xl p-0 overflow-hidden">
+                <DialogHeader className="px-5 pt-5 pb-3 border-b">
+                  <DialogTitle>{crmPreview ? 'Pré-visualização' : 'Carregar dados do CRM'}</DialogTitle>
+                </DialogHeader>
+
+                {!crmPreview && (
+                  <div className="px-5 pb-5">
+                    <div className="flex gap-2 mb-3">
+                      {(['contacts', 'leads', 'companies'] as const).map((t) => (
+                        <Button key={t} size="sm" variant={crmTab === t ? 'default' : 'outline'} onClick={() => setCrmTab(t)}>
+                          {t === 'contacts' ? 'Contactos' : t === 'leads' ? 'Leads' : 'Empresas'}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        placeholder="Pesquisar por nome, email ou empresa…"
+                        value={crmSearch}
+                        onChange={(e) => setCrmSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="min-h-[360px] max-h-[440px] overflow-y-auto mt-3 border rounded-md">
+                      {crmLoading && <div className="text-sm text-muted-foreground p-4 text-center">A carregar…</div>}
+                      {!crmLoading && crmRows.length === 0 && (
+                        <div className="text-sm text-muted-foreground p-6 text-center">Sem resultados.</div>
+                      )}
+                      {!crmLoading && crmRows.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => setCrmPreview(r)}
+                          className="w-full text-left p-3 border-b last:border-b-0 hover:bg-muted/50 transition"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm truncate">{r.name || '—'}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {[r.role, r.company, r.email, r.phone].filter(Boolean).join(' · ') || '—'}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                      <div>
+                        {crmTotal > 0
+                          ? `A mostrar ${crmPage * PAGE_SIZE + 1}-${Math.min((crmPage + 1) * PAGE_SIZE, crmTotal)} de ${crmTotal}`
+                          : '—'}
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" disabled={crmPage === 0 || crmLoading} onClick={() => setCrmPage((p) => Math.max(0, p - 1))}>
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="font-mono tabular-nums">{crmPage + 1} / {Math.max(1, Math.ceil(crmTotal / PAGE_SIZE))}</div>
+                        <Button size="sm" variant="outline" disabled={(crmPage + 1) * PAGE_SIZE >= crmTotal || crmLoading} onClick={() => setCrmPage((p) => p + 1)}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {crmPreview && (
+                  <div className="px-5 pb-5">
+                    <button onClick={() => setCrmPreview(null)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3">
+                      <ArrowLeft className="h-3.5 w-3.5" /> Voltar à lista
                     </button>
-                  ))}
-                </div>
+                    <div className="border rounded-md p-4 bg-muted/30">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                        Vai aplicar os seguintes campos
+                      </div>
+                      <dl className="grid grid-cols-[120px_1fr] gap-y-2 gap-x-4 text-sm">
+                        {previewFields(crmPreview).map((f) => (
+                          <div key={f.label} className="contents">
+                            <dt className="text-muted-foreground">{f.label}</dt>
+                            <dd className="font-medium truncate">{f.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 mt-4">
+                      <Button variant="outline" size="sm" onClick={() => setCrmPreview(null)}>Cancelar</Button>
+                      <Button size="sm" onClick={() => applyCrmRow(crmPreview)}>
+                        <Check className="h-4 w-4 mr-2" /> Aplicar ao pitch
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>
