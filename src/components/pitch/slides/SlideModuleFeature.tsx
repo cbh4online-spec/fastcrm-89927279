@@ -1,5 +1,6 @@
 import { PitchTokens } from '@/lib/pitch/tokens';
 import { resolveSlideContent } from '@/lib/pitch/slideContent';
+import { COMPARABLE_MODULES } from '@/lib/pitch/moduleCatalog';
 import { SlideShell, SlideHeader, SlideFooter } from './SlideShell';
 
 /**
