@@ -6,7 +6,7 @@ import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
 import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
-import { PITCH_SLIDES } from './slides';
+import { PITCH_SLIDES, getActiveSlides } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -19,8 +19,10 @@ export function PitchEditor() {
   const [panelOpen, setPanelOpen] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  const total = PITCH_SLIDES.length;
-  const Slide = PITCH_SLIDES[index].component;
+  const activeSlides = getActiveSlides(tokens.enabledSlides);
+  const total = activeSlides.length;
+  const safeIndex = Math.min(index, total - 1);
+  const Slide = activeSlides[safeIndex].component;
 
   const enterPresent = async () => {
     try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
