@@ -85,18 +85,20 @@ export function formatPrice(amount: number, currency: PitchCurrency): string {
 export function convertPriceString(
   input: string | undefined,
   currency: PitchCurrency,
-  interval: PitchBillingInterval
+  interval: PitchBillingInterval,
+  tier?: PitchTier
 ): string | undefined {
   if (!input) return input;
   const meta = CURRENCIES[currency];
   const intervalMeta = INTERVAL_LABEL[interval];
+  const tierMult = getTierMultiplier(tier);
 
   // Match a euro amount: € optionally followed by digits with . or , as decimals.
   const re = /€\s*(\d+(?:[.,]\d+)?)/g;
   let out = input.replace(re, (_full, raw: string) => {
     const value = parseFloat(raw.replace(',', '.'));
     if (!isFinite(value)) return _full;
-    const converted = value * meta.rate * intervalMeta.multiplier;
+    const converted = value * meta.rate * intervalMeta.multiplier * tierMult;
     return formatPrice(converted, currency);
   });
 
