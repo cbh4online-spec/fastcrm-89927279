@@ -47092,6 +47092,7 @@ export type Database = {
           sales_function: string
           updated_at: string
           visible: boolean
+          workspace_id: string
         }
         Insert: {
           created_at?: string
@@ -47101,6 +47102,7 @@ export type Database = {
           sales_function: string
           updated_at?: string
           visible?: boolean
+          workspace_id: string
         }
         Update: {
           created_at?: string
@@ -47110,8 +47112,17 @@ export type Database = {
           sales_function?: string
           updated_at?: string
           visible?: boolean
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profile_field_permissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profile_menu_permissions: {
         Row: {
@@ -47121,6 +47132,7 @@ export type Database = {
           sales_function: string
           updated_at: string
           visible: boolean
+          workspace_id: string
         }
         Insert: {
           created_at?: string
@@ -47129,6 +47141,7 @@ export type Database = {
           sales_function: string
           updated_at?: string
           visible?: boolean
+          workspace_id: string
         }
         Update: {
           created_at?: string
@@ -47137,8 +47150,17 @@ export type Database = {
           sales_function?: string
           updated_at?: string
           visible?: boolean
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profile_menu_permissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
