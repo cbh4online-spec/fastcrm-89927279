@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
+import { CURRENCIES, convertPriceString, intervalLabel, type PitchCurrency, type PitchBillingInterval } from '@/lib/pitch/pricing';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -383,6 +384,40 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             Capa e Próximos passos são obrigatórios. Módulos opcionais estão desligados por defeito.
           </p>
 
+          {/* Moeda + intervalo de faturação — afecta todos os preços dos módulos */}
+          <div className="grid grid-cols-2 gap-2 mb-4 p-2.5 rounded-md border bg-muted/30">
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
+              <Select
+                value={tokens.currency || 'EUR'}
+                onValueChange={(v) => updateToken('currency', v as PitchCurrency)}
+              >
+                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.values(CURRENCIES).map((c) => (
+                    <SelectItem key={c.code} value={c.code} className="text-xs">{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Intervalo</Label>
+              <Select
+                value={tokens.billingInterval || 'monthly'}
+                onValueChange={(v) => updateToken('billingInterval', v as PitchBillingInterval)}
+              >
+                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
+                  <SelectItem value="annual" className="text-xs">Anual · 2 meses grátis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 text-[10px] text-muted-foreground">
+              Os valores dos módulos abaixo são convertidos automaticamente ({intervalLabel(tokens.billingInterval || 'monthly')}).
+            </div>
+          </div>
+
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Slides core</div>
           <div className="space-y-1.5 mb-4">
             {PITCH_SLIDES.filter((s) => s.category === 'core').map((s) => {
@@ -462,17 +497,23 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                           }}
                         />
                         <span className="flex-1 truncate">{s.title}</span>
-                        {priceInfo && (
-                          <span
-                            className={cn(
-                              'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
-                              isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                            )}
-                            title={priceInfo.priceNote}
-                          >
-                            {priceInfo.price}
-                          </span>
-                        )}
+                        {priceInfo && (() => {
+                          const cur = tokens.currency || 'EUR';
+                          const itv = tokens.billingInterval || 'monthly';
+                          const displayPrice = convertPriceString(priceInfo.price, cur, itv) || priceInfo.price;
+                          const displayNote = convertPriceString(priceInfo.priceNote, cur, itv) || priceInfo.priceNote;
+                          return (
+                            <span
+                              className={cn(
+                                'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
+                                isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                              )}
+                              title={displayNote}
+                            >
+                              {displayPrice}
+                            </span>
+                          );
+                        })()}
                       </label>
                     );
                   })}

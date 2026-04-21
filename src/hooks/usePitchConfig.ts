@@ -31,6 +31,8 @@ function migrate(t: PitchTokens): PitchTokens {
   if (!out.slideOverrides || typeof out.slideOverrides !== 'object') {
     out = { ...out, slideOverrides: {} };
   }
+  if (!out.currency) out = { ...out, currency: 'EUR' };
+  if (!out.billingInterval) out = { ...out, billingInterval: 'monthly' };
   return out;
 }
 

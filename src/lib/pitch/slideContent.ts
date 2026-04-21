@@ -955,15 +955,17 @@ export const DEFAULT_MODULE_PRICES: Record<string, { price: string; priceNote?: 
   'pack-loyalty':          { price: '€35 /mês',  priceNote: 'por workspace' },
 };
 
+import { convertPriceString, type PitchCurrency, type PitchBillingInterval } from './pricing';
+
 /** Resolve effective content for a slide: override merged with defaults. */
 export function resolveSlideContent(
   id: string,
-  overrides: SlideContentMap | undefined
+  overrides: SlideContentMap | undefined,
+  pricing?: { currency?: PitchCurrency; interval?: PitchBillingInterval }
 ): SlideContent {
   const base = DEFAULT_SLIDE_CONTENT[id] || {};
   const ov = overrides?.[id] || {};
   const priceDefaults = DEFAULT_MODULE_PRICES[id];
-  // Merge primitives + arrays (override wins, but each item in arrays merges per-index)
   const mergeItems = (a?: SlideItem[], b?: SlideItem[]) => {
     if (!a) return b;
     if (!b) return a;
@@ -979,6 +981,14 @@ export function resolveSlideContent(
     if (!b) return a;
     return a.map((s, i) => (b[i] !== undefined && b[i] !== '' ? b[i] : s));
   };
+  let price = ov.price ?? base.price ?? priceDefaults?.price;
+  let priceNote = ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote;
+  if (pricing && (pricing.currency || pricing.interval)) {
+    const currency = pricing.currency || 'EUR';
+    const interval = pricing.interval || 'monthly';
+    if (!ov.price) price = convertPriceString(price, currency, interval);
+    if (!ov.priceNote) priceNote = convertPriceString(priceNote, currency, interval);
+  }
   return {
     eyebrow: ov.eyebrow ?? base.eyebrow,
     title: ov.title ?? base.title,
@@ -990,8 +1000,8 @@ export function resolveSlideContent(
     stats: mergeStats(base.stats, ov.stats),
     bullets: mergeBullets(base.bullets, ov.bullets),
     extraText: ov.extraText ?? base.extraText,
-    price: ov.price ?? base.price ?? priceDefaults?.price,
-    priceNote: ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote,
+    price,
+    priceNote,
   };
 }
 

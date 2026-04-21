@@ -20,7 +20,10 @@ export function SlideModuleFeature({
   pageNumber: number;
   total: number;
 }) {
-  const c = resolveSlideContent(slideId, tokens.slideOverrides);
+  const c = resolveSlideContent(slideId, tokens.slideOverrides, {
+    currency: tokens.currency,
+    interval: tokens.billingInterval,
+  });
   const items = c.items || [];
   const stats = c.stats || [];
 
