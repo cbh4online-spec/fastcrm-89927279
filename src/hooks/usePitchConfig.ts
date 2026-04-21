@@ -23,10 +23,14 @@ function readJSON<T>(key: string, fallback: T): T {
 }
 
 function migrate(t: PitchTokens): PitchTokens {
-  if (!t.pricingPlans || !Array.isArray(t.pricingPlans) || t.pricingPlans.length === 0) {
-    return { ...t, pricingPlans: DEFAULT_PRICING_PLANS };
+  let out = t;
+  if (!out.pricingPlans || !Array.isArray(out.pricingPlans) || out.pricingPlans.length === 0) {
+    out = { ...out, pricingPlans: DEFAULT_PRICING_PLANS };
   }
-  return t;
+  if (!out.slideOverrides || typeof out.slideOverrides !== 'object') {
+    out = { ...out, slideOverrides: {} };
+  }
+  return out;
 }
 
 export function usePitchConfig() {
