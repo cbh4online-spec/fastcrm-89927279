@@ -463,24 +463,24 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             const missing = findMissingPrices(tokens);
             if (missing.length === 0) return null;
             return (
-              <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs">
+              <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-xs">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-amber-900 dark:text-amber-200">
+                    <div className="font-medium text-foreground">
                       {missing.length} módulo{missing.length === 1 ? '' : 's'} sem preço definido
                     </div>
-                    <div className="mt-1 text-amber-800/80 dark:text-amber-300/80">
+                    <div className="mt-1 text-muted-foreground">
                       Define o preço no separador <strong>Slide atual</strong> antes de exportar para garantir cobertura comercial total.
                     </div>
                     <ul className="mt-1.5 space-y-0.5">
                       {missing.slice(0, 5).map((m) => (
-                        <li key={m.id} className="truncate text-amber-900 dark:text-amber-200">
+                        <li key={m.id} className="truncate text-foreground">
                           • {m.title}
                         </li>
                       ))}
                       {missing.length > 5 && (
-                        <li className="text-amber-800/70 dark:text-amber-300/70">
+                        <li className="text-muted-foreground">
                           +{missing.length - 5} adicional{missing.length - 5 === 1 ? '' : 'is'}…
                         </li>
                       )}
