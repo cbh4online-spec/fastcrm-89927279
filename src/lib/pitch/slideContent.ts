@@ -33,6 +33,10 @@ export interface SlideContent {
   bullets?: string[];
   stats?: SlideStat[];
   extraText?: string;
+  /** Preço/investimento do módulo (ex: "€29 /mês", "€499 setup + €19/mês"). */
+  price?: string;
+  /** Nota curta sobre o preço (ex: "por utilizador", "incluído no plano Grow"). */
+  priceNote?: string;
 }
 
 export type SlideContentMap = Record<string, SlideContent>;
