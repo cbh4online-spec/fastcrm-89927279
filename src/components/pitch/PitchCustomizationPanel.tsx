@@ -1,14 +1,15 @@
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, RotateCcw, Trash2, Upload, X, History, Database } from 'lucide-react';
+import { Save, RotateCcw, Trash2, Upload, X, History, Database, Search, ChevronLeft, ChevronRight, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -27,6 +28,9 @@ interface CrmRow {
 }
 
 export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
+const PAGE_SIZE = 10;
+
+export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const fallback = usePitchConfig();
   const { tokens, updateToken, resetTokens, history, saveToHistory, loadFromHistory, removeFromHistory } = config ?? fallback;
   const { currentWorkspace } = useWorkspace();
@@ -35,6 +39,10 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const [crmSearch, setCrmSearch] = useState('');
   const [crmRows, setCrmRows] = useState<CrmRow[]>([]);
   const [crmLoading, setCrmLoading] = useState(false);
+  const [crmPage, setCrmPage] = useState(0);
+  const [crmTotal, setCrmTotal] = useState(0);
+  const [crmPreview, setCrmPreview] = useState<CrmRow | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
