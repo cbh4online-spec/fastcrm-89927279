@@ -2,6 +2,16 @@ import type PptxGenJSType from 'pptxgenjs';
 import { DEFAULT_PRICING_PLANS, PitchTokens, fillToken, formatMeetingDate } from './tokens';
 import { resolveSlideContent } from './slideContent';
 import { COMPARABLE_MODULES } from './moduleCatalog';
+import {
+  convertPriceString,
+  intervalLabel,
+  CURRENCIES,
+  TIERS,
+  parsePriceBreakdown,
+  formatPrice,
+  type PitchCurrency,
+  type PitchTier,
+} from './pricing';
 
 const NAVY = '0F172A';
 const CYAN = '22D3EE';
@@ -56,8 +66,17 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const date = formatMeetingDate(tokens.meetingDate);
   const enabled = tokens.enabledSlides;
   const required = new Set(['cover', 'next']);
-  const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next'];
+  const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','investment-summary','onboarding','next'];
   const active = new Set<string>(enabled ? [...enabled, ...required] : coreDefault);
+
+  // Currency / interval / tier context, applied consistently to every slide.
+  const currency: PitchCurrency = tokens.currency || 'EUR';
+  const billingInterval = tokens.billingInterval || 'monthly';
+  const tier: PitchTier = tokens.tier || 'grow';
+  const tierMult = TIERS[tier].multiplier;
+  const fxRate = CURRENCIES[currency].rate;
+  const intervalShort = billingInterval === 'annual' ? 'Anual' : 'Mensal';
+  const pricingContextLabel = `${CURRENCIES[currency].code} · ${intervalShort} · ${TIERS[tier].label}`;
   const optionalModules = [
     'mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge',
     'vert-clinics','vert-realestate','vert-training','vert-condos','vert-agencies','vert-restaurants',
@@ -403,6 +422,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'INVESTIMENTO', 'Planos e investimento', `Proposta dimensionada para ${company}.`);
+    // Pricing context chip (top-right) — same currency/interval/tier as the panel.
+    s.addShape('roundRect', { x: 9.8, y: 0.5, w: 3.05, h: 0.42, fill: { color: BG_LIGHT }, line: { color: BORDER, width: 1 }, rectRadius: 0.08 });
+    s.addText(pricingContextLabel, {
+      x: 9.85, y: 0.5, w: 2.95, h: 0.42,
+      fontSize: 10, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri', charSpacing: 2,
+    });
     const plans = (tokens.pricingPlans && tokens.pricingPlans.length > 0) ? tokens.pricingPlans : DEFAULT_PRICING_PLANS;
     const cardW = 12 / plans.length - 0.2;
     plans.forEach((p, i) => {
@@ -416,9 +441,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
         s.addText('MAIS POPULAR', { x: x + 0.2, y: cy, w: 1.8, h: 0.3, fontSize: 8, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri' });
         cy += 0.4;
       }
+      // Convert plan price + sub to the active currency / interval / tier.
+      const displayPrice = convertPriceString(p.price, currency, billingInterval, tier) || p.price;
+      const displaySub = convertPriceString(p.sub, currency, billingInterval) || p.sub;
       s.addText(p.name, { x: x + 0.2, y: cy, w: cardW - 0.4, h: 0.4, fontSize: 18, bold: true, color: NAVY, fontFace: 'Calibri' });
-      s.addText(p.price, { x: x + 0.2, y: cy + 0.4, w: cardW - 0.4, h: 0.6, fontSize: 32, bold: true, color: NAVY, fontFace: 'Calibri' });
-      s.addText(p.sub, { x: x + 0.2, y: cy + 1, w: cardW - 0.4, h: 0.4, fontSize: 9, color: SLATE_LIGHT, fontFace: 'Calibri' });
+      s.addText(displayPrice, { x: x + 0.2, y: cy + 0.4, w: cardW - 0.4, h: 0.6, fontSize: 32, bold: true, color: NAVY, fontFace: 'Calibri' });
+      s.addText(displaySub, { x: x + 0.2, y: cy + 1, w: cardW - 0.4, h: 0.4, fontSize: 9, color: SLATE_LIGHT, fontFace: 'Calibri' });
       s.addText(
         p.features.slice(0, 7).map((f) => ({ text: f, options: { bullet: { code: '2713' }, color: NAVY } })),
         { x: x + 0.2, y: cy + 1.5, w: cardW - 0.4, h: 2.4, fontSize: 10, fontFace: 'Calibri', paraSpaceAfter: 4 }
@@ -427,7 +455,113 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     footer(s, n, total, 'Investimento');
   }
 
-  // 15. Onboarding
+  // 14b. Investment summary — auto-totals for active optional modules.
+  if (active.has('investment-summary')) {
+    n++;
+    const s = pptx.addSlide();
+    s.background = { color: WHITE };
+    const isum = resolveSlideContent('investment-summary', tokens.slideOverrides);
+    header(
+      s,
+      (isum.eyebrow || 'INVESTIMENTO TOTAL').toUpperCase(),
+      isum.title || `Resumo do investimento — ${company}`,
+      isum.subtitle || 'Soma automática dos módulos ativos no plano selecionado.'
+    );
+    // Pricing context chip (top-right) — same as Pricing slide.
+    s.addShape('roundRect', { x: 9.8, y: 0.5, w: 3.05, h: 0.42, fill: { color: BG_LIGHT }, line: { color: BORDER, width: 1 }, rectRadius: 0.08 });
+    s.addText(pricingContextLabel, {
+      x: 9.85, y: 0.5, w: 2.95, h: 0.42,
+      fontSize: 10, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri', charSpacing: 2,
+    });
+
+    // Aggregate over all enabled non-core modules.
+    const enabledIds = tokens.enabledSlides ?? coreDefault;
+    const overrides = tokens.slideOverrides || {};
+    const optionalIds = optionalModules.filter((id) => enabledIds.includes(id));
+    let monthlyEur = 0;
+    let setupEur = 0;
+    let annualEur = 0;
+    let modulesWithoutPrice = 0;
+    let modulesWithSetup = 0;
+    type Row = { label: string; monthlyConv: number; hasPrice: boolean };
+    const rows: Row[] = [];
+    const moduleLabelsForSummary: Record<string, string> = {};
+    optionalIds.forEach((id) => {
+      const ov = overrides[id];
+      const cDef = resolveSlideContent(id, undefined); // base, no conversion
+      const labelFromCatalog = COMPARABLE_MODULES.find((m) => m.id === id)?.title;
+      const label = ov?.title || cDef.title || labelFromCatalog || id;
+      moduleLabelsForSummary[id] = label;
+      const rawPrice = ov?.price ?? cDef.price;
+      const bd = parsePriceBreakdown(rawPrice);
+      monthlyEur += bd.monthlyEur;
+      setupEur += bd.setupEur;
+      annualEur += bd.annualEur;
+      if (!bd.hasAmount) modulesWithoutPrice++;
+      if (bd.setupEur > 0) modulesWithSetup++;
+      rows.push({
+        label,
+        monthlyConv: bd.monthlyEur * tierMult * fxRate,
+        hasPrice: bd.hasAmount,
+      });
+    });
+    const monthlyConverted = monthlyEur * tierMult * fxRate;
+    const annualRecurringConverted = monthlyConverted * 10 + annualEur * tierMult * fxRate;
+    const setupConverted = setupEur * tierMult * fxRate;
+
+    // Left column — module list (top 10 by monthly).
+    rows.sort((a, b) => b.monthlyConv - a.monthlyConv);
+    const visible = rows.slice(0, 10);
+    const hidden = rows.length - visible.length;
+    s.addShape('roundRect', { x: 0.5, y: 2.5, w: 7.5, h: 4.3, fill: { color: WHITE }, line: { color: BORDER, width: 1 }, rectRadius: 0.12 });
+    s.addText('MÓDULO', { x: 0.7, y: 2.6, w: 5.5, h: 0.3, fontSize: 9, bold: true, color: SLATE_LIGHT, charSpacing: 3, fontFace: 'Calibri' });
+    s.addText(`MENSAL · ${TIERS[tier].label.toUpperCase()}`, { x: 6.2, y: 2.6, w: 1.7, h: 0.3, fontSize: 9, bold: true, color: SLATE_LIGHT, align: 'right', charSpacing: 2, fontFace: 'Calibri' });
+    visible.forEach((r, i) => {
+      const ry = 2.95 + i * 0.36;
+      s.addText(r.label, { x: 0.7, y: ry, w: 5.5, h: 0.32, fontSize: 11, color: NAVY, fontFace: 'Calibri' });
+      s.addText(r.hasPrice ? formatPrice(r.monthlyConv, currency) : '—', {
+        x: 6.2, y: ry, w: 1.7, h: 0.32, fontSize: 11, bold: true, color: NAVY, align: 'right', fontFace: 'Calibri',
+      });
+    });
+    if (hidden > 0) {
+      s.addText(`+ ${hidden} módulo${hidden === 1 ? '' : 's'} adicional${hidden === 1 ? '' : 'is'}…`, {
+        x: 0.7, y: 2.95 + visible.length * 0.36, w: 7.1, h: 0.3, fontSize: 10, color: SLATE_LIGHT, italic: true, align: 'center', fontFace: 'Calibri',
+      });
+    }
+
+    // Right column — totals.
+    const rx = 8.3;
+    const rw = 4.5;
+    // Monthly card
+    s.addShape('roundRect', { x: rx, y: 2.5, w: rw, h: 1.4, fill: { color: NAVY }, line: { color: NAVY }, rectRadius: 0.12 });
+    s.addText('TOTAL MENSAL', { x: rx + 0.25, y: 2.6, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: CYAN, charSpacing: 4, fontFace: 'Calibri' });
+    s.addText(formatPrice(monthlyConverted, currency), { x: rx + 0.25, y: 2.9, w: rw - 0.5, h: 0.7, fontSize: 30, bold: true, color: WHITE, fontFace: 'Calibri' });
+    s.addText(`${optionalIds.length} módulo${optionalIds.length === 1 ? '' : 's'} · ${pricingContextLabel}`, {
+      x: rx + 0.25, y: 3.55, w: rw - 0.5, h: 0.3, fontSize: 9, color: 'FFFFFF99', fontFace: 'Calibri',
+    });
+    // Annual card
+    s.addShape('roundRect', { x: rx, y: 4.0, w: rw, h: 1.4, fill: { color: 'CFFAFE' }, line: { color: CYAN, width: 2 }, rectRadius: 0.12 });
+    s.addText('TOTAL ANUAL RECORRENTE', { x: rx + 0.25, y: 4.1, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: SUCCESS, charSpacing: 4, fontFace: 'Calibri' });
+    s.addText(formatPrice(annualRecurringConverted, currency), { x: rx + 0.25, y: 4.4, w: rw - 0.5, h: 0.7, fontSize: 28, bold: true, color: NAVY, fontFace: 'Calibri' });
+    s.addText('Equivale a 10× o mensal · 2 meses grátis', { x: rx + 0.25, y: 5.05, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: SUCCESS, fontFace: 'Calibri' });
+    // Setup card (only if applicable)
+    if (setupConverted > 0) {
+      s.addShape('roundRect', { x: rx, y: 5.5, w: rw, h: 1.0, fill: { color: 'FEF3C7' }, line: { color: 'FBBF24', width: 2 }, rectRadius: 0.12 });
+      s.addText('SETUP ÚNICO (ONE-TIME)', { x: rx + 0.25, y: 5.55, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: '92400E', charSpacing: 4, fontFace: 'Calibri' });
+      s.addText(formatPrice(setupConverted, currency), { x: rx + 0.25, y: 5.8, w: rw - 0.5, h: 0.45, fontSize: 22, bold: true, color: NAVY, fontFace: 'Calibri' });
+      s.addText(`Cobrado uma vez · ${modulesWithSetup} módulo${modulesWithSetup === 1 ? '' : 's'}`, {
+        x: rx + 0.25, y: 6.18, w: rw - 0.5, h: 0.3, fontSize: 9, color: '92400E', fontFace: 'Calibri',
+      });
+    }
+    if (modulesWithoutPrice > 0) {
+      const wy = setupConverted > 0 ? 6.6 : 5.6;
+      s.addText(`⚠ ${modulesWithoutPrice} módulo${modulesWithoutPrice === 1 ? '' : 's'} sem preço definido`, {
+        x: rx, y: wy, w: rw, h: 0.3, fontSize: 9, bold: true, color: '991B1B', italic: true, align: 'center', fontFace: 'Calibri',
+      });
+    }
+    footer(s, n, total, 'Resumo do investimento');
+  }
+
   if (active.has('onboarding')) {
     n++;
     const s = pptx.addSlide();
