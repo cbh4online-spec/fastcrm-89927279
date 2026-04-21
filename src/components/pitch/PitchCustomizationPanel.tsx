@@ -50,6 +50,13 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const [crmPreview, setCrmPreview] = useState<CrmRow | null>(null);
   const debounceRef = useRef<number | null>(null);
 
+  // Re-hydrate the runtime currency registry from token-stored custom
+  // currencies whenever they change. Without this, slides rendered before
+  // the dialog is opened would fall back to EUR for unknown codes.
+  useEffect(() => {
+    (tokens.customCurrencies || []).forEach((c) => registerCurrency(c));
+  }, [tokens.customCurrencies]);
+
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
