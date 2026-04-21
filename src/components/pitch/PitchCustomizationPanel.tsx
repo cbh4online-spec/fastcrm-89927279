@@ -497,17 +497,23 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                           }}
                         />
                         <span className="flex-1 truncate">{s.title}</span>
-                        {priceInfo && (
-                          <span
-                            className={cn(
-                              'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
-                              isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-                            )}
-                            title={priceInfo.priceNote}
-                          >
-                            {priceInfo.price}
-                          </span>
-                        )}
+                        {priceInfo && (() => {
+                          const cur = tokens.currency || 'EUR';
+                          const itv = tokens.billingInterval || 'monthly';
+                          const displayPrice = convertPriceString(priceInfo.price, cur, itv) || priceInfo.price;
+                          const displayNote = convertPriceString(priceInfo.priceNote, cur, itv) || priceInfo.priceNote;
+                          return (
+                            <span
+                              className={cn(
+                                'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
+                                isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                              )}
+                              title={displayNote}
+                            >
+                              {displayPrice}
+                            </span>
+                          );
+                        })()}
                       </label>
                     );
                   })}
