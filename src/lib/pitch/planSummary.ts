@@ -73,3 +73,45 @@ export const DEFAULT_PLAN_SETUP_EUR: Record<string, number> = {
   pro: 1990,
   enterprise: 4990,
 };
+
+/** Pacote de créditos IA adicionais (one-time top-up). Preço em EUR. */
+export interface AiCreditPack {
+  credits: number;
+  priceEur: number;
+}
+
+/** Pacotes default exibidos no slide quando não há override. */
+export const DEFAULT_AI_CREDIT_PACKS: AiCreditPack[] = [
+  { credits: 1000, priceEur: 29 },
+  { credits: 5000, priceEur: 99 },
+  { credits: 15000, priceEur: 249 },
+];
+
+/**
+ * Parse de pacotes a partir do `priceNote` do slide.
+ * Formato suportado: "packs:1000=29;5000=99;15000=249"
+ * (tolera espaços, separadores `,` ou `;`).
+ * Devolve `undefined` se não encontrar a chave `packs:`.
+ */
+export function parseAiCreditPacks(priceNote: string | undefined): AiCreditPack[] | undefined {
+  if (!priceNote) return undefined;
+  const m = priceNote.match(/packs?\s*[:=]\s*([0-9=,;\s.]+)/i);
+  if (!m) return undefined;
+  const parts = m[1].split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+  const packs: AiCreditPack[] = [];
+  for (const p of parts) {
+    const pm = p.match(/(\d[\d.]*)\s*=\s*(\d[\d.,]*)/);
+    if (!pm) continue;
+    const credits = parseInt(pm[1].replace(/\./g, ''), 10);
+    const priceEur = parseFloat(pm[2].replace(/\./g, '').replace(',', '.'));
+    if (isFinite(credits) && credits > 0 && isFinite(priceEur) && priceEur >= 0) {
+      packs.push({ credits, priceEur });
+    }
+  }
+  return packs.length > 0 ? packs : undefined;
+}
+
+/** Serializa pacotes para o formato compacto guardado em `priceNote`. */
+export function serializeAiCreditPacks(packs: AiCreditPack[]): string {
+  return 'packs:' + packs.map((p) => `${p.credits}=${p.priceEur}`).join(';');
+}
