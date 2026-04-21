@@ -31,6 +31,8 @@ export interface PitchTokens {
   currency?: PitchCurrency;
   /** Billing interval used to compute module prices. Defaults to monthly. */
   billingInterval?: PitchBillingInterval;
+  /** Pricing tier applied to module prices (Grow / Pro / Enterprise). */
+  tier?: PitchTier;
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -96,6 +98,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   enabledSlides: undefined,
   currency: 'EUR',
   billingInterval: 'monthly',
+  tier: 'grow',
 };
 
 export function fillToken(value: string, fallback: string): string {

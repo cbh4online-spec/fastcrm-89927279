@@ -33,6 +33,7 @@ function migrate(t: PitchTokens): PitchTokens {
   }
   if (!out.currency) out = { ...out, currency: 'EUR' };
   if (!out.billingInterval) out = { ...out, billingInterval: 'monthly' };
+  if (!out.tier) out = { ...out, tier: 'grow' };
   return out;
 }
 
