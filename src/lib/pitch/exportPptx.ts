@@ -547,7 +547,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     s.addShape('roundRect', { x: rx, y: 4.0, w: rw, h: 1.4, fill: { color: 'CFFAFE' }, line: { color: CYAN, width: 2 }, rectRadius: 0.12 });
     s.addText('TOTAL ANUAL RECORRENTE', { x: rx + 0.25, y: 4.1, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: SUCCESS, charSpacing: 4, fontFace: 'Calibri' });
     s.addText(formatPrice(annualRecurringConverted, currency), { x: rx + 0.25, y: 4.4, w: rw - 0.5, h: 0.7, fontSize: 28, bold: true, color: NAVY, fontFace: 'Calibri' });
-    s.addText('Equivale a 10× o mensal · 2 meses grátis', { x: rx + 0.25, y: 5.05, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: SUCCESS, fontFace: 'Calibri' });
+    const annualHelper = hasMonthlyTotal && hasExplicitAnnualTotal
+      ? `${formatPrice(annualFromMonthly, currency)} (10× mensal) + ${formatPrice(explicitAnnualConverted, currency)} /ano`
+      : hasExplicitAnnualTotal && !hasMonthlyTotal
+      ? 'Soma dos módulos tarifados /ano'
+      : 'Equivale a 10× o mensal · 2 meses grátis';
+    s.addText(annualHelper, { x: rx + 0.25, y: 5.05, w: rw - 0.5, h: 0.3, fontSize: 9, bold: true, color: SUCCESS, fontFace: 'Calibri' });
     // Setup card (only if applicable)
     if (setupConverted > 0) {
       s.addShape('roundRect', { x: rx, y: 5.5, w: rw, h: 1.0, fill: { color: 'FEF3C7' }, line: { color: 'FBBF24', width: 2 }, rectRadius: 0.12 });
