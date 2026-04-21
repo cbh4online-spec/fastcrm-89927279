@@ -22,6 +22,8 @@ interface CrmRow {
   phone?: string | null;
   role?: string | null;
   company?: string | null;
+  companyId?: string | null;
+  industry?: string | null;
 }
 
 export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
@@ -50,37 +52,62 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
     if (!currentWorkspace?.id) return;
     setCrmLoading(true);
     try {
-      const wsFilter = ['eq', 'workspace_id', currentWorkspace.id] as const;
+      const wsId = currentWorkspace.id;
+      const s = search.trim().replace(/[,()]/g, ' ');
       let rows: CrmRow[] = [];
       if (tab === 'contacts') {
-        let q = supabase.from('contacts').select('id, first_name, last_name, email, phone, job_title, company_id').eq(wsFilter[1], wsFilter[2]).limit(20);
-        if (search.trim()) q = q.ilike('first_name', `%${search.trim()}%`);
-        const { data } = await q;
+        let q = supabase.from('contacts')
+          .select('id, first_name, last_name, email, phone, job_title, company_id')
+          .eq('workspace_id', wsId)
+          .order('updated_at', { ascending: false })
+          .limit(25);
+        if (s) q = q.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%`);
+        const { data, error } = await q;
+        if (error) throw error;
+        const ids = Array.from(new Set((data || []).map((r: any) => r.company_id).filter(Boolean)));
+        const companyMap: Record<string, { name: string; industry?: string | null }> = {};
+        if (ids.length) {
+          const { data: comps } = await supabase.from('companies').select('id, name, industry').in('id', ids);
+          (comps || []).forEach((c: any) => { companyMap[c.id] = { name: c.name, industry: c.industry }; });
+        }
         rows = (data || []).map((r: any) => ({
           id: r.id,
-          name: [r.first_name, r.last_name].filter(Boolean).join(' '),
+          name: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.email || '—',
           email: r.email,
           phone: r.phone,
           role: r.job_title,
+          companyId: r.company_id,
+          company: r.company_id ? companyMap[r.company_id]?.name : null,
+          industry: r.company_id ? companyMap[r.company_id]?.industry : null,
         }));
       } else if (tab === 'leads') {
-        let q = supabase.from('leads').select('id, name, email, phone, company_name, position').eq(wsFilter[1], wsFilter[2]).limit(20);
-        if (search.trim()) q = q.ilike('name', `%${search.trim()}%`);
-        const { data } = await q;
+        let q = supabase.from('leads')
+          .select('id, name, email, phone, company_name, position')
+          .eq('workspace_id', wsId)
+          .order('updated_at', { ascending: false })
+          .limit(25);
+        if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%,company_name.ilike.%${s}%`);
+        const { data, error } = await q;
+        if (error) throw error;
         rows = (data || []).map((r: any) => ({
           id: r.id,
-          name: r.name,
+          name: r.name || r.email || '—',
           email: r.email,
           phone: r.phone,
           role: r.position,
           company: r.company_name,
         }));
       } else {
-        let q = supabase.from('companies').select('id, name, email, phone').eq(wsFilter[1], wsFilter[2]).limit(20);
-        if (search.trim()) q = q.ilike('name', `%${search.trim()}%`);
-        const { data } = await q;
+        let q = supabase.from('companies')
+          .select('id, name, email, phone, industry')
+          .eq('workspace_id', wsId)
+          .order('updated_at', { ascending: false })
+          .limit(25);
+        if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%`);
+        const { data, error } = await q;
+        if (error) throw error;
         rows = (data || []).map((r: any) => ({
-          id: r.id, name: r.name, email: r.email, phone: r.phone,
+          id: r.id, name: r.name, email: r.email, phone: r.phone, industry: r.industry,
         }));
       }
       setCrmRows(rows);
@@ -94,14 +121,18 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
 
   const applyCrmRow = (row: CrmRow) => {
     if (crmTab === 'companies') {
-      updateToken('companyName', row.name);
+      updateToken('companyName', row.name || '');
+      if (row.industry) updateToken('industry', row.industry);
     } else {
-      updateToken('contactName', row.name);
+      updateToken('contactName', row.name || '');
       if (row.role) updateToken('contactRole', row.role);
       if (row.company) updateToken('companyName', row.company);
+      if (row.industry) updateToken('industry', row.industry);
     }
+    // Auto-fill presenter contact channels with the chosen entity's data only if empty?
+    // Keep tokens.presenter* as the user's own. We don't overwrite them with CRM contact data.
     setCrmOpen(false);
-    toast.success('Dados carregados do CRM');
+    toast.success(`${row.name || 'Registo'} carregado do CRM.`);
   };
 
   return (
