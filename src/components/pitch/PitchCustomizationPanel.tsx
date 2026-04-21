@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PITCH_SLIDES, ALL_SLIDE_IDS } from './slides';
+import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS } from './slides';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
