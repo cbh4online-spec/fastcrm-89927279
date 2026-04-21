@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
-import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, getCurrencyMeta, listCurrencyCodes, registerCurrency, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
+import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, getCurrencyMeta, listCurrencyCodes, registerCurrency, setCurrencyRate, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
 import { findMissingPrices } from '@/lib/pitch/validatePricing';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, TrendingUp } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -51,11 +51,15 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
   const debounceRef = useRef<number | null>(null);
 
   // Re-hydrate the runtime currency registry from token-stored custom
-  // currencies whenever they change. Without this, slides rendered before
-  // the dialog is opened would fall back to EUR for unknown codes.
+  // currencies and FX rate overrides whenever they change. Without this,
+  // slides rendered before the dialog/screen is opened would fall back to
+  // EUR / built-in default rates.
   useEffect(() => {
     (tokens.customCurrencies || []).forEach((c) => registerCurrency(c));
-  }, [tokens.customCurrencies]);
+    Object.entries(tokens.customRates || {}).forEach(([code, rate]) => {
+      setCurrencyRate(code, rate);
+    });
+  }, [tokens.customCurrencies, tokens.customRates]);
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -435,12 +439,24 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-1">
                   <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
-                  <CurrencyManagerDialog
-                    customCurrencies={tokens.customCurrencies || []}
-                    onChange={(next) => updateToken('customCurrencies', next)}
-                  />
+                  <div className="flex items-center gap-0.5">
+                    <a
+                      href="/dashboard/pitch/exchange-rates"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center h-7 px-2 text-[10px] gap-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      title="Ajustar taxas de câmbio"
+                    >
+                      <TrendingUp className="h-3 w-3" />
+                      Taxas
+                    </a>
+                    <CurrencyManagerDialog
+                      customCurrencies={tokens.customCurrencies || []}
+                      onChange={(next) => updateToken('customCurrencies', next)}
+                    />
+                  </div>
                 </div>
                 <Select
                   value={tokens.currency || 'EUR'}
