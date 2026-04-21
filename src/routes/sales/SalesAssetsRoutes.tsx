@@ -4,6 +4,7 @@ import { Route } from "react-router-dom";
 const Proposals = lazy(() => import("@/pages/Proposals"));
 const PitchPage = lazy(() => import("@/pages/dashboard/PitchPage"));
 const PitchComparePage = lazy(() => import("@/pages/dashboard/PitchComparePage"));
+const PitchExchangeRatesPage = lazy(() => import("@/pages/dashboard/PitchExchangeRatesPage"));
 const ProposalDetail = lazy(() => import("@/pages/ProposalDetail"));
 const ProposalTemplateBuilderPage = lazy(() => import("@/pages/ProposalTemplateBuilderPage"));
 const Products = lazy(() => import("@/pages/Products"));
@@ -16,6 +17,7 @@ export function SalesAssetsRoutes() {
       <Route path="/dashboard/proposals" element={<Proposals />} />
       <Route path="/dashboard/pitch" element={<PitchPage />} />
       <Route path="/dashboard/pitch/compare" element={<PitchComparePage />} />
+      <Route path="/dashboard/pitch/exchange-rates" element={<PitchExchangeRatesPage />} />
       <Route path="/dashboard/proposals/templates/:id" element={<ProposalTemplateBuilderPage />} />
       <Route path="/dashboard/proposals/:id" element={<ProposalDetail />} />
       <Route path="/dashboard/products" element={<Products />} />
