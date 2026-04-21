@@ -35,7 +35,7 @@ export function findMissingPrices(tokens: PitchTokens): MissingPriceModule[] {
 
     // Override do utilizador tem prioridade sobre o default.
     const override = overrides[slide.id];
-    const overridePrice = override?.investmentBadge?.price;
+    const overridePrice = override?.price;
     const defaultPrice = DEFAULT_MODULE_PRICES[slide.id]?.price;
     const effective = overridePrice ?? defaultPrice;
 
