@@ -366,6 +366,35 @@ function InvestmentSummaryOverrides({
     }
   };
 
+  // ----- AI credit packs -----
+  const currentPacks: AiCreditPack[] = parseAiCreditPacks(currentPriceNote) ?? DEFAULT_AI_CREDIT_PACKS;
+
+  const persistPacks = (packs: AiCreditPack[]) => {
+    // Remove the existing packs:... segment from priceNote, preserving the rest (e.g. users:N).
+    const stripped = currentPriceNote.replace(/packs?\s*[:=]\s*[0-9=,;\s.]+/i, '').replace(/\s+/g, ' ').trim();
+    const serialized = packs.length > 0 ? serializeAiCreditPacks(packs) : '';
+    const next = [stripped, serialized].filter(Boolean).join(' ').trim();
+    onChangePriceNote(next);
+  };
+
+  const updatePack = (idx: number, patch: Partial<AiCreditPack>) => {
+    const next = currentPacks.map((p, i) => (i === idx ? { ...p, ...patch } : p));
+    persistPacks(next);
+  };
+
+  const addPack = () => {
+    const last = currentPacks[currentPacks.length - 1];
+    const credits = last ? Math.round(last.credits * 2) : 1000;
+    const priceEur = last ? Math.round(last.priceEur * 1.8) : 29;
+    persistPacks([...currentPacks, { credits, priceEur }]);
+  };
+
+  const removePack = (idx: number) => {
+    persistPacks(currentPacks.filter((_, i) => i !== idx));
+  };
+
+  const resetPacks = () => persistPacks(DEFAULT_AI_CREDIT_PACKS);
+
   return (
     <div className="rounded-md border border-dashed p-3 space-y-3 bg-muted/20">
       <div>
@@ -373,7 +402,7 @@ function InvestmentSummaryOverrides({
           Resumo de investimento — overrides
         </Label>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          Ajusta o setup do plano e o nº de utilizadores. Os totais (mensal, anual e setup único) atualizam automaticamente.
+          Ajusta o setup do plano, o nº de utilizadores e os pacotes de créditos IA extra. Os totais atualizam automaticamente.
         </p>
       </div>
 
@@ -410,6 +439,56 @@ function InvestmentSummaryOverrides({
         />
         <p className="text-[11px] text-muted-foreground mt-1">
           Vazio usa o valor detetado do plano selecionado.
+        </p>
+      </div>
+
+      {/* Pacotes de créditos IA extra */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Pacotes de créditos IA extra</Label>
+          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={resetPacks}>
+            <RotateCcw className="h-3 w-3 mr-1" /> Repor
+          </Button>
+        </div>
+        <div className="space-y-1.5">
+          {currentPacks.map((p, i) => (
+            <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+              <Input
+                type="number"
+                min={1}
+                step={100}
+                value={p.credits}
+                onChange={(e) => updatePack(i, { credits: parseInt(e.target.value, 10) || 0 })}
+                placeholder="Créditos"
+                className="h-8 text-xs"
+              />
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={p.priceEur}
+                onChange={(e) => updatePack(i, { priceEur: parseFloat(e.target.value) || 0 })}
+                placeholder="Preço €"
+                className="h-8 text-xs"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => removePack(i)}
+                aria-label="Remover pacote"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button type="button" variant="outline" size="sm" className="w-full h-7 text-xs" onClick={addPack}>
+          + Adicionar pacote
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Aparece no slide como "Comprar créditos extra". Preço em EUR — convertido para a moeda ativa.
         </p>
       </div>
     </div>
