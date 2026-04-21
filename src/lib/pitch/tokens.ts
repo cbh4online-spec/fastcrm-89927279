@@ -112,6 +112,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   billingInterval: 'monthly',
   tier: 'grow',
   customCurrencies: [],
+  customRates: {},
 };
 
 export function fillToken(value: string, fallback: string): string {

@@ -35,6 +35,7 @@ function migrate(t: PitchTokens): PitchTokens {
   if (!out.billingInterval) out = { ...out, billingInterval: 'monthly' };
   if (!out.tier) out = { ...out, tier: 'grow' };
   if (!Array.isArray(out.customCurrencies)) out = { ...out, customCurrencies: [] };
+  if (!out.customRates || typeof out.customRates !== 'object') out = { ...out, customRates: {} };
   return out;
 }
 
