@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PITCH_SLIDES, ALL_SLIDE_IDS } from './slides';
+import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS } from './slides';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -358,7 +358,15 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                 onClick={() => updateToken('enabledSlides', undefined)}
                 className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
-                Todos
+                Core
+              </button>
+              <span className="text-[10px] text-muted-foreground">·</span>
+              <button
+                type="button"
+                onClick={() => updateToken('enabledSlides', [...DEFAULT_ENABLED_SLIDE_IDS, ...OPTIONAL_MODULE_SLIDE_IDS])}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                Tudo
               </button>
               <span className="text-[10px] text-muted-foreground">·</span>
               <button
@@ -371,11 +379,13 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Capa e Próximos passos são obrigatórios. Os restantes podem ser desativados.
+            Capa e Próximos passos são obrigatórios. Módulos opcionais estão desligados por defeito.
           </p>
-          <div className="space-y-1.5">
-            {PITCH_SLIDES.map((s) => {
-              const enabledList = tokens.enabledSlides ?? ALL_SLIDE_IDS;
+
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Slides core</div>
+          <div className="space-y-1.5 mb-4">
+            {PITCH_SLIDES.filter((s) => !s.id.startsWith('mod-')).map((s) => {
+              const enabledList = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
               const isOn = s.required || enabledList.includes(s.id);
               return (
                 <label
@@ -390,7 +400,7 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                     disabled={s.required}
                     onCheckedChange={(checked) => {
                       if (s.required) return;
-                      const base = tokens.enabledSlides ?? ALL_SLIDE_IDS;
+                      const base = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
                       const next = checked
                         ? Array.from(new Set([...base, s.id]))
                         : base.filter((id) => id !== s.id);
@@ -399,6 +409,37 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                   />
                   <span className="flex-1 truncate">{s.title}</span>
                   {s.required && <span className="text-[10px] uppercase text-muted-foreground">obrig.</span>}
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+            Módulos opcionais
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground normal-case tracking-normal">
+              ative para falar destes módulos
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {PITCH_SLIDES.filter((s) => s.id.startsWith('mod-')).map((s) => {
+              const enabledList = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
+              const isOn = enabledList.includes(s.id);
+              return (
+                <label
+                  key={s.id}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm cursor-pointer hover:bg-muted/50"
+                >
+                  <Checkbox
+                    checked={isOn}
+                    onCheckedChange={(checked) => {
+                      const base = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
+                      const next = checked
+                        ? Array.from(new Set([...base, s.id]))
+                        : base.filter((id) => id !== s.id);
+                      updateToken('enabledSlides', next);
+                    }}
+                  />
+                  <span className="flex-1 truncate">{s.title}</span>
                 </label>
               );
             })}

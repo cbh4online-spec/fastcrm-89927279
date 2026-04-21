@@ -16,6 +16,7 @@ import { Slide12Results } from './Slide12Results';
 import { Slide13Pricing } from './Slide13Pricing';
 import { Slide14Onboarding } from './Slide14Onboarding';
 import { Slide15Next } from './Slide15Next';
+import { makeModuleSlide } from './SlideModuleFeature';
 
 export interface PitchSlideProps {
   tokens: PitchTokens;
@@ -48,13 +49,35 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
   { id: 'pricing', title: 'Investimento', component: Slide13Pricing },
   { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding },
   { id: 'next', title: 'Próximos passos', component: Slide15Next, required: true },
+
+  /* Módulos opcionais (off por defeito — ativar via "Módulos do pitch") */
+  { id: 'mod-revenue', title: 'Controlo de Receita', component: makeModuleSlide('mod-revenue', 'Controlo de Receita') },
+  { id: 'mod-procurement', title: 'Compras & Fornecedores', component: makeModuleSlide('mod-procurement', 'Compras') },
+  { id: 'mod-shop', title: 'Loja Online B2C', component: makeModuleSlide('mod-shop', 'Loja Online') },
+  { id: 'mod-renewals', title: 'Renovações & Subscrições', component: makeModuleSlide('mod-renewals', 'Renovações') },
+  { id: 'mod-support', title: 'Suporte & Atendimento', component: makeModuleSlide('mod-support', 'Suporte') },
+  { id: 'mod-knowledge', title: 'Base de Conhecimento', component: makeModuleSlide('mod-knowledge', 'Conhecimento') },
 ];
 
 export const ALL_SLIDE_IDS = PITCH_SLIDES.map((s) => s.id);
 
-/** Returns slides filtered by tokens.enabledSlides; required slides are always kept. */
+/** Returns slides filtered by tokens.enabledSlides; required slides are always kept.
+ *  Optional modules (id prefix `mod-`) are OFF by default and only shown when explicitly enabled.
+ */
 export function getActiveSlides(enabledSlides?: string[]): PitchSlideMeta[] {
-  if (!enabledSlides) return PITCH_SLIDES;
+  if (!enabledSlides) {
+    return PITCH_SLIDES.filter((s) => !s.id.startsWith('mod-'));
+  }
   const set = new Set(enabledSlides);
   return PITCH_SLIDES.filter((s) => s.required || set.has(s.id));
 }
+
+/** Default-enabled slides (everything except optional modules). Used for "Selecionar tudo (core)". */
+export const DEFAULT_ENABLED_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => !s.id.startsWith('mod-'))
+  .map((s) => s.id);
+
+/** All optional module slide IDs. */
+export const OPTIONAL_MODULE_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => s.id.startsWith('mod-'))
+  .map((s) => s.id);
