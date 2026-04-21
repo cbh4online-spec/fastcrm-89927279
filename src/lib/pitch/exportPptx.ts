@@ -5,7 +5,7 @@ import { COMPARABLE_MODULES } from './moduleCatalog';
 import {
   convertPriceString,
   intervalLabel,
-  CURRENCIES,
+  getCurrencyMeta,
   TIERS,
   parsePriceBreakdown,
   formatPrice,
@@ -74,9 +74,9 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const billingInterval = tokens.billingInterval || 'monthly';
   const tier: PitchTier = tokens.tier || 'grow';
   const tierMult = TIERS[tier].multiplier;
-  const fxRate = CURRENCIES[currency].rate;
+  const fxRate = getCurrencyMeta(currency).rate;
   const intervalShort = billingInterval === 'annual' ? 'Anual' : 'Mensal';
-  const pricingContextLabel = `${CURRENCIES[currency].code} · ${intervalShort} · ${TIERS[tier].label}`;
+  const pricingContextLabel = `${getCurrencyMeta(currency).code} · ${intervalShort} · ${TIERS[tier].label}`;
   const optionalModules = [
     'mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge',
     'vert-clinics','vert-realestate','vert-training','vert-condos','vert-agencies','vert-restaurants',
