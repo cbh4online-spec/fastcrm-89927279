@@ -56,22 +56,26 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
     reader.readAsDataURL(file);
   };
 
-  const loadCrm = async (tab: 'contacts' | 'leads' | 'companies', search: string) => {
+  const loadCrm = async (tab: 'contacts' | 'leads' | 'companies', search: string, page: number) => {
     if (!currentWorkspace?.id) return;
     setCrmLoading(true);
     try {
       const wsId = currentWorkspace.id;
       const s = search.trim().replace(/[,()]/g, ' ');
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       let rows: CrmRow[] = [];
+      let total = 0;
       if (tab === 'contacts') {
         let q = supabase.from('contacts')
-          .select('id, first_name, last_name, email, phone, job_title, company_id')
+          .select('id, first_name, last_name, email, phone, job_title, company_id', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         const ids = Array.from(new Set((data || []).map((r: any) => r.company_id).filter(Boolean)));
         const companyMap: Record<string, { name: string; industry?: string | null }> = {};
         if (ids.length) {
@@ -90,13 +94,14 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         }));
       } else if (tab === 'leads') {
         let q = supabase.from('leads')
-          .select('id, name, email, phone, company_name, position')
+          .select('id, name, email, phone, company_name, position', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%,company_name.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         rows = (data || []).map((r: any) => ({
           id: r.id,
           name: r.name || r.email || '—',
@@ -107,18 +112,20 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
         }));
       } else {
         let q = supabase.from('companies')
-          .select('id, name, email, phone, industry')
+          .select('id, name, email, phone, industry', { count: 'exact' })
           .eq('workspace_id', wsId)
           .order('updated_at', { ascending: false })
-          .limit(25);
+          .range(from, to);
         if (s) q = q.or(`name.ilike.%${s}%,email.ilike.%${s}%`);
-        const { data, error } = await q;
+        const { data, error, count } = await q;
         if (error) throw error;
+        total = count ?? 0;
         rows = (data || []).map((r: any) => ({
           id: r.id, name: r.name, email: r.email, phone: r.phone, industry: r.industry,
         }));
       }
       setCrmRows(rows);
+      setCrmTotal(total);
     } catch (e) {
       console.error('CRM load failed', e);
       toast.error('Erro ao carregar do CRM.');
@@ -126,6 +133,24 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
       setCrmLoading(false);
     }
   };
+
+  // Debounce search + reset to page 0 on tab/search change
+  useEffect(() => {
+    if (!crmOpen) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      setCrmPage(0);
+      loadCrm(crmTab, crmSearch, 0);
+    }, 250);
+    return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crmSearch, crmTab, crmOpen]);
+
+  useEffect(() => {
+    if (!crmOpen) return;
+    loadCrm(crmTab, crmSearch, crmPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crmPage]);
 
   const applyCrmRow = (row: CrmRow) => {
     if (crmTab === 'companies') {
@@ -137,10 +162,26 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
       if (row.company) updateToken('companyName', row.company);
       if (row.industry) updateToken('industry', row.industry);
     }
-    // Auto-fill presenter contact channels with the chosen entity's data only if empty?
-    // Keep tokens.presenter* as the user's own. We don't overwrite them with CRM contact data.
     setCrmOpen(false);
+    setCrmPreview(null);
     toast.success(`${row.name || 'Registo'} carregado do CRM.`);
+  };
+
+  const previewFields = (row: CrmRow): { label: string; value: string }[] => {
+    const isCompany = crmTab === 'companies';
+    const out: { label: string; value: string }[] = [];
+    if (isCompany) {
+      out.push({ label: 'Empresa', value: row.name || '—' });
+      if (row.industry) out.push({ label: 'Setor', value: row.industry });
+    } else {
+      out.push({ label: 'Contacto', value: row.name || '—' });
+      if (row.role) out.push({ label: 'Cargo', value: row.role });
+      if (row.company) out.push({ label: 'Empresa', value: row.company });
+      if (row.industry) out.push({ label: 'Setor', value: row.industry });
+    }
+    if (row.email) out.push({ label: 'Email', value: row.email });
+    if (row.phone) out.push({ label: 'Telefone', value: row.phone });
+    return out;
   };
 
   return (
