@@ -74,10 +74,17 @@ export function Slide16InvestmentSummary({
   const subtotalExplicitAnnualEur = items.reduce((acc, it) => acc + it.annualEurBase, 0);
 
   const monthlyConverted = subtotalMonthlyEur * tierMult * fxRate;
-  // Annual recurring = 10× monthly (2 months free) + segments already priced /ano
-  const annualRecurringConverted =
-    monthlyConverted * 10 + subtotalExplicitAnnualEur * tierMult * fxRate;
+  const explicitAnnualConverted = subtotalExplicitAnnualEur * tierMult * fxRate;
+  // Total anual recorrente:
+  //  - Mensais recorrentes ×10 (10× = 2 meses grátis)
+  //  - Anuais explícitos (/ano) somam tal e qual, sem multiplicar
+  const annualFromMonthly = monthlyConverted * 10;
+  const annualRecurringConverted = annualFromMonthly + explicitAnnualConverted;
   const setupConverted = subtotalSetupEur * tierMult * fxRate;
+  // Poupança aplica-se apenas à parte mensal (12× vs 10×). Anuais já são fixos.
+  const annualSavings = monthlyConverted * 2;
+  const hasExplicitAnnual = explicitAnnualConverted > 0;
+  const hasMonthly = monthlyConverted > 0;
 
   const modulesWithoutPrice = items.filter((it) => !it.hasPrice);
   const itemsWithSetup = items.filter((it) => it.setupEurBase > 0);
@@ -193,14 +200,20 @@ export function Slide16InvestmentSummary({
                   {formatPrice(annualRecurringConverted, currency)}
                 </div>
                 <div className="text-[#0E7490] mt-2 font-semibold" style={{ fontSize: 14 }}>
-                  Equivale a 10× o mensal · 2 meses grátis
+                  {hasMonthly && hasExplicitAnnual
+                    ? `${formatPrice(annualFromMonthly, currency)} (10× mensal) + ${formatPrice(explicitAnnualConverted, currency)} /ano`
+                    : hasExplicitAnnual && !hasMonthly
+                    ? 'Soma dos módulos tarifados /ano'
+                    : 'Equivale a 10× o mensal · 2 meses grátis'}
                 </div>
-                <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
-                  Poupança vs 12 meses: {formatPrice(monthlyConverted * 2, currency)}
-                </div>
-                {subtotalExplicitAnnualEur > 0 && (
+                {hasMonthly && (
+                  <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
+                    Poupança na parte mensal (vs 12×): {formatPrice(annualSavings, currency)}
+                  </div>
+                )}
+                {hasExplicitAnnual && hasMonthly && (
                   <div className="text-[#475569] mt-1" style={{ fontSize: 12 }}>
-                    Inclui {formatPrice(subtotalExplicitAnnualEur * tierMult * fxRate, currency)} já tarifados /ano
+                    Módulos /ano não recebem desconto (já tarifados anualmente).
                   </div>
                 )}
               </div>
