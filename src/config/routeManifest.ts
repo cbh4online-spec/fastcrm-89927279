@@ -26,7 +26,7 @@ import {
   LayoutDashboard, Newspaper, Gauge, Bell, RotateCcw,
   Users, UserCheck, Building2, TrendingUp, GitBranch,
   MessageSquare, Briefcase, UserPlus, Zap, Phone,
-  Inbox, Calendar, Send, FileText,
+  Inbox, Calendar, Send, FileText, Presentation,
   Mail, Megaphone, Workflow, PenTool, Globe, Link2, Instagram,
   Receipt, Package, Layers, CreditCard, BarChart3, Target,
   ShoppingBag, Store, CheckSquare,
@@ -220,6 +220,7 @@ export const ROUTE_MANIFEST: RouteEntry[] = [
   // VENDAS
   // ══════════════════════════════════════════════════════════════
   e("proposals",    "Propostas",        "/dashboard/proposals",         FileText,    "vendas", { moduleSlug: "proposals", menuKey: "proposals" }),
+  e("pitch",        "Apresentação",     "/dashboard/pitch",             Presentation,"vendas"),
   e("invoices",     "Faturas",          "/dashboard/invoices",          Receipt,     "vendas", { moduleSlug: "invoices", menuKey: "invoices" }),
   e("products",     "Produtos",         "/dashboard/products",          Package,     "vendas", { menuKey: "products" }),
   e("order-notes",  "Notas Encomenda",  "/dashboard/order-notes",       ClipboardList,"vendas"),
