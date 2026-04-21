@@ -18,6 +18,8 @@ import {
   SlideStat,
   resolveSlideContent,
 } from '@/lib/pitch/slideContent';
+import { DEFAULT_PLAN_SETUP_EUR } from '@/lib/pitch/planSummary';
+import { parsePriceBreakdown } from '@/lib/pitch/pricing';
 
 type PitchConfig = ReturnType<typeof usePitchConfig>;
 
