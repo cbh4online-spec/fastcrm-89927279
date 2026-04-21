@@ -221,6 +221,118 @@ export const DEFAULT_SLIDE_CONTENT: SlideContentMap = {
       { title: 'Setup em 48h', text: 'Importação de dados, ligação de canais e ativação.' },
     ],
   },
+
+  /* ===== MÓDULOS OPCIONAIS (deep-dive) ===== */
+
+  'mod-revenue': {
+    eyebrow: 'Módulo · Finanças',
+    title: 'Controlo de Receita & MRR',
+    subtitle: 'Visibilidade total sobre faturação, recebimentos e receita recorrente — em tempo real.',
+    stats: [
+      { value: '€ MRR', label: 'em tempo real', sub: 'agregado por plano e cliente' },
+      { value: '−42%', label: 'tempo a fechar mês', sub: 'reconciliação automatizada' },
+      { value: '100%', label: 'conformidade AT', sub: 'faturação certificada PT' },
+      { value: '0€', label: 'fugas de receita', sub: 'alertas de churn e atrasos' },
+    ],
+    items: [
+      { title: 'Dashboard financeiro', text: 'KPIs de faturação, recebimentos, dívida ativa e cash-flow projetado.' },
+      { title: 'MRR & ARR', text: 'Receita recorrente segmentada por plano, cliente e cohort, com churn rate.' },
+      { title: 'Reconciliação automática', text: 'Match entre faturas, recibos e movimentos bancários (SIBS, Stripe, MB Way).' },
+      { title: 'Alertas inteligentes', text: 'Avisos de faturas em atraso, contratos a renovar e contas em risco.' },
+    ],
+    extraText: 'Decisões financeiras suportadas em dados reais — não em folhas de Excel desatualizadas.',
+  },
+
+  'mod-procurement': {
+    eyebrow: 'Módulo · Operações',
+    title: 'Compras & Fornecedores',
+    subtitle: 'Centralize encomendas, preços e fornecedores — proteja margem com inteligência de preços.',
+    stats: [
+      { value: '−18%', label: 'custo de aquisição', sub: 'pesquisa de preços automatizada' },
+      { value: '3x', label: 'velocidade de encomenda', sub: 'fluxo aprovação → fornecedor' },
+      { value: '100%', label: 'rastreabilidade', sub: 'do pedido à receção' },
+      { value: '24/7', label: 'monitorização preços', sub: 'alertas de variação' },
+    ],
+    items: [
+      { title: 'Catálogo de fornecedores', text: 'Base unificada com condições, prazos, históricos de qualidade e preços por SKU.' },
+      { title: 'Encomendas & aprovações', text: 'Fluxo de aprovação multi-nível, geração automática de PO e envio direto.' },
+      { title: 'Inteligência de preços', text: 'Comparação automática entre fornecedores e proteção de margem em tempo real.' },
+      { title: 'Receção & stock', text: 'Conferência por código de barras, atualização automática de inventário.' },
+    ],
+  },
+
+  'mod-shop': {
+    eyebrow: 'Módulo · E-commerce',
+    title: 'Loja Online B2C',
+    subtitle: 'Loja completa pronta a vender — com cumprimento legal PT e integração nativa com o CRM.',
+    stats: [
+      { value: '15min', label: 'para publicar', sub: 'tema + catálogo + pagamentos' },
+      { value: '+27%', label: 'conversão checkout', sub: 'vs. plataformas genéricas' },
+      { value: '6+', label: 'métodos de pagamento', sub: 'Stripe, MB Way, Multibanco, …' },
+      { value: 'DL 24', label: '/2014 + RGPD', sub: 'cumprimento legal PT' },
+    ],
+    items: [
+      { title: 'Catálogo & variantes', text: 'Produtos com variantes, bundles, stock por armazém e categorias unificadas.' },
+      { title: 'Checkout otimizado', text: 'One-page, com Stripe, MB Way, Multibanco, transferência e pagamentos divididos.' },
+      { title: 'Cumprimento legal PT', text: 'DL 7/2004, DL 24/2014, DL 84/2021, RGPD e Diretiva Omnibus aplicados por defeito.' },
+      { title: 'Carrinhos abandonados', text: 'Recuperação automática multi-canal (Email, WhatsApp, SMS) com cupões dinâmicos.' },
+    ],
+    extraText: '🛒 Cada venda gera automaticamente uma oportunidade no CRM e uma fatura certificada.',
+  },
+
+  'mod-renewals': {
+    eyebrow: 'Módulo · Retenção',
+    title: 'Renovações & Subscrições',
+    subtitle: 'Motor completo para gerir contratos recorrentes, renovações e prevenir churn.',
+    stats: [
+      { value: '+24%', label: 'taxa de renovação', sub: 'com alertas e playbooks' },
+      { value: '−31%', label: 'churn voluntário', sub: 'após 6 meses de uso' },
+      { value: 'D-90', label: 'antecipação alertas', sub: 'tempo para agir' },
+      { value: 'Auto', label: 'faturação recorrente', sub: 'sem intervenção manual' },
+    ],
+    items: [
+      { title: 'Ciclo de vida do contrato', text: 'Datas de início, renovação, fim e índice de revisão de preço por cliente.' },
+      { title: 'Alertas D-90/D-60/D-30', text: 'Notificações automáticas ao gestor de conta com playbook de retenção.' },
+      { title: 'Faturação recorrente', text: 'Geração automática de faturas, recibos e recibos verdes em conformidade AT.' },
+      { title: 'Risco de churn', text: 'Score preditivo baseado em uso, sentimento e atividade comercial.' },
+    ],
+  },
+
+  'mod-support': {
+    eyebrow: 'Módulo · Atendimento',
+    title: 'Suporte & Atendimento ao Cliente',
+    subtitle: 'Centralize tickets, conversas e SLA — todos os canais, uma única vista do cliente.',
+    stats: [
+      { value: '−54%', label: 'tempo 1ª resposta', sub: 'inbox unificada + macros IA' },
+      { value: '4,9/5', label: 'CSAT médio', sub: 'inquéritos pós-resolução' },
+      { value: '24/7', label: 'cobertura', sub: 'IA + escalonamento humano' },
+      { value: 'SLA', label: 'monitorização ativa', sub: 'alertas antes de quebrar' },
+    ],
+    items: [
+      { title: 'Inbox unificada', text: 'WhatsApp, Email, IG, FB, SMS e Telegram numa única caixa de entrada.' },
+      { title: 'Tickets & SLA', text: 'Atribuição automática, prioridades, SLA por plano e escalonamento configurável.' },
+      { title: 'Base de conhecimento', text: 'Artigos, FAQs e respostas sugeridas por IA com base no histórico do cliente.' },
+      { title: 'CSAT & NPS', text: 'Inquéritos automáticos pós-resolução com análise de sentimento.' },
+    ],
+  },
+
+  'mod-knowledge': {
+    eyebrow: 'Módulo · Conhecimento',
+    title: 'Base de Conhecimento com IA',
+    subtitle: 'Toda a informação da empresa pesquisável e respondida em linguagem natural.',
+    stats: [
+      { value: 'RAG', label: 'arquitetura vetorial', sub: 'embeddings + reranking' },
+      { value: '−68%', label: 'tempo a procurar info', sub: 'colaboradores e suporte' },
+      { value: '∞', label: 'documentos suportados', sub: 'PDF, DOCX, web, vídeo' },
+      { value: 'PT', label: 'modelo otimizado', sub: 'língua portuguesa' },
+    ],
+    items: [
+      { title: 'Indexação automática', text: 'Carregue documentos, sites, vídeos e emails — IA indexa e mantém atualizado.' },
+      { title: 'Pesquisa semântica', text: 'Pergunte em linguagem natural e receba respostas com fontes citadas.' },
+      { title: 'Assistente interno', text: 'Copiloto para equipas comerciais, suporte e operações com contexto da empresa.' },
+      { title: 'Governação & permissões', text: 'Controlo granular sobre quem acede a quê — auditoria completa de pesquisas.' },
+    ],
+  },
 };
 
 /* ---------------- EDITOR SCHEMAS ---------------- */
@@ -242,6 +354,14 @@ export const SLIDE_EDITOR_SCHEMAS: SlideEditorSchema[] = [
   { id: 'pricing', title: 'Investimento', fields: { eyebrow: true, title: true, subtitle: true } },
   { id: 'onboarding', title: 'Onboarding', fields: { eyebrow: true, title: true, subtitle: true, items: { count: 4, titleLabel: 'Tema', textLabel: 'Descrição' } } },
   { id: 'next', title: 'Próximos passos', fields: { eyebrow: true, heroText: true, items: { count: 3 } } },
+
+  /* Módulos opcionais */
+  { id: 'mod-revenue', title: 'Controlo de Receita', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 }, extraText: { label: 'Frase de fecho' } } },
+  { id: 'mod-procurement', title: 'Compras & Fornecedores', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'mod-shop', title: 'Loja Online B2C', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 }, extraText: { label: 'Caixa de destaque' } } },
+  { id: 'mod-renewals', title: 'Renovações & Subscrições', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'mod-support', title: 'Suporte & Atendimento', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'mod-knowledge', title: 'Base de Conhecimento', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
 ];
 
 /** Resolve effective content for a slide: override merged with defaults. */
