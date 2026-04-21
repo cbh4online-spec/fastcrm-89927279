@@ -1,3 +1,5 @@
+import type { SlideContentMap } from './slideContent';
+
 export type PitchTone = 'tu' | 'voce';
 
 export interface PitchPricingPlan {
@@ -20,6 +22,8 @@ export interface PitchTokens {
   presenterPhone: string;
   tone: PitchTone;
   pricingPlans: PitchPricingPlan[];
+  /** Per-slide content overrides keyed by slide id. */
+  slideOverrides?: SlideContentMap;
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -81,6 +85,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   presenterPhone: '',
   tone: 'voce',
   pricingPlans: DEFAULT_PRICING_PLANS,
+  slideOverrides: {},
 };
 
 export function fillToken(value: string, fallback: string): string {

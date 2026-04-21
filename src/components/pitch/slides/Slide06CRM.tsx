@@ -1,22 +1,19 @@
 import { PitchTokens } from '@/lib/pitch/tokens';
+import { resolveSlideContent } from '@/lib/pitch/slideContent';
 import { SlideShell, SlideHeader, SlideFooter } from './SlideShell';
 import { Users, CheckCircle2 } from 'lucide-react';
 
-export function Slide06CRM({ pageNumber, total }: { tokens: PitchTokens; pageNumber: number; total: number }) {
+export function Slide06CRM({ tokens, pageNumber, total }: { tokens: PitchTokens; pageNumber: number; total: number }) {
+  const c = resolveSlideContent('crm', tokens.slideOverrides);
+  const bullets = c.bullets || [];
   return (
     <SlideShell variant="light">
       <div className="absolute inset-0" style={{ padding: '100px 80px' }}>
-        <SlideHeader eyebrow="Funcionalidade #1" title="CRM unificado" subtitle="Contactos, Leads, Empresas e Negócios numa só base — com PARE Score, deduplicação e enriquecimento automático." />
+        <SlideHeader eyebrow={c.eyebrow} title={c.title || ''} subtitle={c.subtitle} />
         <div className="grid grid-cols-2 gap-12 mt-8">
           <div className="space-y-6">
-            {[
-              'Vista 360º do cliente: histórico, conversas, faturas, ficheiros',
-              'Deduplicação inteligente por NIF, email e telefone',
-              'PARE Score — qualificação automática de leads (0–100)',
-              'Pipeline visual estilo Kanban + previsão de receita',
-              'Integrações nativas: GoHighLevel, Google, WhatsApp, SMS',
-            ].map((b) => (
-              <div key={b} className="flex items-start gap-4">
+            {bullets.map((b, i) => (
+              <div key={i} className="flex items-start gap-4">
                 <CheckCircle2 className="w-9 h-9 mt-1 flex-shrink-0" style={{ color: '#0E7490' }} />
                 <div className="text-[#0F172A]" style={{ fontSize: 28 }}>{b}</div>
               </div>
@@ -45,9 +42,6 @@ export function Slide06CRM({ pageNumber, total }: { tokens: PitchTokens; pageNum
               <div className="flex justify-between items-baseline">
                 <span className="text-white/60" style={{ fontSize: 22 }}>PARE Score</span>
                 <span className="font-black text-[#22D3EE]" style={{ fontSize: 56 }}>87</span>
-              </div>
-              <div className="text-white/70 mt-4" style={{ fontSize: 20 }}>
-                ✓ NIF válido · ✓ Email empresarial · ✓ Sector ICP · ⚠ Sem telefone
               </div>
             </div>
           </div>

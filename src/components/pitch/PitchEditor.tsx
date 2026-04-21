@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
+import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
 import { PITCH_SLIDES } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
@@ -57,11 +59,22 @@ export function PitchEditor() {
       <aside
         className={cn(
           'border-r bg-card transition-all duration-200 overflow-hidden flex-shrink-0',
-          panelOpen ? 'w-[340px]' : 'w-0'
+          panelOpen ? 'w-[360px]' : 'w-0'
         )}
       >
-        <div className="h-full">
-          <PitchCustomizationPanel config={config} />
+        <div className="h-full flex flex-col">
+          <Tabs defaultValue="client" className="h-full flex flex-col">
+            <TabsList className="m-3 grid grid-cols-2">
+              <TabsTrigger value="client">Cliente</TabsTrigger>
+              <TabsTrigger value="slide">Slide atual</TabsTrigger>
+            </TabsList>
+            <TabsContent value="client" className="flex-1 overflow-hidden mt-0">
+              <PitchCustomizationPanel config={config} />
+            </TabsContent>
+            <TabsContent value="slide" className="flex-1 overflow-hidden mt-0">
+              <PitchSlideEditor config={config} currentIndex={index} onSelectSlide={setIndex} />
+            </TabsContent>
+          </Tabs>
         </div>
       </aside>
 

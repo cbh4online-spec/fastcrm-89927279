@@ -1,10 +1,14 @@
 import { PitchTokens, fillToken } from '@/lib/pitch/tokens';
+import { resolveSlideContent, interpolate } from '@/lib/pitch/slideContent';
 import { SlideShell } from './SlideShell';
 import { Mail, Phone, Sparkles } from 'lucide-react';
 
 export function Slide15Next({ tokens }: { tokens: PitchTokens; pageNumber: number; total: number }) {
   const company = fillToken(tokens.companyName, 'a sua empresa');
   const presenter = fillToken(tokens.presenterName, 'Equipa FastCRM');
+  const c = resolveSlideContent('next', tokens.slideOverrides);
+  const heroText = interpolate(c.heroText, { company });
+  const items = c.items || [];
   return (
     <SlideShell variant="accent">
       <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, #22D3EE33 0%, transparent 70%)' }} />
@@ -15,20 +19,14 @@ export function Slide15Next({ tokens }: { tokens: PitchTokens; pageNumber: numbe
         <div className="font-black text-white" style={{ fontSize: 36, lineHeight: 1 }}>FastCRM</div>
       </div>
       <div className="absolute inset-0 flex flex-col justify-center" style={{ padding: '120px' }}>
-        <div className="text-[#22D3EE] font-semibold uppercase tracking-[0.3em] mb-6" style={{ fontSize: 24 }}>Próximos passos</div>
-        <h1 className="font-black leading-[1.05]" style={{ fontSize: 110 }}>
-          Vamos avançar com {company}?
-        </h1>
+        <div className="text-[#22D3EE] font-semibold uppercase tracking-[0.3em] mb-6" style={{ fontSize: 24 }}>{c.eyebrow}</div>
+        <h1 className="font-black leading-[1.05]" style={{ fontSize: 110 }}>{heroText}</h1>
         <div className="grid grid-cols-3 gap-6 mt-16">
-          {[
-            { n: '01', t: 'Trial de 14 dias', d: 'Acesso completo, sem compromisso e sem cartão.' },
-            { n: '02', t: 'Workshop de descoberta', d: '60 min com a equipa para alinhar processos e dores.' },
-            { n: '03', t: 'Setup em 48h', d: 'Importação de dados, ligação de canais e ativação.' },
-          ].map((s) => (
-            <div key={s.n} className="rounded-2xl p-8 bg-white/5 border border-white/10 backdrop-blur-sm">
-              <div className="text-[#22D3EE] font-black" style={{ fontSize: 56 }}>{s.n}</div>
-              <div className="font-bold text-white mt-2" style={{ fontSize: 30 }}>{s.t}</div>
-              <div className="text-white/70 mt-2" style={{ fontSize: 22 }}>{s.d}</div>
+          {items.map((s, i) => (
+            <div key={i} className="rounded-2xl p-8 bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="text-[#22D3EE] font-black" style={{ fontSize: 56 }}>{String(i + 1).padStart(2, '0')}</div>
+              <div className="font-bold text-white mt-2" style={{ fontSize: 30 }}>{s.title}</div>
+              <div className="text-white/70 mt-2" style={{ fontSize: 22 }}>{s.text}</div>
             </div>
           ))}
         </div>
@@ -53,13 +51,7 @@ export function Slide15Next({ tokens }: { tokens: PitchTokens; pageNumber: numbe
           </div>
         </div>
       </div>
-      <a
-        href="https://fastcrm.metodopare.ai"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[#22D3EE] font-semibold hover:underline"
-        style={{ fontSize: 18 }}
-      >
+      <a href="https://fastcrm.metodopare.ai" target="_blank" rel="noopener noreferrer" className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[#22D3EE] font-semibold hover:underline" style={{ fontSize: 18 }}>
         fastcrm.metodopare.ai
       </a>
     </SlideShell>

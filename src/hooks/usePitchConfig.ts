@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DEFAULT_PRICING_PLANS, DEFAULT_TOKENS, PitchHistoryEntry, PitchTokens } from '@/lib/pitch/tokens';
+import type { SlideContent } from '@/lib/pitch/slideContent';
 
 const MAX_HISTORY = 10;
 
@@ -23,10 +24,14 @@ function readJSON<T>(key: string, fallback: T): T {
 }
 
 function migrate(t: PitchTokens): PitchTokens {
-  if (!t.pricingPlans || !Array.isArray(t.pricingPlans) || t.pricingPlans.length === 0) {
-    return { ...t, pricingPlans: DEFAULT_PRICING_PLANS };
+  let out = t;
+  if (!out.pricingPlans || !Array.isArray(out.pricingPlans) || out.pricingPlans.length === 0) {
+    out = { ...out, pricingPlans: DEFAULT_PRICING_PLANS };
   }
-  return t;
+  if (!out.slideOverrides || typeof out.slideOverrides !== 'object') {
+    out = { ...out, slideOverrides: {} };
+  }
+  return out;
 }
 
 export function usePitchConfig() {
@@ -79,6 +84,28 @@ export function usePitchConfig() {
     });
   }, [fullName, user?.email]);
 
+  const updateSlideContent = useCallback((slideId: string, patch: Partial<SlideContent>) => {
+    setTokens((prev) => {
+      const current = prev.slideOverrides?.[slideId] || {};
+      return {
+        ...prev,
+        slideOverrides: { ...(prev.slideOverrides || {}), [slideId]: { ...current, ...patch } },
+      };
+    });
+  }, []);
+
+  const resetSlideContent = useCallback((slideId: string) => {
+    setTokens((prev) => {
+      const next = { ...(prev.slideOverrides || {}) };
+      delete next[slideId];
+      return { ...prev, slideOverrides: next };
+    });
+  }, []);
+
+  const resetAllSlideContent = useCallback(() => {
+    setTokens((prev) => ({ ...prev, slideOverrides: {} }));
+  }, []);
+
   const saveToHistory = useCallback(() => {
     if (!tokens.companyName.trim() && !tokens.contactName.trim()) return;
     const entry: PitchHistoryEntry = {
@@ -127,11 +154,14 @@ export function usePitchConfig() {
       setTokens,
       updateToken,
       resetTokens,
+      updateSlideContent,
+      resetSlideContent,
+      resetAllSlideContent,
       history,
       saveToHistory,
       loadFromHistory,
       removeFromHistory,
     }),
-    [tokens, updateToken, resetTokens, history, saveToHistory, loadFromHistory, removeFromHistory]
+    [tokens, updateToken, resetTokens, updateSlideContent, resetSlideContent, resetAllSlideContent, history, saveToHistory, loadFromHistory, removeFromHistory]
   );
 }
