@@ -115,7 +115,7 @@ const INTERVAL_LABEL: Record<PitchBillingInterval, { short: string; long: string
 
 /** Format a numeric amount for a given currency. */
 export function formatPrice(amount: number, currency: PitchCurrency): string {
-  const meta = CURRENCIES[currency];
+  const meta = getCurrencyMeta(currency);
   const rounded = amount >= 100 ? Math.round(amount) : Math.round(amount * 10) / 10;
   const formatted = new Intl.NumberFormat(meta.locale, {
     minimumFractionDigits: rounded % 1 === 0 ? 0 : 1,
