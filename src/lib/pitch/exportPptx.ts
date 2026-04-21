@@ -57,7 +57,14 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const required = new Set(['cover', 'next']);
   const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next'];
   const active = new Set<string>(enabled ? [...enabled, ...required] : coreDefault);
-  const optionalModules = ['mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge'];
+  const optionalModules = [
+    'mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge',
+    'vert-clinics','vert-realestate','vert-training','vert-condos','vert-agencies','vert-restaurants',
+    'vert-auto','vert-gyms','vert-beauty','vert-events','vert-construction','vert-legal',
+    'pack-billing-pt','pack-b2b-portal','pack-hr','pack-analytics','pack-omnichannel','pack-automations',
+    'pack-marketplace-c2c','pack-lives','pack-ai-sdr-deep','pack-pipeline-risk','pack-compliance-rgpd',
+    'pack-procurement-pro','pack-knowledge-rag','pack-saas-billing','pack-events-rsvp','pack-loyalty',
+  ];
   const total = [...coreDefault, ...optionalModules].filter((id) => active.has(id)).length;
   let n = 0;
 
@@ -450,6 +457,34 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     'mod-renewals': 'Renovações',
     'mod-support': 'Suporte',
     'mod-knowledge': 'Conhecimento',
+    'vert-clinics': 'Clínicas',
+    'vert-realestate': 'Imobiliárias',
+    'vert-training': 'Formação',
+    'vert-condos': 'Condomínios',
+    'vert-agencies': 'Agências',
+    'vert-restaurants': 'Restauração',
+    'vert-auto': 'Auto',
+    'vert-gyms': 'Ginásios',
+    'vert-beauty': 'Beleza',
+    'vert-events': 'Eventos',
+    'vert-construction': 'Construção',
+    'vert-legal': 'Legal',
+    'pack-billing-pt': 'Faturação PT',
+    'pack-b2b-portal': 'Portal B2B',
+    'pack-hr': 'RH',
+    'pack-analytics': 'Analytics',
+    'pack-omnichannel': 'Omnichannel',
+    'pack-automations': 'Automações',
+    'pack-marketplace-c2c': 'Marketplace',
+    'pack-lives': 'Lives',
+    'pack-ai-sdr-deep': 'AI SDR Pro',
+    'pack-pipeline-risk': 'Pipeline Risk',
+    'pack-compliance-rgpd': 'RGPD',
+    'pack-procurement-pro': 'Compras Pro',
+    'pack-knowledge-rag': 'Knowledge RAG',
+    'pack-saas-billing': 'SaaS Billing',
+    'pack-events-rsvp': 'Eventos RSVP',
+    'pack-loyalty': 'Fidelização',
   };
   const renderModuleSlide = (id: string, label: string) => {
     if (!active.has(id)) return;

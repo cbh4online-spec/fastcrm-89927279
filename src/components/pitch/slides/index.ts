@@ -24,60 +24,124 @@ export interface PitchSlideProps {
   total: number;
 }
 
+export type PitchSlideCategory = 'core' | 'module' | 'vertical' | 'pack';
+
 export interface PitchSlideMeta {
   id: string;
   title: string;
   component: ComponentType<PitchSlideProps>;
   /** Required slides cannot be disabled (Cover + Closing). */
   required?: boolean;
+  /** UI grouping. */
+  category: PitchSlideCategory;
 }
 
-export const PITCH_SLIDES: PitchSlideMeta[] = [
-  { id: 'cover', title: 'Capa', component: Slide01Cover, required: true },
-  { id: 'problem', title: 'O Problema', component: Slide02Problem },
-  { id: 'opportunity', title: 'Oportunidade', component: Slide03Opportunity },
-  { id: 'method-pare', title: 'Método PARE', component: SlideMethodPare },
-  { id: 'intro', title: 'O que é o FastCRM', component: Slide04Intro },
-  { id: 'how', title: 'Como funciona', component: Slide05HowItWorks },
-  { id: 'crm', title: 'CRM unificado', component: Slide06CRM },
-  { id: 'ai-sdr', title: 'AI SDR & Outbound', component: Slide07AISDR },
-  { id: 'inbox', title: 'Inbox omnichannel', component: Slide08Inbox },
-  { id: 'pipeline', title: 'Pipeline & Faturação', component: Slide09Pipeline },
-  { id: 'marketplace', title: 'Loja & Marketplace', component: Slide10Marketplace },
-  { id: 'diff', title: 'Diferenciadores', component: Slide11Differentiators },
-  { id: 'results', title: 'Resultados', component: Slide12Results },
-  { id: 'pricing', title: 'Investimento', component: Slide13Pricing },
-  { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding },
-  { id: 'next', title: 'Próximos passos', component: Slide15Next, required: true },
+/** Verticais de mercado (12) */
+const VERTICALS: Array<{ id: string; title: string; label: string }> = [
+  { id: 'vert-clinics', title: 'Clínicas & Saúde', label: 'Clínicas' },
+  { id: 'vert-realestate', title: 'Imobiliárias', label: 'Imobiliárias' },
+  { id: 'vert-training', title: 'Formação & E-learning', label: 'Formação' },
+  { id: 'vert-condos', title: 'Condomínios', label: 'Condomínios' },
+  { id: 'vert-agencies', title: 'Agências', label: 'Agências' },
+  { id: 'vert-restaurants', title: 'Restauração & Hotelaria', label: 'Restauração' },
+  { id: 'vert-auto', title: 'Oficinas Auto', label: 'Auto' },
+  { id: 'vert-gyms', title: 'Ginásios & Estúdios', label: 'Ginásios' },
+  { id: 'vert-beauty', title: 'Beleza & Estética', label: 'Beleza' },
+  { id: 'vert-events', title: 'Eventos & Catering', label: 'Eventos' },
+  { id: 'vert-construction', title: 'Construção & Obras', label: 'Construção' },
+  { id: 'vert-legal', title: 'Advocacia & Consultoria', label: 'Legal' },
+];
 
-  /* Módulos opcionais (off por defeito — ativar via "Módulos do pitch") */
-  { id: 'mod-revenue', title: 'Controlo de Receita', component: makeModuleSlide('mod-revenue', 'Controlo de Receita') },
-  { id: 'mod-procurement', title: 'Compras & Fornecedores', component: makeModuleSlide('mod-procurement', 'Compras') },
-  { id: 'mod-shop', title: 'Loja Online B2C', component: makeModuleSlide('mod-shop', 'Loja Online') },
-  { id: 'mod-renewals', title: 'Renovações & Subscrições', component: makeModuleSlide('mod-renewals', 'Renovações') },
-  { id: 'mod-support', title: 'Suporte & Atendimento', component: makeModuleSlide('mod-support', 'Suporte') },
-  { id: 'mod-knowledge', title: 'Base de Conhecimento', component: makeModuleSlide('mod-knowledge', 'Conhecimento') },
+/** Packs funcionais (16) */
+const PACKS: Array<{ id: string; title: string; label: string }> = [
+  { id: 'pack-billing-pt', title: 'Faturação PT (SAF-T/ATCUD)', label: 'Faturação PT' },
+  { id: 'pack-b2b-portal', title: 'Portal B2B', label: 'Portal B2B' },
+  { id: 'pack-hr', title: 'RH & People Operations', label: 'RH' },
+  { id: 'pack-analytics', title: 'Analytics & BI', label: 'Analytics' },
+  { id: 'pack-omnichannel', title: 'Comunicações Omnichannel', label: 'Omnichannel' },
+  { id: 'pack-automations', title: 'Automações No-Code', label: 'Automações' },
+  { id: 'pack-marketplace-c2c', title: 'Marketplace C2C', label: 'Marketplace' },
+  { id: 'pack-lives', title: 'Lives & Social Selling', label: 'Lives' },
+  { id: 'pack-ai-sdr-deep', title: 'AI SDR Pro', label: 'AI SDR Pro' },
+  { id: 'pack-pipeline-risk', title: 'Pipeline Risk Engine', label: 'Pipeline Risk' },
+  { id: 'pack-compliance-rgpd', title: 'Compliance & RGPD', label: 'RGPD' },
+  { id: 'pack-procurement-pro', title: 'Compras & Fornecedores Pro', label: 'Compras Pro' },
+  { id: 'pack-knowledge-rag', title: 'Knowledge Base RAG', label: 'Knowledge RAG' },
+  { id: 'pack-saas-billing', title: 'SaaS Billing & Subscriptions', label: 'SaaS Billing' },
+  { id: 'pack-events-rsvp', title: 'Eventos & RSVP', label: 'Eventos RSVP' },
+  { id: 'pack-loyalty', title: 'Fidelização & Cupões', label: 'Fidelização' },
+];
+
+export const PITCH_SLIDES: PitchSlideMeta[] = [
+  { id: 'cover', title: 'Capa', component: Slide01Cover, required: true, category: 'core' },
+  { id: 'problem', title: 'O Problema', component: Slide02Problem, category: 'core' },
+  { id: 'opportunity', title: 'Oportunidade', component: Slide03Opportunity, category: 'core' },
+  { id: 'method-pare', title: 'Método PARE', component: SlideMethodPare, category: 'core' },
+  { id: 'intro', title: 'O que é o FastCRM', component: Slide04Intro, category: 'core' },
+  { id: 'how', title: 'Como funciona', component: Slide05HowItWorks, category: 'core' },
+  { id: 'crm', title: 'CRM unificado', component: Slide06CRM, category: 'core' },
+  { id: 'ai-sdr', title: 'AI SDR & Outbound', component: Slide07AISDR, category: 'core' },
+  { id: 'inbox', title: 'Inbox omnichannel', component: Slide08Inbox, category: 'core' },
+  { id: 'pipeline', title: 'Pipeline & Faturação', component: Slide09Pipeline, category: 'core' },
+  { id: 'marketplace', title: 'Loja & Marketplace', component: Slide10Marketplace, category: 'core' },
+  { id: 'diff', title: 'Diferenciadores', component: Slide11Differentiators, category: 'core' },
+  { id: 'results', title: 'Resultados', component: Slide12Results, category: 'core' },
+  { id: 'pricing', title: 'Investimento', component: Slide13Pricing, category: 'core' },
+  { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding, category: 'core' },
+  { id: 'next', title: 'Próximos passos', component: Slide15Next, required: true, category: 'core' },
+
+  /* Módulos opcionais base */
+  { id: 'mod-revenue', title: 'Controlo de Receita', component: makeModuleSlide('mod-revenue', 'Controlo de Receita'), category: 'module' },
+  { id: 'mod-procurement', title: 'Compras & Fornecedores', component: makeModuleSlide('mod-procurement', 'Compras'), category: 'module' },
+  { id: 'mod-shop', title: 'Loja Online B2C', component: makeModuleSlide('mod-shop', 'Loja Online'), category: 'module' },
+  { id: 'mod-renewals', title: 'Renovações & Subscrições', component: makeModuleSlide('mod-renewals', 'Renovações'), category: 'module' },
+  { id: 'mod-support', title: 'Suporte & Atendimento', component: makeModuleSlide('mod-support', 'Suporte'), category: 'module' },
+  { id: 'mod-knowledge', title: 'Base de Conhecimento', component: makeModuleSlide('mod-knowledge', 'Conhecimento'), category: 'module' },
+
+  /* Verticais */
+  ...VERTICALS.map((v) => ({
+    id: v.id,
+    title: v.title,
+    component: makeModuleSlide(v.id, v.label),
+    category: 'vertical' as const,
+  })),
+
+  /* Packs */
+  ...PACKS.map((p) => ({
+    id: p.id,
+    title: p.title,
+    component: makeModuleSlide(p.id, p.label),
+    category: 'pack' as const,
+  })),
 ];
 
 export const ALL_SLIDE_IDS = PITCH_SLIDES.map((s) => s.id);
 
-/** Returns slides filtered by tokens.enabledSlides; required slides are always kept.
- *  Optional modules (id prefix `mod-`) are OFF by default and only shown when explicitly enabled.
- */
+/** Slides ativos no deck. Por defeito mostra apenas core. */
 export function getActiveSlides(enabledSlides?: string[]): PitchSlideMeta[] {
   if (!enabledSlides) {
-    return PITCH_SLIDES.filter((s) => !s.id.startsWith('mod-'));
+    return PITCH_SLIDES.filter((s) => s.category === 'core');
   }
   const set = new Set(enabledSlides);
   return PITCH_SLIDES.filter((s) => s.required || set.has(s.id));
 }
 
-/** Default-enabled slides (everything except optional modules). Used for "Selecionar tudo (core)". */
 export const DEFAULT_ENABLED_SLIDE_IDS = PITCH_SLIDES
-  .filter((s) => !s.id.startsWith('mod-'))
+  .filter((s) => s.category === 'core')
   .map((s) => s.id);
 
-/** All optional module slide IDs. */
 export const OPTIONAL_MODULE_SLIDE_IDS = PITCH_SLIDES
-  .filter((s) => s.id.startsWith('mod-'))
+  .filter((s) => s.category !== 'core')
+  .map((s) => s.id);
+
+export const BASE_MODULE_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => s.category === 'module')
+  .map((s) => s.id);
+
+export const VERTICAL_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => s.category === 'vertical')
+  .map((s) => s.id);
+
+export const PACK_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => s.category === 'pack')
   .map((s) => s.id);
