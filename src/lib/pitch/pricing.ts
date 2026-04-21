@@ -75,12 +75,123 @@ export function formatPrice(amount: number, currency: PitchCurrency): string {
   return meta.symbolPosition === 'before' ? `${meta.symbol}${formatted}` : `${formatted} ${meta.symbol}`;
 }
 
-/**
- * Replace every occurrence of "€NN" / "€NN.NN" / "€NN,NN" in a string with the
- * converted price in the target currency, applying the billing-interval
- * multiplier and rewriting "/mês" → "/ano" when applicable.
+/* ============================================================
+ * Segmented price parsing
  *
- * Strings that don't carry a euro amount are returned unchanged.
+ * Module price strings can mix several kinds of charges:
+ *   "€499 setup + €19/mês"        → one-time setup + recurring monthly
+ *   "€29 /mês"                    → recurring monthly only
+ *   "€290 /ano"                   → already annual (don't re-multiply)
+ *   "€99 setup"                   → one-time only
+ *   "+ 0,9% por venda"            → variable, no €
+ *
+ * We split the string into segments and tag each one. Setup amounts are
+ * NEVER multiplied by the annual factor — they are charged once. Annual
+ * amounts already expressed as "/ano" are also kept untouched on the
+ * monthly multiplier (only the tier and FX rate apply).
+ * ============================================================ */
+
+export type PriceSegmentKind = 'monthly' | 'annual' | 'setup' | 'variable';
+
+export interface PriceSegment {
+  /** Kind of charge — drives multipliers and totals. */
+  kind: PriceSegmentKind;
+  /** Original euro value (before tier/FX/interval). 0 for variable. */
+  amountEur: number;
+  /** Raw text of the segment, useful for debugging. */
+  raw: string;
+}
+
+export interface PriceBreakdown {
+  segments: PriceSegment[];
+  /** Sum of recurring monthly euros (in EUR, before tier/FX). */
+  monthlyEur: number;
+  /** Sum of one-time setup euros (in EUR, before tier/FX). */
+  setupEur: number;
+  /** Sum of explicitly-annual euros (in EUR, before tier/FX). */
+  annualEur: number;
+  /** True if any segment carries a € amount. */
+  hasAmount: boolean;
+  /** True if there is any non-zero setup. */
+  hasSetup: boolean;
+}
+
+const SETUP_HINT = /\b(setup|instala[çc][ãa]o|implementa[çc][ãa]o|onboarding|ativa[çc][ãa]o|one[\s-]?time|[úu]nico)\b/i;
+const ANNUAL_HINT = /(\/\s*ano\b|por\s+ano\b|anual\b|\/\s*yr\b|\/\s*year\b)/i;
+const MONTHLY_HINT = /(\/\s*m[êe]s\b|por\s+m[êe]s\b|\/\s*mo\b|\/\s*month\b)/i;
+const EUR_RE = /€\s*\d+(?:[.,]\d+)?/;
+
+function classifySegment(text: string): PriceSegmentKind {
+  if (SETUP_HINT.test(text)) return 'setup';
+  if (ANNUAL_HINT.test(text)) return 'annual';
+  if (MONTHLY_HINT.test(text)) return 'monthly';
+  // Default: a bare "€NN" without an interval is treated as monthly,
+  // because that's how the catalog defaults are written.
+  if (EUR_RE.test(text)) return 'monthly';
+  return 'variable';
+}
+
+function extractEur(text: string): number {
+  const m = text.match(/€\s*(\d+(?:[.,]\d+)?)/);
+  if (!m) return 0;
+  const v = parseFloat(m[1].replace(',', '.'));
+  return isFinite(v) ? v : 0;
+}
+
+/**
+ * Parse a price string into structured segments. The string is split on
+ * "+" (the convention used in the catalog for mixing charges), and each
+ * fragment is classified independently.
+ */
+export function parsePriceBreakdown(input: string | undefined): PriceBreakdown {
+  const empty: PriceBreakdown = {
+    segments: [],
+    monthlyEur: 0,
+    setupEur: 0,
+    annualEur: 0,
+    hasAmount: false,
+    hasSetup: false,
+  };
+  if (!input || typeof input !== 'string') return empty;
+
+  // Split on " + " but keep variants like "+0,9%" together (no €).
+  const parts = input.split(/\s*\+\s*/).filter(Boolean);
+  const segments: PriceSegment[] = parts.map((raw) => ({
+    raw,
+    kind: classifySegment(raw),
+    amountEur: extractEur(raw),
+  }));
+
+  let monthlyEur = 0;
+  let setupEur = 0;
+  let annualEur = 0;
+  for (const s of segments) {
+    if (s.kind === 'setup') setupEur += s.amountEur;
+    else if (s.kind === 'annual') annualEur += s.amountEur;
+    else if (s.kind === 'monthly') monthlyEur += s.amountEur;
+  }
+
+  return {
+    segments,
+    monthlyEur,
+    setupEur,
+    annualEur,
+    hasAmount: segments.some((s) => s.amountEur > 0),
+    hasSetup: setupEur > 0,
+  };
+}
+
+/**
+ * Convert a segmented price string respecting setup vs recurring rules:
+ *  - Setup euros: tier × FX (NEVER × annual factor — paid once).
+ *  - Monthly euros: tier × FX × interval factor (×1 monthly, ×10 annual).
+ *    When annual, the "/mês" suffix is rewritten to "/ano".
+ *  - Annual euros (already "/ano"): tier × FX, suffix kept. When the user
+ *    selects "monthly" view, we display them as "/ano" still, since the
+ *    catalog made an explicit yearly choice.
+ *  - Variable segments (e.g. "+ 0,9% por venda") are kept verbatim.
+ *
+ * Strings without any € amount are returned unchanged.
  */
 export function convertPriceString(
   input: string | undefined,
@@ -90,25 +201,39 @@ export function convertPriceString(
 ): string | undefined {
   if (!input) return input;
   const meta = CURRENCIES[currency];
-  const intervalMeta = INTERVAL_LABEL[interval];
   const tierMult = getTierMultiplier(tier);
+  const annualMult = INTERVAL_LABEL.annual.multiplier;
 
-  // Match a euro amount: € optionally followed by digits with . or , as decimals.
-  const re = /€\s*(\d+(?:[.,]\d+)?)/g;
-  let out = input.replace(re, (_full, raw: string) => {
-    const value = parseFloat(raw.replace(',', '.'));
-    if (!isFinite(value)) return _full;
-    const converted = value * meta.rate * intervalMeta.multiplier * tierMult;
-    return formatPrice(converted, currency);
+  const breakdown = parsePriceBreakdown(input);
+  if (!breakdown.hasAmount) return input;
+
+  const convertedParts = breakdown.segments.map((seg) => {
+    if (seg.amountEur <= 0) return seg.raw; // variable / unparsed
+
+    if (seg.kind === 'setup') {
+      // One-time: tier × FX only.
+      const value = seg.amountEur * tierMult * meta.rate;
+      return seg.raw.replace(/€\s*\d+(?:[.,]\d+)?/, formatPrice(value, currency));
+    }
+
+    if (seg.kind === 'annual') {
+      // Already yearly in the source — never multiply again.
+      const value = seg.amountEur * tierMult * meta.rate;
+      return seg.raw.replace(/€\s*\d+(?:[.,]\d+)?/, formatPrice(value, currency));
+    }
+
+    // Monthly segment.
+    const factor = interval === 'annual' ? annualMult : 1;
+    const value = seg.amountEur * tierMult * meta.rate * factor;
+    let out = seg.raw.replace(/€\s*\d+(?:[.,]\d+)?/, formatPrice(value, currency));
+    if (interval === 'annual') {
+      out = out.replace(/\/\s*m[êe]s\b/gi, '/ano');
+      out = out.replace(/\bpor\s+m[êe]s\b/gi, 'por ano');
+    }
+    return out;
   });
 
-  // Rewrite the interval suffix when annual.
-  if (interval === 'annual') {
-    out = out.replace(/\/\s*m[êe]s\b/gi, intervalMeta.short);
-    out = out.replace(/\bpor\s+m[êe]s\b/gi, 'por ano');
-  }
-
-  return out;
+  return convertedParts.join(' + ');
 }
 
 /** Build a short interval label (e.g. "Mensal", "Anual — 2 meses grátis"). */
