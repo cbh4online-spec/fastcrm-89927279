@@ -27,7 +27,6 @@ interface CrmRow {
   industry?: string | null;
 }
 
-export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
 const PAGE_SIZE = 10;
 
 export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
