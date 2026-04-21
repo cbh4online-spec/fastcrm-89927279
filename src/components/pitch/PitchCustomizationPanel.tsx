@@ -384,6 +384,15 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             Capa e Próximos passos são obrigatórios. Módulos opcionais estão desligados por defeito.
           </p>
 
+          <a
+            href="/dashboard/pitch/compare"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mb-3 text-[11px] font-medium text-primary hover:underline"
+          >
+            Abrir tabela de comparação completa →
+          </a>
+
           {/* Tier + Moeda + intervalo de faturação — afecta todos os preços dos módulos */}
           <div className="space-y-2 mb-4 p-2.5 rounded-md border bg-muted/30">
             <div>
