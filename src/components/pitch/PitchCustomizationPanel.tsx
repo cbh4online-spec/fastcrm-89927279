@@ -445,6 +445,7 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                 <div className="space-y-1.5">
                   {PITCH_SLIDES.filter((s) => s.category === cat).map((s) => {
                     const isOn = enabledList.includes(s.id);
+                    const priceInfo = DEFAULT_MODULE_PRICES[s.id];
                     return (
                       <label
                         key={s.id}
@@ -461,6 +462,17 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                           }}
                         />
                         <span className="flex-1 truncate">{s.title}</span>
+                        {priceInfo && (
+                          <span
+                            className={cn(
+                              'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
+                              isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                            )}
+                            title={priceInfo.priceNote}
+                          >
+                            {priceInfo.price}
+                          </span>
+                        )}
                       </label>
                     );
                   })}
