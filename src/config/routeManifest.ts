@@ -26,7 +26,7 @@ import {
   LayoutDashboard, Newspaper, Gauge, Bell, RotateCcw,
   Users, UserCheck, Building2, TrendingUp, GitBranch,
   MessageSquare, Briefcase, UserPlus, Zap, Phone,
-  Inbox, Calendar, Send, FileText,
+  Inbox, Calendar, Send, FileText, Presentation,
   Mail, Megaphone, Workflow, PenTool, Globe, Link2, Instagram,
   Receipt, Package, Layers, CreditCard, BarChart3, Target,
   ShoppingBag, Store, CheckSquare,
