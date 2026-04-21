@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2, RotateCcw } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
 import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
+import { PitchSlideThumbnails } from './PitchSlideThumbnails';
 import { PITCH_SLIDES, getActiveSlides } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { toast } from 'sonner';
@@ -13,16 +14,33 @@ import { cn } from '@/lib/utils';
 
 export function PitchEditor() {
   const config = usePitchConfig();
-  const { tokens } = config;
+  const { tokens, updateToken } = config;
   const [index, setIndex] = useState(0);
   const [presenting, setPresenting] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  const activeSlides = getActiveSlides(tokens.enabledSlides);
+  const activeSlides = getActiveSlides(tokens.enabledSlides, tokens.slideOrder);
   const total = activeSlides.length;
   const safeIndex = Math.min(index, total - 1);
   const Slide = activeSlides[safeIndex].component;
+
+  const handleReorder = (newOrderIds: string[]) => {
+    const currentSlideId = activeSlides[safeIndex]?.id;
+    updateToken('slideOrder', newOrderIds);
+    if (currentSlideId) {
+      const newIdx = newOrderIds.indexOf(currentSlideId);
+      if (newIdx >= 0) setIndex(newIdx);
+    }
+    toast.success('Ordem dos slides atualizada.');
+  };
+
+  const handleResetOrder = () => {
+    updateToken('slideOrder', undefined);
+    toast.success('Ordem dos slides reposta.');
+  };
+
+  const hasCustomOrder = Array.isArray(tokens.slideOrder) && tokens.slideOrder.length > 0;
 
   const enterPresent = async () => {
     try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
