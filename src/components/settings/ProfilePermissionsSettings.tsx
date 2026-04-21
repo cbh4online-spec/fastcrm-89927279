@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -65,18 +66,25 @@ interface FieldPerm {
 
 export function ProfilePermissionsSettings() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   const groupedRoutes = useMemo(getGroupedRoutes, []);
   const [menuSearch, setMenuSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   // ── Menu permissions ──
   const { data: menuPerms, isLoading: menuLoading } = useQuery({
-    queryKey: ["profile-menu-permissions"],
+    queryKey: ["profile-menu-permissions", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profile_menu_permissions").select("*");
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("profile_menu_permissions")
+        .select("*")
+        .eq("workspace_id", workspaceId);
       if (error) throw error;
       return data as MenuPerm[];
     },
+    enabled: !!workspaceId,
   });
 
   const [menuChanges, setMenuChanges] = useState<Map<string, boolean>>(new Map());
@@ -112,6 +120,7 @@ export function ProfilePermissionsSettings() {
 
   const saveMenus = useMutation({
     mutationFn: async () => {
+      if (!workspaceId) throw new Error("Sem workspace ativo");
       const entries = Array.from(menuChanges.entries());
       for (const [key, visible] of entries) {
         const [sales_function, menu_key] = key.split(":");
@@ -121,7 +130,9 @@ export function ProfilePermissionsSettings() {
         if (existing) {
           await supabase.from("profile_menu_permissions").update({ visible }).eq("id", existing.id);
         } else {
-          await supabase.from("profile_menu_permissions").insert({ sales_function, menu_key, visible });
+          await supabase
+            .from("profile_menu_permissions")
+            .insert({ sales_function, menu_key, visible, workspace_id: workspaceId });
         }
       }
     },
@@ -135,12 +146,17 @@ export function ProfilePermissionsSettings() {
 
   // ── Field permissions ──
   const { data: fieldPerms, isLoading: fieldLoading } = useQuery({
-    queryKey: ["profile-field-permissions"],
+    queryKey: ["profile-field-permissions", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profile_field_permissions").select("*");
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("profile_field_permissions")
+        .select("*")
+        .eq("workspace_id", workspaceId);
       if (error) throw error;
       return data as FieldPerm[];
     },
+    enabled: !!workspaceId,
   });
 
   const [fieldChanges, setFieldChanges] = useState<Map<string, boolean>>(new Map());
@@ -163,6 +179,7 @@ export function ProfilePermissionsSettings() {
 
   const saveFields = useMutation({
     mutationFn: async () => {
+      if (!workspaceId) throw new Error("Sem workspace ativo");
       const entries = Array.from(fieldChanges.entries());
       for (const [key, visible] of entries) {
         const [sales_function, page_key, field_key] = key.split(":");
@@ -172,7 +189,9 @@ export function ProfilePermissionsSettings() {
         if (existing) {
           await supabase.from("profile_field_permissions").update({ visible }).eq("id", existing.id);
         } else {
-          await supabase.from("profile_field_permissions").insert({ sales_function, page_key, field_key, visible });
+          await supabase
+            .from("profile_field_permissions")
+            .insert({ sales_function, page_key, field_key, visible, workspace_id: workspaceId });
         }
       }
     },
