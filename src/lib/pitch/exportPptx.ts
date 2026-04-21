@@ -1,5 +1,6 @@
 import type PptxGenJSType from 'pptxgenjs';
 import { DEFAULT_PRICING_PLANS, PitchTokens, fillToken, formatMeetingDate } from './tokens';
+import { resolveSlideContent } from './slideContent';
 
 const NAVY = '0F172A';
 const CYAN = '22D3EE';
