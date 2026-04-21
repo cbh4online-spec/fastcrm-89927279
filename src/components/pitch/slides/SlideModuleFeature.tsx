@@ -23,9 +23,11 @@ export function SlideModuleFeature({
   const c = resolveSlideContent(slideId, tokens.slideOverrides, {
     currency: tokens.currency,
     interval: tokens.billingInterval,
+    tier: tokens.tier,
   });
   const items = c.items || [];
   const stats = c.stats || [];
+  const tierName = tokens.tier === 'pro' ? 'Pro' : tokens.tier === 'enterprise' ? 'Enterprise' : 'Grow';
 
   return (
     <SlideShell variant="light">
@@ -38,8 +40,13 @@ export function SlideModuleFeature({
             style={{ top: 96, right: 80 }}
           >
             <div className="rounded-2xl bg-[#0F172A] text-white px-5 py-3 shadow-lg flex flex-col items-end">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#22D3EE] font-bold">
-                Investimento
+              <div className="flex items-center gap-2">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-[#22D3EE] font-bold">
+                  Investimento
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#22D3EE] text-[#0F172A]">
+                  {tierName}
+                </div>
               </div>
               <div className="font-black leading-none mt-1" style={{ fontSize: 32 }}>
                 {c.price}
