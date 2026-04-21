@@ -55,8 +55,10 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const date = formatMeetingDate(tokens.meetingDate);
   const enabled = tokens.enabledSlides;
   const required = new Set(['cover', 'next']);
-  const active = new Set<string>(enabled ? [...enabled, ...required] : ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next']);
-  const total = active.size;
+  const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next'];
+  const active = new Set<string>(enabled ? [...enabled, ...required] : coreDefault);
+  const optionalModules = ['mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge'];
+  const total = [...coreDefault, ...optionalModules].filter((id) => active.has(id)).length;
   let n = 0;
 
   // 1. Cover
