@@ -12,6 +12,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
+import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
