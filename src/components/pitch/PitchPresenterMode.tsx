@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { PitchTokens } from '@/lib/pitch/tokens';
-import { PITCH_SLIDES } from './slides';
+import { getActiveSlides } from './slides';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 
 interface Props {
@@ -11,8 +11,10 @@ interface Props {
 }
 
 export function PitchPresenterMode({ tokens, index, setIndex, onExit }: Props) {
-  const total = PITCH_SLIDES.length;
-  const Slide = PITCH_SLIDES[index].component;
+  const slides = getActiveSlides(tokens.enabledSlides);
+  const total = slides.length;
+  const safeIndex = Math.min(index, total - 1);
+  const Slide = slides[safeIndex].component;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
