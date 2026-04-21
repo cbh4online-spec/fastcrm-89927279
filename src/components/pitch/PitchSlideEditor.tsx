@@ -120,6 +120,17 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
           <RotateCcw className="h-4 w-4 mr-2" /> Repor slide para predefinição
         </Button>
 
+        {/* Investment Summary — overrides dedicados */}
+        {slideMeta.id === 'investment-summary' && (
+          <InvestmentSummaryOverrides
+            tier={c.tokens.tier || 'grow'}
+            currentPrice={effective.price ?? ''}
+            currentPriceNote={effective.priceNote ?? ''}
+            onChangePrice={(price) => update({ price })}
+            onChangePriceNote={(priceNote) => update({ priceNote })}
+          />
+        )}
+
         {/* Header fields */}
         {f.eyebrow && (
           <div>
