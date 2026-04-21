@@ -120,12 +120,32 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
 export const ALL_SLIDE_IDS = PITCH_SLIDES.map((s) => s.id);
 
 /** Slides ativos no deck. Por defeito mostra apenas core. */
-export function getActiveSlides(enabledSlides?: string[]): PitchSlideMeta[] {
-  if (!enabledSlides) {
-    return PITCH_SLIDES.filter((s) => s.category === 'core');
+export function getActiveSlides(
+  enabledSlides?: string[],
+  slideOrder?: string[],
+): PitchSlideMeta[] {
+  const base = !enabledSlides
+    ? PITCH_SLIDES.filter((s) => s.category === 'core')
+    : PITCH_SLIDES.filter((s) => s.required || new Set(enabledSlides).has(s.id));
+
+  if (!slideOrder || slideOrder.length === 0) return base;
+
+  const byId = new Map(base.map((s) => [s.id, s]));
+  const ordered: PitchSlideMeta[] = [];
+  const used = new Set<string>();
+
+  for (const id of slideOrder) {
+    const slide = byId.get(id);
+    if (slide && !used.has(id)) {
+      ordered.push(slide);
+      used.add(id);
+    }
   }
-  const set = new Set(enabledSlides);
-  return PITCH_SLIDES.filter((s) => s.required || set.has(s.id));
+  // Acrescenta os que faltam, preservando ordem original
+  for (const s of base) {
+    if (!used.has(s.id)) ordered.push(s);
+  }
+  return ordered;
 }
 
 export const DEFAULT_ENABLED_SLIDE_IDS = PITCH_SLIDES
