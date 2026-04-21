@@ -442,6 +442,62 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     footer(s, n, total, 'Onboarding');
   }
 
+  // ===== Optional module slides (deep-dive) =====
+  const moduleLabels: Record<string, string> = {
+    'mod-revenue': 'Controlo de Receita',
+    'mod-procurement': 'Compras',
+    'mod-shop': 'Loja Online',
+    'mod-renewals': 'Renovações',
+    'mod-support': 'Suporte',
+    'mod-knowledge': 'Conhecimento',
+  };
+  const renderModuleSlide = (id: string, label: string) => {
+    if (!active.has(id)) return;
+    n++;
+    const c = resolveSlideContent(id, tokens.slideOverrides);
+    const s = pptx.addSlide();
+    s.background = { color: WHITE };
+    header(s, (c.eyebrow || '').toUpperCase(), c.title || label, c.subtitle);
+
+    const stats = (c.stats || []).slice(0, 4);
+    if (stats.length > 0) {
+      const w = 12 / stats.length - 0.15;
+      stats.forEach((st, i) => {
+        const x = 0.5 + i * (w + 0.15);
+        s.addShape('rect', { x, y: 2.6, w: 0.08, h: 1.3, fill: { color: CYAN } });
+        s.addShape('rect', { x: x + 0.08, y: 2.6, w: w - 0.08, h: 1.3, fill: { color: BG_LIGHT } });
+        s.addText(st.value, { x: x + 0.25, y: 2.65, w: w - 0.3, h: 0.7, fontSize: 30, bold: true, color: NAVY, fontFace: 'Calibri' });
+        s.addText(st.label, { x: x + 0.25, y: 3.3, w: w - 0.3, h: 0.3, fontSize: 11, bold: true, color: NAVY, fontFace: 'Calibri' });
+        if (st.sub) s.addText(st.sub, { x: x + 0.25, y: 3.6, w: w - 0.3, h: 0.3, fontSize: 9, color: SLATE_LIGHT, fontFace: 'Calibri' });
+      });
+    }
+
+    const items = (c.items || []).slice(0, 4);
+    const yStart = stats.length > 0 ? 4.15 : 2.7;
+    items.forEach((it, i) => {
+      const x = 0.5 + (i % 2) * 6.3;
+      const y = yStart + Math.floor(i / 2) * 1.3;
+      s.addShape('roundRect', { x, y, w: 6, h: 1.2, fill: { color: WHITE }, line: { color: BORDER, width: 1 }, rectRadius: 0.1 });
+      s.addShape('roundRect', { x: x + 0.2, y: y + 0.2, w: 0.8, h: 0.8, fill: { color: 'CFFAFE' }, line: { color: 'CFFAFE' }, rectRadius: 0.1 });
+      s.addText(String(i + 1).padStart(2, '0'), { x: x + 0.2, y: y + 0.2, w: 0.8, h: 0.8, fontSize: 18, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri' });
+      s.addText(it.title, { x: x + 1.15, y: y + 0.15, w: 4.7, h: 0.4, fontSize: 14, bold: true, color: NAVY, fontFace: 'Calibri' });
+      s.addText(it.text, { x: x + 1.15, y: y + 0.55, w: 4.7, h: 0.65, fontSize: 11, color: SLATE, fontFace: 'Calibri' });
+    });
+
+    if (c.extraText) {
+      const yE = yStart + Math.ceil(items.length / 2) * 1.3 + 0.1;
+      if (yE < 6.6) {
+        s.addShape('rect', { x: 0.5, y: yE, w: 0.1, h: 0.7, fill: { color: CYAN } });
+        s.addShape('rect', { x: 0.6, y: yE, w: 12.2, h: 0.7, fill: { color: 'CFFAFE' } });
+        s.addText(c.extraText, { x: 0.9, y: yE + 0.1, w: 11.7, h: 0.5, fontSize: 12, bold: true, color: NAVY, fontFace: 'Calibri' });
+      }
+    }
+
+    footer(s, n, total, label);
+  };
+
+  Object.entries(moduleLabels).forEach(([id, lbl]) => renderModuleSlide(id, lbl));
+
   // 16. Next steps
   if (active.has('next')) {
     n++;
