@@ -187,10 +187,10 @@ export function Slide16InvestmentSummary({
                   className="uppercase tracking-[0.2em] text-[#0E7490] font-semibold mb-2"
                   style={{ fontSize: 12 }}
                 >
-                  Total anual
+                  Total anual recorrente
                 </div>
                 <div className="font-black text-[#0F172A] leading-none" style={{ fontSize: 56 }}>
-                  {formatPrice(annualConverted, currency)}
+                  {formatPrice(annualRecurringConverted, currency)}
                 </div>
                 <div className="text-[#0E7490] mt-2 font-semibold" style={{ fontSize: 14 }}>
                   Equivale a 10× o mensal · 2 meses grátis
@@ -198,7 +198,32 @@ export function Slide16InvestmentSummary({
                 <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
                   Poupança vs 12 meses: {formatPrice(monthlyConverted * 2, currency)}
                 </div>
+                {subtotalExplicitAnnualEur > 0 && (
+                  <div className="text-[#475569] mt-1" style={{ fontSize: 12 }}>
+                    Inclui {formatPrice(subtotalExplicitAnnualEur * tierMult * fxRate, currency)} já tarifados /ano
+                  </div>
+                )}
               </div>
+
+              {setupConverted > 0 && (
+                <div className="rounded-2xl border-2 border-[#FBBF24] bg-gradient-to-br from-[#FEF3C7] to-white p-7">
+                  <div
+                    className="uppercase tracking-[0.2em] text-[#92400E] font-semibold mb-2"
+                    style={{ fontSize: 12 }}
+                  >
+                    Setup único (one-time)
+                  </div>
+                  <div className="font-black text-[#0F172A] leading-none" style={{ fontSize: 44 }}>
+                    {formatPrice(setupConverted, currency)}
+                  </div>
+                  <div className="text-[#92400E] mt-2 font-semibold" style={{ fontSize: 13 }}>
+                    Cobrado uma vez · {itemsWithSetup.length} módulo{itemsWithSetup.length === 1 ? '' : 's'}
+                  </div>
+                  <div className="text-[#78350F]/80 mt-1" style={{ fontSize: 12 }}>
+                    Não soma ao mensal/anual. Inclui implementação e ativação.
+                  </div>
+                </div>
+              )}
 
               {modulesWithoutPrice.length > 0 && (
                 <div className="rounded-2xl border-2 border-dashed border-[#FCA5A5] bg-[#FEF2F2] p-4">
