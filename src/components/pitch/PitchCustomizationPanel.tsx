@@ -384,7 +384,7 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
 
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Slides core</div>
           <div className="space-y-1.5 mb-4">
-            {PITCH_SLIDES.filter((s) => !s.id.startsWith('mod-')).map((s) => {
+            {PITCH_SLIDES.filter((s) => s.category === 'core').map((s) => {
               const enabledList = tokens.enabledSlides ?? DEFAULT_ENABLED_SLIDE_IDS;
               const isOn = s.required || enabledList.includes(s.id);
               return (
