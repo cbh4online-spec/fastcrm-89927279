@@ -66,8 +66,17 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
   const date = formatMeetingDate(tokens.meetingDate);
   const enabled = tokens.enabledSlides;
   const required = new Set(['cover', 'next']);
-  const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','onboarding','next'];
+  const coreDefault = ['cover','problem','opportunity','method-pare','intro','how','crm','ai-sdr','inbox','pipeline','marketplace','diff','results','pricing','investment-summary','onboarding','next'];
   const active = new Set<string>(enabled ? [...enabled, ...required] : coreDefault);
+
+  // Currency / interval / tier context, applied consistently to every slide.
+  const currency: PitchCurrency = tokens.currency || 'EUR';
+  const billingInterval = tokens.billingInterval || 'monthly';
+  const tier: PitchTier = tokens.tier || 'grow';
+  const tierMult = TIERS[tier].multiplier;
+  const fxRate = CURRENCIES[currency].rate;
+  const intervalShort = billingInterval === 'annual' ? 'Anual' : 'Mensal';
+  const pricingContextLabel = `${CURRENCIES[currency].code} · ${intervalShort} · ${TIERS[tier].label}`;
   const optionalModules = [
     'mod-revenue','mod-procurement','mod-shop','mod-renewals','mod-support','mod-knowledge',
     'vert-clinics','vert-realestate','vert-training','vert-condos','vert-agencies','vert-restaurants',
