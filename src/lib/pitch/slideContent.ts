@@ -870,6 +870,38 @@ export const SLIDE_EDITOR_SCHEMAS: SlideEditorSchema[] = [
   { id: 'mod-renewals', title: 'Renovações & Subscrições', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
   { id: 'mod-support', title: 'Suporte & Atendimento', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
   { id: 'mod-knowledge', title: 'Base de Conhecimento', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+
+  /* Verticais de mercado */
+  { id: 'vert-clinics', title: 'Clínicas & Saúde', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-realestate', title: 'Imobiliárias', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-training', title: 'Formação', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-condos', title: 'Condomínios', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-agencies', title: 'Agências', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-restaurants', title: 'Restauração & Hotelaria', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-auto', title: 'Oficinas Auto', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-gyms', title: 'Ginásios & Estúdios', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-beauty', title: 'Beleza & Estética', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-events', title: 'Eventos & Catering', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-construction', title: 'Construção & Obras', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'vert-legal', title: 'Advocacia & Consultoria', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+
+  /* Packs funcionais */
+  { id: 'pack-billing-pt', title: 'Faturação PT', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-b2b-portal', title: 'Portal B2B', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-hr', title: 'RH & People Ops', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-analytics', title: 'Analytics & BI', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-omnichannel', title: 'Comunicações Omnichannel', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-automations', title: 'Automações No-Code', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-marketplace-c2c', title: 'Marketplace C2C', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-lives', title: 'Lives & Social Selling', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-ai-sdr-deep', title: 'AI SDR Pro', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-pipeline-risk', title: 'Pipeline Risk', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-compliance-rgpd', title: 'Compliance & RGPD', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-procurement-pro', title: 'Compras Pro', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-knowledge-rag', title: 'Knowledge RAG', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-saas-billing', title: 'SaaS Billing', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-events-rsvp', title: 'Eventos & RSVP', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
+  { id: 'pack-loyalty', title: 'Fidelização & Cupões', fields: { eyebrow: true, title: true, subtitle: true, stats: { count: 4 }, items: { count: 4 } } },
 ];
 
 /** Resolve effective content for a slide: override merged with defaults. */
