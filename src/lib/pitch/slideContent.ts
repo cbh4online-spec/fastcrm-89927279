@@ -955,16 +955,17 @@ export const DEFAULT_MODULE_PRICES: Record<string, { price: string; priceNote?: 
   'pack-loyalty':          { price: '€35 /mês',  priceNote: 'por workspace' },
 };
 
+import { convertPriceString, type PitchCurrency, type PitchBillingInterval } from './pricing';
+
 /** Resolve effective content for a slide: override merged with defaults. */
 export function resolveSlideContent(
   id: string,
   overrides: SlideContentMap | undefined,
-  pricing?: { currency?: import('./pricing').PitchCurrency; interval?: import('./pricing').PitchBillingInterval }
+  pricing?: { currency?: PitchCurrency; interval?: PitchBillingInterval }
 ): SlideContent {
   const base = DEFAULT_SLIDE_CONTENT[id] || {};
   const ov = overrides?.[id] || {};
   const priceDefaults = DEFAULT_MODULE_PRICES[id];
-  // Merge primitives + arrays (override wins, but each item in arrays merges per-index)
   const mergeItems = (a?: SlideItem[], b?: SlideItem[]) => {
     if (!a) return b;
     if (!b) return a;
@@ -982,12 +983,7 @@ export function resolveSlideContent(
   };
   let price = ov.price ?? base.price ?? priceDefaults?.price;
   let priceNote = ov.priceNote ?? base.priceNote ?? priceDefaults?.priceNote;
-  // Apply currency / interval conversion only when the user kept the default
-  // (no override) — respect manual overrides.
   if (pricing && (pricing.currency || pricing.interval)) {
-    // Lazy import to avoid circular type issues — resolved at runtime.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { convertPriceString } = require('./pricing') as typeof import('./pricing');
     const currency = pricing.currency || 'EUR';
     const interval = pricing.interval || 'monthly';
     if (!ov.price) price = convertPriceString(price, currency, interval);
