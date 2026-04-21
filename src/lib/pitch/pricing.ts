@@ -249,7 +249,7 @@ export function convertPriceString(
   tier?: PitchTier
 ): string | undefined {
   if (!input) return input;
-  const meta = CURRENCIES[currency];
+  const meta = getCurrencyMeta(currency);
   const tierMult = getTierMultiplier(tier);
   const annualMult = INTERVAL_LABEL.annual.multiplier;
 
