@@ -13,6 +13,31 @@
 
 export type PitchCurrency = 'EUR' | 'USD' | 'GBP' | 'BRL';
 export type PitchBillingInterval = 'monthly' | 'annual';
+export type PitchTier = 'grow' | 'pro' | 'enterprise';
+
+interface TierMeta {
+  code: PitchTier;
+  label: string;
+  shortLabel: string;
+  multiplier: number;
+  description: string;
+}
+
+export const TIERS: Record<PitchTier, TierMeta> = {
+  grow:       { code: 'grow',       label: 'Grow',       shortLabel: 'Grow',       multiplier: 1,    description: 'PME até 10 utilizadores' },
+  pro:        { code: 'pro',        label: 'Pro',        shortLabel: 'Pro',        multiplier: 1.6,  description: 'Equipas comerciais 10–50' },
+  enterprise: { code: 'enterprise', label: 'Enterprise', shortLabel: 'Enterprise', multiplier: 2.5,  description: 'Operações multi-equipa, SLA' },
+};
+
+export const PITCH_TIERS: PitchTier[] = ['grow', 'pro', 'enterprise'];
+
+export function getTierMultiplier(tier: PitchTier | undefined): number {
+  return TIERS[tier ?? 'grow'].multiplier;
+}
+
+export function tierLabel(tier: PitchTier | undefined): string {
+  return TIERS[tier ?? 'grow'].label;
+}
 
 interface CurrencyMeta {
   code: PitchCurrency;
@@ -60,18 +85,20 @@ export function formatPrice(amount: number, currency: PitchCurrency): string {
 export function convertPriceString(
   input: string | undefined,
   currency: PitchCurrency,
-  interval: PitchBillingInterval
+  interval: PitchBillingInterval,
+  tier?: PitchTier
 ): string | undefined {
   if (!input) return input;
   const meta = CURRENCIES[currency];
   const intervalMeta = INTERVAL_LABEL[interval];
+  const tierMult = getTierMultiplier(tier);
 
   // Match a euro amount: € optionally followed by digits with . or , as decimals.
   const re = /€\s*(\d+(?:[.,]\d+)?)/g;
   let out = input.replace(re, (_full, raw: string) => {
     const value = parseFloat(raw.replace(',', '.'));
     if (!isFinite(value)) return _full;
-    const converted = value * meta.rate * intervalMeta.multiplier;
+    const converted = value * meta.rate * intervalMeta.multiplier * tierMult;
     return formatPrice(converted, currency);
   });
 

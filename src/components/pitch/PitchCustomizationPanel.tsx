@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
-import { CURRENCIES, convertPriceString, intervalLabel, type PitchCurrency, type PitchBillingInterval } from '@/lib/pitch/pricing';
+import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -384,37 +384,67 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
             Capa e Próximos passos são obrigatórios. Módulos opcionais estão desligados por defeito.
           </p>
 
-          {/* Moeda + intervalo de faturação — afecta todos os preços dos módulos */}
-          <div className="grid grid-cols-2 gap-2 mb-4 p-2.5 rounded-md border bg-muted/30">
+          {/* Tier + Moeda + intervalo de faturação — afecta todos os preços dos módulos */}
+          <div className="space-y-2 mb-4 p-2.5 rounded-md border bg-muted/30">
             <div>
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
-              <Select
-                value={tokens.currency || 'EUR'}
-                onValueChange={(v) => updateToken('currency', v as PitchCurrency)}
-              >
-                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.values(CURRENCIES).map((c) => (
-                    <SelectItem key={c.code} value={c.code} className="text-xs">{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Tier de pricing</Label>
+              <div className="grid grid-cols-3 gap-1 mt-1">
+                {PITCH_TIERS.map((t) => {
+                  const meta = TIERS[t];
+                  const active = (tokens.tier || 'grow') === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => updateToken('tier', t)}
+                      className={cn(
+                        'rounded-md border px-2 py-1.5 text-xs font-medium transition text-center',
+                        active
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                          : 'bg-background hover:bg-muted border-border text-foreground'
+                      )}
+                      title={meta.description}
+                    >
+                      <div>{meta.shortLabel}</div>
+                      <div className={cn('text-[9px] font-mono mt-0.5', active ? 'opacity-90' : 'text-muted-foreground')}>
+                        ×{meta.multiplier}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Intervalo</Label>
-              <Select
-                value={tokens.billingInterval || 'monthly'}
-                onValueChange={(v) => updateToken('billingInterval', v as PitchBillingInterval)}
-              >
-                <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
-                  <SelectItem value="annual" className="text-xs">Anual · 2 meses grátis</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Moeda</Label>
+                <Select
+                  value={tokens.currency || 'EUR'}
+                  onValueChange={(v) => updateToken('currency', v as PitchCurrency)}
+                >
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.values(CURRENCIES).map((c) => (
+                      <SelectItem key={c.code} value={c.code} className="text-xs">{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Intervalo</Label>
+                <Select
+                  value={tokens.billingInterval || 'monthly'}
+                  onValueChange={(v) => updateToken('billingInterval', v as PitchBillingInterval)}
+                >
+                  <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly" className="text-xs">Mensal</SelectItem>
+                    <SelectItem value="annual" className="text-xs">Anual · 2 meses grátis</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="col-span-2 text-[10px] text-muted-foreground">
-              Os valores dos módulos abaixo são convertidos automaticamente ({intervalLabel(tokens.billingInterval || 'monthly')}).
+            <div className="text-[10px] text-muted-foreground">
+              Preços a {TIERS[tokens.tier || 'grow'].label} · {intervalLabel(tokens.billingInterval || 'monthly')}.
             </div>
           </div>
 
@@ -500,7 +530,8 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                         {priceInfo && (() => {
                           const cur = tokens.currency || 'EUR';
                           const itv = tokens.billingInterval || 'monthly';
-                          const displayPrice = convertPriceString(priceInfo.price, cur, itv) || priceInfo.price;
+                          const tr = tokens.tier || 'grow';
+                          const displayPrice = convertPriceString(priceInfo.price, cur, itv, tr) || priceInfo.price;
                           const displayNote = convertPriceString(priceInfo.priceNote, cur, itv) || priceInfo.priceNote;
                           return (
                             <span
@@ -508,7 +539,7 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
                                 'text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded whitespace-nowrap',
                                 isOn ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                               )}
-                              title={displayNote}
+                              title={`${TIERS[tr].label} · ${displayNote ?? ''}`.trim()}
                             >
                               {displayPrice}
                             </span>
