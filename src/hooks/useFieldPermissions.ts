@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export interface ProfileFieldPermission {
   id: string;
@@ -8,20 +9,25 @@ export interface ProfileFieldPermission {
   page_key: string;
   field_key: string;
   visible: boolean;
+  workspace_id: string;
 }
 
 export function useFieldPermissions() {
   const { salesFunction } = useAdaptiveDashboard();
+  const { currentWorkspace } = useWorkspace();
 
   const { data: permissions, isLoading } = useQuery({
-    queryKey: ["profile-field-permissions"],
+    queryKey: ["profile-field-permissions", currentWorkspace?.id],
     queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("profile_field_permissions")
-        .select("*");
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
       return data as ProfileFieldPermission[];
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 10 * 60 * 1000,
   });
 

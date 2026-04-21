@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdaptiveDashboard } from "@/contexts/AdaptiveDashboardContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { SalesFunction } from "@/data/adaptiveDashboardMock";
 
 export interface ProfileMenuPermission {
@@ -8,20 +9,25 @@ export interface ProfileMenuPermission {
   sales_function: string;
   menu_key: string;
   visible: boolean;
+  workspace_id: string;
 }
 
 export function useProfileMenuPermissions() {
   const { salesFunction } = useAdaptiveDashboard();
+  const { currentWorkspace } = useWorkspace();
 
   const { data: permissions, isLoading } = useQuery({
-    queryKey: ["profile-menu-permissions"],
+    queryKey: ["profile-menu-permissions", currentWorkspace?.id],
     queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("profile_menu_permissions")
-        .select("*");
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
       return data as ProfileMenuPermission[];
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 10 * 60 * 1000,
   });
 

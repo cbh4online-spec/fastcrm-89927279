@@ -40,14 +40,17 @@ export function useMenuPermissions() {
   });
 
   const { data: profilePerms } = useQuery({
-    queryKey: ["profile-menu-permissions"],
+    queryKey: ["profile-menu-permissions", currentWorkspace?.id],
     queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
       const { data, error } = await supabase
         .from("profile_menu_permissions")
-        .select("sales_function, menu_key, visible");
+        .select("sales_function, menu_key, visible")
+        .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
       return data as ProfileMenuPerm[];
     },
+    enabled: !!currentWorkspace?.id,
     staleTime: 10 * 60 * 1000,
   });
 
