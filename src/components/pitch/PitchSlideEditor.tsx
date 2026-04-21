@@ -322,3 +322,94 @@ export function PitchSlideEditor({ config, currentIndex, onSelectSlide }: Props)
     </ScrollArea>
   );
 }
+
+/* ---------------- Investment Summary overrides ---------------- */
+
+function InvestmentSummaryOverrides({
+  tier,
+  currentPrice,
+  currentPriceNote,
+  onChangePrice,
+  onChangePriceNote,
+}: {
+  tier: import('@/lib/pitch/pricing').PitchTier;
+  currentPrice: string;
+  currentPriceNote: string;
+  onChangePrice: (v: string) => void;
+  onChangePriceNote: (v: string) => void;
+}) {
+  const defaultSetup = DEFAULT_PLAN_SETUP_EUR[tier] ?? 0;
+  const parsedSetup = parsePriceBreakdown(currentPrice).setupEur;
+  const setupValue = parsedSetup > 0 ? String(parsedSetup) : '';
+
+  const usersMatch = currentPriceNote.match(/users?\s*[:=]\s*(\d+)/i);
+  const usersValue = usersMatch ? usersMatch[1] : '';
+
+  const setSetup = (raw: string) => {
+    const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
+    if (!isFinite(n) || n <= 0) {
+      onChangePrice('');
+    } else {
+      onChangePrice(`€${n} setup`);
+    }
+  };
+
+  const setUsers = (raw: string) => {
+    const n = parseInt(raw.replace(/[^\d]/g, ''), 10);
+    const stripped = currentPriceNote.replace(/users?\s*[:=]\s*\d+/i, '').trim();
+    if (!isFinite(n) || n <= 0) {
+      onChangePriceNote(stripped);
+    } else {
+      onChangePriceNote(stripped ? `${stripped} users:${n}` : `users:${n}`);
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-dashed p-3 space-y-3 bg-muted/20">
+      <div>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Resumo de investimento — overrides
+        </Label>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          Ajusta o setup do plano e o nº de utilizadores. Os totais (mensal, anual e setup único) atualizam automaticamente.
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="f-setup-override" className="text-xs">
+          Setup do plano (€) — override
+        </Label>
+        <Input
+          id="f-setup-override"
+          type="number"
+          min={0}
+          step={50}
+          value={setupValue}
+          onChange={(e) => setSetup(e.target.value)}
+          placeholder={`Predefinido: €${defaultSetup}`}
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Vazio usa o valor por defeito do tier ({`€${defaultSetup}`}).
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="f-users-override" className="text-xs">
+          Nº de utilizadores — override
+        </Label>
+        <Input
+          id="f-users-override"
+          type="number"
+          min={1}
+          step={1}
+          value={usersValue}
+          onChange={(e) => setUsers(e.target.value)}
+          placeholder="Auto (do plano)"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Vazio usa o valor detetado do plano selecionado.
+        </p>
+      </div>
+    </div>
+  );
+}
