@@ -23,7 +23,12 @@ export function PitchEditor() {
   const activeSlides = getActiveSlides(tokens.enabledSlides);
   const total = activeSlides.length;
   const safeIndex = Math.min(index, total - 1);
-  const Slide = activeSlides[safeIndex].component;
+  const currentSlide = activeSlides[safeIndex];
+  const Slide = currentSlide.component;
+
+  // Validação de integridade do array PITCH_SLIDES (corre uma vez)
+  const orderIssues = useMemo(() => validateSlideOrder(PITCH_SLIDES), []);
+  const hasErrors = orderIssues.some((i) => i.severity === 'error');
 
   const enterPresent = async () => {
     try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
