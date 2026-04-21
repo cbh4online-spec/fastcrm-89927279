@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
 import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
+import { findMissingPrices } from '@/lib/pitch/validatePricing';
+import { AlertTriangle } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -456,6 +458,38 @@ export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
               Preços a {TIERS[tokens.tier || 'grow'].label} · {intervalLabel(tokens.billingInterval || 'monthly')}.
             </div>
           </div>
+
+          {(() => {
+            const missing = findMissingPrices(tokens);
+            if (missing.length === 0) return null;
+            return (
+              <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-xs">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-foreground">
+                      {missing.length} módulo{missing.length === 1 ? '' : 's'} sem preço definido
+                    </div>
+                    <div className="mt-1 text-muted-foreground">
+                      Define o preço no separador <strong>Slide atual</strong> antes de exportar para garantir cobertura comercial total.
+                    </div>
+                    <ul className="mt-1.5 space-y-0.5">
+                      {missing.slice(0, 5).map((m) => (
+                        <li key={m.id} className="truncate text-foreground">
+                          • {m.title}
+                        </li>
+                      ))}
+                      {missing.length > 5 && (
+                        <li className="text-muted-foreground">
+                          +{missing.length - 5} adicional{missing.length - 5 === 1 ? '' : 'is'}…
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Slides core</div>
           <div className="space-y-1.5 mb-4">
