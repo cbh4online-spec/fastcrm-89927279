@@ -132,11 +132,14 @@ export function usePitchConfig() {
       setTokens,
       updateToken,
       resetTokens,
+      updateSlideContent,
+      resetSlideContent,
+      resetAllSlideContent,
       history,
       saveToHistory,
       loadFromHistory,
       removeFromHistory,
     }),
-    [tokens, updateToken, resetTokens, history, saveToHistory, loadFromHistory, removeFromHistory]
+    [tokens, updateToken, resetTokens, updateSlideContent, resetSlideContent, resetAllSlideContent, history, saveToHistory, loadFromHistory, removeFromHistory]
   );
 }
