@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2, AlertTriangle } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
 import { PitchSlideEditor } from './PitchSlideEditor';
@@ -10,6 +10,7 @@ import { PITCH_SLIDES, getActiveSlides } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { validateSlideOrder, CATEGORY_LABEL, CATEGORY_COLOR } from '@/lib/pitch/validateSlideOrder';
 
 export function PitchEditor() {
   const config = usePitchConfig();
