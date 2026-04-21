@@ -61,9 +61,23 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
 
 export const ALL_SLIDE_IDS = PITCH_SLIDES.map((s) => s.id);
 
-/** Returns slides filtered by tokens.enabledSlides; required slides are always kept. */
+/** Returns slides filtered by tokens.enabledSlides; required slides are always kept.
+ *  Optional modules (id prefix `mod-`) are OFF by default and only shown when explicitly enabled.
+ */
 export function getActiveSlides(enabledSlides?: string[]): PitchSlideMeta[] {
-  if (!enabledSlides) return PITCH_SLIDES;
+  if (!enabledSlides) {
+    return PITCH_SLIDES.filter((s) => !s.id.startsWith('mod-'));
+  }
   const set = new Set(enabledSlides);
   return PITCH_SLIDES.filter((s) => s.required || set.has(s.id));
 }
+
+/** Default-enabled slides (everything except optional modules). Used for "Selecionar tudo (core)". */
+export const DEFAULT_ENABLED_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => !s.id.startsWith('mod-'))
+  .map((s) => s.id);
+
+/** All optional module slide IDs. */
+export const OPTIONAL_MODULE_SLIDE_IDS = PITCH_SLIDES
+  .filter((s) => s.id.startsWith('mod-'))
+  .map((s) => s.id);
