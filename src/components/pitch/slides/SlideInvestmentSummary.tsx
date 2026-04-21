@@ -6,23 +6,23 @@ import {
   TIERS,
   formatPrice,
   intervalLabel,
+  parsePriceBreakdown,
   type PitchCurrency,
   type PitchTier,
 } from '@/lib/pitch/pricing';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS } from './index';
 
-/** Extract a numeric € value from a price string (e.g. "€29 /mês" → 29). */
-function parseEur(price: string | undefined): number {
-  if (!price) return 0;
-  const m = price.match(/€\s*(\d+(?:[.,]\d+)?)/);
-  return m ? parseFloat(m[1].replace(',', '.')) : 0;
-}
-
 interface LineItem {
   id: string;
   title: string;
   category: 'module' | 'vertical' | 'pack';
+  /** Recurring monthly base in EUR (before tier × FX). */
   monthlyEurBase: number;
+  /** One-time setup base in EUR (before tier × FX). */
+  setupEurBase: number;
+  /** Annual-only base in EUR (before tier × FX). */
+  annualEurBase: number;
+  /** True if any € amount is defined. */
   hasPrice: boolean;
 }
 
@@ -57,26 +57,36 @@ export function Slide16InvestmentSummary({
     .map((s) => {
       const ov = overrides[s.id];
       const effective = ov?.price ?? DEFAULT_MODULE_PRICES[s.id]?.price;
-      const base = parseEur(effective);
+      const breakdown = parsePriceBreakdown(effective);
       return {
         id: s.id,
         title: s.title,
         category: s.category as LineItem['category'],
-        monthlyEurBase: base,
-        hasPrice: base > 0,
+        monthlyEurBase: breakdown.monthlyEur,
+        setupEurBase: breakdown.setupEur,
+        annualEurBase: breakdown.annualEur,
+        hasPrice: breakdown.hasAmount,
       };
     });
 
   const subtotalMonthlyEur = items.reduce((acc, it) => acc + it.monthlyEurBase, 0);
+  const subtotalSetupEur = items.reduce((acc, it) => acc + it.setupEurBase, 0);
+  const subtotalExplicitAnnualEur = items.reduce((acc, it) => acc + it.annualEurBase, 0);
+
   const monthlyConverted = subtotalMonthlyEur * tierMult * fxRate;
-  // Annual = 10x monthly (2 months free, consistent with pricing.ts)
-  const annualConverted = monthlyConverted * 10;
+  // Annual recurring = 10× monthly (2 months free) + segments already priced /ano
+  const annualRecurringConverted =
+    monthlyConverted * 10 + subtotalExplicitAnnualEur * tierMult * fxRate;
+  const setupConverted = subtotalSetupEur * tierMult * fxRate;
 
   const modulesWithoutPrice = items.filter((it) => !it.hasPrice);
+  const itemsWithSetup = items.filter((it) => it.setupEurBase > 0);
   const activeOptionalCount = items.length;
 
-  // Sort by descending price for visual hierarchy.
-  const sorted = [...items].sort((a, b) => b.monthlyEurBase - a.monthlyEurBase);
+  // Sort by descending recurring base price for visual hierarchy.
+  const sorted = [...items].sort(
+    (a, b) => b.monthlyEurBase + b.annualEurBase / 10 - (a.monthlyEurBase + a.annualEurBase / 10)
+  );
   const visible = sorted.slice(0, 12);
   const hiddenCount = sorted.length - visible.length;
 
@@ -177,10 +187,10 @@ export function Slide16InvestmentSummary({
                   className="uppercase tracking-[0.2em] text-[#0E7490] font-semibold mb-2"
                   style={{ fontSize: 12 }}
                 >
-                  Total anual
+                  Total anual recorrente
                 </div>
                 <div className="font-black text-[#0F172A] leading-none" style={{ fontSize: 56 }}>
-                  {formatPrice(annualConverted, currency)}
+                  {formatPrice(annualRecurringConverted, currency)}
                 </div>
                 <div className="text-[#0E7490] mt-2 font-semibold" style={{ fontSize: 14 }}>
                   Equivale a 10× o mensal · 2 meses grátis
@@ -188,7 +198,32 @@ export function Slide16InvestmentSummary({
                 <div className="text-[#475569] mt-1" style={{ fontSize: 13 }}>
                   Poupança vs 12 meses: {formatPrice(monthlyConverted * 2, currency)}
                 </div>
+                {subtotalExplicitAnnualEur > 0 && (
+                  <div className="text-[#475569] mt-1" style={{ fontSize: 12 }}>
+                    Inclui {formatPrice(subtotalExplicitAnnualEur * tierMult * fxRate, currency)} já tarifados /ano
+                  </div>
+                )}
               </div>
+
+              {setupConverted > 0 && (
+                <div className="rounded-2xl border-2 border-[#FBBF24] bg-gradient-to-br from-[#FEF3C7] to-white p-7">
+                  <div
+                    className="uppercase tracking-[0.2em] text-[#92400E] font-semibold mb-2"
+                    style={{ fontSize: 12 }}
+                  >
+                    Setup único (one-time)
+                  </div>
+                  <div className="font-black text-[#0F172A] leading-none" style={{ fontSize: 44 }}>
+                    {formatPrice(setupConverted, currency)}
+                  </div>
+                  <div className="text-[#92400E] mt-2 font-semibold" style={{ fontSize: 13 }}>
+                    Cobrado uma vez · {itemsWithSetup.length} módulo{itemsWithSetup.length === 1 ? '' : 's'}
+                  </div>
+                  <div className="text-[#78350F]/80 mt-1" style={{ fontSize: 12 }}>
+                    Não soma ao mensal/anual. Inclui implementação e ativação.
+                  </div>
+                </div>
+              )}
 
               {modulesWithoutPrice.length > 0 && (
                 <div className="rounded-2xl border-2 border-dashed border-[#FCA5A5] bg-[#FEF2F2] p-4">
