@@ -17,6 +17,7 @@ import { Slide13Pricing } from './Slide13Pricing';
 import { Slide14Onboarding } from './Slide14Onboarding';
 import { Slide15Next } from './Slide15Next';
 import { makeModuleSlide } from './SlideModuleFeature';
+import { Slide16InvestmentSummary } from './SlideInvestmentSummary';
 
 export interface PitchSlideProps {
   tokens: PitchTokens;
@@ -87,6 +88,7 @@ export const PITCH_SLIDES: PitchSlideMeta[] = [
   { id: 'diff', title: 'Diferenciadores', component: Slide11Differentiators, category: 'core' },
   { id: 'results', title: 'Resultados', component: Slide12Results, category: 'core' },
   { id: 'pricing', title: 'Investimento', component: Slide13Pricing, category: 'core' },
+  { id: 'investment-summary', title: 'Resumo do investimento', component: Slide16InvestmentSummary, category: 'core' },
   { id: 'onboarding', title: 'Onboarding', component: Slide14Onboarding, category: 'core' },
   { id: 'next', title: 'Próximos passos', component: Slide15Next, required: true, category: 'core' },
 
