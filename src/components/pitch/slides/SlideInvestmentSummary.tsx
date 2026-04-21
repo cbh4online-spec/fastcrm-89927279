@@ -74,10 +74,17 @@ export function Slide16InvestmentSummary({
   const subtotalExplicitAnnualEur = items.reduce((acc, it) => acc + it.annualEurBase, 0);
 
   const monthlyConverted = subtotalMonthlyEur * tierMult * fxRate;
-  // Annual recurring = 10× monthly (2 months free) + segments already priced /ano
-  const annualRecurringConverted =
-    monthlyConverted * 10 + subtotalExplicitAnnualEur * tierMult * fxRate;
+  const explicitAnnualConverted = subtotalExplicitAnnualEur * tierMult * fxRate;
+  // Total anual recorrente:
+  //  - Mensais recorrentes ×10 (10× = 2 meses grátis)
+  //  - Anuais explícitos (/ano) somam tal e qual, sem multiplicar
+  const annualFromMonthly = monthlyConverted * 10;
+  const annualRecurringConverted = annualFromMonthly + explicitAnnualConverted;
   const setupConverted = subtotalSetupEur * tierMult * fxRate;
+  // Poupança aplica-se apenas à parte mensal (12× vs 10×). Anuais já são fixos.
+  const annualSavings = monthlyConverted * 2;
+  const hasExplicitAnnual = explicitAnnualConverted > 0;
+  const hasMonthly = monthlyConverted > 0;
 
   const modulesWithoutPrice = items.filter((it) => !it.hasPrice);
   const itemsWithSetup = items.filter((it) => it.setupEurBase > 0);
