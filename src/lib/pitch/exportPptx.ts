@@ -422,6 +422,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
     const s = pptx.addSlide();
     s.background = { color: WHITE };
     header(s, 'INVESTIMENTO', 'Planos e investimento', `Proposta dimensionada para ${company}.`);
+    // Pricing context chip (top-right) — same currency/interval/tier as the panel.
+    s.addShape('roundRect', { x: 9.8, y: 0.5, w: 3.05, h: 0.42, fill: { color: BG_LIGHT }, line: { color: BORDER, width: 1 }, rectRadius: 0.08 });
+    s.addText(pricingContextLabel, {
+      x: 9.85, y: 0.5, w: 2.95, h: 0.42,
+      fontSize: 10, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri', charSpacing: 2,
+    });
     const plans = (tokens.pricingPlans && tokens.pricingPlans.length > 0) ? tokens.pricingPlans : DEFAULT_PRICING_PLANS;
     const cardW = 12 / plans.length - 0.2;
     plans.forEach((p, i) => {
@@ -435,9 +441,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
         s.addText('MAIS POPULAR', { x: x + 0.2, y: cy, w: 1.8, h: 0.3, fontSize: 8, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Calibri' });
         cy += 0.4;
       }
+      // Convert plan price + sub to the active currency / interval / tier.
+      const displayPrice = convertPriceString(p.price, currency, billingInterval, tier) || p.price;
+      const displaySub = convertPriceString(p.sub, currency, billingInterval) || p.sub;
       s.addText(p.name, { x: x + 0.2, y: cy, w: cardW - 0.4, h: 0.4, fontSize: 18, bold: true, color: NAVY, fontFace: 'Calibri' });
-      s.addText(p.price, { x: x + 0.2, y: cy + 0.4, w: cardW - 0.4, h: 0.6, fontSize: 32, bold: true, color: NAVY, fontFace: 'Calibri' });
-      s.addText(p.sub, { x: x + 0.2, y: cy + 1, w: cardW - 0.4, h: 0.4, fontSize: 9, color: SLATE_LIGHT, fontFace: 'Calibri' });
+      s.addText(displayPrice, { x: x + 0.2, y: cy + 0.4, w: cardW - 0.4, h: 0.6, fontSize: 32, bold: true, color: NAVY, fontFace: 'Calibri' });
+      s.addText(displaySub, { x: x + 0.2, y: cy + 1, w: cardW - 0.4, h: 0.4, fontSize: 9, color: SLATE_LIGHT, fontFace: 'Calibri' });
       s.addText(
         p.features.slice(0, 7).map((f) => ({ text: f, options: { bullet: { code: '2713' }, color: NAVY } })),
         { x: x + 0.2, y: cy + 1.5, w: cardW - 0.4, h: 2.4, fontSize: 10, fontFace: 'Calibri', paraSpaceAfter: 4 }
