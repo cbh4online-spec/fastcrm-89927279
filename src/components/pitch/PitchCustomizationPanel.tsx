@@ -1,0 +1,266 @@
+import { ChangeEvent, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Save, RotateCcw, Trash2, Upload, X, History, Database } from 'lucide-react';
+import { toast } from 'sonner';
+import { usePitchConfig } from '@/hooks/usePitchConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
+
+type PitchConfig = ReturnType<typeof usePitchConfig>;
+
+interface CrmRow {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  company?: string | null;
+}
+
+export function PitchCustomizationPanel({ config }: { config?: PitchConfig }) {
+  const fallback = usePitchConfig();
+  const { tokens, updateToken, resetTokens, history, saveToHistory, loadFromHistory, removeFromHistory } = config ?? fallback;
+  const { currentWorkspace } = useWorkspace();
+  const [crmOpen, setCrmOpen] = useState(false);
+  const [crmTab, setCrmTab] = useState<'contacts' | 'leads' | 'companies'>('contacts');
+  const [crmSearch, setCrmSearch] = useState('');
+  const [crmRows, setCrmRows] = useState<CrmRow[]>([]);
+  const [crmLoading, setCrmLoading] = useState(false);
+
+  const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast.error('Logo demasiado grande (máx 1,5 MB).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => updateToken('companyLogoUrl', reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const loadCrm = async (tab: 'contacts' | 'leads' | 'companies', search: string) => {
+    if (!currentWorkspace?.id) return;
+    setCrmLoading(true);
+    try {
+      const wsFilter = ['eq', 'workspace_id', currentWorkspace.id] as const;
+      let rows: CrmRow[] = [];
+      if (tab === 'contacts') {
+        let q = supabase.from('contacts').select('id, first_name, last_name, email, phone, job_title, company_id').eq(wsFilter[1], wsFilter[2]).limit(20);
+        if (search.trim()) q = q.ilike('first_name', `%${search.trim()}%`);
+        const { data } = await q;
+        rows = (data || []).map((r: any) => ({
+          id: r.id,
+          name: [r.first_name, r.last_name].filter(Boolean).join(' '),
+          email: r.email,
+          phone: r.phone,
+          role: r.job_title,
+        }));
+      } else if (tab === 'leads') {
+        let q = supabase.from('leads').select('id, name, email, phone, company_name, position').eq(wsFilter[1], wsFilter[2]).limit(20);
+        if (search.trim()) q = q.ilike('name', `%${search.trim()}%`);
+        const { data } = await q;
+        rows = (data || []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          email: r.email,
+          phone: r.phone,
+          role: r.position,
+          company: r.company_name,
+        }));
+      } else {
+        let q = supabase.from('companies').select('id, name, email, phone').eq(wsFilter[1], wsFilter[2]).limit(20);
+        if (search.trim()) q = q.ilike('name', `%${search.trim()}%`);
+        const { data } = await q;
+        rows = (data || []).map((r: any) => ({
+          id: r.id, name: r.name, email: r.email, phone: r.phone,
+        }));
+      }
+      setCrmRows(rows);
+    } catch (e) {
+      console.error('CRM load failed', e);
+      toast.error('Erro ao carregar do CRM.');
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const applyCrmRow = (row: CrmRow) => {
+    if (crmTab === 'companies') {
+      updateToken('companyName', row.name);
+    } else {
+      updateToken('contactName', row.name);
+      if (row.role) updateToken('contactRole', row.role);
+      if (row.company) updateToken('companyName', row.company);
+    }
+    setCrmOpen(false);
+    toast.success('Dados carregados do CRM');
+  };
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-5 space-y-6">
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Cliente</h3>
+            <Dialog open={crmOpen} onOpenChange={(o) => { setCrmOpen(o); if (o) loadCrm(crmTab, crmSearch); }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <Database className="h-3.5 w-3.5 mr-1" /> Carregar do CRM
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader><DialogTitle>Carregar dados do CRM</DialogTitle></DialogHeader>
+                <div className="flex gap-2 mb-3">
+                  {(['contacts', 'leads', 'companies'] as const).map((t) => (
+                    <Button
+                      key={t}
+                      size="sm"
+                      variant={crmTab === t ? 'default' : 'outline'}
+                      onClick={() => { setCrmTab(t); loadCrm(t, crmSearch); }}
+                    >
+                      {t === 'contacts' ? 'Contactos' : t === 'leads' ? 'Leads' : 'Empresas'}
+                    </Button>
+                  ))}
+                </div>
+                <Input
+                  placeholder="Pesquisar por nome..."
+                  value={crmSearch}
+                  onChange={(e) => setCrmSearch(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') loadCrm(crmTab, crmSearch); }}
+                />
+                <div className="max-h-[400px] overflow-y-auto mt-3 space-y-1">
+                  {crmLoading && <div className="text-sm text-muted-foreground p-3">A carregar…</div>}
+                  {!crmLoading && crmRows.length === 0 && <div className="text-sm text-muted-foreground p-3">Sem resultados.</div>}
+                  {crmRows.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => applyCrmRow(r)}
+                      className="w-full text-left p-3 rounded-md border hover:bg-muted/50 transition"
+                    >
+                      <div className="font-medium text-sm">{r.name || '—'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {[r.role, r.company, r.email, r.phone].filter(Boolean).join(' · ') || '—'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="companyName">Empresa *</Label>
+              <Input id="companyName" value={tokens.companyName} onChange={(e) => updateToken('companyName', e.target.value)} placeholder="Ex: Tech Solutions, Lda" />
+            </div>
+            <div>
+              <Label htmlFor="companyLogo">Logo da empresa</Label>
+              <div className="flex items-center gap-2 mt-1">
+                {tokens.companyLogoUrl ? (
+                  <div className="relative">
+                    <img src={tokens.companyLogoUrl} alt="logo" className="h-12 w-24 object-contain rounded border bg-white" />
+                    <button onClick={() => updateToken('companyLogoUrl', '')} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <Label htmlFor="companyLogo" className="cursor-pointer flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-muted">
+                    <Upload className="h-4 w-4" /> Carregar
+                    <Input id="companyLogo" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                  </Label>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="industry">Setor</Label>
+              <Input id="industry" value={tokens.industry} onChange={(e) => updateToken('industry', e.target.value)} placeholder="Ex: Tecnologia, Retalho..." />
+            </div>
+            <div>
+              <Label htmlFor="contactName">Nome do contacto</Label>
+              <Input id="contactName" value={tokens.contactName} onChange={(e) => updateToken('contactName', e.target.value)} placeholder="Ex: Ana Ferreira" />
+            </div>
+            <div>
+              <Label htmlFor="contactRole">Cargo</Label>
+              <Input id="contactRole" value={tokens.contactRole} onChange={(e) => updateToken('contactRole', e.target.value)} placeholder="Ex: CEO, Director Comercial" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Reunião</h3>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="meetingDate">Data</Label>
+              <Input id="meetingDate" type="date" value={tokens.meetingDate} onChange={(e) => updateToken('meetingDate', e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="tone">Tom</Label>
+              <Select value={tokens.tone} onValueChange={(v) => updateToken('tone', v as 'tu' | 'voce')}>
+                <SelectTrigger id="tone"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="voce">Você (formal)</SelectItem>
+                  <SelectItem value="tu">Tu (informal)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">Apresentador</h3>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="presenterName">Nome</Label>
+              <Input id="presenterName" value={tokens.presenterName} onChange={(e) => updateToken('presenterName', e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="presenterEmail">Email</Label>
+              <Input id="presenterEmail" type="email" value={tokens.presenterEmail} onChange={(e) => updateToken('presenterEmail', e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="presenterPhone">Telefone</Label>
+              <Input id="presenterPhone" value={tokens.presenterPhone} onChange={(e) => updateToken('presenterPhone', e.target.value)} placeholder="+351 ..." />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={() => { saveToHistory(); toast.success('Cliente guardado no histórico.'); }} className="flex-1" size="sm">
+            <Save className="h-4 w-4 mr-2" /> Guardar cliente
+          </Button>
+          <Button onClick={resetTokens} variant="outline" size="sm" title="Limpar">
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {history.length > 0 && (
+          <div>
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico
+            </h3>
+            <div className="space-y-2">
+              {history.map((h) => (
+                <div key={h.savedAt} className="group flex items-center justify-between gap-2 p-2 rounded-md border hover:bg-muted/50">
+                  <button onClick={() => loadFromHistory(h)} className="flex-1 text-left">
+                    <div className="text-sm font-medium truncate">{h.companyName || '—'}</div>
+                    <div className="text-xs text-muted-foreground truncate">{h.contactName || 'Sem contacto'}</div>
+                  </button>
+                  <button onClick={() => removeFromHistory(h.savedAt)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+}
