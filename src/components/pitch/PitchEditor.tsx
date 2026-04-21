@@ -106,12 +106,23 @@ export function PitchEditor() {
 
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-card">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => setPanelOpen((o) => !o)} title={panelOpen ? 'Fechar painel' : 'Abrir painel'}>
               {panelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
             </Button>
-            <div className="text-sm font-medium text-muted-foreground">
-              {activeSlides[safeIndex].title}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-mono tabular-nums text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                {String(safeIndex + 1).padStart(2, '0')}/{String(total).padStart(2, '0')}
+              </span>
+              <span className="text-sm font-medium truncate">{currentSlide.title}</span>
+              <span
+                className={cn(
+                  'text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border font-semibold',
+                  CATEGORY_COLOR[currentSlide.category] ?? 'bg-muted text-muted-foreground border-border'
+                )}
+              >
+                {CATEGORY_LABEL[currentSlide.category] ?? currentSlide.category}
+              </span>
             </div>
           </div>
 
