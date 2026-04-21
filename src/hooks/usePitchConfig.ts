@@ -84,6 +84,28 @@ export function usePitchConfig() {
     });
   }, [fullName, user?.email]);
 
+  const updateSlideContent = useCallback((slideId: string, patch: Partial<SlideContent>) => {
+    setTokens((prev) => {
+      const current = prev.slideOverrides?.[slideId] || {};
+      return {
+        ...prev,
+        slideOverrides: { ...(prev.slideOverrides || {}), [slideId]: { ...current, ...patch } },
+      };
+    });
+  }, []);
+
+  const resetSlideContent = useCallback((slideId: string) => {
+    setTokens((prev) => {
+      const next = { ...(prev.slideOverrides || {}) };
+      delete next[slideId];
+      return { ...prev, slideOverrides: next };
+    });
+  }, []);
+
+  const resetAllSlideContent = useCallback(() => {
+    setTokens((prev) => ({ ...prev, slideOverrides: {} }));
+  }, []);
+
   const saveToHistory = useCallback(() => {
     if (!tokens.companyName.trim() && !tokens.contactName.trim()) return;
     const entry: PitchHistoryEntry = {
