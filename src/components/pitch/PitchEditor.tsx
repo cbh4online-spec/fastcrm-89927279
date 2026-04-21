@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2, Download, PanelLeftClose, PanelLeftOpen, Loader2, RotateCcw } from 'lucide-react';
 import { PitchSlideCanvas } from './PitchSlideCanvas';
 import { PitchCustomizationPanel } from './PitchCustomizationPanel';
 import { PitchSlideEditor } from './PitchSlideEditor';
 import { PitchPresenterMode } from './PitchPresenterMode';
+import { PitchSlideThumbnails } from './PitchSlideThumbnails';
 import { PITCH_SLIDES, getActiveSlides } from './slides';
 import { usePitchConfig } from '@/hooks/usePitchConfig';
 import { toast } from 'sonner';
@@ -13,16 +14,33 @@ import { cn } from '@/lib/utils';
 
 export function PitchEditor() {
   const config = usePitchConfig();
-  const { tokens } = config;
+  const { tokens, updateToken } = config;
   const [index, setIndex] = useState(0);
   const [presenting, setPresenting] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [exporting, setExporting] = useState(false);
 
-  const activeSlides = getActiveSlides(tokens.enabledSlides);
+  const activeSlides = getActiveSlides(tokens.enabledSlides, tokens.slideOrder);
   const total = activeSlides.length;
   const safeIndex = Math.min(index, total - 1);
   const Slide = activeSlides[safeIndex].component;
+
+  const handleReorder = (newOrderIds: string[]) => {
+    const currentSlideId = activeSlides[safeIndex]?.id;
+    updateToken('slideOrder', newOrderIds);
+    if (currentSlideId) {
+      const newIdx = newOrderIds.indexOf(currentSlideId);
+      if (newIdx >= 0) setIndex(newIdx);
+    }
+    toast.success('Ordem dos slides atualizada.');
+  };
+
+  const handleResetOrder = () => {
+    updateToken('slideOrder', undefined);
+    toast.success('Ordem dos slides reposta.');
+  };
+
+  const hasCustomOrder = Array.isArray(tokens.slideOrder) && tokens.slideOrder.length > 0;
 
   const enterPresent = async () => {
     try { await document.documentElement.requestFullscreen(); } catch { /* ignore */ }
@@ -120,6 +138,11 @@ export function PitchEditor() {
           </div>
 
           <div className="flex items-center gap-2">
+            {hasCustomOrder && (
+              <Button variant="ghost" size="sm" onClick={handleResetOrder} title="Repor ordem original">
+                <RotateCcw className="h-4 w-4 mr-2" /> Repor ordem
+              </Button>
+            )}
             <Button variant="outline" size="sm" disabled={exporting} onClick={() => handleExport()}>
               {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               Exportar .pptx
@@ -139,27 +162,18 @@ export function PitchEditor() {
         </div>
 
         <div className="border-t bg-card overflow-x-auto">
-          <div className="flex gap-2 p-3">
-            {activeSlides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => setIndex(i)}
-                className={cn(
-                  'flex-shrink-0 w-32 rounded-md border-2 overflow-hidden transition',
-                  i === safeIndex ? 'border-primary shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
-                )}
-              >
-                <div className="bg-white" style={{ aspectRatio: '16 / 9' }}>
-                  <PitchSlideCanvas>
-                    <s.component tokens={tokens} pageNumber={i + 1} total={total} />
-                  </PitchSlideCanvas>
-                </div>
-                <div className="text-[10px] text-center py-1 bg-card text-muted-foreground truncate px-1">
-                  {i + 1}. {s.title}
-                </div>
-              </button>
-            ))}
+          <div className="flex items-center justify-between px-3 pt-2 text-[11px] text-muted-foreground">
+            <span>Arrasta as miniaturas para reordenar os slides.</span>
+            {hasCustomOrder && <span className="font-medium text-primary">Ordem personalizada ativa</span>}
           </div>
+          <PitchSlideThumbnails
+            slides={activeSlides}
+            currentIndex={safeIndex}
+            total={total}
+            tokens={tokens}
+            onSelect={setIndex}
+            onReorder={handleReorder}
+          />
         </div>
       </main>
     </div>

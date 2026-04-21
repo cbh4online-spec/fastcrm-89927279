@@ -45,6 +45,12 @@ export interface PitchTokens {
    * Keys are uppercase ISO codes (e.g. "USD"). EUR is always 1.
    */
   customRates?: Record<string, number>;
+  /**
+   * Ordem custom dos slides ativos (array de IDs). Se definido, sobrepõe-se
+   * à ordem natural de PITCH_SLIDES. IDs desconhecidos são ignorados; IDs
+   * em falta são acrescentados no fim mantendo a ordem original.
+   */
+  slideOrder?: string[];
 }
 
 export const DEFAULT_PRICING_PLANS: PitchPricingPlan[] = [
@@ -113,6 +119,7 @@ export const DEFAULT_TOKENS: PitchTokens = {
   tier: 'grow',
   customCurrencies: [],
   customRates: {},
+  slideOrder: undefined,
 };
 
 export function fillToken(value: string, fallback: string): string {
