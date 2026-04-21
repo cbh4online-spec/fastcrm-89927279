@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PITCH_SLIDES, DEFAULT_ENABLED_SLIDE_IDS, OPTIONAL_MODULE_SLIDE_IDS, BASE_MODULE_SLIDE_IDS, VERTICAL_SLIDE_IDS, PACK_SLIDE_IDS } from './slides';
 import { DEFAULT_MODULE_PRICES } from '@/lib/pitch/slideContent';
 import { CURRENCIES, convertPriceString, intervalLabel, TIERS, PITCH_TIERS, type PitchCurrency, type PitchBillingInterval, type PitchTier } from '@/lib/pitch/pricing';
+import { findMissingPrices } from '@/lib/pitch/validatePricing';
+import { AlertTriangle } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
