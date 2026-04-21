@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function PitchPresenterMode({ tokens, index, setIndex, onExit }: Props) {
-  const slides = getActiveSlides(tokens.enabledSlides);
+  const slides = getActiveSlides(tokens.enabledSlides, tokens.slideOrder);
   const total = slides.length;
   const safeIndex = Math.min(index, total - 1);
   const current = slides[safeIndex];
