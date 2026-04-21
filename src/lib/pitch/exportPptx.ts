@@ -506,8 +506,12 @@ export async function exportPitchToPptx(tokens: PitchTokens) {
       });
     });
     const monthlyConverted = monthlyEur * tierMult * fxRate;
-    const annualRecurringConverted = monthlyConverted * 10 + annualEur * tierMult * fxRate;
+    const explicitAnnualConverted = annualEur * tierMult * fxRate;
+    const annualFromMonthly = monthlyConverted * 10;
+    const annualRecurringConverted = annualFromMonthly + explicitAnnualConverted;
     const setupConverted = setupEur * tierMult * fxRate;
+    const hasMonthlyTotal = monthlyConverted > 0;
+    const hasExplicitAnnualTotal = explicitAnnualConverted > 0;
 
     // Left column — module list (top 10 by monthly).
     rows.sort((a, b) => b.monthlyConv - a.monthlyConv);
